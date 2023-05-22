@@ -1720,8 +1720,9 @@ def test_setitem_null_slice(data):
 
     result = orig.copy()
     result[:] = data[0]
-    expected = ArrowExtensionArray(
-        pa.array([data[0]] * len(data), type=data._pa_array.type)
+    expected = ArrowExtensionArray._from_sequence(
+        [data[0]] * len(data),
+        dtype=data._pa_array.type,
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -2934,3 +2935,142 @@ def test_infer_dtype_pyarrow_dtype(data, request):
         request.node.add_marker(mark)
 
     assert res == lib.infer_dtype(list(data), skipna=True)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_from_sequence_temporal(pa_type):
+    # GH 53171
+    val = 3
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        seq = [pd.Timedelta(val, unit=unit).as_unit(unit)]
+    else:
+        seq = [pd.Timestamp(val, unit=unit, tz=pa_type.tz).as_unit(unit)]
+
+    result = ArrowExtensionArray._from_sequence(seq, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([val], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_setitem_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr.copy()
+    result[:] = val
+    expected = ArrowExtensionArray(pa.array([1, 1, 1], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_arithmetic_temporal(pa_type, request):
+    # GH 53171
+    if pa_version_under8p0 and pa.types.is_duration(pa_type):
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowNotImplementedError,
+            reason="Function 'subtract_checked' has no kernel matching input types",
+        )
+        request.node.add_marker(mark)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    unit = pa_type.unit
+    result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
+    expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_comparison_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr > val
+    expected = ArrowExtensionArray(pa.array([False, True, True], type=pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_getitem_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    result = arr[1]
+    if pa.types.is_duration(pa_type):
+        expected = pd.Timedelta(2, unit=pa_type.unit).as_unit(pa_type.unit)
+        assert isinstance(result, pd.Timedelta)
+    else:
+        expected = pd.Timestamp(2, unit=pa_type.unit, tz=pa_type.tz).as_unit(
+            pa_type.unit
+        )
+        assert isinstance(result, pd.Timestamp)
+    assert result.unit == expected.unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_iter_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = list(arr)
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    assert result[0].unit == expected[0].unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_to_numpy_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = arr.to_numpy()
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    expected = np.array(expected, dtype=object)
+    assert result[0].unit == expected[0].unit
+    tm.assert_numpy_array_equal(result, expected)

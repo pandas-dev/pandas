@@ -444,10 +444,6 @@ class BaseArrayManager(DataManager):
         return True
 
     @property
-    def is_numeric_mixed_type(self) -> bool:
-        return all(is_numeric_dtype(t) for t in self.get_dtypes())
-
-    @property
     def any_extension_types(self) -> bool:
         """Whether any of the blocks in this manager are extension blocks"""
         return False  # any(block.is_extension for block in self.blocks)
@@ -1275,7 +1271,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
 
-    def getitem_mgr(self, indexer) -> SingleArrayManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> SingleArrayManager:
         new_array = self.array[indexer]
         new_index = self.index[indexer]
         return type(self)([new_array], [new_index])

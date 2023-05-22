@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
+        DtypeObj,
     )
 
     from pandas.core.arrays import (
@@ -140,7 +141,9 @@ def concat_compat(
     return result
 
 
-def _get_result_dtype(to_concat: Sequence[ArrayLike], non_empties: Sequence[ArrayLike]):
+def _get_result_dtype(
+    to_concat: Sequence[ArrayLike], non_empties: Sequence[ArrayLike]
+) -> tuple[bool, set[str], DtypeObj | None]:
     target_dtype = None
 
     dtypes = {obj.dtype for obj in to_concat}
