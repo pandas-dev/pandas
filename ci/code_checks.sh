@@ -119,10 +119,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
-        pandas.errors.EmptyDataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidIndexError \
         pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
@@ -172,16 +170,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Interval.closed \
-        pandas.Interval.left \
-        pandas.Interval.length \
-        pandas.Interval.right \
-        pandas.arrays.IntervalArray.left \
-        pandas.arrays.IntervalArray.right \
-        pandas.arrays.IntervalArray.closed \
-        pandas.arrays.IntervalArray.mid \
-        pandas.arrays.IntervalArray.length \
-        pandas.arrays.IntervalArray.is_non_overlapping_monotonic \
         pandas.arrays.IntervalArray.from_arrays \
         pandas.arrays.IntervalArray.to_tuples \
         pandas.Int8Dtype \
@@ -270,14 +258,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.values \
-        pandas.Index.dtype \
-        pandas.Index.inferred_type \
-        pandas.Index.shape \
-        pandas.Index.name \
-        pandas.Index.nbytes \
-        pandas.Index.ndim \
-        pandas.Index.size \
         pandas.Index.T \
         pandas.Index.memory_usage \
         pandas.Index.copy \
@@ -310,9 +290,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered \
         pandas.CategoricalIndex.as_unordered \
         pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.closed \
         pandas.IntervalIndex.values \
-        pandas.IntervalIndex.is_non_overlapping_monotonic \
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \

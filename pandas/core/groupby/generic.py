@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_dict_like,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_scalar,
 )
@@ -1397,7 +1398,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
-            return result
+            # GH #52849
+            if not self.as_index and is_list_like(func):
+                return result.reset_index()
+            else:
+                return result
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
