@@ -1102,7 +1102,7 @@ class TestParquetFastParquet(Base):
 
     def test_unsupported(self, fp):
         # period
-        df = pd.DataFrame({"a": pd.period_range("2013", freq="ME", periods=3)})
+        df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # error from fastparquet -> don't check exact error message
         self.check_error_on_write(df, fp, ValueError, None)
 

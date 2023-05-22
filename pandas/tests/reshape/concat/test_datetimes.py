@@ -361,7 +361,7 @@ class TestTimezoneConcat:
         tm.assert_series_equal(result, Series(x + y, dtype="object"))
 
         # tz and period
-        y = [pd.Period("2011-03", freq="ME"), pd.Period("2011-04", freq="ME")]
+        y = [pd.Period("2011-03", freq="M"), pd.Period("2011-04", freq="M")]
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y, dtype="object"))
 
@@ -487,7 +487,7 @@ class TestPeriodConcat:
 
     def test_concat_period_multiple_freq_series(self):
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
-        y = Series(pd.PeriodIndex(["2015-10-01", "2016-01-01"], freq="ME"))
+        y = Series(pd.PeriodIndex(["2015-10-01", "2016-01-01"], freq="M"))
         expected = Series([x[0], x[1], y[0], y[1]], dtype="object")
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
@@ -495,7 +495,7 @@ class TestPeriodConcat:
 
     def test_concat_period_other_series(self):
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
-        y = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="ME"))
+        y = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="M"))
         expected = Series([x[0], x[1], y[0], y[1]], dtype="object")
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)

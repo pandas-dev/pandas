@@ -215,13 +215,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["ME", "D", "H"])
+@pytest.mark.parametrize("freq", ["M", "D", "H"])
 def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
     empty_frame_dti["a"] = []
 
-    if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"

@@ -307,7 +307,7 @@ class TestPeriodIndexComparisons:
             Period("2011", freq="4M") >= base
 
         idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="4M")
-        rev_msg = r"Invalid comparison between dtype=period\[4ME\] and PeriodArray"
+        rev_msg = r"Invalid comparison between dtype=period\[4M\] and PeriodArray"
         idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
         with pytest.raises(TypeError, match=idx_msg):
             base <= idx
@@ -977,10 +977,10 @@ class TestPeriodIndexArithmetic:
         pi = tm.box_expected(pi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        result = pi + to_offset("3M")
+        result = pi + to_offset("3ME")
         tm.assert_equal(result, expected)
 
-        result = to_offset("3M") + pi
+        result = to_offset("3ME") + pi
         tm.assert_equal(result, expected)
 
     # ---------------------------------------------------------------
@@ -1209,7 +1209,7 @@ class TestPeriodIndexArithmetic:
     def test_pi_add_sub_timedeltalike_freq_mismatch_monthly(self, mismatched_freq):
         other = mismatched_freq
         rng = period_range("2014-01", "2016-12", freq="M")
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=ME\\)"
+        msg = "Input has different freq(=.+)? from Period.*?\\(freq=M\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
         with pytest.raises(IncompatibleFrequency, match=msg):
