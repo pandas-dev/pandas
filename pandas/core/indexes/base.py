@@ -1221,6 +1221,18 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> new_idx = idx.copy(name="idx2")
+        >>> ser = pd.Series([1, 2, 3], index=new_idx)
+        >>> ser
+        idx2
+        a   1
+        b   2
+        c   3
+        dtype: int64
         """
 
         name = self._validate_names(name=name, deep=deep)[0]

@@ -127,13 +127,19 @@ An ExtensionDtype for {dtype} data.
 
 This dtype uses ``pd.NA`` as missing value indicator.
 
-Attributes
-----------
-None
+Examples
+--------
+For Float32Dtype:
 
-Methods
--------
-None
+>>> ser = pd.Series([2.25, pd.NA], dtype=pd.Float32Dtype())
+>>> ser.dtype
+Float32Dtype()
+
+For Float64Dtype:
+
+>>> ser = pd.Series([2.25, pd.NA], dtype=pd.Float64Dtype())
+>>> ser.dtype
+Float64Dtype()
 """
 
 # create the Dtype
