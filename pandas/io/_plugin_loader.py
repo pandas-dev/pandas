@@ -62,6 +62,14 @@ else:
 
 
 def _create_reader_function(io_plugin, exchange_format):
+    """
+    Create and return a wrapper function for the original I/O reader.
+
+    We can't directly call the original reader implemented in
+    the connector, since we want to make sure that the returned value
+    of `read_<whatever>` is a pandas DataFrame, so we need to validate
+    it and possibly cast it.
+    """
     original_reader = getattr(io_plugin, f"{exchange_format}_reader")
 
     # TODO: Create this function dynamically so the resulting signature contains
@@ -86,10 +94,17 @@ def _create_reader_function(io_plugin, exchange_format):
             raise AssertionError("Returned object is not a DataFrame")
         return result
 
+    # TODO `function.wraps` changes the name of the wrapped function to the
+    # original `pandas_reader`, change it to the function exposed in pandas.
     return reader_wrapper
 
 
 def _create_series_writer_function(format_name):
+    """
+    When calling `Series.to_<whatever>` we call the dataframe writer, so
+    we need to convert the Series to a one column dataframe.
+    """
+
     def series_writer_wrapper(self, *args, **kwargs):
         dataframe_writer = getattr(self.to_frame(), f"to_{format_name}")
         dataframe_writer(*args, **kwargs)
@@ -98,6 +113,10 @@ def _create_series_writer_function(format_name):
 
 
 def load_io_plugins():
+    """
+    Looks for entrypoints in the `dataframe.io` group and creates the
+    corresponding pandas I/O methods.
+    """
     for dataframe_io_entry_point in entry_points().get("dataframe.io", []):
         format_name = dataframe_io_entry_point.name
         io_plugin = dataframe_io_entry_point.load()
