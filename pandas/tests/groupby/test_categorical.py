@@ -2067,11 +2067,8 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
     if as_index and (test_series or reduction_func == "size"):
         expected = expected.to_frame(reduction_func)
     if not test_series:
-        if not as_index:
-            # TODO: GH#52849 - as_index=False is not respected
-            expected = expected.set_index(keys)
-        expected.columns = MultiIndex(
-            levels=[["b"], [reduction_func]], codes=[[0], [0]]
+        expected.columns = MultiIndex.from_tuples(
+            [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
         )
     elif not as_index:
         expected.columns = keys + [reduction_func]

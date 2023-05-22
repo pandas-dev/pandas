@@ -346,6 +346,14 @@ class IndexOpsMixin(OpsMixin):
         dtype: object
         >>> s.ndim
         1
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.ndim
+        1
         """
         return 1
 
@@ -357,12 +365,24 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         scalar
-            The first element of Series.
+            The first element of Series or Index.
 
         Raises
         ------
         ValueError
-            If the data is not length-1.
+            If the data is not length = 1.
+
+        Examples
+        --------
+        >>> s = pd.Series([1])
+        >>> s.item()
+        1
+
+        For an index:
+
+        >>> s = pd.Series([1], index=['a'])
+        >>> s.index.item()
+        'a'
         """
         if len(self) == 1:
             return next(iter(self))
@@ -375,6 +395,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -382,6 +404,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.nbytes
+        24
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.nbytes
         24
         """
         return self._values.nbytes
@@ -393,6 +423,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -400,6 +432,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.size
+        3
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.size
         3
         """
         return len(self._values)
@@ -965,6 +1005,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_unique
+        True
+
+        >>> s = pd.Series([1, 2, 3, 1])
+        >>> s.is_unique
+        False
         """
         return self.nunique(dropna=False) == len(self)
 
@@ -976,6 +1026,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2])
+        >>> s.is_monotonic_increasing
+        True
+
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.is_monotonic_increasing
+        False
         """
         from pandas import Index
 
@@ -989,6 +1049,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 2, 1])
+        >>> s.is_monotonic_decreasing
+        True
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_monotonic_decreasing
+        False
         """
         from pandas import Index
 

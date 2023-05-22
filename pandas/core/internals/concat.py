@@ -29,14 +29,16 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
     isna_all,
 )
 
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.internals.array_manager import ArrayManager
 from pandas.core.internals.blocks import (
@@ -326,7 +328,10 @@ def _get_block_for_concat_plan(
         slc = lib.maybe_indices_to_slice(ax0_blk_indexer, max_len)
         # TODO: in all extant test cases 2023-04-08 we have a slice here.
         #  Will this always be the case?
-        nb = blk.getitem_block(slc)
+        if isinstance(slc, slice):
+            nb = blk.slice_block_columns(slc)
+        else:
+            nb = blk.take_block_columns(slc)
 
     # assert nb.shape == (len(bp), mgr.shape[1])
     return nb
