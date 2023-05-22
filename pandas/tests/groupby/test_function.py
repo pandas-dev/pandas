@@ -258,7 +258,7 @@ class TestNumericOnly:
         elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
                 [
-                    "category type does not support sum operations",
+                    "category\\[object\\] type does not support sum operations",
                     "[Cc]ould not convert",
                     "can't multiply sequence by non-int of type 'str'",
                 ]
@@ -276,7 +276,7 @@ class TestNumericOnly:
                 [
                     "[Cc]ould not convert",
                     "Categorical is not ordered",
-                    "category type does not support",
+                    "category\\[object\\] type does not support",
                     "can't multiply sequence",
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",

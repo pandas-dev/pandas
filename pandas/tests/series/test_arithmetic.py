@@ -576,7 +576,7 @@ class TestSeriesComparison:
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
 
-        msg = "Invalid comparison between dtype=category and str"
+        msg = r"Invalid comparison between dtype=category\[object\] and str"
         with pytest.raises(TypeError, match=msg):
             cat < "d"
         with pytest.raises(TypeError, match=msg):

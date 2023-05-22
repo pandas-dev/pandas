@@ -374,7 +374,10 @@ class TestDataFrameToRecords:
                     "index": False,
                     "column_dtypes": {"A": "int32", "B": CategoricalDtype(["a", "b"])},
                 },
-                (ValueError, "Invalid dtype category specified for column B"),
+                (
+                    ValueError,
+                    "Invalid dtype category\\[object\\] specified for column B",
+                ),
             ),
             # Check that bad types raise
             (

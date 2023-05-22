@@ -202,7 +202,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
 
     # TODO: Document public vs. private API
-    name = "category"
     type: type[CategoricalDtypeType] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
@@ -315,12 +314,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         if dtype is not None:
             # The dtype argument takes precedence over values.dtype (if any)
             if isinstance(dtype, str):
-                if dtype == "category":
+                if dtype.startswith("category"):
                     if ordered is None and cls.is_dtype(values):
                         # GH#49309 preserve orderedness
                         ordered = values.dtype.ordered
-
-                    dtype = CategoricalDtype(categories, ordered)
+                    cat_dtype = cls._get_categories_dtype_from_string(dtype)
+                    dtype = CategoricalDtype(categories, ordered, cat_dtype)
                 else:
                     raise ValueError(f"Unknown dtype {repr(dtype)}")
             elif categories is not None or ordered is not None:
@@ -371,20 +370,27 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # need ordered=None to ensure that operations specifying dtype="category" don't
         # override the ordered value for existing categoricals
 
-        if string == cls.name:
+        if string == "category":
             return cls(ordered=None)
 
         msg = f"Cannot construct a '{cls.__name__}' from '{string}'"
+        categories_dtype = cls._get_categories_dtype_from_string(string)
+        if categories_dtype is None:
+            raise TypeError(msg)
+        try:
+            return cls(categories_dtype=categories_dtype)
+        except (KeyError, TypeError, ValueError) as err:
+            # keyError is if "categories_dtype" key is not found
+            # TypeError if we pass a nonsense;
+            raise TypeError(msg) from err
+
+    @classmethod
+    def _get_categories_dtype_from_string(cls, string: str_type) -> str_type | None:
         match = cls._match.match(string)
-        if match:
-            d = match.groupdict()
-            try:
-                return cls(categories_dtype=d["categories_dtype"])
-            except (KeyError, TypeError, ValueError) as err:
-                # keyError is if "categories_dtype" key is not found
-                # TypeError if we pass a nonsense;
-                raise TypeError(msg) from err
-        raise TypeError(msg)
+        if match is None:
+            return None
+        d = match.groupdict()
+        return d.get("categories_dtype")
 
     @property
     def categories_dtype(self) -> Dtype:
@@ -435,7 +441,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         6) Any other comparison returns False
         """
         if isinstance(other, str):
-            return other == self.name
+            return other == self.name or other == "category"
         elif other is self:
             return True
         elif not (hasattr(other, "ordered") and hasattr(other, "categories")):
@@ -496,6 +502,15 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             f"CategoricalDtype(categories={data}, ordered={self.ordered}, "
             f"categories_dtype={self.categories_dtype})"
         )
+
+    @property
+    def name(self) -> str_type:
+        if self.categories is not None:
+            return f"category[{self.categories.dtype}]"
+        elif self.categories_dtype is not None:
+            return f"category[{self.categories_dtype}]"
+        else:
+            return "category"
 
     @cache_readonly
     def _hash_categories(self) -> int:

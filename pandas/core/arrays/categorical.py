@@ -1999,7 +1999,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _repr_footer(self) -> str:
         info = self._repr_categories_info()
-        return f"Length: {len(self)}\n{info}"
+        return f"Length: {len(self)}, dtype: {self.dtype}\n{info}"
 
     def _get_repr(
         self, length: bool = True, na_rep: str = "NaN", footer: bool = True

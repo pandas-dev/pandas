@@ -1019,7 +1019,7 @@ class TestCategoricalDtypeParametrized:
 
     def test_str_vs_repr(self, ordered):
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
-        assert str(c1) == "category"
+        assert str(c1) == "category[object]"
         # Py2 will have unicode prefixes
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "

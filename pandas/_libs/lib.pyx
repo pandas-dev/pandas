@@ -1388,6 +1388,12 @@ cdef object _try_infer_map(object dtype):
         val = getattr(dtype, attr, None)
         if val in _TYPE_MAP:
             return _TYPE_MAP[val]
+
+    # CategoricalDtype may have name category[dtype], so not caught above
+    name = getattr(dtype, "name", None)
+    if name.startswith("category["):
+        return _TYPE_MAP["category"]
+
     return None
 
 

@@ -1322,15 +1322,12 @@ class TestDataFrameAnalytics:
         data = DataFrame(data)
 
         if any(isinstance(x, CategoricalDtype) for x in data.dtypes):
-            with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
-            ):
+            msg = "dtype category\\[int64\\] does not support reduction"
+            with pytest.raises(TypeError, match=msg):
                 func(data)
 
             # method version
-            with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
-            ):
+            with pytest.raises(TypeError, match=msg):
                 getattr(DataFrame(data), func.__name__)(axis=None)
         else:
             msg = "'(any|all)' with datetime64 dtypes is deprecated"

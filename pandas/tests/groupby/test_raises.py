@@ -379,25 +379,25 @@ def test_groupby_raises_category(
         "cumcount": (None, ""),
         "cummax": (
             (NotImplementedError, TypeError),
-            "(category type does not support cummax operations|"
+            "(category\\[object\\] type does not support cummax operations|"
             "category dtype not supported|"
             "cummax is not supported for category dtype)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
-            "(category type does not support cummin operations|"
+            "(category\\[object\\] type does not support cummin operations|"
             "category dtype not supported|"
             "cummin is not supported for category dtype)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
-            "(category type does not support cumprod operations|"
+            "(category\\[object\\] type does not support cumprod operations|"
             "category dtype not supported|"
             "cumprod is not supported for category dtype)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
-            "(category type does not support cumsum operations|"
+            "(category\\[object\\] type does not support cumsum operations|"
             "category dtype not supported|"
             "cumsum is not supported for category dtype)",
         ),
@@ -423,7 +423,7 @@ def test_groupby_raises_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'mean'",
-                    "category dtype does not support aggregation 'mean'",
+                    r"category\[object\] dtype does not support aggregation 'mean'",
                 ]
             ),
         ),
@@ -432,7 +432,7 @@ def test_groupby_raises_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'median'",
-                    "category dtype does not support aggregation 'median'",
+                    r"category\[object\] dtype does not support aggregation 'median'",
                 ]
             ),
         ),
@@ -443,7 +443,10 @@ def test_groupby_raises_category(
             TypeError,
             r"unsupported operand type\(s\) for /: 'Categorical' and 'Categorical'",
         ),
-        "prod": (TypeError, "category type does not support prod operations"),
+        "prod": (
+            TypeError,
+            r"category\[object\] type does not support prod operations",
+        ),
         "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
@@ -451,7 +454,7 @@ def test_groupby_raises_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'sem'",
-                    "category dtype does not support aggregation 'sem'",
+                    r"category\[object\] dtype does not support aggregation 'sem'",
                 ]
             ),
         ),
@@ -462,7 +465,7 @@ def test_groupby_raises_category(
             "|".join(
                 [
                     "dtype category does not support reduction 'skew'",
-                    "category type does not support skew operations",
+                    r"category\[object\] type does not support skew operations",
                 ]
             ),
         ),
@@ -471,17 +474,17 @@ def test_groupby_raises_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'std'",
-                    "category dtype does not support aggregation 'std'",
+                    r"category\[object\] dtype does not support aggregation 'std'",
                 ]
             ),
         ),
-        "sum": (TypeError, "category type does not support sum operations"),
+        "sum": (TypeError, r"category\[object\] type does not support sum operations"),
         "var": (
             TypeError,
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'var'",
-                    "category dtype does not support aggregation 'var'",
+                    r"category\[object\] dtype does not support aggregation 'var'",
                 ]
             ),
         ),
@@ -519,10 +522,10 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "category type does not support sum operations"),
+        np.sum: (TypeError, r"category\[object\] type does not support sum operations"),
         np.mean: (
             TypeError,
-            "category dtype does not support aggregation 'mean'",
+            r"category\[object\] dtype does not support aggregation 'mean'",
         ),
     }[groupby_func_np]
 
@@ -572,25 +575,25 @@ def test_groupby_raises_category_on_category(
             (NotImplementedError, TypeError),
             "(cummax is not supported for category dtype|"
             "category dtype not supported|"
-            "category type does not support cummax operations)",
+            r"category\[object\] type does not support cummax operations)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
             "(cummin is not supported for category dtype|"
             "category dtype not supported|"
-            "category type does not support cummin operations)",
+            r"category\[object\] type does not support cummin operations)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(cumprod is not supported for category dtype|"
             "category dtype not supported|"
-            "category type does not support cumprod operations)",
+            r"category\[object\] type does not support cumprod operations)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
             "(cumsum is not supported for category dtype|"
             "category dtype not supported|"
-            "category type does not support cumsum operations)",
+            r"category\[object\] type does not support cumsum operations)",
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
@@ -610,13 +613,22 @@ def test_groupby_raises_category_on_category(
         else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (TypeError, "category dtype does not support aggregation 'mean'"),
-        "median": (TypeError, "category dtype does not support aggregation 'median'"),
+        "mean": (
+            TypeError,
+            r"category\[object\] dtype does not support aggregation 'mean'",
+        ),
+        "median": (
+            TypeError,
+            r"category\[object\] dtype does not support aggregation 'median'",
+        ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
-        "prod": (TypeError, "category type does not support prod operations"),
+        "prod": (
+            TypeError,
+            r"category\[object\] type does not support prod operations",
+        ),
         "quantile": (TypeError, ""),
         "rank": (None, ""),
         "sem": (
@@ -624,7 +636,7 @@ def test_groupby_raises_category_on_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'sem'",
-                    "category dtype does not support aggregation 'sem'",
+                    r"category\[object\] dtype does not support aggregation 'sem'",
                 ]
             ),
         ),
@@ -634,7 +646,7 @@ def test_groupby_raises_category_on_category(
             TypeError,
             "|".join(
                 [
-                    "category type does not support skew operations",
+                    r"category\[object\] type does not support skew operations",
                     "dtype category does not support reduction 'skew'",
                 ]
             ),
@@ -644,17 +656,17 @@ def test_groupby_raises_category_on_category(
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'std'",
-                    "category dtype does not support aggregation 'std'",
+                    r"category\[object\] dtype does not support aggregation 'std'",
                 ]
             ),
         ),
-        "sum": (TypeError, "category type does not support sum operations"),
+        "sum": (TypeError, r"category\[object\] type does not support sum operations"),
         "var": (
             TypeError,
             "|".join(
                 [
                     "'Categorical' .* does not support reduction 'var'",
-                    "category dtype does not support aggregation 'var'",
+                    r"category\[object\] dtype does not support aggregation 'var'",
                 ]
             ),
         ),

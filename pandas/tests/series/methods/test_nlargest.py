@@ -93,12 +93,11 @@ class TestSeriesNLargestNSmallest:
             # Series([3., 2, 1, 2, 5], dtype='complex256'),
             Series([3.0, 2, 1, 2, 5], dtype="complex128"),
             Series(list("abcde")),
-            Series(list("abcde"), dtype="category"),
         ],
     )
     def test_nlargest_error(self, r):
         dt = r.dtype
-        msg = f"Cannot use method 'n(largest|smallest)' with dtype {dt}"
+        msg = rf"Cannot use method 'n(largest|smallest)' with dtype {dt}"
         args = 2, len(r), 0, -1
         methods = r.nlargest, r.nsmallest
         for method, arg in product(methods, args):

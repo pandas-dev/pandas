@@ -1999,7 +1999,7 @@ def test_empty_groupby(
             elif is_per:
                 msg = "Period type does not support"
             else:
-                msg = "category type does not support"
+                msg = "category\\[.+\\] type does not support"
             if op == "skew":
                 msg = "|".join([msg, "does not support reduction 'skew'"])
             with pytest.raises(TypeError, match=msg):

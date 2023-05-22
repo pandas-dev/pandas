@@ -169,7 +169,7 @@ class TestCategoricalOps:
         # for unequal comps, but not for equal/not equal
         cat = Categorical([1, 2, 3], ordered=True)
 
-        msg = "Invalid comparison between dtype=category and int"
+        msg = r"Invalid comparison between dtype=category\[int64\] and int"
         with pytest.raises(TypeError, match=msg):
             cat < 4
         with pytest.raises(TypeError, match=msg):
@@ -398,6 +398,6 @@ class TestCategoricalOps:
     def test_numeric_like_ops_series_invalid(self):
         # invalid ufunc
         s = Series(Categorical([1, 2, 3, 4]))
-        msg = "Object with dtype category cannot perform the numpy op log"
+        msg = r"Object with dtype category\[int64\] cannot perform the numpy op log"
         with pytest.raises(TypeError, match=msg):
             np.log(s)

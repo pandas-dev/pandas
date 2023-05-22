@@ -290,7 +290,7 @@ class TestCategoricalRepr:
         a = Series(Categorical([1, 2, 3, 4]))
         exp = (
             "0    1\n1    2\n2    3\n3    4\n"
-            "dtype: category\nCategories (4, int64): [1, 2, 3, 4]"
+            "dtype: category[int64]\nCategories (4, int64): [1, 2, 3, 4]"
         )
 
         assert exp == a.__str__()
@@ -300,7 +300,7 @@ class TestCategoricalRepr:
             "0     a\n1     b\n"
             "     ..\n"
             "48    a\n49    b\n"
-            "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
+            "Length: 50, dtype: category[object]\nCategories (2, object): ['a', 'b']"
         )
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
@@ -309,7 +309,7 @@ class TestCategoricalRepr:
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
         exp = (
             "0    a\n1    b\n"
-            "dtype: category\n"
+            "dtype: category[object]\n"
             "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... 'w' < 'x' < 'y' < 'z']"
         )
         assert exp == a.__str__()
@@ -319,7 +319,7 @@ class TestCategoricalRepr:
         exp = """0    1
 1    2
 2    3
-dtype: category
+dtype: category[int64]
 Categories (3, int64): [1, 2, 3]"""
 
         assert repr(s) == exp
@@ -335,7 +335,7 @@ Categories (3, int64): [1, 2, 3]"""
 7    7
 8    8
 9    9
-dtype: category
+dtype: category[{np.int_().dtype}]
 Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
         assert repr(s) == exp
@@ -345,7 +345,7 @@ Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
         exp = """0    1
 1    2
 2    3
-dtype: category
+dtype: category[int64]
 Categories (3, int64): [1 < 2 < 3]"""
 
         assert repr(s) == exp
@@ -361,7 +361,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 7    7
 8    8
 9    9
-dtype: category
+dtype: category[{np.int_().dtype}]
 Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 
         assert repr(s) == exp
@@ -374,7 +374,7 @@ Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 2   2011-01-01 11:00:00
 3   2011-01-01 12:00:00
 4   2011-01-01 13:00:00
-dtype: category
+dtype: category[datetime64[ns]]
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
                                  2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa: E501
 
@@ -387,7 +387,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-
 2   2011-01-01 11:00:00-05:00
 3   2011-01-01 12:00:00-05:00
 4   2011-01-01 13:00:00-05:00
-dtype: category
+dtype: category[datetime64[ns, US/Eastern]]
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
                                              2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
                                              2011-01-01 13:00:00-05:00]"""  # noqa: E501
@@ -402,7 +402,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-
 2   2011-01-01 11:00:00
 3   2011-01-01 12:00:00
 4   2011-01-01 13:00:00
-dtype: category
+dtype: category[datetime64[ns]]
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
                                  2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa: E501
 
@@ -415,7 +415,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 2   2011-01-01 11:00:00-05:00
 3   2011-01-01 12:00:00-05:00
 4   2011-01-01 13:00:00-05:00
-dtype: category
+dtype: category[datetime64[ns, US/Eastern]]
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
                                              2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
                                              2011-01-01 13:00:00-05:00]"""  # noqa: E501
@@ -430,7 +430,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01
 2    2011-01-01 11:00
 3    2011-01-01 12:00
 4    2011-01-01 13:00
-dtype: category
+dtype: category[period[H]]
 Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
                             2011-01-01 13:00]"""  # noqa: E501
 
@@ -443,7 +443,7 @@ Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00
 2    2011-03
 3    2011-04
 4    2011-05
-dtype: category
+dtype: category[period[M]]
 Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 
         assert repr(s) == exp
@@ -456,7 +456,7 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
 2    2011-01-01 11:00
 3    2011-01-01 12:00
 4    2011-01-01 13:00
-dtype: category
+dtype: category[period[H]]
 Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
                             2011-01-01 13:00]"""  # noqa: E501
 
@@ -469,7 +469,7 @@ Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:
 2    2011-03
 3    2011-04
 4    2011-05
-dtype: category
+dtype: category[period[M]]
 Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
 
         assert repr(s) == exp
@@ -482,7 +482,7 @@ Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
 2   3 days
 3   4 days
 4   5 days
-dtype: category
+dtype: category[timedelta64[ns]]
 Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         assert repr(s) == exp
@@ -499,7 +499,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 7   7 days 01:00:00
 8   8 days 01:00:00
 9   9 days 01:00:00
-dtype: category
+dtype: category[timedelta64[ns]]
 Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
                                    8 days 01:00:00, 9 days 01:00:00]"""  # noqa: E501
@@ -514,7 +514,7 @@ Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
 2   3 days
 3   4 days
 4   5 days
-dtype: category
+dtype: category[timedelta64[ns]]
 Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(s) == exp
@@ -531,7 +531,7 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 7   7 days 01:00:00
 8   8 days 01:00:00
 9   9 days 01:00:00
-dtype: category
+dtype: category[timedelta64[ns]]
 Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <
                                    8 days 01:00:00 < 9 days 01:00:00]"""  # noqa: E501
