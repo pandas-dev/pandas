@@ -298,9 +298,9 @@ Performance improvements
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
 - Performance improvement in :meth:`Series.str.get` for pyarrow-backed strings (:issue:`53152`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
+- Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a pyarrow timestamp or duration dtype to numpy (:issue:`53326`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -422,6 +422,7 @@ Groupby/resample/rolling
   grouped :class:`Series` or :class:`DataFrame` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex`
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
+- Bug in :meth:`DataFrameGroupBy.agg` with lists not respecting ``as_index=False`` (:issue:`52849`)
 - Bug in :meth:`DataFrameGroupBy.apply` causing an error to be raised when the input :class:`DataFrame` was subset as a :class:`DataFrame` after groupby (``[['a']]`` and not ``['a']``) and the given callable returned :class:`Series` that were not all indexed the same. (:issue:`52444`)
 - Bug in :meth:`DataFrameGroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)
 - Bug in :meth:`GroupBy.groups` with a datetime key in conjunction with another key produced incorrect number of group keys (:issue:`51158`)
@@ -432,6 +433,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`crosstab` when ``dropna=False`` would not keep ``np.nan`` in the result (:issue:`10772`)
 - Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)
+- Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax`, where the axis dtype would be lost for empty frames (:issue:`53265`)
 - Bug in :meth:`DataFrame.merge` not merging correctly when having ``MultiIndex`` with single level (:issue:`52331`)
 - Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
@@ -449,6 +451,7 @@ ExtensionArray
 - Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
+- Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 -
 
