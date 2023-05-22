@@ -157,7 +157,9 @@ def _get_result_dtype(
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
     else:
-        target_dtype = np_find_common_type(*dtypes)
+        # error: Argument 1 to "np_find_common_type" has incompatible type
+        # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
+        target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
 
     return any_ea, kinds, target_dtype
 
