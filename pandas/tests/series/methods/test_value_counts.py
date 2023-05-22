@@ -68,16 +68,16 @@ class TestSeriesValueCounts:
 
     def test_value_counts_period(self):
         values = [
-            pd.Period("2011-01", freq="ME"),
-            pd.Period("2011-02", freq="ME"),
-            pd.Period("2011-03", freq="ME"),
-            pd.Period("2011-01", freq="ME"),
-            pd.Period("2011-01", freq="ME"),
-            pd.Period("2011-03", freq="ME"),
+            pd.Period("2011-01", freq="M"),
+            pd.Period("2011-02", freq="M"),
+            pd.Period("2011-03", freq="M"),
+            pd.Period("2011-01", freq="M"),
+            pd.Period("2011-01", freq="M"),
+            pd.Period("2011-03", freq="M"),
         ]
 
         exp_idx = pd.PeriodIndex(
-            ["2011-01", "2011-03", "2011-02"], freq="ME", name="xxx"
+            ["2011-01", "2011-03", "2011-02"], freq="M", name="xxx"
         )
         exp = Series([3, 2, 1], index=exp_idx, name="count")
 

@@ -62,9 +62,9 @@ class TestDropna:
 
     def test_dropna_period_dtype(self):
         # GH#13737
-        ser = Series([Period("2011-01", freq="ME"), Period("NaT", freq="ME")])
+        ser = Series([Period("2011-01", freq="M"), Period("NaT", freq="M")])
         result = ser.dropna()
-        expected = Series([Period("2011-01", freq="ME")])
+        expected = Series([Period("2011-01", freq="M")])
 
         tm.assert_series_equal(result, expected)
 

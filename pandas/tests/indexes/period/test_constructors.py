@@ -165,15 +165,15 @@ class TestPeriodIndex:
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd())
         tm.assert_index_equal(result, idx)
-        assert result.freq == "M"
+        assert result.freq == "ME"
 
         result = PeriodIndex(idx, freq="2M")
         tm.assert_index_equal(result, idx.asfreq("2M"))
-        assert result.freq == "2M"
+        assert result.freq == "2ME"
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd(2))
         tm.assert_index_equal(result, idx.asfreq("2M"))
-        assert result.freq == "2M"
+        assert result.freq == "2ME"
 
         result = PeriodIndex(idx, freq="D")
         exp = idx.asfreq("D", "e")
@@ -236,7 +236,7 @@ class TestPeriodIndex:
         idx = PeriodIndex([], freq="M")
         assert isinstance(idx, PeriodIndex)
         assert len(idx) == 0
-        assert idx.freq == "M"
+        assert idx.freq == "ME"
 
         with pytest.raises(ValueError, match="freq not specified"):
             PeriodIndex([])
@@ -282,7 +282,7 @@ class TestPeriodIndex:
             PeriodIndex(np.array(["NaT", "NaT"]))
 
     def test_constructor_incompat_freq(self):
-        msg = "Input has different freq=D from PeriodIndex\\(freq=ME\\)"
+        msg = "Input has different freq=D from PeriodIndex\\(freq=M\\)"
 
         with pytest.raises(IncompatibleFrequency, match=msg):
             PeriodIndex([Period("2011-01", freq="M"), NaT, Period("2011-01", freq="D")])
@@ -401,13 +401,21 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 
-    @pytest.mark.parametrize("freq", ["A", "M", "D", "T", "S"])
+    @pytest.mark.parametrize("freq", ["A", "D", "T", "S"])
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
     def test_constructor_freq_mult_dti_compat(self, mult, freq):
         freqstr = str(mult) + freq
         pidx = period_range(start="2014-04-01", freq=freqstr, periods=10)
         expected = date_range(start="2014-04-01", freq=freqstr, periods=10).to_period(
             freqstr
+        )
+        tm.assert_index_equal(pidx, expected)
+
+    @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
+    def test_constructor_freq_mult_dti_compat_month(self, mult):
+        pidx = period_range(start="2014-04-01", freq=str(mult) + "M", periods=10)
+        expected = date_range(start="2014-04-01", freq=str(mult) + "ME", periods=10).to_period(
+            str(mult) + "M"
         )
         tm.assert_index_equal(pidx, expected)
 

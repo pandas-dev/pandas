@@ -500,7 +500,7 @@ class TestIndexReductions:
     @pytest.mark.parametrize("data", [[], [NaT], [NaT, NaT, NaT]])
     def test_minmax_period_empty_nat(self, op, data):
         # Return NaT
-        obj = PeriodIndex(data, freq="ME")
+        obj = PeriodIndex(data, freq="M")
         result = getattr(obj, op)()
         assert result is NaT
 

@@ -17,7 +17,7 @@ class TestCombineFirst:
     def test_combine_first_period_datetime(self):
         # GH#3367
         didx = date_range(start="1950-01-31", end="1950-07-31", freq="ME")
-        pidx = period_range(start=Period("1950-1"), end=Period("1950-7"), freq="ME")
+        pidx = period_range(start=Period("1950-1"), end=Period("1950-7"), freq="M")
         # check to be consistent with DatetimeIndex
         for idx in [didx, pidx]:
             a = Series([1, np.nan, np.nan, 4, 5, np.nan, 7], index=idx)

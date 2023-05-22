@@ -67,7 +67,7 @@ class TestSeriesDescribe:
 
     def test_describe_period(self):
         ser = Series(
-            [Period("2020-01", "ME"), Period("2020-01", "ME"), Period("2019-12", "ME")],
+            [Period("2020-01", "M"), Period("2020-01", "M"), Period("2019-12", "M")],
             name="period_data",
         )
         result = ser.describe()

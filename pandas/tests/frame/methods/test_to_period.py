@@ -28,8 +28,8 @@ class TestToPeriod:
         exp.index = period_range("1/1/2000", "1/1/2001")
         tm.assert_equal(pts, exp)
 
-        pts = obj.to_period("ME")
-        exp.index = exp.index.asfreq("ME")
+        pts = obj.to_period("M")
+        exp.index = exp.index.asfreq("M")
         tm.assert_equal(pts, exp)
 
     def test_to_period_without_freq(self, frame_or_series):
@@ -61,8 +61,8 @@ class TestToPeriod:
         exp.columns = period_range("1/1/2000", "1/1/2001")
         tm.assert_frame_equal(pts, exp)
 
-        pts = df.to_period("ME", axis=1)
-        tm.assert_index_equal(pts.columns, exp.columns.asfreq("ME"))
+        pts = df.to_period("M", axis=1)
+        tm.assert_index_equal(pts.columns, exp.columns.asfreq("M"))
 
     def test_to_period_invalid_axis(self):
         dr = date_range("1/1/2000", "1/1/2001")

@@ -441,11 +441,11 @@ def test_map_box():
     tm.assert_series_equal(res, exp)
 
     # period
-    vals = [pd.Period("2011-01-01", freq="ME"), pd.Period("2011-01-02", freq="ME")]
+    vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
     s = Series(vals)
-    assert s.dtype == "period[ME]"
+    assert s.dtype == "period[M]"
     res = s.map(lambda x: f"{type(x).__name__}_{x.freqstr}")
-    exp = Series(["Period_ME", "Period_ME"])
+    exp = Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
 
 

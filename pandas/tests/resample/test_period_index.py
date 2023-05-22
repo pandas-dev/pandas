@@ -115,7 +115,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_basic_downsample(self, simple_period_range_series):
-        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="ME")
+        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="M")
         result = ts.resample("a-dec").mean()
 
         expected = ts.groupby(ts.index.year).mean()
@@ -147,7 +147,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize("freq", ["D", "2D"])
     def test_basic_upsample(self, freq, simple_period_range_series):
-        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="ME")
+        ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="M")
         result = ts.resample("a-dec").mean()
 
         resampled = result.resample(freq, convention="end").ffill()
@@ -174,9 +174,9 @@ class TestPeriodIndex:
         ts = Series([1, 2, 3, 4], index=rng)
 
         result = ts.resample("ME").ffill()
-        ex_index = period_range("2000-01", "2003-12", freq="ME")
+        ex_index = period_range("2000-01", "2003-12", freq="M")
 
-        expected = ts.asfreq("ME", how="start").reindex(ex_index, method="ffill")
+        expected = ts.asfreq("M", how="start").reindex(ex_index, method="ffill")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)

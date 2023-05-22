@@ -13,7 +13,7 @@ import pandas._testing as tm
 class TestIsna:
     def test_isna_period_dtype(self):
         # GH#13737
-        ser = Series([Period("2011-01", freq="ME"), Period("NaT", freq="ME")])
+        ser = Series([Period("2011-01", freq="M"), Period("NaT", freq="M")])
 
         expected = Series([False, True])
 

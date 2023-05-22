@@ -54,7 +54,7 @@ class TestToTimestamp:
 
     def test_to_timestamp_pi_nat(self):
         # GH#7228
-        index = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="ME", name="idx")
+        index = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="M", name="idx")
 
         result = index.to_timestamp("D")
         expected = DatetimeIndex(
@@ -63,12 +63,12 @@ class TestToTimestamp:
         tm.assert_index_equal(result, expected)
         assert result.name == "idx"
 
-        result2 = result.to_period(freq="ME")
+        result2 = result.to_period(freq="M")
         tm.assert_index_equal(result2, index)
         assert result2.name == "idx"
 
-        result3 = result.to_period(freq="3ME")
-        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3ME", name="idx")
+        result3 = result.to_period(freq="3M")
+        exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
         tm.assert_index_equal(result3, exp)
         assert result3.freqstr == "3ME"
 
@@ -95,7 +95,7 @@ class TestToTimestamp:
         assert stamps.freq == expected.freq
 
     def test_to_timestamp_pi_mult(self):
-        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="2ME", name="idx")
+        idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="2M", name="idx")
 
         result = idx.to_timestamp()
         expected = DatetimeIndex(["2011-01-01", "NaT", "2011-02-01"], name="idx")

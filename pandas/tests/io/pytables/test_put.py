@@ -352,7 +352,7 @@ def test_store_periodindex(tmp_path, setup_path, format):
     # GH 7796
     # test of PeriodIndex in HDFStore
     df = DataFrame(
-        np.random.randn(5, 1), index=pd.period_range("20220101", freq="ME", periods=5)
+        np.random.randn(5, 1), index=pd.period_range("20220101", freq="M", periods=5)
     )
 
     path = tmp_path / setup_path

@@ -53,7 +53,7 @@ class TestPeriodIndexEquals(EqualsTests):
         return period_range("2013-01-01", periods=5, freq="D")
 
     # TODO: de-duplicate with other test_equals2 methods
-    @pytest.mark.parametrize("freq", ["D", "ME"])
+    @pytest.mark.parametrize("freq", ["D", "M"])
     def test_equals2(self, freq):
         # GH#13107
         idx = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq=freq)

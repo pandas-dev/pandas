@@ -149,7 +149,7 @@ class TestSeriesIsIn:
 
     def test_isin_period_freq_mismatch(self):
         dti = date_range("2013-01-01", "2013-01-05")
-        pi = dti.to_period("ME")
+        pi = dti.to_period("M")
         ser = Series(pi)
 
         # We construct another PeriodIndex with the same i8 values
