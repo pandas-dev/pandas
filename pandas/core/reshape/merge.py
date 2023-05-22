@@ -123,6 +123,10 @@ _factorizers = {
     np.object_: libhashtable.ObjectFactorizer,
 }
 
+# See https://github.com/pandas-dev/pandas/issues/52451
+if np.intc is not np.int32:
+    _factorizers[np.intc] = libhashtable.Int64Factorizer
+
 _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 
 
@@ -994,6 +998,14 @@ class _MergeOperation:
                 else:
                     key_col = Index(lvals).where(~mask_left, rvals)
                     result_dtype = find_common_type([lvals.dtype, rvals.dtype])
+                    if (
+                        lvals.dtype.kind == "M"
+                        and rvals.dtype.kind == "M"
+                        and result_dtype.kind == "O"
+                    ):
+                        # TODO(non-nano) Workaround for common_type not dealing
+                        # with different resolutions
+                        result_dtype = key_col.dtype
 
                 if result._is_label_reference(name):
                     result[name] = result._constructor_sliced(

@@ -721,7 +721,9 @@ def test_time_field_bug():
     dfg_no_conversion_expected.index.name = "a"
 
     dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
-    dfg_conversion_expected = DataFrame({"b": datetime(2015, 1, 1), "c": 2}, index=[1])
+    dfg_conversion_expected = DataFrame(
+        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+    )
     dfg_conversion_expected.index.name = "a"
 
     tm.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
