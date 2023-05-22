@@ -28,14 +28,11 @@ import pandas._testing as tm
 def test_basic_indexing():
     s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
 
-    warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
     with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
+        s[5]
     with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+        s[5] = 0
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
@@ -43,12 +40,10 @@ def test_basic_indexing():
     s = s.sort_index()
 
     with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
+        s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
     with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+        s[5] = 0
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
@@ -150,9 +145,7 @@ def test_series_box_timestamp():
     assert isinstance(ser.iloc[4], Timestamp)
 
     ser = Series(rng, index=rng)
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert isinstance(ser[0], Timestamp)
+    assert isinstance(ser[0], Timestamp)
     assert isinstance(ser.at[rng[1]], Timestamp)
     assert isinstance(ser.iat[2], Timestamp)
     assert isinstance(ser.loc[rng[3]], Timestamp)
@@ -195,12 +188,12 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
 
 def test_setitem(datetime_series):
     datetime_series[datetime_series.index[5]] = np.NaN
-    datetime_series.iloc[[1, 2, 17]] = np.NaN
-    datetime_series.iloc[6] = np.NaN
-    assert np.isnan(datetime_series.iloc[6])
-    assert np.isnan(datetime_series.iloc[2])
+    datetime_series[[1, 2, 17]] = np.NaN
+    datetime_series[6] = np.NaN
+    assert np.isnan(datetime_series[6])
+    assert np.isnan(datetime_series[2])
     datetime_series[np.isnan(datetime_series)] = 5
-    assert not np.isnan(datetime_series.iloc[2])
+    assert not np.isnan(datetime_series[2])
 
 
 def test_setslice(datetime_series):
@@ -299,9 +292,9 @@ def test_underlying_data_conversion(using_copy_on_write):
 
 
 def test_preserve_refs(datetime_series):
-    seq = datetime_series.iloc[[5, 10, 15]]
-    seq.iloc[1] = np.NaN
-    assert not np.isnan(datetime_series.iloc[10])
+    seq = datetime_series[[5, 10, 15]]
+    seq[1] = np.NaN
+    assert not np.isnan(datetime_series[10])
 
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
@@ -449,24 +442,29 @@ class TestDeprecatedIndexers:
 
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
-    def _check_setitem_invalid(self, arr, invalid):
+    # but checks for warnings instead of errors.
+    def _check_setitem_invalid(self, ser, invalid, indexer):
         msg = "Setting an item of incompatible dtype is deprecated"
         msg = re.escape(msg)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr[0] = invalid
 
+        orig_ser = ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.iloc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.loc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        # note: commented-out in the EA case too
         # FIXME: don't leave commented-out
         # with tm.assert_produces_warning(FutureWarning, match=msg):
-        #     arr[:] = invalid
-
-        # with tm.assert_produces_warning(FutureWarning, match=msg):
-        #     arr[[0]] = invalid
-
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = [invalid]
-
-        # with pytest.raises(TypeError):
-        #    arr[[0]] = np.array([invalid], dtype=object)
+        #     ser[:] = invalid
 
     _invalid_scalars = [
         1 + 2j,
@@ -477,20 +475,24 @@ class TestSetitemValidation:
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
+    _indexers = [0, [0], slice(0, 1), [True, False, False]]
 
     @pytest.mark.parametrize(
         "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
     )
-    def test_setitem_validation_scalar_bool(self, invalid):
-        arr = Series([True, False, None], dtype="bool")
-        self._check_setitem_invalid(arr, invalid)
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_bool(self, invalid, indexer):
+        ser = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(ser, invalid, indexer)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
-    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype):
-        arr = Series([1, 2, 3], dtype=any_int_numpy_dtype)
-        self._check_setitem_invalid(arr, invalid)
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
+        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
-    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype):
-        arr = Series([1, 2, None], dtype=float_numpy_dtype)
-        self._check_setitem_invalid(arr, invalid)
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
+        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer)

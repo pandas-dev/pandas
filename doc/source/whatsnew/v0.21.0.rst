@@ -754,7 +754,7 @@ Previously assignments, ``.where()`` and ``.fillna()`` with a ``bool`` assignmen
 
 New behavior
 
-.. codeblock:: ipython
+.. code-block:: ipython
 
    In [7]: s[1] = True
 
