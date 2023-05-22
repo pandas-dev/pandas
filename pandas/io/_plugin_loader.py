@@ -51,7 +51,6 @@ from importlib.metadata import entry_points
 
 import pandas as pd
 
-
 supported_exchange_formats = ["pandas"]
 
 try:
@@ -64,6 +63,7 @@ else:
 
 def _create_reader_function(io_plugin, exchange_format):
     original_reader = getattr(io_plugin, f"{exchange_format}_reader")
+
     # TODO: Create this function dynamically so the resulting signature contains
     # the original parameters and not `*args` and `**kwargs`
     @functools.wraps(original_reader)
@@ -76,8 +76,12 @@ def _create_reader_function(io_plugin, exchange_format):
         if isinstance(result, list):
             assert all((isinstance(item, pd.DataFrame) for item in result))
         elif isinstance(result, dict):
-            assert all(((isinstance(k, str) and isinstance(v, pd.DataFrame))
-                       for k, v in result.items()))
+            assert all(
+                (
+                    (isinstance(k, str) and isinstance(v, pd.DataFrame))
+                    for k, v in result.items()
+                )
+            )
         elif not isinstance(result, pd.DataFrame):
             raise AssertionError("Returned object is not a DataFrame")
         return result
@@ -104,16 +108,22 @@ def load_io_plugins():
                     raise RuntimeError(
                         "More than one installed library provides the "
                         "`read_{format_name}` reader. Please uninstall one of "
-                        "the I/O plugins to be able to load the pandas I/O plugins.")
-                setattr(pd,
-                        f"read_{format_name}",
-                        _create_reader_function(io_plugin,
-                                                exchange_format))
+                        "the I/O plugins to be able to load the pandas I/O plugins."
+                    )
+                setattr(
+                    pd,
+                    f"read_{format_name}",
+                    _create_reader_function(io_plugin, exchange_format),
+                )
 
             if hasattr(io_plugin, f"{exchange_format}_writer"):
-                setattr(pd.DataFrame,
-                        f"to_{format_name}",
-                        getattr(io_plugin, f"{exchange_format}_writer"))
-                setattr(pd.Series,
-                        f"to_{format_name}",
-                        _create_series_writer_function(format_name))
+                setattr(
+                    pd.DataFrame,
+                    f"to_{format_name}",
+                    getattr(io_plugin, f"{exchange_format}_writer"),
+                )
+                setattr(
+                    pd.Series,
+                    f"to_{format_name}",
+                    _create_series_writer_function(format_name),
+                )
