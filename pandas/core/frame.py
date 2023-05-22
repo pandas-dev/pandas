@@ -9470,7 +9470,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         def is_columns_bool_dtypes(self) -> bool:
             for i in self.dtypes:
-                if(i != bool): 
+                if i != bool:
                     return False
             return True
 
@@ -9489,6 +9489,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_data = self._mgr.diff(n=periods, axis=axis)
         return self._constructor(new_data).__finalize__(self, "diff")
+
     # ----------------------------------------------------------------------
     # Function application
 
