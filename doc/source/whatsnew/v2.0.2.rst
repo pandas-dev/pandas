@@ -17,9 +17,9 @@ Fixed regressions
 - Fixed regression in :func:`merge` on Windows when dtype is ``np.intc`` (:issue:`52451`)
 - Fixed regression in :func:`read_sql` dropping columns with duplicated column names (:issue:`53117`)
 - Fixed regression in :meth:`DataFrame.loc` losing :class:`MultiIndex` name when enlarging object (:issue:`53053`)
+- Fixed regression in :meth:`DataFrame.loc` rows are not inserted into DataFrame from lists of one element (:issue:`52825`) 
 - Fixed regression in :meth:`DataFrame.to_string` printing a backslash at the end of the first row of data, instead of headers, when the DataFrame doesn't fit the line width (:issue:`53054`)
 - Fixed regression in :meth:`MultiIndex.join` returning levels in wrong order (:issue:`53093`)
-- Fixed regression in :meth:`DataFrame.loc` Rows are not inserted into DataFrame from lists of one element (:issue:`52825`) 
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.bug_fixes:
