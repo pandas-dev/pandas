@@ -1,11 +1,14 @@
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
     _testing as tm,
+    option_context,
 )
 from pandas.core.strings.accessor import StringMethods
 
@@ -38,6 +41,11 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
     warn = None
     if dtype == "category" and inferred_dtype == "time":
         warn = FutureWarning
+    if dtype == "category" and inferred_dtype == "bytes":
+        warn = FutureWarning
+        warn_msg = (
+            "Pandas type inference with a sequence of `bytes` objects is deprecated"
+        )
     if dtype == "category" and inferred_dtype == "date":
         warn = FutureWarning
         warn_msg = (
@@ -67,12 +75,16 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
         assert not hasattr(t, "str")
 
 
+@pytest.mark.parametrize(
+    "future_bytes", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
 @pytest.mark.parametrize("dtype", [object, "category"])
 def test_api_per_method(
     index_or_series,
     dtype,
     any_allowed_skipna_inferred_dtype,
     any_string_method,
+    future_bytes,
     request,
 ):
     # this test does not check correctness of the different methods,
@@ -109,7 +121,14 @@ def test_api_per_method(
         mark = pytest.mark.xfail(raises=raises, reason=reason)
         request.node.add_marker(mark)
 
-    t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+    warn = None
+    warn_msg = "type inference with a sequence of `bytes` objects"
+    if dtype == "category" and inferred_dtype == "bytes" and future_bytes is None:
+        warn = FutureWarning
+
+    with option_context("future.infer_bytes", future_bytes):
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            t = box(values, dtype=dtype)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)
 
     bytes_allowed = method_name in ["decode", "get", "len", "slice"]

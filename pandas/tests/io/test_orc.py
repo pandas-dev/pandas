@@ -82,7 +82,8 @@ def test_orc_reader_basic(dirpath):
         "long1": np.array([9223372036854775807, 9223372036854775807], dtype="int64"),
         "float1": np.array([1.0, 2.0], dtype="float32"),
         "double1": np.array([-15.0, -5.0], dtype="float64"),
-        "bytes1": np.array([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
+        # TODO: same thing with bytes[pyarrow]
+        "bytes1": pd.Series([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
         "string1": np.array(["hi", "bye"], dtype="object"),
     }
     expected = pd.DataFrame.from_dict(data)
@@ -259,7 +260,8 @@ def test_orc_roundtrip_file(dirpath):
         "long1": np.array([9223372036854775807, 9223372036854775807], dtype="int64"),
         "float1": np.array([1.0, 2.0], dtype="float32"),
         "double1": np.array([-15.0, -5.0], dtype="float64"),
-        "bytes1": np.array([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
+        # TODO: same thing with bytes[pyarrow] dtype
+        "bytes1": pd.Series([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
         "string1": np.array(["hi", "bye"], dtype="object"),
     }
     expected = pd.DataFrame.from_dict(data)
@@ -283,7 +285,8 @@ def test_orc_roundtrip_bytesio():
         "long1": np.array([9223372036854775807, 9223372036854775807], dtype="int64"),
         "float1": np.array([1.0, 2.0], dtype="float32"),
         "double1": np.array([-15.0, -5.0], dtype="float64"),
-        "bytes1": np.array([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
+        # TODO: same thing with bytes[pyarrow] dtype
+        "bytes1": pd.Series([b"\x00\x01\x02\x03\x04", b""], dtype="object"),
         "string1": np.array(["hi", "bye"], dtype="object"),
     }
     expected = pd.DataFrame.from_dict(data)

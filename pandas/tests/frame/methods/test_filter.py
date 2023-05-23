@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -112,11 +114,18 @@ class TestDataFrameFilter:
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)
 
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
     @pytest.mark.parametrize("name", ["a", "a"])
-    def test_filter_bytestring(self, name):
+    def test_filter_bytestring(self, name, future):
         # GH13101
-        df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
-        expected = DataFrame({b"a": [1, 2]})
+        warn = FutureWarning if future is None else None
+        msg = "type inference with a sequence of `bytes` objects"
+        with tm.assert_produces_warning(warn, match=msg):
+            with pd.option_context("future.infer_bytes", future):
+                df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
+                expected = DataFrame({b"a": [1, 2]})
 
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)

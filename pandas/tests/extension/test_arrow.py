@@ -741,6 +741,9 @@ class TestBaseReshaping(base.BaseReshapingTests):
             warn_msg = (
                 "Pandas type inference with a sequence of `datetime.date` objects"
             )
+        if pa.types.is_binary(pa_dtype):
+            warn = FutureWarning
+            warn_msg = "Pandas type inference with a sequence of `bytes` objects"
 
         with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
             super().test_stack(data, columns)
@@ -814,6 +817,9 @@ class TestBaseMethods(base.BaseMethodsTests):
         if pa.types.is_time(pa_dtype) or pa.types.is_date(pa_dtype):
             # TODO(#48964) This warning will be avoided by implementing
             #  ArrowExtensionArray.hash_pandas_object
+            warn = FutureWarning
+        elif pa.types.is_binary(pa_dtype):
+            warn_msg = "Pandas type inference with a sequence of `bytes`"
             warn = FutureWarning
 
         with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):

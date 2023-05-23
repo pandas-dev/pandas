@@ -163,7 +163,14 @@ def test_infer_dtype_from_scalar_errors():
     ],
 )
 def test_infer_dtype_from_scalar(value, expected):
-    dtype, _ = infer_dtype_from_scalar(value)
+    msg = "type inference with a `bytes` object is deprecated"
+    warn = None
+    if isinstance(value, bytes):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        dtype, _ = infer_dtype_from_scalar(value)
+
     assert is_dtype_equal(dtype, expected)
 
     with pytest.raises(TypeError, match="must be list-like"):

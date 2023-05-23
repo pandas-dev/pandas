@@ -1967,7 +1967,13 @@ class StringMethods(NoNewAttributesMixin):
             f = lambda x: decoder(x, errors)[0]
         arr = self._data.array
         # assert isinstance(arr, (StringArray,))
-        result = arr._str_map(f)
+
+        if isinstance(arr.dtype, ArrowDtype):
+            # TODO: is there a performant way to do this?
+            res_values = arr.map(f)
+            result = type(arr)._from_sequence(res_values)
+        else:
+            result = arr._str_map(f)
         return self._wrap_result(result)
 
     @forbid_nonstring_types(["bytes"])

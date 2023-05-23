@@ -5066,7 +5066,16 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            data = Series(data, copy=False).str.decode(encoding, errors=errors)._values
+            with warnings.catch_warnings():
+                # Deprecation about inferring bytes to bytes[pyarrow] dtype
+                # TODO: try to avoid this altogether
+                warnings.filterwarnings("ignore", category=FutureWarning)
+
+                data = (
+                    Series(data, copy=False).str.decode(encoding, errors=errors)._values
+                ).astype(object, copy=False)
+                # TODO: if we have pyarrow str instead of object here to begin
+                #  with, can we avoid object dtype cast here?
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 

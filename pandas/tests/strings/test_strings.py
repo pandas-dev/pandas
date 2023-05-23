@@ -6,11 +6,14 @@ from datetime import (
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    option_context,
 )
 import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
@@ -523,34 +526,54 @@ def test_encode_decode(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_encode_errors_kwarg(any_string_dtype):
-    ser = Series(["a", "b", "a\x9d"], dtype=any_string_dtype)
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_encode_errors_kwarg(any_string_dtype, future):
+    with option_context("future.infer_bytes", future):
+        ser = Series(["a", "b", "a\x9d"], dtype=any_string_dtype)
 
-    msg = (
-        r"'charmap' codec can't encode character '\\x9d' in position 1: "
-        "character maps to <undefined>"
-    )
-    with pytest.raises(UnicodeEncodeError, match=msg):
-        ser.str.encode("cp1252")
+        msg = (
+            r"'charmap' codec can't encode character '\\x9d' in position 1: "
+            "character maps to <undefined>"
+        )
+        with pytest.raises(UnicodeEncodeError, match=msg):
+            ser.str.encode("cp1252")
 
-    result = ser.str.encode("cp1252", "ignore")
-    expected = ser.map(lambda x: x.encode("cp1252", "ignore"))
-    tm.assert_series_equal(result, expected)
+        result = ser.str.encode("cp1252", "ignore")
+
+        warn_msg = "type inference with a sequence of `bytes` objects"
+        warn = FutureWarning if future is None else None
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            expected = ser.map(lambda x: x.encode("cp1252", "ignore"))
+
+        if future is True:
+            expected = expected.astype(object)
+        tm.assert_series_equal(result, expected)
 
 
-def test_decode_errors_kwarg():
-    ser = Series([b"a", b"b", b"a\x9d"])
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_decode_errors_kwarg(future):
+    warn_msg = "type inference with a sequence of `bytes` objects"
+    warn = FutureWarning if future is None else None
+    with option_context("future.infer_bytes", future):
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            ser = Series([b"a", b"b", b"a\x9d"])
 
-    msg = (
-        "'charmap' codec can't decode byte 0x9d in position 1: "
-        "character maps to <undefined>"
-    )
-    with pytest.raises(UnicodeDecodeError, match=msg):
-        ser.str.decode("cp1252")
+        msg = (
+            "'charmap' codec can't decode byte 0x9d in position 1: "
+            "character maps to <undefined>"
+        )
+        with pytest.raises(UnicodeDecodeError, match=msg):
+            ser.str.decode("cp1252")
 
-    result = ser.str.decode("cp1252", "ignore")
-    expected = ser.map(lambda x: x.decode("cp1252", "ignore"))
-    tm.assert_series_equal(result, expected)
+        result = ser.str.decode("cp1252", "ignore")
+        expected = ser.map(lambda x: x.decode("cp1252", "ignore"))
+        if future:
+            expected = expected.astype("string[pyarrow]")
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -643,9 +666,18 @@ def test_str_accessor_no_new_attributes(any_string_dtype):
         ser.str.xlabel = "a"
 
 
-def test_cat_on_bytes_raises():
-    lhs = Series(np.array(list("abc"), "S1").astype(object))
-    rhs = Series(np.array(list("def"), "S1").astype(object))
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_cat_on_bytes_raises(future):
+    warn_msg = "type inference with a sequence of `bytes` objects"
+    warn = FutureWarning if future is None else None
+
+    with option_context("future.infer_bytes", future):
+        with tm.assert_produces_warning(warn, match=warn_msg):
+            lhs = Series(np.array(list("abc"), "S1").astype(object))
+            rhs = Series(np.array(list("def"), "S1").astype(object))
+
     msg = "Cannot use .str.cat with values of inferred dtype 'bytes'"
     with pytest.raises(TypeError, match=msg):
         lhs.str.cat(rhs)

@@ -311,7 +311,13 @@ def test_maybe_promote_any_with_bytes(any_numpy_dtype):
     # output is not a generic bytes, but corresponds to expected_dtype
     exp_val_for_scalar = np.array([fill_value], dtype=expected_dtype)[0]
 
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+    msg = "type inference with a `bytes` object"
+    warn = None
+    if any_numpy_dtype in ["timedelta64[ns]", "datetime64[ns]"]:
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype):
@@ -330,7 +336,13 @@ def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype):
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
 
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+    msg = "type inference with a `bytes` object is deprecated"
+    warn = None
+    if any_numpy_dtype is bytes and datetime64_dtype == "datetime64[ns]":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 @pytest.mark.parametrize(
@@ -413,7 +425,13 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
 
-    _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
+    msg = "type inference with a `bytes` object is deprecated"
+    warn = None
+    if any_numpy_dtype is bytes and timedelta64_dtype == "timedelta64[ns]":
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        _check_promote(dtype, fill_value, expected_dtype, exp_val_for_scalar)
 
 
 @pytest.mark.parametrize(

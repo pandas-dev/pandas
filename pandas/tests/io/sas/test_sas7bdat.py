@@ -14,6 +14,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+bytes_msg = "Pandas type inference with a sequence of `bytes` objects is deprecated"
+
 
 @pytest.fixture
 def dirpath(datapath):
@@ -39,6 +41,9 @@ def data_test_ix(request, dirpath):
 
 # https://github.com/cython/cython/issues/1720
 class TestSAS7BDAT:
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @pytest.mark.slow
     def test_from_file(self, dirpath, data_test_ix):
         df0, test_ix = data_test_ix
@@ -47,6 +52,9 @@ class TestSAS7BDAT:
             df = pd.read_sas(fname, encoding="utf-8")
             tm.assert_frame_equal(df, df0)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @pytest.mark.slow
     def test_from_buffer(self, dirpath, data_test_ix):
         df0, test_ix = data_test_ix
@@ -61,6 +69,9 @@ class TestSAS7BDAT:
                 df = rdr.read()
             tm.assert_frame_equal(df, df0, check_exact=False)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @pytest.mark.slow
     def test_from_iterator(self, dirpath, data_test_ix):
         df0, test_ix = data_test_ix
@@ -72,6 +83,9 @@ class TestSAS7BDAT:
                 df = rdr.read(3)
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
 
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @pytest.mark.slow
     def test_path_pathlib(self, dirpath, data_test_ix):
         df0, test_ix = data_test_ix
@@ -80,6 +94,9 @@ class TestSAS7BDAT:
             df = pd.read_sas(fname, encoding="utf-8")
             tm.assert_frame_equal(df, df0)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @td.skip_if_no("py.path")
     @pytest.mark.slow
     def test_path_localpath(self, dirpath, data_test_ix):
@@ -91,6 +108,9 @@ class TestSAS7BDAT:
             df = pd.read_sas(fname, encoding="utf-8")
             tm.assert_frame_equal(df, df0)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Pandas type inference with a sequence of `bytes`:FutureWarning"
+    )
     @pytest.mark.slow
     @pytest.mark.parametrize("chunksize", (3, 5, 10, 11))
     @pytest.mark.parametrize("k", range(1, 17))
@@ -103,23 +123,42 @@ class TestSAS7BDAT:
                 y += x.shape[0]
         assert y == rdr.row_count
 
-    def test_iterator_read_too_much(self, dirpath):
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
+    def test_iterator_read_too_much(self, dirpath, future):
         # github #14734
         fname = os.path.join(dirpath, "test1.sas7bdat")
+
+        warn = FutureWarning if future is None else None
+
         with pd.read_sas(
             fname, format="sas7bdat", iterator=True, encoding="utf-8"
         ) as rdr:
-            d1 = rdr.read(rdr.row_count + 20)
+            with tm.assert_produces_warning(warn, match=bytes_msg):
+                with pd.option_context("future.infer_bytes", future):
+                    d1 = rdr.read(rdr.row_count + 20)
 
         with pd.read_sas(fname, iterator=True, encoding="utf-8") as rdr:
-            d2 = rdr.read(rdr.row_count + 20)
+            with tm.assert_produces_warning(warn, match=bytes_msg):
+                with pd.option_context("future.infer_bytes", future):
+                    d2 = rdr.read(rdr.row_count + 20)
         tm.assert_frame_equal(d1, d2)
 
 
-def test_encoding_options(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_encoding_options(datapath, future):
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
-    df1 = pd.read_sas(fname)
-    df2 = pd.read_sas(fname, encoding="utf-8")
+
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df1 = pd.read_sas(fname)
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df2 = pd.read_sas(fname, encoding="utf-8")
     for col in df1.columns:
         try:
             df1[col] = df1[col].str.decode("utf-8")
@@ -130,31 +169,54 @@ def test_encoding_options(datapath):
     from pandas.io.sas.sas7bdat import SAS7BDATReader
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
-        df3 = rdr.read()
+        with tm.assert_produces_warning(warn, match=bytes_msg):
+            with pd.option_context("future.infer_bytes", future):
+                df3 = rdr.read()
     for x, y in zip(df1.columns, df3.columns):
         assert x == y.decode()
 
 
-def test_encoding_infer(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_encoding_infer(datapath, future):
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
+
+    warn = FutureWarning if future is None else None
 
     with pd.read_sas(fname, encoding="infer", iterator=True) as df1_reader:
         # check: is encoding inferred correctly from file
         assert df1_reader.inferred_encoding == "cp1252"
-        df1 = df1_reader.read()
+        with tm.assert_produces_warning(warn, match=bytes_msg):
+            with pd.option_context("future.infer_bytes", future):
+                df1 = df1_reader.read()
 
     with pd.read_sas(fname, encoding="cp1252", iterator=True) as df2_reader:
-        df2 = df2_reader.read()
+        with tm.assert_produces_warning(warn, match=bytes_msg):
+            with pd.option_context("future.infer_bytes", future):
+                df2 = df2_reader.read()
 
     # check: reader reads correct information
     tm.assert_frame_equal(df1, df2)
 
 
-def test_productsales(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_productsales(datapath, future):
     fname = datapath("io", "sas", "data", "productsales.sas7bdat")
-    df = pd.read_sas(fname, encoding="utf-8")
+
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df = pd.read_sas(fname, encoding="utf-8")
     fname = datapath("io", "sas", "data", "productsales.csv")
     df0 = pd.read_csv(fname, parse_dates=["MONTH"])
+    if future:
+        # TODO: shouldn't read_csv infer to string[pyarrow]
+        cols = ["COUNTRY", "REGION", "DIVISION", "PRODTYPE", "PRODUCT"]
+        df0[cols] = df0[cols].astype("string[pyarrow]")
+
     vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
@@ -205,14 +267,24 @@ def test_compact_numerical_values(datapath, column):
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
-def test_many_columns(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_many_columns(datapath, future):
     # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
 
-    df = pd.read_sas(fname, encoding="latin-1")
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df = pd.read_sas(fname, encoding="latin-1")
 
     fname = datapath("io", "sas", "data", "many_columns.csv")
     df0 = pd.read_csv(fname, encoding="latin-1")
+    if future:
+        # TODO: shouldn't read_csv already do this?
+        cols = ["DATASRC", "PDDOCID", "nvitl", "treatment", "VISIT_NO"]
+        df0[cols] = df0[cols].astype("string[pyarrow]")
     tm.assert_frame_equal(df, df0)
 
 
@@ -257,13 +329,20 @@ def round_datetime_to_ms(ts):
         return ts
 
 
-def test_max_sas_date(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_max_sas_date(datapath, future):
     # GH 20927
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
     #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
     #    sas7bdat module
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
-    df = pd.read_sas(fname, encoding="iso-8859-1")
+
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df = pd.read_sas(fname, encoding="iso-8859-1")
 
     # SAS likes to left pad strings with spaces - lstrip before comparing
     df = df.map(lambda x: x.lstrip() if isinstance(x, str) else x)
@@ -292,7 +371,10 @@ def test_max_sas_date(datapath):
     tm.assert_frame_equal(df, expected)
 
 
-def test_max_sas_date_iterator(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_max_sas_date_iterator(datapath, future):
     # GH 20927
     # when called as an iterator, only those chunks with a date > pd.Timestamp.max
     # are returned as datetime.datetime, if this happens that whole chunk is returned
@@ -300,18 +382,24 @@ def test_max_sas_date_iterator(datapath):
     col_order = ["text", "dt_as_float", "dt_as_dt", "date_as_float", "date_as_date"]
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     results = []
-    for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
-        # SAS likes to left pad strings with spaces - lstrip before comparing
-        df = df.map(lambda x: x.lstrip() if isinstance(x, str) else x)
-        # GH 19732: Timestamps imported from sas will incur floating point errors
-        try:
-            df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
-        except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
-            df = df.map(round_datetime_to_ms)
-        except AttributeError:
-            df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
-        df.reset_index(inplace=True, drop=True)
-        results.append(df)
+
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
+                # SAS likes to left pad strings with spaces - lstrip before comparing
+                df = df.map(lambda x: x.lstrip() if isinstance(x, str) else x)
+                # GH 19732: Timestamps imported from sas will incur floating
+                #  point errors
+                try:
+                    df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
+                except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
+                    df = df.map(round_datetime_to_ms)
+                except AttributeError:
+                    df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
+                df.reset_index(inplace=True, drop=True)
+                results.append(df)
+
     expected = [
         pd.DataFrame(
             {
@@ -383,12 +471,22 @@ def test_rle_rdc_exceptions(
         pd.read_sas(io.BytesIO(data), format="sas7bdat")
 
 
-def test_0x40_control_byte(datapath):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_0x40_control_byte(datapath, future):
     # GH 31243
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
-    df = pd.read_sas(fname, encoding="ascii")
+
+    warn = FutureWarning if future is None else None
+    with tm.assert_produces_warning(warn, match=bytes_msg):
+        with pd.option_context("future.infer_bytes", future):
+            df = pd.read_sas(fname, encoding="ascii")
     fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
     df0 = pd.read_csv(fname, dtype="object")
+    if future:
+        # TODO: shouldn't read_csv infer to pyarrow?
+        df0 = df0.astype("string[pyarrow]")
     tm.assert_frame_equal(df, df0)
 
 

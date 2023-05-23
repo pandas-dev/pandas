@@ -2910,7 +2910,13 @@ supported types."""
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                data[col] = data[col].fillna("").apply(_pad_bytes, args=(typ,))
+                with warnings.catch_warnings():
+                    # deprecated behavior with sequence of bytes, will infer
+                    #  to bytes[pyarrow]
+                    # TODO: can we avoid this altogether
+                    warnings.filterwarnings("ignore", category=FutureWarning)
+
+                    data[col] = data[col].fillna("").apply(_pad_bytes, args=(typ,))
                 stype = f"S{typ}"
                 dtypes[col] = stype
                 data[col] = data[col].astype(stype)

@@ -1272,6 +1272,7 @@ cdef class Seen:
         bint interval_        # seen_interval
         bint time_
         bint date_
+        bint bytes_
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1300,6 +1301,7 @@ cdef class Seen:
         self.interval_ = False
         self.time_ = False
         self.date_ = False
+        self.bytes_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2595,6 +2597,12 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif isinstance(val, bytes):
+            if convert_non_numeric:
+                seen.bytes_ = True
+            else:
+                seen.object_ = True
+            break
         elif PyTime_Check(val):
             if convert_non_numeric and val.tzinfo is None:
                 seen.time_ = True
@@ -2605,8 +2613,37 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.object_ = True
             break
 
-    # we try to coerce datetime w/tz but must all have the same tz
-    if seen.datetimetz_:
+    if seen.bytes_:
+        if is_bytes_array(objects):
+            opt = get_option("future.infer_bytes")
+            if opt is True:
+                import pyarrow as pa
+
+                from pandas.core.dtypes.dtypes import ArrowDtype
+
+                obj = pa.array(objects)
+                dtype = ArrowDtype(obj.type)
+                return dtype.construct_array_type()(obj)
+            elif opt is False:
+                # explicitly set to keep the old behavior and avoid the warning
+                pass
+            else:
+                from pandas.util._exceptions import find_stack_level
+                warnings.warn(
+                    "Pandas type inference with a sequence of `bytes` "
+                    "objects is deprecated. In a future version, this will give "
+                    "bytes[pyarrow] dtype, which will require pyarrow to be "
+                    "installed. To opt in to the new behavior immediately set "
+                    "`pd.set_option('future.infer_bytes', True)`. To keep the "
+                    "old behavior pass `dtype=object`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        seen.object_ = True
+
+    elif seen.datetimetz_:
+        # we try to coerce datetime w/tz but must all have the same tz
         if is_datetime_with_singletz_array(objects):
             from pandas import DatetimeIndex
 

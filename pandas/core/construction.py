@@ -415,6 +415,30 @@ def array(
                     stacklevel=find_stack_level(),
                 )
 
+        elif inferred_dtype == "bytes":
+            opt = get_option("future.infer_bytes")
+
+            if opt is True:
+                import pyarrow as pa
+
+                obj = pa.array(data)
+                dtype = ArrowDtype(obj.type)
+                return dtype.construct_array_type()(obj)
+            elif opt is False:
+                # explicitly set to keep the old behavior and avoid the warning
+                pass
+            else:
+                warnings.warn(
+                    "Pandas type inference with a sequence of `bytes` "
+                    "objects is deprecated. In a future version, this will give "
+                    "bytes[pyarrow] dtype, which will require pyarrow to be "
+                    "installed. To opt in to the new behavior immediately set "
+                    "`pd.set_option('future.infer_bytes', True)`. To keep the "
+                    "old behavior pass `dtype=object`.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]

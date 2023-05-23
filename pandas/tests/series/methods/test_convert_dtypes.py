@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -225,12 +227,23 @@ class TestSeriesConvertDtypes:
         df = pd.DataFrame({"A": pd.array([True])})
         tm.assert_frame_equal(df, df.convert_dtypes())
 
-    def test_convert_byte_string_dtype(self):
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
+    def test_convert_byte_string_dtype(self, future):
         # GH-43183
         byte_str = b"binary-string"
 
-        df = pd.DataFrame(data={"A": byte_str}, index=[0])
-        result = df.convert_dtypes()
+        with pd.option_context("future.infer_bytes", future):
+            warn_msg = "type inference with a `bytes` object"
+            warn = FutureWarning if future is None else None
+            with tm.assert_produces_warning(warn, match=warn_msg):
+                df = pd.DataFrame(data={"A": byte_str}, index=[0])
+
+            warn_msg2 = "type inference with a sequence of `bytes` objects"
+            with tm.assert_produces_warning(warn, match=warn_msg2):
+                result = df.convert_dtypes()
+
         expected = df
         tm.assert_frame_equal(result, expected)
 

@@ -316,13 +316,25 @@ Look,a snake,🐍"""
             ),
         ],
     )
-    def test_read_fspath_all(self, reader, module, path, datapath):
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
+    def test_read_fspath_all(self, reader, module, path, datapath, future):
         pytest.importorskip(module)
         path = datapath(*path)
 
         mypath = CustomFSPath(path)
-        result = reader(mypath)
-        expected = reader(path)
+
+        msg = "type inference with a sequence of `bytes` objects"
+        warn = None
+        if reader is pd.read_sas and future is None:
+            warn = FutureWarning
+
+        with pd.option_context("future.infer_bytes", future):
+            with tm.assert_produces_warning(warn, match=msg):
+                result = reader(mypath)
+            with tm.assert_produces_warning(warn, match=msg):
+                expected = reader(path)
 
         if path.endswith(".pickle"):
             # categorical

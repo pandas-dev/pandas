@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -309,11 +311,22 @@ def test_invalid_key():
         hash_pandas_object(Series(list("abc")), hash_key="foo")
 
 
-def test_already_encoded(index):
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
+def test_already_encoded(index, future):
     # If already encoded, then ok.
-    obj = Series(list("abc")).str.encode("utf8")
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    msg = "type inference with a sequence of `bytes` objects"
+    warn = None
+    if future is None:
+        warn = FutureWarning
+
+    with pd.option_context("future.infer_bytes", future):
+        obj = Series(list("abc")).str.encode("utf8")
+        with tm.assert_produces_warning(warn, match=msg):
+            a = hash_pandas_object(obj, index=index)
+            b = hash_pandas_object(obj, index=index)
+
     tm.assert_series_equal(a, b)
 
 

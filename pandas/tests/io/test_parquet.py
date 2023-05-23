@@ -122,7 +122,8 @@ def df_full():
             "string": list("abc"),
             "string_with_nan": ["a", np.nan, "c"],
             "string_with_none": ["a", None, "c"],
-            "bytes": [b"foo", b"bar", b"baz"],
+            # TODO: same thing with bytes[pyarrow] here
+            "bytes": pd.Series([b"foo", b"bar", b"baz"], dtype=object),
             "unicode": ["foo", "bar", "baz"],
             "int": list(range(1, 4)),
             "uint": np.arange(3, 6).astype("u1"),
@@ -1054,7 +1055,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
         # bytes
-        df.columns = [b"foo", b"bar"]
+        df.columns = pd.Index([b"foo", b"bar"], dtype=object)
         with pytest.raises(NotImplementedError, match="|S3"):
             # Bytes fails on read_parquet
             check_round_trip(df, pa)
@@ -1093,7 +1094,7 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, err, msg)
 
         # bytes
-        df.columns = [b"foo", b"bar"]
+        df.columns = pd.Index([b"foo", b"bar"], dtype=object)
         self.check_error_on_write(df, fp, err, msg)
 
         # python object

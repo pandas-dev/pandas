@@ -11,6 +11,8 @@ from warnings import (
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -322,16 +324,21 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
     tm.assert_series_equal(read_hdf(path, "ss4"), concat([df["B"], df2["B"]]))
 
 
+@pytest.mark.parametrize(
+    "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+)
 @pytest.mark.parametrize("format", ["fixed", "table"])
-def test_to_hdf_errors(tmp_path, format, setup_path):
+def test_to_hdf_errors(tmp_path, format, setup_path, future):
     data = ["\ud800foo"]
-    ser = Series(data, index=Index(data))
-    path = tmp_path / setup_path
-    # GH 20835
-    ser.to_hdf(path, "table", format=format, errors="surrogatepass")
 
-    result = read_hdf(path, "table", errors="surrogatepass")
-    tm.assert_series_equal(result, ser)
+    with pd.option_context("future.infer_bytes", future):
+        ser = Series(data, index=Index(data))
+        path = tmp_path / setup_path
+        # GH 20835
+        ser.to_hdf(path, "table", format=format, errors="surrogatepass")
+
+        result = read_hdf(path, "table", errors="surrogatepass")
+        tm.assert_series_equal(result, ser)
 
 
 def test_create_table_index(setup_path):

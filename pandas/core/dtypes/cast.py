@@ -860,7 +860,25 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             import pyarrow as pa
 
             pa_dtype = pa.date32()
+            dtype = ArrowDtype(pa_dtype)
 
+    elif isinstance(val, bytes):
+        opt = get_option("future.infer_bytes")
+        if opt is None:
+            warnings.warn(
+                "Pandas type inference with a `bytes` "
+                "object is deprecated. In a future version, this will give "
+                "bytes[pyarrow] dtype, which will require pyarrow to be "
+                "installed. To opt in to the new behavior immediately set "
+                "`pd.set_option('future.infer_bytes', True)`. To keep the "
+                "old behavior pass `dtype=object`.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif opt is True:
+            import pyarrow as pa
+
+            pa_dtype = pa.binary()
             dtype = ArrowDtype(pa_dtype)
 
     elif is_bool(val):

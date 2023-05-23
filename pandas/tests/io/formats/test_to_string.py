@@ -13,6 +13,7 @@ from pandas import (
     option_context,
     to_datetime,
 )
+import pandas._testing as tm
 
 
 def test_repr_embedded_ndarray():
@@ -172,10 +173,13 @@ def test_to_string_unicode_columns(float_frame):
 
 
 def test_to_string_utf8_columns():
+    msg = "type inference with a sequence of `bytes` objects"
+
     n = "\u05d0".encode()
 
     with option_context("display.max_rows", 1):
-        df = DataFrame([1, 2], columns=[n])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df = DataFrame([1, 2], columns=[n])
         repr(df)
 
 

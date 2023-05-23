@@ -25,6 +25,7 @@ from pandas import (
     Timestamp,
     cut,
     date_range,
+    option_context,
 )
 import pandas._testing as tm
 
@@ -377,7 +378,10 @@ class TestAstype:
 
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
-    def test_astype_unicode(self):
+    @pytest.mark.parametrize(
+        "future", [pytest.param(True, marks=td.skip_if_no("pyarrow")), False, None]
+    )
+    def test_astype_unicode(self, future):
         # see GH#7758: A bit of magic is required to set
         # default encoding to utf-8
         digits = string.digits
@@ -388,11 +392,18 @@ class TestAstype:
 
         former_encoding = None
 
+        warn = FutureWarning if future is None else None
+
         if sys.getdefaultencoding() == "utf-8":
             # GH#45326 as of 2.0 Series.astype matches Index.astype by handling
             #  bytes with obj.decode() instead of str(obj)
             item = "野菜食べないとやばい"
-            ser = Series([item.encode()])
+
+            msg = "type inference with a sequence of `bytes` objects"
+            with option_context("future.infer_bytes", future):
+                with tm.assert_produces_warning(warn, match=msg):
+                    ser = Series([item.encode()])
+
             result = ser.astype("unicode")
             expected = Series([item])
             tm.assert_series_equal(result, expected)

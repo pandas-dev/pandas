@@ -893,6 +893,14 @@ with cf.config_prefix("styler"):
 
 with cf.config_prefix("future"):
     cf.register_option(
+        "future.infer_bytes",
+        None,
+        "Whether to infer sequence of bytes objects as pyarrow bytes "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False, None]),
+    )
+    cf.register_option(
         "future.infer_time",
         None,
         "Whether to infer sequence of datetime.time objects as pyarrow time "
