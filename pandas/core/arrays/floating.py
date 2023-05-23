@@ -127,6 +127,14 @@ An ExtensionDtype for {dtype} data.
 
 This dtype uses ``pd.NA`` as missing value indicator.
 
+Attributes
+----------
+None
+
+Methods
+-------
+None
+
 Examples
 --------
 For Float32Dtype:
