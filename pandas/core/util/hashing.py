@@ -260,6 +260,7 @@ def hash_array(
             "hash_array requires np.ndarray or ExtensionArray, not "
             f"{type(vals).__name__}. Use hash_pandas_object instead."
         )
+
     return _hash_ndarray(vals, encoding, hash_key, categorize)
 
 
@@ -274,8 +275,8 @@ def _hash_ndarray(
     """
     dtype = vals.dtype
 
+    # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
     if np.issubdtype(dtype, np.complex128):
-        # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
         hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
         hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
         return hash_real + 23 * hash_imag
