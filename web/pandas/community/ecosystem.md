@@ -321,6 +321,13 @@ which support geometric operations. If your work entails maps and
 geographical coordinates, and you love pandas, you should take a close
 look at Geopandas.
 
+### [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)
+
+gurobipy-pandas provides a convenient accessor API to connect pandas with
+gurobipy. It enables users to more easily and efficiently build mathematical
+optimization models from data stored in DataFrames and Series, and to read
+solutions back directly as pandas objects.
+
 ### [staricase](https://github.com/staircase-dev/staircase)
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
