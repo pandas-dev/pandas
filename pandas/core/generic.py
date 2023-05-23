@@ -2200,7 +2200,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If both are installed, defaults to 'xlsxwriter' 
             (usually faster and makes a smaller file).
             Otherwise 'openpyxl' is used 
-            (supports xlsx/xlsm/xltx/xltm formats).
+            (supports xlsm/xltx/xltm/xlsx formats).
         merge_cells : bool, default True
             Write MultiIndex and Hierarchical Rows as merged cells.
         inf_rep : str, default 'inf'
