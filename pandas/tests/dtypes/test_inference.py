@@ -1012,9 +1012,7 @@ class TestInference:
         data = [data0, data1]
         arr = np.array(data, dtype="object")
 
-        common_kind = np.find_common_type(
-            [type(data0), type(data1)], scalar_types=[]
-        ).kind
+        common_kind = np.result_type(type(data0), type(data1)).kind
         kind0 = "python" if not hasattr(data0, "dtype") else data0.dtype.kind
         kind1 = "python" if not hasattr(data1, "dtype") else data1.dtype.kind
         if kind0 != "python" and kind1 != "python":
