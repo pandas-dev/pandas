@@ -323,6 +323,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
 
+        is_ser_or_df = isinstance(obj, (ABCDataFrame, ABCSeries))
         context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
@@ -341,8 +342,8 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 for a in func:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    args = [self.axis, *self.args] if include_axis(colg) else self.args
-                    new_res = getattr(colg, op_name)(a, *args, **kwargs)
+                    this_args = [self.axis, *self.args] if is_ser_or_df else self.args
+                    new_res = getattr(colg, op_name)(a, *this_args, **kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -353,8 +354,8 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    args = [self.axis, *self.args] if include_axis(colg) else self.args
-                    new_res = getattr(colg, op_name)(func, *args, **kwargs)
+                    this_args = [self.axis, *self.args] if is_ser_or_df else self.args
+                    new_res = getattr(colg, op_name)(func, *this_args, **kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
