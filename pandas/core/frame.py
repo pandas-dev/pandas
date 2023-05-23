@@ -105,7 +105,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -131,7 +134,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -1371,18 +1373,7 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         1. Because ``iterrows`` returns a Series for each row,
            it does **not** preserve dtypes across the rows (dtypes are
-           preserved across columns for DataFrames). For example,
-
-           >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
-           >>> row = next(df.iterrows())[1]
-           >>> row
-           int      1.0
-           float    1.5
-           Name: 0, dtype: float64
-           >>> print(row['int'].dtype)
-           float64
-           >>> print(df['int'].dtype)
-           int64
+           preserved across columns for DataFrames).
 
            To preserve dtypes while iterating over the rows, it is better
            to use :meth:`itertuples` which returns namedtuples of the values
@@ -1392,6 +1383,20 @@ class DataFrame(NDFrame, OpsMixin):
            This is not guaranteed to work in all cases. Depending on the
            data types, the iterator returns a copy and not a view, and writing
            to it will have no effect.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame([[1, 1.5]], columns=['int', 'float'])
+        >>> row = next(df.iterrows())[1]
+        >>> row
+        int      1.0
+        float    1.5
+        Name: 0, dtype: float64
+        >>> print(row['int'].dtype)
+        float64
+        >>> print(df['int'].dtype)
+        int64
         """
         columns = self.columns
         klass = self._constructor_sliced
@@ -4069,7 +4074,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._check_inplace_setting(value)
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
@@ -4800,9 +4804,10 @@ class DataFrame(NDFrame, OpsMixin):
         if not allow_duplicates and column in self.columns:
             # Should this be a different kind of error??
             raise ValueError(f"cannot insert {column}, already exists")
-        if not isinstance(loc, int):
+        if not is_integer(loc):
             raise TypeError("loc must be int")
-
+        # convert non stdlib ints to satisfy typing checks
+        loc = int(loc)
         if isinstance(value, DataFrame) and len(value.columns) > 1:
             raise ValueError(
                 f"Expected a one-dimensional object, got a DataFrame with "
@@ -5080,7 +5085,7 @@ class DataFrame(NDFrame, OpsMixin):
         Drop specified labels from rows or columns.
 
         Remove rows or columns by specifying label names and corresponding
-        axis, or by specifying directly index or column names. When using a
+        axis, or by directly specifying index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
         the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
@@ -5103,7 +5108,7 @@ class DataFrame(NDFrame, OpsMixin):
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
             If False, return a copy. Otherwise, do operation
-            inplace and return None.
+            in place and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -9788,14 +9793,9 @@ class DataFrame(NDFrame, OpsMixin):
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
-
-            .. versionadded:: 1.2
-
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -10951,7 +10951,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
@@ -10965,7 +10965,7 @@ class DataFrame(NDFrame, OpsMixin):
     def all(
         self,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
@@ -11156,6 +11156,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:
@@ -11181,6 +11186,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:
