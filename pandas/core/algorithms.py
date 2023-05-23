@@ -32,7 +32,10 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    np_find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
@@ -518,7 +521,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps_array.dtype], [])
+        common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
