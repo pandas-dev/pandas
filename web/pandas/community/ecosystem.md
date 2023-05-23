@@ -328,7 +328,7 @@ gurobipy. It enables users to more easily and efficiently build mathematical
 optimization models from data stored in DataFrames and Series, and to read
 solutions back directly as pandas objects.
 
-### [staricase](https://github.com/staircase-dev/staircase)
+### [staircase](https://github.com/staircase-dev/staircase)
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
 manipulation of mathematical step functions. It provides a rich variety of arithmetic
