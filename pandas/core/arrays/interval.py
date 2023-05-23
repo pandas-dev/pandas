@@ -509,6 +509,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             "name": "",
             "examples": textwrap.dedent(
                 """\
+        Examples
+        --------
         >>> pd.arrays.IntervalArray.from_arrays([0, 1, 2], [1, 2, 3])
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
@@ -1635,9 +1637,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return pyarrow.ExtensionArray.from_storage(interval_type, storage_array)
 
-    _interval_shared_docs[
-        "to_tuples"
-    ] = """
+    _interval_shared_docs["to_tuples"] = textwrap.dedent(
+        """
         Return an %(return_type)s of tuples of the form (left, right).
 
         Parameters
@@ -1651,9 +1652,27 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         tuples: %(return_type)s
         %(examples)s\
         """
+    )
 
     @Appender(
-        _interval_shared_docs["to_tuples"] % {"return_type": "ndarray", "examples": ""}
+        _interval_shared_docs["to_tuples"]
+        % {
+            "return_type": "ndarray",
+            "examples": textwrap.dedent(
+                """\
+
+         Examples
+         --------
+         >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
+         >>> idx
+         <IntervalArray>
+         [(0, 1], (1, 2]]
+         Length: 2, dtype: interval[int64, right]
+         >>> idx.to_tuples()
+         array([(0, 1), (1, 2)], dtype=object)
+         """
+            ),
+        }
     )
     def to_tuples(self, na_tuple: bool = True) -> np.ndarray:
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
