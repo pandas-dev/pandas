@@ -2198,7 +2198,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         engine : str, optional
             Write engine to use, 'openpyxl' or 'xlsxwriter'. 
             If both are installed, defaults to 'xlsxwriter' 
-            (usually faster and makes a smaller file).
+            (faster and makes a smaller file).
             Otherwise 'openpyxl' is used 
             (supports xlsm/xltx/xltm/xlsx formats).
         merge_cells : bool, default True
