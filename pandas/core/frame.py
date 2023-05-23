@@ -5085,7 +5085,7 @@ class DataFrame(NDFrame, OpsMixin):
         Drop specified labels from rows or columns.
 
         Remove rows or columns by specifying label names and corresponding
-        axis, or by specifying directly index or column names. When using a
+        axis, or by directly specifying index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
         the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
@@ -5108,7 +5108,7 @@ class DataFrame(NDFrame, OpsMixin):
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
             If False, return a copy. Otherwise, do operation
-            inplace and return None.
+            in place and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -9793,14 +9793,9 @@ class DataFrame(NDFrame, OpsMixin):
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
-
-            .. versionadded:: 1.2
-
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -11161,6 +11156,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:
@@ -11186,6 +11186,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:

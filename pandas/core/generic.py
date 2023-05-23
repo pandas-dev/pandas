@@ -2154,6 +2154,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inf_rep: str = "inf",
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2210,6 +2211,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
 
         See Also
         --------
@@ -2262,6 +2265,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
         """
+        if engine_kwargs is None:
+            engine_kwargs = {}
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -2286,6 +2291,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freeze_panes=freeze_panes,
             engine=engine,
             storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
     @final
@@ -6512,8 +6518,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Updates to the data shared by shallow copy and original is reflected
         in both; deep copy remains unchanged.
 
-        >>> s[0] = 3
-        >>> shallow[1] = 4
+        >>> s.iloc[0] = 3
+        >>> shallow.iloc[1] = 4
         >>> s
         a    3
         b    4
@@ -11127,11 +11133,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Self:
         """
-        Percentage change between the current and a prior element.
+        Fractional change between the current and a prior element.
 
-        Computes the percentage change from the immediately previous row by
-        default. This is useful in comparing the percentage of change in a time
+        Computes the fractional change from the immediately previous row by
+        default. This is useful in comparing the fraction of change in a time
         series of elements.
+
+        .. note::
+
+            Despite the name of this method, it calculates fractional change
+            (also known as per unit change or relative change) and not
+            percentage change. If you need the percentage change, multiply
+            these values by 100.
 
         Parameters
         ----------
