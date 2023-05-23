@@ -112,9 +112,7 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
                 to_concat = [x.astype("object") for x in to_concat]
                 kinds = {"o"}
     else:
-        # error: Argument 1 to "np_find_common_type" has incompatible type
-        # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
-        target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
+        target_dtype = np_find_common_type(*dtypes)
 
     result = np.concatenate(to_concat, axis=axis)
     if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:
