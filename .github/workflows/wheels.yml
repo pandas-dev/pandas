@@ -136,21 +136,15 @@ jobs:
         if: ${{ matrix.buildplat[1] == 'win_amd64' }}
         shell: pwsh
         run: |
-          docker pull python:${{ matrix.python[1] }}-windowsservercore
-          docker run python:${{ matrix.python[1] }}-windowsservercore python -m `
-            pip install pytz six numpy python-dateutil tzdata>=2022.1 `
-            hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17
-          $LAST_DEPS_ID = docker ps -lq
-          docker commit $LAST_DEPS_ID test_deps
-          docker run -v ${PWD}:C:\pandas test_deps python -m pip install --find-links=pandas\wheelhouse --no-index pandas
-          $LAST_PANDAS_ID = docker ps -lq
-          docker commit $LAST_PANDAS_ID test_pandas
-          $TEST_CMD = @'
-          import pandas as pd;
-          pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']);
-          pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db'])
+          $TST_CMD = @'
+          python -m pip install pytz six numpy python-dateutil tzdata>=2022.1 hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 &&
+          python -m pip install --find-links=pandas\wheelhouse --no-index pandas &&
+          python -c 'import pandas as pd;
+             pd.test(extra_args=['-m not clipboard and not single_cpu and not slow and not network and not db', '-n 2']);
+             pd.test(extra_args=['-m not clipboard and single_cpu and not slow and not network and not db'])'
           '@
-          docker run --env PANDAS_CI='1' test_pandas python -c $TEST_CMD
+          docker pull python:${{ matrix.python[1] }}-windowsservercore
+          docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] }}-windowsservercore powershell -Command $TST_CMD
 
       - uses: actions/upload-artifact@v3
         with:
