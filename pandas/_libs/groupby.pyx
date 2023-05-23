@@ -1075,6 +1075,13 @@ def group_mean(
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
+                    if compensation[lab, j] != compensation[lab, j]:
+                        # GH#50367
+                        # If val is +/- infinity, compensation is NaN
+                        # which would lead to results being NaN instead
+                        # of +/-infinity. We cannot use util.is_nan
+                        # because of no gil
+                        compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
         for i in range(ncounts):
