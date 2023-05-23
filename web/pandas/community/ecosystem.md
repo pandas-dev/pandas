@@ -58,7 +58,7 @@ target values with cutoff times that can be used for supervised learning.
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
 At its core, STUMPY efficiently computes something called a
-`matrix profile <https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html>`__,
+[matrix profile](https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html),
 which can be used for a wide variety of time series data mining tasks.
 
 ## Visualization
