@@ -88,7 +88,7 @@ def test_usecols_with_parse_dates3(all_parsers):
     parse_dates = [0]
 
     cols = {
-        "a": Timestamp("2016-09-21"),
+        "a": Timestamp("2016-09-21").as_unit("ns"),
         "b": [1],
         "c": [1],
         "d": [2],
