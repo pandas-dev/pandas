@@ -145,7 +145,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
         target_dtype = to_concat_no_proxy[0].dtype
     elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
-        target_dtype = np_find_common_type(**dtypes)
+        target_dtype = np_find_common_type(*dtypes)
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
