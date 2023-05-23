@@ -11,6 +11,7 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -48,6 +49,7 @@ def period_index(freqstr):
     the PeriodIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates
+    freqstr = OFFSET_TO_PERIOD_FREQSTR.get(freqstr)
     pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -749,6 +751,8 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
+        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+            freqstr = freqstr.replace(key, value)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)

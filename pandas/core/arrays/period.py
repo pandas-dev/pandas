@@ -34,7 +34,10 @@ from pandas._libs.tslibs import (
     period as libperiod,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    FreqGroup,
+)
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
     Tick,
@@ -309,7 +312,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray[freq]
         """
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
+        # freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
 
@@ -858,12 +863,13 @@ def raise_on_incompatible(left, right):
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
-        other_freq = right.freqstr
+        other_freq = OFFSET_TO_PERIOD_FREQSTR.get(right.freqstr, right.freqstr)
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
+    own_freq = OFFSET_TO_PERIOD_FREQSTR.get(left.freqstr, left.freqstr)
     msg = DIFFERENT_FREQ.format(
-        cls=type(left).__name__, own_freq=left.freqstr, other_freq=other_freq
+        cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
     return IncompatibleFrequency(msg)
 

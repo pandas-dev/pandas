@@ -638,7 +638,7 @@ def test_resample_dup_index():
     df = DataFrame(
         np.random.randn(4, 12),
         index=[2000, 2000, 2000, 2000],
-        columns=[Period(year=2000, month=i + 1, freq="ME") for i in range(12)],
+        columns=[Period(year=2000, month=i + 1, freq="M") for i in range(12)],
     )
     df.iloc[3, :] = np.nan
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
@@ -669,7 +669,7 @@ def test_resample_reresample(unit):
     [
         ["A-DEC", {"start": "1990", "end": "2000", "freq": "a-dec"}],
         ["A-JUN", {"start": "1990", "end": "2000", "freq": "a-jun"}],
-        ["ME", {"start": "1990-01", "end": "2000-01", "freq": "ME"}],
+        ["ME", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
 def test_resample_timestamp_to_period(
@@ -1008,7 +1008,7 @@ def test_resample_to_period_monthly_buglet(unit):
     ts = Series(np.random.randn(len(rng)), index=rng)
 
     result = ts.resample("ME", kind="period").mean()
-    exp_index = period_range("Jan-2000", "Dec-2000", freq="ME")
+    exp_index = period_range("Jan-2000", "Dec-2000", freq="M")
     tm.assert_index_equal(result.index, exp_index)
 
 
@@ -1200,7 +1200,7 @@ def test_corner_cases(unit):
 
 def test_corner_cases_period(simple_period_range_series):
     # miscellaneous test coverage
-    len0pts = simple_period_range_series("2007-01", "2010-05", freq="ME")[:0]
+    len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
     # it works
     result = len0pts.resample("A-DEC").mean()
     assert len(result) == 0
@@ -1212,7 +1212,7 @@ def test_corner_cases_date(simple_date_range_series, unit):
     ts.index = ts.index.as_unit(unit)
     result = ts.resample("ME", kind="period").mean()
     assert len(result) == 1
-    assert result.index[0] == Period("2000-04", freq="ME")
+    assert result.index[0] == Period("2000-04", freq="M")
 
 
 def test_anchored_lowercase_buglet(unit):
