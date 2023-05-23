@@ -3,7 +3,6 @@ data hash pandas / numpy objects
 """
 from __future__ import annotations
 
-from functools import partial
 import itertools
 from typing import (
     TYPE_CHECKING,
@@ -255,23 +254,13 @@ def hash_array(
             encoding=encoding, hash_key=hash_key, categorize=categorize
         )
 
-    if isinstance(vals, np.ndarray):
-        _hash_ndarray_partial = partial(
-            _hash_ndarray, encoding=encoding, hash_key=hash_key, categorize=categorize
-        )
-        if np.issubdtype(vals.dtype, np.complex128):
-            # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
-            hash_real = _hash_ndarray_partial(np.real(vals))
-            hash_imag = _hash_ndarray_partial(np.imag(vals))
-            return hash_real + 23 * hash_imag
-        else:
-            return _hash_ndarray_partial(vals)
-    else:
+    if not isinstance(vals, np.ndarray):
         # GH#42003
         raise TypeError(
             "hash_array requires np.ndarray or ExtensionArray, not "
             f"{type(vals).__name__}. Use hash_pandas_object instead."
         )
+    return _hash_ndarray(vals, encoding, hash_key, categorize)
 
 
 def _hash_ndarray(
@@ -284,6 +273,12 @@ def _hash_ndarray(
     See hash_array.__doc__.
     """
     dtype = vals.dtype
+
+    if np.issubdtype(dtype, np.complex128):
+        # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
+        hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
+        hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
+        return hash_real + 23 * hash_imag
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
