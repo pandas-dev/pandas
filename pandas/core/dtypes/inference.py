@@ -356,7 +356,19 @@ def is_hashable(obj) -> TypeGuard[Hashable]:
     >>> is_hashable(a)
     False
     """
-    return isinstance(obj, abc.Hashable)
+    # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
+    # which can be faster than calling hash. That is because numpy scalars
+    # fail this test.
+
+    # Reconsider this decision once this numpy bug is fixed:
+    # https://github.com/numpy/numpy/issues/5562
+
+    try:
+        hash(obj)
+    except TypeError:
+        return False
+    else:
+        return True
 
 
 def is_sequence(obj) -> bool:
