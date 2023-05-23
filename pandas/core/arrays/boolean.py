@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
-        AxisInt,
         Dtype,
         DtypeObj,
         Self,
@@ -405,14 +404,3 @@ class BooleanArray(BaseMaskedArray):
             return IntegerArray(data.astype(int), mask)._accumulate(
                 name, skipna=skipna, **kwargs
             )
-
-    def prod(
-        self,
-        *,
-        skipna: bool = True,
-        min_count: int = 0,
-        axis: AxisInt | None = 0,
-        **kwargs,
-    ):
-        arr = cast(BaseMaskedArray, self.astype("Int8"))
-        return arr.prod(skipna=skipna, min_count=min_count, axis=axis, **kwargs)
