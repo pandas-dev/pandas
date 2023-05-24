@@ -88,11 +88,11 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile) as f:
+            with open(pxifile, encoding="utf-8") as f:
                 tmpl = f.read()
             pyxcontent = Tempita.sub(tmpl)
 
-            with open(outfile, "w") as f:
+            with open(outfile, "w", encoding="utf-8") as f:
                 f.write(pyxcontent)
 
     def build_extensions(self):
@@ -225,8 +225,8 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/vectorized.pyx",
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
-        "pandas/io/sas/sas.pyx",
-        "pandas/io/sas/byteswap.pyx",
+        "pandas/_libs/sas.pyx",
+        "pandas/_libs/byteswap.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -558,8 +558,8 @@ ext_data = {
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
-    "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.sas._byteswap": {"pyxfile": "io/sas/byteswap"},
+    "_libs.sas": {"pyxfile": "_libs/sas"},
+    "_libs.byteswap": {"pyxfile": "_libs/byteswap"},
 }
 
 extensions = []

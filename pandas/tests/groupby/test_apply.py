@@ -19,6 +19,23 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
+def test_apply_func_that_appends_group_to_list_without_copy():
+    # GH: 17718
+
+    df = DataFrame(1, index=list(range(10)) * 10, columns=[0]).reset_index()
+    groups = []
+
+    def store(group):
+        groups.append(group)
+
+    df.groupby("index").apply(store)
+    expected_value = DataFrame(
+        {"index": [0] * 10, 0: [1] * 10}, index=pd.RangeIndex(0, 100, 10)
+    )
+
+    tm.assert_frame_equal(groups[0], expected_value)
+
+
 def test_apply_issues():
     # GH 5788
 
@@ -704,7 +721,9 @@ def test_time_field_bug():
     dfg_no_conversion_expected.index.name = "a"
 
     dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
-    dfg_conversion_expected = DataFrame({"b": datetime(2015, 1, 1), "c": 2}, index=[1])
+    dfg_conversion_expected = DataFrame(
+        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+    )
     dfg_conversion_expected.index.name = "a"
 
     tm.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
@@ -1386,4 +1405,16 @@ def test_apply_inconsistent_output(group_col):
         index=MultiIndex.from_product([[0.0], [1, 2, 3]], names=["group_col", 0.0]),
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_array_output_multi_getitem():
+    # GH 18930
+    df = DataFrame(
+        {"A": {"a": 1, "b": 2}, "B": {"a": 1, "b": 2}, "C": {"a": 1, "b": 2}}
+    )
+    result = df.groupby("A")[["B", "C"]].apply(lambda x: np.array([0]))
+    expected = Series(
+        [np.array([0])] * 2, index=Index([1, 2], name="A"), name=("B", "C")
+    )
     tm.assert_series_equal(result, expected)

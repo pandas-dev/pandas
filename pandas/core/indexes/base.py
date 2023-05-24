@@ -56,6 +56,7 @@ from pandas._typing import (
     JoinHow,
     Level,
     NaPosition,
+    ReindexMethod,
     Self,
     Shape,
     npt,
@@ -150,6 +151,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
+from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -190,8 +192,11 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import PeriodArray
-
+    from pandas.core.arrays import (
+        DatetimeArray,
+        PeriodArray,
+        TimedeltaArray,
+    )
 
 __all__ = ["Index"]
 
@@ -207,7 +212,6 @@ _index_doc_kwargs: dict[str, str] = {
 }
 _index_shared_docs: dict[str, str] = {}
 str_t = str
-
 
 _dtype_obj = np.dtype("object")
 
@@ -826,6 +830,22 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> libindex.IndexEngine | libindex.ExtensionEngine | libindex.MaskedIndexEngine:
         # For base class (object dtype) we get ObjectEngine
         target_values = self._get_engine_target()
+
+        if isinstance(self._values, ArrowExtensionArray) and self.dtype.kind in "Mm":
+            import pyarrow as pa
+
+            pa_type = self._values._pa_array.type
+            if pa.types.is_timestamp(pa_type):
+                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+                target_values = self._values.astype(dtype)
+                target_values = cast("DatetimeArray", target_values)
+                return libindex.DatetimeEngine(target_values._ndarray)
+            elif pa.types.is_duration(pa_type):
+                dtype = np.dtype(f"m8[{pa_type.unit}]")
+                target_values = self._values.astype(dtype)
+                target_values = cast("TimedeltaArray", target_values)
+                return libindex.TimedeltaEngine(target_values._ndarray)
+
         if isinstance(target_values, ExtensionArray):
             if isinstance(target_values, (BaseMaskedArray, ArrowExtensionArray)):
                 try:
@@ -944,6 +964,14 @@ class Index(IndexOpsMixin, PandasObject):
     def dtype(self) -> DtypeObj:
         """
         Return the dtype object of the underlying data.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.dtype
+        dtype('int64')
         """
         return self._data.dtype
 
@@ -959,6 +987,12 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         numpy.ndarray.ravel : Return a flattened array.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+        >>> s.index.ravel()
+        Index(['a', 'b', 'c'], dtype='object')
         """
         return self[:]
 
@@ -1207,6 +1241,13 @@ class Index(IndexOpsMixin, PandasObject):
         -----
         In most cases, there should be no functional difference from using
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> new_idx = idx.copy()
+        >>> idx is new_idx
+        False
         """
 
         name = self._validate_names(name=name, deep=deep)[0]
@@ -1593,6 +1634,14 @@ class Index(IndexOpsMixin, PandasObject):
     def name(self) -> Hashable:
         """
         Return Index or MultiIndex name.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3], name='x')
+        >>> idx
+        Index([1, 2, 3], dtype='int64',  name='x')
+        >>> idx.name
+        'x'
         """
         return self._name
 
@@ -2652,6 +2701,14 @@ class Index(IndexOpsMixin, PandasObject):
     def inferred_type(self) -> str_t:
         """
         Return a string of the type inferred from the values.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.inferred_type
+        'integer'
         """
         return lib.infer_dtype(self._values, skipna=False)
 
@@ -2868,8 +2925,9 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame.fillna : Fill NaN values of a DataFrame.
         Series.fillna : Fill NaN Values of a Series.
         """
+        if not is_scalar(value):
+            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
 
-        value = self._require_scalar(value)
         if self.hasnans:
             result = self.putmask(self._isnan, value)
             if downcast is None:
@@ -3211,7 +3269,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif not len(other) or self.equals(other):
             # NB: whether this (and the `if not len(self)` check below) come before
-            #  or after the is_dtype_equal check above affects the returned dtype
+            #  or after the dtype equality check above affects the returned dtype
             result = self._get_reconciled_name_object(other)
             if sort is True:
                 return result.sort_values()
@@ -3745,7 +3803,7 @@ class Index(IndexOpsMixin, PandasObject):
     def get_indexer(
         self,
         target,
-        method: str_t | None = None,
+        method: ReindexMethod | None = None,
         limit: int | None = None,
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
@@ -4198,7 +4256,7 @@ class Index(IndexOpsMixin, PandasObject):
     def reindex(
         self,
         target,
-        method=None,
+        method: ReindexMethod | None = None,
         level=None,
         limit: int | None = None,
         tolerance: float | None = None,
@@ -4907,7 +4965,7 @@ class Index(IndexOpsMixin, PandasObject):
             mask = lidx == -1
             join_idx = self.take(lidx)
             right = other.take(ridx)
-            join_index = join_idx.putmask(mask, right)
+            join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
             return join_index.set_names(name)  # type: ignore[return-value]
         else:
             name = get_op_result_name(self, other)
@@ -4950,6 +5008,14 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         Index.array : Reference to the underlying data.
         Index.to_numpy : A NumPy array representing the underlying data.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.values
+        array([1, 2, 3])
         """
         return self._data
 
@@ -4998,6 +5064,20 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(vals, StringArray):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
+        if isinstance(vals, ArrowExtensionArray) and self.dtype.kind in "Mm":
+            import pyarrow as pa
+
+            pa_type = vals._pa_array.type
+            if pa.types.is_timestamp(pa_type):
+                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+                vals = vals.astype(dtype)
+                vals = cast("DatetimeArray", vals)
+                return vals._ndarray.view("i8")
+            elif pa.types.is_duration(pa_type):
+                dtype = np.dtype(f"m8[{pa_type.unit}]")
+                vals = vals.astype(dtype)
+                vals = cast("TimedeltaArray", vals)
+                return vals._ndarray.view("i8")
         if (
             type(self) is Index
             and isinstance(self._values, ExtensionArray)
@@ -5117,16 +5197,6 @@ class Index(IndexOpsMixin, PandasObject):
                 raise TypeError from err
         elif not can_hold_element(self._values, value):
             raise TypeError
-        return value
-
-    @final
-    def _require_scalar(self, value):
-        """
-        Check that this is a scalar value that we can use for setitem-like
-        operations without changing dtype.
-        """
-        if not is_scalar(value):
-            raise TypeError(f"'value' must be a scalar, passed: {type(value).__name__}")
         return value
 
     def _is_memory_usage_qualified(self) -> bool:
@@ -7180,6 +7250,14 @@ class Index(IndexOpsMixin, PandasObject):
     def shape(self) -> Shape:
         """
         Return a tuple of the shape of the underlying data.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.shape
+        (3,)
         """
         # See GH#27775, GH#27384 for history/reasoning in how this is defined.
         return (len(self),)

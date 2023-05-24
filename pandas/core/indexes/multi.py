@@ -1116,11 +1116,7 @@ class MultiIndex(Index):
         # calculating the indexer are shifted to 0
         sizes = np.ceil(
             np.log2(
-                [
-                    len(level)
-                    + libindex.multiindex_nulls_shift  # type: ignore[attr-defined]
-                    for level in self.levels
-                ]
+                [len(level) + libindex.multiindex_nulls_shift for level in self.levels]
             )
         )
 
@@ -2397,7 +2393,7 @@ class MultiIndex(Index):
             )
 
         return [
-            Categorical.from_codes(level_codes, cats(level_codes), ordered=True)
+            Categorical.from_codes(level_codes, cats(level_codes), True, validate=False)
             for level_codes in self.codes
         ]
 
@@ -2587,7 +2583,7 @@ class MultiIndex(Index):
         """
         lev = self.levels[0]
         codes = self._codes[0]
-        cat = Categorical.from_codes(codes=codes, categories=lev)
+        cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat)
         return ci.get_indexer_for(target)
 
