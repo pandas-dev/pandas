@@ -321,7 +321,14 @@ which support geometric operations. If your work entails maps and
 geographical coordinates, and you love pandas, you should take a close
 look at Geopandas.
 
-### [staricase](https://github.com/staircase-dev/staircase)
+### [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)
+
+gurobipy-pandas provides a convenient accessor API to connect pandas with
+gurobipy. It enables users to more easily and efficiently build mathematical
+optimization models from data stored in DataFrames and Series, and to read
+solutions back directly as pandas objects.
+
+### [staircase](https://github.com/staircase-dev/staircase)
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
 manipulation of mathematical step functions. It provides a rich variety of arithmetic
@@ -546,6 +553,7 @@ authors to coordinate on the namespace.
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
 

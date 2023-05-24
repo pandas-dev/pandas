@@ -142,6 +142,7 @@ def test_methods_copy_keyword(
     "method",
     [
         lambda ser, copy: ser.rename(index={0: 100}, copy=copy),
+        lambda ser, copy: ser.rename(None, copy=copy),
         lambda ser, copy: ser.reindex(index=ser.index, copy=copy),
         lambda ser, copy: ser.reindex_like(ser, copy=copy),
         lambda ser, copy: ser.align(ser, copy=copy)[0],
@@ -159,6 +160,7 @@ def test_methods_copy_keyword(
         lambda ser, copy: ser.set_flags(allows_duplicate_labels=False, copy=copy),
     ],
     ids=[
+        "rename (dict)",
         "rename",
         "reindex",
         "reindex_like",
