@@ -301,6 +301,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a pyarrow timestamp or duration dtype to numpy (:issue:`53326`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
+- Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
