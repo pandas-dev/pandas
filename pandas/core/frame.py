@@ -3967,23 +3967,23 @@ class DataFrame(NDFrame, OpsMixin):
             # Column to set is duplicated
             self._setitem_array([key], value)
         elif (
-            isinstance(value, np.ndarray)
-            and value.ndim > 1
-            and self.columns.is_unique
+            isinstance(value, np.ndarray) and value.ndim > 1 and self.columns.is_unique
         ):
             # TODO: a check for MultiIndex should be added
             if isinstance(self.columns, MultiIndex):
                 self._set_item(key, value)
                 return
             # squeeze 2d ndarray to 1d if possible
-            # this keeps the backward compatability
+            # this keeps the backward compatibility
             if np.ndim(value) == 2 and (1 in np.shape(value)):
                 # if value is np.matrix, convert to np.ndarray
                 value = np.asarray(value).flatten()
                 self._set_item(key, value)
             else:
                 # avoid assign non 1d array to column
-                raise ValueError(f"Expected a 1D array, got an array with shape {value.shape}")
+                raise ValueError(
+                    f"Expected a 1D array, got an array with shape {value.shape}"
+                )
         else:
             # set column
             self._set_item(key, value)
