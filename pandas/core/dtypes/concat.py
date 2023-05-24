@@ -13,6 +13,7 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
+    np_find_common_type,
 )
 from pandas.core.dtypes.common import is_dtype_equal
 from pandas.core.dtypes.dtypes import (
@@ -110,6 +111,8 @@ def concat_compat(to_concat, axis: AxisInt = 0, ea_compat_axis: bool = False):
                 # coerce to object
                 to_concat = [x.astype("object") for x in to_concat]
                 kinds = {"o"}
+    else:
+        target_dtype = np_find_common_type(*dtypes)
 
     result = np.concatenate(to_concat, axis=axis)
     if "b" in kinds and result.dtype.kind in ["i", "u", "f"]:

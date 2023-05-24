@@ -400,6 +400,8 @@ class SparseDtype(ExtensionDtype):
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         # TODO for now only handle SparseDtypes and numpy dtypes => extend
         # with other compatible extension dtypes
+        from pandas.core.dtypes.cast import np_find_common_type
+
         if any(
             isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
             for x in dtypes
@@ -420,5 +422,5 @@ class SparseDtype(ExtensionDtype):
                 stacklevel=find_stack_level(),
             )
 
-        np_dtypes = [x.subtype if isinstance(x, SparseDtype) else x for x in dtypes]
-        return SparseDtype(np.find_common_type(np_dtypes, []), fill_value=fill_value)
+        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
+        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)

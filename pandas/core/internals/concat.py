@@ -28,6 +28,7 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
+    np_find_common_type,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -144,7 +145,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
         target_dtype = to_concat_no_proxy[0].dtype
     elif all(x.kind in ["i", "u", "b"] and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
-        target_dtype = np.find_common_type(list(dtypes), [])
+        target_dtype = np_find_common_type(*dtypes)
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 
