@@ -46,7 +46,7 @@ from pandas.core.arrays import (
     IntervalArray,
     period_array,
 )
-from pandas.core.internals.blocks import NumericBlock
+from pandas.core.internals.blocks import NumpyBlock
 
 
 class TestSeriesConstructors:
@@ -2098,7 +2098,8 @@ class TestSeriesConstructorInternals:
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
         if not using_array_manager:
-            assert isinstance(result._mgr.blocks[0], NumericBlock)
+            assert isinstance(result._mgr.blocks[0], NumpyBlock)
+            assert result._mgr.blocks[0].is_numeric
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
