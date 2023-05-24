@@ -315,14 +315,15 @@ right : DataFrame or named Series
 how : {'left', 'right', 'outer', 'inner', 'cross'}, default 'inner'
     Type of merge to be performed.
 
-    * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order.
+    * left: resulting merged DataFrame will have its rows ordered based on the
+      order of the keys in the left DataFrame, similar to a SQL left outer join.
     * right: use only keys from right frame, similar to a SQL right outer join;
       preserve key order.
     * outer: use union of keys from both frames, similar to a SQL full outer
       join; sort keys lexicographically.
-    * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys.
+    * inner: use intersection of keys from both frames, the rows are ordered based
+      on the order of the keys in the left DataFrame, similar to a SQL inner
+      join.
     * cross: creates the cartesian product from both frames, preserves the order
       of the left keys.
 
