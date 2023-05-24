@@ -614,6 +614,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
+        # the loc.setitem here changes the dtype of df.x to int64
         expected = DataFrame(columns=["x", "y"])
         expected["x"] = expected["x"].astype(np.int64)
         df = DataFrame(columns=["x", "y"])

@@ -2024,7 +2024,7 @@ class _iLocIndexer(_LocationIndexer):
 
         is_null_setter = com.is_empty_slice(pi) or is_array_like(pi) and len(pi) == 0
 
-        is_empty_df_setter = com.is_null_slice(pi) and self.obj._mgr.arrays[0].size == 0
+        is_empty_df_setter = com.is_null_slice(pi) and len(self.obj) == 0
 
         if is_null_setter:
             # no-op, don't cast dtype later

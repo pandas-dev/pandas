@@ -634,11 +634,13 @@ class TestFancy:
     def test_setitem_one_element_list(self):
         # GH#52825
         x_values = ["x_value"]
-        y_values = ["y_values"]
+        y_values = ["y_value"]
         df = DataFrame(columns=["x", "y"])
         df.loc[:, "x"] = x_values
         df.loc[:, "y"] = y_values
-        assert df.size == 2
+
+        expected = DataFrame({"x": ["x_value"], "y": ["y_value"]})
+        tm.assert_frame_equal(df, expected)
 
 
 class TestMisc:
