@@ -267,8 +267,10 @@ Deprecations
 - Deprecated :meth:`Series.tz_localize`, :meth:`Series.tz_convert`, :meth:`Series.to_timestamp`, :meth:`Series.to_period`, :meth:`Series.swaplevel`, :meth:`Series.reorder_level` and their :class:`DataFrame` counterparts, use ``obj.axis_ops.to_period``, ``obj.axis_ops.swap_level``, etc instead (:issue:`52461`)
 - Deprecated allowing ``downcast`` keyword other than ``None``, ``False``, "infer", or a dict with these as values in :meth:`Series.fillna`, :meth:`DataFrame.fillna` (:issue:`40988`)
 - Deprecated allowing arbitrary ``fill_value`` in :class:`SparseDtype`, in a future version the ``fill_value`` will need to be compatible with the ``dtype.subtype``, either a scalar that can be held by that subtype or ``NaN`` for integer or bool subtypes (:issue:`23124`)
+- Deprecated behavior of :func:`assert_series_equal` and :func:`assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)
 - Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
