@@ -76,7 +76,7 @@ class AxisOps(Generic[NDFrameT]):
 
         Let's reorder the levels of the index:
 
-        >>> df.reorder_levels(["diet", "class"])
+        >>> df.axis_ops.reorder_levels(["diet", "class"])
                                           species
         diet      class
         Omnivore  Mammals                  Humans
@@ -143,7 +143,7 @@ class AxisOps(Generic[NDFrameT]):
         5 6      7   8
         9 10    11  12
 
-        >>> df.droplevel('a')
+        >>> df.axis_ops.drop_level('a')
         level_1   c   d
         level_2   e   f
         b
@@ -151,7 +151,7 @@ class AxisOps(Generic[NDFrameT]):
         6        7   8
         10      11  12
 
-        >>> df.droplevel('level_2', axis=1)
+        >>> df.axis_ops.drop_level('level_2', axis=1)
         level_1   c   d
         a b
         1 2      3   4
@@ -208,7 +208,7 @@ class AxisOps(Generic[NDFrameT]):
         By not supplying any arguments for i and j, we swap the last and second to
         last indices.
 
-        >>> df.swaplevel()
+        >>> df.axis_ops.swap_level()
                                             Grade
         Final exam  January     History         A
                     February    Geography       B
@@ -219,7 +219,7 @@ class AxisOps(Generic[NDFrameT]):
         index with. We can for example swap the first index with the last one as
         follows.
 
-        >>> df.swaplevel(0)
+        >>> df.axis_ops.swap_level(0)
                                             Grade
         January     History     Final exam      A
         February    Geography   Final exam      B
@@ -229,7 +229,7 @@ class AxisOps(Generic[NDFrameT]):
         We can also define explicitly which indices we want to swap by supplying values
         for both i and j. Here, we for example swap the first and second indices.
 
-        >>> df.swaplevel(0, 1)
+        >>> df.axis_ops.swap_level(0, 1)
                                             Grade
         History     Final exam  January         A
         Geography   Final exam  February        B
@@ -285,19 +285,19 @@ class AxisOps(Generic[NDFrameT]):
         --------
         Change to another time zone:
 
-        >>> s = pd.Series(
-        ...     [1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']),
+        >>> ser = pd.Series(
+        ...       [1],
+        ...       index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']),
         ... )
-        >>> s.tz_convert('Asia/Shanghai')
+        >>> ser.axis_ops.tz_convert('Asia/Shanghai')
         2018-09-15 07:30:00+08:00    1
         dtype: int64
 
         Pass None to convert to UTC and get a tz-naive index:
 
-        >>> s = pd.Series([1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
-        >>> s.tz_convert(None)
+        >>> ser = pd.Series([1],
+        ...       index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> ser.axis_ops.tz_convert(None)
         2018-09-14 23:30:00    1
         dtype: int64
         """
@@ -403,34 +403,34 @@ class AxisOps(Generic[NDFrameT]):
         --------
         Localize local times:
 
-        >>> s = pd.Series(
-        ...     [1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00']),
+        >>> ser = pd.Series(
+        ...       [1],
+        ...       index=pd.DatetimeIndex(['2018-09-15 01:30:00']),
         ... )
-        >>> s.tz_localize('CET')
+        >>> ser.axis_ops.tz_localize('CET')
         2018-09-15 01:30:00+02:00    1
         dtype: int64
 
         Pass None to convert to tz-naive index and preserve local time:
 
-        >>> s = pd.Series([1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
-        >>> s.tz_localize(None)
+        >>> ser = pd.Series([1],
+        ...       index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        >>> ser.axis_ops.tz_localize(None)
         2018-09-15 01:30:00    1
         dtype: int64
 
         Be careful with DST changes. When there is sequential data, pandas
         can infer the DST time:
 
-        >>> s = pd.Series(range(7),
-        ...               index=pd.DatetimeIndex(['2018-10-28 01:30:00',
-        ...                                       '2018-10-28 02:00:00',
-        ...                                       '2018-10-28 02:30:00',
-        ...                                       '2018-10-28 02:00:00',
-        ...                                       '2018-10-28 02:30:00',
-        ...                                       '2018-10-28 03:00:00',
-        ...                                       '2018-10-28 03:30:00']))
-        >>> s.tz_localize('CET', ambiguous='infer')
+        >>> ser = pd.Series(range(7),
+        ...                 index=pd.DatetimeIndex(['2018-10-28 01:30:00',
+        ...                                         '2018-10-28 02:00:00',
+        ...                                         '2018-10-28 02:30:00',
+        ...                                         '2018-10-28 02:00:00',
+        ...                                         '2018-10-28 02:30:00',
+        ...                                         '2018-10-28 03:00:00',
+        ...                                         '2018-10-28 03:30:00']))
+        >>> ser.axis_ops.tz_localize('CET', ambiguous='infer')
         2018-10-28 01:30:00+02:00    0
         2018-10-28 02:00:00+02:00    1
         2018-10-28 02:30:00+02:00    2
@@ -443,11 +443,11 @@ class AxisOps(Generic[NDFrameT]):
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-        >>> s = pd.Series(range(3),
-        ...               index=pd.DatetimeIndex(['2018-10-28 01:20:00',
-        ...                                       '2018-10-28 02:36:00',
-        ...                                       '2018-10-28 03:46:00']))
-        >>> s.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        >>> ser = pd.Series(range(3),
+        ...                 index=pd.DatetimeIndex(['2018-10-28 01:20:00',
+        ...                                         '2018-10-28 02:36:00',
+        ...                                         '2018-10-28 03:46:00']))
+        >>> ser.axis_ops.tz_localize('CET', ambiguous=np.array([True, True, False]))
         2018-10-28 01:20:00+02:00    0
         2018-10-28 02:36:00+02:00    1
         2018-10-28 03:46:00+01:00    2
@@ -457,18 +457,18 @@ class AxisOps(Generic[NDFrameT]):
         dates forward or backward with a timedelta object or `'shift_forward'`
         or `'shift_backward'`.
 
-        >>> s = pd.Series(range(2),
-        ...               index=pd.DatetimeIndex(['2015-03-29 02:30:00',
-        ...                                       '2015-03-29 03:30:00']))
-        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        >>> ser = pd.Series(range(2),
+        ...                 index=pd.DatetimeIndex(['2015-03-29 02:30:00',
+        ...                                         '2015-03-29 03:30:00']))
+        >>> ser.axis_ops.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         2015-03-29 03:00:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        >>> ser.axis_ops.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> ser.axis_ops.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -553,7 +553,7 @@ class AxisOps(Generic[NDFrameT]):
 
         The resulting frequency of the Timestamps is `YearBegin`
 
-        >>> s1 = s1.to_timestamp()
+        >>> s1 = s1.axis_ops.to_timestamp()
         >>> s1
         2023-01-01    1
         2024-01-01    2
@@ -563,7 +563,7 @@ class AxisOps(Generic[NDFrameT]):
         Using `freq` which is the offset that the Timestamps will have
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
-        >>> s2 = s2.to_timestamp(freq='M')
+        >>> s2 = s2.axis_ops.to_timestamp(freq='M')
         >>> s2
         2023-01-31    1
         2024-01-31    2
@@ -605,9 +605,9 @@ class AxisOps(Generic[NDFrameT]):
         Examples
         --------
         >>> idx = pd.DatetimeIndex(['2023', '2024', '2025'])
-        >>> s = pd.Series([1, 2, 3], index=idx)
-        >>> s = s.to_period()
-        >>> s
+        >>> ser = pd.Series([1, 2, 3], index=idx)
+        >>> ser = ser.axis_ops.to_period()
+        >>> ser
         2023    1
         2024    2
         2025    3
@@ -615,7 +615,7 @@ class AxisOps(Generic[NDFrameT]):
 
         Viewing the index
 
-        >>> s.index
+        >>> ser.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
         """
         obj = self.obj

@@ -627,14 +627,14 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
    rng = pd.date_range("3/6/2012 00:00", periods=5, freq="D")
    ts = pd.Series(np.random.randn(len(rng)), rng)
    ts
-   ts_utc = ts.tz_localize("UTC")
+   ts_utc = ts.axis_ops.tz_localize("UTC")
    ts_utc
 
 :meth:`Series.tz_convert` converts a timezones aware time series to another time zone:
 
 .. ipython:: python
 
-   ts_utc.tz_convert("US/Eastern")
+   ts_utc.axis_ops.tz_convert("US/Eastern")
 
 Converting between time span representations:
 
@@ -645,7 +645,7 @@ Converting between time span representations:
    ts
    ps = ts.axis_ops.to_period()
    ps
-   ps.to_timestamp()
+   ps.axis_ops.to_timestamp()
 
 Converting between period and timestamp enables some convenient arithmetic
 functions to be used. In the following example, we convert a quarterly
