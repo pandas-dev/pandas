@@ -353,7 +353,7 @@ class TestSetitemBooleanMask:
         mask = [False] * 3 + [True] * 5 + [False] * 2
         ser[mask] = range(5)
         result = ser
-        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2, dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_setitem_nan_with_bool(self):
@@ -796,6 +796,13 @@ class SetitemCastingEquivalents:
         arr = obj._values
 
         res = obj.where(~mask, val)
+
+        if val is NA and res.dtype == object:
+            expected = expected.fillna(NA)
+        elif val is None and res.dtype == object:
+            assert expected.dtype == object
+            expected = expected.copy()
+            expected[expected.isna()] = None
         tm.assert_series_equal(res, expected)
 
         self._check_inplace(is_inplace, orig, arr, obj)
