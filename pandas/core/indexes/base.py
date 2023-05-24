@@ -812,6 +812,15 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Index.identical : Works like ``Index.is_`` but also checks metadata.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index(['1', '2', '3'])
+        >>> idx1.is_(idx1.view())
+        True
+
+        >>> idx1.is_(idx1.copy())
+        False
         """
         if self is other:
             return True
@@ -1118,6 +1127,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.take: Return an array formed from the
             elements of a at the given indices.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.take([2, 2, 1, 2])
+        Index(['c', 'c', 'b', 'c'], dtype='object')
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
@@ -2995,6 +3010,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         unique : Numpy array of unique values in that column.
         Series.unique : Return unique values of Series object.
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 1, 2, 3, 3])
+        >>> idx.unique()
+        Index([1, 2, 3], dtype='int64')
         """
         if level is not None:
             self._validate_index_level(level)
@@ -5388,6 +5409,13 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.putmask : Changes elements of an array
             based on conditional and input values.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index([1, 2, 3])
+        >>> idx2 = pd.Index([5, 6, 7])
+        >>> idx1.putmask([True, False, False], idx2)
+        Index([5, 2, 3], dtype='int64')
         """
         mask, noop = validate_putmask(self._values, mask)
         if noop:
@@ -5517,6 +5545,18 @@ class Index(IndexOpsMixin, PandasObject):
         bool
             If two Index objects have equal elements and same type True,
             otherwise False.
+
+        Examples
+        --------
+        >>> idx1 = pd.Index(['1', '2', '3'])
+        >>> idx2 = pd.Index(['1', '2', '3'])
+        >>> idx2.identical(idx1)
+        True
+
+        >>> idx1 = pd.Index(['1', '2', '3'], name="A")
+        >>> idx2 = pd.Index(['1', '2', '3'], name="B")
+        >>> idx2.identical(idx1)
+        False
         """
         return (
             self.equals(other)
@@ -6737,6 +6777,12 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         Index
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.insert(1, 'x')
+        Index(['a', 'x', 'b', 'c'], dtype='object')
         """
         item = lib.item_from_zerodim(item)
         if is_valid_na_for_dtype(item, self.dtype) and self.dtype != object:
@@ -6798,6 +6844,12 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         KeyError
             If not all of the labels are found in the selected axis
+
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.drop(['a'])
+        Index(['b', 'c'], dtype='object')
         """
         if not isinstance(labels, Index):
             # avoid materializing e.g. RangeIndex
