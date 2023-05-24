@@ -25,6 +25,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :class:`.arrays.ArrowExtensionArray` incorrectly assigning ``dict`` instead of ``list`` for ``.type`` with ``pyarrow.map_`` and raising a ``NotImplementedError`` with ``pyarrow.struct`` (:issue:`53328`)
 - Bug in :func:`api.interchange.from_dataframe` was raising ``IndexError`` on empty categorical data (:issue:`53077`)
 - Bug in :func:`api.interchange.from_dataframe` was returning :class:`DataFrame`'s of incorrect sizes when called on slices (:issue:`52824`)
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
