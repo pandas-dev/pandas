@@ -1570,7 +1570,8 @@ def test_mode_dropna_false_mode_na(data):
         [pa.large_string(), str],
         [pa.list_(pa.int64()), list],
         [pa.large_list(pa.int64()), list],
-        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.map_(pa.string(), pa.int64()), list],
+        [pa.struct([("f1", pa.int8()), ("f2", pa.string())]), dict],
         [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
     ],
 )
