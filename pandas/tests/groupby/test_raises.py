@@ -162,20 +162,20 @@ def test_groupby_raises_string(
         "last": (None, ""),
         "max": (None, ""),
         "mean": (
-            NotImplementedError,
-            re.escape("function is not implemented for [how->mean,dtype->object]"),
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
         ),
         "median": (
-            NotImplementedError,
-            re.escape("function is not implemented for [how->median,dtype->object]"),
+            TypeError,
+            re.escape("agg function failed [how->median,dtype->object]"),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
         "prod": (
-            NotImplementedError,
-            re.escape("function is not implemented for [how->prod,dtype->object]"),
+            TypeError,
+            re.escape("agg function failed [how->prod,dtype->object]"),
         ),
         "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
         "rank": (None, ""),
@@ -186,8 +186,8 @@ def test_groupby_raises_string(
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
         "var": (
-            NotImplementedError,
-            re.escape("function is not implemented for [how->var,dtype->object]"),
+            TypeError,
+            re.escape("agg function failed [how->var,dtype->object]"),
         ),
     }[groupby_func]
 
@@ -224,8 +224,8 @@ def test_groupby_raises_string_np(
     klass, msg = {
         np.sum: (None, ""),
         np.mean: (
-            NotImplementedError,
-            re.escape("function is not implemented for [how->mean,dtype->object]"),
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
         ),
     }[groupby_func_np]
 

@@ -1,5 +1,6 @@
 import builtins
 from io import StringIO
+import re
 
 import numpy as np
 import pytest
@@ -245,8 +246,9 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "Categorical is not ordered",
-                    "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -255,12 +257,11 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "category type does not support sum operations",
-                    "[Cc]ould not convert",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
                     "can't multiply sequence by non-int of type 'str'",
+                    "function is not implemented for this dtype",
                 ]
             )
-            if method == "median":
-                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
@@ -276,10 +277,9 @@ class TestNumericOnly:
                     "can't multiply sequence",
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
                 ]
             )
-            if method == "median":
-                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
@@ -1466,10 +1466,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 "unsupported operand type",
                 "not supported between instances of",
                 "function is not implemented for this dtype",
+                re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "median":
-            msg = r"Cannot convert \[<class 'object'> <class 'object'>\] to numeric"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:

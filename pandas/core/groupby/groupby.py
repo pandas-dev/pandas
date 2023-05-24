@@ -1597,8 +1597,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         try:
             res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
         except Exception as err:
-            msg = f"function is not implemented for [how->{how},dtype->{ser.dtype}]"
-            raise NotImplementedError(msg) from err
+            msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
