@@ -103,15 +103,22 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
     @pytest.mark.parametrize("conv", ["start", "end"])
-    @pytest.mark.parametrize("targ", ["D", "B", "ME"])
+    @pytest.mark.parametrize(
+        ("offset", "period"),
+        [
+            ("D", "D"),
+            ("B", "B"),
+            ("ME", "M")
+        ]
+    )
     def test_annual_upsample_cases(
-        self, targ, conv, meth, month, simple_period_range_series
+        self, offset, period, conv, meth, month, simple_period_range_series
     ):
         ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"A-{month}")
 
-        result = getattr(ts.resample(targ, convention=conv), meth)()
-        expected = result.to_timestamp(targ, how=conv)
-        expected = expected.asfreq(targ, meth).to_period()
+        result = getattr(ts.resample(period, convention=conv), meth)()
+        expected = result.to_timestamp(period, how=conv)
+        expected = expected.asfreq(offset, meth).to_period()
         tm.assert_series_equal(result, expected)
 
     def test_basic_downsample(self, simple_period_range_series):
@@ -131,7 +138,7 @@ class TestPeriodIndex:
         [
             ("a-dec", "<YearEnd: month=12>"),
             ("q-mar", "<QuarterEnd: startingMonth=3>"),
-            ("ME", "<MonthEnd>"),
+            ("M", "<MonthEnd>"),
             ("w-thu", "<Week: weekday=3>"),
         ],
     )
@@ -159,8 +166,8 @@ class TestPeriodIndex:
         rng = period_range("1/1/2000", periods=5, freq="A")
         ts = Series(np.random.randn(len(rng)), rng)
 
-        result = ts.resample("ME", convention="end").ffill(limit=2)
-        expected = ts.asfreq("M").reindex(result.index, method="ffill", limit=2)
+        result = ts.resample("M", convention="end").ffill(limit=2)
+        expected = ts.asfreq("ME").reindex(result.index, method="ffill", limit=2)
         tm.assert_series_equal(result, expected)
 
     def test_annual_upsample(self, simple_period_range_series):
@@ -176,20 +183,27 @@ class TestPeriodIndex:
         result = ts.resample("ME").ffill()
         ex_index = period_range("2000-01", "2003-12", freq="M")
 
-        expected = ts.asfreq("M", how="start").reindex(ex_index, method="ffill")
+        expected = ts.asfreq("ME", how="start").reindex(ex_index, method="ffill")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)
-    @pytest.mark.parametrize("target", ["D", "B", "M"])
     @pytest.mark.parametrize("convention", ["start", "end"])
+    @pytest.mark.parametrize(
+    ("offset", "period"),
+        [
+            ("D", "D"),
+            ("B", "B"),
+            ("ME", "M")
+        ]
+    )
     def test_quarterly_upsample(
-        self, month, target, convention, simple_period_range_series
+        self, month, offset, period, convention, simple_period_range_series
     ):
         freq = f"Q-{month}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-        result = ts.resample(target, convention=convention).ffill()
-        expected = result.to_timestamp(target, how=convention)
-        expected = expected.asfreq(target, "ffill").to_period()
+        result = ts.resample(period, convention=convention).ffill()
+        expected = result.to_timestamp(period, how=convention)
+        expected = expected.asfreq(offset, "ffill").to_period()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("target", ["D", "B"])
@@ -220,13 +234,12 @@ class TestPeriodIndex:
         tm.assert_series_equal(result2, expected)
 
     @pytest.mark.parametrize(
-        "freq,freq_me,expected_vals",
-        [("M", "ME", [31, 29, 31, 9]), ("2M", "2ME", [31 + 29, 31 + 9])],
+         "freq,expected_vals", [("M", [31, 29, 31, 9]), ("2M", [31 + 29, 31 + 9])]
     )
-    def test_resample_count(self, freq, freq_me, expected_vals):
+    def test_resample_count(self, freq, expected_vals):
         # GH12774
         series = Series(1, index=period_range(start="2000", periods=100))
-        result = series.resample(freq_me).count()
+        result = series.resample(freq).count()
         expected_index = period_range(
             start="2000", freq=freq, periods=len(expected_vals)
         )
@@ -238,7 +251,7 @@ class TestPeriodIndex:
         series = Series(range(3), index=period_range(start="2000", periods=3, freq="M"))
         expected = series
 
-        result = getattr(series.resample("ME"), resample_method)()
+        result = getattr(series.resample("M"), resample_method)()
         tm.assert_series_equal(result, expected)
 
     def test_resample_incompat_freq(self):
@@ -819,7 +832,7 @@ class TestPeriodIndex:
             ("19910905 12:00", "19910909 12:00", "H", "24H", "34H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "10H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "3H"),
-            ("19910905 12:00", "19910909 1:00", "H", "M", "3H"),
+            ("19910905 12:00", "19910909 1:00", "H", "ME", "3H"),
             ("19910905", "19910913 06:00", "2H", "24H", "10H"),
             ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
             ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),

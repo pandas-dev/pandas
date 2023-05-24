@@ -232,7 +232,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(freq_str)._period_dtype_code  # type: ignore[attr-defined]
+        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized

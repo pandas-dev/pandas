@@ -19,6 +19,7 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
@@ -104,6 +105,9 @@ def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
+    if offset_str == 'ME':
+        return 'M'
+    # offset_str=OFFSET_TO_PERIOD_FREQSTR.get(offset_str, offset_str)
     return _offset_to_period_map.get(offset_str, None)
 
 

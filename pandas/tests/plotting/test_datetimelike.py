@@ -104,7 +104,7 @@ class TestTSPlot(TestPlotBase):
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "ME", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
     def test_tsplot_period(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.randn(len(idx)), idx)
@@ -324,7 +324,7 @@ class TestTSPlot(TestPlotBase):
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "ME"
+        assert PeriodIndex(data=idx).freqstr == "M"
 
     def test_freq_with_no_period_alias(self):
         # GH34487
@@ -455,7 +455,7 @@ class TestTSPlot(TestPlotBase):
         rs1 = []
         rs2 = []
         for n in yrs:
-            rng = period_range("1987Q2", periods=int(n * 12), freq="ME")
+            rng = period_range("1987Q2", periods=int(n * 12), freq="M")
             ser = Series(np.random.randn(len(rng)), rng)
             _, ax = self.plt.subplots()
             ser.plot(ax=ax)
@@ -471,13 +471,13 @@ class TestTSPlot(TestPlotBase):
         assert rs2 == xpl2
 
     def test_finder_monthly_long(self):
-        rng = period_range("1988Q1", periods=24 * 12, freq="ME")
+        rng = period_range("1988Q1", periods=24 * 12, freq="M")
         ser = Series(np.random.randn(len(rng)), rng)
         _, ax = self.plt.subplots()
         ser.plot(ax=ax)
         xaxis = ax.get_xaxis()
         rs = xaxis.get_majorticklocs()[0]
-        xp = Period("1989Q1", "ME").ordinal
+        xp = Period("1989Q1", "M").ordinal
         assert rs == xp
 
     def test_finder_annual(self):

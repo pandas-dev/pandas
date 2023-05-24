@@ -1669,7 +1669,7 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(**kwds)
+    tg = TimeGrouper(obj, **kwds)
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -1722,6 +1722,7 @@ class TimeGrouper(Grouper):
 
     def __init__(
         self,
+        obj,
         freq: Frequency = "Min",
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
@@ -1746,7 +1747,13 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        freq = to_offset(freq)
+        if (
+            (kwargs['key'] is None and isinstance(obj.index, PeriodIndex))
+            or (kwargs['key'] is not None and obj[kwargs['key']].dtype == 'period')
+        ):
+            freq = to_offset(freq, is_period=True)
+        else:
+            freq = to_offset(freq)
 
         end_types = {"ME", "A", "Q", "BM", "BA", "BQ", "W"}
         rule = freq.rule_code
@@ -1832,7 +1839,6 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, indexer = self._set_grouper(obj, gpr_index=None)
-
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -1850,6 +1856,7 @@ class TimeGrouper(Grouper):
                 axis=self.axis,
                 group_keys=self.group_keys,
                 gpr_index=ax,
+
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(
