@@ -140,6 +140,8 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
             return list
         elif pa.types.is_map(pa_type):
+            return list
+        elif pa.types.is_struct(pa_type):
             return dict
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
