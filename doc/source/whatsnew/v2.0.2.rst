@@ -39,6 +39,7 @@ Bug fixes
 - Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
 -
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.other:
 
