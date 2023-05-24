@@ -1401,7 +1401,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
 
-        if value.ndim == 2:
+        if value.ndim >= 2:
             value = value.T
             if len(value) > 1:
                 raise ValueError(
