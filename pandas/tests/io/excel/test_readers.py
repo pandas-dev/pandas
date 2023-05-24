@@ -1149,13 +1149,14 @@ class TestReaders:
         # now be interpreted as rows that include null data.
         data = np.array(
             [
-                [None, None, None, None, None],
+                [np.nan, np.nan, np.nan, np.nan, np.nan],
                 ["R0C0", "R0C1", "R0C2", "R0C3", "R0C4"],
                 ["R1C0", "R1C1", "R1C2", "R1C3", "R1C4"],
                 ["R2C0", "R2C1", "R2C2", "R2C3", "R2C4"],
                 ["R3C0", "R3C1", "R3C2", "R3C3", "R3C4"],
                 ["R4C0", "R4C1", "R4C2", "R4C3", "R4C4"],
-            ]
+            ],
+            dtype=object,
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
         mi = MultiIndex(

@@ -734,6 +734,9 @@ class TestDataFrameQuantile:
             0.5, numeric_only=False, interpolation=interpolation, method=method
         )
         exp = exp.astype(object)
+        if interpolation == "nearest":
+            # GH#18463 TODO: would we prefer NaTs here?
+            exp = exp.fillna(np.nan, downcast=False)
         tm.assert_series_equal(res, exp)
 
         # both dt64tz

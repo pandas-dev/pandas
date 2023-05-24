@@ -92,7 +92,12 @@ def test_map_series_stringdtype(any_string_dtype):
     )
     ser2 = Series(["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
     result = ser2.map(ser1)
-    expected = Series(["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
+
+    item = pd.NA
+    if ser2.dtype == object:
+        item = np.nan
+
+    expected = Series(data=["rabbit", "dog", "cat", item], dtype=any_string_dtype)
 
     tm.assert_series_equal(result, expected)
 

@@ -1180,6 +1180,10 @@ class TestDataFrameReshape:
 
         result = df.unstack(level=level)
         expected = df.astype(object).unstack(level=level)
+        if level == 0:
+            expected[("A", "B")] = expected[("A", "B")].fillna(pd.NA)
+        else:
+            expected[("A", 0)] = expected[("A", 0)].fillna(pd.NA)
 
         expected_dtypes = Series(
             [df.A.dtype] * 2 + [df.B.dtype] * 2, index=result.columns

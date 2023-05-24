@@ -51,7 +51,7 @@ def test_conversions(data_missing):
     # astype to object series
     df = pd.DataFrame({"A": data_missing})
     result = df["A"].astype("object")
-    expected = pd.Series(np.array([np.nan, 1], dtype=object), name="A")
+    expected = pd.Series(np.array([pd.NA, 1], dtype=object), name="A")
     tm.assert_series_equal(result, expected)
 
     # convert to object ndarray

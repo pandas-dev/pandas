@@ -1,5 +1,6 @@
 import cmath
 import math
+import warnings
 
 import numpy as np
 
@@ -7,12 +8,17 @@ from numpy cimport import_array
 
 import_array()
 
-from pandas._libs.missing cimport checknull
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
     is_real_number_object,
 )
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -176,13 +182,23 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if checknull(a) and checknull(b):
-        # TODO: Should require same-dtype NA?
+    if checknull(a):
         # nan / None comparison
-        return True
-
-    if (checknull(a) and not checknull(b)) or (not checknull(a) and checknull(b)):
-        # boolean value of pd.NA is ambiguous
+        if is_matching_na(a, b, nan_matches_none=False):
+            return True
+        elif checknull(b):
+            # GH#18463
+            warnings.warn(
+                f"Mismatched null-like values {a} and {b} found. In a future "
+                "version, pandas equality-testing functions "
+                "(e.g. assert_frame_equal) will consider these not-matching "
+                "and raise.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return True
+        raise AssertionError(f"{a} != {b}")
+    elif checknull(b):
         raise AssertionError(f"{a} != {b}")
 
     if a == b:

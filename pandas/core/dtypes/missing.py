@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -573,17 +574,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
         else:
-            try:
-                if np.any(np.asarray(left_value != right_value)):
+            with warnings.catch_warnings():
+                # suppress numpy's "elementwise comparison failed"
+                warnings.simplefilter("ignore", DeprecationWarning)
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
+                except ValueError:
+                    # numpy can raise a ValueError if left and right cannot be
+                    # compared (e.g. nested arrays)
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
-                raise
-            except ValueError:
-                # numpy can raise a ValueError if left and right cannot be
-                # compared (e.g. nested arrays)
-                return False
     return True
 
 

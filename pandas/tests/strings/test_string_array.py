@@ -4,6 +4,7 @@ import pytest
 from pandas._libs import lib
 
 from pandas import (
+    NA,
     DataFrame,
     Series,
     _testing as tm,
@@ -47,10 +48,16 @@ def test_string_array(nullable_string_dtype, any_string_method):
             assert result.dtype == "Int64"
             result = result.astype("float")
 
+        if expected.dtype == object:
+            # GH#18463
+            expected[expected.isna()] = NA
+
     elif isinstance(expected, DataFrame):
         columns = expected.select_dtypes(include="object").columns
         assert all(result[columns].dtypes == nullable_string_dtype)
         result[columns] = result[columns].astype(object)
+        expected[columns] = expected[columns].fillna(NA)  # GH#18463
+
     tm.assert_equal(result, expected)
 
 
@@ -96,6 +103,7 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = a.str.extract(pat, expand=False)
     expected = b.str.extract(pat, expand=False)
+    expected = expected.fillna(NA)  # GH#18463
     assert all(result.dtypes == nullable_string_dtype)
 
     result = result.astype(object)
