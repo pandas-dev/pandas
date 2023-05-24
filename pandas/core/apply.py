@@ -103,11 +103,13 @@ def frame_apply(
 
 class Apply(metaclass=abc.ABCMeta):
     axis: AxisInt
+    orig_f: AggFuncType
+    f: AggFuncType
 
     def __init__(
         self,
         obj: AggObjType,
-        func,
+        func: AggFuncType,
         raw: bool,
         result_type: str | None,
         *,
@@ -127,21 +129,19 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.result_type = result_type
 
+        f: AggFuncType
         # curry if needed
-        if (
-            (kwargs or args)
-            and not isinstance(func, (np.ufunc, str))
-            and not is_list_like(func)
-        ):
+        if callable(func) and (kwargs or args) and not isinstance(func, np.ufunc):
 
             def f(x):
+                assert callable(func)  # needed for mypy
                 return func(x, *args, **kwargs)
 
         else:
             f = func
 
-        self.orig_f: AggFuncType = func
-        self.f: AggFuncType = f
+        self.orig_f = func
+        self.f = f
 
     @abc.abstractmethod
     def apply(self) -> DataFrame | Series:
@@ -278,7 +278,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(func, str):
-            return self._try_aggregate_string_function(obj, func, *args, **kwargs)
+            return self._apply_str(obj, func, *args, **kwargs)
 
         if not args and not kwargs:
             f = com.get_cython_func(func)
@@ -324,6 +324,9 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        is_ser_or_df = isinstance(obj, (ABCDataFrame, ABCSeries))
+        this_args = [self.axis, *self.args] if is_ser_or_df else self.args
+
         context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
@@ -336,12 +339,7 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            a, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(a, *this_args, **self.kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -352,12 +350,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            arg, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, *this_args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -543,7 +536,7 @@ class Apply(metaclass=abc.ABCMeta):
                         self.kwargs["axis"] = self.axis
                 else:
                     self.kwargs["axis"] = self.axis
-        return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
+        return self._apply_str(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
         """
@@ -601,34 +594,32 @@ class Apply(metaclass=abc.ABCMeta):
             func = new_func
         return func
 
-    def _try_aggregate_string_function(self, obj, arg: str, *args, **kwargs):
+    def _apply_str(self, obj, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on ourselves
+        - try to find a function (or attribute) on obj
         - try to find a numpy function
         - raise
         """
         assert isinstance(arg, str)
 
-        f = getattr(obj, arg, None)
-        if f is not None:
+        if hasattr(obj, arg):
+            f = getattr(obj, arg)
             if callable(f):
                 return f(*args, **kwargs)
 
-            # people may try to aggregate on a non-callable attribute
+            # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
             assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(obj, "__array__"):
+        elif hasattr(np, arg) and hasattr(obj, "__array__"):
             # in particular exclude Window
+            f = getattr(np, arg)
             return f(obj, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
-        )
+        else:
+            msg = f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+            raise AttributeError(msg)
 
 
 class NDFrameApply(Apply):
@@ -1203,7 +1194,7 @@ class ResamplerWindowApply(Apply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType | None, list[str] | None, npt.NDArray[np.intp] | None]:
+) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1258,6 +1249,7 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
+    assert func is not None
 
     return relabeling, func, columns, order
 
@@ -1437,7 +1429,7 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = Index(s.index).get_indexer(fun)
-            s = s[col_idx_order]
+            s = s.iloc[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.

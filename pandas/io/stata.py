@@ -2637,7 +2637,7 @@ class StataWriter(StataParser):
         )
         for key in self._convert_dates:
             new_type = _convert_datetime_to_stata_type(self._convert_dates[key])
-            dtypes[key] = np.dtype(new_type)
+            dtypes.iloc[key] = np.dtype(new_type)
 
         # Verify object arrays are strings and encode to bytes
         self._encode_strings()
