@@ -37,10 +37,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_scalar,
-)
+from pandas.api.types import is_scalar
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -866,7 +863,8 @@ class TestLocBaseIndependent:
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        # Set object dtype to avoid upcast when setting 'Z'
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
@@ -1527,7 +1525,8 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_2d_to_1d_raises(self):
         data = np.random.randn(2, 2)
-        ser = Series(range(2))
+        # float64 dtype to avoid upcast when trying to set float data
+        ser = Series(range(2), dtype="float64")
 
         msg = "|".join(
             [
@@ -1657,7 +1656,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and is_bool_dtype(obj.index):
+        if indexer is tm.loc and obj.index.inferred_type == "boolean":
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return
@@ -3027,7 +3026,7 @@ class TestLocSeries:
     def test_loc_getitem_not_monotonic(self, datetime_series):
         d1, d2 = datetime_series.index[[5, 15]]
 
-        ts2 = datetime_series[::2][[1, 2, 0]]
+        ts2 = datetime_series[::2].iloc[[1, 2, 0]]
 
         msg = r"Timestamp\('2000-01-10 00:00:00'\)"
         with pytest.raises(KeyError, match=msg):
@@ -3185,7 +3184,7 @@ class TestLocSeries:
         result.loc[inds] = 5
 
         expected = string_series.copy()
-        expected[[3, 4, 7]] = 5
+        expected.iloc[[3, 4, 7]] = 5
         tm.assert_series_equal(result, expected)
 
         result.iloc[5:10] = 10

@@ -154,7 +154,7 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC")
+        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
 
         expected = DataFrame(
             [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
@@ -234,7 +234,7 @@ class TestDataFrameSetItem:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )
@@ -316,7 +316,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
-    def test_setitem_dt64tz(self, timezone_frame):
+    def test_setitem_dt64tz(self, timezone_frame, using_copy_on_write):
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -331,12 +331,16 @@ class TestDataFrameSetItem:
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
+        # Note: This does not hold with Copy on Write (because of lazy copying)
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
-        assert v1base is None or (id(v1base) != id(v2base))
+        if not using_copy_on_write:
+            assert v1base is None or (id(v1base) != id(v2base))
+        else:
+            assert id(v1base) == id(v2base)
 
         # with nan
         df2 = df.copy()
@@ -378,6 +382,17 @@ class TestDataFrameSetItem:
         assert expected["c"].dtype == arr.dtype
         assert expected["d"].dtype == arr.dtype
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_period_d_dtype(self):
+        # GH 39763
+        rng = period_range("2016-01-01", periods=9, freq="D", name="A")
+        result = DataFrame(rng)
+        expected = DataFrame(
+            {"A": ["NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT", "NaT"]},
+            dtype="period[D]",
+        )
+        result.iloc[:] = rng._na_value
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_setitem_bool_with_numeric_index(self, dtype):
@@ -976,7 +991,8 @@ class TestDataFrameSetItemCallable:
         def inc(x):
             return x + 1
 
-        df = DataFrame([[-1, 1], [1, -1]])
+        # Set dtype object straight away to avoid upcast when setting inc below
+        df = DataFrame([[-1, 1], [1, -1]], dtype=object)
         df[df > 0] = inc
 
         expected = DataFrame([[-1, inc], [inc, -1]])
@@ -1251,3 +1267,39 @@ class TestDataFrameSetitemCopyViewSemantics:
                     df[label][label] = 1
             # original dataframe not updated
             assert np.all(values[np.arange(10), np.arange(10)] == 0)
+
+    def test_setitem_column_frame_as_category(self):
+        # GH31581
+        df = DataFrame([1, 2, 3])
+        df["col1"] = DataFrame([1, 2, 3], dtype="category")
+        df["col2"] = Series([1, 2, 3], dtype="category")
+
+        expected_types = Series(
+            ["int64", "category", "category"], index=[0, "col1", "col2"]
+        )
+        tm.assert_series_equal(df.dtypes, expected_types)
+
+    @pytest.mark.parametrize("dtype", ["int64", "Int64"])
+    def test_setitem_iloc_with_numpy_array(self, dtype):
+        # GH-33828
+        df = DataFrame({"a": np.ones(3)}, dtype=dtype)
+        df.iloc[np.array([0]), np.array([0])] = np.array([[2]])
+
+        expected = DataFrame({"a": [2, 1, 1]}, dtype=dtype)
+        tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_dup_cols_dtype(self):
+        # GH#53143
+        df = DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=["a", "b", "a", "c"])
+        rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
+        df["a"] = rhs
+        expected = DataFrame(
+            [[0, 2, 1.5, 4], [2, 5, 2.5, 7]], columns=["a", "b", "a", "c"]
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
+        rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
+        df["a"] = rhs
+        expected = DataFrame([[0, 1.5, 3], [2, 2.5, 6]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)

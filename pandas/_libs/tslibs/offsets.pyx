@@ -15,8 +15,6 @@ from cpython.datetime cimport (
 
 import_datetime()
 
-from dateutil.easter import easter
-from dateutil.relativedelta import relativedelta
 import numpy as np
 
 cimport numpy as cnp
@@ -348,6 +346,8 @@ cdef _determine_offset(kwds):
         kwds_no_nanos["microseconds"] = kwds_no_nanos.get("microseconds", 0) + micro
 
     if all(k in kwds_use_relativedelta for k in kwds_no_nanos):
+        from dateutil.relativedelta import relativedelta
+
         return relativedelta(**kwds_no_nanos), True
 
     raise ValueError(
@@ -1217,7 +1217,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        other_nanos = 0
         if self._use_relativedelta:
+            if isinstance(other, _Timestamp):
+                other_nanos = other.nanosecond
             other = _as_datetime(other)
 
         if len(self.kwds) > 0:
@@ -1226,17 +1229,17 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if hasattr(self, "nanoseconds"):
-                td_nano = Timedelta(nanoseconds=self.nanoseconds)
-            else:
-                td_nano = Timedelta(0)
-
             if self.n > 0:
                 for i in range(self.n):
-                    other = other + self._offset + td_nano
+                    other = other + self._offset
             else:
                 for i in range(-self.n):
-                    other = other - self._offset - td_nano
+                    other = other - self._offset
+
+            if hasattr(self, "nanoseconds"):
+                other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+            if other_nanos != 0:
+                other = Timedelta(nanoseconds=other_nanos) + other
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
@@ -1711,6 +1714,8 @@ cdef class BusinessHour(BusinessMixin):
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
@@ -2240,6 +2245,19 @@ cdef class BYearEnd(YearOffset):
     """
     DateOffset increments between the last business day of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 12
+        A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BYearEnd
@@ -2266,6 +2284,19 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BYearBegin
@@ -2278,6 +2309,8 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2020-01-01 05:01:15')
     >>> ts + BYearBegin(2)
     Timestamp('2022-01-03 05:01:15')
+    >>> ts + BYearBegin(month=11)
+    Timestamp('2020-11-02 05:01:15')
     """
 
     _outputName = "BusinessYearBegin"
@@ -2288,12 +2321,41 @@ cdef class BYearBegin(YearOffset):
 
 cdef class YearEnd(YearOffset):
     """
-    DateOffset increments between calendar year ends.
+    DateOffset increments between calendar year end dates.
+
+    YearEnd goes to the next date which is the end of the year.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 12
+        A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.YearEnd()
+    Timestamp('2022-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> ts + pd.offsets.YearEnd()
+    Timestamp('2023-12-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearEnd(month=2)
+    Timestamp('2022-02-28 00:00:00')
+
+    If you want to get the end of the current year:
+
+    >>> ts = pd.Timestamp(2022, 12, 31)
+    >>> pd.offsets.YearEnd().rollforward(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2313,9 +2375,18 @@ cdef class YearEnd(YearOffset):
 
 cdef class YearBegin(YearOffset):
     """
-    DateOffset of one year at beginning.
+    DateOffset increments between calendar year begin dates.
 
-    YearBegin goes to the next date which is a start of the year.
+    YearBegin goes to the next date which is the start of the year.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
 
     See Also
     --------
@@ -2330,6 +2401,10 @@ cdef class YearBegin(YearOffset):
     >>> ts = pd.Timestamp(2023, 1, 1)
     >>> ts + pd.offsets.YearBegin()
     Timestamp('2024-01-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearBegin(month=2)
+    Timestamp('2022-02-01 00:00:00')
 
     If you want to get the start of the current year:
 
@@ -3054,7 +3129,10 @@ cdef class WeekOfMonth(WeekOfMonthMixin):
 
     Parameters
     ----------
-    n : int
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     week : int {0, 1, 2, 3, ...}, default 0
         A specific integer for the week of the month.
         e.g. 0 is 1st week of month, 1 is the 2nd week, etc.
@@ -3672,6 +3750,8 @@ cdef class Easter(SingleConstructorOffset):
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
+        from dateutil.easter import easter
+
         current_easter = easter(other.year)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
@@ -3702,6 +3782,9 @@ cdef class Easter(SingleConstructorOffset):
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):
             return False
+
+        from dateutil.easter import easter
+
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 

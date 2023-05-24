@@ -46,7 +46,7 @@ from pandas.core.arrays import (
     IntervalArray,
     period_array,
 )
-from pandas.core.internals.blocks import NumericBlock
+from pandas.core.internals.blocks import NumpyBlock
 
 
 class TestSeriesConstructors:
@@ -369,14 +369,14 @@ class TestSeriesConstructors:
 
     def test_constructor_map(self):
         # GH8909
-        m = map(lambda x: x, range(10))
+        m = (x for x in range(10))
 
         result = Series(m)
         exp = Series(range(10))
         tm.assert_series_equal(result, exp)
 
         # same but with non-default index
-        m = map(lambda x: x, range(10))
+        m = (x for x in range(10))
         result = Series(m, index=range(10, 20))
         exp.index = range(10, 20)
         tm.assert_series_equal(result, exp)
@@ -647,7 +647,7 @@ class TestSeriesConstructors:
             list(range(3)),
             Categorical(["a", "b", "a"]),
             (i for i in range(3)),
-            map(lambda x: x, range(3)),
+            (x for x in range(3)),
         ],
     )
     def test_constructor_index_mismatch(self, input):
@@ -1346,15 +1346,20 @@ class TestSeriesConstructors:
 
     def test_constructor_dict_order(self):
         # GH19018
-        # initialization ordering: by insertion order if python>= 3.6, else
-        # order by value
+        # initialization ordering: by insertion order
         d = {"b": 1, "a": 0, "c": 2}
         result = Series(d)
         expected = Series([1, 0, 2], index=list("bac"))
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_dict_extension(self, ea_scalar_and_dtype):
+    def test_constructor_dict_extension(self, ea_scalar_and_dtype, request):
         ea_scalar, ea_dtype = ea_scalar_and_dtype
+        if isinstance(ea_scalar, Timestamp):
+            mark = pytest.mark.xfail(
+                reason="Construction from dict goes through "
+                "maybe_convert_objects which casts to nano"
+            )
+            request.node.add_marker(mark)
         d = {"a": ea_scalar}
         result = Series(d, index=["a"])
         expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
@@ -1466,7 +1471,7 @@ class TestSeriesConstructors:
 
         d = datetime.now()
         dates = Series(d, index=datetime_series.index)
-        assert dates.dtype == "M8[ns]"
+        assert dates.dtype == "M8[us]"
         assert len(dates) == len(datetime_series)
 
         # GH12336
@@ -2093,7 +2098,8 @@ class TestSeriesConstructorInternals:
         result = Series(ser.array)
         tm.assert_series_equal(ser, result)
         if not using_array_manager:
-            assert isinstance(result._mgr.blocks[0], NumericBlock)
+            assert isinstance(result._mgr.blocks[0], NumpyBlock)
+            assert result._mgr.blocks[0].is_numeric
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
@@ -2129,3 +2135,22 @@ def test_constructor(rand_series_with_duplicate_datetimeindex):
 def test_numpy_array(input_dict, expected):
     result = np.array([Series(input_dict)])
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_index_ordered_dict_keys():
+    # GH 22077
+
+    param_index = OrderedDict(
+        [
+            ((("a", "b"), ("c", "d")), 1),
+            ((("a", None), ("c", "d")), 2),
+        ]
+    )
+    series = Series([1, 2], index=param_index.keys())
+    expected = Series(
+        [1, 2],
+        index=MultiIndex.from_tuples(
+            [(("a", "b"), ("c", "d")), (("a", None), ("c", "d"))]
+        ),
+    )
+    tm.assert_series_equal(series, expected)

@@ -1075,7 +1075,7 @@ class TestDataFrameReshape:
             ),
             columns=Index(["B", "C"], name="Upper"),
         )
-        expected["B"] = expected["B"].astype(df.dtypes[0])
+        expected["B"] = expected["B"].astype(df.dtypes.iloc[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1577,9 +1577,7 @@ Thu,Lunch,Yes,51.51,17"""
             }
         )
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
+        result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
 
         unstacked = result.unstack()
         restacked = unstacked.stack()

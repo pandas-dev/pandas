@@ -23,6 +23,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Iterator,
     Literal,
     Mapping,
@@ -74,6 +75,8 @@ if TYPE_CHECKING:
         IndexLabel,
         Self,
     )
+
+    from pandas import Index
 
 # -----------------------------------------------------------------------------
 # -- Helper functions
@@ -158,7 +161,9 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df.columns = columns
+        return df
     else:
         return DataFrame(columns=columns)
 
@@ -683,7 +688,7 @@ def to_sql(
     index_label: IndexLabel = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
-    method: str | None = None,
+    method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
     **engine_kwargs,
 ) -> int | None:
@@ -755,7 +760,7 @@ def to_sql(
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
-    """  # noqa:E501
+    """  # noqa: E501
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
@@ -886,6 +891,9 @@ class SQLTable(PandasObject):
         if self.table is None:
             raise ValueError(f"Could not init table '{name}'")
 
+        if not len(self.name):
+            raise ValueError("Empty table name specified")
+
     def exists(self):
         return self.pd_sql.has_table(self.name, self.schema)
 
@@ -993,7 +1001,9 @@ class SQLTable(PandasObject):
         return column_names, data_list
 
     def insert(
-        self, chunksize: int | None = None, method: str | None = None
+        self,
+        chunksize: int | None = None,
+        method: Literal["multi"] | Callable | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1250,7 +1260,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, col):
+    def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -1278,7 +1288,8 @@ class SQLTable(PandasObject):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
-                if col.dt.tz is not None:
+                # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
+                if col.dt.tz is not None:  # type: ignore[union-attr]
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex
@@ -1399,7 +1410,7 @@ class PandasSQL(PandasObject, ABC):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1860,7 +1871,7 @@ class SQLDatabase(PandasSQL):
         schema: str | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -2315,7 +2326,7 @@ class SQLiteDatabase(PandasSQL):
         schema=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        method=None,
+        method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
