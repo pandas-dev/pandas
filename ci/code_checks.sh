@@ -137,7 +137,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.show_versions \
         pandas.test \
         pandas.NaT \
         pandas.Timestamp.as_unit \
@@ -170,14 +169,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Int8Dtype \
-        pandas.Int16Dtype \
-        pandas.Int32Dtype \
-        pandas.Int64Dtype \
-        pandas.UInt8Dtype \
-        pandas.UInt16Dtype \
-        pandas.UInt32Dtype \
-        pandas.UInt64Dtype \
         pandas.NA \
         pandas.CategoricalDtype.categories \
         pandas.CategoricalDtype.ordered \
