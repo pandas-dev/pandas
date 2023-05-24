@@ -283,6 +283,11 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             df["test"] = np.ones((4, 2))
 
+        # this is not ok
+        msg = "Expected a 1D array, got an array with shape \\(4, 2, 3\\)"
+        with pytest.raises(ValueError, match=msg):
+            df["test"] = np.ones((4, 2, 3))
+
         # this is ok
         df["foo2"] = np.ones((4, 2)).tolist()
 
