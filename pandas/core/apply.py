@@ -562,7 +562,7 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.f is a list-like or dict-like, None otherwise.
         """
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
-            return self.obj.T.apply(self.f, 0, *self.args, **self.kwargs).T
+            return self.obj.T.apply(self.f, 0, args=self.args, **self.kwargs).T
 
         func = self.f
         kwargs = self.kwargs
