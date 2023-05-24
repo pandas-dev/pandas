@@ -643,7 +643,7 @@ Converting between time span representations:
    rng = pd.date_range("1/1/2012", periods=5, freq="M")
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts
-   ps = ts.to_period()
+   ps = ts.axis_ops.to_period()
    ps
    ps.to_timestamp()
 
