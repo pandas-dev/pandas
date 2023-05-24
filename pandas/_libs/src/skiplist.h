@@ -13,8 +13,7 @@ Port of Wes McKinney's Cython version of Raymond Hettinger's original pure
 Python recipe (https://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 */
 
-#ifndef PANDAS__LIBS_SRC_SKIPLIST_H_
-#define PANDAS__LIBS_SRC_SKIPLIST_H_
+#pragma once
 
 #include <math.h>
 #include <stdio.h>
@@ -296,5 +295,3 @@ PANDAS_INLINE int skiplist_remove(skiplist_t *skp, double value) {
     --(skp->size);
     return 1;
 }
-
-#endif  // PANDAS__LIBS_SRC_SKIPLIST_H_

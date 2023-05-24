@@ -4,10 +4,9 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    ensure_platform_int,
-    is_timedelta64_dtype,
-)
+from pandas._libs import lib
+
+from pandas.core.dtypes.common import ensure_platform_int
 
 import pandas as pd
 from pandas import (
@@ -280,7 +279,9 @@ def test_transform_datetime_to_timedelta():
     # GH 15429
     # transforming a datetime to timedelta
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
-    expected = Series([Timestamp("20130101") - Timestamp("20130101")] * 5, name="A")
+    expected = Series(
+        Timestamp("20130101") - Timestamp("20130101"), index=range(5), name="A"
+    )
 
     # this does date math without changing result type in transform
     base_time = df["A"][0]
@@ -337,10 +338,10 @@ def test_transform_casting():
     )
 
     result = df.groupby("ID3")["DATETIME"].transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.dtype)
+    assert lib.is_np_dtype(result.dtype, "m")
 
     result = df[["ID3", "DATETIME"]].groupby("ID3").transform(lambda x: x.diff())
-    assert is_timedelta64_dtype(result.DATETIME.dtype)
+    assert lib.is_np_dtype(result.DATETIME.dtype, "m")
 
 
 def test_transform_multiple(ts):
@@ -359,6 +360,20 @@ def test_dispatch_transform(tsframe):
     fillit = lambda x: x.fillna(method="pad")
     expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
+
+
+def test_transform_fillna_null():
+    df = DataFrame(
+        {
+            "price": [10, 10, 20, 20, 30, 30],
+            "color": [10, 10, 20, 20, 30, 30],
+            "cost": (100, 200, 300, 400, 500, 600),
+        }
+    )
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).transform("fillna")
+    with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
+        df.groupby(["price"]).fillna()
 
 
 def test_transform_transformation_func(transformation_func):

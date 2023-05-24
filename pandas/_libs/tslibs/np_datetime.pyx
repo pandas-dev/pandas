@@ -229,7 +229,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -256,7 +256,7 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -419,7 +419,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:

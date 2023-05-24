@@ -7,6 +7,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Generator,
     Hashable,
     Iterable,
     List,
@@ -57,8 +58,6 @@ from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_categorical_dtype,
-    is_extension_array_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -67,7 +66,10 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
@@ -748,7 +750,7 @@ class MultiIndex(Index):
             codes = self.codes[i]
 
             vals = index
-            if is_categorical_dtype(vals.dtype):
+            if isinstance(vals.dtype, CategoricalDtype):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
@@ -1114,11 +1116,7 @@ class MultiIndex(Index):
         # calculating the indexer are shifted to 0
         sizes = np.ceil(
             np.log2(
-                [
-                    len(level)
-                    + libindex.multiindex_nulls_shift  # type: ignore[attr-defined]
-                    for level in self.levels
-                ]
+                [len(level) + libindex.multiindex_nulls_shift for level in self.levels]
             )
         )
 
@@ -2169,7 +2167,11 @@ class MultiIndex(Index):
             # lexsort is significantly faster than self._values.argsort()
             target = self._sort_levels_monotonic(raise_if_incomparable=True)
             return lexsort_indexer(
-                target._get_codes_for_sorting(), na_position=na_position
+                # error: Argument 1 to "lexsort_indexer" has incompatible type
+                # "List[Categorical]"; expected "Union[List[Union[ExtensionArray,
+                # ndarray[Any, Any]]], List[Series]]"
+                target._get_codes_for_sorting(),  # type: ignore[arg-type]
+                na_position=na_position,
             )
         return self._values.argsort(*args, **kwargs)
 
@@ -2391,7 +2393,7 @@ class MultiIndex(Index):
             )
 
         return [
-            Categorical.from_codes(level_codes, cats(level_codes), ordered=True)
+            Categorical.from_codes(level_codes, cats(level_codes), True, validate=False)
             for level_codes in self.codes
         ]
 
@@ -2581,7 +2583,7 @@ class MultiIndex(Index):
         """
         lev = self.levels[0]
         codes = self._codes[0]
-        cat = Categorical.from_codes(codes=codes, categories=lev)
+        cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat)
         return ci.get_indexer_for(target)
 
@@ -2841,6 +2843,8 @@ class MultiIndex(Index):
             #  i.e. do we need _index_as_unique on that level?
             try:
                 return self._engine.get_loc(key)
+            except KeyError as err:
+                raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
                 loc, _ = self.get_loc_level(key, list(range(self.nlevels)))
@@ -2939,7 +2943,7 @@ class MultiIndex(Index):
         if not drop_level:
             if lib.is_integer(loc):
                 # Slice index must be an integer or None
-                mi = self[loc : loc + 1]  # type: ignore[misc]
+                mi = self[loc : loc + 1]
             else:
                 mi = self[loc]
         return loc, mi
@@ -3650,7 +3654,7 @@ class MultiIndex(Index):
     @doc(Index.astype)
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             msg = "> 1 ndim Categorical are not supported at this time"
             raise NotImplementedError(msg)
         if not is_object_dtype(dtype):
@@ -3769,6 +3773,9 @@ class MultiIndex(Index):
 
     @doc(Index.isin)
     def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+        if isinstance(values, Generator):
+            values = list(values)
+
         if level is None:
             if len(values) == 0:
                 return np.zeros((len(self),), dtype=np.bool_)
@@ -3852,13 +3859,13 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     return list(zip(*result))
 
 
-def _get_na_rep(dtype) -> str:
-    if is_extension_array_dtype(dtype):
+def _get_na_rep(dtype: DtypeObj) -> str:
+    if isinstance(dtype, ExtensionDtype):
         return f"{dtype.na_value}"
     else:
-        dtype = dtype.type
+        dtype_type = dtype.type
 
-    return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype, "NaN")
+    return {np.datetime64: "NaT", np.timedelta64: "NaT"}.get(dtype_type, "NaN")
 
 
 def maybe_droplevels(index: Index, key) -> Index:

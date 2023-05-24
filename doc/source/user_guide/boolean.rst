@@ -24,8 +24,6 @@ Indexing with NA values
 
 pandas allows indexing with ``NA`` values in a boolean array, which are treated as ``False``.
 
-.. versionchanged:: 1.0.2
-
 .. ipython:: python
    :okexcept:
 

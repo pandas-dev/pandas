@@ -58,7 +58,8 @@ ERROR_MSGS = {
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
-    "EX03": "flake8 error: {error_code} {error_message}{times_happening}",
+    "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
+    "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
 }
@@ -129,15 +130,14 @@ def get_api_items(api_doc_fd):
             if line_stripped == "":
                 position = None
                 continue
-            item = line_stripped.strip()
-            if item in IGNORE_VALIDATION:
+            if line_stripped in IGNORE_VALIDATION:
                 continue
             func = importlib.import_module(current_module)
-            for part in item.split("."):
+            for part in line_stripped.split("."):
                 func = getattr(func, part)
 
             yield (
-                ".".join([current_module, item]),
+                ".".join([current_module, line_stripped]),
                 func,
                 current_section,
                 current_subsection,
@@ -212,20 +212,33 @@ class PandasDocstring(Validator):
         try:
             file.write(content)
             file.flush()
-            cmd = ["python", "-m", "flake8", "--quiet", "--statistics", file.name]
+            cmd = [
+                "python",
+                "-m",
+                "flake8",
+                "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
+                "--max-line-length=88",
+                "--ignore=E203,E3,W503,W504,E402,E731",
+                file.name,
+            ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
             stdout = response.stdout
             stdout = stdout.replace(file.name, "")
-            messages = stdout.strip("\n")
+            messages = stdout.strip("\n").splitlines()
             if messages:
-                error_messages.append(messages)
+                error_messages.extend(messages)
         finally:
             file.close()
             os.unlink(file.name)
 
         for error_message in error_messages:
-            error_count, error_code, message = error_message.split(maxsplit=2)
-            yield error_code, message, int(error_count)
+            line_number, col_number, error_code, message = error_message.split(
+                "\t", maxsplit=3
+            )
+            # Note: we subtract 2 from the line number because
+            # 'import numpy as np\nimport pandas as pd\n'
+            # is prepended to the docstrings.
+            yield error_code, message, int(line_number) - 2, int(col_number)
 
     def non_hyphenated_array_like(self):
         return "array_like" in self.raw_doc
@@ -276,14 +289,14 @@ def pandas_validate(func_name: str):
                 pandas_error("EX02", doctest_log=result["examples_errs"])
             )
 
-        for error_code, error_message, error_count in doc.validate_pep8():
-            times_happening = f" ({error_count} times)" if error_count > 1 else ""
+        for error_code, error_message, line_number, col_number in doc.validate_pep8():
             result["errors"].append(
                 pandas_error(
                     "EX03",
                     error_code=error_code,
                     error_message=error_message,
-                    times_happening=times_happening,
+                    line_number=line_number,
+                    col_number=col_number,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
@@ -356,7 +369,7 @@ def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
+        with open(api_doc_fname, encoding="utf-8") as f:
             yield from get_api_items(f)
 
 
@@ -407,7 +420,7 @@ def print_validate_one_results(func_name: str):
 
     sys.stderr.write(header("Validation"))
     if result["errors"]:
-        sys.stderr.write(f'{len(result["errors"])} Errors found:\n')
+        sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
         for err_code, err_desc in result["errors"]:
             if err_code == "EX02":  # Failing examples are printed at the end
                 sys.stderr.write("\tExamples do not pass tests\n")

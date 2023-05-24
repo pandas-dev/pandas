@@ -531,7 +531,7 @@ class _HtmlFrameParser:
 
         return all_texts
 
-    def _handle_hidden_tables(self, tbl_list, attr_name):
+    def _handle_hidden_tables(self, tbl_list, attr_name: str):
         """
         Return list of tables, potentially removing hidden elements
 
@@ -582,7 +582,6 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     def _parse_tables(self, doc, match, attrs):
         element_name = self._strainer.name
         tables = doc.find_all(element_name, attrs=attrs)
-
         if not tables:
             raise ValueError("No tables found")
 
@@ -592,13 +591,15 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         for table in tables:
             if self.displayed_only:
+                for elem in table.find_all("style"):
+                    elem.decompose()
+
                 for elem in table.find_all(style=re.compile(r"display:\s*none")):
                     elem.decompose()
 
             if table not in unique_tables and table.find(string=match) is not None:
                 result.append(table)
             unique_tables.add(table)
-
         if not result:
             raise ValueError(f"No tables found matching pattern {repr(match.pattern)}")
         return result
@@ -730,10 +731,11 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 # lxml utilizes XPATH 1.0 which does not have regex
                 # support. As a result, we find all elements with a style
                 # attribute and iterate them to check for display:none
+                for elem in table.xpath(".//style"):
+                    elem.drop_tree()
                 for elem in table.xpath(".//*[@style]"):
                     if "display:none" in elem.attrib.get("style", "").replace(" ", ""):
                         elem.drop_tree()
-
         if not tables:
             raise ValueError(f"No tables found matching regex {repr(pattern)}")
         return tables
@@ -1170,6 +1172,7 @@ def read_html(
             '{None, "header", "footer", "body", "all"}, got '
             f'"{extract_links}"'
         )
+
     validate_header_arg(header)
     check_dtype_backend(dtype_backend)
 

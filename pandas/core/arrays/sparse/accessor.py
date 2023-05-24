@@ -8,13 +8,13 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
 from pandas.core.arrays.sparse.array import SparseArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 
 if TYPE_CHECKING:
     from pandas import (
@@ -46,10 +46,10 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         return getattr(self._parent.array, name)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         if name == "from_coo":
             return self.from_coo(*args, **kwargs)
         elif name == "to_coo":
@@ -219,6 +219,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             self._parent.array.to_dense(),
             index=self._parent.index,
             name=self._parent.name,
+            copy=False,
         )
 
 

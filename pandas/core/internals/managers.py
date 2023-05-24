@@ -35,10 +35,13 @@ from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_dtype_equal,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    ExtensionDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -49,9 +52,8 @@ from pandas.core.dtypes.missing import (
 )
 
 import pandas.core.algorithms as algos
+from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.sparse import SparseDtype
-import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -72,6 +74,7 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     extend_blocks,
     get_block_type,
+    maybe_coerce_values,
     new_block,
     new_block_2d,
 )
@@ -273,8 +276,8 @@ class BaseBlockManager(DataManager):
         ref = weakref.ref(self.blocks[blkno])
         return ref in mgr.blocks[blkno].refs.referenced_blocks
 
-    def get_dtypes(self):
-        dtypes = np.array([blk.dtype for blk in self.blocks])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        dtypes = np.array([blk.dtype for blk in self.blocks], dtype=object)
         return dtypes.take(self.blknos)
 
     @property
@@ -425,7 +428,7 @@ class BaseBlockManager(DataManager):
 
         return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
 
-    def fillna(self, value, limit, inplace: bool, downcast) -> Self:
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
             limit = libalgos.validate_limit(None, limit=limit)
@@ -510,10 +513,6 @@ class BaseBlockManager(DataManager):
         in formatting (repr / csv).
         """
         return self.apply("to_native_types", **kwargs)
-
-    @property
-    def is_numeric_mixed_type(self) -> bool:
-        return all(block.is_numeric for block in self.blocks)
 
     @property
     def any_extension_types(self) -> bool:
@@ -914,16 +913,11 @@ class BaseBlockManager(DataManager):
 
         if fill_value is None:
             fill_value = np.nan
-        block_shape = list(self.shape)
-        block_shape[0] = len(placement)
+
+        shape = (len(placement), self.shape[1])
 
         dtype, fill_value = infer_dtype_from_scalar(fill_value)
-        # error: Argument "dtype" to "empty" has incompatible type "Union[dtype,
-        # ExtensionDtype]"; expected "Union[dtype, None, type, _SupportsDtype, str,
-        # Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any], _DtypeDict,
-        # Tuple[Any, Any]]"
-        block_values = np.empty(block_shape, dtype=dtype)  # type: ignore[arg-type]
-        block_values.fill(fill_value)
+        block_values = make_na_array(dtype, shape, fill_value)
         return new_block_2d(block_values, placement=placement)
 
     def take(
@@ -1033,9 +1027,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             #  is this ruled out in the general case?
             result = self.blocks[0].iget((slice(None), loc))
             # in the case of a single block, the new block is a view
+            bp = BlockPlacement(slice(0, len(result)))
             block = new_block(
                 result,
-                placement=slice(0, len(result)),
+                placement=bp,
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
@@ -1070,7 +1065,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = cast(ExtensionDtype, dtype)
             result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
 
-        block = new_block(result, placement=slice(0, len(result)), ndim=1)
+        bp = BlockPlacement(slice(0, len(result)))
+        block = new_block(result, placement=bp, ndim=1)
         return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
@@ -1128,7 +1124,11 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         return result  # type: ignore[return-value]
 
     def iset(
-        self, loc: int | slice | np.ndarray, value: ArrayLike, inplace: bool = False
+        self,
+        loc: int | slice | np.ndarray,
+        value: ArrayLike,
+        inplace: bool = False,
+        refs: BlockValuesRefs | None = None,
     ):
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
@@ -1169,6 +1169,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     inplace=inplace,
                     blkno=blkno,
                     blk=blk,
+                    refs=refs,
                 )
 
             # error: Incompatible types in assignment (expression has type
@@ -1214,7 +1215,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     continue
                 else:
                     # Defer setting the new values to enable consolidation
-                    self._iset_split_block(blkno_l, blk_locs)
+                    self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
         if len(removed_blknos):
             # Remove blocks & update blknos accordingly
@@ -1244,6 +1245,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     new_block_2d(
                         values=value,
                         placement=BlockPlacement(slice(mgr_loc, mgr_loc + 1)),
+                        refs=refs,
                     )
                     for mgr_loc in unfit_idxr
                 )
@@ -1259,6 +1261,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     new_block_2d(
                         values=value_getitem(unfit_val_items),
                         placement=BlockPlacement(unfit_idxr),
+                        refs=refs,
                     )
                 )
 
@@ -1275,6 +1278,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blkno_l: int,
         blk_locs: np.ndarray | list[int],
         value: ArrayLike | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> None:
         """Removes columns from a block by splitting the block.
 
@@ -1287,6 +1291,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         blkno_l: The block number to operate on, relevant for updating the manager
         blk_locs: The locations of our block that should be deleted.
         value: The value to set as a replacement.
+        refs: The reference tracking object of the value to set.
         """
         blk = self.blocks[blkno_l]
 
@@ -1296,7 +1301,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nbs_tup = tuple(blk.delete(blk_locs))
         if value is not None:
             locs = blk.mgr_locs.as_array[blk_locs]
-            first_nb = new_block_2d(value, BlockPlacement(locs))
+            first_nb = new_block_2d(value, BlockPlacement(locs), refs=refs)
         else:
             first_nb = nbs_tup[0]
             nbs_tup = tuple(nbs_tup[1:])
@@ -1318,7 +1323,13 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._blknos[nb.mgr_locs.indexer] = i + nr_blocks
 
     def _iset_single(
-        self, loc: int, value: ArrayLike, inplace: bool, blkno: int, blk: Block
+        self,
+        loc: int,
+        value: ArrayLike,
+        inplace: bool,
+        blkno: int,
+        blk: Block,
+        refs: BlockValuesRefs | None = None,
     ) -> None:
         """
         Fastpath for iset when we are only setting a single position and
@@ -1338,7 +1349,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blk.set_inplace(slice(iloc, iloc + 1), value, copy=copy)
             return
 
-        nb = new_block_2d(value, placement=blk._mgr_locs)
+        nb = new_block_2d(value, placement=blk._mgr_locs, refs=refs)
         old_blocks = self.blocks
         new_blocks = old_blocks[:blkno] + (nb,) + old_blocks[blkno + 1 :]
         self.blocks = new_blocks
@@ -1376,7 +1387,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             new_mgr = col_mgr.setitem((idx,), value)
             self.iset(loc, new_mgr._block.values, inplace=True)
 
-    def insert(self, loc: int, item: Hashable, value: ArrayLike) -> None:
+    def insert(self, loc: int, item: Hashable, value: ArrayLike, refs=None) -> None:
         """
         Insert item at selected position.
 
@@ -1385,6 +1396,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         loc : int
         item : hashable
         value : np.ndarray or ExtensionArray
+        refs : The reference tracking object of the value to set.
         """
         # insert to the axis; this could possibly raise a TypeError
         new_axis = self.items.insert(loc, item)
@@ -1400,7 +1412,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         bp = BlockPlacement(slice(loc, loc + 1))
         # TODO(CoW) do we always "own" the passed `value`?
-        block = new_block_2d(values=value, placement=bp)
+        block = new_block_2d(values=value, placement=bp, refs=refs)
 
         if not len(self.blocks):
             # Fastpath
@@ -1771,7 +1783,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             dtype = cast(np.dtype, dtype)
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
-        elif is_dtype_equal(dtype, str):
+        elif dtype == np.dtype(str):
             dtype = np.dtype("object")
 
         result = np.empty(self.shape, dtype=dtype)
@@ -1840,6 +1852,37 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
 
+    # ----------------------------------------------------------------
+    # Concatenation
+
+    @classmethod
+    def concat_horizontal(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed BlockManagers horizontally.
+        """
+        offset = 0
+        blocks: list[Block] = []
+        for mgr in mgrs:
+            for blk in mgr.blocks:
+                # We need to do getitem_block here otherwise we would be altering
+                #  blk.mgr_locs in place, which would render it invalid. This is only
+                #  relevant in the copy=False case.
+                nb = blk.slice_block_columns(slice(None))
+                nb._mgr_locs = nb._mgr_locs.add(offset)
+                blocks.append(nb)
+
+            offset += len(mgr.items)
+
+        new_mgr = cls(tuple(blocks), axes)
+        return new_mgr
+
+    @classmethod
+    def concat_vertical(cls, mgrs: list[Self], axes: list[Index]) -> Self:
+        """
+        Concatenate uniformly-indexed BlockManagers vertically.
+        """
+        raise NotImplementedError("This logic lives (for now) in internals.concat")
+
 
 class SingleBlockManager(BaseBlockManager, SingleDataManager):
     """manage a single block with"""
@@ -1886,7 +1929,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         Constructor for if we have an array that is not yet a Block.
         """
-        block = new_block(array, placement=slice(0, len(index)), ndim=1, refs=refs)
+        array = maybe_coerce_values(array)
+        bp = BlockPlacement(slice(0, len(index)))
+        block = new_block(array, placement=bp, ndim=1, refs=refs)
         return cls(block, index)
 
     def to_2d_mgr(self, columns: Index) -> BlockManager:
@@ -1932,6 +1977,10 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
             values = extract_array(values, extract_numpy=True)
+            if not isinstance(mgr_locs, BlockPlacement):
+                mgr_locs = BlockPlacement(mgr_locs)
+
+            values = maybe_coerce_values(values)
             return new_block(values, placement=mgr_locs, ndim=ndim)
 
         if isinstance(state, tuple) and len(state) >= 4 and "0.14.1" in state[3]:
@@ -1964,21 +2013,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer: slice | np.ndarray) -> SingleBlockManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Self:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
-        if (
-            using_copy_on_write()
-            and isinstance(indexer, np.ndarray)
-            and len(indexer) > 0
-            and com.is_bool_indexer(indexer)
-            and indexer.all()
-        ):
+        if using_copy_on_write() and len(indexer) > 0 and indexer.all():
             return type(self)(blk.copy(deep=False), self.index)
-        array = blk._slice(indexer)
-        if array.ndim > 1:
-            # This will be caught by Series._get_values
-            raise ValueError("dimension-expanding indexing not allowed")
+        array = blk.values[indexer]
 
         bp = BlockPlacement(slice(0, len(array)))
         # TODO(CoW) in theory only need to track reference if new_array is a view
@@ -1994,7 +2034,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             raise IndexError("Requested axis not found in manager")
 
         blk = self._block
-        array = blk._slice(slobj)
+        array = blk.values[slobj]
         bp = BlockPlacement(slice(0, len(array)))
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs is not yet covered by the tests
@@ -2010,8 +2050,8 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def dtype(self) -> DtypeObj:
         return self._block.dtype
 
-    def get_dtypes(self) -> np.ndarray:
-        return np.array([self._block.dtype])
+    def get_dtypes(self) -> npt.NDArray[np.object_]:
+        return np.array([self._block.dtype], dtype=object)
 
     def external_values(self):
         """The array that Series.values returns"""
@@ -2181,10 +2221,7 @@ def raise_construction_error(
 # -----------------------------------------------------------------------
 
 
-def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
-    # compat for numpy<1.21, in which comparing a np.dtype with an ExtensionDtype
-    # raises instead of returning False. Once earlier numpy versions are dropped,
-    # this can be simplified to `return tup[1].dtype`
+def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
     dtype = tup[1].dtype
 
     if is_1d_only_ea_dtype(dtype):
@@ -2194,15 +2231,14 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, bool, DtypeObj]:
     else:
         sep = 0
 
-    return sep, isinstance(dtype, np.dtype), dtype
+    return sep, dtype
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
     tuples = list(enumerate(arrays))
 
     if not consolidate:
-        nbs = _tuples_to_blocks_no_consolidate(tuples, refs)
-        return nbs
+        return _tuples_to_blocks_no_consolidate(tuples, refs)
 
     # when consolidating, we can ignore refs (either stacking always copies,
     # or the EA is already copied in the calling dict_to_mgr)
@@ -2211,12 +2247,12 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
     # group by dtype
     grouper = itertools.groupby(tuples, _grouping_func)
 
-    nbs = []
-    for (_, _, dtype), tup_block in grouper:
+    nbs: list[Block] = []
+    for (_, dtype), tup_block in grouper:
         block_type = get_block_type(dtype)
 
         if isinstance(dtype, np.dtype):
-            is_dtlike = dtype.kind in ["m", "M"]
+            is_dtlike = dtype.kind in "mM"
 
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)
@@ -2350,3 +2386,36 @@ def _preprocess_slice_or_indexer(
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return "fancy", indexer, len(indexer)
+
+
+def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
+    if isinstance(dtype, DatetimeTZDtype):
+        # NB: exclude e.g. pyarrow[dt64tz] dtypes
+        i8values = np.full(shape, fill_value._value)
+        return DatetimeArray(i8values, dtype=dtype)
+
+    elif is_1d_only_ea_dtype(dtype):
+        dtype = cast(ExtensionDtype, dtype)
+        cls = dtype.construct_array_type()
+
+        missing_arr = cls._from_sequence([], dtype=dtype)
+        ncols, nrows = shape
+        assert ncols == 1, ncols
+        empty_arr = -1 * np.ones((nrows,), dtype=np.intp)
+        return missing_arr.take(empty_arr, allow_fill=True, fill_value=fill_value)
+    elif isinstance(dtype, ExtensionDtype):
+        # TODO: no tests get here, a handful would if we disabled
+        #  the dt64tz special-case above (which is faster)
+        cls = dtype.construct_array_type()
+        missing_arr = cls._empty(shape=shape, dtype=dtype)
+        missing_arr[:] = fill_value
+        return missing_arr
+    else:
+        # NB: we should never get here with dtype integer or bool;
+        #  if we did, the missing_arr.fill would cast to gibberish
+        missing_arr = np.empty(shape, dtype=dtype)
+        missing_arr.fill(fill_value)
+
+        if dtype.kind in "mM":
+            missing_arr = ensure_wrapped_if_datetimelike(missing_arr)
+        return missing_arr

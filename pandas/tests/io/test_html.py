@@ -131,7 +131,7 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
         res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
@@ -201,7 +201,7 @@ class TestReadHtml:
         check_before_test=True,
     )
     def test_banklist_url(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
+        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa: E501
         df1 = self.read_html(
             # lxml cannot find attrs leave out for now
             url,
@@ -682,8 +682,8 @@ class TestReadHtml:
             "Hamilton Bank, NA",
             "The Citizens Savings Bank",
         ]
-        dfnew = df.applymap(try_remove_ws).replace(old, new)
-        gtnew = ground_truth.applymap(try_remove_ws)
+        dfnew = df.map(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.map(try_remove_ws)
         converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
@@ -692,7 +692,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_gold_canyon(self, banklist_data):
         gc = "Gold Canyon"
-        with open(banklist_data) as f:
+        with open(banklist_data, encoding="utf-8") as f:
             raw_text = f.read()
 
         assert gc in raw_text
@@ -1495,3 +1495,28 @@ class TestReadHtml:
         )
         with pytest.raises(ValueError, match=msg):
             read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(data)[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected)

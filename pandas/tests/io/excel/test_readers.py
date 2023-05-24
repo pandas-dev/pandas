@@ -6,6 +6,7 @@ from functools import partial
 import os
 from pathlib import Path
 import platform
+import re
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -147,6 +148,32 @@ class TestReaders:
         else:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
+
+    def test_engine_kwargs(self, read_ext, engine):
+        # GH#52214
+        expected_defaults = {
+            "xlsx": {"foo": "abcd"},
+            "xlsm": {"foo": 123},
+            "xlsb": {"foo": "True"},
+            "xls": {"foo": True},
+            "ods": {"foo": "abcd"},
+        }
+
+        if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
+            msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
+        elif read_ext[1:] == "ods":
+            msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
+        else:
+            msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
+
+        if engine is not None:
+            with pytest.raises(TypeError, match=msg):
+                pd.read_excel(
+                    "test1" + read_ext,
+                    sheet_name="Sheet1",
+                    index_col=0,
+                    engine_kwargs=expected_defaults[read_ext[1:]],
+                )
 
     def test_usecols_int(self, read_ext):
         # usecols as int
@@ -312,6 +339,14 @@ class TestReaders:
                 index_col=["A"],
                 usecols=["A", "C"],
             )
+
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_index_col_empty(self, read_ext):
         # see gh-9208
@@ -808,7 +843,13 @@ class TestReaders:
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
-        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        match = "|".join(
+            [
+                "(No such file or directory",
+                "没有那个文件或目录",
+                "File o directory non esistente)",
+            ]
+        )
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
@@ -1667,7 +1708,7 @@ class TestExcelFileRead:
             errors = (BadZipFile, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt")
+            Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
                     pd.ExcelFile(file, engine=engine)

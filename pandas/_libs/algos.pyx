@@ -51,9 +51,11 @@ from pandas._libs.khash cimport (
     kh_resize_int64,
     khiter_t,
 )
+from pandas._libs.missing cimport (
+    checknull,
+    isnaobj,
+)
 from pandas._libs.util cimport get_nat
-
-import pandas._libs.missing as missing
 
 cdef:
     float64_t FP_ERR = 1e-13
@@ -95,10 +97,10 @@ class Infinity:
 
     def __gt__(self, other):
         return (not isinstance(other, Infinity) and
-                not missing.checknull(other))
+                not checknull(other))
 
     def __ge__(self, other):
-        return not missing.checknull(other)
+        return not checknull(other)
 
 
 class NegInfinity:
@@ -107,10 +109,10 @@ class NegInfinity:
     """
     def __lt__(self, other):
         return  (not isinstance(other, NegInfinity) and
-                 not missing.checknull(other))
+                 not checknull(other))
 
     def __le__(self, other):
-        return not missing.checknull(other)
+        return not checknull(other)
 
     def __eq__(self, other):
         return isinstance(other, NegInfinity)
@@ -344,7 +346,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, xi, yi, N, K
-        bint minpv
+        int64_t minpv
         float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -355,7 +357,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     if minp is None:
         minpv = 1
     else:
-        minpv = <int>minp
+        minpv = <int64_t>minp
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -988,7 +990,7 @@ def rank_1d(
     if mask is not None:
         pass
     elif numeric_object_t is object:
-        mask = missing.isnaobj(masked_vals)
+        mask = isnaobj(masked_vals)
     elif numeric_object_t is int64_t and is_datetimelike:
         mask = (masked_vals == NPY_NAT).astype(np.uint8)
     elif numeric_object_t is float64_t or numeric_object_t is float32_t:
@@ -1366,7 +1368,7 @@ def rank_2d(
         nan_fill_val = get_rank_nan_fill_val(nans_rank_highest, <numeric_object_t>0)
 
         if numeric_object_t is object:
-            mask = missing.isnaobj(values).view(np.uint8)
+            mask = isnaobj(values).view(np.uint8)
         elif numeric_object_t is float64_t or numeric_object_t is float32_t:
             mask = np.isnan(values).view(np.uint8)
         else:

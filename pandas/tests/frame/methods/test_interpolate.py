@@ -151,6 +151,23 @@ class TestDataFrameInterpolate:
         expected = Series([1, 2, 3, 4], name="A")
         tm.assert_series_equal(result, expected)
 
+    def test_inerpolate_invalid_downcast(self):
+        # GH#53103
+        df = DataFrame(
+            {
+                "A": [1.0, 2.0, np.nan, 4.0],
+                "B": [1, 4, 9, np.nan],
+                "C": [1, 2, 3, 5],
+                "D": list("abcd"),
+            }
+        )
+
+        msg = "downcast must be either None or 'infer'"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(downcast="int64")
+        with pytest.raises(ValueError, match=msg):
+            df["A"].interpolate(downcast="int64")
+
     def test_interp_nan_idx(self):
         df = DataFrame({"A": [1, 2, np.nan, 4], "B": [np.nan, 2, 3, 4]})
         df = df.set_index("A")
@@ -420,3 +437,11 @@ class TestDataFrameInterpolate:
         expected = df.fillna(axis=axis, method=method)
         result = df.interpolate(method=method, axis=axis)
         tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_empty_df(self):
+        # GH#53199
+        df = DataFrame()
+        expected = df.copy()
+        result = df.interpolate(inplace=True)
+        assert result is None
+        tm.assert_frame_equal(df, expected)
