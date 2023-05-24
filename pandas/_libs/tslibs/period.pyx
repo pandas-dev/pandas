@@ -466,7 +466,8 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
     return dts_to_year_ordinal(&dts, af_info.to_end)
 
 
-cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, npy_datetimestruct* dts) noexcept nogil:
+cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
+                 npy_datetimestruct* dts) noexcept nogil:
     cdef:
         int quarter
 
@@ -851,7 +852,8 @@ cdef int64_t get_unix_date(int64_t period_ordinal, int freq) noexcept nogil:
 
 
 @cython.cdivision
-cdef int64_t get_time_nanos(int freq, int64_t unix_date, int64_t ordinal) noexcept nogil:
+cdef int64_t get_time_nanos(int freq, int64_t unix_date,
+                            int64_t ordinal) noexcept nogil:
     """
     Find the number of nanoseconds after midnight on the given unix_date
     that the ordinal represents in the given frequency.

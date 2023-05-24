@@ -270,7 +270,8 @@ cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) noexcept nogil:
     return 0
 
 
-cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) noexcept nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr,
+                              Py_ssize_t k, Py_ssize_t n) noexcept nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage

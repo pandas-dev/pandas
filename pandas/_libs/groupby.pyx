@@ -1293,7 +1293,8 @@ ctypedef fused numeric_object_complex_t:
     complex128_t
 
 
-cdef bint _treat_as_na(numeric_object_complex_t val, bint is_datetimelike) noexcept nogil:
+cdef bint _treat_as_na(numeric_object_complex_t val,
+                       bint is_datetimelike) noexcept nogil:
     if numeric_object_complex_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
