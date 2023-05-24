@@ -253,13 +253,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.drop \
-        pandas.Index.identical \
-        pandas.Index.insert \
-        pandas.Index.is_ \
-        pandas.Index.take \
-        pandas.Index.putmask \
-        pandas.Index.unique \
         pandas.Index.fillna \
         pandas.Index.dropna \
         pandas.Index.astype \
