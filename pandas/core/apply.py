@@ -92,6 +92,7 @@ def frame_apply(
         klass = FrameColumnApply
 
     _, func, _, _ = reconstruct_func(func, **kwargs)
+    assert func is not None
 
     return klass(
         obj,
@@ -105,11 +106,13 @@ def frame_apply(
 
 class Apply(metaclass=abc.ABCMeta):
     axis: AxisInt
+    orig_f: AggFuncType
+    f: AggFuncType
 
     def __init__(
         self,
         obj: AggObjType,
-        func,
+        func: AggFuncType,
         raw: bool,
         result_type: str | None,
         *,
@@ -129,6 +132,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.result_type = result_type
 
+        f: AggFuncType
         # curry if needed
         if (
             (kwargs or args)
@@ -137,13 +141,14 @@ class Apply(metaclass=abc.ABCMeta):
         ):
 
             def f(x):
+                assert callable(func)
                 return func(x, *args, **kwargs)
 
         else:
             f = func
 
-        self.orig_f: AggFuncType = func
-        self.f: AggFuncType = f
+        self.orig_f = func
+        self.f = f
 
     @abc.abstractmethod
     def apply(self) -> DataFrame | Series:
@@ -1216,7 +1221,7 @@ class ResamplerWindowApply(Apply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType | None, list[str] | None, npt.NDArray[np.intp] | None]:
+) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1271,6 +1276,7 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
+    assert func is not None
 
     return relabeling, func, columns, order
 
