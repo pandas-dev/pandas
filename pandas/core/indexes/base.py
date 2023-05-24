@@ -803,14 +803,11 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx1 = pd.Index(['1', '2', '3'])
-        >>> idx2 = pd.Index(['1', '2', '3'])
-        >>> idx2.is_(idx1)
-        False
-
-        >>> idx1 = pd.Index(['1', '2', '3'])
-        >>> new_name = idx1
-        >>> new_name.is_(idx1)
+        >>> idx1.is_(idx1.view())
         True
+
+        >>> idx1.is_(idx1.copy())
+        False
         """
         if self is other:
             return True
@@ -1105,8 +1102,8 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> idx = pd.Index(['a', 'b', 'c'])
-        >>> idx.take([2])
-        Index(['c'], dtype='object')
+        >>> idx.take([2, 2, 1, 2])
+        Index(['c', 'c', 'b', 'c'], dtype='object')
         """
 
     @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
