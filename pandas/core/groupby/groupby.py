@@ -3074,12 +3074,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # error: No overload variant of "where" matches argument types
                 #        "Any", "NAType", "Any"
                 values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
-                grouper = Index(values, dtype="Int64")
+                grouper = Index(values, dtype="Int64")  # type: ignore[assignment]
 
         else:
             # create a grouper with the original parameters, but on dropped
             # object
-            grouper, _, _ = get_grouper(
+            grouper, _, _ = get_grouper(  # type: ignore[assignment]
                 dropped,
                 key=self.keys,
                 axis=self.axis,

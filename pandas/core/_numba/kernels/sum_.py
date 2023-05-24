@@ -92,7 +92,7 @@ def sliding_sum(
                     sum_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
         else:
             for j in range(start[i - 1], s):
@@ -115,7 +115,7 @@ def sliding_sum(
                     sum_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
 
         if nobs == 0 == min_periods:
