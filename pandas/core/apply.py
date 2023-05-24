@@ -278,7 +278,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(func, str):
-            return self._try_aggregate_string_function(obj, func, *args, **kwargs)
+            return self._apply_str(obj, func, *args, **kwargs)
 
         if not args and not kwargs:
             f = com.get_cython_func(func)
@@ -543,7 +543,7 @@ class Apply(metaclass=abc.ABCMeta):
                         self.kwargs["axis"] = self.axis
                 else:
                     self.kwargs["axis"] = self.axis
-        return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
+        return self._apply_str(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
         """
@@ -601,34 +601,32 @@ class Apply(metaclass=abc.ABCMeta):
             func = new_func
         return func
 
-    def _try_aggregate_string_function(self, obj, arg: str, *args, **kwargs):
+    def _apply_str(self, obj, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on ourselves
+        - try to find a function (or attribute) on obj
         - try to find a numpy function
         - raise
         """
         assert isinstance(arg, str)
 
-        f = getattr(obj, arg, None)
-        if f is not None:
+        if hasattr(obj, arg):
+            f = getattr(obj, arg)
             if callable(f):
                 return f(*args, **kwargs)
 
-            # people may try to aggregate on a non-callable attribute
+            # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
             assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(obj, "__array__"):
+        elif hasattr(np, arg) and hasattr(obj, "__array__"):
             # in particular exclude Window
+            f = getattr(np, arg)
             return f(obj, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
-        )
+        else:
+            msg = f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+            raise AttributeError(msg)
 
 
 class NDFrameApply(Apply):
@@ -1437,7 +1435,7 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = Index(s.index).get_indexer(fun)
-            s = s[col_idx_order]
+            s = s.iloc[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
