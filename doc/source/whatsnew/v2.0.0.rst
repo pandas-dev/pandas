@@ -945,7 +945,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.where` and :meth:`Series.where` except for ``cond`` and ``other`` (:issue:`41523`)
 - Disallow passing non-keyword arguments to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` except for ``labels`` (:issue:`41491`)
 - Disallow passing non-keyword arguments to :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` except for ``mapper`` (:issue:`47587`)
-- Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` (:issue:`41511`)
+- Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` except ``lower`` and ``upper`` (:issue:`41511`)
 - Disallow passing non-keyword arguments to :meth:`Series.bfill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill` and :meth:`DataFrame.ffill` (:issue:`41508`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)
