@@ -324,6 +324,9 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        is_ser_or_df = isinstance(obj, (ABCDataFrame, ABCSeries))
+        this_args = [self.axis, *self.args] if is_ser_or_df else self.args
+
         context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
@@ -336,12 +339,7 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            a, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(a, *this_args, **self.kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -352,12 +350,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            arg, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, *this_args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
