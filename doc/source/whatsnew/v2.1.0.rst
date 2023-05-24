@@ -438,6 +438,8 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+- Bug in :meth:`DataFrame.__setitem__` allows assignments for multiple-dimension ndarray into one column (:issue:`51925`)
+- Bug in :meth:`BlockManager.insert` allows assignments for multiple-dimension ndarray into one column (:issue:`53366`)
 -
 
 Sparse
