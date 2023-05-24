@@ -2218,8 +2218,8 @@ frequencies ``Q-JAN`` through ``Q-DEC``.
 Converting between representations
 ----------------------------------
 
-Timestamped data can be converted to PeriodIndex-ed data using ``to_period``
-and vice-versa using ``to_timestamp``:
+Timestamped data can be converted to PeriodIndex-ed data using ``axis_ops.to_period``
+and vice-versa using ``axis_ops.to_timestamp``:
 
 .. ipython:: python
 
@@ -2229,18 +2229,18 @@ and vice-versa using ``to_timestamp``:
 
    ts
 
-   ps = ts.to_period()
+   ps = ts.axis_ops.to_period()
 
    ps
 
-   ps.to_timestamp()
+   ps.axis_ops.to_timestamp()
 
 Remember that 's' and 'e' can be used to return the timestamps at the start or
 end of the period:
 
 .. ipython:: python
 
-   ps.to_timestamp("D", how="s")
+   ps.axis_ops.to_timestamp("D", how="s")
 
 Converting between period and timestamp enables some convenient arithmetic
 functions to be used. In the following example, we convert a quarterly
@@ -2460,8 +2460,8 @@ Operations between :class:`Series` in different time zones will yield UTC
 .. ipython:: python
 
    ts_utc = pd.Series(range(3), pd.date_range("20130101", periods=3, tz="UTC"))
-   eastern = ts_utc.tz_convert("US/Eastern")
-   berlin = ts_utc.tz_convert("Europe/Berlin")
+   eastern = ts_utc.axis_ops.tz_convert("US/Eastern")
+   berlin = ts_utc.axis_ops.tz_convert("Europe/Berlin")
    result = eastern + berlin
    result
    result.index

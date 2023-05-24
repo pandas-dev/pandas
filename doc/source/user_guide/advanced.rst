@@ -501,7 +501,7 @@ values across a level. For instance:
    df2_aligned
 
 
-Swapping levels with ``swaplevel``
+Swapping levels with ``axis_ops.swap_level``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~MultiIndex.swaplevel` method can switch the order of two levels:
@@ -509,11 +509,11 @@ The :meth:`~MultiIndex.swaplevel` method can switch the order of two levels:
 .. ipython:: python
 
    df[:5]
-   df[:5].swaplevel(0, 1, axis=0)
+   df[:5].axis_ops.swap_level(0, 1, axis=0)
 
 .. _advanced.reorderlevels:
 
-Reordering levels with ``reorder_levels``
+Reordering levels with ``axis_ops.reorder_levels``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~MultiIndex.reorder_levels` method generalizes the ``swaplevel``
@@ -521,7 +521,7 @@ method, allowing you to permute the hierarchical index levels in one step:
 
 .. ipython:: python
 
-   df[:5].reorder_levels([1, 0], axis=0)
+   df[:5].axis_ops.reorder_levels([1, 0], axis=0)
 
 .. _advanced.index_names:
 
