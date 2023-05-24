@@ -3,6 +3,13 @@ Define extension dtypes.
 """
 from __future__ import annotations
 
+from datetime import (
+    date,
+    datetime,
+    time,
+    timedelta,
+)
+from decimal import Decimal
 import re
 from typing import (
     TYPE_CHECKING,
@@ -10,11 +17,15 @@ from typing import (
     MutableMapping,
     cast,
 )
+import warnings
 
 import numpy as np
 import pytz
 
-from pandas._libs import missing as libmissing
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.interval import Interval
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslibs import (
@@ -22,6 +33,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Period,
+    Timedelta,
     Timestamp,
     timezones,
     to_offset,
@@ -31,9 +43,13 @@ from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
 )
+from pandas.compat import pa_version_under7p0
+from pandas.errors import PerformanceWarning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import (
     ExtensionDtype,
+    StorageExtensionDtype,
     register_extension_dtype,
 )
 from pandas.core.dtypes.generic import (
@@ -45,10 +61,13 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
+if not pa_version_under7p0:
+    import pyarrow as pa
+
 if TYPE_CHECKING:
     from datetime import tzinfo
 
-    import pyarrow
+    import pyarrow as pa  # noqa: F811, TCH004
 
     from pandas._typing import (
         Dtype,
@@ -69,7 +88,9 @@ if TYPE_CHECKING:
         IntervalArray,
         PandasArray,
         PeriodArray,
+        SparseArray,
     )
+    from pandas.core.arrays.arrow import ArrowExtensionArray
 
 str_type = str
 
@@ -606,8 +627,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        from pandas.core.arrays.sparse import SparseDtype
-
         # check if we have all categorical dtype with identical categories
         if all(isinstance(x, CategoricalDtype) for x in dtypes):
             first = dtypes[0]
@@ -821,9 +840,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
             and tz_compare(self.tz, other.tz)
         )
 
-    def __from_arrow__(
-        self, array: pyarrow.Array | pyarrow.ChunkedArray
-    ) -> DatetimeArray:
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> DatetimeArray:
         """
         Construct DatetimeArray from pyarrow Array/ChunkedArray.
 
@@ -1028,9 +1045,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
         return PeriodArray
 
-    def __from_arrow__(
-        self, array: pyarrow.Array | pyarrow.ChunkedArray
-    ) -> PeriodArray:
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> PeriodArray:
         """
         Construct PeriodArray from pyarrow Array/ChunkedArray.
         """
@@ -1278,9 +1293,7 @@ class IntervalDtype(PandasExtensionDtype):
                 return False
         return super().is_dtype(dtype)
 
-    def __from_arrow__(
-        self, array: pyarrow.Array | pyarrow.ChunkedArray
-    ) -> IntervalArray:
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray) -> IntervalArray:
         """
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
@@ -1500,3 +1513,725 @@ class BaseMaskedDtype(ExtensionDtype):
             return type(self).from_numpy_dtype(new_dtype)
         except (KeyError, NotImplementedError):
             return None
+
+
+@register_extension_dtype
+class SparseDtype(ExtensionDtype):
+    """
+    Dtype for data stored in :class:`SparseArray`.
+
+    This dtype implements the pandas ExtensionDtype interface.
+
+    Parameters
+    ----------
+    dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64
+        The dtype of the underlying array storing the non-fill value values.
+    fill_value : scalar, optional
+        The scalar value not stored in the SparseArray. By default, this
+        depends on `dtype`.
+
+        =========== ==========
+        dtype       na_value
+        =========== ==========
+        float       ``np.nan``
+        int         ``0``
+        bool        ``False``
+        datetime64  ``pd.NaT``
+        timedelta64 ``pd.NaT``
+        =========== ==========
+
+        The default value may be overridden by specifying a `fill_value`.
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
+    """
+
+    # We include `_is_na_fill_value` in the metadata to avoid hash collisions
+    # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
+    # Without is_na_fill_value in the comparison, those would be equal since
+    # hash(nan) is (sometimes?) 0.
+    _metadata = ("_dtype", "_fill_value", "_is_na_fill_value")
+
+    def __init__(self, dtype: Dtype = np.float64, fill_value: Any = None) -> None:
+        if isinstance(dtype, type(self)):
+            if fill_value is None:
+                fill_value = dtype.fill_value
+            dtype = dtype.subtype
+
+        from pandas.core.dtypes.common import (
+            is_string_dtype,
+            pandas_dtype,
+        )
+        from pandas.core.dtypes.missing import na_value_for_dtype
+
+        dtype = pandas_dtype(dtype)
+        if is_string_dtype(dtype):
+            dtype = np.dtype("object")
+        if not isinstance(dtype, np.dtype):
+            # GH#53160
+            raise TypeError("SparseDtype subtype must be a numpy dtype")
+
+        if fill_value is None:
+            fill_value = na_value_for_dtype(dtype)
+
+        self._dtype = dtype
+        self._fill_value = fill_value
+        self._check_fill_value()
+
+    def __hash__(self) -> int:
+        # Python3 doesn't inherit __hash__ when a base class overrides
+        # __eq__, so we explicitly do it here.
+        return super().__hash__()
+
+    def __eq__(self, other: Any) -> bool:
+        # We have to override __eq__ to handle NA values in _metadata.
+        # The base class does simple == checks, which fail for NA.
+        if isinstance(other, str):
+            try:
+                other = self.construct_from_string(other)
+            except TypeError:
+                return False
+
+        if isinstance(other, type(self)):
+            subtype = self.subtype == other.subtype
+            if self._is_na_fill_value:
+                # this case is complicated by two things:
+                # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
+                # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
+                # i.e. we want to treat any floating-point NaN as equal, but
+                # not a floating-point NaN and a datetime NaT.
+                fill_value = (
+                    other._is_na_fill_value
+                    and isinstance(self.fill_value, type(other.fill_value))
+                    or isinstance(other.fill_value, type(self.fill_value))
+                )
+            else:
+                with warnings.catch_warnings():
+                    # Ignore spurious numpy warning
+                    warnings.filterwarnings(
+                        "ignore",
+                        "elementwise comparison failed",
+                        category=DeprecationWarning,
+                    )
+
+                    fill_value = self.fill_value == other.fill_value
+
+            return subtype and fill_value
+        return False
+
+    @property
+    def fill_value(self):
+        """
+        The fill value of the array.
+
+        Converting the SparseArray to a dense ndarray will fill the
+        array with this value.
+
+        .. warning::
+
+           It's possible to end up with a SparseArray that has ``fill_value``
+           values in ``sp_values``. This can occur, for example, when setting
+           ``SparseArray.fill_value`` directly.
+        """
+        return self._fill_value
+
+    def _check_fill_value(self):
+        if not lib.is_scalar(self._fill_value):
+            raise ValueError(
+                f"fill_value must be a scalar. Got {self._fill_value} instead"
+            )
+
+        from pandas.core.dtypes.cast import can_hold_element
+        from pandas.core.dtypes.missing import (
+            is_valid_na_for_dtype,
+            isna,
+        )
+
+        from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+        # GH#23124 require fill_value and subtype to match
+        val = self._fill_value
+        if isna(val):
+            if not is_valid_na_for_dtype(val, self.subtype):
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        elif isinstance(self.subtype, CategoricalDtype):
+            # TODO: is this even supported?  It is reached in
+            #  test_dtype_sparse_with_fill_value_not_present_in_data
+            if self.subtype.categories is None or val not in self.subtype.categories:
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+        else:
+            dummy = np.empty(0, dtype=self.subtype)
+            dummy = ensure_wrapped_if_datetimelike(dummy)
+
+            if not can_hold_element(dummy, val):
+                warnings.warn(
+                    "Allowing arbitrary scalar fill_value in SparseDtype is "
+                    "deprecated. In a future version, the fill_value must be "
+                    "a valid value for the SparseDtype.subtype.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+    @property
+    def _is_na_fill_value(self) -> bool:
+        from pandas import isna
+
+        return isna(self.fill_value)
+
+    @property
+    def _is_numeric(self) -> bool:
+        return not self.subtype == object
+
+    @property
+    def _is_boolean(self) -> bool:
+        return self.subtype.kind == "b"
+
+    @property
+    def kind(self) -> str:
+        """
+        The sparse kind. Either 'integer', or 'block'.
+        """
+        return self.subtype.kind
+
+    @property
+    def type(self):
+        return self.subtype.type
+
+    @property
+    def subtype(self):
+        return self._dtype
+
+    @property
+    def name(self) -> str:
+        return f"Sparse[{self.subtype.name}, {repr(self.fill_value)}]"
+
+    def __repr__(self) -> str:
+        return self.name
+
+    @classmethod
+    def construct_array_type(cls) -> type_t[SparseArray]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays.sparse.array import SparseArray
+
+        return SparseArray
+
+    @classmethod
+    def construct_from_string(cls, string: str) -> SparseDtype:
+        """
+        Construct a SparseDtype from a string form.
+
+        Parameters
+        ----------
+        string : str
+            Can take the following forms.
+
+            string           dtype
+            ================ ============================
+            'int'            SparseDtype[np.int64, 0]
+            'Sparse'         SparseDtype[np.float64, nan]
+            'Sparse[int]'    SparseDtype[np.int64, 0]
+            'Sparse[int, 0]' SparseDtype[np.int64, 0]
+            ================ ============================
+
+            It is not possible to specify non-default fill values
+            with a string. An argument like ``'Sparse[int, 1]'``
+            will raise a ``TypeError`` because the default fill value
+            for integers is 0.
+
+        Returns
+        -------
+        SparseDtype
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        msg = f"Cannot construct a 'SparseDtype' from '{string}'"
+        if string.startswith("Sparse"):
+            try:
+                sub_type, has_fill_value = cls._parse_subtype(string)
+            except ValueError as err:
+                raise TypeError(msg) from err
+            else:
+                result = SparseDtype(sub_type)
+                msg = (
+                    f"Cannot construct a 'SparseDtype' from '{string}'.\n\nIt "
+                    "looks like the fill_value in the string is not "
+                    "the default for the dtype. Non-default fill_values "
+                    "are not supported. Use the 'SparseDtype()' "
+                    "constructor instead."
+                )
+                if has_fill_value and str(result) != string:
+                    raise TypeError(msg)
+                return result
+        else:
+            raise TypeError(msg)
+
+    @staticmethod
+    def _parse_subtype(dtype: str) -> tuple[str, bool]:
+        """
+        Parse a string to get the subtype
+
+        Parameters
+        ----------
+        dtype : str
+            A string like
+
+            * Sparse[subtype]
+            * Sparse[subtype, fill_value]
+
+        Returns
+        -------
+        subtype : str
+
+        Raises
+        ------
+        ValueError
+            When the subtype cannot be extracted.
+        """
+        xpr = re.compile(r"Sparse\[(?P<subtype>[^,]*)(, )?(?P<fill_value>.*?)?\]$")
+        m = xpr.match(dtype)
+        has_fill_value = False
+        if m:
+            subtype = m.groupdict()["subtype"]
+            has_fill_value = bool(m.groupdict()["fill_value"])
+        elif dtype == "Sparse":
+            subtype = "float64"
+        else:
+            raise ValueError(f"Cannot parse {dtype}")
+        return subtype, has_fill_value
+
+    @classmethod
+    def is_dtype(cls, dtype: object) -> bool:
+        dtype = getattr(dtype, "dtype", dtype)
+        if isinstance(dtype, str) and dtype.startswith("Sparse"):
+            sub_type, _ = cls._parse_subtype(dtype)
+            dtype = np.dtype(sub_type)
+        elif isinstance(dtype, cls):
+            return True
+        return isinstance(dtype, np.dtype) or dtype == "Sparse"
+
+    def update_dtype(self, dtype) -> SparseDtype:
+        """
+        Convert the SparseDtype to a new dtype.
+
+        This takes care of converting the ``fill_value``.
+
+        Parameters
+        ----------
+        dtype : Union[str, numpy.dtype, SparseDtype]
+            The new dtype to use.
+
+            * For a SparseDtype, it is simply returned
+            * For a NumPy dtype (or str), the current fill value
+              is converted to the new dtype, and a SparseDtype
+              with `dtype` and the new fill value is returned.
+
+        Returns
+        -------
+        SparseDtype
+            A new SparseDtype with the correct `dtype` and fill value
+            for that `dtype`.
+
+        Raises
+        ------
+        ValueError
+            When the current fill value cannot be converted to the
+            new `dtype` (e.g. trying to convert ``np.nan`` to an
+            integer dtype).
+
+
+        Examples
+        --------
+        >>> SparseDtype(int, 0).update_dtype(float)
+        Sparse[float64, 0.0]
+
+        >>> SparseDtype(int, 1).update_dtype(SparseDtype(float, np.nan))
+        Sparse[float64, nan]
+        """
+        from pandas.core.dtypes.astype import astype_array
+        from pandas.core.dtypes.common import pandas_dtype
+
+        cls = type(self)
+        dtype = pandas_dtype(dtype)
+
+        if not isinstance(dtype, cls):
+            if not isinstance(dtype, np.dtype):
+                raise TypeError("sparse arrays of extension dtypes not supported")
+
+            fv_asarray = np.atleast_1d(np.array(self.fill_value))
+            fvarr = astype_array(fv_asarray, dtype)
+            # NB: not fv_0d.item(), as that casts dt64->int
+            fill_value = fvarr[0]
+            dtype = cls(dtype, fill_value=fill_value)
+
+        return dtype
+
+    @property
+    def _subtype_with_str(self):
+        """
+        Whether the SparseDtype's subtype should be considered ``str``.
+
+        Typically, pandas will store string data in an object-dtype array.
+        When converting values to a dtype, e.g. in ``.astype``, we need to
+        be more specific, we need the actual underlying type.
+
+        Returns
+        -------
+        >>> SparseDtype(int, 1)._subtype_with_str
+        dtype('int64')
+
+        >>> SparseDtype(object, 1)._subtype_with_str
+        dtype('O')
+
+        >>> dtype = SparseDtype(str, '')
+        >>> dtype.subtype
+        dtype('O')
+
+        >>> dtype._subtype_with_str
+        <class 'str'>
+        """
+        if isinstance(self.fill_value, str):
+            return type(self.fill_value)
+        return self.subtype
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # TODO for now only handle SparseDtypes and numpy dtypes => extend
+        # with other compatible extension dtypes
+        from pandas.core.dtypes.cast import np_find_common_type
+
+        if any(
+            isinstance(x, ExtensionDtype) and not isinstance(x, SparseDtype)
+            for x in dtypes
+        ):
+            return None
+
+        fill_values = [x.fill_value for x in dtypes if isinstance(x, SparseDtype)]
+        fill_value = fill_values[0]
+
+        from pandas import isna
+
+        # np.nan isn't a singleton, so we may end up with multiple
+        # NaNs here, so we ignore the all NA case too.
+        if not (len(set(fill_values)) == 1 or isna(fill_values).all()):
+            warnings.warn(
+                "Concatenating sparse arrays with multiple fill "
+                f"values: '{fill_values}'. Picking the first and "
+                "converting the rest.",
+                PerformanceWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
+        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)
+
+
+@register_extension_dtype
+class ArrowDtype(StorageExtensionDtype):
+    """
+    An ExtensionDtype for PyArrow data types.
+
+    .. warning::
+
+       ArrowDtype is considered experimental. The implementation and
+       parts of the API may change without warning.
+
+    While most ``dtype`` arguments can accept the "string"
+    constructor, e.g. ``"int64[pyarrow]"``, ArrowDtype is useful
+    if the data type contains parameters like ``pyarrow.timestamp``.
+
+    Parameters
+    ----------
+    pyarrow_dtype : pa.DataType
+        An instance of a `pyarrow.DataType <https://arrow.apache.org/docs/python/api/datatypes.html#factory-functions>`__.
+
+    Attributes
+    ----------
+    pyarrow_dtype
+
+    Methods
+    -------
+    None
+
+    Returns
+    -------
+    ArrowDtype
+
+    Examples
+    --------
+    >>> import pyarrow as pa
+    >>> pd.ArrowDtype(pa.int64())
+    int64[pyarrow]
+
+    Types with parameters must be constructed with ArrowDtype.
+
+    >>> pd.ArrowDtype(pa.timestamp("s", tz="America/New_York"))
+    timestamp[s, tz=America/New_York][pyarrow]
+    >>> pd.ArrowDtype(pa.list_(pa.int64()))
+    list<item: int64>[pyarrow]
+    """  # noqa: E501
+
+    _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
+
+    def __init__(self, pyarrow_dtype: pa.DataType) -> None:
+        super().__init__("pyarrow")
+        if pa_version_under7p0:
+            raise ImportError("pyarrow>=7.0.0 is required for ArrowDtype")
+        if not isinstance(pyarrow_dtype, pa.DataType):
+            raise ValueError(
+                f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
+                f"of a pyarrow.DataType. Got {type(pyarrow_dtype)} instead."
+            )
+        self.pyarrow_dtype = pyarrow_dtype
+
+    def __repr__(self) -> str:
+        return self.name
+
+    @property
+    def type(self):
+        """
+        Returns associated scalar type.
+        """
+        pa_type = self.pyarrow_dtype
+        if pa.types.is_integer(pa_type):
+            return int
+        elif pa.types.is_floating(pa_type):
+            return float
+        elif pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+            return str
+        elif (
+            pa.types.is_binary(pa_type)
+            or pa.types.is_fixed_size_binary(pa_type)
+            or pa.types.is_large_binary(pa_type)
+        ):
+            return bytes
+        elif pa.types.is_boolean(pa_type):
+            return bool
+        elif pa.types.is_duration(pa_type):
+            if pa_type.unit == "ns":
+                return Timedelta
+            else:
+                return timedelta
+        elif pa.types.is_timestamp(pa_type):
+            if pa_type.unit == "ns":
+                return Timestamp
+            else:
+                return datetime
+        elif pa.types.is_date(pa_type):
+            return date
+        elif pa.types.is_time(pa_type):
+            return time
+        elif pa.types.is_decimal(pa_type):
+            return Decimal
+        elif pa.types.is_dictionary(pa_type):
+            # TODO: Potentially change this & CategoricalDtype.type to
+            #  something more representative of the scalar
+            return CategoricalDtypeType
+        elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_map(pa_type):
+            return list
+        elif pa.types.is_struct(pa_type):
+            return dict
+        elif pa.types.is_null(pa_type):
+            # TODO: None? pd.NA? pa.null?
+            return type(pa_type)
+        else:
+            raise NotImplementedError(pa_type)
+
+    @property
+    def name(self) -> str:  # type: ignore[override]
+        """
+        A string identifying the data type.
+        """
+        return f"{str(self.pyarrow_dtype)}[{self.storage}]"
+
+    @cache_readonly
+    def numpy_dtype(self) -> np.dtype:
+        """Return an instance of the related numpy dtype"""
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # pa.timestamp(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow timestamp units.
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"datetime64[{self.pyarrow_dtype.unit}]")
+        if pa.types.is_duration(self.pyarrow_dtype):
+            # pa.duration(unit).to_pandas_dtype() returns ns units
+            # regardless of the pyarrow duration units
+            # This can be removed if/when pyarrow addresses it:
+            # https://github.com/apache/arrow/issues/34462
+            return np.dtype(f"timedelta64[{self.pyarrow_dtype.unit}]")
+        if pa.types.is_string(self.pyarrow_dtype):
+            # pa.string().to_pandas_dtype() = object which we don't want
+            return np.dtype(str)
+        try:
+            return np.dtype(self.pyarrow_dtype.to_pandas_dtype())
+        except (NotImplementedError, TypeError):
+            return np.dtype(object)
+
+    @cache_readonly
+    def kind(self) -> str:
+        if pa.types.is_timestamp(self.pyarrow_dtype):
+            # To mirror DatetimeTZDtype
+            return "M"
+        return self.numpy_dtype.kind
+
+    @cache_readonly
+    def itemsize(self) -> int:
+        """Return the number of bytes in this dtype"""
+        return self.numpy_dtype.itemsize
+
+    @classmethod
+    def construct_array_type(cls) -> type_t[ArrowExtensionArray]:
+        """
+        Return the array type associated with this dtype.
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
+        return ArrowExtensionArray
+
+    @classmethod
+    def construct_from_string(cls, string: str) -> ArrowDtype:
+        """
+        Construct this type from a string.
+
+        Parameters
+        ----------
+        string : str
+            string should follow the format f"{pyarrow_type}[pyarrow]"
+            e.g. int64[pyarrow]
+        """
+        if not isinstance(string, str):
+            raise TypeError(
+                f"'construct_from_string' expects a string, got {type(string)}"
+            )
+        if not string.endswith("[pyarrow]"):
+            raise TypeError(f"'{string}' must end with '[pyarrow]'")
+        if string == "string[pyarrow]":
+            # Ensure Registry.find skips ArrowDtype to use StringDtype instead
+            raise TypeError("string[pyarrow] should be constructed by StringDtype")
+
+        base_type = string[:-9]  # get rid of "[pyarrow]"
+        try:
+            pa_dtype = pa.type_for_alias(base_type)
+        except ValueError as err:
+            has_parameters = re.search(r"[\[\(].*[\]\)]", base_type)
+            if has_parameters:
+                # Fallback to try common temporal types
+                try:
+                    return cls._parse_temporal_dtype_string(base_type)
+                except (NotImplementedError, ValueError):
+                    # Fall through to raise with nice exception message below
+                    pass
+
+                raise NotImplementedError(
+                    "Passing pyarrow type specific parameters "
+                    f"({has_parameters.group()}) in the string is not supported. "
+                    "Please construct an ArrowDtype object with a pyarrow_dtype "
+                    "instance with specific parameters."
+                ) from err
+            raise TypeError(f"'{base_type}' is not a valid pyarrow data type.") from err
+        return cls(pa_dtype)
+
+    # TODO(arrow#33642): This can be removed once supported by pyarrow
+    @classmethod
+    def _parse_temporal_dtype_string(cls, string: str) -> ArrowDtype:
+        """
+        Construct a temporal ArrowDtype from string.
+        """
+        # we assume
+        #  1) "[pyarrow]" has already been stripped from the end of our string.
+        #  2) we know "[" is present
+        head, tail = string.split("[", 1)
+
+        if not tail.endswith("]"):
+            raise ValueError
+        tail = tail[:-1]
+
+        if head == "timestamp":
+            assert "," in tail  # otherwise type_for_alias should work
+            unit, tz = tail.split(",", 1)
+            unit = unit.strip()
+            tz = tz.strip()
+            if tz.startswith("tz="):
+                tz = tz[3:]
+
+            pa_type = pa.timestamp(unit, tz=tz)
+            dtype = cls(pa_type)
+            return dtype
+
+        raise NotImplementedError(string)
+
+    @property
+    def _is_numeric(self) -> bool:
+        """
+        Whether columns with this dtype should be considered numeric.
+        """
+        # TODO: pa.types.is_boolean?
+        return (
+            pa.types.is_integer(self.pyarrow_dtype)
+            or pa.types.is_floating(self.pyarrow_dtype)
+            or pa.types.is_decimal(self.pyarrow_dtype)
+        )
+
+    @property
+    def _is_boolean(self) -> bool:
+        """
+        Whether this dtype should be considered boolean.
+        """
+        return pa.types.is_boolean(self.pyarrow_dtype)
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        # We unwrap any masked dtypes, find the common dtype we would use
+        #  for that, then re-mask the result.
+        # Mirrors BaseMaskedDtype
+        from pandas.core.dtypes.cast import find_common_type
+
+        new_dtype = find_common_type(
+            [
+                dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
+                for dtype in dtypes
+            ]
+        )
+        if not isinstance(new_dtype, np.dtype):
+            return None
+        try:
+            pa_dtype = pa.from_numpy_dtype(new_dtype)
+            return type(self)(pa_dtype)
+        except NotImplementedError:
+            return None
+
+    def __from_arrow__(self, array: pa.Array | pa.ChunkedArray):
+        """
+        Construct IntegerArray/FloatingArray from pyarrow Array/ChunkedArray.
+        """
+        array_class = self.construct_array_type()
+        arr = array.cast(self.pyarrow_dtype, safe=True)
+        return array_class(arr)

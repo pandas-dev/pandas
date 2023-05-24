@@ -225,7 +225,7 @@ To compile pandas with meson, run::
    # Build and install pandas
    python -m pip install -ve . --no-build-isolation
 
-** Build options **
+**Build options**
 
 It is possible to pass options from the pip frontend to the meson backend if you would like to configure your
 install. Occasionally, you'll want to use this to adjust the build directory, and/or toggle debug/optimization levels.
@@ -248,6 +248,15 @@ and building with debug symbols would look like
 To compile pandas with setuptools, run::
 
    python setup.py develop
+
+.. note::
+   If pandas is already installed (via meson), you have to uninstall it first::
+
+        python -m pip uninstall pandas
+
+This is because python setup.py develop will not uninstall the loader script that ``meson-python``
+uses to import the extension from the build folder, which may cause errors such as an
+``FileNotFoundError`` to be raised.
 
 .. note::
    You will need to repeat this step each time the C extensions change, for example
