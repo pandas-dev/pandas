@@ -19,6 +19,7 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
+    np_find_common_type,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
@@ -172,11 +173,9 @@ def _get_result_dtype(
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
     else:
-        # Argument 1 to "list" has incompatible type "Set[Union[ExtensionDtype,
-        # Any]]"; expected "Iterable[Union[dtype[Any], None, Type[Any],
-        # _SupportsDType[dtype[Any]], str, Tuple[Any, Union[SupportsIndex,
-        # Sequence[SupportsIndex]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        target_dtype = np.find_common_type(list(dtypes), [])  # type: ignore[arg-type]
+        # error: Argument 1 to "np_find_common_type" has incompatible type
+        # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
+        target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
 
     return any_ea, kinds, target_dtype
 
