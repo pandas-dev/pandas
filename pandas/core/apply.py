@@ -134,14 +134,10 @@ class Apply(metaclass=abc.ABCMeta):
 
         f: AggFuncType
         # curry if needed
-        if (
-            (kwargs or args)
-            and not isinstance(func, (np.ufunc, str))
-            and not is_list_like(func)
-        ):
+        if callable(func) and (kwargs or args) and not isinstance(func, np.ufunc):
 
             def f(x):
-                assert callable(func)
+                assert callable(func)  # needed for mypy
                 return func(x, *args, **kwargs)
 
         else:
