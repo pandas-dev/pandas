@@ -1097,7 +1097,9 @@ def convert_dtypes(
                 and not isinstance(inferred_dtype, StringDtype)
             )
         ):
-            if isinstance(inferred_dtype, PandasExtensionDtype):
+            if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
+                inferred_dtype, DatetimeTZDtype
+            ):
                 base_dtype = inferred_dtype.base
             elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
                 base_dtype = inferred_dtype.numpy_dtype
