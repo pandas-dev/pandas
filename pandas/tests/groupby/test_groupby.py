@@ -756,7 +756,9 @@ def test_groupby_as_index_agg(df):
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         res = gr.apply(sum)
-    tm.assert_frame_equal(res, df.groupby(ts).apply(sum))
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        alt = df.groupby(ts).apply(sum)
+    tm.assert_frame_equal(res, alt)
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
         gr = df.groupby(ts, as_index=False)
