@@ -40,9 +40,6 @@ if TYPE_CHECKING:
     )
 
 
-_dtype_obj = np.dtype(object)
-
-
 def _is_nonempty(x, axis) -> bool:
     # filter empty arrays
     # 1-d dtypes always are included here
