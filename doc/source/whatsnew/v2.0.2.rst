@@ -35,6 +35,7 @@ Bug fixes
 - Bug in :func:`to_timedelta` was raising ``ValueError`` with ``pandas.NA`` (:issue:`52909`)
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
 - Bug in :meth:`DataFrame.convert_dtypes` ignores ``convert_*`` keywords when set to False ``dtype_backend="pyarrow"`` (:issue:`52872`)
+- Bug in :meth:`DataFrame.convert_dtypes` losing timezone for tz-aware dtypes and ``dtype_backend="pyarrow"`` (:issue:`53382`)
 - Bug in :meth:`DataFrame.sort_values` raising for PyArrow ``dictionary`` dtype (:issue:`53232`)
 - Bug in :meth:`Series.describe` treating pyarrow-backed timestamps and timedeltas as categorical data (:issue:`53001`)
 - Bug in :meth:`Series.rename` not making a lazy copy when Copy-on-Write is enabled when a scalar is passed to it (:issue:`52450`)

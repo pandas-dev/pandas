@@ -53,7 +53,8 @@ class TestConvertDtypes:
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
                 "e": pd.Series(pd.date_range("2022", periods=3)),
-                "f": pd.Series(pd.timedelta_range("1D", periods=3)),
+                "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
+                "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
@@ -76,6 +77,16 @@ class TestConvertDtypes:
                     )
                 ),
                 "f": pd.arrays.ArrowExtensionArray(
+                    pa.array(
+                        [
+                            datetime.datetime(2022, 1, 1),
+                            datetime.datetime(2022, 1, 2),
+                            datetime.datetime(2022, 1, 3),
+                        ],
+                        type=pa.timestamp(unit="s", tz="UTC"),
+                    )
+                ),
+                "g": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
                             datetime.timedelta(1),
