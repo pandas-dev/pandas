@@ -73,7 +73,11 @@ def test_builtins_apply(keys, f):
     gb = df.groupby(keys)
 
     fname = f.__name__
-    result = gb.apply(f)
+
+    warn = None if f is not sum else FutureWarning
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
