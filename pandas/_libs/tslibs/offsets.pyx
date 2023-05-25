@@ -2509,11 +2509,11 @@ cdef class BQuarterEnd(QuarterOffset):
     Parameters
     ----------
     n : int, default 1
-        The number of years represented.
+        The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start Quarters.
+        A specific integer for the month of the year from which we start quarters.
 
     See Also
     --------
@@ -2550,11 +2550,11 @@ cdef class BQuarterBegin(QuarterOffset):
     Parameters
     ----------
     n : int, default 1
-        The number of years represented.
+        The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start Quarters.
+        A specific integer for the month of the year from which we start quarters.
 
     See Also
     --------
@@ -2591,11 +2591,11 @@ cdef class QuarterEnd(QuarterOffset):
     Parameters
     ----------
     n : int, default 1
-        The number of years represented.
+        The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start Quarters.
+        A specific integer for the month of the year from which we start quarters.
 
     See Also
     --------
@@ -2632,11 +2632,11 @@ cdef class QuarterBegin(QuarterOffset):
     Parameters
     ----------
     n : int, default 1
-        The number of years represented.
+        The number of quarters represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     startingMonth : int, default 3
-        A specific integer for the month of the year from which we start Quarters.
+        A specific integer for the month of the year from which we start quarters.
 
     See Also
     --------
