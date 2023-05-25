@@ -190,6 +190,7 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 On other levels
 
 .. ipython:: python
+   :okwarning:
 
    idx = pd.IndexSlice
    dft2 = dft2.swaplevel(0, 1).sort_index()
