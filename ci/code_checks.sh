@@ -83,10 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.dt.days \
-        pandas.Series.dt.seconds \
-        pandas.Series.dt.microseconds \
-        pandas.Series.dt.nanoseconds \
         pandas.Series.str.center \
         pandas.Series.str.decode \
         pandas.Series.str.encode \
