@@ -2,6 +2,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Iterator
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -452,7 +453,7 @@ def test_to_json_append_output_inconsistent_columns():
         {
             "col1": [1, 2, None, None],
             "col2": ["a", "b", "e", "f"],
-            "col3": [None, None, "!", "#"],
+            "col3": [np.nan, np.nan, "!", "#"],
         }
     )
     with tm.ensure_clean("test.json") as path:
@@ -477,8 +478,8 @@ def test_to_json_append_output_different_columns():
     expected = DataFrame(
         {
             "col1": [1, 2, 3, 4, None, None, None, None],
-            "col2": ["a", "b", "c", "d", "e", "f", None, None],
-            "col3": [None, None, None, None, "!", "#", None, None],
+            "col2": ["a", "b", "c", "d", "e", "f", np.nan, np.nan],
+            "col3": [np.nan, np.nan, np.nan, np.nan, "!", "#", np.nan, np.nan],
             "col4": [None, None, None, None, None, None, True, False],
         }
     ).astype({"col4": "float"})
@@ -507,8 +508,8 @@ def test_to_json_append_output_different_columns_reordered():
     expected = DataFrame(
         {
             "col4": [True, False, None, None, None, None, None, None],
-            "col2": [None, None, "e", "f", "c", "d", "a", "b"],
-            "col3": [None, None, "!", "#", None, None, None, None],
+            "col2": [np.nan, np.nan, "e", "f", "c", "d", "a", "b"],
+            "col3": [np.nan, np.nan, "!", "#", np.nan, np.nan, np.nan, np.nan],
             "col1": [None, None, None, None, 3, 4, 1, 2],
         }
     ).astype({"col4": "float"})

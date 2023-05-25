@@ -122,10 +122,7 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import (
-    reconstruct_func,
-    relabel_result,
-)
+from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
@@ -9597,23 +9594,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
-
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.agg()
-
-        if relabeling:
-            # This is to keep the order to columns occurrence unchanged, and also
-            # keep the order of new columns occurrence unchanged
-
-            # For the return values of reconstruct_func, if relabeling is
-            # False, columns and order will be None.
-            assert columns is not None
-            assert order is not None
-
-            result_in_dict = relabel_result(result, func, columns, order)
-            result = DataFrame(result_in_dict, index=columns)
-
+        result = reconstruct_and_relabel_result(result, func, **kwargs)
         return result
 
     agg = aggregate

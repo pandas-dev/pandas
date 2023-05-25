@@ -112,9 +112,13 @@ class TestReindexSetIndex:
             .set_index("index")
             .reindex(["1", "2"])
         )
+        exp = DataFrame({"index": ["1", "2"], "vals": [np.nan, np.nan]}).set_index(
+            "index"
+        )
+        exp = exp.astype(object)
         tm.assert_frame_equal(
             df,
-            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+            exp,
         )
 
 
@@ -1191,7 +1195,7 @@ class TestDataFrameSelectReindex:
         idx = date_range(start="2020", freq="30s", periods=3)
         df = DataFrame([], index=Index([], name="time"), columns=["a"])
         result = df.reindex(idx, **kwargs)
-        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

@@ -928,13 +928,15 @@ class TestPandasContainer:
         result = read_json(json, dtype={"ints": np.int64, "bools": np.bool_})
         tm.assert_frame_equal(result, result)
 
-    def test_round_trip_exception_(self, datapath):
+    def test_round_trip_exception(self, datapath):
         # GH 3867
         path = datapath("io", "json", "data", "teams.csv")
         df = pd.read_csv(path)
         s = df.to_json()
         result = read_json(s)
-        tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
+        res = result.reindex(index=df.index, columns=df.columns)
+        res = res.fillna(np.nan, downcast=False)
+        tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
     @tm.network(
@@ -1747,7 +1749,7 @@ class TestPandasContainer:
         data = '["a", NaN, "NaN", Infinity, "Infinity", -Infinity, "-Infinity"]'
         result = read_json(data)
         expected = DataFrame(
-            ["a", np.nan, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
+            ["a", None, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
         )
         tm.assert_frame_equal(result, expected)
 

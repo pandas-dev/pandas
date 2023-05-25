@@ -36,6 +36,9 @@ d,,f
         [["a", "b", "c"], ["d", np.nan, "f"], [np.nan, "g", "h"]],
         columns=["A", "B", "C"],
     )
+    if parser.engine == "pyarrow":
+        expected.loc[2, "A"] = None
+        expected.loc[1, "B"] = None
     tm.assert_frame_equal(result, expected)
 
 
@@ -49,6 +52,9 @@ NaN,nan
     expected = DataFrame(
         [["foo", "bar"], [np.nan, "baz"], [np.nan, np.nan]], columns=["A", "B"]
     )
+    if parser.engine == "pyarrow":
+        expected.loc[[1, 2], "A"] = None
+        expected.loc[2, "B"] = None
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
@@ -171,6 +177,9 @@ False,NA,True"""
             "C": [True, False, True],
         }
     )
+    if parser.engine == "pyarrow":
+        expected.loc[1, "A"] = None
+        expected.loc[2, "B"] = None
     tm.assert_frame_equal(result, expected)
 
 
