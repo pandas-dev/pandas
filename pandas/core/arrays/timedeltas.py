@@ -78,6 +78,8 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
 
+import textwrap
+
 
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
@@ -797,7 +799,24 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return ints_to_pytimedelta(self._ndarray)
 
-    days = _field_accessor("days", "days", "Number of days for each element.")
+    days_docstring = textwrap.dedent(
+        """Number of days for each element.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
+    >>> ser
+    0   1 days
+    1   2 days
+    2   3 days
+    dtype: timedelta64[ns]
+    >>> ser.dt.days
+    0    1
+    1    2
+    2    3
+    dtype: int64"""
+    )
+    days = _field_accessor("days", "days", days_docstring)
     seconds = _field_accessor(
         "seconds",
         "seconds",
