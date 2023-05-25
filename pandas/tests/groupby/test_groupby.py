@@ -2994,7 +2994,7 @@ def test_groupby_sum_on_nan_should_return_nan(bug_var):
     dfgb = df.groupby(lambda x: x)
     result = dfgb.sum(min_count=1)
 
-    expected_df = DataFrame([bug_var, bug_var, bug_var, np.nan], columns=["A"])
+    expected_df = DataFrame([bug_var, bug_var, bug_var, None], columns=["A"])
     tm.assert_frame_equal(result, expected_df)
 
 
