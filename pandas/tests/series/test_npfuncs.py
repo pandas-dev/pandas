@@ -30,6 +30,6 @@ def test_numpy_argwhere(index):
     s = Series(range(5), index=index)
 
     result = np.argwhere(s > 2)
-    expected = np.array([[3], [4]])
+    expected = np.array([[3], [4]], dtype=np.int64)
 
     tm.assert_numpy_array_equal(result, expected)
