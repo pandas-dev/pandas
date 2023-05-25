@@ -446,7 +446,7 @@ class TestPandasContainer:
             columns=["A", "B", "C", "D"],
             index=dti,
         )
-        df["date"] = Timestamp("19920106 18:21:32.12")
+        df["date"] = Timestamp("19920106 18:21:32.12").as_unit("ns")
         df.iloc[3, df.columns.get_loc("date")] = Timestamp("20130101")
         df["modified"] = df["date"]
         df.iloc[1, df.columns.get_loc("modified")] = pd.NaT
@@ -751,7 +751,7 @@ class TestPandasContainer:
     def test_convert_dates(self, datetime_series, datetime_frame):
         # frame
         df = datetime_frame
-        df["date"] = Timestamp("20130101")
+        df["date"] = Timestamp("20130101").as_unit("ns")
 
         json = df.to_json()
         result = read_json(json)
@@ -767,7 +767,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(result, expected)
 
         # series
-        ts = Series(Timestamp("20130101"), index=datetime_series.index)
+        ts = Series(Timestamp("20130101").as_unit("ns"), index=datetime_series.index)
         json = ts.to_json()
         result = read_json(json, typ="series")
         tm.assert_series_equal(result, ts)
@@ -831,7 +831,7 @@ class TestPandasContainer:
     def test_date_format_frame(self, date, date_unit, datetime_frame):
         df = datetime_frame
 
-        df["date"] = Timestamp(date)
+        df["date"] = Timestamp(date).as_unit("ns")
         df.iloc[1, df.columns.get_loc("date")] = pd.NaT
         df.iloc[5, df.columns.get_loc("date")] = pd.NaT
         if date_unit:
@@ -859,7 +859,7 @@ class TestPandasContainer:
         ],
     )
     def test_date_format_series(self, date, date_unit, datetime_series):
-        ts = Series(Timestamp(date), index=datetime_series.index)
+        ts = Series(Timestamp(date).as_unit("ns"), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
         if date_unit:
@@ -879,7 +879,7 @@ class TestPandasContainer:
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_date_unit(self, unit, datetime_frame):
         df = datetime_frame
-        df["date"] = Timestamp("20130101 20:43:42")
+        df["date"] = Timestamp("20130101 20:43:42").as_unit("ns")
         dl = df.columns.get_loc("date")
         df.iloc[1, dl] = Timestamp("19710101 20:43:42")
         df.iloc[2, dl] = Timestamp("21460101 20:43:42")
@@ -928,13 +928,15 @@ class TestPandasContainer:
         result = read_json(json, dtype={"ints": np.int64, "bools": np.bool_})
         tm.assert_frame_equal(result, result)
 
-    def test_round_trip_exception_(self, datapath):
+    def test_round_trip_exception(self, datapath):
         # GH 3867
         path = datapath("io", "json", "data", "teams.csv")
         df = pd.read_csv(path)
         s = df.to_json()
         result = read_json(s)
-        tm.assert_frame_equal(result.reindex(index=df.index, columns=df.columns), df)
+        res = result.reindex(index=df.index, columns=df.columns)
+        res = res.fillna(np.nan, downcast=False)
+        tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
     @tm.network(
@@ -1398,6 +1400,16 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             read_json(dfjson, orient="table", dtype=dtype)
 
+    @pytest.mark.parametrize("orient", ["index", "columns", "records", "values"])
+    def test_read_json_table_empty_axes_dtype(self, orient):
+        # GH28558
+
+        expected = DataFrame()
+        result = read_json("{}", orient=orient, convert_axes=True)
+
+        tm.assert_index_equal(result.index, expected.index)
+        tm.assert_index_equal(result.columns, expected.columns)
+
     def test_read_json_table_convert_axes_raises(self):
         # GH25433 GH25435
         df = DataFrame([[1, 2], [3, 4]], index=[1.0, 2.0], columns=["1.", "2."])
@@ -1737,7 +1749,7 @@ class TestPandasContainer:
         data = '["a", NaN, "NaN", Infinity, "Infinity", -Infinity, "-Infinity"]'
         result = read_json(data)
         expected = DataFrame(
-            ["a", np.nan, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
+            ["a", None, "NaN", np.inf, "Infinity", -np.inf, "-Infinity"]
         )
         tm.assert_frame_equal(result, expected)
 

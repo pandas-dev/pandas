@@ -176,8 +176,10 @@ class TestSetitemScalarIndexer:
         ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
+        warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            ser[-11] = "foo"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser[-11] = "foo"
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.at])
     @pytest.mark.parametrize("ser_index", [0, 1])
@@ -351,7 +353,7 @@ class TestSetitemBooleanMask:
         mask = [False] * 3 + [True] * 5 + [False] * 2
         ser[mask] = range(5)
         result = ser
-        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2, dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_setitem_nan_with_bool(self):
@@ -794,6 +796,13 @@ class SetitemCastingEquivalents:
         arr = obj._values
 
         res = obj.where(~mask, val)
+
+        if val is NA and res.dtype == object:
+            expected = expected.fillna(NA)
+        elif val is None and res.dtype == object:
+            assert expected.dtype == object
+            expected = expected.copy()
+            expected[expected.isna()] = None
         tm.assert_series_equal(res, expected)
 
         self._check_inplace(is_inplace, orig, arr, obj)
@@ -1527,7 +1536,9 @@ def test_setitem_positional_with_casting():
     #  we fallback we *also* get a ValueError if we try to set inplace.
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    ser[0] = "X"
+    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        ser[0] = "X"
     expected = Series(["X", 2, 3], index=["a", "b", "c"], dtype=object)
     tm.assert_series_equal(ser, expected)
 
@@ -1536,7 +1547,10 @@ def test_setitem_positional_float_into_int_coerces():
     # Case where we hit a KeyError and then trying to set in-place incorrectly
     #  casts a float to an int
     ser = Series([1, 2, 3], index=["a", "b", "c"])
-    ser[0] = 1.5
+
+    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        ser[0] = 1.5
     expected = Series([1.5, 2, 3], index=["a", "b", "c"])
     tm.assert_series_equal(ser, expected)
 
