@@ -538,3 +538,17 @@ def test_ea_int_avoid_overflow(all_parsers):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_dtype_bool_pyarrow(all_parsers):
+    # GH 53390
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = """col
+True
+False
+True
+"""
+    result = parser.read_csv(StringIO(data), dtype={"col": "bool[pyarrow]"})
+    expected = DataFrame({"col": [True, False, True]}, dtype="bool[pyarrow]")
+    tm.assert_frame_equal(result, expected)
