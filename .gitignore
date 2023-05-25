@@ -38,6 +38,8 @@
 .build_cache_dir
 .mesonpy-native-file.ini
 MANIFEST
+compile_commands.json
+debug
 
 # Python files #
 ################
