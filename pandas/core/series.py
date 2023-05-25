@@ -1118,7 +1118,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
-    def _get_rows_with_mask(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
+    def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.get_rows_with_mask(indexer)
         return self._constructor(new_mgr, fastpath=True, _allow_mgr=True).__finalize__(
             self
