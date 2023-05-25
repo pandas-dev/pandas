@@ -536,6 +536,20 @@ def test_apply_listlike_transformer(string_series, ops, names):
 
 
 @pytest.mark.parametrize(
+    "ops, expected",
+    [
+        ([lambda x: x], DataFrame({"<lambda>": [1, 2, 3]})),
+        ([lambda x: x.sum()], Series([6], index=["<lambda>"])),
+    ],
+)
+def test_apply_listlike_lambda(ops, expected):
+    # GHxxxxxx
+    ser = Series([1, 2, 3])
+    result = ser.apply(ops)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "ops",
     [
         {"A": np.sqrt},

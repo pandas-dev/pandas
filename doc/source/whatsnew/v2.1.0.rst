@@ -100,6 +100,7 @@ Other enhancements
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
+- Added a new parameter ``array_ops_only`` to :meth:`Series.apply`. When set to ``True`` the supplied callables will always operate on the whole Series (:issue:`xxxxx`).
 -
 
 .. ---------------------------------------------------------------------------

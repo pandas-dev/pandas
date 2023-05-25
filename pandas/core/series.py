@@ -4492,6 +4492,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         func: AggFuncType,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
+        *,
+        array_ops_only: bool = False,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4519,6 +4521,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
+        array_ops_only: bool, default False
+            If True, func will always operate on the whole Series.
+            If False, will operate on each element of the Series when given a single
+            callable that is not a numpy ufunc, else on the whole Series
+            (backward compatible).
+
+            .. versionadded:: 2.1.0
         **kwargs
             Additional keyword arguments passed to func.
 
@@ -4607,7 +4616,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         return SeriesApply(
-            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+            self,
+            func,
+            convert_dtype=convert_dtype,
+            array_ops_only=array_ops_only,
+            args=args,
+            kwargs=kwargs,
         ).apply()
 
     def _reindex_indexer(
