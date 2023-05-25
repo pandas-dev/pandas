@@ -37,6 +37,13 @@ def test_apply(float_frame):
         assert result.index is float_frame.index
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_args(float_frame, axis):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_categorical_func():
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})

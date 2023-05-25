@@ -91,6 +91,9 @@ def frame_apply(
     elif axis == 1:
         klass = FrameColumnApply
 
+    _, func, _, _ = reconstruct_func(func, **kwargs)
+    assert func is not None
+
     return klass(
         obj,
         func,
@@ -547,7 +550,20 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+        if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
+            return self.obj.T.apply(self.f, 0, args=self.args, **self.kwargs).T
+
+        func = self.f
+        kwargs = self.kwargs
+
+        if is_dict_like(func):
+            result = self.agg_dict_like()
+        else:
+            result = self.agg_list_like()
+
+        result = reconstruct_and_relabel_result(result, func, **kwargs)
+
+        return result
 
     def normalize_dictlike_arg(
         self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
@@ -1437,6 +1453,26 @@ def relabel_result(
         reordered_result_in_dict[col] = s.reindex(columns, copy=False)
         idx = idx + len(fun)
     return reordered_result_in_dict
+
+
+def reconstruct_and_relabel_result(result, func, **kwargs) -> DataFrame | Series:
+    from pandas import DataFrame
+
+    relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+
+    if relabeling:
+        # This is to keep the order to columns occurrence unchanged, and also
+        # keep the order of new columns occurrence unchanged
+
+        # For the return values of reconstruct_func, if relabeling is
+        # False, columns and order will be None.
+        assert columns is not None
+        assert order is not None
+
+        result_in_dict = relabel_result(result, func, columns, order)
+        result = DataFrame(result_in_dict, index=columns)
+
+    return result
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
