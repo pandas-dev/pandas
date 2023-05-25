@@ -31,7 +31,7 @@ Bug fixes
 - Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
 - Bug in :func:`merge` when merging on datetime columns on different resolutions (:issue:`53200`)
 - Bug in :func:`read_csv` raising ``OverflowError`` for ``engine="pyarrow"`` and ``parse_dates`` set (:issue:`53295`)
-- Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` (:issue:`53390`)
+- Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 - Bug in :func:`to_datetime` was inferring format to contain ``"%H"`` instead of ``"%I"`` if date contained "AM" / "PM" tokens (:issue:`53147`)
 - Bug in :func:`to_timedelta` was raising ``ValueError`` with ``pandas.NA`` (:issue:`52909`)
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
