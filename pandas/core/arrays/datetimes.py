@@ -739,12 +739,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         other_tz = other.tzinfo
         return timezones.tz_compare(self.tzinfo, other_tz)
 
-    def _is_tzawareness_compat(self, other: DatetimeArray) -> bool:
-        """
-        Return True if either both self and other are tz-aware or both are tz-naive.
-        """
-        return not ((self.tz is None) ^ (other.tz is None))
-
     def _assert_tzawareness_compat(self, other) -> None:
         # adapted from _Timestamp._assert_tzawareness_compat
         other_tz = getattr(other, "tzinfo", None)
