@@ -37,6 +37,13 @@ def test_apply(float_frame):
         assert result.index is float_frame.index
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_args(float_frame, axis):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_categorical_func():
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
@@ -1385,7 +1392,7 @@ def test_aggregation_func_column_order():
 def test_apply_getitem_axis_1():
     # GH 13427
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    result = df[["a", "a"]].apply(lambda x: x.iloc[0] + x.iloc[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 

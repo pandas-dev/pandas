@@ -775,7 +775,8 @@ class TestiLocBaseIndependent:
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
-                    mask = Series(mask, list(reversed(getattr(df, idx))))
+                    mask_index = getattr(df, idx)[::-1]
+                    mask = Series(mask, list(mask_index))
                 for method in ["", ".loc", ".iloc"]:
                     try:
                         if method:
