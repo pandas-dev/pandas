@@ -83,10 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.dt.days \
-        pandas.Series.dt.seconds \
-        pandas.Series.dt.microseconds \
-        pandas.Series.dt.nanoseconds \
         pandas.Series.str.center \
         pandas.Series.str.decode \
         pandas.Series.str.encode \
@@ -119,10 +115,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
-        pandas.errors.EmptyDataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidIndexError \
         pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
@@ -139,7 +133,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.show_versions \
         pandas.test \
         pandas.NaT \
         pandas.Timestamp.as_unit \
@@ -172,29 +165,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Interval.closed \
-        pandas.Interval.left \
-        pandas.Interval.length \
-        pandas.Interval.right \
-        pandas.arrays.IntervalArray.left \
-        pandas.arrays.IntervalArray.right \
-        pandas.arrays.IntervalArray.closed \
-        pandas.arrays.IntervalArray.mid \
-        pandas.arrays.IntervalArray.length \
-        pandas.arrays.IntervalArray.is_non_overlapping_monotonic \
-        pandas.arrays.IntervalArray.from_arrays \
-        pandas.arrays.IntervalArray.to_tuples \
-        pandas.Int8Dtype \
-        pandas.Int16Dtype \
-        pandas.Int32Dtype \
-        pandas.Int64Dtype \
-        pandas.UInt8Dtype \
-        pandas.UInt16Dtype \
-        pandas.UInt32Dtype \
-        pandas.UInt64Dtype \
         pandas.NA \
-        pandas.Float32Dtype \
-        pandas.Float64Dtype \
         pandas.CategoricalDtype.categories \
         pandas.CategoricalDtype.ordered \
         pandas.Categorical.dtype \
@@ -270,24 +241,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.values \
-        pandas.Index.dtype \
-        pandas.Index.inferred_type \
-        pandas.Index.shape \
-        pandas.Index.name \
-        pandas.Index.nbytes \
-        pandas.Index.ndim \
-        pandas.Index.size \
-        pandas.Index.T \
-        pandas.Index.memory_usage \
-        pandas.Index.copy \
-        pandas.Index.drop \
-        pandas.Index.identical \
-        pandas.Index.insert \
-        pandas.Index.is_ \
-        pandas.Index.take \
-        pandas.Index.putmask \
-        pandas.Index.unique \
         pandas.Index.fillna \
         pandas.Index.dropna \
         pandas.Index.astype \
@@ -310,9 +263,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered \
         pandas.CategoricalIndex.as_unordered \
         pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.closed \
         pandas.IntervalIndex.values \
-        pandas.IntervalIndex.is_non_overlapping_monotonic \
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \

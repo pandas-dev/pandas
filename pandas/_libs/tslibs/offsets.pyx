@@ -2251,8 +2251,12 @@ cdef class BYearEnd(YearOffset):
         The number of years represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    month : int, default 1
+    month : int, default 12
         A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2280,6 +2284,19 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BYearBegin
@@ -2292,6 +2309,8 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2020-01-01 05:01:15')
     >>> ts + BYearBegin(2)
     Timestamp('2022-01-03 05:01:15')
+    >>> ts + BYearBegin(month=11)
+    Timestamp('2020-11-02 05:01:15')
     """
 
     _outputName = "BusinessYearBegin"
@@ -2305,6 +2324,15 @@ cdef class YearEnd(YearOffset):
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 12
+        A specific integer for the month of the year.
 
     See Also
     --------
@@ -2320,10 +2348,14 @@ cdef class YearEnd(YearOffset):
     >>> ts + pd.offsets.YearEnd()
     Timestamp('2023-12-31 00:00:00')
 
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearEnd(month=2)
+    Timestamp('2022-02-28 00:00:00')
+
     If you want to get the end of the current year:
 
     >>> ts = pd.Timestamp(2022, 12, 31)
-    >>> pd.offsets.YearEnd().rollback(ts)
+    >>> pd.offsets.YearEnd().rollforward(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2347,6 +2379,15 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2360,6 +2401,10 @@ cdef class YearBegin(YearOffset):
     >>> ts = pd.Timestamp(2023, 1, 1)
     >>> ts + pd.offsets.YearBegin()
     Timestamp('2024-01-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearBegin(month=2)
+    Timestamp('2022-02-01 00:00:00')
 
     If you want to get the start of the current year:
 
@@ -2461,6 +2506,19 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BQuarterEnd
@@ -2488,6 +2546,19 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2517,6 +2588,19 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
@@ -2544,6 +2628,19 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
