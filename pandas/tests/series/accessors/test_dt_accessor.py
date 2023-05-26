@@ -664,7 +664,7 @@ class TestSeriesDatetimeValues:
             [
                 date(2013, 1, 1),
                 date(2013, 1, 2),
-                np.nan,
+                pd.NaT,
                 date(2013, 1, 4),
                 date(2013, 1, 5),
             ],
@@ -673,7 +673,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         result = ser.dt.time
-        expected = Series([time(0), time(0), np.nan, time(0), time(0)], dtype="object")
+        expected = Series([time(0), time(0), pd.NaT, time(0), time(0)], dtype="object")
         tm.assert_series_equal(result, expected)
 
     def test_dt_accessor_api(self):

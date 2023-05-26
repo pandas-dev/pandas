@@ -114,6 +114,28 @@ def show_versions(as_json: str | bool = False) -> None:
         * If str, it will be considered as a path to a file.
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
+
+    Examples
+    --------
+    >>> pd.show_versions()  # doctest: +SKIP
+    Your output may look something like this:
+    INSTALLED VERSIONS
+    ------------------
+    commit           : 37ea63d540fd27274cad6585082c91b1283f963d
+    python           : 3.10.6.final.0
+    python-bits      : 64
+    OS               : Linux
+    OS-release       : 5.10.102.1-microsoft-standard-WSL2
+    Version          : #1 SMP Wed Mar 2 00:30:59 UTC 2022
+    machine          : x86_64
+    processor        : x86_64
+    byteorder        : little
+    LC_ALL           : None
+    LANG             : en_GB.UTF-8
+    LOCALE           : en_GB.UTF-8
+    pandas           : 2.0.1
+    numpy            : 1.24.3
+    ...
     """
     sys_info = _get_sys_info()
     deps = _get_dependency_info()

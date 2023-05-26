@@ -333,7 +333,12 @@ def test_expanding_func(func, static_comp, frame_or_series):
     result = getattr(obj, func)()
     assert isinstance(result, frame_or_series)
 
-    expected = static_comp(data[:11])
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    warn = None
+    if frame_or_series is DataFrame and static_comp is np.sum:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        expected = static_comp(data[:11])
     if frame_or_series is Series:
         tm.assert_almost_equal(result[10], expected)
     else:
