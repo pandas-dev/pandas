@@ -2950,7 +2950,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([None, np.nan, 3])
+        >>> idx = pd.Index([np.nan, np.nan, 3])
         >>> idx.fillna(0)
         Index([0.0, 0.0, 3.0], dtype='float64')
         """
@@ -2986,7 +2986,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index([1, None, 3])
+        >>> idx = pd.Index([1, np.nan, 3])
         >>> idx.dropna()
         Index([1.0, 3.0], dtype='float64')
         """
