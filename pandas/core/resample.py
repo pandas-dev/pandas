@@ -1747,9 +1747,8 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (
-            (kwargs['key'] is None and isinstance(obj.index, PeriodIndex))
-            or (kwargs['key'] is not None and obj[kwargs['key']].dtype == 'period')
+        if (kwargs["key"] is None and isinstance(obj.index, PeriodIndex)) or (
+            kwargs["key"] is not None and obj[kwargs["key"]].dtype == "period"
         ):
             freq = to_offset(freq, is_period=True)
         else:
@@ -1856,7 +1855,6 @@ class TimeGrouper(Grouper):
                 axis=self.axis,
                 group_keys=self.group_keys,
                 gpr_index=ax,
-
             )
         elif isinstance(ax, TimedeltaIndex):
             return TimedeltaIndexResampler(

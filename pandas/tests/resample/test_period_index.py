@@ -104,12 +104,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
     @pytest.mark.parametrize("conv", ["start", "end"])
     @pytest.mark.parametrize(
-        ("offset", "period"),
-        [
-            ("D", "D"),
-            ("B", "B"),
-            ("ME", "M")
-        ]
+        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M")]
     )
     def test_annual_upsample_cases(
         self, offset, period, conv, meth, month, simple_period_range_series
@@ -189,12 +184,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("month", MONTHS)
     @pytest.mark.parametrize("convention", ["start", "end"])
     @pytest.mark.parametrize(
-    ("offset", "period"),
-        [
-            ("D", "D"),
-            ("B", "B"),
-            ("ME", "M")
-        ]
+        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M")]
     )
     def test_quarterly_upsample(
         self, month, offset, period, convention, simple_period_range_series
@@ -234,7 +224,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result2, expected)
 
     @pytest.mark.parametrize(
-         "freq,expected_vals", [("M", [31, 29, 31, 9]), ("2M", [31 + 29, 31 + 9])]
+        "freq,expected_vals", [("M", [31, 29, 31, 9]), ("2M", [31 + 29, 31 + 9])]
     )
     def test_resample_count(self, freq, expected_vals):
         # GH12774

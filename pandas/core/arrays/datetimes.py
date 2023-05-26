@@ -41,8 +41,10 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    abbrev_to_npy_unit,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive

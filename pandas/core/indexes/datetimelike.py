@@ -23,7 +23,6 @@ from pandas._libs import (
     Timedelta,
     lib,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas._libs.tslibs import (
     BaseOffset,
     Resolution,
@@ -31,6 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.compat.numpy import function as nv
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import (
@@ -104,9 +104,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     @doc(DatetimeLikeArrayMixin.freqstr)
-    def freqstr(self) -> str :
+    def freqstr(self) -> str:
         from pandas import PeriodIndex
-        if isinstance(self._data, PeriodArray) or isinstance(self._data, PeriodIndex):
+
+        if isinstance(self._data, (PeriodArray, PeriodIndex)):
             for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
                 freq = self._data.freqstr.replace(key, value)
             return freq
