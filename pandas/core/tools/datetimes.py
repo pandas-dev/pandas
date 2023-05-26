@@ -406,11 +406,7 @@ def _convert_listlike_datetimes(
     elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "M":
         # TODO: Combine with above if DTI/DTA supports Arrow timestamps
         if utc:
-            import pyarrow as pa
-
-            # array attribute has to exist since arg is Index/Series at this point
-            arg_arr = arg.array._pa_array
-            arg._pa_array = arg_arr.cast(pa.timestamp(arg_arr.type.unit, "utc"))
+            arg = arg.astype("timestamp[ns, UTC][pyarrow]")
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
