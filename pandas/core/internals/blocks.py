@@ -36,6 +36,7 @@ from pandas._typing import (
     FillnaOptions,
     IgnoreRaise,
     QuantileInterpolation,
+    Self,
     Shape,
     npt,
 )
@@ -67,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     PandasDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -105,7 +107,6 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -260,36 +261,41 @@ class Block(PandasObject):
         return len(self.values)
 
     @final
-    def getitem_block(self, slicer: slice | npt.NDArray[np.intp]) -> Block:
+    def slice_block_columns(self, slc: slice) -> Self:
+        """
+        Perform __getitem__-like, return result as block.
+        """
+        new_mgr_locs = self._mgr_locs[slc]
+
+        new_values = self._slice(slc)
+        refs = self.refs
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+
+    @final
+    def take_block_columns(self, indices: npt.NDArray[np.intp]) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
-        # Note: the only place where we are called with ndarray[intp]
-        #  is from internals.concat, and we can verify that never happens
-        #  with 1-column blocks, i.e. never for ExtensionBlock.
+        # Note: only called from is from internals.concat, and we can verify
+        #  that never happens with 1-column blocks, i.e. never for ExtensionBlock.
 
-        new_mgr_locs = self._mgr_locs[slicer]
+        new_mgr_locs = self._mgr_locs[indices]
 
-        new_values = self._slice(slicer)
-        refs = self.refs if isinstance(slicer, slice) else None
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
+        new_values = self._slice(indices)
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=None)
 
     @final
     def getitem_block_columns(
         self, slicer: slice, new_mgr_locs: BlockPlacement
-    ) -> Block:
+    ) -> Self:
         """
         Perform __getitem__-like, return result as block.
 
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-
-        if new_values.ndim != self.values.ndim:
-            raise ValueError("Only same dim slicing is allowed")
-
         return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
 
     @final
@@ -464,13 +470,36 @@ class Block(PandasObject):
         using_cow: bool = False,
     ) -> list[Block]:
         """
-        attempt to coerce any object types to better types return a copy
-        of the block (if copy = True) by definition we are not an ObjectBlock
-        here!
+        Attempt to coerce any object types to better types. Return a copy
+        of the block (if copy = True).
         """
-        if not copy and using_cow:
-            return [self.copy(deep=False)]
-        return [self.copy()] if copy else [self]
+        if not self.is_object:
+            if not copy and using_cow:
+                return [self.copy(deep=False)]
+            return [self.copy()] if copy else [self]
+
+        if self.ndim != 1 and self.shape[0] != 1:
+            return self.split_and_operate(Block.convert, copy=copy, using_cow=using_cow)
+
+        values = self.values
+        if values.ndim == 2:
+            # the check above ensures we only get here with values.shape[0] == 1,
+            # avoid doing .ravel as that might make a copy
+            values = values[0]
+
+        res_values = lib.maybe_convert_objects(
+            values,  # type: ignore[arg-type]
+            convert_non_numeric=True,
+        )
+        refs = None
+        if copy and res_values is values:
+            res_values = values.copy()
+        elif res_values is values and using_cow:
+            refs = self.refs
+
+        res_values = ensure_block_shape(res_values, self.ndim)
+        res_values = maybe_coerce_values(res_values)
+        return [self.make_block(res_values, refs=refs)]
 
     # ---------------------------------------------------------------------
     # Array-Like Methods
@@ -675,7 +704,7 @@ class Block(PandasObject):
         List[Block]
         """
         if not self._can_hold_element(to_replace):
-            # i.e. only ObjectBlock, but could in principle include a
+            # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
             if using_cow:
                 return [self.copy(deep=False)]
@@ -1268,7 +1297,7 @@ class Block(PandasObject):
     ) -> list[Block]:
         """
         fillna on the block with the value. If we fail, then convert to
-        ObjectBlock and try again
+        block to hold objects instead and try again
         """
         # Caller is responsible for validating limit; if int it is strictly positive
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -1998,7 +2027,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         -------
         ExtensionArray
         """
-        # Notes: ndarray[bool] is only reachable when via getitem_mgr, which
+        # Notes: ndarray[bool] is only reachable when via get_rows_with_mask, which
         #  is only for Series, i.e. self.ndim == 1.
 
         # return same dims as we currently have
@@ -2024,7 +2053,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         return self.values[slicer]
 
     @final
-    def getitem_block_index(self, slicer: slice) -> ExtensionBlock:
+    def slice_block_rows(self, slicer: slice) -> Self:
         """
         Perform __getitem__-like specialized to slicing along index.
         """
@@ -2059,7 +2088,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         needs_masking: npt.NDArray[np.bool_],
     ):
         # ExtensionArray-safe unstack.
-        # We override ObjectBlock._unstack, which unstacks directly on the
+        # We override Block._unstack, which unstacks directly on the
         # values of the array. For EA-backed blocks, this would require
         # converting to a 2-D ndarray of objects.
         # Instead, we unstack an ndarray of integer positions, followed by
@@ -2095,6 +2124,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
 class NumpyBlock(libinternals.NumpyBlock, Block):
     values: np.ndarray
+    __slots__ = ()
 
     @property
     def is_view(self) -> bool:
@@ -2113,10 +2143,28 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
     def values_for_json(self) -> np.ndarray:
         return self.values
 
+    @cache_readonly
+    def is_numeric(self) -> bool:  # type: ignore[override]
+        dtype = self.values.dtype
+        kind = dtype.kind
+
+        return kind in "fciub"
+
+    @cache_readonly
+    def is_object(self) -> bool:  # type: ignore[override]
+        return self.values.dtype.kind == "O"
+
 
 class NumericBlock(NumpyBlock):
+    # this Block type is kept for backwards-compatibility
+    # TODO(3.0): delete and remove deprecation in __init__.py.
     __slots__ = ()
-    is_numeric = True
+
+
+class ObjectBlock(NumpyBlock):
+    # this Block type is kept for backwards-compatibility
+    # TODO(3.0): delete and remove deprecation in __init__.py.
+    __slots__ = ()
 
 
 class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
@@ -2252,49 +2300,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values_for_json = NDArrayBackedExtensionBlock.values_for_json
 
 
-class ObjectBlock(NumpyBlock):
-    __slots__ = ()
-    is_object = True
-
-    @maybe_split
-    def convert(
-        self,
-        *,
-        copy: bool = True,
-        using_cow: bool = False,
-    ) -> list[Block]:
-        """
-        attempt to cast any object types to better types return a copy of
-        the block (if copy = True) by definition we ARE an ObjectBlock!!!!!
-        """
-        if self.dtype != _dtype_obj:
-            # GH#50067 this should be impossible in ObjectBlock, but until
-            #  that is fixed, we short-circuit here.
-            if using_cow:
-                return [self.copy(deep=False)]
-            return [self]
-
-        values = self.values
-        if values.ndim == 2:
-            # maybe_split ensures we only get here with values.shape[0] == 1,
-            # avoid doing .ravel as that might make a copy
-            values = values[0]
-
-        res_values = lib.maybe_convert_objects(
-            values,
-            convert_non_numeric=True,
-        )
-        refs = None
-        if copy and res_values is values:
-            res_values = values.copy()
-        elif res_values is values and using_cow:
-            refs = self.refs
-
-        res_values = ensure_block_shape(res_values, self.ndim)
-        res_values = maybe_coerce_values(res_values)
-        return [self.make_block(res_values, refs=refs)]
-
-
 # -----------------------------------------------------------------
 # Constructor Helpers
 
@@ -2348,29 +2353,13 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
         # Note: need to be sure PandasArray is unwrapped before we get here
         return ExtensionBlock
 
-    dtype_class = type(dtype)
+    # We use kind checks because it is much more performant
+    #  than is_foo_dtype
+    kind = dtype.kind
+    if kind in "Mm":
+        return DatetimeLikeBlock
 
-    # the _is_numeric attribute was added in Numpy 1.25, default to checking
-    # dtype.kind and finally use ObjectBlock if numpy isn't sufficiently new.
-    try:
-        is_numeric = dtype_class._is_numeric
-    except AttributeError:
-        # We use kind checks because it is much more performant
-        #  than is_foo_dtype
-        kind = dtype.kind
-        if kind in "Mm":
-            return DatetimeLikeBlock
-        elif kind in "fciub":
-            return NumericBlock
-        else:
-            return ObjectBlock
-
-    if is_numeric:
-        return NumericBlock
-    else:
-        if dtype_class == _dtype_obj or is_legacy_string_dtype(dtype):
-            return ObjectBlock
-        return NumpyBlock
+    return NumpyBlock
 
 
 def new_block_2d(

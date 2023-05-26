@@ -81,28 +81,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.bfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.argsort \
-        pandas.Series.reorder_levels \
-        pandas.Series.ravel \
-        pandas.Series.first_valid_index \
-        pandas.Series.last_valid_index \
-        pandas.Series.dt.date \
-        pandas.Series.dt.time \
-        pandas.Series.dt.timetz \
-        pandas.Series.dt.dayofyear \
-        pandas.Series.dt.day_of_year \
-        pandas.Series.dt.quarter \
-        pandas.Series.dt.daysinmonth \
-        pandas.Series.dt.days_in_month \
-        pandas.Series.dt.tz \
-        pandas.Series.dt.end_time \
-        pandas.Series.dt.days \
-        pandas.Series.dt.seconds \
-        pandas.Series.dt.microseconds \
-        pandas.Series.dt.nanoseconds \
         pandas.Series.str.center \
         pandas.Series.str.decode \
         pandas.Series.str.encode \
@@ -135,11 +115,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
-        pandas.errors.EmptyDataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidIndexError \
-        pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
         pandas.errors.MergeError \
@@ -155,7 +132,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.show_versions \
         pandas.test \
         pandas.NaT \
         pandas.Timestamp.as_unit \
@@ -185,38 +161,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timedelta.to_numpy \
         pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
-        pandas.Period.end_time \
-        pandas.Period.freqstr \
-        pandas.Period.is_leap_year \
-        pandas.Period.month \
-        pandas.Period.quarter \
-        pandas.Period.year \
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Interval.closed \
-        pandas.Interval.left \
-        pandas.Interval.length \
-        pandas.Interval.right \
-        pandas.arrays.IntervalArray.left \
-        pandas.arrays.IntervalArray.right \
-        pandas.arrays.IntervalArray.closed \
-        pandas.arrays.IntervalArray.mid \
-        pandas.arrays.IntervalArray.length \
-        pandas.arrays.IntervalArray.is_non_overlapping_monotonic \
-        pandas.arrays.IntervalArray.from_arrays \
-        pandas.arrays.IntervalArray.to_tuples \
-        pandas.Int8Dtype \
-        pandas.Int16Dtype \
-        pandas.Int32Dtype \
-        pandas.Int64Dtype \
-        pandas.UInt8Dtype \
-        pandas.UInt16Dtype \
-        pandas.UInt32Dtype \
-        pandas.UInt64Dtype \
-        pandas.NA \
-        pandas.Float32Dtype \
-        pandas.Float64Dtype \
         pandas.CategoricalDtype.categories \
         pandas.CategoricalDtype.ordered \
         pandas.Categorical.dtype \
@@ -292,32 +239,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.values \
-        pandas.Index.dtype \
-        pandas.Index.inferred_type \
-        pandas.Index.shape \
-        pandas.Index.name \
-        pandas.Index.nbytes \
-        pandas.Index.ndim \
-        pandas.Index.size \
-        pandas.Index.T \
-        pandas.Index.memory_usage \
-        pandas.Index.copy \
-        pandas.Index.drop \
-        pandas.Index.identical \
-        pandas.Index.insert \
-        pandas.Index.is_ \
-        pandas.Index.take \
-        pandas.Index.putmask \
-        pandas.Index.unique \
-        pandas.Index.fillna \
-        pandas.Index.dropna \
-        pandas.Index.astype \
-        pandas.Index.map \
-        pandas.Index.ravel \
-        pandas.Index.to_list \
-        pandas.Index.append \
-        pandas.Index.join \
         pandas.Index.asof_locs \
         pandas.Index.get_slice_bound \
         pandas.RangeIndex \
@@ -333,9 +254,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered \
         pandas.CategoricalIndex.as_unordered \
         pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.closed \
         pandas.IntervalIndex.values \
-        pandas.IntervalIndex.is_non_overlapping_monotonic \
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
@@ -424,7 +343,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.get_group \
         pandas.core.groupby.DataFrameGroupBy.all \
         pandas.core.groupby.DataFrameGroupBy.any \
-        pandas.core.groupby.DataFrameGroupBy.bfill \
         pandas.core.groupby.DataFrameGroupBy.count \
         pandas.core.groupby.DataFrameGroupBy.cummax \
         pandas.core.groupby.DataFrameGroupBy.cummin \
@@ -447,7 +365,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.var \
         pandas.core.groupby.SeriesGroupBy.all \
         pandas.core.groupby.SeriesGroupBy.any \
-        pandas.core.groupby.SeriesGroupBy.bfill \
         pandas.core.groupby.SeriesGroupBy.count \
         pandas.core.groupby.SeriesGroupBy.cummax \
         pandas.core.groupby.SeriesGroupBy.cummin \
@@ -517,15 +434,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.columns \
-        pandas.DataFrame.iterrows \
-        pandas.DataFrame.pipe \
         pandas.DataFrame.backfill \
-        pandas.DataFrame.bfill \
         pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
-        pandas.DataFrame.first_valid_index \
-        pandas.DataFrame.last_valid_index \
         pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
