@@ -46,6 +46,7 @@ Bug fixes
 
 Other
 ~~~~~
+- Improved performance when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)
 - Raised a better error message when calling :func:`Series.dt.to_pydatetime` with :class:`ArrowDtype` with ``pyarrow.date32`` or ``pyarrow.date64`` type (:issue:`52812`)
 
 .. ---------------------------------------------------------------------------

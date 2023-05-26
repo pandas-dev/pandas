@@ -272,6 +272,24 @@ class TestRangeIndex:
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 
+    def test_cache_after_calling_loc_with_array(self):
+        # GH 53387
+        # the cache will contain a _constructor key, so it should be tested separately
+        idx = RangeIndex(0, 100, 10)
+        df = pd.DataFrame({"a": range(10)}, index=idx)
+
+        assert "_data" not in idx._cache
+
+        # take is internally called by loc, but it's also tested explicitly
+        idx.take([3, 0, 1])
+        assert "_data" not in idx._cache
+
+        df.loc[[50]]
+        assert "_data" not in idx._cache
+
+        df.iloc[[5, 6, 7, 8, 9]]
+        assert "_data" not in idx._cache
+
     def test_is_monotonic(self):
         index = RangeIndex(0, 20, 2)
         assert index.is_monotonic_increasing is True
