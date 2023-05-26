@@ -4521,7 +4521,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        array_ops_only: bool, default False
+        array_ops_only : bool, default False
             If True, func will always operate on the whole Series.
             If False, will operate on each element of the Series when given a single
             callable that is not a numpy ufunc, else on the whole Series
