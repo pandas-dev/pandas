@@ -502,7 +502,7 @@ values across a level. For instance:
 
 
 Swapping levels with ``axis_ops.swap_level``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~MultiIndex.swaplevel` method can switch the order of two levels:
 
@@ -514,7 +514,7 @@ The :meth:`~MultiIndex.swaplevel` method can switch the order of two levels:
 .. _advanced.reorderlevels:
 
 Reordering levels with ``axis_ops.reorder_levels``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~MultiIndex.reorder_levels` method generalizes the ``swaplevel``
 method, allowing you to permute the hierarchical index levels in one step:
