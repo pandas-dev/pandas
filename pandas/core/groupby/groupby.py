@@ -1375,24 +1375,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             func, dtype_mapping, **get_jit_arguments(engine_kwargs)
         )
         result = sorted_df._mgr.apply(
-            aggregator, start=starts, end=ends, min_periods=0, **aggregator_kwargs
+            aggregator, start=starts, end=ends, **aggregator_kwargs
         )
         result.axes[1] = self.grouper.result_index
         result = df._constructor(result)
-        # result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
-        # index = self.grouper.result_index
         if data.ndim == 1:
-            # result_kwargs = {"name": data.name}
-            # result = result.ravel()
             result.name = data.name
             result = result.squeeze("columns")
         else:
-            # result_kwargs = {"columns": data.columns}
             result.columns = data.columns
-        # result.index = index
         return result
-        # return data._constructor(result, index=index, **result_kwargs)
 
     @final
     def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
@@ -1986,7 +1979,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             dtype_mapping[np.dtype("uint32")] = np.float64
             dtype_mapping[np.dtype("uint64")] = np.float64
 
-            return self._numba_agg_general(sliding_mean, dtype_mapping, engine_kwargs)
+            return self._numba_agg_general(
+                sliding_mean, dtype_mapping, engine_kwargs, min_periods=0
+            )
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -2090,7 +2085,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return np.sqrt(
                 self._numba_agg_general(
-                    sliding_var, dtype_mapping, engine_kwargs, ddof=ddof
+                    sliding_var, dtype_mapping, engine_kwargs, min_periods=0, ddof=ddof
                 )
             )
         else:
@@ -2167,7 +2162,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             dtype_mapping[np.dtype("uint64")] = np.float64
 
             return self._numba_agg_general(
-                sliding_var, dtype_mapping, engine_kwargs, ddof=ddof
+                sliding_var, dtype_mapping, engine_kwargs, min_periods=0, ddof=ddof
             )
         else:
             return self._cython_agg_general(
@@ -2397,6 +2392,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 sliding_sum,
                 dtype_mapping,
                 engine_kwargs,
+                min_periods=min_count,
             )
         else:
             # If we are grouping on categoricals we want unobserved categories to
@@ -2445,7 +2441,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             }
 
             return self._numba_agg_general(
-                sliding_min_max, dtype_mapping, engine_kwargs, is_max=False
+                sliding_min_max,
+                dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=False,
             )
         else:
             return self._agg_general(
@@ -2481,7 +2481,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             }
 
             return self._numba_agg_general(
-                sliding_min_max, dtype_mapping, engine_kwargs, is_max=True
+                sliding_min_max,
+                dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=True,
             )
         else:
             return self._agg_general(
