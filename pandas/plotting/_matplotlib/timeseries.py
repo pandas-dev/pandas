@@ -16,6 +16,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -189,7 +190,7 @@ def _get_ax_freq(ax: Axes):
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     freqstr = to_offset(freq).rule_code
-
+    
     return get_period_alias(freqstr)
 
 

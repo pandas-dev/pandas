@@ -272,12 +272,12 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(start="1/1/11", end="12/31/11", freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2ME"
+        assert pi.freqstr == "2M"
 
         pi = period_range(start="1/1/11", periods=6, freq="2M")
         tm.assert_index_equal(pi, expected)
         assert pi.freq == offsets.MonthEnd(2)
-        assert pi.freqstr == "2ME"
+        assert pi.freqstr == "2M"
 
     def test_iteration(self):
         index = period_range(start="1/1/10", periods=4, freq="B")

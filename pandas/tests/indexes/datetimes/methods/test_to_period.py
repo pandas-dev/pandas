@@ -68,11 +68,11 @@ class TestToPeriod:
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
-            assert prng.freq == "ME"
+            assert prng.freqstr == "M"
 
         rng = date_range("01-Jan-2012", periods=8, freq="ME")
         prng = rng.to_period()
-        assert prng.freq == "ME"
+        assert prng.freq == "M"
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")

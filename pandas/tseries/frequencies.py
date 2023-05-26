@@ -107,7 +107,6 @@ def get_period_alias(offset_str: str) -> str | None:
     """
     if offset_str == 'ME':
         return 'M'
-    # offset_str=OFFSET_TO_PERIOD_FREQSTR.get(offset_str, offset_str)
     return _offset_to_period_map.get(offset_str, None)
 
 
