@@ -1072,14 +1072,17 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
-    result = grp.apply(sum)
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     _ = getattr(grp, reduction_func)(*args)
-    result = grp.apply(sum)
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
 
