@@ -153,7 +153,11 @@ def test_agg_apply_corner(ts, tsframe):
     )
     tm.assert_frame_equal(grouped.sum(), exp_df)
     tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
-    tm.assert_frame_equal(grouped.apply(np.sum), exp_df)
+
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        res = grouped.apply(np.sum)
+    tm.assert_frame_equal(res, exp_df)
 
 
 def test_agg_grouping_is_list_tuple(ts):
@@ -1585,4 +1589,17 @@ def test_agg_multiple_with_as_index_false_subset_to_a_single_column():
     gb = df.groupby("a", as_index=False)["b"]
     result = gb.agg(["sum", "mean"])
     expected = DataFrame({"a": [1, 2], "sum": [7, 5], "mean": [3.5, 5.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_with_as_index_false_with_list():
+    # GH#52849
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    gb = df.groupby(by=["a1", "a2"], as_index=False)
+    result = gb.agg(["sum"])
+
+    expected = DataFrame(
+        data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
+        columns=MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
+    )
     tm.assert_frame_equal(result, expected)
