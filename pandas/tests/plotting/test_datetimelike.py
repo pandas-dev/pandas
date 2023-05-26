@@ -153,7 +153,7 @@ class TestTSPlot(TestPlotBase):
 
         assert get_datevalue(None, "D") is None
         assert get_datevalue(1987, "A") == 1987
-        assert get_datevalue(Period(1987, "A"), "ME") == Period("1987-12", "ME").ordinal
+        assert get_datevalue(Period(1987, "A"), "M") == Period("1987-12", "M").ordinal
         assert get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
 
     def test_ts_plot_format_coord(self):
@@ -319,7 +319,7 @@ class TestTSPlot(TestPlotBase):
 
     def test_business_freq_convert(self):
         bts = tm.makeTimeSeries(300).asfreq("BM")
-        ts = bts.to_period("ME")
+        ts = bts.to_period("M")
         _, ax = self.plt.subplots()
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == ts.index[0].ordinal
