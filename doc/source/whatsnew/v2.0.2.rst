@@ -1,6 +1,6 @@
 .. _whatsnew_202:
 
-What's new in 2.0.2 (May ..., 2023)
+What's new in 2.0.2 (May 26, 2023)
 -----------------------------------
 
 These are the changes in pandas 2.0.2. See :ref:`release` for a full changelog
