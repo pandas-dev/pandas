@@ -2121,9 +2121,6 @@ different numeric dtypes will **NOT** be combined. The following example will gi
 
 .. ipython:: python
 
-   @suppress
-   np.random.seed(2358)
-
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float32")
    df1
    df1.dtypes
@@ -2131,7 +2128,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.array(np.random.randn(8), dtype="uint8")),
+           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
    )
    df2
