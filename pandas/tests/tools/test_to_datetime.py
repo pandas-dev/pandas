@@ -943,7 +943,9 @@ class TestToDatetime:
 
         result = to_datetime(dti_arrow, utc=utc)
         expected = to_datetime(dti, utc=utc).astype("timestamp[ns][pyarrow]")
-        assert result is dti_arrow
+        if not utc:
+            # Doesn't hold for utc=True, since that will astype
+            assert result is dti_arrow
         tm.assert_index_equal(result, expected, exact=False)
 
     def test_to_datetime_pydatetime(self):
