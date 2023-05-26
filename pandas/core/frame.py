@@ -9843,6 +9843,56 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.apply(infer).__finalize__(self, "map")
 
+    def dictmap(
+        self, mapdict: Dict[str, Callable], **kwargs
+    ) -> pd.DataFrame:
+        """
+        Applies a dict of column names and column mapping functions on
+        matching columns in the ``self``` dataframe, while preserving non-matching
+        columns.
+
+        Parameters
+        ----------
+        mapdict : dict
+            A dict keyed by column name, values are column mapping functions;
+            the column names in the keys should match a subset of columns in
+            the ``self`` datafame. The column mapping functions should be
+            applicable on values in a column using ``map``.
+        **kwargs
+            Additional keyword arguments that could be passed to this method,
+            but not supported in this implementation.
+
+        Returns
+        -------
+        DataFrame
+            Transformed DataFrame.
+
+        Examples
+        --------
+        >>> d = pd.DataFrame([[1,4,7],
+        ...                   [2,5,8],
+        ...                   [3,6,9]],
+        ...                   columns=['x', 'y', 'z']
+        >>> df
+           x  y  z
+        0  1  4  7
+        1  2  5  8
+        2  3  6  9
+        >>> df.dictmap({'x': lambda x: x ** 2,
+                        'z': lambda z: 1 - z/2})
+           x  y    z
+        0  1  3 -2.0
+        1  4  4 -2.5
+        2  9  5 -3.0
+
+        """
+        return pd.concat(
+            [self[col].map(mapdict[col]) if col in mapdict
+             else self[col]
+             for col in self.columns],
+            axis=1
+        )
+
     def applymap(
         self, func: PythonFuncType, na_action: NaAction | None = None, **kwargs
     ) -> DataFrame:
