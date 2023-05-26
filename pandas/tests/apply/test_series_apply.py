@@ -543,7 +543,7 @@ def test_apply_listlike_transformer(string_series, ops, names):
     ],
 )
 def test_apply_listlike_lambda(ops, expected):
-    # GHxxxxxx
+    # GH53400
     ser = Series([1, 2, 3])
     result = ser.apply(ops)
     tm.assert_equal(result, expected)
