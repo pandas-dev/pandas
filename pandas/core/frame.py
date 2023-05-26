@@ -9879,9 +9879,9 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df.dictmap({'x': lambda x: x ** 2,
                         'z': lambda z: 1 - z/2})
            x  y    z
-        0  1  3 -2.0
-        1  4  4 -2.5
-        2  9  5 -3.0
+        0  1  3 -2.5
+        1  4  4 -3.0
+        2  9  5 -3.5
 
         """
         from pandas.core.reshape.concat import concat
