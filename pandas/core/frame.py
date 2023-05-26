@@ -9843,9 +9843,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return self.apply(infer).__finalize__(self, "map")
 
-    def dictmap(
-        self, mapdict: Dict[str, Callable], **kwargs
-    ) -> pd.DataFrame:
+    def dictmap(self, mapdict: dict[str, Callable], **kwargs) -> DataFrame:
         """
         Applies a dict of column names and column mapping functions on
         matching columns in the ``self``` dataframe, while preserving non-matching
@@ -9886,11 +9884,14 @@ class DataFrame(NDFrame, OpsMixin):
         2  9  5 -3.0
 
         """
-        return pd.concat(
-            [self[col].map(mapdict[col]) if col in mapdict
-             else self[col]
-             for col in self.columns],
-            axis=1
+        from pandas.core.reshape.concat import concat
+
+        return concat(
+            [
+                self[col].map(mapdict[col]) if col in mapdict else self[col]
+                for col in self.columns
+            ],
+            axis=1,
         )
 
     def applymap(
