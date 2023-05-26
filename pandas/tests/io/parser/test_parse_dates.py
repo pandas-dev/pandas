@@ -1557,6 +1557,9 @@ def test_parse_date_fields(all_parsers):
         ("date_format", "%Y %m %d %H %M %S", None),
     ],
 )
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame is deprecated:FutureWarning"
+)
 def test_parse_date_all_fields(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
@@ -1592,6 +1595,9 @@ year,month,day,hour,minute,second,a,b
         ),
         ("date_format", "%Y %m %d %H %M %S.%f", None),
     ],
+)
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame is deprecated:FutureWarning"
 )
 def test_datetime_fractional_seconds(all_parsers, key, value, warn):
     parser = all_parsers
