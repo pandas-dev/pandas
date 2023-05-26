@@ -2121,6 +2121,9 @@ different numeric dtypes will **NOT** be combined. The following example will gi
 
 .. ipython:: python
 
+   @suppress
+   np.random.seed(2358)
+
    df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float32")
    df1
    df1.dtypes
