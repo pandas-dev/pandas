@@ -300,6 +300,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -311,6 +313,12 @@ class IndexOpsMixin(OpsMixin):
         1    Bear
         2     Cow
         dtype: object
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.T
+        Index([1, 2, 3], dtype='int64')
         """,
     )
 
@@ -757,8 +765,19 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series
+
         >>> s = pd.Series([1, 2, 3])
         >>> s.to_list()
+        [1, 2, 3]
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+
+        >>> idx.to_list()
         [1, 2, 3]
         """
         return self._values.tolist()
@@ -1088,6 +1107,12 @@ class IndexOpsMixin(OpsMixin):
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.memory_usage()
+        24
         """
         if hasattr(self.array, "memory_usage"):
             return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
