@@ -15,6 +15,16 @@ import pandas._testing as tm
 from pandas.io.json._json import JsonReader
 
 
+def test_json_deprecation():
+    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+    warning_msg = "Passing literal json to 'read_json' is deprecated and "\
+                  "will be removed in a future version. To read from a "\
+                  "literal string, wrap it in a 'StringIO' object."
+
+    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        tm.assert_frame_equal(result, expected)
+
 @pytest.fixture
 def lines_json_df():
     df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
