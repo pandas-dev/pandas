@@ -1557,9 +1557,6 @@ def test_parse_date_fields(all_parsers):
         ("date_format", "%Y %m %d %H %M %S", None),
     ],
 )
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame is deprecated:FutureWarning"
-)
 def test_parse_date_all_fields(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
@@ -1567,9 +1564,14 @@ year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0,0.0,10.
 2001,01,5,10,0,00,1.,11.
 """
+    msg = "use 'date_format' instead"
+    if parser.engine == "pyarrow" and warn is None:
+        msg = "Passing a BlockManager to DataFrame is deprecated"
+        warn = FutureWarning
+
     result = parser.read_csv_check_warnings(
         warn,
-        "use 'date_format' instead",
+        msg,
         StringIO(data),
         header=0,
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
@@ -1596,9 +1598,6 @@ year,month,day,hour,minute,second,a,b
         ("date_format", "%Y %m %d %H %M %S.%f", None),
     ],
 )
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame is deprecated:FutureWarning"
-)
 def test_datetime_fractional_seconds(all_parsers, key, value, warn):
     parser = all_parsers
     data = """\
@@ -1606,9 +1605,14 @@ year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0.123456,0.0,10.
 2001,01,5,10,0,0.500000,1.,11.
 """
+    msg = "use 'date_format' instead"
+    if parser.engine == "pyarrow" and warn is None:
+        msg = "Passing a BlockManager to DataFrame is deprecated"
+        warn = FutureWarning
+
     result = parser.read_csv_check_warnings(
         warn,
-        "use 'date_format' instead",
+        msg,
         StringIO(data),
         header=0,
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
