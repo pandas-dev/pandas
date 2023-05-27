@@ -122,10 +122,7 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import (
-    reconstruct_func,
-    relabel_result,
-)
+from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
@@ -4074,7 +4071,6 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
-        self._check_inplace_setting(value)
         self._check_setitem_copy()
         self._where(-key, value, inplace=True)
 
@@ -5086,7 +5082,7 @@ class DataFrame(NDFrame, OpsMixin):
         Drop specified labels from rows or columns.
 
         Remove rows or columns by specifying label names and corresponding
-        axis, or by specifying directly index or column names. When using a
+        axis, or by directly specifying index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
         the level. See the :ref:`user guide <advanced.shown_levels>`
         for more information about the now unused levels.
@@ -5109,7 +5105,7 @@ class DataFrame(NDFrame, OpsMixin):
             For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
             If False, return a copy. Otherwise, do operation
-            inplace and return None.
+            in place and return None.
         errors : {'ignore', 'raise'}, default 'raise'
             If 'ignore', suppress error and only existing labels are
             dropped.
@@ -9580,23 +9576,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
-
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.agg()
-
-        if relabeling:
-            # This is to keep the order to columns occurrence unchanged, and also
-            # keep the order of new columns occurrence unchanged
-
-            # For the return values of reconstruct_func, if relabeling is
-            # False, columns and order will be None.
-            assert columns is not None
-            assert order is not None
-
-            result_in_dict = relabel_result(result, func, columns, order)
-            result = DataFrame(result_in_dict, index=columns)
-
+        result = reconstruct_and_relabel_result(result, func, **kwargs)
         return result
 
     agg = aggregate
@@ -9794,14 +9776,9 @@ class DataFrame(NDFrame, OpsMixin):
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
             If ‘ignore’, propagate NaN values, without passing them to func.
-
-            .. versionadded:: 1.2
-
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -10957,7 +10934,7 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
@@ -10971,7 +10948,7 @@ class DataFrame(NDFrame, OpsMixin):
     def all(
         self,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> Series:
@@ -11004,7 +10981,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11016,7 +10993,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11047,7 +11024,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11058,7 +11035,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("var", ndim=2))
     def var(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11069,7 +11046,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("std", ndim=2))
     def std(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11162,6 +11139,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:
@@ -11187,6 +11169,11 @@ class DataFrame(NDFrame, OpsMixin):
         self, axis: Axis = 0, skipna: bool = True, numeric_only: bool = False
     ) -> Series:
         axis = self._get_axis_number(axis)
+
+        if self.empty and len(self.axes[axis]):
+            axis_dtype = self.axes[axis].dtype
+            return self._constructor_sliced(dtype=axis_dtype)
+
         if numeric_only:
             data = self._get_numeric_data()
         else:
