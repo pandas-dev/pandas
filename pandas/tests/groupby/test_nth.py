@@ -154,7 +154,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
+    df = DataFrame({"data": ["A"], "nans": Series([None], dtype=object)})
     grouped = df.groupby("data")
 
     expected = df.set_index("data").nans

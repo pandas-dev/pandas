@@ -40,6 +40,7 @@ class TestFeather:
             to_feather(df, path, **write_kwargs)
 
             result = read_feather(path, **read_kwargs)
+
             tm.assert_frame_equal(result, expected)
 
     def test_error(self):
@@ -86,7 +87,10 @@ class TestFeather:
         df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
-        self.check_round_trip(df)
+
+        expected = df.copy()
+        expected.loc[1, "bool_with_null"] = None
+        self.check_round_trip(df, expected=expected)
 
     def test_duplicate_columns(self):
         # https://github.com/wesm/feather/issues/53
