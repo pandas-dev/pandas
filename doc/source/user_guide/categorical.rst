@@ -268,11 +268,18 @@ unordered categoricals, the order of the ``categories`` is not considered.
    # Unequal, since the second CategoricalDtype is ordered
    c1 == CategoricalDtype(["a", "b", "c"], ordered=True)
 
-All instances of ``CategoricalDtype`` compare equal to the string ``'category'``.
+All instances of ``CategoricalDtype`` compare equal to the string ``'category'`` or the
+string ``'category'`` with the string dtype for the categories inside square brackets.
 
 .. ipython:: python
 
    c1 == "category"
+   c1 == "category[object]"
+
+.. versionadded:: 2.1.0
+
+    The ability to a specify the categories dtype inside square brackets in the dtype
+    string was added in :ref:`v2.1.0 <whatsnew_210.enhancements.category_subtype>`
 
 Description
 -----------

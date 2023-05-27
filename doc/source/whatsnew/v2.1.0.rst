@@ -25,10 +25,25 @@ of the categories as part of the dtype string:
 .. ipython:: python
 
     ser = pd.Series(["a", "b", np.nan], dtype="category[string]")
-    ser.dtype
+    ser
 
 The expression inside the brackets can be any string that Pandas accepts for a dtype and
 whose data can be stored in an :class:`Index` (:issue:`48515`).
+
+The categories dtype will also now be part of the dtype repr:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"a": ser, "b": pd.array([1, 2, 3], dtype="category[Int8]")})
+   df.dtypes
+
+We can now also compare categorical dtypes to a string with the dtype of the categories inside brackets in order to get more precise comparisons:
+
+.. ipython:: python
+
+    ser.dtype == "category[string]"
+    ser.dtype == "category"  # also works, but doesn't check the categories dtype
+    ser.dtype == "category[object]"  # fails, wrong categories dtype
 
 
 .. _whatsnew_210.enhancements.map_na_action:
