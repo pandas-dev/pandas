@@ -1,5 +1,5 @@
 from __future__ import annotations
-import  warnings
+
 from abc import (
     ABC,
     abstractmethod,
@@ -18,9 +18,10 @@ from typing import (
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
-from pandas.util._exceptions import find_stack_level
+
 from pandas._libs import lib
 from pandas._libs.json import (
     dumps,
@@ -30,6 +31,7 @@ from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import ensure_str
@@ -926,12 +928,13 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         ):
             raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
         else:
-            warnings.warn("Passing literal json to 'read_json' is deprecated and "
-                          "will be removed in a future version. To read from a "
-                          "literal string, wrap it in a 'StringIO' object.",
-                          FutureWarning,
-                          stacklevel=find_stack_level(),
-                          )
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:
