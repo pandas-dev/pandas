@@ -24,7 +24,7 @@ In previous versions of pandas, the results of DataFrame reductions
 were of extension dtypes. Pandas can now keep the dtypes when doing reductions over Dataframe
 columns with a common dtype (:issue:`52788`).
 
-*New Behavior*
+*Old Behavior*
 
 .. code-block:: ipython
 
