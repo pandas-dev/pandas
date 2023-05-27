@@ -434,7 +434,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         6) Any other comparison returns False
         """
         if isinstance(other, str):
-            return other == self.name or other == "category"
+            return other in [self.name, "category"]
         elif other is self:
             return True
         elif not (hasattr(other, "ordered") and hasattr(other, "categories")):

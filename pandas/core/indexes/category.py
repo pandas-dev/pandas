@@ -147,7 +147,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     Examples
     --------
-    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"], orderer=True)
+    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"], ordered=True)
     CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
                      categories=['a', 'b', 'c'], ordered=True, dtype='category[object]')
 
