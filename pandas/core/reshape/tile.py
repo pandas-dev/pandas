@@ -199,7 +199,7 @@ def cut(
     c    (4.667, 7.333]
     d     (7.333, 10.0]
     e     (7.333, 10.0]
-    dtype: category
+    dtype: category[interval[float64, right]]
     Categories (3, interval[float64, right]): [(1.992, 4.667] < (4.667, ...
 
     Passing a Series as an input returns a Series with mapping value.

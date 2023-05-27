@@ -6343,7 +6343,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> ser.astype('category')
         0    1
         1    2
-        dtype: category
+        dtype: category[int32]
         Categories (2, int32): [1, 2]
 
         Convert to ordered categorical type with custom ordering:
@@ -6354,7 +6354,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> ser.astype(cat_dtype)
         0    1
         1    2
-        dtype: category
+        dtype: category[int64]
         Categories (2, int64): [2 < 1]
 
         Create a series of dates:

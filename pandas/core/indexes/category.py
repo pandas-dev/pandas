@@ -147,16 +147,16 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     Examples
     --------
-    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"])
+    >>> pd.CategoricalIndex(["a", "b", "c", "a", "b", "c"], orderer=True)
     CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
-                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
+                     categories=['a', 'b', 'c'], ordered=True, dtype='category[object]')
 
     ``CategoricalIndex`` can also be instantiated from a ``Categorical``:
 
-    >>> c = pd.Categorical(["a", "b", "c", "a", "b", "c"])
+    >>> c = pd.Categorical(["a", "b", "c", "a", "b", "c"], ordered=True)
     >>> pd.CategoricalIndex(c)
     CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
-                     categories=['a', 'b', 'c'], ordered=False, dtype='category')
+                     categories=['a', 'b', 'c'], ordered=True, dtype='category[object]')
 
     Ordered ``CategoricalIndex`` can have a min and max value.
 
@@ -165,7 +165,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     ... )
     >>> ci
     CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
-                     categories=['c', 'b', 'a'], ordered=True, dtype='category')
+                     categories=['c', 'b', 'a'], ordered=True, dtype='category[object]')
     >>> ci.min()
     'c'
     """
@@ -438,13 +438,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
-                          ordered=False, dtype='category')
+                          ordered=False, dtype='category[object]')
         >>> idx.map(lambda x: x.upper())
         CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
-                         ordered=False, dtype='category')
+                         ordered=False, dtype='category[object]')
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
-                         'second', 'third'], ordered=False, dtype='category')
+                         'second', 'third'], ordered=False, dtype='category[object]')
 
         If the mapping is one-to-one the ordering of the categories is
         preserved:
@@ -452,10 +452,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
         >>> idx
         CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
-                         ordered=True, dtype='category')
+                         ordered=True, dtype='category[object]')
         >>> idx.map({'a': 3, 'b': 2, 'c': 1})
         CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,
-                         dtype='category')
+                         dtype='category[int64]')
 
         If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 

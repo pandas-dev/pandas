@@ -453,7 +453,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     ) from err
 
             # we're inferring from values
-            dtype = CategoricalDtype(categories, dtype.ordered, dtype.categories_dtype)
+            dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
             old_codes = extract_array(values)._codes
@@ -2524,7 +2524,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.categories
@@ -2537,7 +2537,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    a
     4    a
     5    a
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['c', 'b', 'a']
 
     >>> s.cat.reorder_categories(list("cba"))
@@ -2547,7 +2547,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['c', 'b', 'a']
 
     >>> s.cat.add_categories(["d", "e"])
@@ -2557,7 +2557,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (5, object): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.remove_categories(["a", "c"])
@@ -2567,7 +2567,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    NaN
     4    NaN
     5    NaN
-    dtype: category
+    dtype: category[object]
     Categories (1, object): ['b']
 
     >>> s1 = s.cat.add_categories(["d", "e"])
@@ -2578,7 +2578,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['a', 'b', 'c']
 
     >>> s.cat.set_categories(list("abcde"))
@@ -2588,7 +2588,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (5, object): ['a', 'b', 'c', 'd', 'e']
 
     >>> s.cat.as_ordered()
@@ -2598,7 +2598,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['a' < 'b' < 'c']
 
     >>> s.cat.as_unordered()
@@ -2608,7 +2608,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     3    c
     4    c
     5    c
-    dtype: category
+    dtype: category[object]
     Categories (3, object): ['a', 'b', 'c']
     """
 

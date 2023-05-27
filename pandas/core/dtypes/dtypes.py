@@ -185,13 +185,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = pd.CategoricalDtype(['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b
     2      a
     3    NaN
-    dtype: category
+    dtype: category[object]
     Categories (2, object): ['b' < 'a']
 
     An empty CategoricalDtype with a specific dtype can be created
@@ -208,7 +208,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
-    _categories_dtype: Dtype | None = None
+    _categories_dtype: Dtype
     _match = re.compile(r"category\[(?P<categories_dtype>.+)\]")
 
     def __init__(
@@ -391,13 +391,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return None
         d = match.groupdict()
         return d.get("categories_dtype")
-
-    @property
-    def categories_dtype(self) -> Dtype:
-        if self.categories is None:
-            return self._categories_dtype
-
-        return self.categories.dtype
 
     def _finalize(self, categories, ordered: Ordered, fastpath: bool = False) -> None:
         if ordered is not None:
@@ -604,7 +597,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             raise TypeError(
                 f"Parameter 'categories' must be list-like, was {repr(categories)}"
             )
-        dtype = self._categories_dtype
+        dtype = self.categories_dtype
         if not isinstance(categories, ABCIndex):
             categories = Index._with_infer(categories, dtype=dtype, tupleize_cols=False)
         elif dtype is not None:
@@ -661,6 +654,13 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         An ``Index`` containing the unique categories allowed.
         """
         return self._categories
+
+    @property
+    def categories_dtype(self) -> Dtype | None:
+        try:
+            return self.categories.dtype
+        except AttributeError:
+            return getattr(self, "_categories_dtype", None)
 
     @property
     def ordered(self) -> Ordered:
