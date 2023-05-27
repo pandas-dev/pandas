@@ -838,9 +838,6 @@ class SubclassedSeries(Series):
     def _constructor_expanddim(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
-    def _expanddim_from_mgr(self, mgr, axes):
-        return self._constructor_expanddim(mgr)
-
 
 class SubclassedDataFrame(DataFrame):
     _metadata = ["testattr"]
@@ -852,9 +849,6 @@ class SubclassedDataFrame(DataFrame):
     @property
     def _constructor_sliced(self):
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
-
-    def _sliced_from_mgr(self, mgr, axes):
-        return self._constructor_sliced(mgr)
 
 
 class SubclassedCategorical(Categorical):

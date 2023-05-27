@@ -332,8 +332,6 @@ There are 3 possible constructor properties to be defined on a subclass:
 * ``DataFrame._constructor_sliced``: Used when a ``DataFrame`` (sub-)class manipulation result should be a ``Series`` (sub-)class.
 * ``Series._constructor_expanddim``: Used when a ``Series`` (sub-)class manipulation result should be a ``DataFrame`` (sub-)class, e.g. ``Series.to_frame()``.
 
-If a subclass's ``_constructor``, ``_constructor_sliced``, or ``_constructor_expanddim`` do not return a class, then you will also need to override ``_from_mgr``, ``_sliced_from_mgr``, and ``_expanddim_from_mgr``, which return analogous-shaped objects but take only ``BlockManager`` and ``axes`` inputs.
-
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
 
 .. code-block:: python

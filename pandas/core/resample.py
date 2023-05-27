@@ -2114,9 +2114,7 @@ def _take_new_index(
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
-        # error: Incompatible return value type
-        # (got "DataFrame", expected "NDFrameT")
-        return obj._from_mgr(new_mgr, axes=new_mgr.axes)  # type: ignore[return-value]
+        return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
 

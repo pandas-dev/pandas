@@ -319,7 +319,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fastpath of passing a manager doesn't check the option/manager class
         return self._constructor(new_mgr).__finalize__(self)
 
-    def _from_mgr(self, mgr: Manager, axes: list[Index]) -> Self:
+    @classmethod
+    def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
         """
         Construct a new object of this type from a Manager object and axes.
 
@@ -334,14 +335,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         The axes must match mgr.axes, but are required for future-proofing
         in the event that axes are refactored out of the Manager objects.
         """
-        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
-        #  This is a short-term implementation that will be replaced
-        #   obj = cls.__new__(cls)
-        #   NDFrame.__init__(obj, mgr)
-        #   return obj
-        #  once downstream packages (geopandas) have had a chance to implement
-        #  their own overrides.
-        return self._constructor(mgr)
+        obj = cls.__new__(cls)
+        NDFrame.__init__(obj, mgr)
+        return obj
 
     # ----------------------------------------------------------------------
     # attrs and flags
@@ -1456,7 +1452,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return operator.neg(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
-        res = self._from_mgr(new_data, axes=new_data.axes)
+        res = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res.__finalize__(self, method="__neg__")
 
     @final
@@ -1471,7 +1467,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return operator.pos(values)  # type: ignore[arg-type]
 
         new_data = self._mgr.apply(blk_func)
-        res = self._from_mgr(new_data, axes=new_data.axes)
+        res = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res.__finalize__(self, method="__pos__")
 
     @final
@@ -1481,7 +1477,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         new_data = self._mgr.apply(operator.invert)
-        res = self._from_mgr(new_data, axes=new_data.axes)
+        res = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res.__finalize__(self, method="__invert__")
 
     @final
@@ -1620,7 +1616,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    7   40  -50
         """
         res_mgr = self._mgr.apply(np.abs)
-        return self._from_mgr(res_mgr, axes=res_mgr.axes).__finalize__(self, name="abs")
+        return self._constructor_from_mgr(res_mgr, axes=res_mgr.axes).__finalize__(
+            self, name="abs"
+        )
 
     @final
     def __abs__(self) -> Self:
@@ -4003,7 +4001,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis=self._get_block_manager_axis(axis),
             verify=True,
         )
-        return self._from_mgr(new_data, axes=new_data.axes).__finalize__(
+        return self._constructor_from_mgr(new_data, axes=new_data.axes).__finalize__(
             self, method="take"
         )
 
@@ -4188,7 +4186,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             new_mgr = self._mgr.fast_xs(loc)
 
-            result = self._sliced_from_mgr(new_mgr, axes=new_mgr.axes)
+            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
             result._name = self.index[loc]
             result = result.__finalize__(self)
         elif is_scalar(loc):
@@ -4235,7 +4233,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         assert isinstance(slobj, slice), type(slobj)
         axis = self._get_block_manager_axis(axis)
         new_mgr = self._mgr.get_slice(slobj, axis=axis)
-        result = self._from_mgr(new_mgr, axes=new_mgr.axes)
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         result = result.__finalize__(self)
 
         # this could be a view
@@ -4730,7 +4728,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             copy=None,
             only_slice=only_slice,
         )
-        result = self._from_mgr(new_mgr, axes=new_mgr.axes)
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         if self.ndim == 1:
             result._name = self.name
 
@@ -5189,7 +5187,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = 1 if isinstance(self, ABCDataFrame) else 0
             new_data.set_axis(axis, default_index(len(indexer)))
 
-        result = self._from_mgr(new_data, axes=new_data.axes)
+        result = self._constructor_from_mgr(new_data, axes=new_data.axes)
 
         if inplace:
             return self._update_inplace(result)
@@ -5550,7 +5548,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         elif using_copy_on_write() and new_data is self._mgr:
             new_data = new_data.copy(deep=False)
 
-        return self._from_mgr(new_data, axes=new_data.axes).__finalize__(self)
+        return self._constructor_from_mgr(new_data, axes=new_data.axes).__finalize__(
+            self
+        )
 
     def filter(
         self,
@@ -6220,7 +6220,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         f = lambda: self._mgr.consolidate()
         cons_data = self._protect_consolidate(f)
-        return self._from_mgr(cons_data, axes=cons_data.axes).__finalize__(self)
+        return self._constructor_from_mgr(cons_data, axes=cons_data.axes).__finalize__(
+            self
+        )
 
     @property
     def _is_mixed_type(self) -> bool_t:
@@ -6237,12 +6239,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _get_numeric_data(self) -> Self:
         new_mgr = self._mgr.get_numeric_data()
-        return self._from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     @final
     def _get_bool_data(self):
         new_mgr = self._mgr.get_bool_data()
-        return self._from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Internal Interface Methods
@@ -6452,7 +6454,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # else, only a single dtype is given
             new_data = self._mgr.astype(dtype=dtype, copy=copy, errors=errors)
-            res = self._from_mgr(new_data, axes=new_data.axes)
+            res = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return res.__finalize__(self, method="astype")
 
         # GH 33113: handle empty frame or series
@@ -6582,7 +6584,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
-        return self._from_mgr(data, axes=data.axes).__finalize__(self, method="copy")
+        return self._constructor_from_mgr(data, axes=data.axes).__finalize__(
+            self, method="copy"
+        )
 
     @final
     def __copy__(self, deep: bool_t = True) -> Self:
@@ -6644,7 +6648,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: object
         """
         new_mgr = self._mgr.convert(copy=copy)
-        res = self._from_mgr(new_mgr, axes=new_mgr.axes)
+        res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         return res.__finalize__(self, method="infer_objects")
 
     @final
@@ -7143,7 +7147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             else:
                 raise ValueError(f"invalid fill value with a {type(value)}")
 
-        result = self._from_mgr(new_data, axes=new_data.axes)
+        result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7599,7 +7603,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f'Invalid "to_replace" type: {repr(type(to_replace).__name__)}'
                     )
 
-        result = self._from_mgr(new_data, axes=new_data.axes)
+        result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7918,7 +7922,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             **kwargs,
         )
 
-        result = self._from_mgr(new_data, axes=new_data.axes)
+        result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if should_transpose:
             result = result.T
         if inplace:
@@ -9890,7 +9894,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 left = self.copy(deep=copy)
             else:
                 new_mgr = self._mgr.reindex_indexer(join_index, lidx, axis=1, copy=copy)
-                left = self._from_mgr(new_mgr, axes=new_mgr.axes)
+                left = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
 
             right = other._reindex_indexer(join_index, ridx, copy)
 
@@ -9911,7 +9915,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if copy and fdata is self._mgr:
                 fdata = fdata.copy()
 
-            left = self._from_mgr(fdata, axes=fdata.axes)
+            left = self._constructor_from_mgr(fdata, axes=fdata.axes)
 
             if ridx is None:
                 right = other.copy(deep=copy)
@@ -10058,7 +10062,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # reconstruct the block manager
 
             new_data = self._mgr.putmask(mask=cond, new=other, align=align)
-            result = self._from_mgr(new_data, axes=new_data.axes)
+            result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 
         else:
@@ -10067,7 +10071,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond=cond,
                 align=align,
             )
-            result = self._from_mgr(new_data, axes=new_data.axes)
+            result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return result.__finalize__(self)
 
     @overload
@@ -10445,9 +10449,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.shift(
                 periods=periods, axis=axis, fill_value=fill_value
             )
-            return self._from_mgr(new_data, axes=new_data.axes).__finalize__(
-                self, method="shift"
-            )
+            return self._constructor_from_mgr(
+                new_data, axes=new_data.axes
+            ).__finalize__(self, method="shift")
 
         # when freq is given, index is shifted, data is not
         index = self._get_axis(axis)
@@ -11406,7 +11410,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         result = self._mgr.apply(block_accum_func)
 
-        return self._from_mgr(result, axes=result.axes).__finalize__(self, method=name)
+        return self._constructor_from_mgr(result, axes=result.axes).__finalize__(
+            self, method=name
+        )
 
     def cummax(self, axis: Axis | None = None, skipna: bool_t = True, *args, **kwargs):
         return self._accum_func(
