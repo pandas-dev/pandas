@@ -145,6 +145,11 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        ("DataFrame.to_timestamp", "DataFrame.to_timestamp is deprecated"),
+        ("Series.swaplevel", "Series.swaplevel is deprecated"),
+        ("Series.to_timestamp", "Series.to_timestamp is deprecated"),
+        ("Series.to_period", "Series.to_period is deprecated"),
+        ("Series.reorder_levels", "Series.reorder_levels is deprecated"),
     ]
 
     for item in items:
