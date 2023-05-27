@@ -83,10 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.dt.days \
-        pandas.Series.dt.seconds \
-        pandas.Series.dt.microseconds \
-        pandas.Series.dt.nanoseconds \
         pandas.Series.str.center \
         pandas.Series.str.decode \
         pandas.Series.str.encode \
@@ -121,7 +117,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.DataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
         pandas.errors.MergeError \
@@ -169,7 +164,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.NA \
         pandas.CategoricalDtype.categories \
         pandas.CategoricalDtype.ordered \
         pandas.Categorical.dtype \
@@ -245,13 +239,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.fillna \
-        pandas.Index.dropna \
-        pandas.Index.astype \
-        pandas.Index.map \
-        pandas.Index.to_list \
-        pandas.Index.append \
-        pandas.Index.join \
         pandas.Index.asof_locs \
         pandas.Index.get_slice_bound \
         pandas.RangeIndex \
