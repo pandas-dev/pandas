@@ -25,7 +25,7 @@ of the categories as part of the dtype string:
 .. ipython:: python
 
     ser = pd.Series(["a", "b", np.nan], dtype="category[string]")
-    ser.dtype.categories
+    ser.dtype
 
 The expression inside the brackets can be any string that Pandas accepts for a dtype and
 whose data can be stored in an :class:`Index` (:issue:`48515`).
