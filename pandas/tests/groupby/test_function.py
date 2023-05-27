@@ -248,6 +248,7 @@ class TestNumericOnly:
                     "Categorical is not ordered",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    # cumsum/cummin/cummax/cumprod
                     "function is not implemented for this dtype",
                 ]
             )
@@ -258,8 +259,6 @@ class TestNumericOnly:
                 [
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
-                    "can't multiply sequence by non-int of type 'str'",
-                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -271,10 +270,8 @@ class TestNumericOnly:
         if method not in ("first", "last"):
             msg = "|".join(
                 [
-                    "[Cc]ould not convert",
                     "Categorical is not ordered",
                     "category type does not support",
-                    "can't multiply sequence",
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
@@ -1460,11 +1457,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         msg = "|".join(
             [
                 "not allowed for this dtype",
-                "must be a string or a number",
                 "cannot be performed against 'object' dtypes",
                 "must be a string or a real number",
                 "unsupported operand type",
-                "not supported between instances of",
                 "function is not implemented for this dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
