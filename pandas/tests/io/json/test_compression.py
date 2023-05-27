@@ -9,6 +9,14 @@ import pandas._testing as tm
 from pandas.tests.io.test_compression import _compression_to_extension
 
 
+def generateDepMsg():
+    return (
+        "Passing literal json to 'read_json' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
+
+
 def test_compression_roundtrip(compression):
     df = pd.DataFrame(
         [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
@@ -23,7 +31,8 @@ def test_compression_roundtrip(compression):
         # explicitly ensure file was compressed.
         with tm.decompress_file(path, compression) as fh:
             result = fh.read().decode("utf8")
-        tm.assert_frame_equal(df, pd.read_json(result))
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            tm.assert_frame_equal(df, pd.read_json(result))
 
 
 def test_read_zipped_json(datapath):
@@ -56,7 +65,8 @@ def test_with_s3_url(compression, s3_resource, s3so):
 
 def test_lines_with_compression(compression):
     with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
         df.to_json(path, orient="records", lines=True, compression=compression)
         roundtripped_df = pd.read_json(path, lines=True, compression=compression)
         tm.assert_frame_equal(df, roundtripped_df)
@@ -64,7 +74,8 @@ def test_lines_with_compression(compression):
 
 def test_chunksize_with_compression(compression):
     with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
         df.to_json(path, orient="records", lines=True, compression=compression)
 
         with pd.read_json(
@@ -75,7 +86,8 @@ def test_chunksize_with_compression(compression):
 
 
 def test_write_unsupported_compression_type():
-    df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
     with tm.ensure_clean() as path:
         msg = "Unrecognized compression type: unsupported"
         with pytest.raises(ValueError, match=msg):

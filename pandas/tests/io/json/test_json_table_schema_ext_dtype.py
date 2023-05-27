@@ -33,6 +33,14 @@ from pandas.io.json._table_schema import (
 )
 
 
+def generateDepMsg():
+    return (
+        "Passing literal json to 'read_json' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
+
+
 class TestBuildSchema:
     def test_build_table_schema(self):
         df = DataFrame(
@@ -287,7 +295,8 @@ class TestTableOrient:
         )
         expected = df.copy()
         data_json = df.to_json(orient="table", indent=4)
-        result = read_json(data_json, orient="table")
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            result = read_json(data_json, orient="table")
         tm.assert_frame_equal(result, expected)
 
     def test_json_ext_dtype_reading(self):
@@ -311,6 +320,7 @@ class TestTableOrient:
                 }
             ]
         }"""
-        result = read_json(data_json, orient="table")
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            result = read_json(data_json, orient="table")
         expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
