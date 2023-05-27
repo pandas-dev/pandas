@@ -9870,7 +9870,7 @@ class DataFrame(NDFrame, OpsMixin):
         >>> d = pd.DataFrame([[1,4,7],
         ...                   [2,5,8],
         ...                   [3,6,9]],
-        ...                   columns=['x', 'y', 'z']
+        ...                   columns=['x', 'y', 'z'])
         >>> df
            x  y  z
         0  1  4  7
