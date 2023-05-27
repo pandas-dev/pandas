@@ -15,16 +15,19 @@ import pandas._testing as tm
 from pandas.io.json._json import JsonReader
 
 
-def test_json_deprecation():
-    # PR 53409
-    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-    warning_msg = (
+def generateDepMsg():
+    return (
         "Passing literal json to 'read_json' is deprecated and "
         "will be removed in a future version. To read from a "
         "literal string, wrap it in a 'StringIO' object."
     )
 
-    with tm.assert_produces_warning(FutureWarning, match=warning_msg):
+
+def test_json_deprecation():
+    # PR 53409
+    expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
         result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
         tm.assert_frame_equal(result, expected)
 
@@ -37,7 +40,8 @@ def lines_json_df():
 
 def test_read_jsonl():
     # GH9180
-    result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
@@ -64,7 +68,12 @@ def test_read_datetime(request, engine):
         columns=["accounts", "date", "name"],
     )
     json_line = df.to_json(lines=True, orient="records")
-    result = read_json(json_line, engine=engine)
+
+    if engine == "pyarrow":
+        result = read_json(json_line, engine=engine)
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            result = read_json(json_line, engine=engine)
     expected = DataFrame(
         [[1, "2020-03-05", "hector"], [2, "2020-04-08T09:58:49+00:00", "hector"]],
         columns=["accounts", "date", "name"],
@@ -85,7 +94,8 @@ def test_read_jsonl_unicode_chars():
 
     # simulate string
     json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
-    result = read_json(json, lines=True)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        result = read_json(json, lines=True)
     expected = DataFrame([["foo\u201d", "bar"], ["foo", "bar"]], columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
@@ -101,14 +111,16 @@ def test_to_jsonl():
     result = df.to_json(orient="records", lines=True)
     expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}\n'
     assert result == expected
-    tm.assert_frame_equal(read_json(result, lines=True), df)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        tm.assert_frame_equal(read_json(result, lines=True), df)
 
     # GH15096: escaped characters in columns and data
     df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]], columns=["a\\", "b"])
     result = df.to_json(orient="records", lines=True)
     expected = '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n'
     assert result == expected
-    tm.assert_frame_equal(read_json(result, lines=True), df)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        tm.assert_frame_equal(read_json(result, lines=True), df)
 
 
 def test_to_jsonl_count_new_lines():
@@ -270,7 +282,8 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     {"A":3,"B":6}
     """
     orig = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-    test = read_json(j, lines=True, chunksize=chunksize)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        test = read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         with test:
             test = pd.concat(test)
@@ -304,7 +317,8 @@ def test_readjson_nrows(nrows, engine):
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
-    result = read_json(jsonl, lines=True, nrows=nrows)
+    with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+        result = read_json(jsonl, lines=True, nrows=nrows)
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(result, expected)
 
@@ -325,10 +339,18 @@ def test_readjson_nrows_chunks(request, nrows, chunksize, engine):
         {"a": 3, "b": 4}
         {"a": 5, "b": 6}
         {"a": 7, "b": 8}"""
-    with read_json(
-        jsonl, lines=True, nrows=nrows, chunksize=chunksize, engine=engine
-    ) as reader:
-        chunked = pd.concat(reader)
+
+    if engine != "pyarrow":
+        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
+            with read_json(
+                jsonl, lines=True, nrows=nrows, chunksize=chunksize, engine=engine
+            ) as reader:
+                chunked = pd.concat(reader)
+    else:
+        with read_json(
+            jsonl, lines=True, nrows=nrows, chunksize=chunksize, engine=engine
+        ) as reader:
+            chunked = pd.concat(reader)
     expected = DataFrame({"a": [1, 3, 5, 7], "b": [2, 4, 6, 8]}).iloc[:nrows]
     tm.assert_frame_equal(chunked, expected)
 
