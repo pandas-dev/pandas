@@ -152,13 +152,13 @@ Possible options could be:
 3. limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64) .
 
 Let us compare with what other libraries do:
-- ``numpy``: option 2
-- ``cudf``: option 2
-- ``polars``: option 2
-- ``R data.frame``: just upcasts (like pandas does now for non-nullable dtypes);
-- ``pandas`` (nullable dtypes): option 1
-- ``datatable``: option 1
-- ``DataFrames.jl``: option 1
+   - ``numpy``: option 2
+   - ``cudf``: option 2
+   - ``polars``: option 2
+   - ``R data.frame``: just upcasts (like pandas does now for non-nullable dtypes);
+   - ``pandas`` (nullable dtypes): option 1
+   - ``datatable``: option 1
+   - ``DataFrames.jl``: option 1
 
 Option ``2`` would be a breaking behaviour change in pandas. Further,
 if the objective of this PDEP is to prevent bugs, then this is also not desirable:
