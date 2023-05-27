@@ -72,7 +72,7 @@ class TestToPeriod:
 
         rng = date_range("01-Jan-2012", periods=8, freq="ME")
         prng = rng.to_period()
-        assert prng.freq == "M"
+        assert prng.freqstr == "M"
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")

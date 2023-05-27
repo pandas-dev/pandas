@@ -175,7 +175,7 @@ class TestPeriodIndex:
         rng = period_range("2000", "2003", freq="A-DEC")
         ts = Series([1, 2, 3, 4], index=rng)
 
-        result = ts.resample("ME").ffill()
+        result = ts.resample("M").ffill()
         ex_index = period_range("2000-01", "2003-12", freq="M")
 
         expected = ts.asfreq("ME", how="start").reindex(ex_index, method="ffill")
@@ -822,7 +822,7 @@ class TestPeriodIndex:
             ("19910905 12:00", "19910909 12:00", "H", "24H", "34H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "10H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "3H"),
-            ("19910905 12:00", "19910909 1:00", "H", "ME", "3H"),
+            ("19910905 12:00", "19910909 1:00", "H", "M", "3H"),
             ("19910905", "19910913 06:00", "2H", "24H", "10H"),
             ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
             ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
@@ -836,7 +836,7 @@ class TestPeriodIndex:
         result = result.to_timestamp(end_freq)
 
         expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
-        if end_freq == "ME":
+        if end_freq == "M":
             # TODO: is non-tick the relevant characteristic? (GH 33815)
             expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)

@@ -182,7 +182,7 @@ class TestTSPlot(TestPlotBase):
         _check_plot_works(ser.plot, ser.index.freq)
 
     @pytest.mark.parametrize(
-        "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11ME", "3A"]
+        "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]
     )
     def test_line_plot_period_mlt_series(self, frqncy):
         # test period index line plot for series with multiples (`mlt`) of the

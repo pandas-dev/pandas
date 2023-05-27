@@ -12,6 +12,7 @@ from typing import (
     no_type_check,
 )
 import warnings
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 import numpy as np
 
@@ -1722,8 +1723,9 @@ class TimeGrouper(Grouper):
 
     def __init__(
         self,
-        obj,
+        obj: Grouper = None,
         freq: Frequency = "Min",
+        key: str | None = None,
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
@@ -1747,8 +1749,11 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (kwargs["key"] is None and isinstance(obj.index, PeriodIndex)) or (
-            kwargs["key"] is not None and obj[kwargs["key"]].dtype == "period"
+        if (
+            key is None
+            and obj is not None
+            and isinstance(obj.index, PeriodIndex)
+            or (key is not None and obj is not None and obj[key].dtype == "period")
         ):
             freq = to_offset(freq, is_period=True)
         else:
@@ -1816,7 +1821,7 @@ class TimeGrouper(Grouper):
         # always sort time groupers
         kwargs["sort"] = True
 
-        super().__init__(freq=freq, axis=axis, **kwargs)
+        super().__init__(freq=freq, key=key, axis=axis, **kwargs)
 
     def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
         """
@@ -2382,6 +2387,9 @@ def asfreq(
 
         if how is None:
             how = "E"
+
+        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+            freq = freq.replace(key, value)
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
