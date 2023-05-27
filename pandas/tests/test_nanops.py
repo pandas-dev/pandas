@@ -324,6 +324,16 @@ class TestnanopsDataFrame:
                     targ = bool(targ)
 
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+
+            if (
+                isinstance(targ, np.complex_)
+                and isinstance(res, float)
+                and np.isnan(targ)
+                and np.isnan(res)
+            ):
+                # GH#18463
+                targ = res
+
             self.check_results(targ, res, axis, check_dtype=check_dtype)
             if skipna:
                 res = testfunc(testarval, axis=axis, **kwargs)
