@@ -12,7 +12,6 @@ from typing import (
     no_type_check,
 )
 import warnings
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 import numpy as np
 
@@ -26,6 +25,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
