@@ -9,89 +9,77 @@ the `dataframe.io` group. For example:
 repr = "pandas_repr:ReprDataFrameIO"
 ```
 
-The class `ReprDataFrameIO` will implement readers and writers in at
-least one of different exchange formats supported by the protocol.
-For now a pandas DataFrame or a PyArrow table, in the future probably
-nanoarrow, or a Python wrapper to the Arrow Rust implementations.
+The class `ReprDataFrameIO` will implement at least one of a reader
+and a writer that supports the dataframe interchange protocol:
+
+https://data-apis.org/dataframe-protocol/latest/API.html
+
 For example:
 
 ```python
-class FancyFormatDataFrameIO:
+class ReprDataFrameIO:
     @staticmethod
-    def pandas_reader(self, fname):
+    def reader(self, fname):
         with open(fname) as f:
+            # for simplicity this assumes eval will create a DataFrame object
             return eval(f.read())
 
-    def pandas_writer(self, fname, mode='w'):
+    def writer(self, fname, mode='w'):
         with open(fname, mode) as f:
             f.write(repr(self))
 ```
 
-If the I/O plugin implements a reader or writer supported by pandas,
-pandas will create a wrapper function or method to call the reader or
+pandas will create wrapper functions or methods to call the reader or
 writer from the pandas standard I/O namespaces. For example, for the
-entrypoint above with name `repr` and methods `pandas_reader` and
-`pandas_writer` pandas will create the next functions and methods:
+entrypoint above with name `repr` and both methods `reader` and
+`writer` implemented, pandas will create the next functions and methods:
 
 - `pandas.read_repr(...)`
 - `pandas.Series.to_repr(...)`
 - `pandas.DataFrame.to_repr(...)`
 
-The reader wrappers validates that the returned object is a pandas
-DataFrame when the exchange format is `pandas`, and will convert the
-other supported objects (e.g. a PyArrow Table) to a pandas DataFrame,
-so the result of `pandas.read_repr` is a pandas DataFrame, as the
-user would expect.
+The reader wrappers make sure that the returned object is a pandas
+DataFrame, since the user always expects the return of `read_*()`
+to be a pandas DataFrame, not matter what the connector returns.
+In few cases, the return can be a list or dict of dataframes, which
+is supported.
 
 If more than one reader or writer with the same name is loaded, pandas
-raises an exception.
+raises an exception. For example, if two connectors use the name
+`arrow` pandas will raise when `load_io_plugins()` is called, since
+only one `pandas.read_arrow` function can exist, and pandas should not
+make an arbitrary decision on which to use.
 """
 import functools
 from importlib.metadata import entry_points
 
 import pandas as pd
 
-supported_exchange_formats = ["pandas"]
 
-try:
-    import pyarrow as pa
-except ImportError:
-    pa = None
-else:
-    supported_exchange_formats.append("pyarrow")
-
-
-def _create_reader_function(io_plugin, exchange_format):
+def _create_reader_function(io_plugin):
     """
     Create and return a wrapper function for the original I/O reader.
 
     We can't directly call the original reader implemented in
-    the connector, since we want to make sure that the returned value
-    of `read_<whatever>` is a pandas DataFrame, so we need to validate
-    it and possibly cast it.
+    the connector, since the return of third-party connectors is not necessarily
+    a pandas DataFrame but any object supporting the dataframe interchange
+    protocol. We make sure here that `read_<whatever>` returns a pandas DataFrame.
     """
-    original_reader = getattr(io_plugin, f"{exchange_format}_reader")
 
     # TODO: Create this function dynamically so the resulting signature contains
     # the original parameters and not `*args` and `**kwargs`
-    @functools.wraps(original_reader)
+    @functools.wraps(io_plugin.reader)
     def reader_wrapper(*args, **kwargs):
-        result = original_reader(*args, **kwargs)
-        if exchange_format == "pyarrow":
-            result = result.to_pandas()
+        result = io_plugin.reader(*args, **kwargs)
 
-        # validate output type
         if isinstance(result, list):
-            assert all((isinstance(item, pd.DataFrame) for item in result))
+            result = [pd.api.interchange.from_dataframe(df) for df in result]
         elif isinstance(result, dict):
-            assert all(
-                (
-                    (isinstance(k, str) and isinstance(v, pd.DataFrame))
-                    for k, v in result.items()
-                )
-            )
-        elif not isinstance(result, pd.DataFrame):
-            raise AssertionError("Returned object is not a DataFrame")
+            result = {k: pd.api.interchange.from_dataframe(df)
+                      for k, df in result.items()}
+        else:
+            result = pd.api.interchange.from_dataframe(result)
+
         return result
 
     # TODO `function.wraps` changes the name of the wrapped function to the
@@ -104,7 +92,6 @@ def _create_series_writer_function(format_name):
     When calling `Series.to_<whatever>` we call the dataframe writer, so
     we need to convert the Series to a one column dataframe.
     """
-
     def series_writer_wrapper(self, *args, **kwargs):
         dataframe_writer = getattr(self.to_frame(), f"to_{format_name}")
         dataframe_writer(*args, **kwargs)
@@ -121,34 +108,33 @@ def load_io_plugins():
         format_name = dataframe_io_entry_point.name
         io_plugin = dataframe_io_entry_point.load()
 
-        for exchange_format in supported_exchange_formats:
-            if hasattr(io_plugin, f"{exchange_format}_reader"):
-                if hasattr(pd, f"read_{format_name}"):
-                    raise RuntimeError(
-                        "More than one installed library provides the "
-                        "`read_{format_name}` reader. Please uninstall one of "
-                        "the I/O plugins providing connectors for this format."
-                    )
-                setattr(
-                    pd,
-                    f"read_{format_name}",
-                    _create_reader_function(io_plugin, exchange_format),
+        if hasattr(io_plugin, "reader"):
+            if hasattr(pd, f"read_{format_name}"):
+                raise RuntimeError(
+                    "More than one installed library provides the "
+                    "`read_{format_name}` reader. Please uninstall one of "
+                    "the I/O plugins providing connectors for this format."
                 )
+            setattr(
+                pd,
+                f"read_{format_name}",
+                _create_reader_function(io_plugin),
+            )
 
-            if hasattr(io_plugin, f"{exchange_format}_writer"):
-                if hasattr(pd.DataFrame, f"to_{format_name}"):
-                    raise RuntimeError(
-                        "More than one installed library provides the "
-                        "`to_{format_name}` reader. Please uninstall one of "
-                        "the I/O plugins providing connectors for this format."
-                    )
-                setattr(
-                    pd.DataFrame,
-                    f"to_{format_name}",
-                    getattr(io_plugin, f"{exchange_format}_writer"),
+        if hasattr(io_plugin, "writer"):
+            if hasattr(pd.DataFrame, f"to_{format_name}"):
+                raise RuntimeError(
+                    "More than one installed library provides the "
+                    "`to_{format_name}` reader. Please uninstall one of "
+                    "the I/O plugins providing connectors for this format."
                 )
-                setattr(
-                    pd.Series,
-                    f"to_{format_name}",
-                    _create_series_writer_function(format_name),
-                )
+            setattr(
+                pd.DataFrame,
+                f"to_{format_name}",
+                getattr(io_plugin, "writer"),
+            )
+            setattr(
+                pd.Series,
+                f"to_{format_name}",
+                _create_series_writer_function(format_name),
+            )
