@@ -640,6 +640,8 @@ def nansum(
         dtype_sum = dtype
     elif dtype.kind == "m":
         dtype_sum = np.dtype(np.float64)
+    elif dtype.kind == "u":
+        dtype_sum = np.dtype(np.uint64)
 
     the_sum = values.sum(axis, dtype=dtype_sum)
     the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
