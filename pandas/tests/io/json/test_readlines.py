@@ -16,6 +16,7 @@ from pandas.io.json._json import JsonReader
 
 
 def test_json_deprecation():
+    # PR 53409
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     warning_msg = (
         "Passing literal json to 'read_json' is deprecated and "
