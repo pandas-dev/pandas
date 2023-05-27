@@ -1786,6 +1786,12 @@ class Timedelta(_Timedelta):
                 return NaT
 
             reso = get_datetime64_unit(value)
+            if reso in [NPY_DATETIMEUNIT.NPY_FR_Y, NPY_DATETIMEUNIT.NPY_FR_M]:
+                raise ValueError(
+                    "ValueError: Numpy timedelta64 Units 'Y' and 'M' are no longer \
+                    supported, as they do not represent unambiguous timedelta \
+                    values durations."
+                )
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                 try:
