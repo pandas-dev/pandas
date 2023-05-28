@@ -159,10 +159,7 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation, or None if agg cannot be performed by
         this method.
         """
-        obj = self.obj
         arg = self.f
-        args = self.args
-        kwargs = self.kwargs
 
         if isinstance(arg, str):
             return self.apply_str()
@@ -172,11 +169,6 @@ class Apply(metaclass=abc.ABCMeta):
         elif is_list_like(arg):
             # we require a list, but not a 'str'
             return self.agg_list_like()
-
-        if callable(arg):
-            f = com.get_cython_func(arg)
-            if f and not args and not kwargs:
-                return getattr(obj, f)()
 
         # caller can react
         return None
@@ -282,11 +274,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         if isinstance(func, str):
             return self._apply_str(obj, func, *args, **kwargs)
-
-        if not args and not kwargs:
-            f = com.get_cython_func(func)
-            if f:
-                return getattr(obj, f)()
 
         # Two possible ways to use a UDF - apply or call directly
         try:
@@ -1097,18 +1084,19 @@ class SeriesApply(NDFrameApply):
             # string, list-like, and dict-like are entirely handled in super
             assert callable(f)
 
-            # try a regular apply, this evaluates lambdas
-            # row-by-row; however if the lambda is expected a Series
-            # expression, e.g.: lambda x: x-x.quantile(0.25)
-            # this will fail, so we can try a vectorized evaluation
-
-            # we cannot FIRST try the vectorized evaluation, because
-            # then .agg and .apply would have different semantics if the
-            # operation is actually defined on the Series, e.g. str
-            has_cython_func = f in com._orig_cython_table
+            has_cython_func = f in com._cython_table
             if has_cython_func and not self.args and not self.kwargs:
+                # previous versions would vectorize NumPy functions
                 result = f(self.obj)
             else:
+                # try a regular apply, this evaluates lambdas
+                # row-by-row; however if the lambda is expected a Series
+                # expression, e.g.: lambda x: x-x.quantile(0.25)
+                # this will fail, so we can try a vectorized evaluation
+
+                # we cannot FIRST try the vectorized evaluation, because
+                # then .agg and .apply would have different semantics if the
+                # operation is actually defined on the Series, e.g. str
                 try:
                     result = self.obj.apply(f)
                 except (ValueError, AttributeError, TypeError):

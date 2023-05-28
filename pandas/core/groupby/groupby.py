@@ -1459,8 +1459,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
-        func = com.is_builtin_func(func)
-
         if isinstance(func, str):
             if hasattr(self, func):
                 res = getattr(self, func)
@@ -1658,9 +1656,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._transform_with_numba(
                 func, *args, engine_kwargs=engine_kwargs, **kwargs
             )
-
-        # optimized transforms
-        func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
             return self._transform_general(func, *args, **kwargs)

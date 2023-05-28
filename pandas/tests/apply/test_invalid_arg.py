@@ -243,9 +243,15 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
 )
 def test_agg_cython_table_raises_series(series, func, expected):
     # GH21224
-    msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
-    if func == "median" or func is np.nanmedian or func is np.median:
-        msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+    msg = "|".join(
+        [
+            "Cannot convert",
+            "[Cc]ould not convert",
+            "can't multiply sequence by non-int of type",
+            "not supported for the input types",
+            "unsupported operand type",
+        ]
+    )
 
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise

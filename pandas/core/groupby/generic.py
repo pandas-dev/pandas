@@ -251,10 +251,6 @@ class SeriesGroupBy(GroupBy[Series]):
             return ret
 
         else:
-            cyfunc = com.get_cython_func(func)
-            if cyfunc and not args and not kwargs:
-                return getattr(self, cyfunc)()
-
             if self.ngroups == 0:
                 # e.g. test_evaluate_with_empty_groups without any groups to
                 #  iterate over, we have no output on which to do dtype
@@ -297,7 +293,6 @@ class SeriesGroupBy(GroupBy[Series]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         obj = self._obj_with_exclusions
@@ -1463,7 +1458,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
-        func = com.is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
         if self.ngroups == 0:

@@ -43,7 +43,6 @@ from pandas.core.dtypes.generic import (
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
 from pandas.core.base import PandasObject
-import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
     _shared_docs,
@@ -1414,7 +1413,6 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        how = com.get_cython_func(how) or how
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1566,7 +1564,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
-        how = com.get_cython_func(how) or how
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):

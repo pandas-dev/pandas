@@ -556,50 +556,7 @@ def require_length_match(data, index: Index) -> None:
         )
 
 
-# the ufuncs np.maximum.reduce and np.minimum.reduce default to axis=0,
-#  whereas np.min and np.max (which directly call obj.min and obj.max)
-#  default to axis=None.
-_builtin_table = {
-    # builtins.sum: np.sum,
-    # builtins.max: np.maximum.reduce,
-    # builtins.min: np.minimum.reduce,
-}
-
-_orig_builtin_table = {
-    builtins.sum: np.sum,
-    builtins.max: np.maximum.reduce,
-    builtins.min: np.minimum.reduce,
-}
-
 _cython_table = {
-    # builtins.sum: "sum",
-    # builtins.max: "max",
-    # builtins.min: "min",
-    # np.all: "all",
-    # np.any: "any",
-    # np.sum: "sum",
-    # np.nansum: "sum",
-    # np.mean: "mean",
-    # np.nanmean: "mean",
-    # np.prod: "prod",
-    # np.nanprod: "prod",
-    # np.std: "std",
-    # np.nanstd: "std",
-    # np.var: "var",
-    # np.nanvar: "var",
-    # np.median: "median",
-    # np.nanmedian: "median",
-    # np.max: "max",
-    # np.nanmax: "max",
-    # np.min: "min",
-    # np.nanmin: "min",
-    # np.cumprod: "cumprod",
-    # np.nancumprod: "cumprod",
-    # np.cumsum: "cumsum",
-    # np.nancumsum: "cumsum",
-}
-
-_orig_cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
     builtins.min: "min",
@@ -626,21 +583,6 @@ _orig_cython_table = {
     np.cumsum: "cumsum",
     np.nancumsum: "cumsum",
 }
-
-
-def get_cython_func(arg: Callable) -> str | None:
-    """
-    if we define an internal function for this argument, return it
-    """
-    return _cython_table.get(arg)
-
-
-def is_builtin_func(arg):
-    """
-    if we define a builtin function for this argument, return it,
-    otherwise return the arg
-    """
-    return _builtin_table.get(arg, arg)
 
 
 def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
