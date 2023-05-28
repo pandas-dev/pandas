@@ -1609,9 +1609,13 @@ def test_output_buffer(mi_styler, format):
         getattr(mi_styler, f"to_{format}")(f)
 
 
-def test_custom_template(df):
+def test_custom_template_path(df):
+    import os
+
+    path = os.path.abspath(os.path.dirname(__file__))
+
     class MyStyler(Styler):
-        custom_template_directory = "custom_templates/"
+        custom_template_directory = os.path.join(path, "custom_templates")
         template_html = "myhtml.tpl"
 
     styler = MyStyler(df)
