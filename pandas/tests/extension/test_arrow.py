@@ -40,7 +40,10 @@ from pandas.compat import (
 )
 from pandas.errors import PerformanceWarning
 
-from pandas.core.dtypes.dtypes import CategoricalDtypeType
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtypeType,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -58,8 +61,6 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-
-from pandas.core.arrays.arrow.dtype import ArrowDtype  # isort:skip
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -130,7 +131,7 @@ def data(dtype):
 @pytest.fixture
 def data_missing(data):
     """Length-2 array with [NA, Valid]"""
-    return type(data)._from_sequence([None, data[0]])
+    return type(data)._from_sequence([None, data[0]], dtype=data.dtype)
 
 
 @pytest.fixture(params=["data", "data_missing"])
@@ -213,7 +214,8 @@ def data_for_sorting(data_for_grouping):
     A < B < C
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[7], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 
@@ -226,7 +228,8 @@ def data_missing_for_sorting(data_for_grouping):
     A < B and NA missing.
     """
     return type(data_for_grouping)._from_sequence(
-        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]]
+        [data_for_grouping[0], data_for_grouping[2], data_for_grouping[4]],
+        dtype=data_for_grouping.dtype,
     )
 
 
@@ -1567,7 +1570,8 @@ def test_mode_dropna_false_mode_na(data):
         [pa.large_string(), str],
         [pa.list_(pa.int64()), list],
         [pa.large_list(pa.int64()), list],
-        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.map_(pa.string(), pa.int64()), list],
+        [pa.struct([("f1", pa.int8()), ("f2", pa.string())]), dict],
         [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
     ],
 )
@@ -1717,8 +1721,9 @@ def test_setitem_null_slice(data):
 
     result = orig.copy()
     result[:] = data[0]
-    expected = ArrowExtensionArray(
-        pa.array([data[0]] * len(data), type=data._pa_array.type)
+    expected = ArrowExtensionArray._from_sequence(
+        [data[0]] * len(data),
+        dtype=data._pa_array.type,
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -1807,6 +1812,20 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_sort_values_dictionary():
+    df = pd.DataFrame(
+        {
+            "a": pd.Series(
+                ["x", "y"], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+            ),
+            "b": [1, 2],
+        },
+    )
+    expected = df.copy()
+    result = df.sort_values(by=["a", "b"])
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pat", ["abc", "a[a-z]{2}"])
@@ -2140,7 +2159,7 @@ def test_str_encode(errors, encoding, exp):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("flags", [0, 1])
+@pytest.mark.parametrize("flags", [0, 2])
 def test_str_findall(flags):
     ser = pd.Series(["abc", "efg", None], dtype=ArrowDtype(pa.string()))
     result = ser.str.findall("b", flags=flags)
@@ -2613,6 +2632,19 @@ def test_dt_to_pydatetime():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("date_type", [32, 64])
+def test_dt_to_pydatetime_date_error(date_type):
+    # GH 52812
+    ser = pd.Series(
+        [date(2022, 12, 31)],
+        dtype=ArrowDtype(getattr(pa, f"date{date_type}")()),
+    )
+    msg = "The behavior of ArrowTemporalProperties.to_pydatetime is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="to_pydatetime cannot be called with"):
+            ser.dt.to_pydatetime()
+
+
 def test_dt_tz_localize_unsupported_tz_options():
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
@@ -2800,6 +2832,20 @@ def test_setitem_boolean_replace_with_mask_segfault():
     assert arr._pa_array == expected._pa_array
 
 
+@pytest.mark.parametrize(
+    "data, arrow_dtype",
+    [
+        ([b"a", b"b"], pa.large_binary()),
+        (["a", "b"], pa.large_string()),
+    ],
+)
+def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
+    dtype = ArrowDtype(arrow_dtype)
+    result = pd.array(np.array(data), dtype=dtype)
+    expected = pd.array(data, dtype=dtype)
+    tm.assert_extension_array_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
 def test_describe_numeric_data(pa_type):
     # GH 52470
@@ -2809,6 +2855,36 @@ def test_describe_numeric_data(pa_type):
         [3, 2, 1, 1, 1.5, 2.0, 2.5, 3],
         dtype=ArrowDtype(pa.float64()),
         index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
+def test_describe_timedelta_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9] + pd.to_timedelta([5, 2, 1, 3, 5, 7, 9], unit=pa_type.unit).tolist(),
+        dtype=object,
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.DATETIME_PYARROW_DTYPES)
+def test_describe_datetime_data(pa_type):
+    # GH53001
+    data = pd.Series(range(1, 10), dtype=ArrowDtype(pa_type))
+    result = data.describe()
+    expected = pd.Series(
+        [9]
+        + [
+            pd.Timestamp(v, tz=pa_type.tz, unit=pa_type.unit)
+            for v in [5, 1, 3, 5, 7, 9]
+        ],
+        dtype=object,
+        index=["count", "mean", "min", "25%", "50%", "75%", "max"],
     )
     tm.assert_series_equal(result, expected)
 
@@ -2830,3 +2906,172 @@ def test_date32_repr():
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
     assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+
+
+@pytest.mark.xfail(
+    pa_version_under8p0,
+    reason="Function 'add_checked' has no kernel matching input types",
+    raises=pa.ArrowNotImplementedError,
+)
+def test_duration_overflow_from_ndarray_containing_nat():
+    # GH52843
+    data_ts = pd.to_datetime([1, None])
+    data_td = pd.to_timedelta([1, None])
+    ser_ts = pd.Series(data_ts, dtype=ArrowDtype(pa.timestamp("ns")))
+    ser_td = pd.Series(data_td, dtype=ArrowDtype(pa.duration("ns")))
+    result = ser_ts + ser_td
+    expected = pd.Series([2, None], dtype=ArrowDtype(pa.timestamp("ns")))
+    tm.assert_series_equal(result, expected)
+
+
+def test_infer_dtype_pyarrow_dtype(data, request):
+    res = lib.infer_dtype(data)
+    assert res != "unknown-array"
+
+    if data._hasna and res in ["floating", "datetime64", "timedelta64"]:
+        mark = pytest.mark.xfail(
+            reason="in infer_dtype pd.NA is not ignored in these cases "
+            "even with skipna=True in the list(data) check below"
+        )
+        request.node.add_marker(mark)
+
+    assert res == lib.infer_dtype(list(data), skipna=True)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_from_sequence_temporal(pa_type):
+    # GH 53171
+    val = 3
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        seq = [pd.Timedelta(val, unit=unit).as_unit(unit)]
+    else:
+        seq = [pd.Timestamp(val, unit=unit, tz=pa_type.tz).as_unit(unit)]
+
+    result = ArrowExtensionArray._from_sequence(seq, dtype=pa_type)
+    expected = ArrowExtensionArray(pa.array([val], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_setitem_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr.copy()
+    result[:] = val
+    expected = ArrowExtensionArray(pa.array([1, 1, 1], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_arithmetic_temporal(pa_type, request):
+    # GH 53171
+    if pa_version_under8p0 and pa.types.is_duration(pa_type):
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowNotImplementedError,
+            reason="Function 'subtract_checked' has no kernel matching input types",
+        )
+        request.node.add_marker(mark)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    unit = pa_type.unit
+    result = arr - pd.Timedelta(1, unit=unit).as_unit(unit)
+    expected = ArrowExtensionArray(pa.array([0, 1, 2], type=pa_type))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_comparison_temporal(pa_type):
+    # GH 53171
+    unit = pa_type.unit
+    if pa.types.is_duration(pa_type):
+        val = pd.Timedelta(1, unit=unit).as_unit(unit)
+    else:
+        val = pd.Timestamp(1, unit=unit, tz=pa_type.tz).as_unit(unit)
+
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+
+    result = arr > val
+    expected = ArrowExtensionArray(pa.array([False, True, True], type=pa.bool_()))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_getitem_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    result = arr[1]
+    if pa.types.is_duration(pa_type):
+        expected = pd.Timedelta(2, unit=pa_type.unit).as_unit(pa_type.unit)
+        assert isinstance(result, pd.Timedelta)
+    else:
+        expected = pd.Timestamp(2, unit=pa_type.unit, tz=pa_type.tz).as_unit(
+            pa_type.unit
+        )
+        assert isinstance(result, pd.Timestamp)
+    assert result.unit == expected.unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_iter_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = list(arr)
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    assert result[0].unit == expected[0].unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_to_numpy_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = arr.to_numpy()
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    expected = np.array(expected, dtype=object)
+    assert result[0].unit == expected[0].unit
+    tm.assert_numpy_array_equal(result, expected)

@@ -36,7 +36,6 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_agg_template_series",
     "_agg_template_frame",
     "_pipe_template",
-    "_apply_groupings_depr",
     "__main__",
     "_transform_template",
     "_use_inf_as_na",
@@ -48,6 +47,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
+    "__git_version__",
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",

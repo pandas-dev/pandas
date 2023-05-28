@@ -83,7 +83,6 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_all_strings,
-    is_dtype_equal,
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
@@ -664,7 +663,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         if isinstance(value.dtype, CategoricalDtype):
             # e.g. we have a Categorical holding self.dtype
-            if is_dtype_equal(value.categories.dtype, self.dtype):
+            if value.categories.dtype == self.dtype:
                 # TODO: do we need equal dtype or just comparable?
                 value = value._internal_get_values()
                 value = extract_array(value, extract_numpy=True)
@@ -1584,7 +1583,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                 )
         else:
             # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod", "skew"]:
+            if how in ["prod", "cumprod", "skew", "var"]:
                 raise TypeError(f"timedelta64 type does not support {how} operations")
 
         # All of the functions implemented here are ordinal, so we can
@@ -1859,7 +1858,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
             if dtype is not None:
                 dtype = pandas_dtype(dtype)
-                if not is_dtype_equal(dtype, values.dtype):
+                if dtype != values.dtype:
                     # TODO: we only have tests for this for DTA, not TDA (2022-07-01)
                     raise TypeError(
                         f"dtype={dtype} does not match data dtype {values.dtype}"
@@ -2050,8 +2049,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        nanos = to_offset(freq).nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(to_offset(freq), self._creso)
+        offset = to_offset(freq)
+        offset.nanos  # raises on non-fixed frequencies
+        nanos = delta_to_nanoseconds(offset, self._creso)
+        if nanos == 0:
+            # GH 52761
+            return self.copy()
         result_i8 = round_nsint64(values, mode, nanos)
         result = self._maybe_mask_results(result_i8, fill_value=iNaT)
         result = result.view(self._ndarray.dtype)
@@ -2200,6 +2203,20 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
         isinstance(data, ArrowExtensionArray) and data.dtype.kind in "iu"
     ):
         data = data.to_numpy("int64", na_value=iNaT)
+        copy = False
+    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "M":
+        from pandas.core.arrays import DatetimeArray
+        from pandas.core.arrays.datetimes import tz_to_dtype
+
+        pa_type = data._pa_array.type
+        dtype = tz_to_dtype(tz=pa_type.tz, unit=pa_type.unit)
+        data = data.to_numpy(f"M8[{pa_type.unit}]", na_value=iNaT)
+        data = DatetimeArray._simple_new(data, dtype=dtype)
+        copy = False
+    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "m":
+        pa_type = data._pa_array.type
+        dtype = np.dtype(f"m8[{pa_type.unit}]")
+        data = data.to_numpy(dtype, na_value=iNaT)
         copy = False
     elif not isinstance(data, (np.ndarray, ExtensionArray)) or isinstance(
         data, ArrowExtensionArray

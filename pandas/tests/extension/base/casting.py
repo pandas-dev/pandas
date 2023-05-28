@@ -4,7 +4,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas.core.internals import ObjectBlock
+from pandas.core.internals.blocks import NumpyBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -16,7 +16,9 @@ class BaseCastingTests(BaseExtensionTests):
         result = ser.astype(object)
         assert result.dtype == np.dtype(object)
         if hasattr(result._mgr, "blocks"):
-            assert isinstance(result._mgr.blocks[0], ObjectBlock)
+            blk = result._mgr.blocks[0]
+            assert isinstance(blk, NumpyBlock)
+            assert blk.is_object
         assert isinstance(result._mgr.array, np.ndarray)
         assert result._mgr.array.dtype == np.dtype(object)
 
@@ -26,7 +28,8 @@ class BaseCastingTests(BaseExtensionTests):
         result = df.astype(object)
         if hasattr(result._mgr, "blocks"):
             blk = result._mgr.blocks[0]
-            assert isinstance(blk, ObjectBlock), type(blk)
+            assert isinstance(blk, NumpyBlock), type(blk)
+            assert blk.is_object
         assert isinstance(result._mgr.arrays[0], np.ndarray)
         assert result._mgr.arrays[0].dtype == np.dtype(object)
 

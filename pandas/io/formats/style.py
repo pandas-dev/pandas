@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -26,6 +27,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas import (
@@ -62,6 +64,7 @@ if TYPE_CHECKING:
         AxisInt,
         FilePath,
         IndexLabel,
+        IntervalClosedType,
         Level,
         QuantileInterpolation,
         Scalar,
@@ -198,7 +201,7 @@ class Styler(StylerRenderer):
     Notes
     -----
     Most styling will be done by passing style functions into
-    ``Styler.apply`` or ``Styler.applymap``. Style functions should
+    ``Styler.apply`` or ``Styler.map``. Style functions should
     return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
@@ -298,8 +301,8 @@ class Styler(StylerRenderer):
         For example adding a sub total row, or displaying metrics such as means,
         variance or counts.
 
-        Styles that are applied using the ``apply``, ``applymap``, ``apply_index``
-        and ``applymap_index``, and formatting applied with ``format`` and
+        Styles that are applied using the ``apply``, ``map``, ``apply_index``
+        and ``map_index``, and formatting applied with ``format`` and
         ``format_index`` will be preserved.
 
         .. warning::
@@ -346,7 +349,7 @@ class Styler(StylerRenderer):
         >>> other = (descriptors.style
         ...          .highlight_max(axis=1, subset=(["Total", "Average"], slice(None)))
         ...          .format(subset=("Average", slice(None)), precision=2, decimal=",")
-        ...          .applymap(lambda v: "font-weight: bold;"))
+        ...          .map(lambda v: "font-weight: bold;"))
         >>> styler = (df.style
         ...             .highlight_max(color="salmon")
         ...             .set_table_styles([{"selector": ".foot_row0",
@@ -983,7 +986,7 @@ class Styler(StylerRenderer):
         ...     else: color = "#ffdd33"
         ...     return f"color: {color}; font-weight: bold;"
         >>> (styler.background_gradient(cmap="inferno", subset="Equity", vmin=0, vmax=1)
-        ...       .applymap(rating_color, subset="Rating"))  # doctest: +SKIP
+        ...       .map(rating_color, subset="Rating"))  # doctest: +SKIP
 
         All the above styles will work with HTML (see below) and LaTeX upon conversion:
 
@@ -995,7 +998,7 @@ class Styler(StylerRenderer):
         as well as `--rwrap` to ensure this is formatted correctly and
         not ignored upon conversion.
 
-        >>> styler.applymap_index(
+        >>> styler.map_index(
         ...     lambda v: "rotatebox:{45}--rwrap--latex;", level=2, axis=1
         ... )  # doctest: +SKIP
 
@@ -1506,7 +1509,7 @@ class Styler(StylerRenderer):
         """
         if not self.index.is_unique or not self.columns.is_unique:
             raise KeyError(
-                "`Styler.apply` and `.applymap` are not compatible "
+                "`Styler.apply` and `.map` are not compatible "
                 "with non-unique index or columns."
             )
 
@@ -1571,8 +1574,8 @@ class Styler(StylerRenderer):
           - applied styles (_todo)
 
         """
-        # GH 40675
-        styler = Styler(
+        # GH 40675, 52728
+        styler = type(self)(
             self.data,  # populates attributes 'data', 'columns', 'index' as shallow
         )
         shallow = [  # simple string or boolean immutables
@@ -1737,9 +1740,9 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.map_index: Apply a CSS-styling function to headers elementwise.
         Styler.apply_index: Apply a CSS-styling function to headers level-wise.
-        Styler.applymap: Apply a CSS-styling function elementwise.
+        Styler.map: Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -1805,7 +1808,7 @@ class Styler(StylerRenderer):
 
         if method == "apply":
             result = data.apply(func, axis=0, **kwargs)
-        elif method == "applymap":
+        elif method == "map":
             result = data.map(func, **kwargs)
 
         self._update_ctx_header(result, axis)
@@ -1814,7 +1817,7 @@ class Styler(StylerRenderer):
     @doc(
         this="apply",
         wise="level-wise",
-        alt="applymap",
+        alt="map",
         altwise="elementwise",
         func="take a Series and return a string array of the same length",
         input_note="the index as a Series, if an Index, or a level of a MultiIndex",
@@ -1837,6 +1840,9 @@ class Styler(StylerRenderer):
 
         .. versionadded:: 1.4.0
 
+        .. versionadded:: 2.1.0
+           Styler.applymap_index was deprecated and renamed to Styler.map_index.
+
         Parameters
         ----------
         func : function
@@ -1856,7 +1862,7 @@ class Styler(StylerRenderer):
         --------
         Styler.{alt}_index: Apply a CSS-styling function to headers {altwise}.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
-        Styler.applymap: Apply a CSS-styling function elementwise.
+        Styler.map: Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -1897,7 +1903,7 @@ class Styler(StylerRenderer):
 
     @doc(
         apply_index,
-        this="applymap",
+        this="map",
         wise="elementwise",
         alt="apply",
         altwise="level-wise",
@@ -1908,7 +1914,7 @@ class Styler(StylerRenderer):
         ret='"background-color: yellow;" if v == "B" else None',
         ret2='"background-color: yellow;" if "x" in v else None',
     )
-    def applymap_index(
+    def map_index(
         self,
         func: Callable,
         axis: AxisInt | str = 0,
@@ -1918,16 +1924,50 @@ class Styler(StylerRenderer):
         self._todo.append(
             (
                 lambda instance: getattr(instance, "_apply_index"),
-                (func, axis, level, "applymap"),
+                (func, axis, level, "map"),
                 kwargs,
             )
         )
         return self
 
-    def _applymap(
-        self, func: Callable, subset: Subset | None = None, **kwargs
+    def applymap_index(
+        self,
+        func: Callable,
+        axis: AxisInt | str = 0,
+        level: Level | list[Level] | None = None,
+        **kwargs,
     ) -> Styler:
-        func = partial(func, **kwargs)  # applymap doesn't take kwargs?
+        """
+        Apply a CSS-styling function to the index or column headers, elementwise.
+
+        .. deprecated:: 2.1.0
+
+           Styler.applymap_index has been deprecated. Use Styler.map_index instead.
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should take a scalar and return a string.
+        axis : {{0, 1, "index", "columns"}}
+            The headers over which to apply the function.
+        level : int, str, list, optional
+            If index is MultiIndex the level(s) over which to apply the function.
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        Styler
+        """
+        warnings.warn(
+            "Styler.applymap_index has been deprecated. Use Styler.map_index instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.map_index(func, axis, level, **kwargs)
+
+    def _map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
+        func = partial(func, **kwargs)  # map doesn't take kwargs?
         if subset is None:
             subset = IndexSlice[:]
         subset = non_reducing_slice(subset)
@@ -1936,9 +1976,7 @@ class Styler(StylerRenderer):
         return self
 
     @Substitution(subset=subset_args)
-    def applymap(
-        self, func: Callable, subset: Subset | None = None, **kwargs
-    ) -> Styler:
+    def map(self, func: Callable, subset: Subset | None = None, **kwargs) -> Styler:
         """
         Apply a CSS-styling function elementwise.
 
@@ -1958,7 +1996,7 @@ class Styler(StylerRenderer):
 
         See Also
         --------
-        Styler.applymap_index: Apply a CSS-styling function to headers elementwise.
+        Styler.map_index: Apply a CSS-styling function to headers elementwise.
         Styler.apply_index: Apply a CSS-styling function to headers level-wise.
         Styler.apply: Apply a CSS-styling function column-wise, row-wise, or table-wise.
 
@@ -1973,29 +2011,59 @@ class Styler(StylerRenderer):
         >>> def color_negative(v, color):
         ...     return f"color: {color};" if v < 0 else None
         >>> df = pd.DataFrame(np.random.randn(5, 2), columns=["A", "B"])
-        >>> df.style.applymap(color_negative, color='red')  # doctest: +SKIP
+        >>> df.style.map(color_negative, color='red')  # doctest: +SKIP
 
         Using ``subset`` to restrict application to a single column or multiple columns
 
-        >>> df.style.applymap(color_negative, color='red', subset="A")
+        >>> df.style.map(color_negative, color='red', subset="A")
         ...  # doctest: +SKIP
-        >>> df.style.applymap(color_negative, color='red', subset=["A", "B"])
+        >>> df.style.map(color_negative, color='red', subset=["A", "B"])
         ...  # doctest: +SKIP
 
         Using a 2d input to ``subset`` to select rows in addition to columns
 
-        >>> df.style.applymap(color_negative, color='red',
+        >>> df.style.map(color_negative, color='red',
         ...  subset=([0,1,2], slice(None)))  # doctest: +SKIP
-        >>> df.style.applymap(color_negative, color='red', subset=(slice(0,5,2), "A"))
+        >>> df.style.map(color_negative, color='red', subset=(slice(0,5,2), "A"))
         ...  # doctest: +SKIP
 
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_applymap"), (func, subset), kwargs)
+            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
         )
         return self
+
+    @Substitution(subset=subset_args)
+    def applymap(
+        self, func: Callable, subset: Subset | None = None, **kwargs
+    ) -> Styler:
+        """
+        Apply a CSS-styling function elementwise.
+
+        .. deprecated:: 2.1.0
+
+           Styler.applymap has been deprecated. Use Styler.map instead.
+
+        Parameters
+        ----------
+        func : function
+            ``func`` should take a scalar and return a string.
+        %(subset)s
+        **kwargs : dict
+            Pass along to ``func``.
+
+        Returns
+        -------
+        Styler
+        """
+        warnings.warn(
+            "Styler.applymap has been deprecated. Use Styler.map instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self.map(func, subset, **kwargs)
 
     def set_table_attributes(self, attributes: str) -> Styler:
         """
@@ -2050,7 +2118,7 @@ class Styler(StylerRenderer):
 
         The following items are exported since they are not generally data dependent:
 
-          - Styling functions added by the ``apply`` and ``applymap``
+          - Styling functions added by the ``apply`` and ``map``
           - Whether axes and names are hidden from the display, if unambiguous.
           - Table attributes
           - Table styles
@@ -2096,7 +2164,7 @@ class Styler(StylerRenderer):
         styles : dict(str, Any)
             List of attributes to add to Styler. Dict keys should contain only:
               - "apply": list of styler functions, typically added with ``apply`` or
-                ``applymap``.
+                ``map``.
               - "table_attributes": HTML attributes, typically added with
                 ``set_table_attributes``.
               - "table_styles": CSS selectors and properties, typically added with
@@ -2885,7 +2953,7 @@ class Styler(StylerRenderer):
 
         Notes
         -----
-        This is a convenience methods which wraps the :meth:`Styler.applymap` calling a
+        This is a convenience methods which wraps the :meth:`Styler.map` calling a
         function returning the CSS-properties independently of the data.
 
         Examples
@@ -2898,7 +2966,7 @@ class Styler(StylerRenderer):
         more details.
         """
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
-        return self.applymap(lambda x: values, subset=subset)
+        return self.map(lambda x: values, subset=subset)
 
     @Substitution(subset=subset_args)
     def bar(  # pylint: disable=disallowed-name
@@ -3045,8 +3113,6 @@ class Styler(StylerRenderer):
 
         %(subset)s
 
-            .. versionadded:: 1.1.0
-
         %(props)s
 
             .. versionadded:: 1.3.0
@@ -3178,7 +3244,7 @@ class Styler(StylerRenderer):
         axis: Axis | None = 0,
         left: Scalar | Sequence | None = None,
         right: Scalar | Sequence | None = None,
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """
@@ -3287,7 +3353,7 @@ class Styler(StylerRenderer):
         q_left: float = 0.0,
         q_right: float = 1.0,
         interpolation: QuantileInterpolation = "linear",
-        inclusive: str = "both",
+        inclusive: IntervalClosedType = "both",
         props: str | None = None,
     ) -> Styler:
         """
