@@ -2473,7 +2473,7 @@ class TestLocBooleanLabelsAndSlices:
     ):
         # GH20432
         invalid_label_message = (
-            f"{bool_value}: boolean label cannot be used without"
+            f"{bool_value}: boolean label cannot be used without "
             "a boolean or object index"
         )
         not_found_message = f"{bool_value}"

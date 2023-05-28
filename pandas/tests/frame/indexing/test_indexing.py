@@ -974,7 +974,7 @@ class TestDataFrameIndexing:
         # #2199
         df = DataFrame({"a": [1, 2, 3]})
         message = (
-            f"{bool_value}: boolean label cannot be used without"
+            f"{bool_value}: boolean label cannot be used without "
             "a boolean or object index"
         )
         with pytest.raises(KeyError, match=message):
