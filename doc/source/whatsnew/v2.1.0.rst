@@ -269,6 +269,7 @@ Deprecations
 - Deprecated behavior of :func:`assert_series_equal` and :func:`assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)
 - Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
+- Deprecated the use of dt64/td64 dtypes with :func:`pandas.array` (:issue:`53058`)
 -
 
 .. ---------------------------------------------------------------------------
