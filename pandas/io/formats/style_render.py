@@ -73,6 +73,7 @@ class StylerRenderer:
     # For cached class properties defined below
     _loader = None
     _env = None
+    custom_template_directory = None
     template_html = "html.tpl"
     template_html_table = "html_table.tpl"
     template_html_style = "html_style.tpl"
@@ -163,7 +164,18 @@ class StylerRenderer:
             jinja2 = import_optional_dependency(
                 "jinja2", extra="DataFrame.style requires jinja2."
             )
-            cls._env = jinja2.Environment(loader=cls.loader, trim_blocks=True)
+            if cls.custom_template_directory is None:
+                cls._env = jinja2.Environment(loader=cls.loader, trim_blocks=True)
+            else:
+                cls._env = jinja2.Environment(
+                    loader=jinja2.ChoiceLoader(
+                        [
+                            jinja2.FileSystemLoader(cls.custom_template_directory),
+                            cls.loader,
+                        ]
+                    ),
+                    trim_blocks=True,
+                )
         return cls._env
 
     def _render(

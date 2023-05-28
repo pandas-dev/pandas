@@ -1607,3 +1607,13 @@ def test_output_buffer(mi_styler, format):
     # gh 47053
     with tm.ensure_clean(f"delete_me.{format}") as f:
         getattr(mi_styler, f"to_{format}")(f)
+
+
+def test_custom_template(df):
+    class MyStyler(Styler):
+        custom_template_directory = "custom_templates/"
+        template_html = "myhtml.tpl"
+
+    styler = MyStyler(df)
+    result = styler.to_html()
+    assert "<h1>My Table</h1>" in result
