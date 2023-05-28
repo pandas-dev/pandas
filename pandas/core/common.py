@@ -560,12 +560,46 @@ def require_length_match(data, index: Index) -> None:
 #  whereas np.min and np.max (which directly call obj.min and obj.max)
 #  default to axis=None.
 _builtin_table = {
+    # builtins.sum: np.sum,
+    # builtins.max: np.maximum.reduce,
+    # builtins.min: np.minimum.reduce,
+}
+
+_orig_builtin_table = {
     builtins.sum: np.sum,
     builtins.max: np.maximum.reduce,
     builtins.min: np.minimum.reduce,
 }
 
 _cython_table = {
+    # builtins.sum: "sum",
+    # builtins.max: "max",
+    # builtins.min: "min",
+    # np.all: "all",
+    # np.any: "any",
+    # np.sum: "sum",
+    # np.nansum: "sum",
+    # np.mean: "mean",
+    # np.nanmean: "mean",
+    # np.prod: "prod",
+    # np.nanprod: "prod",
+    # np.std: "std",
+    # np.nanstd: "std",
+    # np.var: "var",
+    # np.nanvar: "var",
+    # np.median: "median",
+    # np.nanmedian: "median",
+    # np.max: "max",
+    # np.nanmax: "max",
+    # np.min: "min",
+    # np.nanmin: "min",
+    # np.cumprod: "cumprod",
+    # np.nancumprod: "cumprod",
+    # np.cumsum: "cumsum",
+    # np.nancumsum: "cumsum",
+}
+
+_orig_cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
     builtins.min: "min",

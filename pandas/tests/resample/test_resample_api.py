@@ -382,19 +382,21 @@ def test_agg():
     ]
 
     a_mean = r["A"].mean()
-    a_std = r["A"].std()
+    a_std_ddof0 = r["A"].std(ddof=0)
+    a_std_ddof1 = r["A"].std(ddof=1)
     a_sum = r["A"].sum()
     b_mean = r["B"].mean()
-    b_std = r["B"].std()
+    b_std_ddof0 = r["B"].std(ddof=0)
+    b_std_ddof1 = r["B"].std(ddof=1)
     b_sum = r["B"].sum()
 
-    expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+    expected = pd.concat([a_mean, a_std_ddof0, b_mean, b_std_ddof0], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     for t in cases:
         # In case 2, "date" is an index and a column, so get included in the agg
         if t == cases[2]:
             date_mean = t["date"].mean()
-            date_std = t["date"].std()
+            date_std = t["date"].std(ddof=0)
             exp = pd.concat([date_mean, date_std, expected], axis=1)
             exp.columns = pd.MultiIndex.from_product(
                 [["date", "A", "B"], ["mean", "std"]]
@@ -405,7 +407,7 @@ def test_agg():
             result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, expected)
 
-    expected = pd.concat([a_mean, b_std], axis=1)
+    expected = pd.concat([a_mean, b_std_ddof0], axis=1)
     for t in cases:
         result = t.aggregate({"A": np.mean, "B": np.std})
         tm.assert_frame_equal(result, expected, check_like=True)
@@ -416,7 +418,7 @@ def test_agg():
         result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
-    expected = pd.concat([a_mean, a_std], axis=1)
+    expected = pd.concat([a_mean, a_std_ddof1], axis=1)
     expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     for t in cases:
         result = t.aggregate({"A": ["mean", "std"]})
@@ -449,7 +451,7 @@ def test_agg():
                 }
             )
 
-    expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+    expected = pd.concat([a_mean, a_std_ddof1, b_mean, b_std_ddof1], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
         [("A", "mean"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )

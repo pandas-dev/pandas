@@ -2023,10 +2023,7 @@ class TestPivotTable:
         [
             ("sum", np.sum),
             ("mean", np.mean),
-            ("std", np.std),
             (["sum", "mean"], [np.sum, np.mean]),
-            (["sum", "std"], [np.sum, np.std]),
-            (["std", "mean"], [np.std, np.mean]),
         ],
     )
     def test_pivot_string_func_vs_func(self, f, f_numpy, data):
@@ -2035,6 +2032,7 @@ class TestPivotTable:
         data = data.drop(columns="C")
         result = pivot_table(data, index="A", columns="B", aggfunc=f)
         expected = pivot_table(data, index="A", columns="B", aggfunc=f_numpy)
+
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow

@@ -80,23 +80,25 @@ def test_agg(step):
 
     r = df.rolling(window=3, step=step)
     a_mean = r["A"].mean()
-    a_std = r["A"].std()
+    a_std_ddof0 = r["A"].std(ddof=0)
+    a_std_ddof1 = r["A"].std(ddof=1)
     a_sum = r["A"].sum()
     b_mean = r["B"].mean()
-    b_std = r["B"].std()
+    b_std_ddof0 = r["B"].std(ddof=0)
+    b_std_ddof1 = r["B"].std(ddof=1)
 
     result = r.aggregate([np.mean, np.std])
-    expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
+    expected = concat([a_mean, a_std_ddof0, b_mean, b_std_ddof0], axis=1)
     expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     tm.assert_frame_equal(result, expected)
 
     result = r.aggregate({"A": np.mean, "B": np.std})
 
-    expected = concat([a_mean, b_std], axis=1)
+    expected = concat([a_mean, b_std_ddof0], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = r.aggregate({"A": ["mean", "std"]})
-    expected = concat([a_mean, a_std], axis=1)
+    expected = concat([a_mean, a_std_ddof1], axis=1)
     expected.columns = MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     tm.assert_frame_equal(result, expected)
 
@@ -116,7 +118,7 @@ def test_agg(step):
         )
 
     result = r.aggregate({"A": ["mean", "std"], "B": ["mean", "std"]})
-    expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
+    expected = concat([a_mean, a_std_ddof1, b_mean, b_std_ddof1], axis=1)
 
     exp_cols = [("A", "mean"), ("A", "std"), ("B", "mean"), ("B", "std")]
     expected.columns = MultiIndex.from_tuples(exp_cols)

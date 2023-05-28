@@ -82,7 +82,13 @@ def test_basic_aggregations(dtype):
 
     tm.assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
     tm.assert_series_equal(agged, grouped.mean())
-    tm.assert_series_equal(grouped.agg(np.sum), grouped.sum())
+
+    result = grouped.agg(np.sum)
+    expected = grouped.sum()
+    if dtype == "int32":
+        # NumPy sums int32 to int64
+        expected = expected.astype("int64")
+    tm.assert_series_equal(result, expected)
 
     expected = grouped.apply(lambda x: x * x.sum())
     transformed = grouped.transform(lambda x: x * x.sum())
@@ -753,11 +759,8 @@ def test_groupby_as_index_agg(df):
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
 
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        res = gr.apply(sum)
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        alt = df.groupby(ts).apply(sum)
+    res = gr.apply(np.sum)
+    alt = df.groupby(ts).apply(np.sum)
     tm.assert_frame_equal(res, alt)
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
@@ -923,9 +926,10 @@ def test_raises_on_nuisance(df):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support sum operations"
+    msg = "does not support reduction 'sum'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg(np.sum)
+    msg = "datetime64 type does not support sum operations"
     with pytest.raises(TypeError, match=msg):
         grouped.sum()
 

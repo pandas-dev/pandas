@@ -1105,10 +1105,14 @@ class SeriesApply(NDFrameApply):
             # we cannot FIRST try the vectorized evaluation, because
             # then .agg and .apply would have different semantics if the
             # operation is actually defined on the Series, e.g. str
-            try:
-                result = self.obj.apply(f)
-            except (ValueError, AttributeError, TypeError):
+            has_cython_func = f in com._orig_cython_table
+            if has_cython_func and not self.args and not self.kwargs:
                 result = f(self.obj)
+            else:
+                try:
+                    result = self.obj.apply(f)
+                except (ValueError, AttributeError, TypeError):
+                    result = f(self.obj)
 
         return result
 

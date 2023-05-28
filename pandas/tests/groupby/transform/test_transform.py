@@ -471,22 +471,22 @@ def test_series_fast_transform_date():
     tm.assert_series_equal(result, expected)
 
 
-def test_transform_length():
+@pytest.mark.parametrize("op", [sum, np.nansum])
+def test_transform_length(op):
     # GH 9697
     df = DataFrame({"col1": [1, 1, 2, 2], "col2": [1, 2, 3, np.nan]})
-    expected = Series([3.0] * 4)
-
-    def nsum(x):
-        return np.nansum(x)
+    if op is sum:
+        values = [3.0, 3.0, np.nan, np.nan]
+    else:
+        values = [3.0, 3.0, 3.0, 3.0]
+    expected = Series(values, name="col2")
 
     results = [
-        df.groupby("col1").transform(sum)["col2"],
-        df.groupby("col1")["col2"].transform(sum),
-        df.groupby("col1").transform(nsum)["col2"],
-        df.groupby("col1")["col2"].transform(nsum),
+        df.groupby("col1").transform(op)["col2"],
+        df.groupby("col1")["col2"].transform(op),
     ]
     for result in results:
-        tm.assert_series_equal(result, expected, check_names=False)
+        tm.assert_series_equal(result, expected)
 
 
 def test_transform_coercion():

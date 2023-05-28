@@ -58,7 +58,7 @@ def test_intercept_builtin_sum():
 
     result = grouped.agg(builtins.sum)
     result2 = grouped.apply(builtins.sum)
-    expected = grouped.sum()
+    expected = Series({0: 1.0, 1: 2.0, 2: np.nan})
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
 
@@ -74,17 +74,18 @@ def test_builtins_apply(keys, f):
 
     fname = f.__name__
 
-    warn = None if f is not sum else FutureWarning
-    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+    if fname == "sum":
+        with pytest.raises(TypeError, match="unsupported operand type"):
+            gb.apply(f)
+    else:
         result = gb.apply(f)
-    ngroups = len(df.drop_duplicates(subset=keys))
-
-    assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
-    assert result.shape == (ngroups, 3), assert_msg
+        expected = Series({idx: f(group) for idx, group in gb})
+        expected.index.names = keys if isinstance(keys, list) else [keys]
+        tm.assert_series_equal(result, expected)
 
     npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    expected = gb.apply(npfunc)
+    result = gb.apply(npfunc)
+    expected = gb.apply(lambda x: getattr(x, fname)()).astype(float)
     tm.assert_frame_equal(result, expected)
 
     with tm.assert_produces_warning(None):
@@ -683,7 +684,11 @@ def test_ops_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = getattr(df.groupby(labels), op)()
+    if op in ("std", "var"):
+        kwargs = {"ddof": 0}
+    else:
+        kwargs = {}
+    result = getattr(df.groupby(labels), op)(**kwargs)
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 

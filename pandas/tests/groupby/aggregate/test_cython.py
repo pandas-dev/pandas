@@ -181,7 +181,10 @@ def test__cython_agg_general(op, targop):
     df = DataFrame(np.random.randn(1000))
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
-    result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
+    kwargs = {"ddof": 0} if op == "var" else {}
+    result = df.groupby(labels)._cython_agg_general(
+        op, alt=None, numeric_only=True, **kwargs
+    )
     expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 

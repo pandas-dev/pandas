@@ -329,7 +329,7 @@ def test_groupby_raises_datetime_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "datetime64 type does not support sum operations"),
+        np.sum: (TypeError, "does not support reduction"),
         np.mean: (None, ""),
     }[groupby_func_np]
 
@@ -519,10 +519,10 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "category type does not support sum operations"),
+        np.sum: (TypeError, "category does not support reduction"),
         np.mean: (
             TypeError,
-            "category dtype does not support aggregation 'mean'",
+            "category does not support reduction",
         ),
     }[groupby_func_np]
 
