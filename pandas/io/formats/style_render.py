@@ -73,11 +73,11 @@ class StylerRenderer:
     # For cached class properties defined below
     _loader = None
     _env = None
-    _template_html = None
-    _template_html_table = None
-    _template_html_style = None
-    _template_latex = None
-    _template_string = None
+    template_html = "html.tpl"
+    template_html_table = "html_table.tpl"
+    template_html_style = "html_style.tpl"
+    template_latex = "latex.tpl"
+    template_string = "string.tpl"
 
     def __init__(
         self,
@@ -166,41 +166,6 @@ class StylerRenderer:
             cls._env = jinja2.Environment(loader=cls.loader, trim_blocks=True)
         return cls._env
 
-    @classmethod
-    @property
-    def template_html(cls):
-        if cls._template_html is None:
-            cls._template_html = cls.env.get_template("html.tpl")
-        return cls._template_html
-
-    @classmethod
-    @property
-    def template_html_table(cls):
-        if cls._template_html_table is None:
-            cls._template_html_table = cls.env.get_template("html_table.tpl")
-        return cls._template_html_table
-
-    @classmethod
-    @property
-    def template_html_style(cls):
-        if cls._template_html_style is None:
-            cls._template_html_style = cls.env.get_template("html_style.tpl")
-        return cls._template_html_style
-
-    @classmethod
-    @property
-    def template_latex(cls):
-        if cls._template_latex is None:
-            cls._template_latex = cls.env.get_template("latex.tpl")
-        return cls._template_latex
-
-    @classmethod
-    @property
-    def template_string(cls):
-        if cls._template_string is None:
-            cls._template_string = cls.env.get_template("string.tpl")
-        return cls._template_string
-
     def _render(
         self,
         sparse_index: bool,
@@ -260,10 +225,11 @@ class StylerRenderer:
         """
         d = self._render(sparse_index, sparse_columns, max_rows, max_cols, "&nbsp;")
         d.update(kwargs)
-        return self.template_html.render(
+        template_html = self.env.get_template(self.template_html)
+        return template_html.render(
             **d,
-            html_table_tpl=self.template_html_table,
-            html_style_tpl=self.template_html_style,
+            html_table_tpl=self.env.get_template(self.template_html_table),
+            html_style_tpl=self.env.get_template(self.template_html_style),
         )
 
     def _render_latex(
@@ -273,13 +239,14 @@ class StylerRenderer:
         Render a Styler in latex format
         """
         d = self._render(sparse_index, sparse_columns, None, None)
+        template_latex = self.env.get_template(self.template_latex)
         self._translate_latex(d, clines=clines)
-        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
-        self.template_latex.globals["parse_table"] = _parse_latex_table_styles
-        self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
-        self.template_latex.globals["parse_header"] = _parse_latex_header_span
+        template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        template_latex.globals["parse_table"] = _parse_latex_table_styles
+        template_latex.globals["parse_cell"] = _parse_latex_cell_styles
+        template_latex.globals["parse_header"] = _parse_latex_header_span
         d.update(kwargs)
-        return self.template_latex.render(**d)
+        return template_latex.render(**d)
 
     def _render_string(
         self,
@@ -294,7 +261,8 @@ class StylerRenderer:
         """
         d = self._render(sparse_index, sparse_columns, max_rows, max_cols)
         d.update(kwargs)
-        return self.template_string.render(**d)
+        template_string = self.env.get_template(self.template_string)
+        return template_string.render(**d)
 
     def _compute(self):
         """
