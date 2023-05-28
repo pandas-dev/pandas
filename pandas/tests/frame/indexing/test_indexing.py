@@ -973,7 +973,10 @@ class TestDataFrameIndexing:
     def test_getitem_setitem_ix_bool_keyerror(self, bool_value):
         # #2199
         df = DataFrame({"a": [1, 2, 3]})
-        message = f"{bool_value}: boolean label cannot be used without a boolean or object index"
+        message = (
+            f"{bool_value}: boolean label cannot be used without"
+            "a boolean or object index"
+        )
         with pytest.raises(KeyError, match=message):
             df.loc[bool_value]
 

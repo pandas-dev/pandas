@@ -2472,7 +2472,10 @@ class TestLocBooleanLabelsAndSlices:
         self, index, frame_or_series, bool_value
     ):
         # GH20432
-        invalid_label_message = f"{bool_value}: boolean label cannot be used without a boolean or object index"
+        invalid_label_message = (
+            f"{bool_value}: boolean label cannot be used without"
+            "a boolean or object index"
+        )
         not_found_message = f"{bool_value}"
         if index.inferred_type != "boolean":
             obj = frame_or_series(index=index, dtype="object")
