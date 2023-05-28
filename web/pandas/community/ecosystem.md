@@ -558,9 +558,8 @@ authors to coordinate on the namespace.
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)
   | [physipy]                    | `slice`    | `Series`, `DataFrame` |  | 'df.physipy'   'Series'             |
-  
-## Development tools
 
+## Development tools
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
 
 While pandas repository is partially typed, the package itself doesn't expose this information for external use.
