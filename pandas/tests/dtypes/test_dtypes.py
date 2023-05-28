@@ -33,13 +33,11 @@ from pandas import (
     DatetimeIndex,
     IntervalIndex,
     Series,
+    SparseDtype,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class Base:
@@ -558,6 +556,14 @@ class TestPeriodDtype(Base):
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
         assert not is_string_dtype(PeriodDtype("D"))
+
+    def test_perioddtype_caching_dateoffset_normalize(self):
+        # GH 24121
+        per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
+        assert per_d.freq.normalize
+
+        per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
+        assert not per_d2.freq.normalize
 
 
 class TestIntervalDtype(Base):
