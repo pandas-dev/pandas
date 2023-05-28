@@ -525,6 +525,7 @@ DataFrame.
 Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
+### [Physipy]
 
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
@@ -555,8 +556,9 @@ authors to coordinate on the namespace.
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
-  | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
-
+  | [woodwork](https://github.com/alteryx/woodwork)
+  | [physipy]                    | `slice`    | `Series`, `DataFrame` |  | 'df.physipy'   'Series'             |
+  
 ## Development tools
 
 ### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
