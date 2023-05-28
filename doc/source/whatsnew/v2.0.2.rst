@@ -39,7 +39,6 @@ Bug fixes
 - Bug in :meth:`Series.rename` not making a lazy copy when Copy-on-Write is enabled when a scalar is passed to it (:issue:`52450`)
 - Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
 - Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.other:
