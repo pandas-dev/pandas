@@ -44,7 +44,7 @@ try:
         pd.UInt16Dtype,
         pd.UInt32Dtype,
         pd.UInt64Dtype,
-        pd.CategoricalDtype,
+        pd.CategoricalDtype(),
         pd.IntervalDtype,
         pd.DatetimeTZDtype("ns", "UTC"),
         pd.PeriodDtype("D"),
