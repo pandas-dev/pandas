@@ -51,7 +51,9 @@ only one `pandas.read_arrow` function can exist, and pandas should not
 make an arbitrary decision on which to use.
 """
 import functools
+import warnings
 from importlib.metadata import entry_points
+import importlib_metadata
 
 import pandas as pd
 
@@ -75,8 +77,9 @@ def _create_reader_function(io_plugin):
         if isinstance(result, list):
             result = [pd.api.interchange.from_dataframe(df) for df in result]
         elif isinstance(result, dict):
-            result = {k: pd.api.interchange.from_dataframe(df)
-                      for k, df in result.items()}
+            result = {
+                k: pd.api.interchange.from_dataframe(df) for k, df in result.items()
+            }
         else:
             result = pd.api.interchange.from_dataframe(result)
 
@@ -92,6 +95,7 @@ def _create_series_writer_function(format_name):
     When calling `Series.to_<whatever>` we call the dataframe writer, so
     we need to convert the Series to a one column dataframe.
     """
+
     def series_writer_wrapper(self, *args, **kwargs):
         dataframe_writer = getattr(self.to_frame(), f"to_{format_name}")
         dataframe_writer(*args, **kwargs)
@@ -99,42 +103,74 @@ def _create_series_writer_function(format_name):
     return series_writer_wrapper
 
 
+def _warn_conflict(func_name, format_name, loaded_plugins, module):
+    package_to_load = importlib_metadata.packages_distributions()[module.__name__]
+    if format_name in loaded_plugins:
+        # conflict with a third-party connector
+        loaded_module = loaded_plugins[format_name]
+        loaded_package = importlib_metadata.packages_distributions()[
+            loaded_module.__name__
+        ]
+        msg = (
+            f"Unable to create `{func_name}`. "
+            f"A conflict exists, because the packages `{loaded_package}` and "
+            f"`{package_to_load}` both provide the connector for the '{format_name}' format. "
+            "Please uninstall one of the packages and leave in the current "
+            "environment only the one you want to use for the '{format_name}' format."
+        )
+    else:
+        # conflict with a pandas connector
+        msg = (
+            f"The package `{package_to_load}` registers `{func_name}`, which is "
+            "already provided by pandas. The plugin will be ignored."
+        )
+
+    warnings.warn(msg, UserWarning, stacklevel=1)
+
+
 def load_io_plugins():
     """
     Looks for entrypoints in the `dataframe.io` group and creates the
     corresponding pandas I/O methods.
     """
+    loaded_plugins = {}
+
     for dataframe_io_entry_point in entry_points().get("dataframe.io", []):
         format_name = dataframe_io_entry_point.name
         io_plugin = dataframe_io_entry_point.load()
 
         if hasattr(io_plugin, "reader"):
-            if hasattr(pd, f"read_{format_name}"):
-                raise RuntimeError(
-                    "More than one installed library provides the "
-                    "`read_{format_name}` reader. Please uninstall one of "
-                    "the I/O plugins providing connectors for this format."
+            func_name = f"read_{format_name}"
+            if hasattr(pd, func_name):
+                _warn_conflict(
+                    f"pandas.{func_name}", format_name, loaded_plugins, io_plugin
                 )
-            setattr(
-                pd,
-                f"read_{format_name}",
-                _create_reader_function(io_plugin),
-            )
+                delattr(pd, func_name)
+            else:
+                setattr(
+                    pd,
+                    f"read_{format_name}",
+                    _create_reader_function(io_plugin),
+                )
 
         if hasattr(io_plugin, "writer"):
-            if hasattr(pd.DataFrame, f"to_{format_name}"):
-                raise RuntimeError(
-                    "More than one installed library provides the "
-                    "`to_{format_name}` reader. Please uninstall one of "
-                    "the I/O plugins providing connectors for this format."
+            func_name = f"to_{format_name}"
+            if hasattr(pd.DataFrame, func_name):
+                _warn_conflict(
+                    f"DataFrame.{func_name}", format_name, loaded_plugins, io_plugin
                 )
-            setattr(
-                pd.DataFrame,
-                f"to_{format_name}",
-                getattr(io_plugin, "writer"),
-            )
-            setattr(
-                pd.Series,
-                f"to_{format_name}",
-                _create_series_writer_function(format_name),
-            )
+                delattr(pd.DataFrame, func_name)
+                delattr(pd.Series, func_name)
+            else:
+                setattr(
+                    pd.DataFrame,
+                    func_name,
+                    getattr(io_plugin, "writer"),
+                )
+                setattr(
+                    pd.Series,
+                    func_name,
+                    _create_series_writer_function(format_name),
+                )
+
+        loaded_plugins[format_name] = io_plugin
