@@ -9163,8 +9163,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         not returned.
         """
         warnings.warn(
-            "first is deprecated and will be removed in a future version"
-            "please create a mask and filter using `.loc` instead",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
