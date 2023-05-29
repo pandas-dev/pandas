@@ -27,22 +27,16 @@ class TestFirst:
             result = ts.first("10d")
             assert len(result) == 10
 
-        ts = tm.makeTimeDataFrame(freq="D")
-        ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("3M")
             expected = ts[:"3/31/2000"]
             tm.assert_equal(result, expected)
 
-        ts = tm.makeTimeDataFrame(freq="D")
-        ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("21D")
             expected = ts[:21]
             tm.assert_equal(result, expected)
 
-        ts = tm.makeTimeDataFrame(freq="D")
-        ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts[:0].first("3M")
             tm.assert_equal(result, ts[:0])
