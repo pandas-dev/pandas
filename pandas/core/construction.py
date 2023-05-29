@@ -14,7 +14,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -32,7 +31,6 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -297,6 +295,9 @@ def array(
     )
     from pandas.core.arrays.string_ import StringDtype
 
+    if isinstance(dtype, np.dtype) and dtype.kind in "mM":
+        raise TypeError(f"Data type {dtype} is deprecated.")
+
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
@@ -366,14 +367,6 @@ def array(
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if "datetime64" in dtype.name or "timedelta64" in dtype.name:
-        warnings.warn(
-            "Using the dt64/td64 dtype is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
     if (
         lib.is_np_dtype(dtype, "M")
         # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
