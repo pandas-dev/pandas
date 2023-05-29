@@ -648,7 +648,7 @@ class DataFrame(NDFrame, OpsMixin):
     _constructor_sliced: Callable[..., Series] = Series
 
     def _sliced_from_mgr(self, mgr, axes) -> Series:
-        return self._constructor_sliced._from_mgr(mgr, axes)
+        return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
         if self._constructor_sliced is Series:
