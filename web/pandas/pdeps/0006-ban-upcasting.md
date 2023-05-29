@@ -89,7 +89,7 @@ Examples of operations which would not raise are:
 Concretely, the suggestion is:
 
 - if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype.
-- if a ``setitem``-like operation would previously have changed a ``Series`` dtype, it would now raise.
+- if a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
 
 For a start, this would involve:
 
