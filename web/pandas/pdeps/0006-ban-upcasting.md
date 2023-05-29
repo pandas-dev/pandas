@@ -9,7 +9,7 @@
 ## Abstract
 
 The suggestion is that setitem-like operations would
-not change a ``Series`` dtype (nor that of a ``DataFrame``'s column).
+not change a ``Series``' dtype (nor that of a ``DataFrame``'s column).
 
 Current behaviour:
 ```python
