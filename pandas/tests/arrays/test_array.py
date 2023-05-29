@@ -30,6 +30,7 @@ from pandas.tests.extension.decimal import (
 
 
 def test_dt64_array():
+    # PR 53439
     dtype_dt64 = np.dtype("M8[h]")
     dtype_td64 = np.dtype("m8[h]")
 

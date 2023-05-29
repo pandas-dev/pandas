@@ -22,8 +22,6 @@ can be found at :ref:`basics.dtypes`.
 =================== ========================== ============================= =============================
 Kind of Data        pandas Data Type           Scalar                        Array
 =================== ========================== ============================= =============================
-TZ-aware datetime   :class:`DatetimeTZDtype`   :class:`Timestamp`            :ref:`api.arrays.datetime`
-Timedeltas          (none)                     :class:`Timedelta`            :ref:`api.arrays.timedelta`
 Period (time spans) :class:`PeriodDtype`       :class:`Period`               :ref:`api.arrays.period`
 Intervals           :class:`IntervalDtype`     :class:`Interval`             :ref:`api.arrays.interval`
 Nullable Integer    :class:`Int64Dtype`, ...   (none)                        :ref:`api.arrays.integer_na`

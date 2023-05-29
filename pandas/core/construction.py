@@ -109,8 +109,6 @@ def array(
         ============================== =======================================
         :class:`pandas.Interval`       :class:`pandas.arrays.IntervalArray`
         :class:`pandas.Period`         :class:`pandas.arrays.PeriodArray`
-        :class:`datetime.datetime`     :class:`pandas.arrays.DatetimeArray`
-        :class:`datetime.timedelta`    :class:`pandas.arrays.TimedeltaArray`
         :class:`int`                   :class:`pandas.arrays.IntegerArray`
         :class:`float`                 :class:`pandas.arrays.FloatingArray`
         :class:`str`                   :class:`pandas.arrays.StringArray` or
@@ -183,26 +181,6 @@ def array(
     <PandasArray>
     ['a', 'b']
     Length: 2, dtype: str32
-
-    Finally, Pandas has arrays that mostly overlap with NumPy
-
-      * :class:`arrays.DatetimeArray`
-      * :class:`arrays.TimedeltaArray`
-
-    When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
-    passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
-    rather than a ``PandasArray``. This is for symmetry with the case of
-    timezone-aware data, which NumPy does not natively support.
-
-    >>> pd.array(['2015', '2016'], dtype='datetime64[ns]')
-    <DatetimeArray>
-    ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
-    Length: 2, dtype: datetime64[ns]
-
-    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
-    <TimedeltaArray>
-    ['0 days 01:00:00', '0 days 02:00:00']
-    Length: 2, dtype: timedelta64[ns]
 
     Examples
     --------
