@@ -648,12 +648,7 @@ class DataFrame(NDFrame, OpsMixin):
     _constructor_sliced: Callable[..., Series] = Series
 
     def _sliced_from_mgr(self, mgr, axes) -> Series:
-        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
-        #  This is a short-term implementation that will be replaced
-        #  with self._constructor_sliced._from_mgr(...)
-        #  once downstream packages (geopandas) have had a chance to implement
-        #  their own overrides.
-        return self._constructor_sliced(mgr)
+        return self._constructor_sliced._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
         if self._constructor_sliced is Series:
