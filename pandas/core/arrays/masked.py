@@ -1104,13 +1104,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         res = df._reduce(name=name, skipna=skipna, axis=0, **kwargs)
         return res
 
-    def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
+    def _wrap_reduction_result(self, name: str, result, *, mask=None, skipna, axis):
         if isinstance(result, np.ndarray):
+            mask = mask if mask is not None else self._mask
             if skipna:
                 # we only retain mask for all-NA rows/columns
-                mask = self._mask.all(axis=axis)
+                mask = mask.all(axis=axis)
             else:
-                mask = self._mask.any(axis=axis)
+                mask = mask.any(axis=axis)
 
             return self._maybe_mask_result(result, mask)
         elif result is libmissing.NA and self.ndim == 2:
