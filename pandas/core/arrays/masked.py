@@ -1097,17 +1097,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if np.isnan(result):
             result = libmissing.NA
 
-        return self._wrap_reduction_result(
-            name, result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
     def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
         df = self.reshape(-1, 1)
         res = df._reduce(name=name, skipna=skipna, axis=0, **kwargs)
         return res
 
-    def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
-        axis = kwargs["axis"]
+    def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
         if isinstance(result, np.ndarray):
             if skipna:
                 # we only retain mask for all-NA rows/columns
@@ -1142,11 +1139,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._maybe_mask_result(value, mask=mask)
 
     def _wrap_min_count_reduction_result(
-        self, name: str, result, skipna, min_count, **kwargs
+        self, name: str, result, *, skipna, min_count, axis
     ):
         if min_count == 0 and isinstance(result, np.ndarray):
             return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
-        return self._wrap_reduction_result(name, result, skipna, **kwargs)
+        return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
     def sum(
         self,
@@ -1166,7 +1163,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_min_count_reduction_result(
-            "sum", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
+            "sum", result, skipna=skipna, min_count=min_count, axis=axis
         )
 
     def prod(
@@ -1187,7 +1184,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
         return self._wrap_min_count_reduction_result(
-            "prod", result, skipna=skipna, min_count=min_count, axis=axis, **kwargs
+            "prod", result, skipna=skipna, min_count=min_count, axis=axis
         )
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
@@ -1198,9 +1195,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "mean", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
 
     def var(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1213,9 +1208,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result(
-            "var", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("var", result, skipna=skipna, axis=axis)
 
     def std(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1228,9 +1221,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result(
-            "std", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("std", result, skipna=skipna, axis=axis)
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)
@@ -1240,9 +1231,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "min", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("min", result, skipna=skipna, axis=axis)
 
     def max(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_max((), kwargs)
@@ -1252,9 +1241,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "max", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
     def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
