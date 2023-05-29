@@ -1719,3 +1719,38 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
         if sort:
             expected = expected.sort_index(axis=axis)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False, lib.no_default])
+def test_fillna_inplace_depr_frame(inplace):
+    # GH#48792
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    gb = df.groupby("a")
+    if inplace is lib.no_default:
+        result = gb.fillna(method="ffill", inplace=inplace)
+    else:
+        with tm.assert_produces_warning(
+            FutureWarning, match="The inplace argument is deprecated"
+        ):
+            result = gb.fillna(method="ffill", inplace=inplace)
+    expected = DataFrame() if inplace and inplace is not lib.no_default else df[["b"]]
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False, lib.no_default])
+def test_fillna_inplace_depr_series(inplace):
+    # GH#48792
+    ser = Series([3, 4, 5])
+    gb = ser.groupby([1, 1, 2])
+    if inplace is lib.no_default:
+        result = gb.fillna(method="ffill", inplace=inplace)
+    else:
+        with tm.assert_produces_warning(
+            FutureWarning, match="The inplace argument is deprecated"
+        ):
+            result = gb.fillna(method="ffill", inplace=inplace)
+    if inplace and inplace is not lib.no_default:
+        expected = Series([None, None], dtype=object, index=[1, 2])
+    else:
+        expected = ser
+    tm.assert_series_equal(result, expected)

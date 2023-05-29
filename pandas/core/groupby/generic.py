@@ -830,7 +830,7 @@ class SeriesGroupBy(GroupBy[Series]):
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         limit: int | None = None,
         downcast: dict | None = None,
     ) -> Series | None:
@@ -860,6 +860,10 @@ class SeriesGroupBy(GroupBy[Series]):
 
         inplace : bool, default False
             Broken. Do not set to True.
+
+            .. deprecated:: 2.1.0
+                The inplace argument will be removed in a future version of pandas.
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill within a group. In other words,
@@ -925,6 +929,17 @@ class SeriesGroupBy(GroupBy[Series]):
         5    NaN
         dtype: float64
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                message=(
+                    "Setting inplace=True is currently broken. The inplace argument "
+                    "is deprecated and will be removed in a future version of pandas."
+                ),
+                category=FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -2353,7 +2368,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
-        inplace: bool = False,
+        inplace: bool | lib.NoDefault = lib.no_default,
         limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
@@ -2387,6 +2402,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         inplace : bool, default False
             Broken. Do not set to True.
+
+            .. deprecated:: 2.1.0
+                The inplace argument will be removed in a future version of pandas.
+
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill within a group. In other words,
@@ -2473,6 +2492,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
+        if inplace is not lib.no_default:
+            warnings.warn(
+                message=(
+                    "Setting inplace=True is currently broken. The inplace argument "
+                    "is deprecated and will be removed in a future version of pandas."
+                ),
+                category=FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            inplace = False
         result = self._op_via_apply(
             "fillna",
             value=value,
