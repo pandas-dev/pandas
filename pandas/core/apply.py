@@ -106,7 +106,6 @@ def frame_apply(
 
 class Apply(metaclass=abc.ABCMeta):
     axis: AxisInt
-    func: AggFuncType
 
     def __init__(
         self,
