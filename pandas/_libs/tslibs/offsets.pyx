@@ -2690,6 +2690,13 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2721,6 +2728,13 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2751,6 +2765,17 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 11, 29)
@@ -2777,6 +2802,17 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
