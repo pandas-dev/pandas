@@ -822,7 +822,6 @@ class TestPeriodIndex:
             ("19910905 12:00", "19910909 12:00", "H", "24H", "34H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "10H"),
             ("19910905 12:00", "19910909 12:00", "H", "17H", "3H"),
-            ("19910905 12:00", "19910909 1:00", "H", "M", "3H"),
             ("19910905", "19910913 06:00", "2H", "24H", "10H"),
             ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
             ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
@@ -836,9 +835,17 @@ class TestPeriodIndex:
         result = result.to_timestamp(end_freq)
 
         expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
-        if end_freq == "M":
-            # TODO: is non-tick the relevant characteristic? (GH 33815)
-            expected.index = expected.index._with_freq(None)
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_with_offset_month(self):
+        # GH 23882 & 31809
+        pi = period_range("19910905 12:00", "19910909 1:00", freq="H")
+        ser = Series(np.arange(len(pi)), index=pi)
+        result = ser.resample("M", offset="3H").mean()
+        result = result.to_timestamp("M")
+        expected = ser.to_timestamp().resample("ME", offset="3H").mean()
+        # TODO: is non-tick the relevant characteristic? (GH 33815)
+        expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

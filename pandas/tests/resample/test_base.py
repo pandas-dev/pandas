@@ -119,7 +119,9 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
         return
-
+    elif freq == "ME" and isinstance(ser.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     rs = ser.resample(freq)
     result = getattr(rs, resample_method)()
 
@@ -170,7 +172,9 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
         with pytest.raises(ValueError, match=msg):
             ser.resample(freq)
         return
-
+    elif freq == "ME" and isinstance(ser.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     rs = ser.resample(freq)
 
     result = getattr(rs, resample_method)()
@@ -196,7 +200,9 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
         with pytest.raises(ValueError, match=msg):
             df.resample(freq, group_keys=False)
         return
-
+    elif freq == "ME" and isinstance(df.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     rs = df.resample(freq, group_keys=False)
     result = getattr(rs, resample_method)()
     if resample_method != "size":
@@ -215,13 +221,13 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
+@pytest.mark.parametrize("freq", ["ME", "D", "H"])
 def test_resample_count_empty_dataframe(freq, empty_frame_dti):
     # GH28427
 
     empty_frame_dti["a"] = []
 
-    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+    if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
         msg = (
             "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
             "e.g. '24H' or '3D', not <MonthEnd>"
@@ -229,7 +235,9 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
         return
-
+    elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     result = empty_frame_dti.resample(freq).count()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -254,7 +262,9 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
         with pytest.raises(ValueError, match=msg):
             empty_frame_dti.resample(freq)
         return
-
+    elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     result = empty_frame_dti.resample(freq).size()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -293,7 +303,9 @@ def test_apply_to_empty_series(empty_series_dti, freq):
         with pytest.raises(ValueError, match=msg):
             empty_series_dti.resample(freq)
         return
-
+    elif freq == "ME" and isinstance(empty_series_dti.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
     result = ser.resample(freq, group_keys=False).apply(lambda x: 1)
     expected = ser.resample(freq).apply(np.sum)
 
