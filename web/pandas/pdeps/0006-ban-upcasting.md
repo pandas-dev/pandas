@@ -152,6 +152,7 @@ Possible options could be:
 3. limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64) .
 
 Let us compare with what other libraries do:
+
 - ``numpy``: option 2
 - ``cudf``: option 2
 - ``polars``: option 2
