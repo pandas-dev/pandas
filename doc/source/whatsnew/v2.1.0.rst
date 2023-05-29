@@ -16,8 +16,8 @@ Enhancements
 
 .. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
-Reductions maintain extension dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DataFrame reductions preserve extension dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions of pandas, the results of DataFrame reductions
 (:meth:`DataFrame.sum` :meth:`DataFrame.mean` etc.) has numpy dtypes even when the DataFrames
