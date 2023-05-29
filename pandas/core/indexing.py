@@ -1157,7 +1157,7 @@ class _LocIndexer(_LocationIndexer):
                     or is_object_dtype(ax.get_level_values(0).dtype)
                 )
             )
-            or (ax.dtype.name == "boolean" or ax.dtype.name == "object")
+            or (ax.dtype.name in ("boolean",  "object"))
             or (is_bool_dtype(ax.dtype) or is_object_dtype(ax.dtype))
         ):
             raise KeyError(
