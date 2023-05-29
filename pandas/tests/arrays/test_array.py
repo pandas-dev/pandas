@@ -28,20 +28,17 @@ from pandas.tests.extension.decimal import (
     to_decimal,
 )
 
-dt_dep_msg = (
-    "Using the dt64/td64 dtype is deprecated and "
-    "will be removed in a future version."
-)
-
 
 def test_dt64_array():
     dtype_dt64 = np.dtype("M8[h]")
     dtype_td64 = np.dtype("m8[h]")
 
-    with tm.assert_produces_warning(FutureWarning, match=dt_dep_msg):
+    msg = f"Data type {dtype_dt64} is deprecated."
+    with pytest.raises(TypeError, match=re.escape(msg)):
         pd.array([], dtype=dtype_dt64)
 
-    with tm.assert_produces_warning(FutureWarning, match=dt_dep_msg):
+    msg = f"Data type {dtype_td64} is deprecated."
+    with pytest.raises(TypeError, match=re.escape(msg)):
         pd.array([], dtype=dtype_td64)
 
 
