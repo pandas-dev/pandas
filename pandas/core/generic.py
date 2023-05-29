@@ -9162,9 +9162,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
-        # GH45908 & GH#52487
         warnings.warn(
-            "first is deprecated and will be removed in a future version",
+            "first is deprecated and will be removed in a future version"
+            "please create a mask and filter using `.loc` instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )

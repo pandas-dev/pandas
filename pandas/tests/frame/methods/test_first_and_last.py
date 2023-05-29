@@ -19,22 +19,31 @@ class TestFirst:
         ts = tm.get_obj(ts, frame_or_series)
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("10d")
-
             assert len(result) == 20
 
-            ts = tm.makeTimeDataFrame(freq="D")
-            ts = tm.get_obj(ts, frame_or_series)
+        ts = tm.makeTimeDataFrame(freq="D")
+        ts = tm.get_obj(ts, frame_or_series)
+        with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("10d")
             assert len(result) == 10
 
+        ts = tm.makeTimeDataFrame(freq="D")
+        ts = tm.get_obj(ts, frame_or_series)
+        with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("3M")
             expected = ts[:"3/31/2000"]
             tm.assert_equal(result, expected)
 
+        ts = tm.makeTimeDataFrame(freq="D")
+        ts = tm.get_obj(ts, frame_or_series)
+        with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts.first("21D")
             expected = ts[:21]
             tm.assert_equal(result, expected)
 
+        ts = tm.makeTimeDataFrame(freq="D")
+        ts = tm.get_obj(ts, frame_or_series)
+        with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = ts[:0].first("3M")
             tm.assert_equal(result, ts[:0])
 
@@ -44,9 +53,12 @@ class TestFirst:
         obj = tm.get_obj(obj, frame_or_series)
 
         msg = "'first' only supports a DatetimeIndex index"
-        with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
-                obj.first("1D")
+        with tm.assert_produces_warning(
+            FutureWarning, match=deprecated_msg
+        ), pytest.raises(
+            TypeError, match=msg
+        ):  # index is not a DatetimeIndex
+            obj.first("1D")
 
         msg = "'last' only supports a DatetimeIndex index"
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
@@ -80,28 +92,28 @@ class TestFirst:
         x = frame_or_series([1] * 100, index=bdate_range(start, periods=100))
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = x.first("1M")
-            expected = frame_or_series(
-                [1] * periods, index=bdate_range(start, periods=periods)
-            )
-            tm.assert_equal(result, expected)
+        expected = frame_or_series(
+            [1] * periods, index=bdate_range(start, periods=periods)
+        )
+        tm.assert_equal(result, expected)
 
     def test_first_with_first_day_end_of_frq_n_greater_one(self, frame_or_series):
         # GH#29623
         x = frame_or_series([1] * 100, index=bdate_range("2010-03-31", periods=100))
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = x.first("2M")
-            expected = frame_or_series(
-                [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
-            )
-            tm.assert_equal(result, expected)
+        expected = frame_or_series(
+            [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
+        )
+        tm.assert_equal(result, expected)
 
     def test_empty_not_input(self):
         # GH#51032
         df = DataFrame(index=pd.DatetimeIndex([]))
-        result = getattr(df, "last")(offset=1)
+        result = df.last(offset=1)
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            result = getattr(df, "first")(offset=1)
+            result = df.first(offset=1)
 
         tm.assert_frame_equal(df, result)
         assert df is not result
