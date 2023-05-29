@@ -75,18 +75,20 @@ It may be desirable to expand the top list to ``Series.replace`` and ``Series.up
 but to keep the scope of the PDEP down, they are excluded for now.
 
 Examples of operations which would not raise are:
-- ``ser.diff()``;
-- ``pd.concat([ser, ser.astype(object)])``;
-- ``ser.mean()``;
+
+- ``ser.diff()``
+- ``pd.concat([ser, ser.astype(object)])``
+- ``ser.mean()``
 - ``ser[0] = 3``;  # same dtype
 - ``ser[0] = 3.``;  # 3.0 is a 'round' float and so compatible with 'int64' dtype
-- ``df['a'] = pd.date_range(datetime(2020, 1, 1), periods=3)``;
-- ``df.index.intersection(ser.index)``.
+- ``df['a'] = pd.date_range(datetime(2020, 1, 1), periods=3)``
+- ``df.index.intersection(ser.index)``
 
 ## Detailed description
 
 Concretely, the suggestion is:
-- if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype;
+
+- if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype.
 - if a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
 
 For a start, this would involve:
@@ -105,11 +107,12 @@ For a start, this would involve:
   ```
 
 2. making a similar change in:
-   - ``Block.where``;
-   - ``Block.putmask``;
-   - ``EABackedBlock.setitem``;
-   - ``EABackedBlock.where``;
-   - ``EABackedBlock.putmask``;
+
+   - ``Block.where``
+   - ``Block.putmask``
+   - ``EABackedBlock.setitem``
+   - ``EABackedBlock.where``
+   - ``EABackedBlock.putmask``
 
 The above would already require several hundreds of tests to be adjusted. Note that once
 implementation starts, the list of locations to change may turn out to be slightly
