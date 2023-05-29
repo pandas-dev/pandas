@@ -89,7 +89,7 @@ Examples of operations which would not raise are:
 Concretely, the suggestion is:
 
 - if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype.
-- if a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
+- if a ``setitem``-like operation would previously have changed a ``Series`` dtype, it would now raise.
 
 For a start, this would involve:
 
@@ -169,6 +169,7 @@ if the objective of this PDEP is to prevent bugs, then this is also not desirabl
 someone might set ``1.5`` and later be surprised to learn that they actually set ``1``.
 
 There are several downsides to option ``3``:
+
 - it would be inconsistent with the nullable dtypes' behaviour;
 - it would also add complexity to the codebase and to tests;
 - it would be hard to teach, as instead of being able to teach a simple rule,
