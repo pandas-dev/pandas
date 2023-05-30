@@ -210,7 +210,7 @@ On import of the pandas module, it would read the entrypoint registry for the
 `dataframe.io` group, and would dynamically create methods in the `pandas`,
 `pandas.DataFrame` and `pandas.Series` namespaces for them. Only entrypoints with
 name starting by `reader_` or `writer_` would be processed by pandas, and the functions
-registered in the entrypoint would be made available to pandas users in the corresponsing
+registered in the entrypoint would be made available to pandas users in the corresponding
 pandas namespaces. The text after the keywords `reader_` and `writer_` would be used
 for the name of the function. In the example above, the entrypoint name `reader_duckdb`
 would create `pandas.read_duckdb`. An entrypoint with name `writer_hive` would create
