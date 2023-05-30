@@ -97,9 +97,9 @@ Concretely, the suggestion is:
 For a start, this would involve:
 
 1. changing ``Block.setitem`` such that it does not have an ``except`` block in:
-        
+
     <!-- language: python -->
-    
+
         value = extract_array(value, extract_numpy=True)
         try:
             casted = np_can_hold_element(values.dtype, value)
@@ -108,7 +108,7 @@ For a start, this would involve:
             nb = self.coerce_to_target_dtype(value)
             return nb.setitem(index, value)
         else:
-    
+
 2. making a similar change in:
 
     - ``Block.where``
