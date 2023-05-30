@@ -2072,9 +2072,6 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
   The ``"pyarrow"`` is only available when ``lines=True``
 
-.. warning::
-
-    Passing json literal strings will be deprecated in a future release of pandas.
 
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 

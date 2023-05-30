@@ -537,6 +537,11 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        .. deprecated:: 2.1.0
+            Passing json literal strings will be deprecated in a future release of
+            pandas.
+
     orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
