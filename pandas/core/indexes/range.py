@@ -1120,8 +1120,14 @@ class RangeIndex(Index):
         if is_scalar(indices):
             raise TypeError("Expected indices to be array-like")
         indices = ensure_platform_int(indices)
-        allow_fill = self._maybe_disallow_fill(allow_fill, fill_value, indices)
-        assert allow_fill is False, "allow_fill isn't supported by RangeIndex"
+
+        # If allow_fill=True and fill_value=None, just ignore allow_fill,
+        # without raising an exception, as it's done in the base class.
+        if allow_fill and fill_value is not None:
+            cls_name = type(self).__name__
+            raise ValueError(
+                f"Unable to fill values because {cls_name} cannot contain NA"
+            )
 
         if len(indices) == 0:
             taken = np.array([], dtype=self.dtype)
