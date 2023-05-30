@@ -16,7 +16,10 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_bool_dtype
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -382,11 +385,18 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 class TestAccumulation(base.BaseAccumulateTests):
     def check_accumulate(self, s, op_name, skipna):
+        length = 64
+        if not IS64 or is_platform_windows():
+            if not s.dtype.itemsize == 8:
+                length = 32
+
         result = getattr(s, op_name)(skipna=skipna)
         expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
-        tm.assert_series_equal(result, expected, check_dtype=False)
-        if op_name in ("cummin", "cummax"):
-            assert is_bool_dtype(result)
+        if op_name not in ("cummin", "cummax"):
+            expected = expected.astype(f"Int{length}")
+        else:
+            expected = expected.astype("boolean")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
