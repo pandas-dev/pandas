@@ -175,11 +175,15 @@ class TestTSPlot(TestPlotBase):
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
         tm.close()
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "ME", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.randn(len(idx)), idx)
-        _check_plot_works(ser.plot, ser.index.freq)
+        if freq == "M":
+            freq_cpw = ser.index.freqstr
+        else:
+            freq_cpw = ser.index.freq
+        _check_plot_works(ser.plot, freq_cpw)
 
     @pytest.mark.parametrize(
         "frqncy", ["1S", "3S", "5T", "7H", "4D", "8W", "11M", "3A"]

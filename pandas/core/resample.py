@@ -1753,7 +1753,11 @@ class TimeGrouper(Grouper):
             key is None
             and obj is not None
             and isinstance(obj.index, PeriodIndex)
-            or (key is not None and obj is not None and obj[key].dtype == "period")
+            or (
+                key is not None
+                and obj is not None
+                and getattr(obj[key], "dtype", None) == "period"
+            )
         ):
             freq = to_offset(freq, is_period=True)
         else:

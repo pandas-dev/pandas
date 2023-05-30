@@ -986,7 +986,7 @@ def test_df_axis_param_depr():
     # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("M", axis=1)
+        df.resample("ME", axis=1)
 
     # Deprecation error when axis=0 is explicitly passed
     df = df.T
@@ -995,7 +995,7 @@ def test_df_axis_param_depr():
         "will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("M", axis=0)
+        df.resample("ME", axis=0)
 
 
 def test_series_axis_param_depr():
