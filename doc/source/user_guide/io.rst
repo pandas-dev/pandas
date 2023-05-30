@@ -2072,7 +2072,6 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 * ``engine``: Either ``"ujson"``, the built-in JSON parser, or ``"pyarrow"`` which dispatches to pyarrow's ``pyarrow.json.read_json``.
   The ``"pyarrow"`` is only available when ``lines=True``
 
-
 The parser will raise one of ``ValueError/TypeError/AssertionError`` if the JSON is not parseable.
 
 If a non-default ``orient`` was used when encoding to JSON be sure to pass the same

@@ -539,8 +539,7 @@ def read_json(
         or ``StringIO``.
 
         .. deprecated:: 2.1.0
-            Passing json literal strings will be deprecated in a future release of
-            pandas.
+            Passing json literal strings is deprecated.
 
     orient : str, optional
         Indication of expected JSON string format.
