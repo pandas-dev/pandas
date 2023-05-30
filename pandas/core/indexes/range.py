@@ -28,6 +28,10 @@ from pandas.util._decorators import (
     doc,
 )
 
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    infer_dtype_from,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_python_int,
@@ -52,12 +56,14 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         Dtype,
+        DtypeObj,
         NaPosition,
         Self,
         npt,
     )
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
+_dtype_obj = np.dtype("object")
 
 
 class RangeIndex(Index):
@@ -1152,3 +1158,21 @@ class RangeIndex(Index):
 
         # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(taken, name=self.name)
+
+    def _find_common_type_compat(self, target) -> DtypeObj:
+        target_dtype, _ = infer_dtype_from(target)
+
+        # special case: if one dtype is uint64 and the other a signed int, return object
+        # See https://github.com/pandas-dev/pandas/issues/26778 for discussion
+        # Now it's:
+        # * float | [u]int -> float
+        # * uint64 | signed int  -> object
+        # We may change union(float | [u]int) to go to object.
+        if self.dtype == "uint64" or target_dtype == "uint64":
+            if is_signed_integer_dtype(self.dtype) or is_signed_integer_dtype(
+                target_dtype
+            ):
+                return _dtype_obj
+
+        dtype = find_common_type([self.dtype, target_dtype])
+        return dtype

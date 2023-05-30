@@ -6273,7 +6273,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self, other
 
-    @final
     def _find_common_type_compat(self, target) -> DtypeObj:
         """
         Implementation of find_common_type that adjusts for Index-specific
