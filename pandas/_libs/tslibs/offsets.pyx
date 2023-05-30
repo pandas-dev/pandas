@@ -912,7 +912,6 @@ cdef class SingleConstructorOffset(BaseOffset):
 cdef class Tick(SingleConstructorOffset):
     _adjust_dst = False
     _prefix = "undefined"
-    _td64_unit = "undefined"
     _attributes = tuple(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
@@ -1092,7 +1091,6 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
-    _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
@@ -1100,7 +1098,6 @@ cdef class Day(Tick):
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
-    _td64_unit = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -1108,7 +1105,6 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
-    _td64_unit = "m"
     _period_dtype_code = PeriodDtypeCode.T
     _creso = NPY_DATETIMEUNIT.NPY_FR_m
 
@@ -1116,7 +1112,6 @@ cdef class Minute(Tick):
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
-    _td64_unit = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
@@ -1124,7 +1119,6 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
-    _td64_unit = "ms"
     _period_dtype_code = PeriodDtypeCode.L
     _creso = NPY_DATETIMEUNIT.NPY_FR_ms
 
@@ -1132,7 +1126,6 @@ cdef class Milli(Tick):
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
-    _td64_unit = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
@@ -1140,7 +1133,6 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
-    _td64_unit = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
