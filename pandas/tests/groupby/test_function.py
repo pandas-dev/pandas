@@ -73,8 +73,10 @@ def test_builtins_apply(keys, f):
     gb = df.groupby(keys)
 
     fname = f.__name__
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+
+    warn = None if f is not sum else FutureWarning
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
@@ -82,11 +84,10 @@ def test_builtins_apply(keys, f):
     assert result.shape == (ngroups, 3), assert_msg
 
     npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = gb.apply(npfunc)
+    expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(None):
         expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 

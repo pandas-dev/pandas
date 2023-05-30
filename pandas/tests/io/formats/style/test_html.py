@@ -43,7 +43,7 @@ def tpl_table():
 def test_html_template_extends_options():
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl") as file:
+    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result
@@ -978,7 +978,7 @@ def test_concat_combined():
 
 def test_to_html_na_rep_non_scalar_data(datapath):
     # GH47103
-    df = DataFrame([dict(a=1, b=[1, 2, 3], c=np.nan)])
+    df = DataFrame([{"a": 1, "b": [1, 2, 3], "c": np.nan}])
     result = df.style.format(na_rep="-").to_html(table_uuid="test")
     expected = """\
 <style type="text/css">

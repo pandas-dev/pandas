@@ -36,9 +36,6 @@ class ArrowParserWrapper(ParserBase):
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(
-            self.kwds["usecols"]
-        )
         na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
@@ -61,6 +58,21 @@ class ArrowParserWrapper(ParserBase):
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
                 self.kwds[pyarrow_name] = self.kwds.pop(pandas_name)
 
+        # Date format handling
+        # If we get a string, we need to convert it into a list for pyarrow
+        # If we get a dict, we want to parse those separately
+        date_format = self.date_format
+        if isinstance(date_format, str):
+            date_format = [date_format]
+        else:
+            # In case of dict, we don't want to propagate through, so
+            # just set to pyarrow default of None
+
+            # Ideally, in future we disable pyarrow dtype inference (read in as string)
+            # to prevent misreads.
+            date_format = None
+        self.kwds["timestamp_parsers"] = date_format
+
         self.parse_options = {
             option_name: option_value
             for option_name, option_value in self.kwds.items()
@@ -79,6 +91,7 @@ class ArrowParserWrapper(ParserBase):
                 "true_values",
                 "false_values",
                 "decimal_point",
+                "timestamp_parsers",
             )
         }
         self.convert_options["strings_can_be_null"] = "" in self.kwds["null_values"]
@@ -119,15 +132,17 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+        _, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
+            index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
-                    self.index_col[i] = frame.columns[item]
+                    index_to_set[i] = frame.columns[item]
                 # String case
                 elif item not in frame.columns:
                     raise ValueError(f"Index {item} invalid")
-            frame.set_index(self.index_col, drop=True, inplace=True)
+
+            frame.set_index(index_to_set, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
