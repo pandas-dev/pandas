@@ -61,7 +61,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
-    ArrowDtype,
 )
 from pandas.core.dtypes.missing import isna
 
