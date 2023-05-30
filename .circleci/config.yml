@@ -26,7 +26,6 @@ jobs:
       image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-38-arm64.yaml
       TRIGGER_SOURCE: << pipeline.trigger_source >>
     steps:
       - checkout
