@@ -314,7 +314,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([None, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 
 

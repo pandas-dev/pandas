@@ -431,6 +431,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day",
         """
         The days of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2020-01-31', '2020-02-28'], freq='D')
+        >>> idx.day
+        Index([31, 28], dtype='int64')
         """,
     )
     hour = _field_accessor(
@@ -767,14 +773,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray
         """
-        freq = self.freq
-        if not isinstance(freq, Tick):
+        if not self.dtype._is_tick_like():
             # We cannot add timedelta-like to non-tick PeriodArray
             raise TypeError(
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
             )
 
-        dtype = np.dtype(f"m8[{freq._td64_unit}]")
+        dtype = np.dtype(f"m8[{self.dtype._td64_unit}]")
 
         # Similar to _check_timedeltalike_freq_compat, but we raise with a
         #  more specific exception message if necessary.
@@ -818,9 +823,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         ------
         IncompatibleFrequency
         """
-        assert isinstance(self.freq, Tick)  # checked by calling function
+        assert self.dtype._is_tick_like()  # checked by calling function
 
-        dtype = np.dtype(f"m8[{self.freq._td64_unit}]")
+        dtype = np.dtype(f"m8[{self.dtype._td64_unit}]")
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             td = np.asarray(Timedelta(other).asm8)
