@@ -51,7 +51,7 @@ In[11]: ser[2] = "2000-01-04x"  # typo - but pandas does not error, it upcasts t
 ```
 
 The scope of this PDEP is limited to setitem-like operations on Series (and DataFrame columns).
-For example, starting with
+For example, starting with:
 ```python
 df = DataFrame({"a": [1, 2, np.nan], "b": [4, 5, 6]})
 ser = df["a"].copy()
@@ -59,17 +59,20 @@ ser = df["a"].copy()
 then the following would all raise:
 
 * setitem-like operations:
-  - ``ser.fillna('foo', inplace=True)``
-  - ``ser.where(ser.isna(), 'foo', inplace=True)``
-  - ``ser.fillna('foo', inplace=False)``
-  - ``ser.where(ser.isna(), 'foo', inplace=False)``
+
+    - ``ser.fillna('foo', inplace=True)``
+    - ``ser.where(ser.isna(), 'foo', inplace=True)``
+    - ``ser.fillna('foo', inplace=False)``
+    - ``ser.where(ser.isna(), 'foo', inplace=False)``
+    
 * setitem indexing operations (where ``indexer`` could be a slice, a mask,
   a single value, a list or array of values, or any other allowed indexer):
-  - ``ser.iloc[indexer] = 'foo'``
-  - ``ser.loc[indexer] = 'foo'``
-  - ``df.iloc[indexer, 0] = 'foo'``
-  - ``df.loc[indexer, 'a'] = 'foo'``
-  - ``ser[indexer] = 'foo'``
+  
+    - ``ser.iloc[indexer] = 'foo'``
+    - ``ser.loc[indexer] = 'foo'``
+    - ``df.iloc[indexer, 0] = 'foo'``
+    - ``df.loc[indexer, 'a'] = 'foo'``
+    - ``ser[indexer] = 'foo'``
 
 It may be desirable to expand the top list to ``Series.replace`` and ``Series.update``,
 but to keep the scope of the PDEP down, they are excluded for now.
@@ -88,31 +91,31 @@ Examples of operations which would not raise are:
 
 Concretely, the suggestion is:
 
-- if a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype.
-- if a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
+- If a ``Series`` is of a given dtype, then a ``setitem``-like operation should not change its dtype.
+- If a ``setitem``-like operation would previously have changed a ``Series``' dtype, it would now raise.
 
 For a start, this would involve:
 
-1. changing ``Block.setitem`` such that it does not have an ``except`` block in
+1. changing ``Block.setitem`` such that it does not have an ``except`` block in:
 
-  ```python
-  value = extract_array(value, extract_numpy=True)
-  try:
-      casted = np_can_hold_element(values.dtype, value)
-  except LossySetitemError:
-      # current dtype cannot store value, coerce to common dtype
-      nb = self.coerce_to_target_dtype(value)
-      return nb.setitem(indexer, value)
-  else:
-  ```
+    ```python
+    value = extract_array(value, extract_numpy=True)
+    try:
+        casted = np_can_hold_element(values.dtype, value)
+    except LossySetitemError:
+        # current dtype cannot store value, coerce to common dtype
+        nb = self.coerce_to_target_dtype(value)
+        return nb.setitem(indexer, value)
+    else:
+    ```
 
 2. making a similar change in:
 
-  - ``Block.where``
-  - ``Block.putmask``
-  - ``EABackedBlock.setitem``
-  - ``EABackedBlock.where``
-  - ``EABackedBlock.putmask``
+    - ``Block.where``
+    - ``Block.putmask``
+    - ``EABackedBlock.setitem``
+    - ``EABackedBlock.where``
+    - ``EABackedBlock.putmask``
 
 The above would already require several hundreds of tests to be adjusted. Note that once
 implementation starts, the list of locations to change may turn out to be slightly
