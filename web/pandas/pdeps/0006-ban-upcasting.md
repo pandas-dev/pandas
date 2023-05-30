@@ -64,10 +64,10 @@ then the following would all raise:
     - ``ser.where(ser.isna(), 'foo', inplace=True)``
     - ``ser.fillna('foo', inplace=False)``
     - ``ser.where(ser.isna(), 'foo', inplace=False)``
-    
+
 * setitem indexing operations (where ``indexer`` could be a slice, a mask,
   a single value, a list or array of values, or any other allowed indexer):
-  
+
     - ``ser.iloc[indexer] = 'foo'``
     - ``ser.loc[indexer] = 'foo'``
     - ``df.iloc[indexer, 0] = 'foo'``
@@ -233,7 +233,7 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
           return round(x)
       return x
   ```
-  
+
   which you could adapt according to your needs.
 
 ## Timeline
