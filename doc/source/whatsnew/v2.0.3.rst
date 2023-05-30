@@ -1,0 +1,38 @@
+.. _whatsnew_203:
+
+What's new in 2.0.3 (July XX, 2023)
+-----------------------------------
+
+These are the changes in pandas 2.0.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_203.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_203.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_203.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_203.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.0.2..v2.0.3|HEAD

@@ -1413,4 +1413,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v1.5.0rc0..v2.0.0|HEAD
+.. contributors:: v1.5.0rc0..v2.0.0
