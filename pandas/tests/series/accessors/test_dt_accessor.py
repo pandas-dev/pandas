@@ -101,7 +101,6 @@ class TestSeriesDatetimeValues:
             left = getattr(ser.dt, name)
             right = get_expected(ser, name)
 
-
         if not (is_list_like(left) and is_list_like(right)):
             assert left == right
         elif isinstance(left, DataFrame):
