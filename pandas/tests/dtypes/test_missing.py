@@ -14,6 +14,7 @@ from pandas.compat import is_numpy_dev
 from pandas.core.dtypes.common import (
     is_float,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -642,7 +643,7 @@ def test_array_equivalent_nested_mixed_list(strict_nan):
         np.array(["c", "d"], dtype=object),
     ]
     left = np.array([subarr, None], dtype=object)
-    right = np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object)
+    right = np.array([[[None, "b"], ["c", "d"]], None], dtype=object)
     assert array_equivalent(left, right, strict_nan=strict_nan)
     assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
 
@@ -709,7 +710,7 @@ def test_array_equivalent_index_with_tuples():
     ],
 )
 def test_na_value_for_dtype(dtype, na_value):
-    result = na_value_for_dtype(dtype)
+    result = na_value_for_dtype(pandas_dtype(dtype))
     # identify check doesn't work for datetime64/timedelta64("NaT") bc they
     #  are not singletons
     assert result is na_value or (

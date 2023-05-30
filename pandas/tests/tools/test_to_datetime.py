@@ -46,7 +46,6 @@ import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.core.tools import datetimes as tools
 from pandas.core.tools.datetimes import start_caching_at
-from pandas.util.version import Version
 
 PARSING_ERR_MSG = (
     r"You might want to try:\n"
@@ -1250,23 +1249,13 @@ class TestToDatetime:
         result = to_datetime(Series([date], dtype=dtype), utc=True, cache=cache)
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no("psycopg2")
     def test_to_datetime_tz_psycopg2(self, request, cache):
         # xref 8260
-        import psycopg2
-
-        # https://www.psycopg.org/docs/news.html#what-s-new-in-psycopg-2-9
-        request.node.add_marker(
-            pytest.mark.xfail(
-                Version(psycopg2.__version__.split()[0]) > Version("2.8.7"),
-                raises=AttributeError,
-                reason="psycopg2.tz is deprecated (and appears dropped) in 2.9",
-            )
-        )
+        psycopg2_tz = pytest.importorskip("psycopg2.tz")
 
         # misc cases
-        tz1 = psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None)
-        tz2 = psycopg2.tz.FixedOffsetTimezone(offset=-240, name=None)
+        tz1 = psycopg2_tz.FixedOffsetTimezone(offset=-300, name=None)
+        tz2 = psycopg2_tz.FixedOffsetTimezone(offset=-240, name=None)
         arr = np.array(
             [
                 datetime(2000, 1, 1, 3, 0, tzinfo=tz1),
@@ -1286,7 +1275,7 @@ class TestToDatetime:
         # dtype coercion
         i = DatetimeIndex(
             ["2000-01-01 08:00:00"],
-            tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None),
+            tz=psycopg2_tz.FixedOffsetTimezone(offset=-300, name=None),
         )
         assert is_datetime64_ns_dtype(i)
 
@@ -2586,11 +2575,11 @@ class TestToDatetimeMisc:
 
         expected = Series(np.empty(5, dtype="M8[ns]"), index=idx)
         for i in range(5):
-            x = series[i]
+            x = series.iloc[i]
             if isna(x):
-                expected[i] = NaT
+                expected.iloc[i] = NaT
             else:
-                expected[i] = to_datetime(x, cache=cache)
+                expected.iloc[i] = to_datetime(x, cache=cache)
 
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name == "foo"
@@ -2953,6 +2942,9 @@ class TestDatetimeParsingWrappers:
             ("2005-11-09 10:15", datetime(2005, 11, 9, 10, 15)),
             ("2005-11-09 08H", datetime(2005, 11, 9, 8, 0)),
             ("2005/11/09 10:15", datetime(2005, 11, 9, 10, 15)),
+            ("2005/11/09 10:15:32", datetime(2005, 11, 9, 10, 15, 32)),
+            ("2005/11/09 10:15:32 AM", datetime(2005, 11, 9, 10, 15, 32)),
+            ("2005/11/09 10:15:32 PM", datetime(2005, 11, 9, 22, 15, 32)),
             ("2005/11/09 08H", datetime(2005, 11, 9, 8, 0)),
             ("Thu Sep 25 10:36:28 2003", datetime(2003, 9, 25, 10, 36, 28)),
             ("Thu Sep 25 2003", datetime(2003, 9, 25)),

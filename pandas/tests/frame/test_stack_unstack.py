@@ -1075,7 +1075,7 @@ class TestDataFrameReshape:
             ),
             columns=Index(["B", "C"], name="Upper"),
         )
-        expected["B"] = expected["B"].astype(df.dtypes[0])
+        expected["B"] = expected["B"].astype(df.dtypes.iloc[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1180,6 +1180,10 @@ class TestDataFrameReshape:
 
         result = df.unstack(level=level)
         expected = df.astype(object).unstack(level=level)
+        if level == 0:
+            expected[("A", "B")] = expected[("A", "B")].fillna(pd.NA)
+        else:
+            expected[("A", 0)] = expected[("A", 0)].fillna(pd.NA)
 
         expected_dtypes = Series(
             [df.A.dtype] * 2 + [df.B.dtype] * 2, index=result.columns

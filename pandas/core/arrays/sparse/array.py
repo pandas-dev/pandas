@@ -44,8 +44,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_datetime64_any_dtype,
-    is_dtype_equal,
     is_integer,
     is_list_like,
     is_object_dtype,
@@ -53,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -68,7 +69,6 @@ from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -181,7 +181,7 @@ def _sparse_array_op(
     ltype = left.dtype.subtype
     rtype = right.dtype.subtype
 
-    if not is_dtype_equal(ltype, rtype):
+    if ltype != rtype:
         subtype = find_common_type([ltype, rtype])
         ltype = SparseDtype(subtype, left.fill_value)
         rtype = SparseDtype(subtype, right.fill_value)
@@ -400,6 +400,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             dtype = dtype.subtype
 
         if is_scalar(data):
+            warnings.warn(
+                f"Constructing {type(self).__name__} with scalar data is deprecated "
+                "and will raise in a future version. Pass a sequence instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             if sparse_index is None:
                 npoints = 1
             else:
@@ -559,7 +565,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # Can NumPy represent this type?
             # If not, `np.result_type` will raise. We catch that
             # and return object.
-            if is_datetime64_any_dtype(self.sp_values.dtype):
+            if self.sp_values.dtype.kind == "M":
                 # However, we *do* special-case the common case of
                 # a datetime64 with pandas NaT.
                 if fill_value is NaT:
@@ -1121,8 +1127,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     ) -> npt.NDArray[np.intp] | np.intp:
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
-        if not is_scalar(v):
-            v = np.asarray(v)
         v = np.asarray(v)
         return np.asarray(self, dtype=self.dtype.subtype).searchsorted(v, side, sorter)
 
@@ -1243,7 +1247,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
-        if is_dtype_equal(dtype, self._dtype):
+        if dtype == self._dtype:
             if not copy:
                 return self
             else:
@@ -1804,21 +1808,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         # Defer to the formatter from the GenericArrayFormatter calling us.
         # This will infer the correct formatter from the dtype of the values.
         return None
-
-    # ------------------------------------------------------------------------
-    # GroupBy Methods
-
-    def _groupby_op(
-        self,
-        *,
-        how: str,
-        has_dropped_na: bool,
-        min_count: int,
-        ngroups: int,
-        ids: npt.NDArray[np.intp],
-        **kwargs,
-    ):
-        raise NotImplementedError(f"{self.dtype} dtype not supported")
 
 
 def _make_sparse(

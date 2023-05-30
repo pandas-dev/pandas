@@ -207,7 +207,7 @@ Copy-on-Write improvements
   with a :class:`DataFrame`.
 
 - Trying to set values using chained assignment (for example, ``df["a"][1:3] = 0``)
-  will now always raise an warning when Copy-on-Write is enabled. In this mode,
+  will now always raise a warning when Copy-on-Write is enabled. In this mode,
   chained assignment can never work because we are always setting into a temporary
   object that is the result of an indexing operation (getitem), which under
   Copy-on-Write always behaves as a copy. Thus, assigning through a chain
@@ -945,7 +945,7 @@ Removal of prior version deprecations/changes
 - Disallow passing non-keyword arguments to :meth:`DataFrame.where` and :meth:`Series.where` except for ``cond`` and ``other`` (:issue:`41523`)
 - Disallow passing non-keyword arguments to :meth:`Series.set_axis` and :meth:`DataFrame.set_axis` except for ``labels`` (:issue:`41491`)
 - Disallow passing non-keyword arguments to :meth:`Series.rename_axis` and :meth:`DataFrame.rename_axis` except for ``mapper`` (:issue:`47587`)
-- Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` (:issue:`41511`)
+- Disallow passing non-keyword arguments to :meth:`Series.clip` and :meth:`DataFrame.clip` except ``lower`` and ``upper`` (:issue:`41511`)
 - Disallow passing non-keyword arguments to :meth:`Series.bfill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill` and :meth:`DataFrame.ffill` (:issue:`41508`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.replace`, :meth:`Series.replace` except for ``to_replace`` and ``value`` (:issue:`47587`)
 - Disallow passing non-keyword arguments to :meth:`DataFrame.sort_values` except for ``by`` (:issue:`41505`)

@@ -9,16 +9,13 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 from pandas._libs.tslibs import IncompatibleFrequency
-
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
 
 import pandas as pd
 from pandas import (
     Categorical,
+    DatetimeTZDtype,
     Index,
     Series,
     Timedelta,
@@ -228,8 +225,8 @@ class TestSeriesArithmetic:
 
         result = ser + ser.shift(1)
         result2 = ser.shift(1) + ser
-        assert isna(result[0])
-        assert isna(result2[0])
+        assert isna(result.iloc[0])
+        assert isna(result2.iloc[0])
 
     def test_add_corner_cases(self, datetime_series):
         empty = Series([], index=Index([]), dtype=np.float64)
@@ -890,24 +887,24 @@ def test_none_comparison(request, series_with_simple_index):
     series.iloc[0] = np.nan
 
     # noinspection PyComparisonWithNone
-    result = series == None  # noqa:E711
+    result = series == None  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
     # noinspection PyComparisonWithNone
-    result = series != None  # noqa:E711
+    result = series != None  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 
-    result = None == series  # noqa:E711
+    result = None == series  # noqa: E711
     assert not result.iat[0]
     assert not result.iat[1]
 
-    result = None != series  # noqa:E711
+    result = None != series  # noqa: E711
     assert result.iat[0]
     assert result.iat[1]
 
-    if is_datetime64_dtype(series.dtype) or is_datetime64tz_dtype(series.dtype):
+    if lib.is_np_dtype(series.dtype, "M") or isinstance(series.dtype, DatetimeTZDtype):
         # Following DatetimeIndex (and Timestamp) convention,
         # inequality comparisons with Series[datetime64] raise
         msg = "Invalid comparison"
