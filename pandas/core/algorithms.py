@@ -1175,6 +1175,11 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
+
+        .. deprecated:: 2.1.0
+            Passing an argument other than a numpy.ndarray, ExtensionArray,
+            Index, or Series is deprecated.
+
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
@@ -1240,6 +1245,16 @@ def take(
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
+    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+        # GH#52981
+        warnings.warn(
+            "pd.api.extensions.take accepting non-standard inputs is deprecated "
+            "and will raise in a future version. Pass either a numpy.ndarray, "
+            "ExtensionArray, Index, or Series instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
