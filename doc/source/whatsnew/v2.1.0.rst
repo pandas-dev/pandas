@@ -97,6 +97,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
+- :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
@@ -251,6 +252,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
 - Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
@@ -351,6 +353,7 @@ Numeric
 - Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` had the default value of ``bool_only`` set to ``None`` instead of ``False``; this change should have no impact on users (:issue:`53258`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
 - Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)
+- Bug in :meth:`Series.sum` converting dtype ``uint64`` to ``int64`` (:issue:`53401`)
 
 
 Conversion
@@ -396,6 +399,7 @@ I/O
 - :meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)
 - Bug in :func:`json_normalize`, fix json_normalize cannot parse metadata fields list type (:issue:`37782`)
 - Bug in :func:`read_csv` where it would error when ``parse_dates`` was set to a list or dictionary with ``engine="pyarrow"`` (:issue:`47961`)
+- Bug in :func:`read_csv`, with ``engine="pyarrow"`` erroring when specifying a ``dtype`` with ``index_col`` (:issue:`53229`)
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
