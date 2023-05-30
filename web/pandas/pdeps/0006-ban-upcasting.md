@@ -58,12 +58,12 @@ ser = df["a"].copy()
 ```
 then the following would all raise:
 
-- setitem-like operations:
-  - ``ser.fillna('foo', inplace=True)``;
+* setitem-like operations:
+  - ``ser.fillna('foo', inplace=True)``
   - ``ser.where(ser.isna(), 'foo', inplace=True)``
-  - ``ser.fillna('foo', inplace=False)``;
+  - ``ser.fillna('foo', inplace=False)``
   - ``ser.where(ser.isna(), 'foo', inplace=False)``
-- setitem indexing operations (where ``indexer`` could be a slice, a mask,
+* setitem indexing operations (where ``indexer`` could be a slice, a mask,
   a single value, a list or array of values, or any other allowed indexer):
   - ``ser.iloc[indexer] = 'foo'``
   - ``ser.loc[indexer] = 'foo'``
@@ -79,8 +79,8 @@ Examples of operations which would not raise are:
 - ``ser.diff()``
 - ``pd.concat([ser, ser.astype(object)])``
 - ``ser.mean()``
-- ``ser[0] = 3``;  # same dtype
-- ``ser[0] = 3.``;  # 3.0 is a 'round' float and so compatible with 'int64' dtype
+- ``ser[0] = 3``  # same dtype
+- ``ser[0] = 3.``  # 3.0 is a 'round' float and so compatible with 'int64' dtype
 - ``df['a'] = pd.date_range(datetime(2020, 1, 1), periods=3)``
 - ``df.index.intersection(ser.index)``
 
@@ -108,11 +108,11 @@ For a start, this would involve:
 
 2. making a similar change in:
 
-   - ``Block.where``
-   - ``Block.putmask``
-   - ``EABackedBlock.setitem``
-   - ``EABackedBlock.where``
-   - ``EABackedBlock.putmask``
+- ``Block.where``
+- ``Block.putmask``
+- ``EABackedBlock.setitem``
+- ``EABackedBlock.where``
+- ``EABackedBlock.putmask``
 
 The above would already require several hundreds of tests to be adjusted. Note that once
 implementation starts, the list of locations to change may turn out to be slightly
@@ -150,9 +150,10 @@ numeric (without much regard for ``int`` vs ``float``) - ``'int64'`` is just wha
 when constructing it.
 
 Possible options could be:
-1. only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``);
-2. convert the float value to ``int`` before setting it (i.e. silently round all float values);
-3. limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64) .
+
+1. Only accept round floats (e.g. ``1.0``) and raise on anything else (e.g. ``1.01``).
+2. Convert the float value to ``int`` before setting it (i.e. silently round all float values).
+3. Limit "banning upcasting" to when the upcasted dtype is ``object`` (i.e. preserve current behavior of upcasting the int64 Series to float64).
 
 Let us compare with what other libraries do:
 
@@ -170,12 +171,12 @@ someone might set ``1.5`` and later be surprised to learn that they actually set
 
 There are several downsides to option ``3``:
 
-- it would be inconsistent with the nullable dtypes' behaviour;
-- it would also add complexity to the codebase and to tests;
-- it would be hard to teach, as instead of being able to teach a simple rule,
-  there would be a rule with exceptions;
-- there would be a risk of loss of precision and or overflow;
-- it opens the door to other exceptions, such as not upcasting ``'int8'`` to ``'int16'``.
+- It would be inconsistent with the nullable dtypes' behaviour.
+- It would also add complexity to the codebase and to tests.
+- It would be hard to teach, as instead of being able to teach a simple rule,
+  There would be a rule with exceptions.
+- There would be a risk of loss of precision and or overflow.
+- It opens the door to other exceptions, such as not upcasting ``'int8'`` to ``'int16'``.
 
 Option ``1`` is the maximally safe one in terms of protecting users from bugs, being
 consistent with the current behaviour of nullable dtypes, and in being simple to teach.
