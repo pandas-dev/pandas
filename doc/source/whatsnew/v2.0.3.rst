@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :meth:`DataFrame.loc` rows are not inserted into DataFrame from lists of one element (:issue:`52825`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.bug_fixes:
