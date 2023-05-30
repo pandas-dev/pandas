@@ -24,7 +24,6 @@ from pandas import (
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
-from pandas.util.version import Version
 
 from pandas.io.common import (
     IOHandles,
@@ -162,7 +161,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow.extension_types  # pyright: ignore # noqa:F401
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
 
         self.api = pyarrow
 
@@ -244,7 +243,7 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -343,9 +342,8 @@ class FastParquetImpl(BaseImpl):
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
-        if Version(self.api.__version__) >= Version("0.7.1"):
-            # We are disabling nullable dtypes for fastparquet pending discussion
-            parquet_kwargs["pandas_nulls"] = False
+        # We are disabling nullable dtypes for fastparquet pending discussion
+        parquet_kwargs["pandas_nulls"] = False
         if use_nullable_dtypes:
             raise ValueError(
                 "The 'use_nullable_dtypes' argument is not supported for the "
@@ -365,14 +363,7 @@ class FastParquetImpl(BaseImpl):
         if is_fsspec_url(path):
             fsspec = import_optional_dependency("fsspec")
 
-            if Version(self.api.__version__) > Version("0.6.1"):
-                parquet_kwargs["fs"] = fsspec.open(
-                    path, "rb", **(storage_options or {})
-                ).fs
-            else:
-                parquet_kwargs["open_with"] = lambda path, _: fsspec.open(
-                    path, "rb", **(storage_options or {})
-                ).open()
+            parquet_kwargs["fs"] = fsspec.open(path, "rb", **(storage_options or {})).fs
         elif isinstance(path, str) and not os.path.isdir(path):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories

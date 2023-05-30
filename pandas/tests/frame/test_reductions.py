@@ -9,11 +9,10 @@ import pytest
 from pandas.compat import is_platform_windows
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
+    CategoricalDtype,
     DataFrame,
     Index,
     Series,
@@ -170,15 +169,30 @@ class TestDataFrameAnalytics:
         ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "unsupported operand type",
-                    "not supported between instances of",
-                ]
-            )
+            if opname in ["var", "std", "sem", "skew", "kurt"]:
+                msg = "could not convert string to float: 'bar'"
+            elif opname == "product":
+                if axis == 1:
+                    msg = "can't multiply sequence by non-int of type 'float'"
+                else:
+                    msg = "can't multiply sequence by non-int of type 'str'"
+            elif opname == "sum":
+                msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname == "mean":
+                if axis == 0:
+                    # different message on different builds
+                    msg = "|".join(
+                        [
+                            r"Could not convert \['.*'\] to numeric",
+                            "Could not convert string '(bar){30}' to numeric",
+                        ]
+                    )
+                else:
+                    msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
+            elif opname in ["min", "max"]:
+                msg = "'[><]=' not supported between instances of 'float' and 'str'"
+            elif opname == "median":
+                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -317,11 +331,14 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Mismatched null-like values:FutureWarning")
     def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
         expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
+        if axis in [1, "columns"] and method in ["min", "max"]:
+            expected[expected.isna()] = None
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -597,16 +614,16 @@ class TestDataFrameAnalytics:
 
         # min
         result = diffs.min()
-        assert result[0] == diffs.loc[0, "A"]
-        assert result[1] == diffs.loc[0, "B"]
+        assert result.iloc[0] == diffs.loc[0, "A"]
+        assert result.iloc[1] == diffs.loc[0, "B"]
 
         result = diffs.min(axis=1)
         assert (result == diffs.loc[0, "B"]).all()
 
         # max
         result = diffs.max()
-        assert result[0] == diffs.loc[2, "A"]
-        assert result[1] == diffs.loc[2, "B"]
+        assert result.iloc[0] == diffs.loc[2, "A"]
+        assert result.iloc[1] == diffs.loc[2, "B"]
 
         result = diffs.max(axis=1)
         assert (result == diffs["A"]).all()
@@ -950,6 +967,18 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmin_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmin(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
@@ -977,6 +1006,18 @@ class TestDataFrameAnalytics:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmax_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmax(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
@@ -1280,7 +1321,7 @@ class TestDataFrameAnalytics:
         # GH 19976
         data = DataFrame(data)
 
-        if any(is_categorical_dtype(x) for x in data.dtypes):
+        if any(isinstance(x, CategoricalDtype) for x in data.dtypes):
             with pytest.raises(
                 TypeError, match="dtype category does not support reduction"
             ):
@@ -1508,6 +1549,42 @@ class TestDataFrameReductions:
         with pytest.raises(ValueError, match=msg):
             getattr(obj, all_reductions)(skipna=None)
 
+    @td.skip_array_manager_invalid_test
+    def test_reduction_timestamp_smallest_unit(self):
+        # GH#52524
+        df = DataFrame(
+            {
+                "a": Series([Timestamp("2019-12-31")], dtype="datetime64[s]"),
+                "b": Series(
+                    [Timestamp("2019-12-31 00:00:00.123")], dtype="datetime64[ms]"
+                ),
+            }
+        )
+        result = df.max()
+        expected = Series(
+            [Timestamp("2019-12-31"), Timestamp("2019-12-31 00:00:00.123")],
+            dtype="datetime64[ms]",
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_array_manager_not_yet_implemented
+    def test_reduction_timedelta_smallest_unit(self):
+        # GH#52524
+        df = DataFrame(
+            {
+                "a": Series([pd.Timedelta("1 days")], dtype="timedelta64[s]"),
+                "b": Series([pd.Timedelta("1 days")], dtype="timedelta64[ms]"),
+            }
+        )
+        result = df.max()
+        expected = Series(
+            [pd.Timedelta("1 days"), pd.Timedelta("1 days")],
+            dtype="timedelta64[ms]",
+            index=["a", "b"],
+        )
+        tm.assert_series_equal(result, expected)
+
 
 class TestNuisanceColumns:
     @pytest.mark.parametrize("method", ["any", "all"])
@@ -1724,5 +1801,16 @@ def test_fails_on_non_numeric(kernel):
             "argument must be a string or a real number",
         ]
     )
+    if kernel == "median":
+        # slightly different message on different builds
+        msg1 = (
+            r"Cannot convert \[\[<class 'object'> <class 'object'> "
+            r"<class 'object'>\]\] to numeric"
+        )
+        msg2 = (
+            r"Cannot convert \[<class 'object'> <class 'object'> "
+            r"<class 'object'>\] to numeric"
+        )
+        msg = "|".join([msg1, msg2])
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)

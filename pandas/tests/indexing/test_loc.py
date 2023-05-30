@@ -37,10 +37,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.api.types import (
-    is_bool_dtype,
-    is_scalar,
-)
+from pandas.api.types import is_scalar
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
@@ -62,6 +59,12 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
 
 
 class TestLoc:
+    def test_none_values_on_string_columns(self):
+        # Issue #32218
+        df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
+
+        assert df.loc[2, "a"] is None
+
     @pytest.mark.parametrize("kind", ["series", "frame"])
     def test_loc_getitem_int(self, kind, request):
         # int label
@@ -860,7 +863,8 @@ class TestLocBaseIndependent:
         # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        # Set object dtype to avoid upcast when setting 'Z'
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.loc[0, indexer] = value
         result = df.loc[0, "A"]
 
@@ -1159,7 +1163,9 @@ class TestLocBaseIndependent:
         # GH6173, various appends to an empty dataframe
 
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         # appends to fit length of data
         df = DataFrame(columns=["x", "y"])
@@ -1170,7 +1176,9 @@ class TestLocBaseIndependent:
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = df["x"].astype(np.int64)
@@ -1521,7 +1529,8 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_2d_to_1d_raises(self):
         data = np.random.randn(2, 2)
-        ser = Series(range(2))
+        # float64 dtype to avoid upcast when trying to set float data
+        ser = Series(range(2), dtype="float64")
 
         msg = "|".join(
             [
@@ -1651,7 +1660,7 @@ class TestLocWithEllipsis:
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
 
-        if indexer is tm.loc and is_bool_dtype(obj.index):
+        if indexer is tm.loc and obj.index.inferred_type == "boolean":
             # passing [False] will get interpreted as a boolean mask
             # TODO: should it?  unambiguous when lengths dont match?
             return
@@ -2970,6 +2979,28 @@ def test_loc_periodindex_3_levels():
     assert mi_series.loc[(p_index[0], "A", "B")] == 1.0
 
 
+def test_loc_setitem_pyarrow_strings():
+    # GH#52319
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "strings": Series(["A", "B", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+    new_value = Series(["X", "Y"])
+    df.loc[df.ids, "strings"] = new_value
+
+    expected_df = DataFrame(
+        {
+            "strings": Series(["X", "Y", "C"], dtype="string[pyarrow]"),
+            "ids": Series([True, True, False]),
+        }
+    )
+
+    tm.assert_frame_equal(df, expected_df)
+
+
 class TestLocSeries:
     @pytest.mark.parametrize("val,expected", [(2**63 - 1, 3), (2**63, 4)])
     def test_loc_uint64(self, val, expected):
@@ -2999,7 +3030,7 @@ class TestLocSeries:
     def test_loc_getitem_not_monotonic(self, datetime_series):
         d1, d2 = datetime_series.index[[5, 15]]
 
-        ts2 = datetime_series[::2][[1, 2, 0]]
+        ts2 = datetime_series[::2].iloc[[1, 2, 0]]
 
         msg = r"Timestamp\('2000-01-10 00:00:00'\)"
         with pytest.raises(KeyError, match=msg):
@@ -3157,7 +3188,7 @@ class TestLocSeries:
         result.loc[inds] = 5
 
         expected = string_series.copy()
-        expected[[3, 4, 7]] = 5
+        expected.iloc[[3, 4, 7]] = 5
         tm.assert_series_equal(result, expected)
 
         result.iloc[5:10] = 10

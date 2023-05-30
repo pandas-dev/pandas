@@ -5,12 +5,14 @@ from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DatetimeIndex,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     isna,
     notna,
     offsets,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -69,16 +71,16 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        assert result == ts[3]
+        assert result == ts.iloc[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
@@ -114,11 +116,6 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import (
-            PeriodIndex,
-            period_range,
-        )
-
         # array or list or dates
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")
@@ -147,15 +144,15 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
-        assert ts.asof(ts.index[3]) == ts[3]
+        assert ts.asof(ts.index[3]) == ts.iloc[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()

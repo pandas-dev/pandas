@@ -52,15 +52,11 @@ from pandas._libs.tslibs.nattype import NaTType
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
-    is_datetime64_dtype,
     is_float,
-    is_float_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -1026,38 +1022,6 @@ class DataFrameRenderer:
     def __init__(self, fmt: DataFrameFormatter) -> None:
         self.fmt = fmt
 
-    def to_latex(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        column_format: str | None = None,
-        longtable: bool = False,
-        encoding: str | None = None,
-        multicolumn: bool = False,
-        multicolumn_format: str | None = None,
-        multirow: bool = False,
-        caption: str | tuple[str, str] | None = None,
-        label: str | None = None,
-        position: str | None = None,
-    ) -> str | None:
-        """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
-        """
-        from pandas.io.formats.latex import LatexFormatter
-
-        latex_formatter = LatexFormatter(
-            self.fmt,
-            longtable=longtable,
-            column_format=column_format,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
-        string = latex_formatter.to_string()
-        return save_to_buffer(string, buf=buf, encoding=encoding)
-
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1290,17 +1254,17 @@ def format_array(
     List[str]
     """
     fmt_klass: type[GenericArrayFormatter]
-    if is_datetime64_dtype(values.dtype):
+    if lib.is_np_dtype(values.dtype, "M"):
         fmt_klass = Datetime64Formatter
     elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
-    elif is_timedelta64_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = Timedelta64Formatter
     elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = ExtensionArrayFormatter
-    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "fc"):
         fmt_klass = FloatArrayFormatter
-    elif is_integer_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "iu"):
         fmt_klass = IntArrayFormatter
     else:
         fmt_klass = GenericArrayFormatter

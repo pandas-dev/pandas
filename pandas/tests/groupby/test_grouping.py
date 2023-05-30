@@ -447,6 +447,29 @@ class TestGrouping:
         expected.index.freq = None
         tm.assert_series_equal(result, expected)
 
+    def test_groupby_with_datetime_key(self):
+        # GH 51158
+        df = DataFrame(
+            {
+                "id": ["a", "b"] * 3,
+                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+            }
+        )
+        grouper = Grouper(key="b", freq="D")
+        gb = df.groupby([grouper, "id"])
+
+        # test number of groups
+        expected = {
+            (Timestamp("2000-01-01"), "a"): [0, 2],
+            (Timestamp("2000-01-01"), "b"): [1],
+            (Timestamp("2000-01-02"), "a"): [4],
+            (Timestamp("2000-01-02"), "b"): [3, 5],
+        }
+        tm.assert_dict_equal(gb.groups, expected)
+
+        # test number of group keys
+        assert len(gb.groups.keys()) == 4
+
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
         with pytest.raises(ValueError, match=msg):
@@ -969,7 +992,7 @@ class TestIteration:
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
         # pylint: disable-next=unnecessary-comprehension
-        groups = {key: gp for key, gp in grouped}
+        groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
         # axis = 1
@@ -1060,7 +1083,9 @@ def test_grouping_by_key_is_in_axis():
 
     # Currently only in-axis groupings are including in the result when as_index=False;
     # This is likely to change in the future.
-    result = gb.sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
 

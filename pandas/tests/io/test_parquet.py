@@ -8,7 +8,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -45,6 +48,10 @@ except ImportError:
 
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
+
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:DataFrame._data is deprecated:FutureWarning"
+)
 
 
 # setup engines & skips
@@ -197,6 +204,8 @@ def check_round_trip(
             with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
 
+            if "string_with_nan" in expected:
+                expected.loc[1, "string_with_nan"] = None
             tm.assert_frame_equal(
                 expected,
                 actual,
@@ -528,11 +537,7 @@ class TestBasic(Base):
         df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
-            if Version(fastparquet.__version__) < Version("0.7.0"):
-                err = TypeError
-            else:
-                err = ValueError
-            self.check_error_on_write(df, engine, err, "Column name")
+            self.check_error_on_write(df, engine, ValueError, "Column name")
         elif engine == "pyarrow":
             check_round_trip(df, engine)
 
@@ -689,6 +694,10 @@ class TestParquetPyArrow(Base):
 
     def test_to_bytes_without_path_or_buf_provided(self, pa, df_full):
         # GH 37105
+        msg = "Mismatched null-like values nan and None found"
+        warn = None
+        if using_copy_on_write():
+            warn = FutureWarning
 
         buf_bytes = df_full.to_parquet(engine=pa)
         assert isinstance(buf_bytes, bytes)
@@ -696,7 +705,10 @@ class TestParquetPyArrow(Base):
         buf_stream = BytesIO(buf_bytes)
         res = read_parquet(buf_stream)
 
-        tm.assert_frame_equal(df_full, res)
+        expected = df_full.copy(deep=False)
+        expected.loc[1, "string_with_nan"] = None
+        with tm.assert_produces_warning(warn, match=msg):
+            tm.assert_frame_equal(df_full, res)
 
     def test_duplicate_columns(self, pa):
         # not currently able to handle duplicate columns
@@ -1203,9 +1215,8 @@ class TestParquetFastParquet(Base):
 
     def test_empty_dataframe(self, fp):
         # GH #27339
-        df = pd.DataFrame(index=[], columns=[])
+        df = pd.DataFrame()
         expected = df.copy()
-        expected.index.name = "index"
         check_round_trip(df, fp, expected=expected)
 
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
@@ -1320,8 +1331,5 @@ class TestParquetFastParquet(Base):
     def test_empty_columns(self, fp):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        expected = pd.DataFrame(
-            columns=pd.Index([], dtype=object),
-            index=pd.Index(["a", "b", "c"], name="custom name"),
-        )
+        expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, fp, expected=expected)

@@ -25,6 +25,7 @@ import numpy as np
 
 from pandas._config import option_context
 
+from pandas._libs import lib
 from pandas._typing import (
     AggFuncType,
     AggFuncTypeBase,
@@ -41,19 +42,20 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_dict_like,
     is_list_like,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
     ABCSeries,
 )
 
-from pandas.core.algorithms import safe_sort
 from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
@@ -89,6 +91,9 @@ def frame_apply(
     elif axis == 1:
         klass = FrameColumnApply
 
+    _, func, _, _ = reconstruct_func(func, **kwargs)
+    assert func is not None
+
     return klass(
         obj,
         func,
@@ -101,13 +106,16 @@ def frame_apply(
 
 class Apply(metaclass=abc.ABCMeta):
     axis: AxisInt
+    orig_f: AggFuncType
+    f: AggFuncType
 
     def __init__(
         self,
         obj: AggObjType,
-        func,
+        func: AggFuncType,
         raw: bool,
         result_type: str | None,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -124,21 +132,19 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.result_type = result_type
 
+        f: AggFuncType
         # curry if needed
-        if (
-            (kwargs or args)
-            and not isinstance(func, (np.ufunc, str))
-            and not is_list_like(func)
-        ):
+        if callable(func) and (kwargs or args) and not isinstance(func, np.ufunc):
 
             def f(x):
+                assert callable(func)  # needed for mypy
                 return func(x, *args, **kwargs)
 
         else:
             f = func
 
-        self.orig_f: AggFuncType = func
-        self.f: AggFuncType = f
+        self.orig_f = func
+        self.f = f
 
     @abc.abstractmethod
     def apply(self) -> DataFrame | Series:
@@ -236,7 +242,7 @@ class Apply(metaclass=abc.ABCMeta):
         # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
         # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type:ignore[arg-type]
+            obj.index  # type: ignore[arg-type]
         ):
             raise ValueError("Function did not transform")
 
@@ -275,7 +281,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if isinstance(func, str):
-            return self._try_aggregate_string_function(obj, func, *args, **kwargs)
+            return self._apply_str(obj, func, *args, **kwargs)
 
         if not args and not kwargs:
             f = com.get_cython_func(func)
@@ -321,6 +327,9 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        is_ser_or_df = isinstance(obj, (ABCDataFrame, ABCSeries))
+        this_args = [self.axis, *self.args] if is_ser_or_df else self.args
+
         context_manager: ContextManager
         if is_groupby:
             # When as_index=False, we combine all results using indices
@@ -333,12 +342,7 @@ class Apply(metaclass=abc.ABCMeta):
             if selected_obj.ndim == 1:
                 for a in arg:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            a, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(a, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(a, *this_args, **self.kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -349,12 +353,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    if isinstance(colg, (ABCSeries, ABCDataFrame)):
-                        new_res = colg.aggregate(
-                            arg, self.axis, *self.args, **self.kwargs
-                        )
-                    else:
-                        new_res = colg.aggregate(arg, *self.args, **self.kwargs)
+                    new_res = colg.aggregate(arg, *this_args, **self.kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -412,29 +411,55 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = com.temp_setattr(obj, "as_index", True)
         else:
             context_manager = nullcontext()
+
+        is_non_unique_col = (
+            selected_obj.ndim == 2
+            and selected_obj.columns.nunique() < len(selected_obj.columns)
+        )
+
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
-                results = {key: colg.agg(how) for key, how in arg.items()}
+                result_data = [colg.agg(how) for _, how in arg.items()]
+                result_index = list(arg.keys())
+            elif is_non_unique_col:
+                # key used for column selection and output
+                # GH#51099
+                result_data = []
+                result_index = []
+                for key, how in arg.items():
+                    indices = selected_obj.columns.get_indexer_for([key])
+                    labels = selected_obj.columns.take(indices)
+                    label_to_indices = defaultdict(list)
+                    for index, label in zip(indices, labels):
+                        label_to_indices[label].append(index)
+
+                    key_data = [
+                        selected_obj._ixs(indice, axis=1).agg(how)
+                        for label, indices in label_to_indices.items()
+                        for indice in indices
+                    ]
+
+                    result_index += [key] * len(key_data)
+                    result_data += key_data
             else:
                 # key used for column selection and output
-                results = {
-                    key: obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
-                }
-
-        # set the final keys
-        keys = list(arg.keys())
+                result_data = [
+                    obj._gotitem(key, ndim=1).agg(how) for key, how in arg.items()
+                ]
+                result_index = list(arg.keys())
 
         # Avoid making two isinstance calls in all and any below
-        is_ndframe = [isinstance(r, ABCNDFrame) for r in results.values()]
+        is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
         # combine results
         if all(is_ndframe):
+            results = dict(zip(result_index, result_data))
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k in keys if not results[k].empty]
+            keys_to_use = [k for k in result_index if not results[k].empty]
             # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else keys
+            keys_to_use = keys_to_use if keys_to_use != [] else result_index
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
@@ -457,7 +482,7 @@ class Apply(metaclass=abc.ABCMeta):
         else:
             from pandas import Series
 
-            # we have a dict of scalars
+            # we have a list of scalars
             # GH 36212 use name only if obj is a series
             if obj.ndim == 1:
                 obj = cast("Series", obj)
@@ -465,7 +490,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            result = Series(results, name=name)
+            result = Series(result_data, index=result_index, name=name)
 
         return result
 
@@ -514,7 +539,7 @@ class Apply(metaclass=abc.ABCMeta):
                         self.kwargs["axis"] = self.axis
                 else:
                     self.kwargs["axis"] = self.axis
-        return self._try_aggregate_string_function(obj, f, *self.args, **self.kwargs)
+        return self._apply_str(obj, f, *self.args, **self.kwargs)
 
     def apply_multiple(self) -> DataFrame | Series:
         """
@@ -525,7 +550,20 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.f is a list-like or dict-like, None otherwise.
         """
-        return self.obj.aggregate(self.f, self.axis, *self.args, **self.kwargs)
+        if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
+            return self.obj.T.apply(self.f, 0, args=self.args, **self.kwargs).T
+
+        func = self.f
+        kwargs = self.kwargs
+
+        if is_dict_like(func):
+            result = self.agg_dict_like()
+        else:
+            result = self.agg_list_like()
+
+        result = reconstruct_and_relabel_result(result, func, **kwargs)
+
+        return result
 
     def normalize_dictlike_arg(
         self, how: str, obj: DataFrame | Series, func: AggFuncTypeDict
@@ -550,10 +588,11 @@ class Apply(metaclass=abc.ABCMeta):
 
         if obj.ndim != 1:
             # Check for missing columns on a frame
-            cols = set(func.keys()) - set(obj.columns)
+            from pandas import Index
+
+            cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                cols_sorted = list(safe_sort(list(cols)))
-                raise KeyError(f"Column(s) {cols_sorted} do not exist")
+                raise KeyError(f"Column(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
@@ -571,34 +610,32 @@ class Apply(metaclass=abc.ABCMeta):
             func = new_func
         return func
 
-    def _try_aggregate_string_function(self, obj, arg: str, *args, **kwargs):
+    def _apply_str(self, obj, arg: str, *args, **kwargs):
         """
         if arg is a string, then try to operate on it:
-        - try to find a function (or attribute) on ourselves
+        - try to find a function (or attribute) on obj
         - try to find a numpy function
         - raise
         """
         assert isinstance(arg, str)
 
-        f = getattr(obj, arg, None)
-        if f is not None:
+        if hasattr(obj, arg):
+            f = getattr(obj, arg)
             if callable(f):
                 return f(*args, **kwargs)
 
-            # people may try to aggregate on a non-callable attribute
+            # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
             assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
             return f
-
-        f = getattr(np, arg, None)
-        if f is not None and hasattr(obj, "__array__"):
+        elif hasattr(np, arg) and hasattr(obj, "__array__"):
             # in particular exclude Window
+            f = getattr(np, arg)
             return f(obj, *args, **kwargs)
-
-        raise AttributeError(
-            f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
-        )
+        else:
+            msg = f"'{arg}' is not a valid function for '{type(obj).__name__}' object"
+            raise AttributeError(msg)
 
 
 class NDFrameApply(Apply):
@@ -1009,10 +1046,21 @@ class SeriesApply(NDFrameApply):
         self,
         obj: Series,
         func: AggFuncType,
-        convert_dtype: bool,
+        *,
+        convert_dtype: bool | lib.NoDefault = lib.no_default,
         args,
         kwargs,
     ) -> None:
+        if convert_dtype is lib.no_default:
+            convert_dtype = True
+        else:
+            warnings.warn(
+                "the convert_dtype parameter is deprecated and will be removed in a "
+                "future version.  Do ``ser.astype(object).apply()`` "
+                "instead if you want ``convert_dtype=False``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         self.convert_dtype = convert_dtype
 
         super().__init__(
@@ -1045,14 +1093,9 @@ class SeriesApply(NDFrameApply):
         result = super().agg()
         if result is None:
             f = self.f
-            kwargs = self.kwargs
 
             # string, list-like, and dict-like are entirely handled in super
             assert callable(f)
-
-            # we can be called from an inner function which
-            # passes this meta-data
-            kwargs.pop("_level", None)
 
             # try a regular apply, this evaluates lambdas
             # row-by-row; however if the lambda is expected a Series
@@ -1089,7 +1132,7 @@ class SeriesApply(NDFrameApply):
         # we need to give `na_action="ignore"` for categorical data.
         # TODO: remove the `na_action="ignore"` when that default has been changed in
         #  Categorical (GH51645).
-        action = "ignore" if is_categorical_dtype(obj) else None
+        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
         mapped = obj._map_values(mapper=f, na_action=action, convert=self.convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
@@ -1115,6 +1158,7 @@ class GroupByApply(Apply):
         self,
         obj: GroupBy[NDFrameT],
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -1144,6 +1188,7 @@ class ResamplerWindowApply(Apply):
         self,
         obj: Resampler | BaseWindow,
         func: AggFuncType,
+        *,
         args,
         kwargs,
     ) -> None:
@@ -1165,7 +1210,7 @@ class ResamplerWindowApply(Apply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType | None, list[str] | None, npt.NDArray[np.intp] | None]:
+) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1220,6 +1265,7 @@ def reconstruct_func(
 
     if relabeling:
         func, columns, order = normalize_keyword_aggregation(kwargs)
+    assert func is not None
 
     return relabeling, func, columns, order
 
@@ -1399,7 +1445,7 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = Index(s.index).get_indexer(fun)
-            s = s[col_idx_order]
+            s = s.iloc[col_idx_order]
 
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
@@ -1407,6 +1453,26 @@ def relabel_result(
         reordered_result_in_dict[col] = s.reindex(columns, copy=False)
         idx = idx + len(fun)
     return reordered_result_in_dict
+
+
+def reconstruct_and_relabel_result(result, func, **kwargs) -> DataFrame | Series:
+    from pandas import DataFrame
+
+    relabeling, func, columns, order = reconstruct_func(func, **kwargs)
+
+    if relabeling:
+        # This is to keep the order to columns occurrence unchanged, and also
+        # keep the order of new columns occurrence unchanged
+
+        # For the return values of reconstruct_func, if relabeling is
+        # False, columns and order will be None.
+        assert columns is not None
+        assert order is not None
+
+        result_in_dict = relabel_result(result, func, columns, order)
+        result = DataFrame(result_in_dict, index=columns)
+
+    return result
 
 
 # TODO: Can't use, because mypy doesn't like us setting __name__
