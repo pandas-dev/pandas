@@ -13,7 +13,7 @@ complex_types = ['complex64',
 }}
 
 {{for name in complex_types}}
-cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
+cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) noexcept nogil:
     cdef kh{{name}}_t res
     res.real = val.real
     res.imag = val.imag
@@ -42,7 +42,7 @@ c_types = ['khcomplex128_t',
 
 {{for c_type in c_types}}
 
-cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+cdef bint is_nan_{{c_type}}({{c_type}} val) noexcept nogil:
     {{if c_type in {'khcomplex128_t', 'khcomplex64_t'} }}
     return val.real != val.real or val.imag != val.imag
     {{elif c_type in {'float64_t', 'float32_t'} }}
@@ -55,7 +55,7 @@ cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
 {{if c_type in {'khcomplex128_t', 'khcomplex64_t', 'float64_t', 'float32_t'} }}
 # are_equivalent_{{c_type}} is cimported via khash.pxd
 {{else}}
-cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
+cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) noexcept nogil:
     return val1 == val2
 {{endif}}
 
@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) noexcept nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------

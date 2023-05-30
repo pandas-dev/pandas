@@ -259,7 +259,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) noexcept nogil:
     cdef:
         numeric_t t
 
@@ -270,7 +270,8 @@ cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr,
+                              Py_ssize_t k, Py_ssize_t n) noexcept nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
@@ -1062,7 +1063,7 @@ cdef void rank_sorted_1d(
     # https://github.com/cython/cython/issues/1630, only trailing arguments can
     # currently be omitted for cdef functions, which is why we keep this at the end
     const intp_t[:] labels=None,
-) nogil:
+) noexcept nogil:
     """
     See rank_1d.__doc__. Handles only actual ranking, so sorting and masking should
     be handled in the caller. Note that `out` and `grp_sizes` are modified inplace.

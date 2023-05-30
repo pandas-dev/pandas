@@ -53,7 +53,7 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil:
     """
     Return the number of days in the given month of the given year.
 
@@ -77,7 +77,7 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision
-cdef int dayofweek(int y, int m, int d) nogil:
+cdef int dayofweek(int y, int m, int d) noexcept nogil:
     """
     Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
@@ -114,7 +114,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
     return (day + 6) % 7
 
 
-cdef bint is_leapyear(int64_t year) nogil:
+cdef bint is_leapyear(int64_t year) noexcept nogil:
     """
     Returns 1 if the given year is a leap year, 0 otherwise.
 
@@ -132,7 +132,7 @@ cdef bint is_leapyear(int64_t year) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
+cpdef int32_t get_week_of_year(int year, int month, int day) noexcept nogil:
     """
     Return the ordinal week-of-year for the given day.
 
@@ -155,7 +155,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
+cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) noexcept nogil:
     """
     Return the year, week, and day of year corresponding to ISO 8601
 
@@ -209,7 +209,7 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
+cpdef int32_t get_day_of_year(int year, int month, int day) noexcept nogil:
     """
     Return the ordinal day-of-year for the given day.
 
@@ -243,7 +243,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int get_lastbday(int year, int month) nogil:
+cpdef int get_lastbday(int year, int month) noexcept nogil:
     """
     Find the last day of the month that is a business day.
 
@@ -264,7 +264,7 @@ cpdef int get_lastbday(int year, int month) nogil:
     return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
 
-cpdef int get_firstbday(int year, int month) nogil:
+cpdef int get_firstbday(int year, int month) noexcept nogil:
     """
     Find the first day of the month that is a business day.
 
