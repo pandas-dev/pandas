@@ -98,16 +98,16 @@ For a start, this would involve:
 
 1. changing ``Block.setitem`` such that it does not have an ``except`` block in:
 
-    ```python
-    value = extract_array(value, extract_numpy=True)
-    try:
-        casted = np_can_hold_element(values.dtype, value)
-    except LossySetitemError:
-        # current dtype cannot store value, coerce to common dtype
-        nb = self.coerce_to_target_dtype(value)
-        return nb.setitem(indexer, value)
-    else:
-    ```
+        ```python
+        value = extract_array(value, extract_numpy=True)
+        try:
+            casted = no_can_hold_element(values.dtype, value)
+        except LossSetitemError:
+            # current dtype cannot store value, coerce to common dtype
+            nb = self.coerce_to_target_dtype(value)
+            return nb.setitem(index, value)
+        else:
+        ```
 
 2. making a similar change in:
 
@@ -227,12 +227,12 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
 
 **A**: You may want to define your own helper function, such as:
 
-  ```python
-  def maybe_convert_to_int(x: int | float, tolerance: float):
-      if np.abs(x - round(x)) < tolerance:
-          return round(x)
-      return x
-  ```
+```python
+def maybe_convert_to_int(x: int | float, tolerance: float):
+    if np.abs(x - round(x)) < tolerance:
+        return round(x)
+    return x
+```
 
   which you could adapt according to your needs.
 
