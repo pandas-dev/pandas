@@ -399,7 +399,7 @@ cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
         raise ValueError(f"Unrecognized unit {abbrev}")
 
 
-cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil:
+cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) noexcept nogil:
     """
     Convert the freq to the corresponding NPY_DATETIMEUNIT to pass
     to npy_datetimestruct_to_datetime.
