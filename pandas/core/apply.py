@@ -1130,13 +1130,10 @@ class SeriesApply(NDFrameApply):
             # GH53325: The setup below is just to keep current behavior while emitting a
             # deprecation message. In the future this will all be replaced with a simple
             # `result = f(self.obj)`.
-            if isinstance(func, np.ufunc):
-                with np.errstate(all="ignore"):
-                    return func(obj)
             try:
-                result = obj.apply(func)
+                result = obj.apply(func, args=self.args, **self.kwargs)
             except (ValueError, AttributeError, TypeError):
-                result = func(self.obj)
+                result = func(obj, *self.args, **self.kwargs)
             else:
                 msg = (
                     f"using {func} in {type(obj).__name__}.agg cannot aggregate and "
