@@ -1168,6 +1168,41 @@ class ArrowExtensionArray(
                 indices_array[indices_array < 0] += len(self._pa_array)
             return type(self)(self._pa_array.take(indices_array))
 
+    def _maybe_convert_datelike_array(self):
+        """Maybe convert to a datelike array."""
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            return self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            return self._to_timedeltaarray()
+        return self
+
+    def _to_datetimearray(self):
+        """Convert a pyarrow timestamp typed array to a DatetimeArray."""
+        from pandas.core.arrays.datetimes import (
+            DatetimeArray,
+            tz_to_dtype,
+        )
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_timestamp(pa_type)
+        np_dtype = np.dtype(f"M8[{pa_type.unit}]")
+        dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return DatetimeArray._simple_new(np_array, dtype=dtype)
+
+    def _to_timedeltaarray(self):
+        """Convert a pyarrow duration typed array to a TimedeltaArray."""
+        from pandas.core.arrays.timedeltas import TimedeltaArray
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_duration(pa_type)
+        np_dtype = np.dtype(f"m8[{pa_type.unit}]")
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
+
     @doc(ExtensionArray.to_numpy)
     def to_numpy(
         self,
