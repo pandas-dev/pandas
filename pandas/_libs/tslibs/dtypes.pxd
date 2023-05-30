@@ -105,3 +105,4 @@ cdef class PeriodDtypeBase:
         int64_t _n
 
     cpdef int _get_to_timestamp_base(self)
+    cpdef bint _is_tick_like(self)
