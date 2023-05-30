@@ -77,6 +77,25 @@ cdef class PeriodDtypeBase:
             return FR_SEC
         return base
 
+    cpdef bint _is_tick_like(self):
+        return self._dtype_code >= PeriodDtypeCode.D
+
+    @property
+    def _creso(self) -> int:
+        return {
+            PeriodDtypeCode.D: NPY_DATETIMEUNIT.NPY_FR_D,
+            PeriodDtypeCode.H: NPY_DATETIMEUNIT.NPY_FR_h,
+            PeriodDtypeCode.T: NPY_DATETIMEUNIT.NPY_FR_m,
+            PeriodDtypeCode.S: NPY_DATETIMEUNIT.NPY_FR_s,
+            PeriodDtypeCode.L: NPY_DATETIMEUNIT.NPY_FR_ms,
+            PeriodDtypeCode.U: NPY_DATETIMEUNIT.NPY_FR_us,
+            PeriodDtypeCode.N: NPY_DATETIMEUNIT.NPY_FR_ns,
+        }[self._dtype_code]
+
+    @property
+    def _td64_unit(self) -> str:
+        return npy_unit_to_abbrev(self._creso)
+
 
 _period_code_map = {
     # Annual freqs with various fiscal year ends.

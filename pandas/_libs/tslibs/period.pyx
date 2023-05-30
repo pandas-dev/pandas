@@ -104,7 +104,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.offsets cimport (
     BaseOffset,
     is_offset_object,
-    is_tick_object,
     to_offset,
 )
 
@@ -1793,7 +1792,7 @@ cdef class _Period(PeriodMixin):
         cdef:
             int64_t inc
 
-        if not is_tick_object(self.freq):
+        if not self._dtype._is_tick_like():
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
@@ -1805,7 +1804,7 @@ cdef class _Period(PeriodMixin):
             return NaT
 
         try:
-            inc = delta_to_nanoseconds(other, reso=self.freq._creso, round_ok=False)
+            inc = delta_to_nanoseconds(other, reso=self._dtype._creso, round_ok=False)
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err

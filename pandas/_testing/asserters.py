@@ -331,7 +331,7 @@ def assert_index_equal(
     if check_names:
         assert_attr_equal("names", left, right, obj=obj)
     if isinstance(left, PeriodIndex) or isinstance(right, PeriodIndex):
-        assert_attr_equal("freq", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
     if isinstance(left, IntervalIndex) or isinstance(right, IntervalIndex):
         assert_interval_array_equal(left._values, right._values)
 
