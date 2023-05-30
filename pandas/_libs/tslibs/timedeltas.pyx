@@ -43,6 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
     npy_unit_to_abbrev,
+    npy_unit_to_attrname,
 )
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
@@ -1788,9 +1789,7 @@ class Timedelta(_Timedelta):
             reso = get_datetime64_unit(value)
             if reso in [NPY_DATETIMEUNIT.NPY_FR_Y, NPY_DATETIMEUNIT.NPY_FR_M]:
                 raise ValueError(
-                    "ValueError: Numpy timedelta64 Units 'Y' and 'M' are no longer \
-                    supported, as they do not represent unambiguous timedelta \
-                    values durations."
+                    f"{npy_unit_to_attrname[reso]} is not supported"
                 )
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
