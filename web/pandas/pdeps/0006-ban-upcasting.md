@@ -108,11 +108,11 @@ For a start, this would involve:
 
 2. making a similar change in:
 
-- ``Block.where``
-- ``Block.putmask``
-- ``EABackedBlock.setitem``
-- ``EABackedBlock.where``
-- ``EABackedBlock.putmask``
+  - ``Block.where``
+  - ``Block.putmask``
+  - ``EABackedBlock.setitem``
+  - ``EABackedBlock.where``
+  - ``EABackedBlock.putmask``
 
 The above would already require several hundreds of tests to be adjusted. Note that once
 implementation starts, the list of locations to change may turn out to be slightly
