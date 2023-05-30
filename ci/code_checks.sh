@@ -258,17 +258,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
-        pandas.DatetimeIndex \
-        pandas.DatetimeIndex.date \
-        pandas.DatetimeIndex.time \
-        pandas.DatetimeIndex.timetz \
-        pandas.DatetimeIndex.dayofyear \
-        pandas.DatetimeIndex.day_of_year \
-        pandas.DatetimeIndex.quarter \
-        pandas.DatetimeIndex.tz \
-        pandas.DatetimeIndex.freqstr \
-        pandas.DatetimeIndex.inferred_freq \
-        pandas.DatetimeIndex.indexer_at_time \
         pandas.DatetimeIndex.indexer_between_time \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \
@@ -277,7 +266,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.mean \
         pandas.DatetimeIndex.std \
         pandas.TimedeltaIndex \
-        pandas.TimedeltaIndex.days \
         pandas.TimedeltaIndex.seconds \
         pandas.TimedeltaIndex.microseconds \
         pandas.TimedeltaIndex.nanoseconds \

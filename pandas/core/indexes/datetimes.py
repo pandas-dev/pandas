@@ -248,6 +248,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     -----
     To learn more about the frequency strings, please see `this link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+
+    Examples
+    --------
+    >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+    >>> idx
+    DatetimeIndex(['2020-01-01 10:00:00+00:00', '2020-02-01 11:00:00+00:00'],
+    dtype='datetime64[ns, UTC]', freq=None)
     """
 
     _typ = "datetimeindex"
@@ -709,6 +716,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         indexer_between_time : Get index locations of values between particular
             times of day.
         DataFrame.at_time : Select values at particular time of day.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00", "2/1/2020 11:00",
+        ...                         "3/1/2020 10:00"])
+        >>> idx.indexer_at_time("10:00")
+        array([0, 2])
         """
         if asof:
             raise NotImplementedError("'asof' argument is not supported")
