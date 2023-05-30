@@ -97,18 +97,18 @@ Concretely, the suggestion is:
 For a start, this would involve:
 
 1. changing ``Block.setitem`` such that it does not have an ``except`` block in:
-
-        ```python
+        
+    <!-- language: python -->
+    
         value = extract_array(value, extract_numpy=True)
         try:
-            casted = no_can_hold_element(values.dtype, value)
-        except LossSetitemError:
+            casted = np_can_hold_element(values.dtype, value)
+        except LossSetitiemError:
             # current dtype cannot store value, coerce to common dtype
             nb = self.coerce_to_target_dtype(value)
             return nb.setitem(index, value)
         else:
-        ```
-
+    
 2. making a similar change in:
 
     - ``Block.where``
@@ -234,7 +234,8 @@ def maybe_convert_to_int(x: int | float, tolerance: float):
     return x
 ```
 
-  which you could adapt according to your needs.
+which you could adapt according to your needs.
+
 
 ## Timeline
 
