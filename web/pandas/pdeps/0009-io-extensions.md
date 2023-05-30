@@ -20,6 +20,8 @@ For example:
 ```python
 import pandas
 
+pandas.load_io_plugins()
+
 df = pandas.DataFrame.read_duckdb("SELECT * FROM 'my_dataset.parquet';")
 
 df.to_deltalake('/delta/my_dataset')
@@ -167,11 +169,13 @@ automatically create the corresponding methods `pandas.read_*`,
 method names will not be created by this interface, only the `read_*`
 and `to_*` pattern will be allowed.
 
-By simply installing the appropriate packages users will be able to use
-code like this:
+By simply installing the appropriate packages and calling the function
+`pandas.load_io_plugins()` users will be able to use code like this:
 
 ```python
 import pandas
+
+pandas.load_io_plugins()
 
 df = pandas.read_duckdb("SELECT * FROM 'dataset.parquet';")
 
@@ -206,7 +210,7 @@ function, could use `pyproject.toml` to define the next entry point:
 reader_duckdb = "pandas_duckdb:read_duckdb"
 ```
 
-On import of the pandas module, it would read the entrypoint registry for the
+When the user calls `pandas.load_io_plugins()`, it would read the entrypoint registry for the
 `dataframe.io` group, and would dynamically create methods in the `pandas`,
 `pandas.DataFrame` and `pandas.Series` namespaces for them. Only entrypoints with
 name starting by `reader_` or `writer_` would be processed by pandas, and the functions
@@ -351,7 +355,9 @@ This PDEP is exclusively to support a better API for existing of future
 connectors. It is out of scope for this PDEP to implement changes to any
 connectors existing in the pandas code base.
 
-Some ideas for the future related to this PDED include:
+Some ideas for future discussion related to this PDED include:
+
+- Automatically loading of I/O plugins when pandas is imported.
 
 - Removing from the pandas code base some of the least frequently used connectors,
 such as SAS, SPSS or Google BigQuery, and move them to third-party connectors
@@ -369,4 +375,6 @@ constructor.
 ## PDEP-9 History
 
 - 5 March 2023: Initial version
-- 30 May 2023: Major refactoring to use the pandas existing API and the dataframe interchange API
+- 30 May 2023: Major refactoring to use the pandas existing API,
+  the dataframe interchange API and to make the user be explicit to load
+  the plugins
