@@ -688,11 +688,7 @@ class SetitemCastingEquivalents:
         """
         Whether we expect the setting to be in-place or not.
         """
-        try:
-            return expected.dtype == obj.dtype
-        except TypeError:
-            # older numpys
-            return False
+        return expected.dtype == obj.dtype
 
     def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
         orig = obj
