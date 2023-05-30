@@ -225,13 +225,15 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
 
 **Q: What if I want ``1.0000000001`` to be inserted as ``1.0`` in an `'int8'` Series?**
 
-**A**: You may want to define your own helper function, such as
+**A**: You may want to define your own helper function, such as:
+
   ```python
-  >>> def maybe_convert_to_int(x: int | float, tolerance: float):
+  def maybe_convert_to_int(x: int | float, tolerance: float):
       if np.abs(x - round(x)) < tolerance:
           return round(x)
       return x
   ```
+  
   which you could adapt according to your needs.
 
 ## Timeline
