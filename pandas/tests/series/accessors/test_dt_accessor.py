@@ -243,7 +243,7 @@ class TestSeriesDatetimeValues:
         exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([ser[0]] * 3, index=index, name="xxx")
+        exp = Series([ser.iloc[0]] * 3, index=index, name="xxx")
         tm.assert_series_equal(ser.dt.normalize(), exp)
 
     def test_dt_accessor_limited_display_api(self):
@@ -395,6 +395,8 @@ class TestSeriesDatetimeValues:
         expected = ser.copy()
         result = ser.dt.round(freq)
         tm.assert_series_equal(result, expected)
+
+        assert not np.shares_memory(ser.array._ndarray, result.array._ndarray)
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -662,7 +664,7 @@ class TestSeriesDatetimeValues:
             [
                 date(2013, 1, 1),
                 date(2013, 1, 2),
-                np.nan,
+                pd.NaT,
                 date(2013, 1, 4),
                 date(2013, 1, 5),
             ],
@@ -671,7 +673,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         result = ser.dt.time
-        expected = Series([time(0), time(0), np.nan, time(0), time(0)], dtype="object")
+        expected = Series([time(0), time(0), pd.NaT, time(0), time(0)], dtype="object")
         tm.assert_series_equal(result, expected)
 
     def test_dt_accessor_api(self):
