@@ -97,6 +97,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
+- :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
@@ -251,6 +252,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
 - Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :meth:`Series.dt` properties (:issue:`20306`)
