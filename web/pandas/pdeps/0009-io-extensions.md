@@ -343,7 +343,7 @@ and faster connectors than the existing ones based on SQL Alchemy and
 Python structures.
 
 Any other format, including **domain-specific formats** could easily
-implement pandas connectors with a clear an intuitive API.
+implement pandas connectors with a clear and intuitive API.
 
 ## Future plans
 
