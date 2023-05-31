@@ -761,6 +761,17 @@ class TestBaseParsing(base.BaseParsingTests):
             request.node.add_marker(
                 pytest.mark.xfail(reason="CSV parsers don't correctly handle binary")
             )
+        elif (
+            pa.types.is_duration(pa_dtype)
+            and dtype_backend == "pyarrow"
+            and engine == "python"
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    raises=TypeError,
+                    reason="Invalid type for timedelta scalar: NAType",
+                )
+            )
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
         csv_output = df.to_csv(index=False, na_rep=np.nan)
         if pa.types.is_binary(pa_dtype):
