@@ -224,24 +224,26 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        parsed_releases = map(lambda r: (version.parse(r["tag_name"]), r), releases)
+        parsed_releases = map(
+            lambda release: (version.parse(release["tag_name"]), release), releases
+        )
 
+        # The following filters out obsolete releases
         # A version is obsolete if it's not the latest minor version.
         # In the list ["1.4.0", "1.4.1", "1.4.2", "1.5.0", "1.5.1"], versions
         # "1.4.0", "1.4.1", and "1.5.0" are obsolete,
         # We don't need 1.5.0 because 1.5.1 has the same features with some bugs fixed
 
-        # Filter obsolete versions
-        latest_releases = []
+        # Dummy version for filtering obsolete versions
         prev_version = version.Version("0.0.0")
+
         for v, release in sorted(parsed_releases, reverse=True):
+            # Example: If "1.5.3" is already added, we skip "1.5.2" and "1.5.1"
+            # Only the most up-to-date "1.5.x" release would be included due to sorting
             if (v.major, v.minor) == (prev_version.major, prev_version.minor):
-                # This release is of obsolete version, so skip
                 continue
-            latest_releases.append(release)
             prev_version = v
 
-        for release in latest_releases:
             if release["prerelease"]:
                 continue
             published = datetime.datetime.strptime(
