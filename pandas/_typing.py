@@ -93,21 +93,10 @@ if TYPE_CHECKING:
         from typing import Self
     else:
         from typing_extensions import Self  # pyright: reportUnusedImport = false
-
-    try:
-        from pyarrow import (
-            Array,
-            ChunkedArray,
-        )
-
-        ArrowArrayTypeGuard = TypeGuard[Union[Array, ChunkedArray]]
-    except ImportError:
-        ArrowArrayTypeGuard = bool
 else:
     npt: Any = None
     Self: Any = None
     TypeGuard: Any = None
-    ArrowArrayTypeGuard = bool
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 
