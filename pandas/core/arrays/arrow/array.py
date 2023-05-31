@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
@@ -170,6 +171,8 @@ def to_pyarrow_type(
         return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
         return dtype
+    elif isinstance(dtype, DatetimeTZDtype):
+        return pa.timestamp(dtype.unit, dtype.tz)
     elif dtype:
         try:
             # Accepts python types too
