@@ -186,7 +186,7 @@ class CSVFormatter:
             isinstance(data_index, (ABCDatetimeIndex, ABCPeriodIndex))
             and self.date_format is not None
         ):
-            # Format and replace missings with empty string
+            # Format and replace missing entries with empty string
             data_index = data_index.strftime(
                 date_format=self.date_format, fast_strftime=self.fast_strftime
             ).fillna("")
