@@ -46,9 +46,9 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
-#include <ultrajson.h>
+#include "pandas/vendored/ujson/lib/ultrajson.h"
 #include "datetime.h"
-#include "pd_datetime.h"
+#include "pandas/datetime/pd_datetime.h"
 
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 

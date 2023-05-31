@@ -117,7 +117,7 @@ cdef:
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 
-cdef extern from "headers/portable.h":
+cdef extern from "pandas/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
     # so we don't get
     # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
@@ -127,7 +127,7 @@ cdef extern from "headers/portable.h":
     pass
 
 
-cdef extern from "parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -245,7 +245,7 @@ cdef extern from "parser/tokenizer.h":
 
     void COLITER_NEXT(coliter_t, const char *) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
     int del_rd_source(void *src)
