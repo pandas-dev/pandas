@@ -48,7 +48,7 @@ def generate_numba_apply_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
@@ -207,7 +207,7 @@ def generate_numba_table_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
