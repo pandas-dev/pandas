@@ -212,6 +212,8 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
+    from pandas.core.indexes.api import PeriodIndex
+
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 
@@ -232,9 +234,14 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(
-            freq_str, is_period=True
-        )._period_dtype_code  # type: ignore[attr-defined]
+        if isinstance(data.index, PeriodIndex):
+            base = to_offset(
+                freq_str, is_period=True
+            )._period_dtype_code  # type: ignore[attr-defined]
+        else:
+            base = to_offset(
+                freq_str, is_period=False
+            )._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
