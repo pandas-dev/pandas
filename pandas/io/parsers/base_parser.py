@@ -80,6 +80,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -800,7 +801,7 @@ class ParserBase:
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
-                if is_bool_dtype(cast_type):
+                if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa:E501

@@ -117,6 +117,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_dict_like
 
+from pandas.core.arrays.boolean import BooleanDtype
+
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
@@ -1167,7 +1169,9 @@ cdef class TextReader:
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                if is_bool_dtype(dtype):
+                if isinstance(dtype, BooleanDtype):
+                    # xref GH 47534: BooleanArray._from_sequence_of_strings has extra
+                    # kwargs
                     true_values = [x.decode() for x in self.true_values]
                     false_values = [x.decode() for x in self.false_values]
                     result = array_type._from_sequence_of_strings(
