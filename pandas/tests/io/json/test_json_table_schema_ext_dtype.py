@@ -3,6 +3,7 @@
 from collections import OrderedDict
 import datetime as dt
 import decimal
+from io import StringIO
 import json
 
 import pytest
@@ -31,14 +32,6 @@ from pandas.io.json._table_schema import (
     as_json_table_type,
     build_table_schema,
 )
-
-
-def generateDepMsg():
-    return (
-        "Passing literal json to 'read_json' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
 
 
 class TestBuildSchema:
@@ -295,8 +288,7 @@ class TestTableOrient:
         )
         expected = df.copy()
         data_json = df.to_json(orient="table", indent=4)
-        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
-            result = read_json(data_json, orient="table")
+        result = read_json(StringIO(data_json), orient="table")
         tm.assert_frame_equal(result, expected)
 
     def test_json_ext_dtype_reading(self):
@@ -320,7 +312,6 @@ class TestTableOrient:
                 }
             ]
         }"""
-        with tm.assert_produces_warning(FutureWarning, match=generateDepMsg()):
-            result = read_json(data_json, orient="table")
+        result = read_json(StringIO(data_json), orient="table")
         expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)
