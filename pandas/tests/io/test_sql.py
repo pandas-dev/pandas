@@ -262,7 +262,7 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
 
 
 def check_iris_frame(frame: DataFrame):
-    pytype = frame.dtypes[0].type
+    pytype = frame.dtypes.iloc[0].type
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
@@ -1491,6 +1491,18 @@ class _TestSQLApi(PandasSQLTest):
         res = sql.read_sql_query("SELECT * FROM `d1187b08-4943-4c8d-a7f6`", self.conn)
 
         tm.assert_frame_equal(res, df)
+
+    def test_read_sql_duplicate_columns(self):
+        # GH#53117
+        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
+        df.to_sql("test_table", self.conn, index=False)
+
+        result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table;", self.conn)
+        expected = DataFrame(
+            [[1, 0.1, 2, 1], [2, 0.2, 3, 1], [3, 0.3, 4, 1]],
+            columns=["a", "b", "a", "c"],
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")

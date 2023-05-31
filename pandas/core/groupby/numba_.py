@@ -92,7 +92,7 @@ def generate_numba_agg_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
@@ -152,7 +152,7 @@ def generate_numba_transform_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
