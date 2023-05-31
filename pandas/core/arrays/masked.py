@@ -1095,32 +1095,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis = kwargs.pop("axis", None)
         result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
         if np.isnan(result):
-            result = libmissing.NA
+            return libmissing.NA
 
-        return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
-
-    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        df = self.reshape(-1, 1)
-        res = df._reduce(name=name, skipna=skipna, axis=0, **kwargs)
-        return res
-
-    def _wrap_reduction_result(self, name: str, result, *, mask=None, skipna, axis):
-        if isinstance(result, np.ndarray):
-            mask = mask if mask is not None else self._mask
-            if skipna:
-                # we only retain mask for all-NA rows/columns
-                mask = mask.all(axis=axis)
-            else:
-                mask = mask.any(axis=axis)
-
-            return self._maybe_mask_result(result, mask)
-        elif result is libmissing.NA and self.ndim == 2:
-            result = self._wrap_na_result(name=name, axis=axis)
-            return result
         return result
 
-    def _wrap_na_result(self, *, name, axis):
-        mask_size = self.shape[1] if axis == 0 else self.shape[0]
+    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
+        res = self._reduce(name=name, skipna=skipna, **kwargs)
+        if res is libmissing.NA:
+            return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
+        else:
+            res = res.reshape(1)
+            mask = np.zeros(1, dtype=bool)
+            return self._maybe_mask_result(res, mask)
+
+    def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
+        if isinstance(result, np.ndarray):
+            if skipna:
+                # we only retain mask for all-NA rows/columns
+                mask = self._mask.all(axis=axis)
+            else:
+                mask = self._mask.any(axis=axis)
+
+            return self._maybe_mask_result(result, mask)
+        return result
+
+    def _wrap_na_result(self, *, name, axis, mask_size):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
