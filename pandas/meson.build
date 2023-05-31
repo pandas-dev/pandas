@@ -7,8 +7,7 @@ incdir_numpy = run_command(py,
 ).stdout().strip()
 
 inc_np = include_directories(incdir_numpy)
-klib_include = include_directories('_libs/src/klib')
-inc_datetime = include_directories('_libs/tslibs')
+inc_pd = include_directories('_libs/include')
 
 fs.copyfile('__init__.py')
 

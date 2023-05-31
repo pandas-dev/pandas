@@ -8,9 +8,9 @@ The full license is in the LICENSE file, distributed with this software.
 // Conversion routines that are useful for serialization,
 // but which don't interact with JSON objects directly
 
-#include "date_conversions.h"
-#include "np_datetime.h"
-#include "np_datetime_strings.h"
+#include "pandas/datetime/date_conversions.h"
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
 
 /*
  * Function: scaleNanosecToUnit
