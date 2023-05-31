@@ -347,6 +347,8 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
+        if isinstance(key, Hashable):
+            raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
 
@@ -1013,8 +1015,9 @@ class RangeIndex(Index):
                 if not is_integer(rstep) or not rstep:
                     raise ValueError
 
+            # GH#53255
             else:
-                rstep = left.step
+                rstep = -left.step if op == ops.rsub else left.step
 
             with np.errstate(all="ignore"):
                 rstart = op(left.start, right)

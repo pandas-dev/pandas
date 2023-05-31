@@ -26,7 +26,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    DataFrame,
     DatetimeIndex,
+    Series,
     Timedelta,
     Timestamp,
     bdate_range,
@@ -354,6 +356,34 @@ class TestDateRanges:
             ]
         )
         tm.assert_index_equal(result, expected)
+
+    def test_date_range_index_comparison(self):
+        rng = date_range("2011-01-01", periods=3, tz="US/Eastern")
+        df = Series(rng).to_frame()
+        arr = np.array([rng.to_list()]).T
+        arr2 = np.array([rng]).T
+
+        with pytest.raises(ValueError, match="Unable to coerce to Series"):
+            rng == df
+
+        with pytest.raises(ValueError, match="Unable to coerce to Series"):
+            df == rng
+
+        expected = DataFrame([True, True, True])
+
+        results = df == arr2
+        tm.assert_frame_equal(results, expected)
+
+        expected = Series([True, True, True], name=0)
+
+        results = df[0] == arr2[:, 0]
+        tm.assert_series_equal(results, expected)
+
+        expected = np.array(
+            [[True, False, False], [False, True, False], [False, False, True]]
+        )
+        results = rng == arr
+        tm.assert_numpy_array_equal(results, expected)
 
     @pytest.mark.parametrize(
         "start,end,result_tz",
@@ -788,6 +818,27 @@ class TestDateRanges:
         elif inclusive_endpoints_fixture in ("left", "right", "both"):
             expected = both_range[:]
 
+        tm.assert_index_equal(result, expected)
+
+    def test_freq_dateoffset_with_relateivedelta_nanos(self):
+        # GH 46877
+        freq = DateOffset(hours=10, days=57, nanoseconds=3)
+        result = date_range(end="1970-01-01 00:00:00", periods=10, freq=freq, name="a")
+        expected = DatetimeIndex(
+            [
+                "1968-08-02T05:59:59.999999973",
+                "1968-09-28T15:59:59.999999976",
+                "1968-11-25T01:59:59.999999979",
+                "1969-01-21T11:59:59.999999982",
+                "1969-03-19T21:59:59.999999985",
+                "1969-05-16T07:59:59.999999988",
+                "1969-07-12T17:59:59.999999991",
+                "1969-09-08T03:59:59.999999994",
+                "1969-11-04T13:59:59.999999997",
+                "1970-01-01T00:00:00.000000000",
+            ],
+            name="a",
+        )
         tm.assert_index_equal(result, expected)
 
 

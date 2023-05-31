@@ -77,52 +77,9 @@ Previously you would have to do this to get a rolling window mean per-group:
    df = pd.DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
    df
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [1]: df.groupby("A").apply(lambda x: x.rolling(4).B.mean())
-   Out[1]:
-   A
-   1  0      NaN
-      1      NaN
-      2      NaN
-      3      1.5
-      4      2.5
-      5      3.5
-      6      4.5
-      7      5.5
-      8      6.5
-      9      7.5
-      10     8.5
-      11     9.5
-      12    10.5
-      13    11.5
-      14    12.5
-      15    13.5
-      16    14.5
-      17    15.5
-      18    16.5
-      19    17.5
-   2  20     NaN
-      21     NaN
-      22     NaN
-      23    21.5
-      24    22.5
-      25    23.5
-      26    24.5
-      27    25.5
-      28    26.5
-      29    27.5
-      30    28.5
-      31    29.5
-   3  32     NaN
-      33     NaN
-      34     NaN
-      35    33.5
-      36    34.5
-      37    35.5
-      38    36.5
-      39    37.5
-   Name: B, dtype: float64
+   df.groupby("A").apply(lambda x: x.rolling(4).B.mean())
 
 Now you can do:
 
@@ -144,53 +101,15 @@ For ``.resample(..)`` type of operations, previously you would have to:
 
    df
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In[1]: df.groupby("group").apply(lambda x: x.resample("1D").ffill())
-   Out[1]:
-                     group  val
-   group date
-   1     2016-01-03      1    5
-         2016-01-04      1    5
-         2016-01-05      1    5
-         2016-01-06      1    5
-         2016-01-07      1    5
-         2016-01-08      1    5
-         2016-01-09      1    5
-         2016-01-10      1    6
-   2     2016-01-17      2    7
-         2016-01-18      2    7
-         2016-01-19      2    7
-         2016-01-20      2    7
-         2016-01-21      2    7
-         2016-01-22      2    7
-         2016-01-23      2    7
-         2016-01-24      2    8
+   df.groupby("group").apply(lambda x: x.resample("1D").ffill())
 
 Now you can do:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In[1]: df.groupby("group").resample("1D").ffill()
-   Out[1]:
-                     group  val
-   group date
-   1     2016-01-03      1    5
-         2016-01-04      1    5
-         2016-01-05      1    5
-         2016-01-06      1    5
-         2016-01-07      1    5
-         2016-01-08      1    5
-         2016-01-09      1    5
-         2016-01-10      1    6
-   2     2016-01-17      2    7
-         2016-01-18      2    7
-         2016-01-19      2    7
-         2016-01-20      2    7
-         2016-01-21      2    7
-         2016-01-22      2    7
-         2016-01-23      2    7
-         2016-01-24      2    8
+   df.groupby("group").resample("1D").ffill()
 
 .. _whatsnew_0181.enhancements.method_chain:
 

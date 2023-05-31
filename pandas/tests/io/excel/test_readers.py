@@ -340,6 +340,14 @@ class TestReaders:
                 usecols=["A", "C"],
             )
 
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_index_col_empty(self, read_ext):
         # see gh-9208
         result = pd.read_excel(
@@ -835,7 +843,13 @@ class TestReaders:
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
-        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        match = "|".join(
+            [
+                "(No such file or directory",
+                "没有那个文件或目录",
+                "File o directory non esistente)",
+            ]
+        )
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
@@ -1135,13 +1149,14 @@ class TestReaders:
         # now be interpreted as rows that include null data.
         data = np.array(
             [
-                [None, None, None, None, None],
+                [np.nan, np.nan, np.nan, np.nan, np.nan],
                 ["R0C0", "R0C1", "R0C2", "R0C3", "R0C4"],
                 ["R1C0", "R1C1", "R1C2", "R1C3", "R1C4"],
                 ["R2C0", "R2C1", "R2C2", "R2C3", "R2C4"],
                 ["R3C0", "R3C1", "R3C2", "R3C3", "R3C4"],
                 ["R4C0", "R4C1", "R4C2", "R4C3", "R4C4"],
-            ]
+            ],
+            dtype=object,
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
         mi = MultiIndex(
@@ -1694,7 +1709,7 @@ class TestExcelFileRead:
             errors = (BadZipFile, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt")
+            Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
                     pd.ExcelFile(file, engine=engine)
