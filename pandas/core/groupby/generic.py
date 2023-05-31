@@ -30,7 +30,6 @@ import numpy as np
 from pandas._libs import (
     Interval,
     lib,
-    reduction as libreduction,
 )
 from pandas.errors import SpecificationError
 from pandas.util._decorators import (
@@ -43,13 +42,17 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_int64,
     is_bool,
-    is_categorical_dtype,
     is_dict_like,
     is_integer_dtype,
-    is_interval_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+)
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -64,11 +67,15 @@ from pandas.core.apply import (
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
-from pandas.core.groupby import base
+from pandas.core.groupby import (
+    base,
+    ops,
+)
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _agg_template,
+    _agg_template_frame,
+    _agg_template_series,
     _apply_docs,
     _transform_template,
 )
@@ -214,7 +221,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def apply(self, func, *args, **kwargs) -> Series:
         return super().apply(func, *args, **kwargs)
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="Series")
+    @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -240,8 +247,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 assert columns is not None  # for mypy
                 ret.columns = columns
             if not self.as_index:
-                ret = self._insert_inaxis_grouper(ret)
-                ret.index = default_index(len(ret))
+                ret = ret.reset_index()
             return ret
 
         else:
@@ -306,6 +312,16 @@ class SeriesGroupBy(GroupBy[Series]):
                 raise SpecificationError("nested renamer is not supported")
             else:
                 # GH#50684 - This accidentally worked in 1.x
+                msg = (
+                    "Passing a dictionary to SeriesGroupBy.agg is deprecated "
+                    "and will raise in a future version of pandas. Pass a list "
+                    "of aggregations instead."
+                )
+                warnings.warn(
+                    message=msg,
+                    category=FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 arg = list(arg.items())
         elif any(isinstance(x, (tuple, list)) for x in arg):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
@@ -337,7 +353,6 @@ class SeriesGroupBy(GroupBy[Series]):
         output = self.obj._constructor_expanddim(indexed_output, index=None)
         output.columns = Index(key.label for key in results)
 
-        output = self._reindex_output(output)
         return output
 
     def _wrap_applied_output(
@@ -424,10 +439,10 @@ class SeriesGroupBy(GroupBy[Series]):
             object.__setattr__(group, "name", name)
 
             output = func(group, *args, **kwargs)
-            output = libreduction.extract_result(output)
+            output = ops.extract_result(output)
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(output, group.dtype)
+                ops.check_result_array(output, group.dtype)
                 initialized = True
             result[name] = output
 
@@ -681,7 +696,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = self.grouper.names + [self.obj.name]
 
-        if is_categorical_dtype(val.dtype) or (
+        if isinstance(val.dtype, CategoricalDtype) or (
             bins is not None and not np.iterable(bins)
         ):
             # scalar bins cannot be done at top level
@@ -707,7 +722,7 @@ class SeriesGroupBy(GroupBy[Series]):
             llab = lambda lab, inc: lab[inc]
         else:
             # lab is a Categorical with categories an IntervalIndex
-            cat_ser = cut(Series(val), bins, include_lowest=True)
+            cat_ser = cut(Series(val, copy=False), bins, include_lowest=True)
             cat_obj = cast("Categorical", cat_ser._values)
             lev = cat_obj.categories
             lab = lev.take(
@@ -717,7 +732,7 @@ class SeriesGroupBy(GroupBy[Series]):
             )
             llab = lambda lab, inc: lab[inc]._multiindex.codes[-1]
 
-        if is_interval_dtype(lab.dtype):
+        if isinstance(lab.dtype, IntervalDtype):
             # TODO: should we do this inside II?
             lab_interval = cast(Interval, lab)
 
@@ -814,7 +829,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
         downcast: dict | None = None,
@@ -838,6 +853,11 @@ class SeriesGroupBy(GroupBy[Series]):
             ``'bfill'`` will use next valid observation to fill the gap.
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         inplace : bool, default False
             Broken. Do not set to True.
         limit : int, default None
@@ -919,7 +939,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> Series:
         """
@@ -941,6 +961,11 @@ class SeriesGroupBy(GroupBy[Series]):
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
             For `SeriesGroupBy` this parameter is unused and defaults to 0.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -1016,6 +1041,10 @@ class SeriesGroupBy(GroupBy[Series]):
             Axis for the function to be applied on.
             This parameter is only for compatibility with DataFrame and is unused.
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
@@ -1057,14 +1086,27 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot    1.457863
         Name: Max Speed, dtype: float64
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(Series.plot.__doc__)
@@ -1095,12 +1137,16 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @doc(Series.idxmin.__doc__)
-    def idxmin(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmin(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
     @doc(Series.idxmax.__doc__)
-    def idxmax(self, axis: Axis = 0, skipna: bool = True) -> Series:
+    def idxmax(
+        self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
+    ) -> Series:
         result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
         return result.astype(self.obj.index.dtype) if result.empty else result
 
@@ -1126,13 +1172,41 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
-    @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically increasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_increasing
+        Falcon    False
+        Parrot     True
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
-    @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically decreasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_decreasing
+        Falcon     True
+        Parrot    False
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
@@ -1173,8 +1247,46 @@ class SeriesGroupBy(GroupBy[Series]):
     def dtype(self) -> Series:
         return self.apply(lambda ser: ser.dtype)
 
-    @doc(Series.unique.__doc__)
     def unique(self) -> Series:
+        """
+        Return unique values for each group.
+
+        It returns unique values for each of the grouped values. Returned in
+        order of appearance. Hash table-based unique, therefore does NOT sort.
+
+        Returns
+        -------
+        Series
+            Unique values for each of the grouped values.
+
+        See Also
+        --------
+        Series.unique : Return unique values of Series object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('Chihuahua', 'dog', 6.1),
+        ...                    ('Beagle', 'dog', 15.2),
+        ...                    ('Chihuahua', 'dog', 6.9),
+        ...                    ('Persian', 'cat', 9.2),
+        ...                    ('Chihuahua', 'dog', 7),
+        ...                    ('Persian', 'cat', 8.8)],
+        ...                   columns=['breed', 'animal', 'height_in'])
+        >>> df
+               breed     animal   height_in
+        0  Chihuahua        dog         6.1
+        1     Beagle        dog        15.2
+        2  Chihuahua        dog         6.9
+        3    Persian        cat         9.2
+        4  Chihuahua        dog         7.0
+        5    Persian        cat         8.8
+        >>> ser = df.groupby('animal')['breed'].unique()
+        >>> ser
+        animal
+        cat              [Persian]
+        dog    [Chihuahua, Beagle]
+        Name: breed, dtype: object
+        """
         result = self._op_via_apply("unique")
         return result
 
@@ -1273,7 +1385,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     """
     )
 
-    @doc(_agg_template, examples=_agg_examples_doc, klass="DataFrame")
+    @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
         if maybe_use_numba(engine):
             return self._aggregate_with_numba(
@@ -1283,10 +1395,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
 
-        op = GroupByApply(self, func, args, kwargs)
+        op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
-            return result
+            # GH #52849
+            if not self.as_index and is_list_like(func):
+                return result.reset_index()
+            else:
+                return result
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
@@ -1430,9 +1546,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  fall through to the outer else clause
             # TODO: sure this is right?  we used to do this
             #  after raising AttributeError above
-            return self.obj._constructor_sliced(
-                values, index=key_index, name=self._selection
-            )
+            # GH 18930
+            if not is_hashable(self._selection):
+                # error: Need type annotation for "name"
+                name = tuple(self._selection)  # type: ignore[var-annotated, arg-type]
+            else:
+                # error: Incompatible types in assignment
+                # (expression has type "Hashable", variable
+                # has type "Tuple[Any, ...]")
+                name = self._selection  # type: ignore[assignment]
+            return self.obj._constructor_sliced(values, index=key_index, name=name)
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
             # self._selection not passed through to Series as the
@@ -1922,7 +2045,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmax(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -1938,6 +2061,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
@@ -1994,7 +2121,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmax")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2008,7 +2140,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def idxmin(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ) -> DataFrame:
@@ -2024,6 +2156,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             If axis is not provided, grouper's axis is used.
 
             .. versionchanged:: 2.0.0
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
@@ -2080,7 +2216,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        if axis is None:
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmin")
+        else:
             axis = self.axis
 
         def func(df):
@@ -2211,9 +2352,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         self,
         value: Hashable | Mapping | Series | DataFrame = None,
         method: FillnaOptions | None = None,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
-        limit=None,
+        limit: int | None = None,
         downcast=None,
     ) -> DataFrame | None:
         """
@@ -2240,8 +2381,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             :class:`DataFrameGroupBy` ``axis`` argument is ``1``, using ``axis=0``
             or ``axis=1`` here will produce the same results.
 
-            .. deprecated:: 2.0.0
-                Use frame.T.groupby(...) instead.
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         inplace : bool, default False
             Broken. Do not set to True.
@@ -2345,7 +2487,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def take(
         self,
         indices: TakeIndexer,
-        axis: Axis | None = 0,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> DataFrame:
         """
@@ -2366,6 +2508,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         **kwargs
             For compatibility with :meth:`numpy.take`. Has no effect on the
             output.
@@ -2459,6 +2606,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             .. versionadded:: 2.0.0
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         skipna : bool, default True
             Exclude NA/null values when computing the result.
 
@@ -2508,14 +2659,27 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         bird          NaN
         mammal   1.669046
         """
-        result = self._op_via_apply(
-            "skew",
-            axis=axis,
-            skipna=skipna,
-            numeric_only=numeric_only,
-            **kwargs,
+        if axis is lib.no_default:
+            axis = 0
+
+        if axis != 0:
+            result = self._op_via_apply(
+                "skew",
+                axis=axis,
+                skipna=skipna,
+                numeric_only=numeric_only,
+                **kwargs,
+            )
+            return result
+
+        def alt(obj):
+            # This should not be reached since the cython path should raise
+            #  TypeError and not NotImplementedError.
+            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+
+        return self._cython_agg_general(
+            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
-        return result
 
     @property
     @doc(DataFrame.plot.__doc__)
@@ -2591,14 +2755,24 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @property
     @doc(DataFrame.dtypes.__doc__)
     def dtypes(self) -> Series:
+        # GH#51045
+        warnings.warn(
+            f"{type(self).__name__}.dtypes is deprecated and will be removed in "
+            "a future version. Check the dtypes on the base object instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         # error: Incompatible return value type (got "DataFrame", expected "Series")
-        return self.apply(lambda df: df.dtypes)  # type: ignore[return-value]
+        return self._python_apply_general(  # type: ignore[return-value]
+            lambda df: df.dtypes, self._selected_obj
+        )
 
     @doc(DataFrame.corrwith.__doc__)
     def corrwith(
         self,
         other: DataFrame | Series,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         drop: bool = False,
         method: CorrelationMethod = "pearson",
         numeric_only: bool = False,

@@ -1,0 +1,68 @@
+.. _whatsnew_201:
+
+What's new in 2.0.1 (April 24, 2023)
+------------------------------------
+
+These are the changes in pandas 2.0.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression for subclassed Series when constructing from a dictionary (:issue:`52445`)
+- Fixed regression in :meth:`.SeriesGroupBy.agg` failing when grouping with categorical data, multiple groupings, ``as_index=False``, and a list of aggregations (:issue:`52760`)
+- Fixed regression in :meth:`DataFrame.pivot` changing :class:`Index` name of input object (:issue:`52629`)
+- Fixed regression in :meth:`DataFrame.resample` raising on a DataFrame with no columns (:issue:`52484`)
+- Fixed regression in :meth:`DataFrame.sort_values` not resetting index when :class:`DataFrame` is already sorted and ``ignore_index=True`` (:issue:`52553`)
+- Fixed regression in :meth:`MultiIndex.isin` raising ``TypeError`` for ``Generator`` (:issue:`52568`)
+- Fixed regression in :meth:`Series.describe` showing ``RuntimeWarning`` for extension dtype :class:`Series` with one element (:issue:`52515`)
+- Fixed regression when adding a new column to a :class:`DataFrame` when the :attr:`DataFrame.columns` was a :class:`RangeIndex` and the new key was hashable but not a scalar (:issue:`52652`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :attr:`Series.dt.days` that would overflow ``int32`` number of days (:issue:`52391`)
+- Bug in :class:`arrays.DatetimeArray` constructor returning an incorrect unit when passed a non-nanosecond numpy datetime array (:issue:`52555`)
+- Bug in :class:`~arrays.ArrowExtensionArray` with duration dtype overflowing when constructed from data containing numpy ``NaT`` (:issue:`52843`)
+- Bug in :func:`Series.dt.round` when passing a ``freq`` of equal or higher resolution compared to the :class:`Series` would raise a ``ZeroDivisionError`` (:issue:`52761`)
+- Bug in :func:`Series.median` with :class:`ArrowDtype` returning an approximate median (:issue:`52679`)
+- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on categorical dtypes (:issue:`49889`)
+- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on large string dtypes (:issue:`52795`)
+- Bug in :func:`pandas.testing.assert_series_equal` where ``check_dtype=False`` would still raise for datetime or timedelta types with different resolutions (:issue:`52449`)
+- Bug in :func:`read_csv` casting PyArrow datetimes to NumPy when ``dtype_backend="pyarrow"`` and ``parse_dates`` is set causing a performance bottleneck in the process (:issue:`52546`)
+- Bug in :func:`to_datetime` and :func:`to_timedelta` when trying to convert numeric data with a :class:`ArrowDtype` (:issue:`52425`)
+- Bug in :func:`to_numeric` with ``errors='coerce'`` and ``dtype_backend='pyarrow'`` with :class:`ArrowDtype` data (:issue:`52588`)
+- Bug in :meth:`ArrowDtype.__from_arrow__` not respecting if dtype is explicitly given (:issue:`52533`)
+- Bug in :meth:`DataFrame.describe` not respecting ``ArrowDtype`` in ``include`` and ``exclude`` (:issue:`52570`)
+- Bug in :meth:`DataFrame.max` and related casting different :class:`Timestamp` resolutions always to nanoseconds (:issue:`52524`)
+- Bug in :meth:`Series.describe` not returning :class:`ArrowDtype` with ``pyarrow.float64`` type with numeric data (:issue:`52427`)
+- Bug in :meth:`Series.dt.tz_localize` incorrectly localizing timestamps with :class:`ArrowDtype` (:issue:`52677`)
+- Bug in arithmetic between ``np.datetime64`` and ``np.timedelta64`` ``NaT`` scalars with units always returning nanosecond resolution (:issue:`52295`)
+- Bug in logical and comparison operations between :class:`ArrowDtype` and numpy masked types (e.g. ``"boolean"``) (:issue:`52625`)
+- Fixed bug in :func:`merge` when merging with ``ArrowDtype`` one one and a NumPy dtype on the other side (:issue:`52406`)
+- Fixed segfault in :meth:`Series.to_numpy` with ``null[pyarrow]`` dtype (:issue:`52443`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.other:
+
+Other
+~~~~~
+- :class:`DataFrame` created from empty dicts had :attr:`~DataFrame.columns`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
+- :class:`Series` created from empty dicts had :attr:`~Series.index`  of dtype ``object``. It is now a :class:`RangeIndex` (:issue:`52404`)
+- Implemented :meth:`Series.str.split` and :meth:`Series.str.rsplit` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- Implemented most ``str`` accessor methods for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`52401`)
+- Supplying a non-integer hashable key that tests ``False`` in :func:`api.types.is_scalar` now raises a ``KeyError`` for :meth:`RangeIndex.get_loc`, like it does for :meth:`Index.get_loc`. Previously it raised an ``InvalidIndexError`` (:issue:`52652`).
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_201.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.0.0..v2.0.1

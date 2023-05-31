@@ -71,7 +71,7 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self, using_array_manager):
+    def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
         df = DataFrame(np.random.randn(4, 3))
         ser = df[0]
 
@@ -85,9 +85,14 @@ class TestDataFrameInsert:
             for n in range(100):
                 df[n + 3] = df[1] * n
 
-        ser.values[0] = 99
-
-        assert df.iloc[0, 0] == df[0][0]
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.iloc[0, 0] == df[0][0]
+            assert df.iloc[0, 0] != 99
+        else:
+            ser.values[0] = 99
+            assert df.iloc[0, 0] == df[0][0]
+            assert df.iloc[0, 0] == 99
 
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when
@@ -105,3 +110,9 @@ class TestDataFrameInsert:
         )
         with pytest.raises(ValueError, match=msg):
             df.insert(1, "newcol", df)
+
+    def test_insert_int64_loc(self):
+        # GH#53193
+        df = DataFrame({"a": [1, 2]})
+        df.insert(np.int64(0), "b", 0)
+        tm.assert_frame_equal(df, DataFrame({"b": [0, 0], "a": [1, 2]}))

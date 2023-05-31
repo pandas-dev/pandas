@@ -259,7 +259,7 @@ class XportReader(ReaderBase, abc.Iterator):
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
         index=None,
         encoding: str | None = "ISO-8859-1",
-        chunksize=None,
+        chunksize: int | None = None,
         compression: CompressionOptions = "infer",
     ) -> None:
         self._encoding = encoding
@@ -439,7 +439,7 @@ class XportReader(ReaderBase, abc.Iterator):
 
         return (total_records_length - tail_pad) // self.record_length
 
-    def get_chunk(self, size=None) -> pd.DataFrame:
+    def get_chunk(self, size: int | None = None) -> pd.DataFrame:
         """
         Reads lines from Xport file and returns as dataframe
 

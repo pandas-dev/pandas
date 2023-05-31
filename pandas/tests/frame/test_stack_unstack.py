@@ -1075,7 +1075,7 @@ class TestDataFrameReshape:
             ),
             columns=Index(["B", "C"], name="Upper"),
         )
-        expected["B"] = expected["B"].astype(df.dtypes[0])
+        expected["B"] = expected["B"].astype(df.dtypes.iloc[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1146,6 +1146,27 @@ class TestDataFrameReshape:
         expected_codes = np.asarray(new_index.codes)
         tm.assert_numpy_array_equal(stacked_codes, expected_codes)
 
+    @pytest.mark.parametrize(
+        "vals1, vals2, dtype1, dtype2, expected_dtype",
+        [
+            ([1, 2], [3.0, 4.0], "Int64", "Float64", "Float64"),
+            ([1, 2], ["foo", "bar"], "Int64", "string", "object"),
+        ],
+    )
+    def test_stack_multi_columns_mixed_extension_types(
+        self, vals1, vals2, dtype1, dtype2, expected_dtype
+    ):
+        # GH45740
+        df = DataFrame(
+            {
+                ("A", 1): Series(vals1, dtype=dtype1),
+                ("A", 2): Series(vals2, dtype=dtype2),
+            }
+        )
+        result = df.stack()
+        expected = df.astype(object).stack().astype(expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("level", [0, 1])
     def test_unstack_mixed_extension_types(self, level):
         index = MultiIndex.from_tuples([("A", 0), ("A", 1), ("B", 1)], names=["a", "b"])
@@ -1159,6 +1180,10 @@ class TestDataFrameReshape:
 
         result = df.unstack(level=level)
         expected = df.astype(object).unstack(level=level)
+        if level == 0:
+            expected[("A", "B")] = expected[("A", "B")].fillna(pd.NA)
+        else:
+            expected[("A", 0)] = expected[("A", 0)].fillna(pd.NA)
 
         expected_dtypes = Series(
             [df.A.dtype] * 2 + [df.B.dtype] * 2, index=result.columns
@@ -1334,6 +1359,48 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
 
     expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
     tm.assert_frame_equal(res, expected)
+
+
+def test_stack_sort_false():
+    # GH 15105
+    data = [[1, 2, 3.0, 4.0], [2, 3, 4.0, 5.0], [3, 4, np.nan, np.nan]]
+    df = DataFrame(
+        data,
+        columns=MultiIndex(
+            levels=[["B", "A"], ["x", "y"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ),
+    )
+    result = df.stack(level=0, sort=False)
+    expected = DataFrame(
+        {"x": [1.0, 3.0, 2.0, 4.0, 3.0], "y": [2.0, 4.0, 3.0, 5.0, 4.0]},
+        index=MultiIndex.from_arrays([[0, 0, 1, 1, 2], ["B", "A", "B", "A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Codes sorted in this call
+    df = DataFrame(
+        data,
+        columns=MultiIndex.from_arrays([["B", "B", "A", "A"], ["x", "y", "x", "y"]]),
+    )
+    result = df.stack(level=0, sort=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_stack_sort_false_multi_level():
+    # GH 15105
+    idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=idx)
+    result = df.stack([0, 1], sort=False)
+    expected_index = MultiIndex.from_tuples(
+        [
+            ("cat", "weight", "kg"),
+            ("cat", "height", "m"),
+            ("dog", "weight", "kg"),
+            ("dog", "height", "m"),
+        ]
+    )
+    expected = Series([1.0, 2.0, 3.0, 4.0], index=expected_index)
+    tm.assert_series_equal(result, expected)
 
 
 class TestStackUnstackMultiLevel:
@@ -2181,9 +2248,18 @@ Thu,Lunch,Yes,51.51,17"""
         df[df.columns[0]] = df[df.columns[0]].astype(pd.Float64Dtype())
         result = df.stack("station")
 
-        # TODO(EA2D): we get object dtype because DataFrame.values can't
-        #  be an EA
-        expected = df.astype(object).stack("station")
+        expected = DataFrame(
+            {
+                "r": pd.array(
+                    [50.0, 10.0, 10.0, 9.0, 305.0, 111.0], dtype=pd.Float64Dtype()
+                ),
+                "t_mean": pd.array(
+                    [226, 215, 215, 220, 232, 220], dtype=pd.Int64Dtype()
+                ),
+            },
+            index=MultiIndex.from_product([index, columns.levels[0]]),
+        )
+        expected.columns.name = "element"
         tm.assert_frame_equal(result, expected)
 
     def test_unstack_mixed_level_names(self):

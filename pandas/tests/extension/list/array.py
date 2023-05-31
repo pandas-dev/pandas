@@ -8,10 +8,9 @@ from __future__ import annotations
 import numbers
 import random
 import string
+from typing import TYPE_CHECKING
 
 import numpy as np
-
-from pandas._typing import type_t
 
 from pandas.core.dtypes.base import ExtensionDtype
 
@@ -21,6 +20,9 @@ from pandas.api.types import (
     is_string_dtype,
 )
 from pandas.core.arrays import ExtensionArray
+
+if TYPE_CHECKING:
+    from pandas._typing import type_t
 
 
 class ListDtype(ExtensionDtype):

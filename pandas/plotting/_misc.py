@@ -3,14 +3,18 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
+    Any,
     Generator,
+    Mapping,
 )
 
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.colors import Colormap
     from matplotlib.figure import Figure
+    from matplotlib.table import Table
     import numpy as np
 
     from pandas import (
@@ -19,7 +23,7 @@ if TYPE_CHECKING:
     )
 
 
-def table(ax, data, **kwargs):
+def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
 
@@ -93,8 +97,8 @@ def scatter_matrix(
     grid: bool = False,
     diagonal: str = "hist",
     marker: str = ".",
-    density_kwds=None,
-    hist_kwds=None,
+    density_kwds: Mapping[str, Any] | None = None,
+    hist_kwds: Mapping[str, Any] | None = None,
     range_padding: float = 0.05,
     **kwargs,
 ) -> np.ndarray:
@@ -139,22 +143,15 @@ def scatter_matrix(
 
         >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
-        array([[<AxesSubplot: xlabel='A', ylabel='A'>,
-            <AxesSubplot: xlabel='B', ylabel='A'>,
-            <AxesSubplot: xlabel='C', ylabel='A'>,
-            <AxesSubplot: xlabel='D', ylabel='A'>],
-           [<AxesSubplot: xlabel='A', ylabel='B'>,
-            <AxesSubplot: xlabel='B', ylabel='B'>,
-            <AxesSubplot: xlabel='C', ylabel='B'>,
-            <AxesSubplot: xlabel='D', ylabel='B'>],
-           [<AxesSubplot: xlabel='A', ylabel='C'>,
-            <AxesSubplot: xlabel='B', ylabel='C'>,
-            <AxesSubplot: xlabel='C', ylabel='C'>,
-            <AxesSubplot: xlabel='D', ylabel='C'>],
-           [<AxesSubplot: xlabel='A', ylabel='D'>,
-            <AxesSubplot: xlabel='B', ylabel='D'>,
-            <AxesSubplot: xlabel='C', ylabel='D'>,
-            <AxesSubplot: xlabel='D', ylabel='D'>]], dtype=object)
+        array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
+                <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
+               [<Axes: xlabel='A', ylabel='B'>, <Axes: xlabel='B', ylabel='B'>,
+                <Axes: xlabel='C', ylabel='B'>, <Axes: xlabel='D', ylabel='B'>],
+               [<Axes: xlabel='A', ylabel='C'>, <Axes: xlabel='B', ylabel='C'>,
+                <Axes: xlabel='C', ylabel='C'>, <Axes: xlabel='D', ylabel='C'>],
+               [<Axes: xlabel='A', ylabel='D'>, <Axes: xlabel='B', ylabel='D'>,
+                <Axes: xlabel='C', ylabel='D'>, <Axes: xlabel='D', ylabel='D'>]],
+              dtype=object)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
@@ -177,7 +174,7 @@ def radviz(
     class_column: str,
     ax: Axes | None = None,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwds,
 ) -> Axes:
     """
@@ -265,7 +262,7 @@ def andrews_curves(
     ax: Axes | None = None,
     samples: int = 200,
     color: list[str] | tuple[str, ...] | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     **kwargs,
 ) -> Axes:
     """
@@ -396,9 +393,9 @@ def parallel_coordinates(
     color: list[str] | tuple[str, ...] | None = None,
     use_columns: bool = False,
     xticks: list | tuple | None = None,
-    colormap=None,
+    colormap: Colormap | str | None = None,
     axvlines: bool = True,
-    axvlines_kwds=None,
+    axvlines_kwds: Mapping[str, Any] | None = None,
     sort_labels: bool = False,
     **kwargs,
 ) -> Axes:
@@ -505,7 +502,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         :context: close-figs
 
         >>> pd.plotting.lag_plot(s, lag=1)
-        <AxesSubplot: xlabel='y(t)', ylabel='y(t + 1)'>
+        <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)

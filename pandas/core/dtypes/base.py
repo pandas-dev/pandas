@@ -26,6 +26,7 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
+        Self,
         Shape,
         npt,
         type_t,
@@ -210,7 +211,7 @@ class ExtensionDtype:
         """
         raise AbstractMethodError(cls)
 
-    def empty(self, shape: Shape) -> type_t[ExtensionArray]:
+    def empty(self, shape: Shape) -> ExtensionArray:
         """
         Construct an ExtensionArray of this dtype with the given shape.
 
@@ -228,9 +229,7 @@ class ExtensionDtype:
         return cls._empty(shape, dtype=self)
 
     @classmethod
-    def construct_from_string(
-        cls: type_t[ExtensionDtypeT], string: str
-    ) -> ExtensionDtypeT:
+    def construct_from_string(cls, string: str) -> Self:
         r"""
         Construct this type from a string.
 

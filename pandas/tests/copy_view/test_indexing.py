@@ -802,7 +802,17 @@ def test_series_subset_set_with_indexer(
     s_orig = s.copy()
     subset = s[:]
 
-    indexer_si(subset)[indexer] = 0
+    warn = None
+    msg = "Series.__setitem__ treating keys as positions is deprecated"
+    if (
+        indexer_si is tm.setitem
+        and isinstance(indexer, np.ndarray)
+        and indexer.dtype.kind == "i"
+    ):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        indexer_si(subset)[indexer] = 0
     expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
@@ -977,27 +987,23 @@ def test_column_as_series_no_item_cache(
 # TODO add tests for other indexing methods on the Series
 
 
-def test_dataframe_add_column_from_series(backend):
+def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     # Case: adding a new column to a DataFrame from an existing column/series
-    # -> always already takes a copy on assignment
-    # (no change in behaviour here)
-    # TODO can we achieve the same behaviour with Copy-on-Write?
+    # -> delays copy under CoW
     _, DataFrame, Series = backend
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
 
     s = Series([10, 11, 12])
     df["new"] = s
-    assert not np.shares_memory(get_array(df, "new"), s.values)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "new"), get_array(s))
+    else:
+        assert not np.shares_memory(get_array(df, "new"), get_array(s))
 
     # editing series -> doesn't modify column in frame
     s[0] = 0
     expected = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "new": [10, 11, 12]})
     tm.assert_frame_equal(df, expected)
-
-    # editing column in frame -> doesn't modify series
-    df.loc[2, "new"] = 100
-    expected_s = Series([0, 11, 12])
-    tm.assert_series_equal(s, expected_s)
 
 
 @pytest.mark.parametrize("val", [100, "a"])
@@ -1034,3 +1040,62 @@ def test_set_value_copy_only_necessary_column(
             assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
         else:
             assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+
+
+def test_series_midx_slice(using_copy_on_write):
+    ser = Series([1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]]))
+    result = ser[1]
+    assert np.shares_memory(get_array(ser), get_array(result))
+    result.iloc[0] = 100
+    if using_copy_on_write:
+        expected = Series(
+            [1, 2, 3], index=pd.MultiIndex.from_arrays([[1, 1, 2], [3, 4, 5]])
+        )
+        tm.assert_series_equal(ser, expected)
+
+
+def test_getitem_midx_slice(using_copy_on_write, using_array_manager):
+    df = DataFrame({("a", "x"): [1, 2], ("a", "y"): 1, ("b", "x"): 2})
+    df_orig = df.copy()
+    new_df = df[("a",)]
+
+    if using_copy_on_write:
+        assert not new_df._mgr._has_no_reference(0)
+
+    if not using_array_manager:
+        assert np.shares_memory(get_array(df, ("a", "x")), get_array(new_df, "x"))
+    if using_copy_on_write:
+        new_df.iloc[0, 0] = 100
+        tm.assert_frame_equal(df_orig, df)
+
+
+def test_series_midx_tuples_slice(using_copy_on_write):
+    ser = Series(
+        [1, 2, 3],
+        index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
+    )
+    result = ser[(1, 2)]
+    assert np.shares_memory(get_array(ser), get_array(result))
+    result.iloc[0] = 100
+    if using_copy_on_write:
+        expected = Series(
+            [1, 2, 3],
+            index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
+        )
+        tm.assert_series_equal(ser, expected)
+
+
+def test_loc_enlarging_with_dataframe(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    rhs = DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
+    rhs_orig = rhs.copy()
+    df.loc[:, ["b", "c"]] = rhs
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+        assert np.shares_memory(get_array(df, "c"), get_array(rhs, "c"))
+        assert not df._mgr._has_no_reference(1)
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_frame_equal(rhs, rhs_orig)

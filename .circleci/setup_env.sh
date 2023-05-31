@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 echo "Install Mambaforge"
-MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/23.1.0-0/Mambaforge-23.1.0-0-Linux-aarch64.sh"
 echo "Downloading $MAMBA_URL"
 wget -q $MAMBA_URL -O minimamba.sh
 chmod +x minimamba.sh
@@ -54,11 +54,7 @@ if pip list | grep -q ^pandas; then
     pip uninstall -y pandas || true
 fi
 
-echo "Build extensions"
-# GH 47305: Parallel build can causes flaky ImportError from pandas/_libs/tslibs
-python setup.py build_ext -q -j1
-
 echo "Install pandas"
-python -m pip install --no-build-isolation --no-use-pep517 -e .
+python -m pip install --no-build-isolation -ve .
 
 echo "done"

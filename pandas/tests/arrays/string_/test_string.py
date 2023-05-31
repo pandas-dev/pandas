@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -196,8 +197,9 @@ def test_comparison_methods_scalar(comparison_op, dtype):
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = "a"
     result = getattr(a, op_name)(other)
+    expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
     expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
-    expected = pd.array(expected, dtype="boolean")
+    expected = pd.array(expected, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -205,7 +207,8 @@ def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
     a = pd.array(["a", None, "c"], dtype=dtype)
     result = getattr(a, op_name)(pd.NA)
-    expected = pd.array([None, None, None], dtype="boolean")
+    expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
+    expected = pd.array([None, None, None], dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -225,7 +228,8 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     expected_data = {"__eq__": [False, None, False], "__ne__": [True, None, True]}[
         op_name
     ]
-    expected = pd.array(expected_data, dtype="boolean")
+    expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
+    expected = pd.array(expected_data, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -235,13 +239,14 @@ def test_comparison_methods_array(comparison_op, dtype):
     a = pd.array(["a", None, "c"], dtype=dtype)
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
-    expected = np.empty_like(a, dtype="object")
+    expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
+    expected = np.full(len(a), fill_value=None, dtype="object")
     expected[-1] = getattr(other[-1], op_name)(a[-1])
-    expected = pd.array(expected, dtype="boolean")
+    expected = pd.array(expected, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
     result = getattr(a, op_name)(pd.NA)
-    expected = pd.array([None, None, None], dtype="boolean")
+    expected = pd.array([None, None, None], dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -402,15 +407,14 @@ def test_fillna_args(dtype, request):
         arr.fillna(value=1)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
-    if dtype.storage == "pyarrow":
+    if dtype.storage == "pyarrow" and Version(pa.__version__) <= Version("11.0.0"):
         expected = pa.chunked_array(expected)
 
     assert arr.equals(expected)

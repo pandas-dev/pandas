@@ -12,41 +12,41 @@ table {
 /* Main index page overview cards */
 
 .intro-card {
-  background: #fff;
-  border-radius: 0;
   padding: 30px 10px 20px 10px;
-  margin: 10px 0px;
 }
 
-.intro-card p.card-text {
-  margin: 0px;
-}
-
-.intro-card .card-img-top {
+.intro-card .sd-card-img-top {
   margin: 10px;
   height: 52px;
+  background: none !important;
 }
 
-.intro-card .card-header {
-  border: none;
-  background-color: transparent;
-  color: #150458 !important;
+.intro-card .sd-card-title {
+  color: var(--pst-color-primary);
   font-size: var(--pst-font-size-h5);
-  font-weight: bold;
-  padding: 2.5rem 0rem 0.5rem 0rem;
+  padding: 1rem 0rem 0.5rem 0rem;
 }
 
-.intro-card .card-footer {
-  border: none;
-  background-color: transparent;
+.intro-card .sd-card-footer {
+  border: none !important;
 }
 
-.intro-card .card-footer p.card-text{
+.intro-card .sd-card-footer p.sd-card-text {
   max-width: 220px;
   margin-left: auto;
   margin-right: auto;
 }
 
+.intro-card .sd-btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.intro-card .sd-btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+}
+
 .card, .card img {
-  background-color: transparent !important;
+  background-color: var(--pst-color-background);
 }

@@ -37,11 +37,7 @@ SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
 EXCLUDE_DEPS = {"tzdata", "blosc"}
-EXCLUSION_LIST = {
-    "python=3.8[build=*_pypy]": None,
-    "tzdata": None,
-    "pyarrow": None,
-}
+EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
 sys.path.append("pandas/compat")
@@ -67,7 +63,7 @@ def pin_min_versions_to_ci_deps() -> int:
         toml_dependencies = tomllib.load(toml_f)
     ret = 0
     for curr_file in all_yaml_files:
-        with open(curr_file) as yaml_f:
+        with open(curr_file, encoding="utf-8") as yaml_f:
             yaml_start_data = yaml_f.read()
         yaml_file = yaml.safe_load(yaml_start_data)
         yaml_dependencies = yaml_file["dependencies"]
@@ -77,7 +73,7 @@ def pin_min_versions_to_ci_deps() -> int:
             yaml_map, toml_map, yaml_start_data
         )
         if yaml_result_data != yaml_start_data:
-            with open(curr_file, "w") as f:
+            with open(curr_file, "w", encoding="utf-8") as f:
                 f.write(yaml_result_data)
             ret |= 1
     return ret
@@ -128,6 +124,11 @@ def get_yaml_map_from(
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
+        elif "[build=*_pypy]" in dependency:
+            search_text = search_text.replace("[build=*_pypy]", "")
+            yaml_package, yaml_version = search_text.split(operator)
+            yaml_version = operator + yaml_version
+            yaml_map[yaml_package] = [yaml_version]
         elif operator is not None:
             yaml_package, yaml_version = search_text.split(operator)
             yaml_version = operator + yaml_version
@@ -167,9 +168,7 @@ def pin_min_versions_to_yaml_file(
             continue
         old_dep = yaml_package
         if yaml_versions is not None:
-            for yaml_version in yaml_versions:
-                old_dep += yaml_version + ", "
-            old_dep = old_dep[:-2]
+            old_dep = old_dep + ", ".join(yaml_versions)
         if RENAME.get(yaml_package, yaml_package) in toml_map:
             min_dep = toml_map[RENAME.get(yaml_package, yaml_package)]
         elif yaml_package in toml_map:
@@ -181,11 +180,11 @@ def pin_min_versions_to_yaml_file(
             data = data.replace(old_dep, new_dep, 1)
             continue
         toml_version = version.parse(min_dep)
-        yaml_versions = clean_version_list(yaml_versions, toml_version)
-        cleaned_yaml_versions = [x for x in yaml_versions if "-" not in x]
+        yaml_versions_list = clean_version_list(yaml_versions, toml_version)
+        cleaned_yaml_versions = [x for x in yaml_versions_list if "-" not in x]
         new_dep = yaml_package
-        for yaml_version in cleaned_yaml_versions:
-            new_dep += yaml_version + ", "
+        for clean_yaml_version in cleaned_yaml_versions:
+            new_dep += clean_yaml_version + ", "
         operator = get_operator_from(new_dep)
         if operator != "=":
             new_dep += ">=" + min_dep
@@ -228,10 +227,9 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
             continue
         elif seen_required and line.strip():
             if "==" in line:
-                package, version = line.strip().split("==")
-
+                package, version = line.strip().split("==", maxsplit=1)
             else:
-                package, version = line.strip().split("=")
+                package, version = line.strip().split("=", maxsplit=1)
             package = package[2:]
             if package in EXCLUDE_DEPS:
                 continue

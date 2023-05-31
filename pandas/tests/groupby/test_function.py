@@ -17,7 +17,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core import nanops
 from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
@@ -74,7 +73,11 @@ def test_builtins_apply(keys, f):
     gb = df.groupby(keys)
 
     fname = f.__name__
-    result = gb.apply(f)
+
+    warn = None if f is not sum else FutureWarning
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
@@ -260,6 +263,8 @@ class TestNumericOnly:
                     "can't multiply sequence by non-int of type 'str'",
                 ]
             )
+            if method == "median":
+                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
@@ -277,6 +282,8 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                 ]
             )
+            if method == "median":
+                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
@@ -343,10 +350,15 @@ def test_cython_api2():
     tm.assert_frame_equal(result, expected)
 
     # GH 13994
-    result = df.groupby("A").cumsum(axis=1)
+    msg = "DataFrameGroupBy.cumsum with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").cumsum(axis=1)
     expected = df.cumsum(axis=1)
     tm.assert_frame_equal(result, expected)
-    result = df.groupby("A").cumprod(axis=1)
+
+    msg = "DataFrameGroupBy.cumprod with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A").cumprod(axis=1)
     expected = df.cumprod(axis=1)
     tm.assert_frame_equal(result, expected)
 
@@ -360,7 +372,7 @@ def test_cython_median():
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    exp = df.groupby(labels).agg(nanops.nanmedian)
+    exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
     df = DataFrame(np.random.randn(1000, 5))
@@ -499,7 +511,9 @@ def test_idxmin_idxmax_axis1():
 
     gb = df.groupby("A")
 
-    res = gb.idxmax(axis=1)
+    warn_msg = "DataFrameGroupBy.idxmax with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        res = gb.idxmax(axis=1)
 
     alt = df.iloc[:, 1:].idxmax(axis=1)
     indexer = res.index.get_level_values(1)
@@ -511,7 +525,8 @@ def test_idxmin_idxmax_axis1():
 
     msg = "reduction operation 'argmax' not allowed for this dtype"
     with pytest.raises(TypeError, match=msg):
-        gb2.idxmax(axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            gb2.idxmax(axis=1)
 
 
 @pytest.mark.parametrize("numeric_only", [True, False, None])
@@ -549,10 +564,16 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         "idxmax",
         "fillna",
     )
+    warn_msg = f"DataFrameGroupBy.{groupby_func} with axis=1 is deprecated"
     if numeric_only is not None and groupby_func in no_args:
         msg = "got an unexpected keyword argument 'numeric_only'"
-        with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
+        if groupby_func in ["cumprod", "cumsum"]:
+            with pytest.raises(TypeError, match=msg):
+                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                    method(*args, **kwargs)
+        else:
+            with pytest.raises(TypeError, match=msg):
+                method(*args, **kwargs)
     elif groupby_func not in has_axis:
         msg = "got an unexpected keyword argument 'axis'"
         with pytest.raises(TypeError, match=msg):
@@ -571,9 +592,11 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
             "unsupported operand type",
         )
         with pytest.raises(TypeError, match=f"({'|'.join(msgs)})"):
-            method(*args, **kwargs)
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                method(*args, **kwargs)
     else:
-        result = method(*args, **kwargs)
+        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+            result = method(*args, **kwargs)
 
         df_expected = df.drop(columns="E").T if numeric_only else df.T
         expected = getattr(df_expected, groupby_func)(*args).T
@@ -1449,6 +1472,8 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 "function is not implemented for this dtype",
             ]
         )
+        if kernel == "median":
+            msg = r"Cannot convert \[<class 'object'> <class 'object'>\] to numeric"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
@@ -1467,14 +1492,16 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
-    if groupby_func == "corrwith":
-        msg = "corrwith is not implemented on SeriesGroupBy"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     grouper = [0, 0, 1]
 
     ser = Series([1, 0, 0], dtype=dtype)
     gb = ser.groupby(grouper)
+
+    if groupby_func == "corrwith":
+        # corrwith is not implemented on SeriesGroupBy
+        assert not hasattr(gb, groupby_func)
+        return
+
     method = getattr(gb, groupby_func)
 
     expected_ser = Series([1, 0, 0])
@@ -1511,6 +1538,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "min",
         "max",
         "prod",
+        "skew",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
@@ -1599,7 +1627,11 @@ def test_groupby_empty_dataset(dtype, kwargs):
 def test_corrwith_with_1_axis():
     # GH 47723
     df = DataFrame({"a": [1, 1, 2], "b": [3, 7, 4]})
-    result = df.groupby("a").corrwith(df, axis=1)
+    gb = df.groupby("a")
+
+    msg = "DataFrameGroupBy.corrwith with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.corrwith(df, axis=1)
     index = Index(
         data=[(1, 0), (1, 1), (1, 2), (2, 2), (2, 0), (2, 1)],
         name=("a", None),
@@ -1637,3 +1669,53 @@ def test_duplicate_columns(request, groupby_func, as_index):
     if groupby_func not in ("size", "ngroup", "cumcount"):
         expected = expected.rename(columns={"c": "b"})
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        "sum",
+        "prod",
+        "min",
+        "max",
+        "median",
+        "mean",
+        "skew",
+        "std",
+        "var",
+        "sem",
+    ],
+)
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("skipna", [True, False])
+@pytest.mark.parametrize("sort", [True, False])
+def test_regression_allowlist_methods(op, axis, skipna, sort):
+    # GH6944
+    # GH 17537
+    # explicitly test the allowlist methods
+    raw_frame = DataFrame([0])
+    if axis == 0:
+        frame = raw_frame
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
+    else:
+        frame = raw_frame.T
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+
+    if op == "skew":
+        # skew has skipna
+        result = getattr(grouped, op)(skipna=skipna)
+        expected = frame.groupby(level=0).apply(
+            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+        )
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)
+    else:
+        result = getattr(grouped, op)()
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        if sort:
+            expected = expected.sort_index(axis=axis)
+        tm.assert_frame_equal(result, expected)

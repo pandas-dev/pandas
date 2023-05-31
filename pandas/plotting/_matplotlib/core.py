@@ -14,22 +14,14 @@ from typing import (
 import warnings
 
 import matplotlib as mpl
-from matplotlib.artist import Artist
 import numpy as np
 
-from pandas._typing import (
-    IndexLabel,
-    PlottingOrientation,
-    npt,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
-    is_categorical_dtype,
-    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -39,6 +31,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_number,
     is_numeric_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -79,8 +75,15 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
+
+    from pandas._typing import (
+        IndexLabel,
+        PlottingOrientation,
+        npt,
+    )
 
 
 def _color_in_style(style: str) -> bool:
@@ -126,7 +129,7 @@ class MPLPlot(ABC):
         sharex=None,
         sharey: bool = False,
         use_index: bool = True,
-        figsize=None,
+        figsize: tuple[float, float] | None = None,
         grid=None,
         legend: bool | str = True,
         rot=None,
@@ -139,7 +142,7 @@ class MPLPlot(ABC):
         yticks=None,
         xlabel: Hashable | None = None,
         ylabel: Hashable | None = None,
-        fontsize=None,
+        fontsize: int | None = None,
         secondary_y: bool | tuple | list | np.ndarray = False,
         colormap=None,
         table: bool = False,
@@ -376,6 +379,7 @@ class MPLPlot(ABC):
         if (
             "color" in self.kwds
             and self.nseries == 1
+            and self.kwds["color"] is not None
             and not is_list_like(self.kwds["color"])
         ):
             # support series.plot(color='green')
@@ -561,13 +565,13 @@ class MPLPlot(ABC):
 
     def _convert_to_ndarray(self, data):
         # GH31357: categorical columns are processed separately
-        if is_categorical_dtype(data):
+        if isinstance(data.dtype, CategoricalDtype):
             return data
 
         # GH32073: cast to float if values contain nulled integers
-        if (
-            is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)
-        ) and is_extension_array_dtype(data.dtype):
+        if (is_integer_dtype(data.dtype) or is_float_dtype(data.dtype)) and isinstance(
+            data.dtype, ExtensionDtype
+        ):
             return data.to_numpy(dtype="float", na_value=np.nan)
 
         # GH25587: cast ExtensionArray of pandas (IntegerArray, etc.) to
@@ -727,7 +731,9 @@ class MPLPlot(ABC):
                     raise ValueError(msg)
                 self.axes[0].set_title(self.title)
 
-    def _apply_axis_properties(self, axis: Axis, rot=None, fontsize=None) -> None:
+    def _apply_axis_properties(
+        self, axis: Axis, rot=None, fontsize: int | None = None
+    ) -> None:
         """
         Tick creation within matplotlib is reasonably expensive and is
         internally deferred until accessed as Ticks are created/destroyed
@@ -840,7 +846,7 @@ class MPLPlot(ABC):
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
-            elif is_any_real_numeric_dtype(index):
+            elif is_any_real_numeric_dtype(index.dtype):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime
@@ -956,7 +962,7 @@ class MPLPlot(ABC):
         if isinstance(self.secondary_y, (tuple, list, np.ndarray, ABCIndex)):
             return self.data.columns[i] in self.secondary_y
 
-    def _apply_style_colors(self, colors, kwds, col_num, label):
+    def _apply_style_colors(self, colors, kwds, col_num, label: str):
         """
         Manage style and color based on column number and its label.
         Returns tuple of appropriate style and kwds which "color" may be added.
@@ -1110,7 +1116,9 @@ class MPLPlot(ABC):
         from matplotlib.axes import Subplot
 
         return [
-            ax for ax in self.axes[0].get_figure().get_axes() if isinstance(ax, Subplot)
+            ax
+            for ax in self.fig.get_axes()
+            if (isinstance(ax, Subplot) and ax.get_subplotspec() is not None)
         ]
 
     def _get_axes_layout(self) -> tuple[int, int]:
@@ -1205,7 +1213,9 @@ class ScatterPlot(PlanePlot):
 
         c_is_column = is_hashable(c) and c in self.data.columns
 
-        color_by_categorical = c_is_column and is_categorical_dtype(self.data[c])
+        color_by_categorical = c_is_column and isinstance(
+            self.data[c].dtype, CategoricalDtype
+        )
 
         color = self.kwds.pop("color", None)
         if c is not None and color is not None:

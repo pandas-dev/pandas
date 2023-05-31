@@ -124,6 +124,14 @@ class DtypeWarning(Warning):
 class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> empty = StringIO()
+    >>> pd.read_csv(empty)
+    Traceback (most recent call last):
+    EmptyDataError: No columns to parse from file
     """
 
 
@@ -235,7 +243,19 @@ class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
 
-    .. versionadded:: 1.1.0
+    Examples
+    --------
+    >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
+    >>> df = pd.DataFrame([[1, 1, 2, 2],
+    ...                   [3, 3, 4, 4]], columns=idx)
+    >>> df
+        x       y
+        0   1   0   1
+    0   1   1   2   2
+    1   3   3   4   4
+    >>> df[:, 0]
+    Traceback (most recent call last):
+    InvalidIndexError: (slice(None, None, None), 0)
     """
 
 
@@ -320,9 +340,9 @@ class SettingWithCopyWarning(Warning):
     """
 
 
-class ChainedAssignmentError(ValueError):
+class ChainedAssignmentError(Warning):
     """
-    Exception raised when trying to set using chained assignment.
+    Warning raised when trying to set using chained assignment.
 
     When the ``mode.copy_on_write`` option is enabled, chained assignment can
     never work. In such a situation, we are always setting into a temporary

@@ -110,7 +110,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box):
+    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_copy_on_write):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
@@ -131,7 +131,11 @@ class TestiLocBaseIndependent:
 
         # Check that we are actually in-place
         if frame_or_series is Series:
-            assert obj.values is values
+            if using_copy_on_write:
+                assert obj.values is not values
+                assert np.shares_memory(obj.values, values)
+            else:
+                assert obj.values is values
         else:
             assert np.shares_memory(obj[0].values, values)
 
@@ -715,7 +719,8 @@ class TestiLocBaseIndependent:
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        # Set object type to avoid upcast when setting "Z"
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -770,7 +775,8 @@ class TestiLocBaseIndependent:
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
-                    mask = Series(mask, list(reversed(getattr(df, idx))))
+                    mask_index = getattr(df, idx)[::-1]
+                    mask = Series(mask, list(mask_index))
                 for method in ["", ".loc", ".iloc"]:
                     try:
                         if method:

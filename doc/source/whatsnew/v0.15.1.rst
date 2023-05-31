@@ -70,9 +70,14 @@ API changes
 
   current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    df.groupby(ts, as_index=False).max()
+     In [4]: df.groupby(ts, as_index=False).max()
+     Out[4]:
+        jim  joe
+     0   72   83
+     1   77   84
+     2   96   65
 
 - ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
@@ -97,6 +102,7 @@ API changes
   current behavior:
 
   .. ipython:: python
+     :okwarning:
 
      gr.apply(sum)
 

@@ -329,16 +329,6 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
    df.empty
    pd.DataFrame(columns=list("ABC")).empty
 
-To evaluate single-element pandas objects in a boolean context, use the method
-:meth:`~DataFrame.bool`:
-
-.. ipython:: python
-
-   pd.Series([True]).bool()
-   pd.Series([False]).bool()
-   pd.DataFrame([[True]]).bool()
-   pd.DataFrame([[False]]).bool()
-
 .. warning::
 
    You might be tempted to do the following:
@@ -696,8 +686,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    s.value_counts()
    pd.value_counts(data)
 
-.. versionadded:: 1.1.0
-
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
 
@@ -768,7 +756,7 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
 2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
 3. `Aggregation API`_: :meth:`~DataFrame.agg` and :meth:`~DataFrame.transform`
-4. `Applying Elementwise Functions`_: :meth:`~DataFrame.applymap`
+4. `Applying Elementwise Functions`_: :meth:`~DataFrame.map`
 
 .. _basics.pipe:
 
@@ -1180,7 +1168,7 @@ Applying elementwise functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
-another array or value), the methods :meth:`~DataFrame.applymap` on DataFrame
+another array or value), the methods :meth:`~DataFrame.map` on DataFrame
 and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
@@ -1197,7 +1185,7 @@ a single value and returning a single value. For example:
        return len(str(x))
 
    df4["one"].map(f)
-   df4.applymap(f)
+   df4.map(f)
 
 :meth:`Series.map` has an additional feature; it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
@@ -1376,7 +1364,7 @@ We illustrate these fill methods on a simple Series:
 
    rng = pd.date_range("1/3/2000", periods=8)
    ts = pd.Series(np.random.randn(8), index=rng)
-   ts2 = ts[[0, 3, 6]]
+   ts2 = ts.iloc[[0, 3, 6]]
    ts
    ts2
 
@@ -1822,8 +1810,6 @@ used to sort a pandas object by its index levels.
 
 .. _basics.sort_index_key:
 
-.. versionadded:: 1.1.0
-
 Sorting by index also supports a ``key`` parameter that takes a callable
 function to apply to the index being sorted. For ``MultiIndex`` objects,
 the key is applied per-level to the levels specified by ``level``.
@@ -1876,8 +1862,6 @@ argument:
    s.sort_values(na_position="first")
 
 .. _basics.sort_value_key:
-
-.. versionadded:: 1.1.0
 
 Sorting also supports a ``key`` parameter that takes a callable function
 to apply to the values being sorted.
@@ -2038,7 +2022,7 @@ does not support timezone-aware datetimes).
 pandas and third-party libraries *extend* NumPy's type system in a few places.
 This section describes the extensions pandas has made internally.
 See :ref:`extending.extension-types` for how to write your own extension that
-works with pandas. See :ref:`ecosystem.extensions` for a list of third-party
+works with pandas. See `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ for a list of third-party
 libraries that have implemented an extension.
 
 The following table lists all of pandas extension types. For methods requiring ``dtype``
@@ -2144,7 +2128,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.array(np.random.randn(8), dtype="uint8")),
+           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
    )
    df2

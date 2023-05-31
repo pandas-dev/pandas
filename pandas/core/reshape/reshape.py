@@ -14,11 +14,13 @@ from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    find_common_type,
+    maybe_promote,
+)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
-    is_extension_array_dtype,
     is_integer,
     needs_i8_conversion,
 )
@@ -26,6 +28,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
+from pandas.core.algorithms import unique
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -43,7 +46,11 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import npt
+    from pandas._typing import (
+        ArrayLike,
+        Level,
+        npt,
+    )
 
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.frozen import FrozenList
@@ -95,9 +102,7 @@ class _Unstacker:
     unstacked : DataFrame
     """
 
-    def __init__(self, index: MultiIndex, level=-1, constructor=None) -> None:
-        if constructor is None:
-            constructor = DataFrame
+    def __init__(self, index: MultiIndex, level: Level, constructor) -> None:
         self.constructor = constructor
 
         self.index = index.remove_unused_levels()
@@ -371,13 +376,14 @@ class _Unstacker:
         )
 
 
-def _unstack_multiple(data, clocs, fill_value=None):
+def _unstack_multiple(data: Series | DataFrame, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
     # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
+    index = cast(MultiIndex, index)  # caller is responsible for checking
 
     # GH 19966 Make sure if MultiIndexed index has tuple name, they will be
     # recognised as a whole
@@ -430,10 +436,10 @@ def _unstack_multiple(data, clocs, fill_value=None):
             return result
 
         # GH#42579 deep=False to avoid consolidating
-        dummy = data.copy(deep=False)
-        dummy.index = dummy_index
+        dummy_df = data.copy(deep=False)
+        dummy_df.index = dummy_index
 
-        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        unstacked = dummy_df.unstack("__placeholder__", fill_value=fill_value)
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -494,7 +500,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None):
         )
 
 
-def _unstack_frame(obj: DataFrame, level, fill_value=None):
+def _unstack_frame(obj: DataFrame, level, fill_value=None) -> DataFrame:
     assert isinstance(obj.index, MultiIndex)  # checked by caller
     unstacker = _Unstacker(obj.index, level=level, constructor=obj._constructor)
 
@@ -540,7 +546,7 @@ def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
     return result
 
 
-def stack(frame: DataFrame, level=-1, dropna: bool = True):
+def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
@@ -562,7 +568,9 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     level_num = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
+        return _stack_multi_columns(
+            frame, level_num=level_num, dropna=dropna, sort=sort
+        )
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_codes = [lab.repeat(K) for lab in frame.index.codes]
@@ -586,13 +594,14 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
             verify_integrity=False,
         )
 
+    new_values: ArrayLike
     if not frame.empty and frame._is_homogeneous_type:
         # For homogeneous EAs, frame._values will coerce to object. So
         # we concatenate instead.
         dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
-        if is_extension_array_dtype(dtype):
+        if isinstance(dtype, ExtensionDtype):
             arr = dtype.construct_array_type()
             new_values = arr._concat_same_type(
                 [col._values for _, col in frame.items()]
@@ -614,13 +623,13 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     return frame._constructor_sliced(new_values, index=new_index)
 
 
-def stack_multiple(frame, level, dropna: bool = True):
+def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = True):
     # If all passed levels match up to column names, no
     # ambiguity about what to do
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna)
+            result = stack(result, lev, dropna=dropna, sort=sort)
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -633,7 +642,7 @@ def stack_multiple(frame, level, dropna: bool = True):
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna)
+            result = stack(result, lev, dropna=dropna, sort=sort)
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]
@@ -675,7 +684,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(
-    frame: DataFrame, level_num: int = -1, dropna: bool = True
+    frame: DataFrame, level_num: int = -1, dropna: bool = True, sort: bool = True
 ) -> DataFrame:
     def _convert_level_number(level_num: int, columns: Index):
         """
@@ -705,7 +714,7 @@ def _stack_multi_columns(
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = mi_cols = roll_columns
 
-    if not mi_cols._is_lexsorted():
+    if not mi_cols._is_lexsorted() and sort:
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
@@ -719,7 +728,9 @@ def _stack_multi_columns(
     # time to ravel the values
     new_data = {}
     level_vals = mi_cols.levels[-1]
-    level_codes = sorted(set(mi_cols.codes[-1]))
+    level_codes = unique(mi_cols.codes[-1])
+    if sort:
+        level_codes = np.sort(level_codes)
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)
@@ -746,25 +757,19 @@ def _stack_multi_columns(
             chunk.columns = level_vals_nan.take(chunk.columns.codes[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
-            if frame._is_homogeneous_type and is_extension_array_dtype(
-                frame.dtypes.iloc[0]
-            ):
+            subset = this.iloc[:, loc]
+            dtype = find_common_type(subset.dtypes.tolist())
+            if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): won't need special case, can go through .values
                 #  paths below (might change to ._values)
-                dtype = this[this.columns[loc]].dtypes.iloc[0]
-                subset = this[this.columns[loc]]
-
                 value_slice = dtype.construct_array_type()._concat_same_type(
-                    [x._values for _, x in subset.items()]
+                    [x._values.astype(dtype, copy=False) for _, x in subset.items()]
                 )
                 N, K = subset.shape
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
-
-            elif frame._is_mixed_type:
-                value_slice = this[this.columns[loc]].values
             else:
-                value_slice = this.values[:, loc]
+                value_slice = subset.values
 
         if value_slice.ndim > 1:
             # i.e. not extension

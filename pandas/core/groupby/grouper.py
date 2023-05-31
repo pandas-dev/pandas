@@ -22,10 +22,10 @@ from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -99,8 +99,6 @@ class Grouper:
         - 'start': `origin` is the first value of the timeseries
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
-        .. versionadded:: 1.1.0
-
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
@@ -108,8 +106,6 @@ class Grouper:
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
-
-        .. versionadded:: 1.1.0
 
     dropna : bool, default True
         If True, and if group keys contain NA values, NA values together with
@@ -120,7 +116,9 @@ class Grouper:
 
     Returns
     -------
-    A specification for a groupby instruction
+    Grouper or pandas.api.typing.TimeGrouper
+        A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
+        is returned.
 
     Examples
     --------
@@ -612,13 +610,13 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(grouping_vector, np.ndarray):
-            if grouping_vector.dtype.kind in ["m", "M"]:
+            if grouping_vector.dtype.kind in "mM":
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif is_categorical_dtype(grouping_vector):
+        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
             grouping_vector, self._all_grouper = recode_for_groupby(
@@ -635,7 +633,8 @@ class Grouping:
 
     @cache_readonly
     def _passed_categorical(self) -> bool:
-        return is_categorical_dtype(self.grouping_vector)
+        dtype = getattr(self.grouping_vector, "dtype", None)
+        return isinstance(dtype, CategoricalDtype)
 
     @cache_readonly
     def name(self) -> Hashable:
@@ -722,7 +721,7 @@ class Grouping:
             if self._sort and (codes == len(uniques)).any():
                 # Add NA value on the end when sorting
                 uniques = Categorical.from_codes(
-                    np.append(uniques.codes, [-1]), uniques.categories
+                    np.append(uniques.codes, [-1]), uniques.categories, validate=False
                 )
             elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
@@ -731,8 +730,9 @@ class Grouping:
                 if cat.codes[na_idx] < 0:
                     # count number of unique codes that comes before the nan value
                     na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    new_codes = np.insert(uniques.codes, na_unique_idx, -1)
                     uniques = Categorical.from_codes(
-                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                        new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
 
@@ -755,7 +755,7 @@ class Grouping:
                 ucodes = np.arange(len(categories))
 
             uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered
+                codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
 
             codes = cat.codes
@@ -801,7 +801,8 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        return self._index.groupby(cats)
 
 
 def get_grouper(

@@ -248,11 +248,18 @@ class TestPivotTable:
         )
 
         result = df.pivot_table(index="A", values="B", dropna=dropna)
+        if dropna:
+            values = [2.0, 3.0]
+            codes = [0, 1]
+        else:
+            # GH: 10772
+            values = [2.0, 3.0, 0.0]
+            codes = [0, 1, -1]
         expected = DataFrame(
-            {"B": [2.0, 3.0]},
+            {"B": values},
             index=Index(
                 Categorical.from_codes(
-                    [0, 1], categories=["low", "high"], ordered=True
+                    codes, categories=["low", "high"], ordered=dropna
                 ),
                 name="A",
             ),
@@ -2378,6 +2385,43 @@ class TestPivotTable:
             expected["small"] = expected["small"].astype("int64")
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_table_aggfunc_nunique_with_different_values(self):
+        test = DataFrame(
+            {
+                "a": range(10),
+                "b": range(10),
+                "c": range(10),
+                "d": range(10),
+            }
+        )
+
+        columnval = MultiIndex.from_arrays(
+            [
+                ["nunique" for i in range(10)],
+                ["c" for i in range(10)],
+                range(10),
+            ],
+            names=(None, None, "b"),
+        )
+        nparr = np.full((10, 10), np.NaN)
+        np.fill_diagonal(nparr, 1.0)
+
+        expected = DataFrame(nparr, index=Index(range(10), name="a"), columns=columnval)
+        result = test.pivot_table(
+            index=[
+                "a",
+            ],
+            columns=[
+                "b",
+            ],
+            values=[
+                "c",
+            ],
+            aggfunc=["nunique"],
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestPivot:
     def test_pivot(self):
@@ -2554,3 +2598,18 @@ class TestPivot:
         result = df.pivot(columns="b", values=None)
         expected = DataFrame(1, index=[0], columns=Index([2], name="b"))
         tm.assert_frame_equal(result, expected)
+
+    def test_pivot_not_changing_index_name(self):
+        # GH#52692
+        df = DataFrame({"one": ["a"], "two": 0, "three": 1})
+        expected = df.copy(deep=True)
+        df.pivot(index="one", columns="two", values="three")
+        tm.assert_frame_equal(df, expected)
+
+    def test_pivot_table_empty_dataframe_correct_index(self):
+        # GH 21932
+        df = DataFrame([], columns=["a", "b", "value"])
+        pivot = df.pivot_table(index="a", columns="b", values="value", aggfunc="count")
+
+        expected = Index([], dtype="object", name="b")
+        tm.assert_index_equal(pivot.columns, expected)
