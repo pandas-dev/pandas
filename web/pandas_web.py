@@ -224,9 +224,9 @@ class Preprocessors:
         with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
-        parsed_releases = map(
-            lambda release: (version.parse(release["tag_name"]), release), releases
-        )
+        parsed_releases = [
+            (version.parse(release["tag_name"]), release) for release in releases
+        ]
 
         # The following filters out obsolete releases
         # A version is obsolete if it's not the latest minor version.
