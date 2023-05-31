@@ -721,7 +721,9 @@ def test_time_field_bug():
     dfg_no_conversion_expected.index.name = "a"
 
     dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
-    dfg_conversion_expected = DataFrame({"b": datetime(2015, 1, 1), "c": 2}, index=[1])
+    dfg_conversion_expected = DataFrame(
+        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+    )
     dfg_conversion_expected.index.name = "a"
 
     tm.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
@@ -1070,14 +1072,17 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
-    result = grp.apply(sum)
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     _ = getattr(grp, reduction_func)(*args)
-    result = grp.apply(sum)
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1403,4 +1408,16 @@ def test_apply_inconsistent_output(group_col):
         index=MultiIndex.from_product([[0.0], [1, 2, 3]], names=["group_col", 0.0]),
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_array_output_multi_getitem():
+    # GH 18930
+    df = DataFrame(
+        {"A": {"a": 1, "b": 2}, "B": {"a": 1, "b": 2}, "C": {"a": 1, "b": 2}}
+    )
+    result = df.groupby("A")[["B", "C"]].apply(lambda x: np.array([0]))
+    expected = Series(
+        [np.array([0])] * 2, index=Index([1, 2], name="A"), name=("B", "C")
+    )
     tm.assert_series_equal(result, expected)

@@ -8,13 +8,13 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
 from pandas.core.arrays.sparse.array import SparseArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 
 if TYPE_CHECKING:
     from pandas import (

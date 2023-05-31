@@ -18,6 +18,10 @@ import unicodedata
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.compat import (
     pa_version_under7p0,
     pa_version_under8p0,
@@ -35,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
@@ -60,8 +65,9 @@ if not pa_version_under7p0:
     import pyarrow as pa
     import pyarrow.compute as pc
 
+    from pandas.core.dtypes.dtypes import ArrowDtype
+
     from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-    from pandas.core.arrays.arrow.dtype import ArrowDtype
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -165,6 +171,8 @@ def to_pyarrow_type(
         return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
         return dtype
+    elif isinstance(dtype, DatetimeTZDtype):
+        return pa.timestamp(dtype.unit, dtype.tz)
     elif dtype:
         try:
             # Accepts python types too
@@ -243,36 +251,9 @@ class ArrowExtensionArray(
         """
         Construct a new ExtensionArray from a sequence of scalars.
         """
-        pa_dtype = to_pyarrow_type(dtype)
-        if (
-            isinstance(scalars, np.ndarray)
-            and isinstance(dtype, ArrowDtype)
-            and (
-                pa.types.is_large_binary(pa_dtype) or pa.types.is_large_string(pa_dtype)
-            )
-        ):
-            # See https://github.com/apache/arrow/issues/35289
-            scalars = scalars.tolist()
-
-        if isinstance(scalars, cls):
-            scalars = scalars._pa_array
-        elif not isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            if copy and is_array_like(scalars):
-                # pa array should not get updated when numpy array is updated
-                scalars = scalars.copy()
-            try:
-                scalars = pa.array(scalars, type=pa_dtype, from_pandas=True)
-            except pa.ArrowInvalid:
-                # GH50430: let pyarrow infer type, then cast
-                scalars = pa.array(scalars, from_pandas=True)
-        if pa_dtype and scalars.type != pa_dtype:
-            scalars = scalars.cast(pa_dtype)
-        arr = cls(scalars)
-        if pa.types.is_duration(scalars.type) and scalars.null_count > 0:
-            # GH52843: upstream bug for duration types when originally
-            # constructed with data containing numpy NaT.
-            # https://github.com/apache/arrow/issues/35088
-            arr = arr.fillna(arr.dtype.na_value)
+        pa_type = to_pyarrow_type(dtype)
+        pa_array = cls._box_pa_array(scalars, pa_type=pa_type, copy=copy)
+        arr = cls(pa_array)
         return arr
 
     @classmethod
@@ -348,6 +329,150 @@ class ArrowExtensionArray(
             )
         return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
+    @classmethod
+    def _box_pa(
+        cls, value, pa_type: pa.DataType | None = None
+    ) -> pa.Array | pa.ChunkedArray | pa.Scalar:
+        """
+        Box value into a pyarrow Array, ChunkedArray or Scalar.
+
+        Parameters
+        ----------
+        value : any
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Array or pa.ChunkedArray or pa.Scalar
+        """
+        if is_list_like(value):
+            return cls._box_pa_array(value, pa_type)
+        return cls._box_pa_scalar(value, pa_type)
+
+    @classmethod
+    def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
+        """
+        Box value into a pyarrow Scalar.
+
+        Parameters
+        ----------
+        value : any
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Scalar
+        """
+        if isinstance(value, pa.Scalar):
+            pa_scalar = value
+        elif isna(value):
+            pa_scalar = pa.scalar(None, type=pa_type)
+        else:
+            # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+            # see https://github.com/apache/arrow/issues/33321
+            if isinstance(value, Timedelta):
+                if pa_type is None:
+                    pa_type = pa.duration(value.unit)
+                elif value.unit != pa_type.unit:
+                    value = value.as_unit(pa_type.unit)
+                value = value._value
+            elif isinstance(value, Timestamp):
+                if pa_type is None:
+                    pa_type = pa.timestamp(value.unit, tz=value.tz)
+                elif value.unit != pa_type.unit:
+                    value = value.as_unit(pa_type.unit)
+                value = value._value
+
+            pa_scalar = pa.scalar(value, type=pa_type, from_pandas=True)
+
+        if pa_type is not None and pa_scalar.type != pa_type:
+            pa_scalar = pa_scalar.cast(pa_type)
+
+        return pa_scalar
+
+    @classmethod
+    def _box_pa_array(
+        cls, value, pa_type: pa.DataType | None = None, copy: bool = False
+    ) -> pa.Array | pa.ChunkedArray:
+        """
+        Box value into a pyarrow Array or ChunkedArray.
+
+        Parameters
+        ----------
+        value : Sequence
+        pa_type : pa.DataType | None
+
+        Returns
+        -------
+        pa.Array or pa.ChunkedArray
+        """
+        if isinstance(value, cls):
+            pa_array = value._pa_array
+        elif isinstance(value, (pa.Array, pa.ChunkedArray)):
+            pa_array = value
+        elif isinstance(value, BaseMaskedArray):
+            # GH 52625
+            if copy:
+                value = value.copy()
+            pa_array = value.__arrow_array__()
+        else:
+            if (
+                isinstance(value, np.ndarray)
+                and pa_type is not None
+                and (
+                    pa.types.is_large_binary(pa_type)
+                    or pa.types.is_large_string(pa_type)
+                )
+            ):
+                # See https://github.com/apache/arrow/issues/35289
+                value = value.tolist()
+            elif copy and is_array_like(value):
+                # pa array should not get updated when numpy array is updated
+                value = value.copy()
+
+            if (
+                pa_type is not None
+                and pa.types.is_duration(pa_type)
+                and (not isinstance(value, np.ndarray) or value.dtype.kind not in "mi")
+            ):
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+                # see https://github.com/apache/arrow/issues/33321
+                from pandas.core.tools.timedeltas import to_timedelta
+
+                value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
+                value = value.to_numpy()
+
+            try:
+                pa_array = pa.array(value, type=pa_type, from_pandas=True)
+            except pa.ArrowInvalid:
+                # GH50430: let pyarrow infer type, then cast
+                pa_array = pa.array(value, from_pandas=True)
+
+            if pa_type is None and pa.types.is_duration(pa_array.type):
+                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
+                # see https://github.com/apache/arrow/issues/33321
+                from pandas.core.tools.timedeltas import to_timedelta
+
+                value = to_timedelta(value)
+                value = value.to_numpy()
+                pa_array = pa.array(value, type=pa_type, from_pandas=True)
+
+            if pa.types.is_duration(pa_array.type) and pa_array.null_count > 0:
+                # GH52843: upstream bug for duration types when originally
+                # constructed with data containing numpy NaT.
+                # https://github.com/apache/arrow/issues/35088
+                arr = cls(pa_array)
+                arr = arr.fillna(arr.dtype.na_value)
+                pa_array = arr._pa_array
+
+        if pa_type is not None and pa_array.type != pa_type:
+            if pa.types.is_dictionary(pa_type):
+                pa_array = pa_array.dictionary_encode()
+            else:
+                pa_array = pa_array.cast(pa_type)
+
+        return pa_array
+
     def __getitem__(self, item: PositionalIndexer):
         """Select a subset of self.
 
@@ -411,9 +536,16 @@ class ArrowExtensionArray(
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
+            pa_type = self._pa_array.type
             scalar = value.as_py()
             if scalar is None:
                 return self._dtype.na_value
+            elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
+                # GH 53326
+                return Timestamp(scalar).as_unit(pa_type.unit)
+            elif pa.types.is_duration(pa_type) and pa_type.unit != "ns":
+                # GH 53326
+                return Timedelta(scalar).as_unit(pa_type.unit)
             else:
                 return scalar
 
@@ -422,10 +554,18 @@ class ArrowExtensionArray(
         Iterate over elements of the array.
         """
         na_value = self._dtype.na_value
+        # GH 53326
+        pa_type = self._pa_array.type
+        box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
+        box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
         for value in self._pa_array:
             val = value.as_py()
             if val is None:
                 yield na_value
+            elif box_timestamp:
+                yield Timestamp(val).as_unit(pa_type.unit)
+            elif box_timedelta:
+                yield Timedelta(val).as_unit(pa_type.unit)
             else:
                 yield val
 
@@ -466,65 +606,50 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, ArrowExtensionArray):
-            result = pc_func(self._pa_array, other._pa_array)
-        elif isinstance(other, (np.ndarray, list)):
-            result = pc_func(self._pa_array, other)
-        elif isinstance(other, BaseMaskedArray):
-            # GH 52625
-            result = pc_func(self._pa_array, other.__arrow_array__())
-        elif is_scalar(other):
-            try:
-                result = pc_func(self._pa_array, pa.scalar(other))
-            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+        try:
+            result = pc_func(self._pa_array, self._box_pa(other))
+        except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+            if is_scalar(other):
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
                 result[valid] = op(np.array(self)[valid], other)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
-        else:
-            raise NotImplementedError(
-                f"{op.__name__} not implemented for {type(other)}"
-            )
+            else:
+                raise NotImplementedError(
+                    f"{op.__name__} not implemented for {type(other)}"
+                )
         return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
         pa_type = self._pa_array.type
+        other = self._box_pa(other)
+
         if (pa.types.is_string(pa_type) or pa.types.is_binary(pa_type)) and op in [
             operator.add,
             roperator.radd,
         ]:
             sep = pa.scalar("", type=pa_type)
-            if isinstance(other, type(self)):
-                other = other._pa_array
             if op is operator.add:
                 result = pc.binary_join_element_wise(self._pa_array, other, sep)
             else:
                 result = pc.binary_join_element_wise(other, self._pa_array, sep)
             return type(self)(result)
 
+        if (
+            isinstance(other, pa.Scalar)
+            and pc.is_null(other).as_py()
+            and op.__name__ in ARROW_LOGICAL_FUNCS
+        ):
+            # pyarrow kleene ops require null to be typed
+            other = other.cast(pa_type)
+
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             raise NotImplementedError(f"{op.__name__} not implemented.")
-        if isinstance(other, ArrowExtensionArray):
-            result = pc_func(self._pa_array, other._pa_array)
-        elif isinstance(other, (np.ndarray, list)):
-            result = pc_func(self._pa_array, pa.array(other, from_pandas=True))
-        elif isinstance(other, BaseMaskedArray):
-            # GH 52625
-            result = pc_func(self._pa_array, other.__arrow_array__())
-        elif is_scalar(other):
-            if isna(other) and op.__name__ in ARROW_LOGICAL_FUNCS:
-                # pyarrow kleene ops require null to be typed
-                pa_scalar = pa.scalar(None, type=self._pa_array.type)
-            else:
-                pa_scalar = pa.scalar(other)
-            result = pc_func(self._pa_array, pa_scalar)
-        else:
-            raise NotImplementedError(
-                f"{op.__name__} not implemented for {type(other)}"
-            )
+
+        result = pc_func(self._pa_array, other)
         return type(self)(result)
 
     def _logical_method(self, other, op):
@@ -878,7 +1003,10 @@ class ArrowExtensionArray(
         else:
             data = self._pa_array
 
-        encoded = data.dictionary_encode(null_encoding=null_encoding)
+        if pa.types.is_dictionary(data.type):
+            encoded = data
+        else:
+            encoded = data.dictionary_encode(null_encoding=null_encoding)
         if encoded.length() == 0:
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
@@ -1047,16 +1175,46 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if dtype is None and self._hasna:
-            dtype = object
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+        elif self._hasna:
+            dtype = np.dtype(object)
+
         if na_value is lib.no_default:
             na_value = self.dtype.na_value
 
         pa_type = self._pa_array.type
-        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
-            # temporal types with units and/or timezones currently
-            #  require pandas/python scalars to pass all tests
-            # TODO: improve performance (this is slow)
+        if pa.types.is_timestamp(pa_type):
+            from pandas.core.arrays.datetimes import (
+                DatetimeArray,
+                tz_to_dtype,
+            )
+
+            np_dtype = np.dtype(f"M8[{pa_type.unit}]")
+            result = self._pa_array.to_numpy()
+            result = result.astype(np_dtype, copy=copy)
+            if dtype is None or dtype.kind == "O":
+                dta_dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+                result = DatetimeArray._simple_new(result, dtype=dta_dtype)
+                result = result.to_numpy(dtype=object, na_value=na_value)
+            elif result.dtype != dtype:
+                result = result.astype(dtype, copy=False)
+            return result
+        elif pa.types.is_duration(pa_type):
+            from pandas.core.arrays.timedeltas import TimedeltaArray
+
+            np_dtype = np.dtype(f"m8[{pa_type.unit}]")
+            result = self._pa_array.to_numpy()
+            result = result.astype(np_dtype, copy=copy)
+            if dtype is None or dtype.kind == "O":
+                result = TimedeltaArray._simple_new(result, dtype=np_dtype)
+                result = result.to_numpy(dtype=object, na_value=na_value)
+            elif result.dtype != dtype:
+                result = result.astype(dtype, copy=False)
+            return result
+        elif pa.types.is_time(pa_type):
+            # convert to list of python datetime.time objects before
+            # wrapping in ndarray
             result = np.array(list(self), dtype=dtype)
         elif is_object_dtype(dtype) and self._hasna:
             result = np.empty(len(self), dtype=object)
@@ -1603,16 +1761,8 @@ class ArrowExtensionArray(
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
-        if value is None:
-            return value
-        if isinstance(value, (pa.Scalar, pa.Array, pa.ChunkedArray)):
-            return value
-        if is_list_like(value):
-            pa_box = pa.array
-        else:
-            pa_box = pa.scalar
         try:
-            value = pa_box(value, type=self._pa_array.type, from_pandas=True)
+            value = self._box_pa(value, self._pa_array.type)
         except pa.ArrowTypeError as err:
             msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
             raise TypeError(msg) from err

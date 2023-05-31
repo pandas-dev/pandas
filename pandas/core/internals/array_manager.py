@@ -29,6 +29,7 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
     find_common_type,
     infer_dtype_from_scalar,
+    np_find_common_type,
 )
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -41,6 +42,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     PandasDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -61,7 +63,6 @@ from pandas.core.arrays import (
     PandasArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.sparse import SparseDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -442,10 +443,6 @@ class BaseArrayManager(DataManager):
     @property
     def is_mixed_type(self) -> bool:
         return True
-
-    @property
-    def is_numeric_mixed_type(self) -> bool:
-        return all(is_numeric_dtype(t) for t in self.get_dtypes())
 
     @property
     def any_extension_types(self) -> bool:
@@ -1275,7 +1272,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         new_index = self.index._getitem_slice(slobj)
         return type(self)([new_array], [new_index], verify_integrity=False)
 
-    def getitem_mgr(self, indexer) -> SingleArrayManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> SingleArrayManager:
         new_array = self.array[indexer]
         new_index = self.index[indexer]
         return type(self)([new_array], [new_index])
@@ -1413,7 +1410,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
         target_dtype = to_concat_no_proxy[0].dtype
     elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
         # GH#42092
-        target_dtype = np.find_common_type(list(dtypes), [])
+        target_dtype = np_find_common_type(*dtypes)
     else:
         target_dtype = find_common_type([arr.dtype for arr in to_concat_no_proxy])
 

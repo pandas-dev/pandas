@@ -58,6 +58,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
@@ -644,7 +645,18 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         if inferred == dtype:
             return dtype, fv
 
-        return np.dtype("object"), fill_value
+        elif inferred.kind == "m":
+            # different unit, e.g. passed np.timedelta64(24, "h") with dtype=m8[ns]
+            # see if we can losslessly cast it to our dtype
+            unit = np.datetime_data(dtype)[0]
+            try:
+                td = Timedelta(fill_value).as_unit(unit, round_ok=False)
+            except OutOfBoundsTimedelta:
+                return _dtype_obj, fill_value
+            else:
+                return dtype, td.asm8
+
+        return _dtype_obj, fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -774,8 +786,6 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
-            if val is not NaT:
-                val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
@@ -784,7 +794,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
-            dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
+            dtype = DatetimeTZDtype(unit=val.unit, tz=val.tz)
 
     elif isinstance(val, (np.timedelta64, dt.timedelta)):
         try:
@@ -792,8 +802,11 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            dtype = np.dtype("m8[ns]")
-            val = np.timedelta64(val.value, "ns")
+            if val is NaT:
+                val = np.timedelta64("NaT", "ns")
+            else:
+                val = val.asm8
+            dtype = val.dtype
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
@@ -1070,7 +1083,6 @@ def convert_dtypes(
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
@@ -1085,7 +1097,9 @@ def convert_dtypes(
                 and not isinstance(inferred_dtype, StringDtype)
             )
         ):
-            if isinstance(inferred_dtype, PandasExtensionDtype):
+            if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
+                inferred_dtype, DatetimeTZDtype
+            ):
                 base_dtype = inferred_dtype.base
             elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
                 base_dtype = inferred_dtype.numpy_dtype
@@ -1316,6 +1330,32 @@ def common_dtype_categorical_compat(
     return dtype
 
 
+def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
+    """
+    np.find_common_type implementation pre-1.25 deprecation using np.result_type
+    https://github.com/pandas-dev/pandas/pull/49569#issuecomment-1308300065
+
+    Parameters
+    ----------
+    dtypes : np.dtypes
+
+    Returns
+    -------
+    np.dtype
+    """
+    try:
+        common_dtype = np.result_type(*dtypes)
+        if common_dtype.kind in "mMSU":
+            # NumPy promotion currently (1.25) misbehaves for for times and strings,
+            # so fall back to object (find_common_dtype did unless there
+            # was only one dtype)
+            common_dtype = np.dtype("O")
+
+    except TypeError:
+        common_dtype = np.dtype("O")
+    return common_dtype
+
+
 @overload
 def find_common_type(types: list[np.dtype]) -> np.dtype:
     ...
@@ -1383,7 +1423,7 @@ def find_common_type(types):
             if t.kind in "iufc":
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    return np_find_common_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(
