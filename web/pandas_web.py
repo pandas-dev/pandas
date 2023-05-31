@@ -242,6 +242,7 @@ class Preprocessors:
             # Only the most up-to-date "1.5.x" release would be included due to sorting
             if (v.major, v.minor) == (prev_version.major, prev_version.minor):
                 continue
+
             prev_version = v
 
             if release["prerelease"]:
