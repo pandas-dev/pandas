@@ -443,6 +443,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "hour",
         """
         The hour of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:00", "2023-01-01 11:00"], freq='H')
+        >>> idx.hour
+        Index([10, 11], dtype='int64')
         """,
     )
     minute = _field_accessor(
@@ -510,6 +516,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
+        For Series:
+
         >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
         >>> s = pd.Series(period)
         >>> s
@@ -522,6 +530,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         1    29
         2    31
         dtype: int64
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.days_in_month   # It can be also entered as `daysinmonth`
+        Index([31, 28, 31], dtype='int64')
         """,
     )
     daysinmonth = days_in_month
