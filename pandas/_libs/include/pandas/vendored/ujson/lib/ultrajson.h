@@ -53,7 +53,7 @@ tree doesn't have cyclic references.
 
 #include <stdio.h>
 #include <wchar.h>
-#include "../../headers/portable.h"
+#include "pandas/portable.h"
 
 // Don't output any extra whitespaces when encoding
 #define JSON_NO_EXTRA_WHITESPACE
