@@ -232,7 +232,7 @@ class Preprocessors:
         # A version is obsolete if it's not the latest minor version.
         # In the list ["1.4.0", "1.4.1", "1.4.2", "1.5.0", "1.5.1"], versions
         # "1.4.0", "1.4.1", and "1.5.0" are obsolete,
-        # We don't need 1.5.0 because 1.5.1 has the same features with some bugs fixed
+        # We don't need 1.5.0 as 1.5.1 has the same features with some bugs fixed
 
         # Dummy version for filtering obsolete versions
         prev_version = version.Version("0.0.0")
