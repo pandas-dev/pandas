@@ -40,7 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include <ultrajson.h>
+#include "pandas/vendored/ujson/lib/ultrajson.h"
 
 #define PRINTMARK()
 

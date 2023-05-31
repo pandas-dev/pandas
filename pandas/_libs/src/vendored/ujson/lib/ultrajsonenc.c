@@ -45,7 +45,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ultrajson.h"
+#include "pandas/vendored/ujson/lib/ultrajson.h"
 
 #ifndef TRUE
 #define TRUE 1

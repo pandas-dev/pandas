@@ -24,7 +24,7 @@ primitive_types = [('int64', 'int64_t'),
 
 {{for name, c_type in primitive_types}}
 
-cdef extern from "khash_python.h":
+cdef extern from "pandas/vendored/klib/khash_python.h":
     ctypedef struct kh_{{name}}_t:
         khuint_t n_buckets, size, n_occupied, upper_bound
         uint32_t *flags

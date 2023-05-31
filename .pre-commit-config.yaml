@@ -65,11 +65,7 @@ repos:
     rev: 1.6.1
     hooks:
     -   id: cpplint
-        # We don't lint all C files because we don't want to lint any that are built
-        # from Cython files nor do we want to lint C files that we didn't modify for
-        # this particular codebase (e.g. src/headers, src/klib). However,
-        # we can lint all header files since they aren't "generated" like C files are.
-        exclude: ^pandas/_libs/src/(klib|headers)/
+        exclude: ^pandas/_libs/include/pandas/vendored/klib
         args: [
             --quiet,
             '--extensions=c,h',

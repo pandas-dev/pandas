@@ -14,7 +14,7 @@ extern "C" {
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include "src/parser/tokenizer.h"
+#include "pandas/parser/tokenizer.h"
 
 typedef struct {
   int (*to_double)(char *, double *, char, char, int *);

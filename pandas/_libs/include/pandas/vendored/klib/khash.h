@@ -112,7 +112,7 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include "../inline_helper.h"
+#include "pandas/inline_helper.h"
 
 
 // hooks for memory allocator, C-runtime allocator used per default

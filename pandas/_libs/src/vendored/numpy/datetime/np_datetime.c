@@ -25,7 +25,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
-#include "np_datetime.h"
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
 
 
 const int days_per_month_table[2][12] = {

@@ -15,7 +15,7 @@ from numpy cimport (
 )
 
 
-cdef extern from "khash_python.h":
+cdef extern from "pandas/vendored/klib/khash_python.h":
     const int KHASH_TRACE_DOMAIN
 
     ctypedef uint32_t khuint_t

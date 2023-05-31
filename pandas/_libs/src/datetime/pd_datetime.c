@@ -20,7 +20,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "datetime.h"
-#include "pd_datetime.h"
+#include "pandas/datetime/pd_datetime.h"
 
 
 static void pandas_datetime_destructor(PyObject *op) {

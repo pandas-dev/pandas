@@ -8,8 +8,8 @@ Distributed under the terms of the BSD Simplified License.
 */
 #define _PANDAS_PARSER_IMPL
 
-#include "pd_parser.h"
-#include "src/parser/io.h"
+#include "pandas/parser/pd_parser.h"
+#include "pandas/parser/io.h"
 
 static int to_double(char *item, double *p_value, char sci, char decimal,
                             int *maybe_int) {
