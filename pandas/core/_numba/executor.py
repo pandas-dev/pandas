@@ -14,7 +14,7 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_shared_aggregator(
     func: Callable[..., Scalar],
     nopython: bool,

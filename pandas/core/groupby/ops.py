@@ -162,7 +162,7 @@ class WrappedCythonOp:
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
