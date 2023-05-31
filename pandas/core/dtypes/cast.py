@@ -48,7 +48,6 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     ensure_str,
-    get_string_dtype,
     is_bool,
     is_complex,
     is_float,
@@ -595,9 +594,6 @@ def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     # This also use fill_value_type as (unused) argument to use this in the
     # cache lookup -> to differentiate 1 and True
     return _maybe_promote(dtype, fill_value)
-
-
-StringDType = type(get_string_dtype())
 
 
 def _maybe_promote(dtype: np.dtype, fill_value=np.nan):

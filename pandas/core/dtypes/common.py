@@ -17,7 +17,6 @@ from pandas._libs import (
     Period,
     algos,
     lib,
-    missing,
 )
 from pandas._libs.tslibs import conversion
 from pandas.util._exceptions import find_stack_level
@@ -528,7 +527,7 @@ def get_string_dtype():
 
     import stringdtype
 
-    return stringdtype.StringDType(na_object=missing.NA)
+    return stringdtype.PandasStringDType()
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
@@ -1037,11 +1036,8 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     )
 
 
-StringDType = type(get_string_dtype())
-
-
 def needs_object_conversion(dtype: DtypeObj | None) -> bool:
-    return type(dtype) is StringDType
+    return isinstance(dtype, type(get_string_dtype()))
 
 
 def needs_i8_conversion(dtype: DtypeObj | None) -> bool:

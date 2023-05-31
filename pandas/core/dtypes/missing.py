@@ -301,16 +301,13 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     return result
 
 
-StringDType = type(get_string_dtype())
-
-
 def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bool_]:
     # Working around NumPy ticket 1542
     dtype = values.dtype
 
     if dtype.kind in ("S", "U"):
         result = np.zeros(values.shape, dtype=bool)
-    elif type(dtype) is StringDType:
+    elif isinstance(dtype, type(get_string_dtype())):
         result = np.isnan(values)
     else:
         if values.ndim in {1, 2}:
@@ -683,7 +680,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
 
 
 def dtype_supports_na(dtype: np.dtype):
-    return dtype.kind in "iufcmM" or type(dtype) is StringDType
+    return dtype.kind in "iufcmM" or isinstance(dtype, type(get_string_dtype()))
 
 
 def remove_na_arraylike(arr: Series | Index | np.ndarray):

@@ -337,18 +337,6 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage=self._storage))
 
-    def _validate(self):
-        """Validate that we only store NA or strings."""
-        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
-            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if self._ndarray.dtype != self._cache_dtype:
-            raise ValueError(
-                f"{type(self).__name__} requires a sequence of strings or "
-                "pandas.NA convertible to a NumPy array with dtype "
-                f"{self._cache_dtype}. Got "
-                f"'{self._ndarray.dtype}' dtype instead."
-            )
-
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         raise NotImplementedError("_from_sequence must be implemented in subclasses")
@@ -361,7 +349,9 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        values = np.empty(shape, dtype=cls._cache_dtype)
+        from stringdtype import PandasStringDType
+
+        values = np.empty(shape, dtype=PandasStringDType)
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -416,6 +406,17 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         # np.putmask which doesn't properly handle None/pd.NA, so using the
         # base class implementation that uses __setitem__
         ExtensionArray._putmask(self, mask, value)
+
+    def _validate(self):
+        """Validate that we only store NA or strings."""
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
+        if self._ndarray.dtype != "object":
+            raise ValueError(
+                f"{type(self).__name__} requires a sequence of strings or "
+                "pandas.NA convertible to a NumPy array with dtype "
+                f"'object'. Got '{self._ndarray.dtype}' dtype instead."
+            )
 
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
@@ -592,7 +593,6 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
 
 class ObjectStringArray(BaseNumpyStringArray):
-    _cache_dtype = "object"
     _na_value = None
     _storage = "python"
 
@@ -649,13 +649,14 @@ StringArray = ObjectStringArray
 
 
 class NumpyStringArray(BaseNumpyStringArray):
-    _cache_dtype = get_string_dtype()
     _na_value = libmissing.NA
     _storage = "numpy"
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
-        result = np.array(scalars, dtype=cls._cache_dtype)
+        from stringdtype import PandasStringDType
+
+        result = np.array(scalars, dtype=PandasStringDType)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -673,3 +674,17 @@ class NumpyStringArray(BaseNumpyStringArray):
     @classmethod
     def _from_factorized(cls, values, original):
         return original._from_backing_data(values.astype(original._ndarray.dtype))
+
+    def _validate(self):
+        """Validate that we only store NA or strings."""
+        from stringdtype import PandasStringDType
+
+        if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
+        if type(self._ndarray.dtype) != PandasStringDType:
+            raise ValueError(
+                f"{type(self).__name__} requires a sequence of strings or "
+                "pandas.NA convertible to a NumPy array with dtype "
+                f"{PandasStringDType()}. Got "
+                f"'{self._ndarray.dtype}' dtype instead."
+            )
