@@ -2890,6 +2890,44 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             res2 = pdsql.read_table("test_schema_other2")
             tm.assert_frame_equal(res1, res2)
 
+    def test_self_join_date_columns(self):
+        # GH 44421
+        from sqlalchemy.engine import Engine
+        from sqlalchemy.sql import text
+
+        create_table = text(
+            """
+        CREATE TABLE person
+        (
+            id serial constraint person_pkey primary key,
+            created_dt timestamp with time zone
+        );
+
+        INSERT INTO person
+            VALUES (1, '2021-01-01T00:00:00Z');
+        """
+        )
+        if isinstance(self.conn, Engine):
+            with self.conn.connect() as con:
+                with con.begin():
+                    con.execute(create_table)
+        else:
+            with self.conn.begin():
+                self.conn.execute(create_table)
+
+        sql_query = (
+            'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
+        )
+        result = pd.read_sql(sql_query, self.conn)
+        expected = DataFrame(
+            [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Cleanup
+        with sql.SQLDatabase(self.conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("person")
+
 
 # -----------------------------------------------------------------------------
 # -- Test Sqlite / MySQL fallback
