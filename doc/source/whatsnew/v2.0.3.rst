@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
 -
 
 .. ---------------------------------------------------------------------------

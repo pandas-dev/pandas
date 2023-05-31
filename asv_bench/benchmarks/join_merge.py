@@ -324,6 +324,38 @@ class I8Merge:
         merge(self.left, self.right, how=how)
 
 
+class MergeDatetime:
+    params = [
+        [
+            ("ns", "ns"),
+            ("ms", "ms"),
+            ("ns", "ms"),
+        ],
+        [None, "Europe/Brussels"],
+    ]
+    param_names = ["units", "tz"]
+
+    def setup(self, units, tz):
+        unit_left, unit_right = units
+        N = 10_000
+        keys = Series(date_range("2012-01-01", freq="T", periods=N, tz=tz))
+        self.left = DataFrame(
+            {
+                "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
+                "value1": np.random.randn(N * 10),
+            }
+        )
+        self.right = DataFrame(
+            {
+                "key": keys[:8000].dt.as_unit(unit_right),
+                "value2": np.random.randn(8000),
+            }
+        )
+
+    def time_merge(self, units, tz):
+        merge(self.left, self.right)
+
+
 class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
