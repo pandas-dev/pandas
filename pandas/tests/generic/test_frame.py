@@ -64,9 +64,14 @@ class TestDataFrame:
         with pytest.raises(ValueError, match=msg_err):
             bool(df)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                df.bool()
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg_warn,
+        ), pytest.raises(
+            ValueError,
+            match=msg_err,
+        ):
+            df.bool()
 
     def test_metadata_propagation_indiv_groupby(self):
         # groupby

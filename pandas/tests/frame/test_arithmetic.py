@@ -1113,9 +1113,8 @@ class TestFrameArithmetic:
                     "index type: (DatetimeArray|TimedeltaArray)"
                 )
 
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
-                    op(df, elem.value)
+            with pytest.raises(TypeError, match=msg), tm.assert_produces_warning(warn):
+                op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:

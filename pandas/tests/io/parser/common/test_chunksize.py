@@ -63,9 +63,14 @@ bar2,12,13,14,15
     parser = all_parsers
     msg = r"'chunksize' must be an integer >=1"
 
-    with pytest.raises(ValueError, match=msg):
-        with parser.read_csv(StringIO(data), chunksize=chunksize) as _:
-            pass
+    with pytest.raises(
+        ValueError,
+        match=msg,
+    ), parser.read_csv(
+        StringIO(data),
+        chunksize=chunksize,
+    ) as _:
+        pass
 
 
 @pytest.mark.parametrize("chunksize", [2, 8])

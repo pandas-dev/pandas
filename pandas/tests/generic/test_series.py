@@ -69,9 +69,14 @@ class TestSeries:
         )
         msg_err = "bool cannot act on a non-boolean single element Series"
         series = Series([data])
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                series.bool()
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg_warn,
+        ), pytest.raises(
+            ValueError,
+            match=msg_err,
+        ):
+            series.bool()
 
     @pytest.mark.parametrize("data", [(True, True), (False, False)])
     def test_nonzero_multiple_element_raise(self, data):
@@ -84,9 +89,11 @@ class TestSeries:
         series = Series([data])
         with pytest.raises(ValueError, match=msg_err):
             bool(series)
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err):
-                series.bool()
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg_warn,
+        ), pytest.raises(ValueError, match=msg_err):
+            series.bool()
 
     @pytest.mark.parametrize("data", [1, 0, "a", 0.0])
     def test_nonbool_single_element_raise(self, data):
@@ -100,9 +107,11 @@ class TestSeries:
         series = Series([data])
         with pytest.raises(ValueError, match=msg_err1):
             bool(series)
-        with tm.assert_produces_warning(FutureWarning, match=msg_warn):
-            with pytest.raises(ValueError, match=msg_err2):
-                series.bool()
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg_warn,
+        ), pytest.raises(ValueError, match=msg_err2):
+            series.bool()
 
     def test_metadata_propagation_indiv_resample(self):
         # resample

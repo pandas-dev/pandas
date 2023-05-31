@@ -200,12 +200,16 @@ class TestFromRecords:
                 r"'None of \[2\] are in the columns'",
             ]
         )
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=[2])
-        with pytest.raises(KeyError, match=msg):
-            with tm.assert_produces_warning(FutureWarning):
-                DataFrame.from_records(df, index=2)
+        with pytest.raises(
+            KeyError,
+            match=msg,
+        ), tm.assert_produces_warning(FutureWarning):
+            DataFrame.from_records(df, index=[2])
+        with pytest.raises(
+            KeyError,
+            match=msg,
+        ), tm.assert_produces_warning(FutureWarning):
+            DataFrame.from_records(df, index=2)
 
     def test_from_records_non_tuple(self):
         class Record:

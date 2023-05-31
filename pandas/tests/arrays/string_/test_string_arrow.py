@@ -82,9 +82,11 @@ def test_from_sequence_wrong_dtype_raises():
 
     ArrowStringArray._from_sequence(["a", None, "c"], dtype="string[pyarrow]")
 
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "python"):
-            ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+    with pytest.raises(
+        AssertionError,
+        match=None,
+    ), pd.option_context("string_storage", "python"):
+        ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     with pd.option_context("string_storage", "pyarrow"):
         ArrowStringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
@@ -108,9 +110,11 @@ def test_from_sequence_wrong_dtype_raises():
     with pd.option_context("string_storage", "python"):
         StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
-    with pytest.raises(AssertionError, match=None):
-        with pd.option_context("string_storage", "pyarrow"):
-            StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
+    with pytest.raises(
+        AssertionError,
+        match=None,
+    ), pd.option_context("string_storage", "pyarrow"):
+        StringArray._from_sequence(["a", None, "c"], dtype=StringDtype())
 
     StringArray._from_sequence(["a", None, "c"], dtype=StringDtype("python"))
 

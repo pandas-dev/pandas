@@ -1592,25 +1592,25 @@ class TestExcelFileRead:
     def test_bad_sheetname_raises(self, read_ext, sheet_name):
         # GH 39250
         msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
-        with pytest.raises(ValueError, match=msg):
-            with pd.ExcelFile("blank" + read_ext) as excel:
-                excel.parse(sheet_name=sheet_name)
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ), pd.ExcelFile("blank" + read_ext) as excel:
+            excel.parse(sheet_name=sheet_name)
 
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext
         expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0, engine=engine)
 
-        with open(pth, "rb") as f:
-            with pd.ExcelFile(f) as xls:
-                actual = pd.read_excel(xls, sheet_name="Sheet1", index_col=0)
+        with open(pth, "rb") as f, pd.ExcelFile(f) as xls:
+            actual = pd.read_excel(xls, sheet_name="Sheet1", index_col=0)
 
         tm.assert_frame_equal(expected, actual)
 
     def test_reader_closes_file(self, engine, read_ext):
-        with open("test1" + read_ext, "rb") as f:
-            with pd.ExcelFile(f) as xlsx:
-                # parses okay
-                pd.read_excel(xlsx, sheet_name="Sheet1", index_col=0, engine=engine)
+        with open("test1" + read_ext, "rb") as f, pd.ExcelFile(f) as xlsx:
+            # parses okay
+            pd.read_excel(xlsx, sheet_name="Sheet1", index_col=0, engine=engine)
 
         assert f.closed
 
@@ -1618,9 +1618,11 @@ class TestExcelFileRead:
         # GH 26566
         msg = "Engine should not be specified when passing an ExcelFile"
 
-        with pd.ExcelFile("test1" + read_ext) as xl:
-            with pytest.raises(ValueError, match=msg):
-                pd.read_excel(xl, engine="foo")
+        with pd.ExcelFile("test1" + read_ext) as xl, pytest.raises(
+            ValueError,
+            match=msg,
+        ):
+            pd.read_excel(xl, engine="foo")
 
     def test_excel_read_binary(self, engine, read_ext):
         # GH 15914
@@ -1641,9 +1643,14 @@ class TestExcelFileRead:
 
     def test_read_excel_header_index_out_of_range(self, engine):
         # GH#43143
-        with open("df_header_oob.xlsx", "rb") as f:
-            with pytest.raises(ValueError, match="exceeds maximum"):
-                pd.read_excel(f, header=[0, 1])
+        with open(
+            "df_header_oob.xlsx",
+            "rb",
+        ) as f, pytest.raises(
+            ValueError,
+            match="exceeds maximum",
+        ):
+            pd.read_excel(f, header=[0, 1])
 
     @pytest.mark.parametrize("filename", ["df_empty.xlsx", "df_equals.xlsx"])
     def test_header_with_index_col(self, filename):
@@ -1681,9 +1688,14 @@ class TestExcelFileRead:
 
     def test_engine_invalid_option(self, read_ext):
         # read_ext includes the '.' hence the weird formatting
-        with pytest.raises(ValueError, match="Value must be one of *"):
-            with pd.option_context(f"io.excel{read_ext}.reader", "abc"):
-                pass
+        with pytest.raises(
+            ValueError,
+            match="Value must be one of *",
+        ), pd.option_context(
+            f"io.excel{read_ext}.reader",
+            "abc",
+        ):
+            pass
 
     def test_ignore_chartsheets(self, request, engine, read_ext):
         # GH 41448

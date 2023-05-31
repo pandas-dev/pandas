@@ -1948,9 +1948,14 @@ Thu,Lunch,Yes,51.51,17"""
                 index=[np.arange(2**16), np.arange(2**16)],
             )
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
-                with pytest.raises(Exception, match="Don't compute final result."):
-                    df.unstack()
+            with tm.assert_produces_warning(
+                PerformanceWarning,
+                match=msg,
+            ), pytest.raises(
+                Exception,
+                match="Don't compute final result.",
+            ):
+                df.unstack()
 
     @pytest.mark.parametrize(
         "levels",

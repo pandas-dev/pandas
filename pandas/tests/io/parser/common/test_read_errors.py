@@ -52,9 +52,8 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
     # Stream must be binary UTF8.
     with open(path, "rb") as handle, codecs.StreamRecoder(
         handle, utf8.encode, utf8.decode, codec.streamreader, codec.streamwriter
-    ) as stream:
-        with pytest.raises(UnicodeDecodeError, match=msg):
-            parser.read_csv(stream)
+    ) as stream, pytest.raises(UnicodeDecodeError, match=msg):
+        parser.read_csv(stream)
 
 
 def test_malformed(all_parsers):
@@ -85,9 +84,8 @@ skip
     msg = "Expected 3 fields in line 6, saw 5"
     with parser.read_csv(
         StringIO(data), header=1, comment="#", iterator=True, chunksize=1, skiprows=[2]
-    ) as reader:
-        with pytest.raises(ParserError, match=msg):
-            reader.read(nrows)
+    ) as reader, pytest.raises(ParserError, match=msg):
+        reader.read(nrows)
 
 
 def test_catch_too_many_names(all_parsers):

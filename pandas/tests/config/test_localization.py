@@ -130,9 +130,8 @@ def test_set_locale(lang, enc):
     if not can_set_locale(new_locale):
         msg = "unsupported locale setting"
 
-        with pytest.raises(locale.Error, match=msg):
-            with set_locale(new_locale):
-                pass
+        with pytest.raises(locale.Error, match=msg), set_locale(new_locale):
+            pass
     else:
         with set_locale(new_locale) as normalized_locale:
             new_lang, new_enc = normalized_locale.split(".")

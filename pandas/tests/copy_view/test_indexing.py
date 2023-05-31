@@ -163,9 +163,11 @@ def test_subset_column_slice(backend, using_copy_on_write, using_array_manager, 
     else:
         # we only get a warning in case of a single block
         warn = SettingWithCopyWarning if single_block else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                subset.iloc[0, 0] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(warn):
+            subset.iloc[0, 0] = 0
 
     expected = DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
     tm.assert_frame_equal(subset, expected)
@@ -323,9 +325,11 @@ def test_subset_set_with_row_indexer(backend, indexer_si, indexer, using_copy_on
     else:
         # INFO iloc no longer raises warning since pandas 1.4
         warn = SettingWithCopyWarning if indexer_si is tm.setitem else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                indexer_si(subset)[indexer] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(warn):
+            indexer_si(subset)[indexer] = 0
 
     expected = DataFrame(
         {"a": [0, 0, 4], "b": [0, 0, 7], "c": [0.0, 0.0, 0.4]}, index=range(1, 4)
@@ -352,9 +356,11 @@ def test_subset_set_with_mask(backend, using_copy_on_write):
     if using_copy_on_write:
         subset[mask] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset[mask] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            subset[mask] = 0
 
     expected = DataFrame(
         {"a": [2, 3, 0], "b": [0, 0, 0], "c": [0.20, 0.3, 0.4]}, index=range(1, 4)
@@ -385,9 +391,11 @@ def test_subset_set_column(backend, using_copy_on_write):
     if using_copy_on_write:
         subset["a"] = arr
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset["a"] = arr
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            subset["a"] = arr
 
     subset._mgr._verify_integrity()
     expected = DataFrame(
@@ -415,12 +423,13 @@ def test_subset_set_column_with_loc(
     if using_copy_on_write:
         subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(
-                None,
-                raise_on_extra_warnings=not using_array_manager,
-            ):
-                subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
+        with pd.option_context(
+            "chained_assignment", "warn"
+        ), tm.assert_produces_warning(
+            None,
+            raise_on_extra_warnings=not using_array_manager,
+        ):
+            subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
     expected = DataFrame(
@@ -450,12 +459,14 @@ def test_subset_set_column_with_loc2(backend, using_copy_on_write, using_array_m
     if using_copy_on_write:
         subset.loc[:, "a"] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(
-                None,
-                raise_on_extra_warnings=not using_array_manager,
-            ):
-                subset.loc[:, "a"] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(
+            None,
+            raise_on_extra_warnings=not using_array_manager,
+        ):
+            subset.loc[:, "a"] = 0
 
     subset._mgr._verify_integrity()
     expected = DataFrame({"a": [0, 0]}, index=range(1, 3))
@@ -485,9 +496,11 @@ def test_subset_set_columns(backend, using_copy_on_write, dtype):
     if using_copy_on_write:
         subset[["a", "c"]] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                subset[["a", "c"]] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            subset[["a", "c"]] = 0
 
     subset._mgr._verify_integrity()
     if using_copy_on_write:
@@ -892,9 +905,11 @@ def test_column_as_series(backend, using_copy_on_write, using_array_manager):
         s[0] = 0
     else:
         warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                s[0] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(warn):
+            s[0] = 0
 
     expected = Series([0, 2, 3], name="a")
     tm.assert_series_equal(s, expected)
@@ -927,9 +942,11 @@ def test_column_as_series_set_with_upcast(
         s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                s[0] = "foo"
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
 
     tm.assert_series_equal(s, expected)
@@ -973,9 +990,11 @@ def test_column_as_series_no_item_cache(
         s1.iloc[0] = 0
     else:
         warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                s1.iloc[0] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(warn):
+            s1.iloc[0] = 0
 
     if using_copy_on_write:
         tm.assert_series_equal(s2, df_orig["a"])

@@ -265,11 +265,17 @@ def read_xml_iterparse(data, **kwargs):
 
 
 def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
-    with get_handle(comp_path, "r", compression=compression_only) as handles:
-        with tm.ensure_clean() as path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(handles.handle.read())
-            return read_xml(path, **kwargs)
+    with get_handle(
+        comp_path,
+        "r",
+        compression=compression_only,
+    ) as handles, tm.ensure_clean() as path, open(
+        path,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        f.write(handles.handle.read())
+        return read_xml(path, **kwargs)
 
 
 # FILE / URL
@@ -1457,28 +1463,25 @@ def test_file_io_iterparse(datapath, parser, mode):
         filename,
         mode,
         encoding="utf-8" if mode == "r" else None,
-    ) as f:
-        with funcIO(f.read()) as b:
-            if mode == "r" and parser == "lxml":
-                with pytest.raises(
-                    TypeError, match=("reading file objects must return bytes objects")
-                ):
-                    read_xml(
-                        b,
-                        parser=parser,
-                        iterparse={
-                            "book": ["category", "title", "year", "author", "price"]
-                        },
-                    )
-                return None
-            else:
-                df_fileio = read_xml(
+    ) as f, funcIO(f.read()) as b:
+        if mode == "r" and parser == "lxml":
+            with pytest.raises(
+                TypeError, match=("reading file objects must return bytes objects")
+            ):
+                read_xml(
                     b,
                     parser=parser,
                     iterparse={
                         "book": ["category", "title", "year", "author", "price"]
                     },
                 )
+            return None
+        else:
+            df_fileio = read_xml(
+                b,
+                parser=parser,
+                iterparse={"book": ["category", "title", "year", "author", "price"]},
+            )
 
     df_expected = DataFrame(
         {
@@ -1800,9 +1803,11 @@ def test_wrong_compression(parser, compression, compression_only):
 
 
 def test_unsuported_compression(parser):
-    with pytest.raises(ValueError, match="Unrecognized compression type"):
-        with tm.ensure_clean() as path:
-            read_xml(path, parser=parser, compression="7z")
+    with pytest.raises(
+        ValueError,
+        match="Unrecognized compression type",
+    ), tm.ensure_clean() as path:
+        read_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS

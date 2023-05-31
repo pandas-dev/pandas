@@ -256,10 +256,9 @@ class TestCompression:
             with zipfile.ZipFile(dest_path, "w", compression=zipfile.ZIP_DEFLATED) as f:
                 f.write(src_path, os.path.basename(src_path))
         elif compression == "tar":
-            with open(src_path, "rb") as fh:
-                with tarfile.open(dest_path, mode="w") as tar:
-                    tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
-                    tar.addfile(tarinfo, fh)
+            with open(src_path, "rb") as fh, tarfile.open(dest_path, mode="w") as tar:
+                tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
+                tar.addfile(tarinfo, fh)
         elif compression == "xz":
             f = get_lzma_file()(dest_path, "w")
         elif compression == "zstd":
@@ -269,9 +268,8 @@ class TestCompression:
             raise ValueError(msg)
 
         if compression not in ["zip", "tar"]:
-            with open(src_path, "rb") as fh:
-                with f:
-                    f.write(fh.read())
+            with open(src_path, "rb") as fh, f:
+                f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
@@ -285,9 +283,11 @@ class TestCompression:
             df.to_pickle(p1, compression=compression)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
-                with open(p2, "wb") as fh:
-                    fh.write(f.read())
+            with tm.decompress_file(
+                p1,
+                compression=compression,
+            ) as f, open(p2, "wb") as fh:
+                fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)
@@ -296,10 +296,12 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = tm.makeDataFrame()
-                df.to_pickle(path, compression=compression)
+        with pytest.raises(
+            ValueError,
+            match="Unrecognized compression type",
+        ), tm.ensure_clean(get_random_path) as path:
+            df = tm.makeDataFrame()
+            df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
         base = get_random_path
@@ -314,9 +316,11 @@ class TestCompression:
             df.to_pickle(p1)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
-                with open(p2, "wb") as fh:
-                    fh.write(f.read())
+            with tm.decompress_file(
+                p1,
+                compression=compression,
+            ) as f, open(p2, "wb") as fh:
+                fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)

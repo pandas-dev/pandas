@@ -306,9 +306,8 @@ class TestDataFrameMisc:
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
-        with tm.assert_produces_warning(None):
-            with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("obj.", 1))
+        with tm.assert_produces_warning(None), provisionalcompleter("ignore"):
+            list(ip.Completer.completions("obj.", 1))
 
     def test_attrs(self):
         df = DataFrame({"A": [2, 3]})

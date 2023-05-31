@@ -78,9 +78,11 @@ $1$,$2$
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(TypeError, match="quotechar"):
-                df.to_csv(path, quoting=1, quotechar=None)
+        with tm.ensure_clean("test.csv") as path, pytest.raises(
+            TypeError,
+            match="quotechar",
+        ):
+            df.to_csv(path, quoting=1, quotechar=None)
 
     def test_to_csv_doublequote(self):
         df = DataFrame({"col": ['a"a', '"bb"']})
@@ -95,9 +97,11 @@ $1$,$2$
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(Error, match="escapechar"):
-                df.to_csv(path, doublequote=False)  # no escapechar set
+        with tm.ensure_clean("test.csv") as path, pytest.raises(
+            Error,
+            match="escapechar",
+        ):
+            df.to_csv(path, doublequote=False)  # no escapechar set
 
     def test_to_csv_escapechar(self):
         df = DataFrame({"col": ['a"a', '"bb"']})
@@ -582,9 +586,8 @@ z
         compression = {"some_option": True}
         msg = "must have key 'method'"
 
-        with tm.ensure_clean("out.zip") as path:
-            with pytest.raises(ValueError, match=msg):
-                df.to_csv(path, compression=compression)
+        with tm.ensure_clean("out.zip") as path, pytest.raises(ValueError, match=msg):
+            df.to_csv(path, compression=compression)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
@@ -702,12 +705,11 @@ z
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
-        with tm.ensure_clean() as path:
-            with open(path, "w+b") as handle:
-                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
+        with tm.ensure_clean() as path, open(path, "w+b") as handle:
+            DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
 
-                handle.seek(0)
-                assert handle.read().startswith(b'\xef\xbb\xbf""')
+            handle.seek(0)
+            assert handle.read().startswith(b'\xef\xbb\xbf""')
 
 
 def test_to_csv_iterative_compression_name(compression):

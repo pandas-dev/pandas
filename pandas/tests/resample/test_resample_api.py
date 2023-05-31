@@ -968,13 +968,23 @@ def test_args_kwargs_depr(method, raises):
     warn_msg = f"Passing additional args to DatetimeIndexResampler.{method}"
 
     if raises:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(UnsupportedFunctionCall, match=error_msg):
-                func(*args, 1, 2, 3)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ), pytest.raises(
+            UnsupportedFunctionCall,
+            match=error_msg,
+        ):
+            func(*args, 1, 2, 3)
     else:
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            with pytest.raises(TypeError, match=error_msg_type):
-                func(*args, 1, 2, 3)
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ), pytest.raises(
+            TypeError,
+            match=error_msg_type,
+        ):
+            func(*args, 1, 2, 3)
 
 
 def test_df_axis_param_depr():

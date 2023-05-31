@@ -160,9 +160,8 @@ def test_complex_indexing_error(setup_path):
         "values to data_columns when initializing the table."
     )
 
-    with ensure_clean_store(setup_path) as store:
-        with pytest.raises(TypeError, match=msg):
-            store.append("df", df, data_columns=["C"])
+    with ensure_clean_store(setup_path) as store, pytest.raises(TypeError, match=msg):
+        store.append("df", df, data_columns=["C"])
 
 
 def test_complex_series_error(tmp_path, setup_path):

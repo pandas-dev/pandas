@@ -130,11 +130,10 @@ def test_readjson_chunks(request, lines_json_df, chunksize, engine):
 
 def test_readjson_chunksize_requires_lines(lines_json_df, engine):
     msg = "chunksize can only be passed if lines=True"
-    with pytest.raises(ValueError, match=msg):
-        with read_json(
-            StringIO(lines_json_df), lines=False, chunksize=2, engine=engine
-        ) as _:
-            pass
+    with pytest.raises(ValueError, match=msg), read_json(
+        StringIO(lines_json_df), lines=False, chunksize=2, engine=engine
+    ) as _:
+        pass
 
 
 def test_readjson_chunks_series(request, engine):
@@ -230,11 +229,10 @@ def test_readjson_chunks_closes(chunksize):
 def test_readjson_invalid_chunksize(lines_json_df, chunksize, engine):
     msg = r"'chunksize' must be an integer >=1"
 
-    with pytest.raises(ValueError, match=msg):
-        with read_json(
-            StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
-        ) as _:
-            pass
+    with pytest.raises(ValueError, match=msg), read_json(
+        StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
+    ) as _:
+        pass
 
 
 @pytest.mark.parametrize("chunksize", [None, 1, 2])

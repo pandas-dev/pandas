@@ -526,10 +526,11 @@ class ChainIndexing:
     def time_chained_indexing(self, mode):
         df = self.df
         N = self.N
-        with warnings.catch_warnings(record=True):
-            with option_context("mode.chained_assignment", mode):
-                df2 = df[df.A > N // 2]
-                df2["C"] = 1.0
+        with warnings.catch_warnings(
+            record=True,
+        ), option_context("mode.chained_assignment", mode):
+            df2 = df[df.A > N // 2]
+            df2["C"] = 1.0
 
 
 class Block:

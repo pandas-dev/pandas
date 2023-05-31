@@ -83,10 +83,11 @@ def test_zip_error_no_files(parser_and_data):
 def test_zip_error_invalid_zip(parser_and_data):
     parser, _, _ = parser_and_data
 
-    with tm.ensure_clean() as path:
-        with open(path, "rb") as f:
-            with pytest.raises(zipfile.BadZipFile, match="File is not a zip file"):
-                parser.read_csv(f, compression="zip")
+    with tm.ensure_clean() as path, open(path, "rb") as f, pytest.raises(
+        zipfile.BadZipFile,
+        match="File is not a zip file",
+    ):
+        parser.read_csv(f, compression="zip")
 
 
 @skip_pyarrow
@@ -179,15 +180,18 @@ def test_compression_tar_archive(all_parsers, csv_dir_path):
 def test_ignore_compression_extension(all_parsers):
     parser = all_parsers
     df = DataFrame({"a": [0, 1]})
-    with tm.ensure_clean("test.csv") as path_csv:
-        with tm.ensure_clean("test.csv.zip") as path_zip:
-            # make sure to create un-compressed file with zip extension
-            df.to_csv(path_csv, index=False)
-            Path(path_zip).write_text(
-                Path(path_csv).read_text(encoding="utf-8"), encoding="utf-8"
-            )
+    with tm.ensure_clean(
+        "test.csv",
+    ) as path_csv, tm.ensure_clean(
+        "test.csv.zip",
+    ) as path_zip:
+        # make sure to create un-compressed file with zip extension
+        df.to_csv(path_csv, index=False)
+        Path(path_zip).write_text(
+            Path(path_csv).read_text(encoding="utf-8"), encoding="utf-8"
+        )
 
-            tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
+        tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
 
 
 @skip_pyarrow

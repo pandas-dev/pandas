@@ -789,9 +789,8 @@ class TestStata:
             r"this restriction\. Use the\n'version=117' parameter to write "
             r"the newer \(Stata 13 and later\) format\."
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                original.to_stata(path)
+        with pytest.raises(ValueError, match=msg), tm.ensure_clean() as path:
+            original.to_stata(path)
 
     def test_missing_value_generator(self):
         types = ("b", "h", "l")
@@ -1356,13 +1355,10 @@ class TestStata:
         mixed_frame.index.name = "index"
         variable_labels = {"a": "very long" * 10, "b": "City Exponent", "c": "City"}
         variable_labels["a"] = "invalid character Œ"
-        with tm.ensure_clean() as path:
-            with pytest.raises(
-                ValueError, match="Variable labels must contain only characters"
-            ):
-                mixed_frame.to_stata(
-                    path, variable_labels=variable_labels, version=version
-                )
+        with tm.ensure_clean() as path, pytest.raises(
+            ValueError, match="Variable labels must contain only characters"
+        ):
+            mixed_frame.to_stata(path, variable_labels=variable_labels, version=version)
 
     def test_write_variable_label_errors(self, mixed_frame):
         values = ["\u03A1", "\u0391", "\u039D", "\u0394", "\u0391", "\u03A3"]
@@ -1377,9 +1373,8 @@ class TestStata:
             "Variable labels must contain only characters that can be "
             "encoded in Latin-1"
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                mixed_frame.to_stata(path, variable_labels=variable_labels_utf8)
+        with pytest.raises(ValueError, match=msg), tm.ensure_clean() as path:
+            mixed_frame.to_stata(path, variable_labels=variable_labels_utf8)
 
         variable_labels_long = {
             "a": "City Rank",
@@ -1390,9 +1385,8 @@ class TestStata:
         }
 
         msg = "Variable labels must be 80 characters or fewer"
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                mixed_frame.to_stata(path, variable_labels=variable_labels_long)
+        with pytest.raises(ValueError, match=msg), tm.ensure_clean() as path:
+            mixed_frame.to_stata(path, variable_labels=variable_labels_long)
 
     def test_default_date_conversion(self):
         # GH 12259
@@ -1427,9 +1421,8 @@ class TestStata:
         original = DataFrame({"a": [1 + 2j, 2 + 4j]})
 
         msg = "Data type complex128 not supported"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.ensure_clean() as path:
-                original.to_stata(path)
+        with pytest.raises(NotImplementedError, match=msg), tm.ensure_clean() as path:
+            original.to_stata(path)
 
     def test_unsupported_datetype(self):
         dates = [
@@ -1446,9 +1439,8 @@ class TestStata:
         )
 
         msg = "Format %tC not implemented"
-        with pytest.raises(NotImplementedError, match=msg):
-            with tm.ensure_clean() as path:
-                original.to_stata(path, convert_dates={"dates": "tC"})
+        with pytest.raises(NotImplementedError, match=msg), tm.ensure_clean() as path:
+            original.to_stata(path, convert_dates={"dates": "tC"})
 
         dates = pd.date_range("1-1-1990", periods=3, tz="Asia/Hong_Kong")
         original = DataFrame(
@@ -1458,9 +1450,11 @@ class TestStata:
                 "dates": dates,
             }
         )
-        with pytest.raises(NotImplementedError, match="Data type datetime64"):
-            with tm.ensure_clean() as path:
-                original.to_stata(path)
+        with pytest.raises(
+            NotImplementedError,
+            match="Data type datetime64",
+        ), tm.ensure_clean() as path:
+            original.to_stata(path)
 
     def test_repeated_column_labels(self, datapath):
         # GH 13923, 25772
@@ -1508,9 +1502,8 @@ The repeated labels are:\n-+\nwolof
             r"Column ColumnTooBig has a maximum value \(.+\) outside the range "
             r"supported by Stata \(.+\)"
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                df.to_stata(path)
+        with pytest.raises(ValueError, match=msg), tm.ensure_clean() as path:
+            df.to_stata(path)
 
     def test_out_of_range_float(self):
         original = DataFrame(
@@ -1548,9 +1541,8 @@ The repeated labels are:\n-+\nwolof
             "Column WithInf contains infinity or -infinity"
             "which is outside the range supported by Stata."
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.ensure_clean() as path:
-                df.to_stata(path)
+        with pytest.raises(ValueError, match=msg), tm.ensure_clean() as path:
+            df.to_stata(path)
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
@@ -1686,13 +1678,12 @@ The repeated labels are:\n-+\nwolof
         )
         original.index.name = "index"
 
-        with tm.assert_produces_warning(InvalidColumnName):
-            with tm.ensure_clean() as path:
-                original.to_stata(path, convert_strl=["long", 1], version=117)
-                reread = self.read_dta(path)
-                reread = reread.set_index("index")
-                reread.columns = original.columns
-                tm.assert_frame_equal(reread, original, check_index_type=False)
+        with tm.assert_produces_warning(InvalidColumnName), tm.ensure_clean() as path:
+            original.to_stata(path, convert_strl=["long", 1], version=117)
+            reread = self.read_dta(path)
+            reread = reread.set_index("index")
+            reread.columns = original.columns
+            tm.assert_frame_equal(reread, original, check_index_type=False)
 
     def test_invalid_date_conversion(self):
         # GH 12259
@@ -1782,9 +1773,11 @@ The repeated labels are:\n-+\nwolof
         output = [{"none": "none", "number": 0}, {"none": None, "number": 1}]
         output = DataFrame(output)
         output["none"] = None
-        with tm.ensure_clean() as path:
-            with pytest.raises(ValueError, match="Column `none` cannot be exported"):
-                output.to_stata(path, version=version)
+        with tm.ensure_clean() as path, pytest.raises(
+            ValueError,
+            match="Column `none` cannot be exported",
+        ):
+            output.to_stata(path, version=version)
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_invalid_file_not_written(self, version):
@@ -1905,12 +1898,16 @@ the string values returned are correct."""
 
     def test_writer_118_exceptions(self):
         df = DataFrame(np.zeros((1, 33000), dtype=np.int8))
-        with tm.ensure_clean() as path:
-            with pytest.raises(ValueError, match="version must be either 118 or 119."):
-                StataWriterUTF8(path, df, version=117)
-        with tm.ensure_clean() as path:
-            with pytest.raises(ValueError, match="You must use version 119"):
-                StataWriterUTF8(path, df, version=118)
+        with tm.ensure_clean() as path, pytest.raises(
+            ValueError,
+            match="version must be either 118 or 119.",
+        ):
+            StataWriterUTF8(path, df, version=117)
+        with tm.ensure_clean() as path, pytest.raises(
+            ValueError,
+            match="You must use version 119",
+        ):
+            StataWriterUTF8(path, df, version=118)
 
 
 @pytest.mark.parametrize("version", [105, 108, 111, 113, 114])
@@ -1933,17 +1930,19 @@ def test_direct_read(datapath, monkeypatch):
         assert not isinstance(reader._path_or_buf, io.BytesIO)
 
     # Test that we use a given fp exactly, if possible.
-    with open(file_path, "rb") as fp:
-        with StataReader(fp) as reader:
-            assert not reader.read().empty
-            assert reader._path_or_buf is fp
+    with open(file_path, "rb") as fp, StataReader(fp) as reader:
+        assert not reader.read().empty
+        assert reader._path_or_buf is fp
 
     # Test that we use a given BytesIO exactly, if possible.
-    with open(file_path, "rb") as fp:
-        with io.BytesIO(fp.read()) as bio:
-            with StataReader(bio) as reader:
-                assert not reader.read().empty
-                assert reader._path_or_buf is bio
+    with open(
+        file_path,
+        "rb",
+    ) as fp, io.BytesIO(
+        fp.read()
+    ) as bio, StataReader(bio) as reader:
+        assert not reader.read().empty
+        assert reader._path_or_buf is bio
 
 
 def test_statareader_warns_when_used_without_context(datapath):
@@ -2057,18 +2056,24 @@ def test_chunked_categorical(version):
 def test_chunked_categorical_partial(datapath):
     dta_file = datapath("io", "data", "stata", "stata-dta-partially-labeled.dta")
     values = ["a", "b", "a", "b", 3.0]
-    with StataReader(dta_file, chunksize=2) as reader:
-        with tm.assert_produces_warning(CategoricalConversionWarning):
-            for i, block in enumerate(reader):
-                assert list(block.cats) == values[2 * i : 2 * (i + 1)]
-                if i < 2:
-                    idx = pd.Index(["a", "b"])
-                else:
-                    idx = pd.Index([3.0], dtype="float64")
-                tm.assert_index_equal(block.cats.cat.categories, idx)
-    with tm.assert_produces_warning(CategoricalConversionWarning):
-        with StataReader(dta_file, chunksize=5) as reader:
-            large_chunk = reader.__next__()
+    with StataReader(
+        dta_file,
+        chunksize=2,
+    ) as reader, tm.assert_produces_warning(CategoricalConversionWarning):
+        for i, block in enumerate(reader):
+            assert list(block.cats) == values[2 * i : 2 * (i + 1)]
+            if i < 2:
+                idx = pd.Index(["a", "b"])
+            else:
+                idx = pd.Index([3.0], dtype="float64")
+            tm.assert_index_equal(block.cats.cat.categories, idx)
+    with tm.assert_produces_warning(
+        CategoricalConversionWarning,
+    ), StataReader(
+        dta_file,
+        chunksize=5,
+    ) as reader:
+        large_chunk = reader.__next__()
     direct = read_stata(dta_file)
     tm.assert_frame_equal(direct, large_chunk)
 
@@ -2076,9 +2081,14 @@ def test_chunked_categorical_partial(datapath):
 @pytest.mark.parametrize("chunksize", (-1, 0, "apple"))
 def test_iterator_errors(datapath, chunksize):
     dta_file = datapath("io", "data", "stata", "stata-dta-partially-labeled.dta")
-    with pytest.raises(ValueError, match="chunksize must be a positive"):
-        with StataReader(dta_file, chunksize=chunksize):
-            pass
+    with pytest.raises(
+        ValueError,
+        match="chunksize must be a positive",
+    ), StataReader(
+        dta_file,
+        chunksize=chunksize,
+    ):
+        pass
 
 
 def test_iterator_value_labels():

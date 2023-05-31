@@ -288,9 +288,8 @@ def test_apply_broadcast_error(int_frame_const_col, func):
 def test_transform_and_agg_err_agg(axis, float_frame):
     # cannot both transform and agg
     msg = "cannot combine transform and aggregation operations"
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            float_frame.agg(["max", "sqrt"], axis=axis)
+    with pytest.raises(ValueError, match=msg), np.errstate(all="ignore"):
+        float_frame.agg(["max", "sqrt"], axis=axis)
 
 
 @pytest.mark.parametrize(
@@ -305,9 +304,8 @@ def test_transform_and_agg_err_agg(axis, float_frame):
 )
 def test_transform_and_agg_err_series(string_series, func, msg):
     # we are trying to transform with an aggregator
-    with pytest.raises(ValueError, match=msg):
-        with np.errstate(all="ignore"):
-            string_series.agg(func)
+    with pytest.raises(ValueError, match=msg), np.errstate(all="ignore"):
+        string_series.agg(func)
 
 
 @pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])
@@ -327,9 +325,15 @@ def test_transform_wont_agg_series(string_series, func):
 
     warn = RuntimeWarning if func[0] == "sqrt" else None
     warn_msg = "invalid value encountered in sqrt"
-    with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
-            string_series.transform(func)
+    with pytest.raises(
+        ValueError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        warn,
+        match=warn_msg,
+        check_stacklevel=False,
+    ):
+        string_series.transform(func)
 
 
 @pytest.mark.parametrize(

@@ -29,25 +29,45 @@ def test_basic_indexing():
 
     warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+    with pytest.raises(
+        IndexError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=warn_msg,
+    ):
+        s[5]
+    with pytest.raises(
+        IndexError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=warn_msg,
+    ):
+        s[5] = 0
 
     with pytest.raises(KeyError, match=r"^'c'$"):
         s["c"]
 
     s = s.sort_index()
 
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5]
+    with pytest.raises(
+        IndexError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=warn_msg,
+    ):
+        s[5]
     msg = r"index 5 is out of bounds for axis (0|1) with size 5|^5$"
-    with pytest.raises(IndexError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            s[5] = 0
+    with pytest.raises(
+        IndexError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=warn_msg,
+    ):
+        s[5] = 0
 
 
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):

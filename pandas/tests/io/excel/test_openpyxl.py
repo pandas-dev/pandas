@@ -90,11 +90,14 @@ def test_write_cells_merge_styled(ext):
 def test_engine_kwargs_write(ext, iso_dates):
     # GH 42286 GH 43445
     engine_kwargs = {"iso_dates": iso_dates}
-    with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
-            assert writer.book.iso_dates == iso_dates
-            # ExcelWriter won't allow us to close without writing something
-            DataFrame().to_excel(writer)
+    with tm.ensure_clean(ext) as f, ExcelWriter(
+        f,
+        engine="openpyxl",
+        engine_kwargs=engine_kwargs,
+    ) as writer:
+        assert writer.book.iso_dates == iso_dates
+        # ExcelWriter won't allow us to close without writing something
+        DataFrame().to_excel(writer)
 
 
 def test_engine_kwargs_append_invalid(ext):
@@ -107,12 +110,11 @@ def test_engine_kwargs_append_invalid(ext):
             match=re.escape(
                 "load_workbook() got an unexpected keyword argument 'apple_banana'"
             ),
-        ):
-            with ExcelWriter(
-                f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
-            ) as writer:
-                # ExcelWriter needs us to write something to close properly
-                DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
+        ), ExcelWriter(
+            f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
+        ) as writer:
+            # ExcelWriter needs us to write something to close properly
+            DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
@@ -239,13 +241,12 @@ def test_append_overlay_startrow_startcol(ext, startrow, startcol, greeting, goo
 def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
     # GH 40230
     df = DataFrame({"fruit": ["pear"]})
-    with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=re.escape(msg)):
-            df.to_excel(f, "foo", engine="openpyxl")
-            with ExcelWriter(
-                f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
-            ) as writer:
-                df.to_excel(writer, sheet_name="foo")
+    with tm.ensure_clean(ext) as f, pytest.raises(ValueError, match=re.escape(msg)):
+        df.to_excel(f, "foo", engine="openpyxl")
+        with ExcelWriter(
+            f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+        ) as writer:
+            df.to_excel(writer, sheet_name="foo")
 
 
 def test_to_excel_with_openpyxl_engine(ext):
@@ -369,11 +370,10 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
 
 def test_book_and_sheets_consistent(ext):
     # GH#45687 - Ensure sheets is updated if user modifies book
-    with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl") as writer:
-            assert writer.sheets == {}
-            sheet = writer.book.create_sheet("test_name", 0)
-            assert writer.sheets == {"test_name": sheet}
+    with tm.ensure_clean(ext) as f, ExcelWriter(f, engine="openpyxl") as writer:
+        assert writer.sheets == {}
+        sheet = writer.book.create_sheet("test_name", 0)
+        assert writer.sheets == {"test_name": sheet}
 
 
 def test_ints_spelled_with_decimals(datapath, ext):

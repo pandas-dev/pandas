@@ -1402,9 +1402,14 @@ class TestToDatetime:
                 r"^second must be in 0..59: 00:01:99, at position 0$",
             ]
         )
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match="Could not infer format"):
-                to_datetime(values, errors="raise", format=format)
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            warn,
+            match="Could not infer format",
+        ):
+            to_datetime(values, errors="raise", format=format)
 
     @pytest.mark.parametrize("utc", [True, None])
     @pytest.mark.parametrize("format", ["%Y%m%d %H:%M:%S", None])
@@ -1585,14 +1590,11 @@ class TestToDatetime:
         with pytest.raises(
             ValueError,
             match=msg,
-        ):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(
-                    ts_strings,
-                    errors="raise",
-                )
+        ), tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+            to_datetime(
+                ts_strings,
+                errors="raise",
+            )
 
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
@@ -1743,9 +1745,14 @@ class TestToDatetimeUnit:
         msg = f"Conversion of non-round float with unit={unit} is ambiguous"
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="raise")
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                to_datetime(["1.5"], unit=unit, errors="raise")
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            to_datetime(["1.5"], unit=unit, errors="raise")
 
         # with errors="ignore" we also end up raising within the Timestamp
         #  constructor; this may not be ideal
@@ -2377,11 +2384,16 @@ class TestToDatetimeMisc:
 
         # The msg here is not important since it isn't actually raised yet.
         msg = "Invalid date specified"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            UserWarning,
+            match="Provide format",
+        ):
             # if dayfirst is respected, then this would parse as month=13, which
             #  would raise
-            with tm.assert_produces_warning(UserWarning, match="Provide format"):
-                to_datetime("01-13-2012", dayfirst=True, cache=cache)
+            to_datetime("01-13-2012", dayfirst=True, cache=cache)
 
     def test_to_datetime_on_datetime64_series(self, cache):
         # #2699

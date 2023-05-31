@@ -617,9 +617,14 @@ class TestGrouping:
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             df.groupby(level="exp", axis=axis)
         msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
-        with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                df.groupby(level="foo", axis=axis)
+        with pytest.raises(
+            ValueError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=depr_msg,
+        ):
+            df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):

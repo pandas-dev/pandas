@@ -1123,9 +1123,11 @@ def test_incorrect_xsl_apply():
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
-        with tm.ensure_clean("test.xml") as path:
-            geom_df.to_xml(path, stylesheet=xsl)
+    with pytest.raises(
+        XSLTApplyError,
+        match=("Cannot resolve URI"),
+    ), tm.ensure_clean("test.xml") as path:
+        geom_df.to_xml(path, stylesheet=xsl)
 
 
 def test_stylesheet_with_etree():
@@ -1329,9 +1331,11 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
 
 
 def test_unsuported_compression(parser):
-    with pytest.raises(ValueError, match="Unrecognized compression type"):
-        with tm.ensure_clean() as path:
-            geom_df.to_xml(path, parser=parser, compression="7z")
+    with pytest.raises(
+        ValueError,
+        match="Unrecognized compression type",
+    ), tm.ensure_clean() as path:
+        geom_df.to_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS

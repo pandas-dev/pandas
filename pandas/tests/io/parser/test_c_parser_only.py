@@ -113,15 +113,20 @@ nan 2
 """
     # fallback casting, but not castable
     warning = RuntimeWarning if np_version_gte1p24 else None
-    with pytest.raises(ValueError, match="cannot safely convert"):
-        with tm.assert_produces_warning(warning, check_stacklevel=False):
-            parser.read_csv(
-                StringIO(data),
-                sep=r"\s+",
-                header=None,
-                names=["a", "b"],
-                dtype={"a": np.int32},
-            )
+    with pytest.raises(
+        ValueError,
+        match="cannot safely convert",
+    ), tm.assert_produces_warning(
+        warning,
+        check_stacklevel=False,
+    ):
+        parser.read_csv(
+            StringIO(data),
+            sep=r"\s+",
+            header=None,
+            names=["a", "b"],
+            dtype={"a": np.int32},
+        )
 
 
 @pytest.mark.parametrize(
@@ -600,10 +605,16 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1, encoding="utf-8") as f:
-        with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
-            parser.read_csv(m)
-            assert not m.closed
+    with open(
+        csv1,
+        encoding="utf-8",
+    ) as f, mmap.mmap(
+        f.fileno(),
+        0,
+        access=mmap.ACCESS_READ,
+    ) as m:
+        parser.read_csv(m)
+        assert not m.closed
 
 
 def test_file_binary_mode(c_parser_only):

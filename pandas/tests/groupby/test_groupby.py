@@ -876,9 +876,14 @@ def test_groupby_as_index_corner(df, ts):
 
     msg = "as_index=False only valid for axis=0"
     depr_msg = "DataFrame.groupby with axis=1 is deprecated"
-    with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            df.groupby(lambda x: x.lower(), as_index=False, axis=1)
+    with pytest.raises(
+        ValueError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=depr_msg,
+    ):
+        df.groupby(lambda x: x.lower(), as_index=False, axis=1)
 
 
 def test_groupby_multiple_key():

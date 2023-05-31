@@ -65,9 +65,13 @@ def f():
 def test_assert_produces_warning_honors_filter():
     # Raise by default.
     msg = r"Caused unexpected warning\(s\)"
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(RuntimeWarning):
-            f()
+    with pytest.raises(
+        AssertionError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        RuntimeWarning,
+    ):
+        f()
 
     with tm.assert_produces_warning(RuntimeWarning, raise_on_extra_warnings=False):
         f()
@@ -103,10 +107,15 @@ def test_fail_to_match_runtime_warning():
         r"\[RuntimeWarning\('This is not a match.'\), "
         r"RuntimeWarning\('Another unmatched warning.'\)\]"
     )
-    with pytest.raises(AssertionError, match=unmatched):
-        with tm.assert_produces_warning(category, match=match):
-            warnings.warn("This is not a match.", category)
-            warnings.warn("Another unmatched warning.", category)
+    with pytest.raises(
+        AssertionError,
+        match=unmatched,
+    ), tm.assert_produces_warning(
+        category,
+        match=match,
+    ):
+        warnings.warn("This is not a match.", category)
+        warnings.warn("Another unmatched warning.", category)
 
 
 def test_fail_to_match_future_warning():
@@ -118,10 +127,15 @@ def test_fail_to_match_future_warning():
         r"\[FutureWarning\('This is not a match.'\), "
         r"FutureWarning\('Another unmatched warning.'\)\]"
     )
-    with pytest.raises(AssertionError, match=unmatched):
-        with tm.assert_produces_warning(category, match=match):
-            warnings.warn("This is not a match.", category)
-            warnings.warn("Another unmatched warning.", category)
+    with pytest.raises(
+        AssertionError,
+        match=unmatched,
+    ), tm.assert_produces_warning(
+        category,
+        match=match,
+    ):
+        warnings.warn("This is not a match.", category)
+        warnings.warn("Another unmatched warning.", category)
 
 
 def test_fail_to_match_resource_warning():
@@ -133,18 +147,25 @@ def test_fail_to_match_resource_warning():
         r"\[ResourceWarning\('This is not a match.'\), "
         r"ResourceWarning\('Another unmatched warning.'\)\]"
     )
-    with pytest.raises(AssertionError, match=unmatched):
-        with tm.assert_produces_warning(category, match=match):
-            warnings.warn("This is not a match.", category)
-            warnings.warn("Another unmatched warning.", category)
+    with pytest.raises(
+        AssertionError,
+        match=unmatched,
+    ), tm.assert_produces_warning(
+        category,
+        match=match,
+    ):
+        warnings.warn("This is not a match.", category)
+        warnings.warn("Another unmatched warning.", category)
 
 
 def test_fail_to_catch_actual_warning(pair_different_warnings):
     expected_category, actual_category = pair_different_warnings
     match = "Did not see expected warning of class"
-    with pytest.raises(AssertionError, match=match):
-        with tm.assert_produces_warning(expected_category):
-            warnings.warn("warning message", actual_category)
+    with pytest.raises(
+        AssertionError,
+        match=match,
+    ), tm.assert_produces_warning(expected_category):
+        warnings.warn("warning message", actual_category)
 
 
 def test_ignore_extra_warning(pair_different_warnings):
@@ -157,10 +178,12 @@ def test_ignore_extra_warning(pair_different_warnings):
 def test_raise_on_extra_warning(pair_different_warnings):
     expected_category, extra_category = pair_different_warnings
     match = r"Caused unexpected warning\(s\)"
-    with pytest.raises(AssertionError, match=match):
-        with tm.assert_produces_warning(expected_category):
-            warnings.warn("Expected warning", expected_category)
-            warnings.warn("Unexpected warning NOT OK", extra_category)
+    with pytest.raises(
+        AssertionError,
+        match=match,
+    ), tm.assert_produces_warning(expected_category):
+        warnings.warn("Expected warning", expected_category)
+        warnings.warn("Unexpected warning NOT OK", extra_category)
 
 
 def test_same_category_different_messages_first_match():
@@ -189,19 +212,26 @@ def test_match_multiple_warnings():
 
 def test_right_category_wrong_match_raises(pair_different_warnings):
     target_category, other_category = pair_different_warnings
-    with pytest.raises(AssertionError, match="Did not see warning.*matching"):
-        with tm.assert_produces_warning(target_category, match=r"^Match this"):
-            warnings.warn("Do not match it", target_category)
-            warnings.warn("Match this", other_category)
+    with pytest.raises(
+        AssertionError,
+        match="Did not see warning.*matching",
+    ), tm.assert_produces_warning(
+        target_category,
+        match=r"^Match this",
+    ):
+        warnings.warn("Do not match it", target_category)
+        warnings.warn("Match this", other_category)
 
 
 @pytest.mark.parametrize("false_or_none", [False, None])
 class TestFalseOrNoneExpectedWarning:
     def test_raise_on_warning(self, false_or_none):
         msg = r"Caused unexpected warning\(s\)"
-        with pytest.raises(AssertionError, match=msg):
-            with tm.assert_produces_warning(false_or_none):
-                f()
+        with pytest.raises(
+            AssertionError,
+            match=msg,
+        ), tm.assert_produces_warning(false_or_none):
+            f()
 
     def test_no_raise_without_warning(self, false_or_none):
         with tm.assert_produces_warning(false_or_none):
@@ -214,28 +244,35 @@ class TestFalseOrNoneExpectedWarning:
 
 def test_raises_during_exception():
     msg = "Did not see expected warning of class 'UserWarning'"
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(UserWarning):
-            raise ValueError
+    with pytest.raises(
+        AssertionError,
+        match=msg,
+    ), tm.assert_produces_warning(UserWarning):
+        raise ValueError
 
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(UserWarning):
-            warnings.warn("FutureWarning", FutureWarning)
-            raise IndexError
+    with pytest.raises(
+        AssertionError,
+        match=msg,
+    ), tm.assert_produces_warning(UserWarning):
+        warnings.warn("FutureWarning", FutureWarning)
+        raise IndexError
 
     msg = "Caused unexpected warning"
-    with pytest.raises(AssertionError, match=msg):
-        with tm.assert_produces_warning(None):
-            warnings.warn("FutureWarning", FutureWarning)
-            raise SystemError
+    with pytest.raises(AssertionError, match=msg), tm.assert_produces_warning(None):
+        warnings.warn("FutureWarning", FutureWarning)
+        raise SystemError
 
 
 def test_passes_during_exception():
-    with pytest.raises(SyntaxError, match="Error"):
-        with tm.assert_produces_warning(None):
-            raise SyntaxError("Error")
+    with pytest.raises(SyntaxError, match="Error"), tm.assert_produces_warning(None):
+        raise SyntaxError("Error")
 
-    with pytest.raises(ValueError, match="Error"):
-        with tm.assert_produces_warning(FutureWarning, match="FutureWarning"):
-            warnings.warn("FutureWarning", FutureWarning)
-            raise ValueError("Error")
+    with pytest.raises(
+        ValueError,
+        match="Error",
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match="FutureWarning",
+    ):
+        warnings.warn("FutureWarning", FutureWarning)
+        raise ValueError("Error")

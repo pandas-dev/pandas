@@ -96,9 +96,11 @@ bar2,12,13,14,15
     def test_stringify_file_and_path_like(self):
         # GH 38125: do not stringify file objects that are also path-like
         fsspec = pytest.importorskip("fsspec")
-        with tm.ensure_clean() as path:
-            with fsspec.open(f"file://{path}", mode="wb") as fsspec_obj:
-                assert fsspec_obj == icom.stringify_path(fsspec_obj)
+        with tm.ensure_clean() as path, fsspec.open(
+            f"file://{path}",
+            mode="wb",
+        ) as fsspec_obj:
+            assert fsspec_obj == icom.stringify_path(fsspec_obj)
 
     @pytest.mark.parametrize("path_type", path_types)
     def test_infer_compression_from_path(self, compression_format, path_type):
@@ -509,12 +511,10 @@ def test_codecs_get_writer_reader():
     # GH39247
     expected = tm.makeDataFrame()
     with tm.ensure_clean() as path:
-        with open(path, "wb") as handle:
-            with codecs.getwriter("utf-8")(handle) as encoded:
-                expected.to_csv(encoded)
-        with open(path, "rb") as handle:
-            with codecs.getreader("utf-8")(handle) as encoded:
-                df = pd.read_csv(encoded, index_col=0)
+        with open(path, "wb") as handle, codecs.getwriter("utf-8")(handle) as encoded:
+            expected.to_csv(encoded)
+        with open(path, "rb") as handle, codecs.getreader("utf-8")(handle) as encoded:
+            df = pd.read_csv(encoded, index_col=0)
     tm.assert_frame_equal(expected, df)
 
 
@@ -530,9 +530,8 @@ def test_explicit_encoding(io_class, mode, msg):
     # it is used. In the case of this test it leads to an error as intentionally the
     # wrong mode is requested
     expected = tm.makeDataFrame()
-    with io_class() as buffer:
-        with pytest.raises(TypeError, match=msg):
-            expected.to_csv(buffer, mode=f"w{mode}")
+    with io_class() as buffer, pytest.raises(TypeError, match=msg):
+        expected.to_csv(buffer, mode=f"w{mode}")
 
 
 @pytest.mark.parametrize("encoding_errors", [None, "strict", "replace"])
@@ -572,9 +571,11 @@ def test_encoding_errors(encoding_errors, format):
 
 def test_bad_encdoing_errors():
     # GH 39777
-    with tm.ensure_clean() as path:
-        with pytest.raises(LookupError, match="unknown error handler name"):
-            icom.get_handle(path, "w", errors="bad")
+    with tm.ensure_clean() as path, pytest.raises(
+        LookupError,
+        match="unknown error handler name",
+    ):
+        icom.get_handle(path, "w", errors="bad")
 
 
 def test_errno_attribute():
@@ -585,9 +586,8 @@ def test_errno_attribute():
 
 
 def test_fail_mmap():
-    with pytest.raises(UnsupportedOperation, match="fileno"):
-        with BytesIO() as buffer:
-            icom.get_handle(buffer, "rb", memory_map=True)
+    with pytest.raises(UnsupportedOperation, match="fileno"), BytesIO() as buffer:
+        icom.get_handle(buffer, "rb", memory_map=True)
 
 
 def test_close_on_error():
@@ -596,10 +596,14 @@ def test_close_on_error():
         def close(self):
             raise OSError("test")
 
-    with pytest.raises(OSError, match="test"):
-        with BytesIO() as buffer:
-            with icom.get_handle(buffer, "rb") as handles:
-                handles.created_handles.append(TestError())
+    with pytest.raises(
+        OSError,
+        match="test",
+    ), BytesIO() as buffer, icom.get_handle(
+        buffer,
+        "rb",
+    ) as handles:
+        handles.created_handles.append(TestError())
 
 
 @pytest.mark.parametrize(

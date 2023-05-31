@@ -47,11 +47,10 @@ def test_context(setup_path):
                 raise ValueError("blah")
         except ValueError:
             pass
-    with tm.ensure_clean(setup_path) as path:
-        with HDFStore(path) as tbl:
-            tbl["a"] = tm.makeDataFrame()
-            assert len(tbl) == 1
-            assert type(tbl["a"]) == DataFrame
+    with tm.ensure_clean(setup_path) as path, HDFStore(path) as tbl:
+        tbl["a"] = tm.makeDataFrame()
+        assert len(tbl) == 1
+        assert type(tbl["a"]) == DataFrame
 
 
 def test_no_track_times(tmp_path, setup_path):
@@ -337,64 +336,62 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
 
 
 def test_create_table_index(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
+    with ensure_clean_store(setup_path) as store, catch_warnings(record=True):
 
-            def col(t, column):
-                return getattr(store.get_storer(t).table.cols, column)
+        def col(t, column):
+            return getattr(store.get_storer(t).table.cols, column)
 
-            # data columns
-            df = tm.makeTimeDataFrame()
-            df["string"] = "foo"
-            df["string2"] = "bar"
-            store.append("f", df, data_columns=["string", "string2"])
-            assert col("f", "index").is_indexed is True
-            assert col("f", "string").is_indexed is True
-            assert col("f", "string2").is_indexed is True
+        # data columns
+        df = tm.makeTimeDataFrame()
+        df["string"] = "foo"
+        df["string2"] = "bar"
+        store.append("f", df, data_columns=["string", "string2"])
+        assert col("f", "index").is_indexed is True
+        assert col("f", "string").is_indexed is True
+        assert col("f", "string2").is_indexed is True
 
-            # specify index=columns
-            store.append("f2", df, index=["string"], data_columns=["string", "string2"])
-            assert col("f2", "index").is_indexed is False
-            assert col("f2", "string").is_indexed is True
-            assert col("f2", "string2").is_indexed is False
+        # specify index=columns
+        store.append("f2", df, index=["string"], data_columns=["string", "string2"])
+        assert col("f2", "index").is_indexed is False
+        assert col("f2", "string").is_indexed is True
+        assert col("f2", "string2").is_indexed is False
 
-            # try to index a non-table
-            _maybe_remove(store, "f2")
-            store.put("f2", df)
-            msg = "cannot create table index on a Fixed format store"
-            with pytest.raises(TypeError, match=msg):
-                store.create_table_index("f2")
+        # try to index a non-table
+        _maybe_remove(store, "f2")
+        store.put("f2", df)
+        msg = "cannot create table index on a Fixed format store"
+        with pytest.raises(TypeError, match=msg):
+            store.create_table_index("f2")
 
 
 def test_create_table_index_data_columns_argument(setup_path):
     # GH 28156
 
-    with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
+    with ensure_clean_store(setup_path) as store, catch_warnings(record=True):
 
-            def col(t, column):
-                return getattr(store.get_storer(t).table.cols, column)
+        def col(t, column):
+            return getattr(store.get_storer(t).table.cols, column)
 
-            # data columns
-            df = tm.makeTimeDataFrame()
-            df["string"] = "foo"
-            df["string2"] = "bar"
-            store.append("f", df, data_columns=["string"])
-            assert col("f", "index").is_indexed is True
-            assert col("f", "string").is_indexed is True
+        # data columns
+        df = tm.makeTimeDataFrame()
+        df["string"] = "foo"
+        df["string2"] = "bar"
+        store.append("f", df, data_columns=["string"])
+        assert col("f", "index").is_indexed is True
+        assert col("f", "string").is_indexed is True
 
-            msg = "'Cols' object has no attribute 'string2'"
-            with pytest.raises(AttributeError, match=msg):
-                col("f", "string2").is_indexed
+        msg = "'Cols' object has no attribute 'string2'"
+        with pytest.raises(AttributeError, match=msg):
+            col("f", "string2").is_indexed
 
-            # try to index a col which isn't a data_column
-            msg = (
-                "column string2 is not a data_column.\n"
-                "In order to read column string2 you must reload the dataframe \n"
-                "into HDFStore and include string2 with the data_columns argument."
-            )
-            with pytest.raises(AttributeError, match=msg):
-                store.create_table_index("f", columns=["string2"])
+        # try to index a col which isn't a data_column
+        msg = (
+            "column string2 is not a data_column.\n"
+            "In order to read column string2 you must reload the dataframe \n"
+            "into HDFStore and include string2 with the data_columns argument."
+        )
+        with pytest.raises(AttributeError, match=msg):
+            store.create_table_index("f", columns=["string2"])
 
 
 def test_mi_data_columns(setup_path):

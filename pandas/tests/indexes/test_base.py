@@ -1225,9 +1225,8 @@ class TestIndex(Base):
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
-        with tm.assert_produces_warning(None):
-            with provisionalcompleter("ignore"):
-                list(ip.Completer.completions("idx.", 4))
+        with tm.assert_produces_warning(None), provisionalcompleter("ignore"):
+            list(ip.Completer.completions("idx.", 4))
 
     def test_contains_method_removed(self, index):
         # GH#30103 method removed for all types except IntervalIndex

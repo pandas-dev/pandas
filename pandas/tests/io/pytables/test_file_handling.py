@@ -47,9 +47,8 @@ def test_mode(setup_path, tmp_path, mode):
 
     # context
     if mode in ["r", "r+"]:
-        with pytest.raises(OSError, match=msg):
-            with HDFStore(path, mode=mode) as store:
-                pass
+        with pytest.raises(OSError, match=msg), HDFStore(path, mode=mode) as store:
+            pass
     else:
         with HDFStore(path, mode=mode) as store:
             assert store._handle.mode == mode
@@ -434,6 +433,5 @@ def test_multiple_open_close(tmp_path, setup_path):
 
 
 def test_fspath():
-    with tm.ensure_clean("foo.h5") as path:
-        with HDFStore(path) as store:
-            assert os.fspath(store) == str(path)
+    with tm.ensure_clean("foo.h5") as path, HDFStore(path) as store:
+        assert os.fspath(store) == str(path)

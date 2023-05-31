@@ -365,15 +365,13 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
-        with tm.ensure_clean() as path:
-            with pytest.raises(exc, match=err_msg):
-                to_parquet(df, path, engine, compression=None)
+        with tm.ensure_clean() as path, pytest.raises(exc, match=err_msg):
+            to_parquet(df, path, engine, compression=None)
 
     def check_external_error_on_write(self, df, engine, exc):
         # check that an external library is raising the exception on writing
-        with tm.ensure_clean() as path:
-            with tm.external_error_raised(exc):
-                to_parquet(df, path, engine, compression=None)
+        with tm.ensure_clean() as path, tm.external_error_raised(exc):
+            to_parquet(df, path, engine, compression=None)
 
     @pytest.mark.network
     @tm.network(
@@ -1233,9 +1231,11 @@ class TestParquetFastParquet(Base):
 
         with tm.ensure_clean() as path:
             df.to_parquet(path)
-            with pytest.raises(ValueError, match="not supported for the fastparquet"):
-                with tm.assert_produces_warning(FutureWarning):
-                    read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
+            with pytest.raises(
+                ValueError,
+                match="not supported for the fastparquet",
+            ), tm.assert_produces_warning(FutureWarning):
+                read_parquet(path, engine="fastparquet", use_nullable_dtypes=True)
             with pytest.raises(ValueError, match="not supported for the fastparquet"):
                 read_parquet(path, engine="fastparquet", dtype_backend="pyarrow")
 
@@ -1260,11 +1260,10 @@ class TestParquetFastParquet(Base):
     def test_filesystem_notimplemented(self):
         pytest.importorskip("fastparquet")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        with tm.ensure_clean() as path:
-            with pytest.raises(
-                NotImplementedError, match="filesystem is not implemented"
-            ):
-                df.to_parquet(path, engine="fastparquet", filesystem="foo")
+        with tm.ensure_clean() as path, pytest.raises(
+            NotImplementedError, match="filesystem is not implemented"
+        ):
+            df.to_parquet(path, engine="fastparquet", filesystem="foo")
 
         with tm.ensure_clean() as path:
             pathlib.Path(path).write_bytes(b"foo")
@@ -1276,11 +1275,10 @@ class TestParquetFastParquet(Base):
     def test_invalid_filesystem(self):
         pytest.importorskip("pyarrow")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        with tm.ensure_clean() as path:
-            with pytest.raises(
-                ValueError, match="filesystem must be a pyarrow or fsspec FileSystem"
-            ):
-                df.to_parquet(path, engine="pyarrow", filesystem="foo")
+        with tm.ensure_clean() as path, pytest.raises(
+            ValueError, match="filesystem must be a pyarrow or fsspec FileSystem"
+        ):
+            df.to_parquet(path, engine="pyarrow", filesystem="foo")
 
         with tm.ensure_clean() as path:
             pathlib.Path(path).write_bytes(b"foo")
@@ -1292,17 +1290,16 @@ class TestParquetFastParquet(Base):
     def test_unsupported_pa_filesystem_storage_options(self):
         pa_fs = pytest.importorskip("pyarrow.fs")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        with tm.ensure_clean() as path:
-            with pytest.raises(
-                NotImplementedError,
-                match="storage_options not supported with a pyarrow FileSystem.",
-            ):
-                df.to_parquet(
-                    path,
-                    engine="pyarrow",
-                    filesystem=pa_fs.LocalFileSystem(),
-                    storage_options={"foo": "bar"},
-                )
+        with tm.ensure_clean() as path, pytest.raises(
+            NotImplementedError,
+            match="storage_options not supported with a pyarrow FileSystem.",
+        ):
+            df.to_parquet(
+                path,
+                engine="pyarrow",
+                filesystem=pa_fs.LocalFileSystem(),
+                storage_options={"foo": "bar"},
+            )
 
         with tm.ensure_clean() as path:
             pathlib.Path(path).write_bytes(b"foo")

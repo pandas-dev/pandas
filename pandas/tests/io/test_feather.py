@@ -20,17 +20,15 @@ class TestFeather:
         # check that we are raising the exception
         # on writing
 
-        with pytest.raises(exc, match=err_msg):
-            with tm.ensure_clean() as path:
-                to_feather(df, path)
+        with pytest.raises(exc, match=err_msg), tm.ensure_clean() as path:
+            to_feather(df, path)
 
     def check_external_error_on_write(self, df):
         # check that we are raising the exception
         # on writing
 
-        with tm.external_error_raised(Exception):
-            with tm.ensure_clean() as path:
-                to_feather(df, path)
+        with tm.external_error_raised(Exception), tm.ensure_clean() as path:
+            to_feather(df, path)
 
     def check_round_trip(self, df, expected=None, write_kwargs={}, **read_kwargs):
         if expected is None:

@@ -73,17 +73,27 @@ class TestSeriesGetitemScalars:
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                ser[-11]
+        with pytest.raises(
+            IndexError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            ser[-11]
 
     def test_getitem_out_of_bounds_indexerror(self, datetime_series):
         # don't segfault, GH#495
         msg = r"index \d+ is out of bounds for axis 0 with size \d+"
         warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                datetime_series[len(datetime_series)]
+        with pytest.raises(
+            IndexError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            datetime_series[len(datetime_series)]
 
     def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
         # GH#917

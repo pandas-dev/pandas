@@ -232,7 +232,9 @@ select = [
   # comprehensions
   "C4",
   # pygrep-hooks
-  "PGH"
+  "PGH",
+  # flake8-simplify
+  "SIM117",
 ]
 
 ignore = [

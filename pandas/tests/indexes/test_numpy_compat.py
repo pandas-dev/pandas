@@ -65,9 +65,13 @@ def test_numpy_ufuncs_basic(index, func):
     # https://numpy.org/doc/stable/reference/ufuncs.html
 
     if isinstance(index, DatetimeIndexOpsMixin):
-        with tm.external_error_raised((TypeError, AttributeError)):
-            with np.errstate(all="ignore"):
-                func(index)
+        with tm.external_error_raised(
+            (
+                TypeError,
+                AttributeError,
+            )
+        ), np.errstate(all="ignore"):
+            func(index)
     elif is_numeric_dtype(index) and not (
         is_complex_dtype(index) and func in [np.deg2rad, np.rad2deg]
     ):
@@ -96,9 +100,13 @@ def test_numpy_ufuncs_basic(index, func):
     elif len(index) == 0:
         pass
     else:
-        with tm.external_error_raised((TypeError, AttributeError)):
-            with np.errstate(all="ignore"):
-                func(index)
+        with tm.external_error_raised(
+            (
+                TypeError,
+                AttributeError,
+            )
+        ), np.errstate(all="ignore"):
+            func(index)
 
 
 @pytest.mark.parametrize(

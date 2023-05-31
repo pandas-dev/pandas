@@ -241,9 +241,14 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
         error = ValueError
         msg = f"Operation {reduction_func} does not support axis=1"
         warn = None
-    with pytest.raises(error, match=msg):
-        with tm.assert_produces_warning(warn, match=warn_msg):
-            gb.agg(reduction_func, axis=1)
+    with pytest.raises(
+        error,
+        match=msg,
+    ), tm.assert_produces_warning(
+        warn,
+        match=warn_msg,
+    ):
+        gb.agg(reduction_func, axis=1)
 
 
 @pytest.mark.parametrize(

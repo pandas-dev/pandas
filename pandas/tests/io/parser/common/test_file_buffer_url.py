@@ -406,9 +406,11 @@ def test_context_manageri_user_provided(all_parsers, datapath):
 def test_file_descriptor_leak(all_parsers, using_copy_on_write):
     # GH 31488
     parser = all_parsers
-    with tm.ensure_clean() as path:
-        with pytest.raises(EmptyDataError, match="No columns to parse from file"):
-            parser.read_csv(path)
+    with tm.ensure_clean() as path, pytest.raises(
+        EmptyDataError,
+        match="No columns to parse from file",
+    ):
+        parser.read_csv(path)
 
 
 def test_memory_map(all_parsers, csv_dir_path):

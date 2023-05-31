@@ -524,9 +524,14 @@ def test_idxmin_idxmax_axis1():
     gb2 = df.groupby("A")
 
     msg = "reduction operation 'argmax' not allowed for this dtype"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            gb2.idxmax(axis=1)
+    with pytest.raises(
+        TypeError,
+        match=msg,
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match=warn_msg,
+    ):
+        gb2.idxmax(axis=1)
 
 
 @pytest.mark.parametrize("numeric_only", [True, False, None])
@@ -568,9 +573,14 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if numeric_only is not None and groupby_func in no_args:
         msg = "got an unexpected keyword argument 'numeric_only'"
         if groupby_func in ["cumprod", "cumsum"]:
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    method(*args, **kwargs)
+            with pytest.raises(
+                TypeError,
+                match=msg,
+            ), tm.assert_produces_warning(
+                FutureWarning,
+                match=warn_msg,
+            ):
+                method(*args, **kwargs)
         else:
             with pytest.raises(TypeError, match=msg):
                 method(*args, **kwargs)
@@ -591,9 +601,14 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
             # cumsum, diff, pct_change
             "unsupported operand type",
         )
-        with pytest.raises(TypeError, match=f"({'|'.join(msgs)})"):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                method(*args, **kwargs)
+        with pytest.raises(
+            TypeError,
+            match=f"({'|'.join(msgs)})",
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            method(*args, **kwargs)
     else:
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             result = method(*args, **kwargs)

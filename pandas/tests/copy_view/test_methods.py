@@ -1573,9 +1573,11 @@ def test_get(using_copy_on_write, key):
         # for non-CoW it depends on whether we got a Series or DataFrame if it
         # is a view or copy or triggers a warning or not
         warn = SettingWithCopyWarning if isinstance(key, list) else None
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(warn):
-                result.iloc[0] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(warn):
+            result.iloc[0] = 0
 
         if isinstance(key, list):
             tm.assert_frame_equal(df, df_orig)
@@ -1605,9 +1607,11 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
     if using_copy_on_write or is_view:
         result.iloc[0] = 0
     else:
-        with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                result.iloc[0] = 0
+        with pd.option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            result.iloc[0] = 0
 
     if using_copy_on_write or (not single_block and axis == 0):
         tm.assert_frame_equal(df, df_orig)
@@ -1637,9 +1641,11 @@ def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axi
         if not using_copy_on_write and not using_array_manager
         else None
     )
-    with pd.option_context("chained_assignment", "warn"):
-        with tm.assert_produces_warning(warn):
-            result.iloc[0, 0] = 0
+    with pd.option_context(
+        "chained_assignment",
+        "warn",
+    ), tm.assert_produces_warning(warn):
+        result.iloc[0, 0] = 0
 
     tm.assert_frame_equal(df, df_orig)
 

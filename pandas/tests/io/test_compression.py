@@ -129,10 +129,12 @@ def test_compression_warning(compression_only):
         100 * [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
         columns=["X", "Y", "Z"],
     )
-    with tm.ensure_clean() as path:
-        with icom.get_handle(path, "w", compression=compression_only) as handles:
-            with tm.assert_produces_warning(RuntimeWarning):
-                df.to_csv(handles.handle, compression=compression_only)
+    with tm.ensure_clean() as path, icom.get_handle(
+        path,
+        "w",
+        compression=compression_only,
+    ) as handles, tm.assert_produces_warning(RuntimeWarning):
+        df.to_csv(handles.handle, compression=compression_only)
 
 
 def test_compression_binary(compression_only):
@@ -320,21 +322,21 @@ def test_tar_gz_to_different_filename():
             [["1", "2"]],
             columns=["foo", "bar"],
         ).to_csv(file, compression={"method": "tar", "mode": "w:gz"}, index=False)
-        with gzip.open(file) as uncompressed:
-            with tarfile.TarFile(fileobj=uncompressed) as archive:
-                members = archive.getmembers()
-                assert len(members) == 1
-                content = archive.extractfile(members[0]).read().decode("utf8")
+        with gzip.open(file) as uncompressed, tarfile.TarFile(
+            fileobj=uncompressed,
+        ) as archive:
+            members = archive.getmembers()
+            assert len(members) == 1
+            content = archive.extractfile(members[0]).read().decode("utf8")
 
-                if is_platform_windows():
-                    expected = "foo,bar\r\n1,2\r\n"
-                else:
-                    expected = "foo,bar\n1,2\n"
+            if is_platform_windows():
+                expected = "foo,bar\r\n1,2\r\n"
+            else:
+                expected = "foo,bar\n1,2\n"
 
-                assert content == expected
+            assert content == expected
 
 
 def test_tar_no_error_on_close():
-    with io.BytesIO() as buffer:
-        with icom._BytesTarFile(fileobj=buffer, mode="w"):
-            pass
+    with io.BytesIO() as buffer, icom._BytesTarFile(fileobj=buffer, mode="w"):
+        pass

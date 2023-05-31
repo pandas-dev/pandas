@@ -429,11 +429,10 @@ def test_replace_callable_raises(any_string_dtype, repl):
         r"((takes)|(missing)) (?(2)from \d+ to )?\d+ "
         r"(?(3)required )positional arguments?"
     )
-    with pytest.raises(TypeError, match=msg):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, any_string_dtype == "string[pyarrow]"
-        ):
-            values.str.replace("a", repl, regex=True)
+    with pytest.raises(TypeError, match=msg), tm.maybe_produces_warning(
+        PerformanceWarning, any_string_dtype == "string[pyarrow]"
+    ):
+        values.str.replace("a", repl, regex=True)
 
 
 def test_replace_callable_named_groups(any_string_dtype):

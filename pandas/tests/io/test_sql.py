@@ -155,11 +155,10 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         params = [dict(zip(header, row)) for row in reader]
         stmt = insert(iris).values(params)
         if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                with conn.begin():
-                    iris.drop(conn, checkfirst=True)
-                    iris.create(bind=conn)
-                    conn.execute(stmt)
+            with conn.connect() as conn, conn.begin():
+                iris.drop(conn, checkfirst=True)
+                iris.create(bind=conn)
+                conn.execute(stmt)
         else:
             with conn.begin():
                 iris.drop(conn, checkfirst=True)
@@ -178,9 +177,8 @@ def create_and_load_iris_view(conn):
 
         stmt = text(stmt)
         if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                with conn.begin():
-                    conn.execute(stmt)
+            with conn.connect() as conn, conn.begin():
+                conn.execute(stmt)
         else:
             with conn.begin():
                 conn.execute(stmt)
@@ -249,11 +247,10 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
 
     stmt = insert(types).values(types_data)
     if isinstance(conn, Engine):
-        with conn.connect() as conn:
-            with conn.begin():
-                types.drop(conn, checkfirst=True)
-                types.create(bind=conn)
-                conn.execute(stmt)
+        with conn.connect() as conn, conn.begin():
+            types.drop(conn, checkfirst=True)
+            types.create(bind=conn)
+            conn.execute(stmt)
     else:
         with conn.begin():
             types.drop(conn, checkfirst=True)
@@ -410,10 +407,9 @@ def mysql_pymysql_engine(iris_path, types_data):
             entry.pop("DateColWithTz")
         create_and_load_types(engine, types_data, "mysql")
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-            conn.execute(stmt)
+    with engine.connect() as conn, conn.begin():
+        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+        conn.execute(stmt)
     engine.dispose()
 
 
@@ -437,10 +433,9 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     if not insp.has_table("types"):
         create_and_load_types(engine, types_data, "postgresql")
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-            conn.execute(stmt)
+    with engine.connect() as conn, conn.begin():
+        stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
+        conn.execute(stmt)
     engine.dispose()
 
 
@@ -494,9 +489,10 @@ def sqlite_iris_conn(sqlite_iris_engine):
 
 @pytest.fixture
 def sqlite_buildin():
-    with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
-        with closing_conn as conn:
-            yield conn
+    with contextlib.closing(
+        sqlite3.connect(":memory:"),
+    ) as closing_conn, closing_conn as conn:
+        yield conn
 
 
 @pytest.fixture
@@ -762,9 +758,8 @@ def test_read_procedure(conn, request):
     END"""
     proc = text(proc)
     if isinstance(conn, Engine):
-        with conn.connect() as engine_conn:
-            with engine_conn.begin():
-                engine_conn.execute(proc)
+        with conn.connect() as engine_conn, engine_conn.begin():
+            engine_conn.execute(proc)
     else:
         with conn.begin():
             conn.execute(proc)
@@ -818,13 +813,15 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
 
 
 def test_execute_typeerror(sqlite_iris_engine):
-    with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match="`pandas.io.sql.execute` is deprecated and "
-            "will be removed in the future version.",
-        ):
-            sql.execute("select * from iris", sqlite_iris_engine)
+    with pytest.raises(
+        TypeError,
+        match="pandas.io.sql.execute requires a connection",
+    ), tm.assert_produces_warning(
+        FutureWarning,
+        match="`pandas.io.sql.execute` is deprecated and "
+        "will be removed in the future version.",
+    ):
+        sql.execute("select * from iris", sqlite_iris_engine)
 
 
 def test_execute_deprecated(sqlite_buildin_iris):
@@ -1566,9 +1563,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         ]
         for query in query_list:
             if isinstance(self.conn, Engine):
-                with self.conn.connect() as conn:
-                    with conn.begin():
-                        conn.execute(query)
+                with self.conn.connect() as conn, conn.begin():
+                    conn.execute(query)
             else:
                 with self.conn.begin():
                     self.conn.execute(query)
@@ -1758,9 +1754,10 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
             def close(self):
                 self.conn.close()
 
-        with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-            with tm.assert_produces_warning(UserWarning):
-                sql.read_sql("SELECT 1", conn)
+        with contextlib.closing(
+            MockSqliteConnection(":memory:"),
+        ) as conn, tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
     def test_read_sql_delegate(self):
         iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
@@ -2241,9 +2238,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self.drop_table(tbl, self.conn)
         create_sql = text(create_sql)
         if isinstance(self.conn, Engine):
-            with self.conn.connect() as conn:
-                with conn.begin():
-                    conn.execute(create_sql)
+            with self.conn.connect() as conn, conn.begin():
+                conn.execute(create_sql)
         else:
             with self.conn.begin():
                 self.conn.execute(create_sql)
@@ -2380,9 +2376,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         def main(connectable):
             if isinstance(connectable, Engine):
-                with connectable.connect() as conn:
-                    with conn.begin():
-                        test_connectable(conn)
+                with connectable.connect() as conn, conn.begin():
+                    test_connectable(conn)
             else:
                 test_connectable(connectable)
 
@@ -2445,13 +2440,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             id = Column(Integer, primary_key=True)
             spam = Column(Unicode(30), nullable=False)
 
-        with Session(self.conn) as session:
-            with session.begin():
-                conn = session.connection()
-                Temporary.__table__.create(conn)
-                session.add(Temporary(spam=test_data))
-                session.flush()
-                df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
+        with Session(self.conn) as session, session.begin():
+            conn = session.connection()
+            Temporary.__table__.create(conn)
+            session.add(Temporary(spam=test_data))
+            session.flush()
+            df = sql.read_sql_query(sql=select(Temporary.spam), con=conn)
         tm.assert_frame_equal(df, expected)
 
     # -- SQL Engine tests (in the base class for now)

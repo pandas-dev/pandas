@@ -1387,18 +1387,26 @@ class TestTimedeltaArraylikeAddSubOps:
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = "has incorrect type|cannot add the type MonthEnd"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi + anchored
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored + tdi
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi - anchored
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored - tdi
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            tdi + anchored
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            anchored + tdi
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            tdi - anchored
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            anchored - tdi
 
     # ------------------------------------------------------------------
     # Unsorted
@@ -1422,9 +1430,11 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(result, expected)
 
         msg = "unsupported operand type|cannot subtract a datelike"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdarr - other
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            tdarr - other
 
         with tm.assert_produces_warning(PerformanceWarning):
             result = other - tdarr

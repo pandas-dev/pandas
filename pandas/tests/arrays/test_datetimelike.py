@@ -319,15 +319,14 @@ class SharedTests:
 
         arr_type = "StringArray" if string_storage == "python" else "ArrowStringArray"
 
-        with pd.option_context("string_storage", string_storage):
-            with pytest.raises(
-                TypeError,
-                match=re.escape(
-                    f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    f"or array of those. Got '{arr_type}' instead."
-                ),
-            ):
-                arr.searchsorted([str(arr[1]), "baz"])
+        with pd.option_context("string_storage", string_storage), pytest.raises(
+            TypeError,
+            match=re.escape(
+                f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
+                f"or array of those. Got '{arr_type}' instead."
+            ),
+        ):
+            arr.searchsorted([str(arr[1]), "baz"])
 
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different

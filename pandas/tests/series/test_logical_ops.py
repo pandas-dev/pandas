@@ -97,9 +97,14 @@ class TestSeriesLogicalOps:
         with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
         msg = "unsupported operand type.+for &:"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                s_0123 & [0.1, 4, 3.14, 2]
+        with pytest.raises(
+            TypeError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            s_0123 & [0.1, 4, 3.14, 2]
         with pytest.raises(TypeError, match=msg):
             s_0123 & np.array([0.1, 4, 3.14, 2])
         with pytest.raises(TypeError, match=msg):
@@ -116,9 +121,14 @@ class TestSeriesLogicalOps:
         msg = "Cannot perform 'and_' with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
             s_1111 & "a"
-        with pytest.raises(TypeError, match="unsupported operand.+for &"):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                s_1111 & ["a", "b", "c", "d"]
+        with pytest.raises(
+            TypeError,
+            match="unsupported operand.+for &",
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            s_1111 & ["a", "b", "c", "d"]
 
     def test_logical_operators_int_dtype_with_bool(self):
         # GH#9016: support bitwise op for integer types

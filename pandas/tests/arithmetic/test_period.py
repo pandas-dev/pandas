@@ -852,12 +852,16 @@ class TestPeriodIndexArithmetic:
         # addition/subtraction ops with incompatible offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input cannot be converted to Period\(freq=Q-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                pi + unanchored
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                unanchored + pi
+        with pytest.raises(
+            IncompatibleFrequency,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            pi + unanchored
+        with pytest.raises(
+            IncompatibleFrequency,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            unanchored + pi
 
     @pytest.mark.parametrize("box", [np.array, pd.Index])
     def test_pi_sub_offset_array(self, box):
@@ -882,12 +886,16 @@ class TestPeriodIndexArithmetic:
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
         msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                pi - anchored
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored - pi
+        with pytest.raises(
+            IncompatibleFrequency,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            pi - anchored
+        with pytest.raises(
+            IncompatibleFrequency,
+            match=msg,
+        ), tm.assert_produces_warning(PerformanceWarning):
+            anchored - pi
 
     def test_pi_add_iadd_int(self, one):
         # Variants of `one` for #19012

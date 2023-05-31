@@ -2054,11 +2054,16 @@ class TestPivotTable:
             )
 
             msg = "The following operation may generate"
-            with tm.assert_produces_warning(PerformanceWarning, match=msg):
-                with pytest.raises(Exception, match="Don't compute final result."):
-                    df.pivot_table(
-                        index="ind1", columns="ind2", values="count", aggfunc="count"
-                    )
+            with tm.assert_produces_warning(
+                PerformanceWarning,
+                match=msg,
+            ), pytest.raises(
+                Exception,
+                match="Don't compute final result.",
+            ):
+                df.pivot_table(
+                    index="ind1", columns="ind2", values="count", aggfunc="count"
+                )
 
     def test_pivot_table_aggfunc_dropna(self, dropna):
         # GH 22159

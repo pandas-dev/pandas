@@ -177,9 +177,14 @@ class TestSetitemScalarIndexer:
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
-        with pytest.raises(IndexError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                ser[-11] = "foo"
+        with pytest.raises(
+            IndexError,
+            match=msg,
+        ), tm.assert_produces_warning(
+            FutureWarning,
+            match=warn_msg,
+        ):
+            ser[-11] = "foo"
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.at])
     @pytest.mark.parametrize("ser_index", [0, 1])

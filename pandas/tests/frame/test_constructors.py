@@ -1074,14 +1074,13 @@ class TestDataFrameConstructors:
 
         # cast type
         msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
-        with pytest.raises(TypeError, match=msg):
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message="elementwise comparison failed",
-                )
-                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+        with pytest.raises(TypeError, match=msg), warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message="elementwise comparison failed",
+            )
+            DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)

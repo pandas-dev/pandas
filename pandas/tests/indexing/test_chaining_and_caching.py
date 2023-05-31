@@ -509,13 +509,17 @@ class TestChaining:
                 df.loc[0]["A"] = 111
             return
 
-        with option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
-                df.loc[0]["A"] = 111
+        with option_context(
+            "chained_assignment",
+            "warn",
+        ), tm.assert_produces_warning(SettingWithCopyWarning):
+            df.loc[0]["A"] = 111
 
-        with option_context("chained_assignment", "raise"):
-            with pytest.raises(SettingWithCopyError, match=msg):
-                df.loc[0]["A"] = 111
+        with option_context(
+            "chained_assignment",
+            "raise",
+        ), pytest.raises(SettingWithCopyError, match=msg):
+            df.loc[0]["A"] = 111
 
     @pytest.mark.parametrize("rhs", [3, DataFrame({0: [1, 2, 3, 4]})])
     def test_detect_chained_assignment_warning_stacklevel(

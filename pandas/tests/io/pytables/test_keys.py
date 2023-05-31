@@ -52,12 +52,11 @@ def test_non_pandas_keys(tmp_path, setup_path):
 
 
 def test_keys_illegal_include_keyword_value(setup_path):
-    with ensure_clean_store(setup_path) as store:
-        with pytest.raises(
-            ValueError,
-            match="`include` should be either 'pandas' or 'native' but is 'illegal'",
-        ):
-            store.keys(include="illegal")
+    with ensure_clean_store(setup_path) as store, pytest.raises(
+        ValueError,
+        match="`include` should be either 'pandas' or 'native' but is 'illegal'",
+    ):
+        store.keys(include="illegal")
 
 
 def test_keys_ignore_hdf_softlink(setup_path):

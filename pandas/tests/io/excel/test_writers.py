@@ -1254,9 +1254,8 @@ class TestExcelWriter:
         # GH 40230
         msg = "if_sheet_exists is only valid in append mode (mode='a')"
 
-        with tm.ensure_clean(ext) as f:
-            with pytest.raises(ValueError, match=re.escape(msg)):
-                ExcelWriter(f, if_sheet_exists="replace")
+        with tm.ensure_clean(ext) as f, pytest.raises(ValueError, match=re.escape(msg)):
+            ExcelWriter(f, if_sheet_exists="replace")
 
     def test_excel_writer_empty_frame(self, engine, ext):
         # GH#45793
@@ -1285,13 +1284,12 @@ class TestExcelWriterEngineTests:
         ],
     )
     def test_ExcelWriter_dispatch(self, klass, ext):
-        with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path) as writer:
-                if ext == ".xlsx" and td.safe_import("xlsxwriter"):
-                    # xlsxwriter has preference over openpyxl if both installed
-                    assert isinstance(writer, _XlsxWriter)
-                else:
-                    assert isinstance(writer, klass)
+        with tm.ensure_clean(ext) as path, ExcelWriter(path) as writer:
+            if ext == ".xlsx" and td.safe_import("xlsxwriter"):
+                # xlsxwriter has preference over openpyxl if both installed
+                assert isinstance(writer, _XlsxWriter)
+            else:
+                assert isinstance(writer, klass)
 
     def test_ExcelWriter_dispatch_raises(self):
         with pytest.raises(ValueError, match="No engine"):
@@ -1354,9 +1352,8 @@ class TestFSPath:
             assert result == path
 
     def test_excelwriter_fspath(self):
-        with tm.ensure_clean("foo.xlsx") as path:
-            with ExcelWriter(path) as writer:
-                assert os.fspath(writer) == str(path)
+        with tm.ensure_clean("foo.xlsx") as path, ExcelWriter(path) as writer:
+            assert os.fspath(writer) == str(path)
 
 
 @pytest.mark.parametrize("klass", _writers.values())
