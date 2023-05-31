@@ -217,13 +217,13 @@ at all. To keep this proposal focused, it is intentionally excluded from the sco
 **A**: The current behavior would be to upcast to ``int32``. So under this PDEP,
   it would instead raise.
 
-**Q: What happens in setting ``16.000000000000001`` in an `int8`` Series?**
+**Q: What happens in setting ``16.000000000000001`` in an ``int8`` Series?**
 
 **A**: As far as Python is concerned, ``16.000000000000001`` and ``16.0`` are the
   same number. So, it would be inserted as ``16`` and the dtype would not change
   (just like what happens now, there would be no change here).
 
-**Q: What if I want ``1.0000000001`` to be inserted as ``1.0`` in an `'int8'` Series?**
+**Q: What if I want ``1.0000000001`` to be inserted as ``1.0`` in an ``int8`` Series?**
 
 **A**: You may want to define your own helper function, such as:
 
