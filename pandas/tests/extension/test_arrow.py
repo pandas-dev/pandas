@@ -47,6 +47,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import no_default
 from pandas.api.types import (
     is_bool_dtype,
     is_float_dtype,
@@ -723,14 +724,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
 
 
 class TestBaseParsing(base.BaseParsingTests):
+    @pytest.mark.parametrize("dtype_backend", ["pyarrow", no_default])
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data, request):
+    def test_EA_types(self, engine, data, dtype_backend, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(raises=TypeError, reason="GH 47534")
-            )
-        elif pa.types.is_decimal(pa_dtype):
+        if pa.types.is_decimal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
@@ -755,7 +753,10 @@ class TestBaseParsing(base.BaseParsingTests):
         else:
             csv_output = StringIO(csv_output)
         result = pd.read_csv(
-            csv_output, dtype={"with_dtype": str(data.dtype)}, engine=engine
+            csv_output,
+            dtype={"with_dtype": str(data.dtype)},
+            engine=engine,
+            dtype_backend=dtype_backend,
         )
         expected = df
         self.assert_frame_equal(result, expected)
