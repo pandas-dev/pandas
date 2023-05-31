@@ -32,7 +32,10 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    np_find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
@@ -518,7 +521,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps_array.dtype], [])
+        common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
@@ -1172,6 +1175,11 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
+
+        .. deprecated:: 2.1.0
+            Passing an argument other than a numpy.ndarray, ExtensionArray,
+            Index, or Series is deprecated.
+
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
@@ -1237,6 +1245,16 @@ def take(
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
+    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+        # GH#52981
+        warnings.warn(
+            "pd.api.extensions.take accepting non-standard inputs is deprecated "
+            "and will raise in a future version. Pass either a numpy.ndarray, "
+            "ExtensionArray, Index, or Series instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if not is_array_like(arr):
         arr = np.asarray(arr)
 

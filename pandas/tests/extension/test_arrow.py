@@ -47,6 +47,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.extensions import no_default
 from pandas.api.types import (
     is_bool_dtype,
     is_float_dtype,
@@ -723,14 +724,11 @@ class TestBaseSetitem(base.BaseSetitemTests):
 
 
 class TestBaseParsing(base.BaseParsingTests):
+    @pytest.mark.parametrize("dtype_backend", ["pyarrow", no_default])
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data, request):
+    def test_EA_types(self, engine, data, dtype_backend, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(raises=TypeError, reason="GH 47534")
-            )
-        elif pa.types.is_decimal(pa_dtype):
+        if pa.types.is_decimal(pa_dtype):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
@@ -755,7 +753,10 @@ class TestBaseParsing(base.BaseParsingTests):
         else:
             csv_output = StringIO(csv_output)
         result = pd.read_csv(
-            csv_output, dtype={"with_dtype": str(data.dtype)}, engine=engine
+            csv_output,
+            dtype={"with_dtype": str(data.dtype)},
+            engine=engine,
+            dtype_backend=dtype_backend,
         )
         expected = df
         self.assert_frame_equal(result, expected)
@@ -1570,7 +1571,8 @@ def test_mode_dropna_false_mode_na(data):
         [pa.large_string(), str],
         [pa.list_(pa.int64()), list],
         [pa.large_list(pa.int64()), list],
-        [pa.map_(pa.string(), pa.int64()), dict],
+        [pa.map_(pa.string(), pa.int64()), list],
+        [pa.struct([("f1", pa.int8()), ("f2", pa.string())]), dict],
         [pa.dictionary(pa.int64(), pa.int64()), CategoricalDtypeType],
     ],
 )
@@ -3008,3 +3010,69 @@ def test_comparison_temporal(pa_type):
     result = arr > val
     expected = ArrowExtensionArray(pa.array([False, True, True], type=pa.bool_()))
     tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_getitem_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, 2, 3], type=pa_type))
+    result = arr[1]
+    if pa.types.is_duration(pa_type):
+        expected = pd.Timedelta(2, unit=pa_type.unit).as_unit(pa_type.unit)
+        assert isinstance(result, pd.Timedelta)
+    else:
+        expected = pd.Timestamp(2, unit=pa_type.unit, tz=pa_type.tz).as_unit(
+            pa_type.unit
+        )
+        assert isinstance(result, pd.Timestamp)
+    assert result.unit == expected.unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_iter_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = list(arr)
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    assert result[0].unit == expected[0].unit
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
+)
+def test_to_numpy_temporal(pa_type):
+    # GH 53326
+    arr = ArrowExtensionArray(pa.array([1, None], type=pa_type))
+    result = arr.to_numpy()
+    if pa.types.is_duration(pa_type):
+        expected = [
+            pd.Timedelta(1, unit=pa_type.unit).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timedelta)
+    else:
+        expected = [
+            pd.Timestamp(1, unit=pa_type.unit, tz=pa_type.tz).as_unit(pa_type.unit),
+            pd.NA,
+        ]
+        assert isinstance(result[0], pd.Timestamp)
+    expected = np.array(expected, dtype=object)
+    assert result[0].unit == expected[0].unit
+    tm.assert_numpy_array_equal(result, expected)

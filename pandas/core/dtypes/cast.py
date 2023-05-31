@@ -586,7 +586,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-@functools.lru_cache(maxsize=128)
+@functools.lru_cache
 def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     # The cached version of _maybe_promote below
     # This also use fill_value_type as (unused) argument to use this in the
@@ -1097,7 +1097,9 @@ def convert_dtypes(
                 and not isinstance(inferred_dtype, StringDtype)
             )
         ):
-            if isinstance(inferred_dtype, PandasExtensionDtype):
+            if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
+                inferred_dtype, DatetimeTZDtype
+            ):
                 base_dtype = inferred_dtype.base
             elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
                 base_dtype = inferred_dtype.numpy_dtype
@@ -1328,6 +1330,32 @@ def common_dtype_categorical_compat(
     return dtype
 
 
+def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
+    """
+    np.find_common_type implementation pre-1.25 deprecation using np.result_type
+    https://github.com/pandas-dev/pandas/pull/49569#issuecomment-1308300065
+
+    Parameters
+    ----------
+    dtypes : np.dtypes
+
+    Returns
+    -------
+    np.dtype
+    """
+    try:
+        common_dtype = np.result_type(*dtypes)
+        if common_dtype.kind in "mMSU":
+            # NumPy promotion currently (1.25) misbehaves for for times and strings,
+            # so fall back to object (find_common_dtype did unless there
+            # was only one dtype)
+            common_dtype = np.dtype("O")
+
+    except TypeError:
+        common_dtype = np.dtype("O")
+    return common_dtype
+
+
 @overload
 def find_common_type(types: list[np.dtype]) -> np.dtype:
     ...
@@ -1395,7 +1423,7 @@ def find_common_type(types):
             if t.kind in "iufc":
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    return np_find_common_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(
