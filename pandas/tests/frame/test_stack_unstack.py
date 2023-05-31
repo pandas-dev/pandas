@@ -1361,6 +1361,48 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     tm.assert_frame_equal(res, expected)
 
 
+def test_stack_sort_false():
+    # GH 15105
+    data = [[1, 2, 3.0, 4.0], [2, 3, 4.0, 5.0], [3, 4, np.nan, np.nan]]
+    df = DataFrame(
+        data,
+        columns=MultiIndex(
+            levels=[["B", "A"], ["x", "y"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ),
+    )
+    result = df.stack(level=0, sort=False)
+    expected = DataFrame(
+        {"x": [1.0, 3.0, 2.0, 4.0, 3.0], "y": [2.0, 4.0, 3.0, 5.0, 4.0]},
+        index=MultiIndex.from_arrays([[0, 0, 1, 1, 2], ["B", "A", "B", "A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Codes sorted in this call
+    df = DataFrame(
+        data,
+        columns=MultiIndex.from_arrays([["B", "B", "A", "A"], ["x", "y", "x", "y"]]),
+    )
+    result = df.stack(level=0, sort=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_stack_sort_false_multi_level():
+    # GH 15105
+    idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=idx)
+    result = df.stack([0, 1], sort=False)
+    expected_index = MultiIndex.from_tuples(
+        [
+            ("cat", "weight", "kg"),
+            ("cat", "height", "m"),
+            ("dog", "weight", "kg"),
+            ("dog", "height", "m"),
+        ]
+    )
+    expected = Series([1.0, 2.0, 3.0, 4.0], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
 class TestStackUnstackMultiLevel:
     def test_unstack(self, multiindex_year_month_day_dataframe_random_data):
         # just check that it works for now
