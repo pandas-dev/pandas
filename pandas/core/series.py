@@ -4274,7 +4274,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._constructor(values, index=index, name=self.name, copy=False)
 
-    def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
+    def unstack(
+        self, level: IndexLabel = -1, fill_value: Hashable = None, sort: bool = True
+    ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4284,6 +4286,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -4318,7 +4322,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        return unstack(self, level, fill_value, sort)
 
     # ----------------------------------------------------------------------
     # function application
