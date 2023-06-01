@@ -2372,7 +2372,12 @@ def _factorize_keys(
 
     if (
         isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype)
-    ) or (lk.dtype.kind == "M" and rk.dtype.kind == "M"):
+    ) or (
+        isinstance(lk.dtype, np.dtype)
+        and lk.dtype.kind == "M"
+        and isinstance(rk.dtype, np.dtype)
+        and rk.dtype.kind == "M"
+    ):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
