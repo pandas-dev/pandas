@@ -83,6 +83,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ListLike,
         NumpySorter,
         NumpyValueArrayLike,
     )
@@ -212,11 +213,22 @@ def _reconstruct_data(
     return values
 
 
-def _ensure_arraylike(values) -> ArrayLike:
+def _ensure_arraylike(values, func_name: str) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
-    if not is_array_like(values):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+        # GH#52986
+        if func_name != "isin-targets":
+            # Make an exception for the comps argument in isin.
+            warnings.warn(
+                f"{func_name} with argument that is not not a Series, Index, "
+                "ExtensionArray, or np.ndarray is deprecated and will raise in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ["mixed", "string", "mixed-integer"]:
             # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
@@ -356,7 +368,7 @@ def unique(values):
             dtype='datetime64[ns, US/Eastern]',
             freq=None)
 
-    >>> pd.unique(list("baabc"))
+    >>> pd.unique(np.array(list("baabc"), dtype="O"))
     array(['b', 'a', 'c'], dtype=object)
 
     An unordered Categorical will return categories in the
@@ -382,7 +394,7 @@ def unique(values):
 
     An array of tuples
 
-    >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
+    >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
     return unique_with_mask(values)
@@ -413,7 +425,7 @@ def nunique_ints(values: ArrayLike) -> int:
 
 def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="unique")
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
@@ -438,14 +450,14 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 unique1d = unique
 
 
-def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
+def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
 
     Parameters
     ----------
-    comps : array-like
-    values : array-like
+    comps : list-like
+    values : list-like
 
     Returns
     -------
@@ -465,7 +477,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
-        values = _ensure_arraylike(orig_values)
+        values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
         if (
             len(values) > 0
@@ -482,7 +494,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     else:
         values = extract_array(values, extract_numpy=True, extract_range=True)
 
-    comps_array = _ensure_arraylike(comps)
+    comps_array = _ensure_arraylike(comps, func_name="isin")
     comps_array = extract_array(comps_array, extract_numpy=True)
     if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
@@ -668,7 +680,7 @@ def factorize(
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
     >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
@@ -677,7 +689,8 @@ def factorize(
     With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
+    ...                               sort=True)
     >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
@@ -687,7 +700,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
@@ -745,7 +758,7 @@ def factorize(
     if isinstance(values, (ABCIndex, ABCSeries)):
         return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="factorize")
     original = values
 
     if (
@@ -879,7 +892,7 @@ def value_counts(
             counts = result._values
 
         else:
-            values = _ensure_arraylike(values)
+            values = _ensure_arraylike(values, func_name="value_counts")
             keys, counts = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
@@ -980,7 +993,7 @@ def mode(
     -------
     np.ndarray or ExtensionArray
     """
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="mode")
     original = values
 
     if needs_i8_conversion(values.dtype):
