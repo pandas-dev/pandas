@@ -413,6 +413,7 @@ use_inf_as_na_doc = """
     (new way).
 
 .. deprecated:: 2.1.0
+
 """
 
 # We don't want to start importing everything at the global context level
