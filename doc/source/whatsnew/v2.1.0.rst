@@ -347,6 +347,7 @@ Numeric
 ^^^^^^^
 - Bug in :class:`RangeIndex` setting ``step`` incorrectly when being the subtrahend with minuend a numeric value (:issue:`53255`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
+- Bug when calling :meth:`Series.kurt` and :meth:`Series.skew` on numpy data of all zero returning a python type instead of a numpy type (:issue:`53482`)
 - Bug in :meth:`Series.mean`, :meth:`DataFrame.mean` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`36703`, :issue:`44008`)
 - Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 - Bug in :meth:`DataFrame.size` and :meth:`Series.size` returning 64-bit integer instead of int (:issue:`52897`)
