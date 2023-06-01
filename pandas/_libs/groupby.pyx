@@ -91,7 +91,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept n
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -128,7 +128,7 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -136,7 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) noexcept nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         float64_t result
 
