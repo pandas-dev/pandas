@@ -1901,10 +1901,11 @@ class StringMethods(NoNewAttributesMixin):
         --------
         For Series:
 
-        >>> ser = pd.Series([b'Hello', b'123'])
+        >>> ser = pd.Series([b'cow', b'123', b'()'])
         >>> ser.str.decode('ascii')
-        0   Hello
+        0   cow
         1   123
+        2   ()
         dtype: object
         """
         # TODO: Add a similar _bytes interface.
@@ -1934,6 +1935,15 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+
+        Examples
+        --------
+        >>> ser = pd.Series(['cow', '123', '()'])
+        >>> ser.str.encode(encoding='ascii')
+        0     b'cow'
+        1     b'123'
+        2      b'()'
+        dtype: object
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2769,6 +2779,15 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
+    >>> ser.str.find("_")
+    0   3
+    1   4
+    2   2
+    dtype: int64
     """
 
     @Appender(
