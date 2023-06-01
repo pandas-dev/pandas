@@ -16,6 +16,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -213,6 +214,7 @@ def _get_freq(ax: Axes, series: Series):
 
 def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     from pandas.core.indexes.api import PeriodIndex
+    from pandas import DatetimeIndex
 
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
@@ -234,7 +236,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        if isinstance(data.index, PeriodIndex):
+        if isinstance(data.index, (DatetimeIndex, PeriodIndex)):
+            for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+                freq_str = freq_str.replace(key, value)
             base = to_offset(
                 freq_str, is_period=True
             )._period_dtype_code  # type: ignore[attr-defined]

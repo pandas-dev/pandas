@@ -151,7 +151,7 @@ def test_pickles(datapath):
                     tm.assert_index_equal(result, expected)
                     assert isinstance(result.freq, MonthEnd)
                     assert result.freq == MonthEnd()
-                    assert result.freqstr == "ME"
+                    assert result.freqstr == "M"
                     tm.assert_index_equal(result.shift(2), expected.shift(2))
                 elif typ == "series" and dt in ("dt_tz", "cat"):
                     tm.assert_series_equal(result, expected)
