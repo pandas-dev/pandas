@@ -134,7 +134,6 @@ def test_use_global_config():
 
 
 @td.skip_if_no("numba")
-# TODO: Add test to check that UDF is still jitted by numba
 @pytest.mark.parametrize(
     "agg_kwargs",
     [
