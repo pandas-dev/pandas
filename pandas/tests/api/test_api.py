@@ -210,6 +210,8 @@ class TestPDApi(Base):
             + self.funcs_to
             + self.private_modules
         )
+        checkthese.remove("value_counts")
+        # value_counts is deprecated, is in __all__ but not dir()
         self.check(namespace=pd, expected=checkthese, ignored=self.ignored)
 
     def test_api_all(self):

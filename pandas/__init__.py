@@ -99,7 +99,6 @@ from pandas.core.api import (
     Grouper,
     factorize,
     unique,
-    value_counts,
     NamedAgg,
     array,
     Categorical,
@@ -231,6 +230,25 @@ Here are just a few of the things that pandas does well:
   - Time series-specific functionality: date range generation and frequency
     conversion, moving window statistics, date shifting and lagging.
 """
+
+
+def __getattr__(name: str):
+    if name == "value_counts":
+        import warnings
+        from pandas.util._exceptions import find_stack_level
+        from pandas.core.algorithms import value_counts
+
+        warnings.warn(
+            # GH#47862
+            "pandas.value_counts is deprecated and will be removed in a future "
+            "version. Use pd.Series(obj).value_counts() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return value_counts
+
+    raise AttributeError(f"module 'pandas' has no attribute '{name}'")
+
 
 # Use __all__ to let type checkers know what is part of the public API.
 # Pandas is not (yet) a py.typed library: the public API is determined
