@@ -108,6 +108,7 @@ class GzippedJSONUserAgentResponder(BaseUserAgentResponder):
 
         self.write_back_bytes(response_bytes)
 
+
 class HTMLUserAgentResponder(BaseUserAgentResponder):
     def do_GET(self):
         response_df = self.start_processing_headers()
@@ -120,6 +121,7 @@ class HTMLUserAgentResponder(BaseUserAgentResponder):
 
     def read_html_first_df(*args, **kwargs):
         return pd.read_html(*args, **kwargs)[0]
+
 
 class ParquetPyArrowUserAgentResponder(BaseUserAgentResponder):
     def do_GET(self):
