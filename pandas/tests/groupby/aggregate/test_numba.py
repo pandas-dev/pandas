@@ -165,9 +165,19 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     "agg_kwargs,expected_func",
     [
         ({"func": lambda values, index: values.sum()}, "sum"),
-        # TODO: This does not work yet (fails in nopython pipeline)!
-        # ({'func': [lambda values, index: values.sum(),
-        # lambda values, index: values.min()]}, ['sum', 'min'])
+        # FIXME
+        pytest.param(
+            {
+                "func": [
+                    lambda values, index: values.sum(),
+                    lambda values, index: values.min(),
+                ]
+            },
+            ["sum", "min"],
+            marks=pytest.mark.xfail(
+                reason="This doesn't work yet! Fails in nopython pipeline!"
+            ),
+        ),
     ],
 )
 def test_multifunc_numba_udf_frame(agg_kwargs, expected_func):
