@@ -239,13 +239,12 @@ class TestSeriesStatReductions:
         for i in range(1, min_N + 1):
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
-            result = s.skew()
             if i < min_N:
-                assert np.isnan(result)
-                assert np.isnan(result).all()
+                assert np.isnan(s.skew())
+                assert np.isnan(df.skew()).all()
             else:
-                assert 0 == result
-                assert isinstance(result, np.float64)  # GH53482
+                assert 0 == s.skew()
+                assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
     @td.skip_if_no_scipy
@@ -264,11 +263,10 @@ class TestSeriesStatReductions:
         for i in range(1, min_N + 1):
             s = Series(np.ones(i))
             df = DataFrame(np.ones((i, i)))
-            result = s.kurt()
             if i < min_N:
-                assert np.isnan(result)
-                assert np.isnan(result).all()
+                assert np.isnan(s.kurt())
+                assert np.isnan(df.kurt()).all()
             else:
-                assert 0 == result
-                assert isinstance(result, np.float64)  # GH53482
+                assert 0 == s.kurt()
+                assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()
