@@ -4522,10 +4522,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         args : tuple
             Positional arguments passed to func after the series value.
         array_ops_only : bool, default False
-            If True, func will always operate on the whole Series.
-            If False, will operate on each element of the Series when given a single
-            callable that is not a numpy ufunc, else on the whole Series
-            (backward compatible).
+            If True, the func will be passed the whole Series at once.
+            If False, will func will be passed each element of the Series, like
+            Series.map (backward compatible).
 
             .. versionadded:: 2.1.0
         **kwargs
