@@ -151,7 +151,6 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -192,11 +191,7 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import (
-        DatetimeArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import PeriodArray
 
 __all__ = ["Index"]
 
@@ -845,14 +840,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             pa_type = self._values._pa_array.type
             if pa.types.is_timestamp(pa_type):
-                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
-                target_values = self._values.astype(dtype)
-                target_values = cast("DatetimeArray", target_values)
+                target_values = self._values._to_datetimearray()
                 return libindex.DatetimeEngine(target_values._ndarray)
             elif pa.types.is_duration(pa_type):
-                dtype = np.dtype(f"m8[{pa_type.unit}]")
-                target_values = self._values.astype(dtype)
-                target_values = cast("TimedeltaArray", target_values)
+                target_values = self._values._to_timedeltaarray()
                 return libindex.TimedeltaEngine(target_values._ndarray)
 
         if isinstance(target_values, ExtensionArray):
@@ -5117,14 +5108,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             pa_type = vals._pa_array.type
             if pa.types.is_timestamp(pa_type):
-                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
-                vals = vals.astype(dtype)
-                vals = cast("DatetimeArray", vals)
+                vals = vals._to_datetimearray()
                 return vals._ndarray.view("i8")
             elif pa.types.is_duration(pa_type):
-                dtype = np.dtype(f"m8[{pa_type.unit}]")
-                vals = vals.astype(dtype)
-                vals = cast("TimedeltaArray", vals)
+                vals = vals._to_timedeltaarray()
                 return vals._ndarray.view("i8")
         if (
             type(self) is Index
