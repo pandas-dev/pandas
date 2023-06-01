@@ -1273,7 +1273,7 @@ def nanskew(
         result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
     else:
-        result = 0 if m2 == 0 else result
+        result = dtype.type(0) if m2 == 0 else result
         if count < 3:
             return np.nan
 
@@ -1361,7 +1361,7 @@ def nankurt(
         if count < 4:
             return np.nan
         if denominator == 0:
-            return 0
+            return values.dtype.type(0)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         result = numerator / denominator - adj

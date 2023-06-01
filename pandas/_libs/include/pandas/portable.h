@@ -1,9 +1,18 @@
+/*
+Copyright (c) 2016, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+*/
+
 #pragma once
 
 #include <string.h>
 
 #if defined(_MSC_VER)
-#define strcasecmp( s1, s2 ) _stricmp( s1, s2 )
+#define strcasecmp(s1, s2) _stricmp(s1, s2)
 #endif
 
 // GH-23516 - works around locale perf issues
