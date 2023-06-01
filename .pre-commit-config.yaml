@@ -28,7 +28,7 @@ repos:
         types_or: [python, pyi]
         additional_dependencies: [black==23.3.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.264
+    rev: v0.0.270
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -75,7 +75,7 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
+    rev: v3.0.0a6
     hooks:
     -   id: pylint
         stages: [manual]
@@ -103,7 +103,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.2
+    rev: v3.4.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
