@@ -586,7 +586,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     return dtype, fill_value
 
 
-@functools.lru_cache(maxsize=128)
+@functools.lru_cache
 def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     # The cached version of _maybe_promote below
     # This also use fill_value_type as (unused) argument to use this in the
@@ -1097,7 +1097,9 @@ def convert_dtypes(
                 and not isinstance(inferred_dtype, StringDtype)
             )
         ):
-            if isinstance(inferred_dtype, PandasExtensionDtype):
+            if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
+                inferred_dtype, DatetimeTZDtype
+            ):
                 base_dtype = inferred_dtype.base
             elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
                 base_dtype = inferred_dtype.numpy_dtype
