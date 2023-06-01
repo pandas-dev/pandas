@@ -393,7 +393,7 @@ def test_cut_duplicates_bin(kwargs, msg):
             cut(values, bins, **kwargs)
     else:
         result = cut(values, bins, **kwargs)
-        expected = cut(values, pd.unique(bins))
+        expected = cut(values, pd.unique(np.asarray(bins)))
         tm.assert_series_equal(result, expected)
 
 

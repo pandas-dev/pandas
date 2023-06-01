@@ -39,10 +39,12 @@ class TestFactorize:
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-    def test_factorize_complex(self):
+    def test_factorize_complex(self):  # TODO: WTF is this test doing here?s
         # GH 17927
         array = [1, 2, 2 + 1j]
-        labels, uniques = factorize(array)
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = factorize(array)
 
         expected_labels = np.array([0, 1, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(labels, expected_labels)

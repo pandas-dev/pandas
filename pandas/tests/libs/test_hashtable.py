@@ -721,7 +721,10 @@ def test_ismember_tuple_with_nans():
     # GH-41836
     values = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
-    result = isin(values, comps)
+
+    msg = "isin with argument that is not not a Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -729,6 +732,6 @@ def test_ismember_tuple_with_nans():
 def test_float_complex_int_are_equal_as_objects():
     values = ["a", 5, 5.0, 5.0 + 0j]
     comps = list(range(129))
-    result = isin(values, comps)
+    result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)

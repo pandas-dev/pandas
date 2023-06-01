@@ -94,12 +94,11 @@ class TestFactorize:
         tm.assert_index_equal(uniques, expected_uniques)
 
     def test_basic(self):
-        codes, uniques = algos.factorize(["a", "b", "b", "a", "a", "c", "c", "c"])
+        items = np.array(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
+        codes, uniques = algos.factorize(items)
         tm.assert_numpy_array_equal(uniques, np.array(["a", "b", "c"], dtype=object))
 
-        codes, uniques = algos.factorize(
-            ["a", "b", "b", "a", "a", "c", "c", "c"], sort=True
-        )
+        codes, uniques = algos.factorize(items, sort=True)
         exp = np.array([0, 1, 1, 0, 0, 2, 2, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, exp)
         exp = np.array(["a", "b", "c"], dtype=object)
@@ -249,7 +248,9 @@ class TestFactorize:
     )
     def test_factorize_tuple_list(self, data, expected_codes, expected_uniques):
         # GH9454
-        codes, uniques = pd.factorize(data)
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes, uniques = pd.factorize(data)
 
         tm.assert_numpy_array_equal(codes, np.array(expected_codes, dtype=np.intp))
 
@@ -462,7 +463,9 @@ class TestFactorize:
     def test_object_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, use_na_sentinel=False)
+        codes, uniques = algos.factorize(
+            np.array(data, dtype=object), use_na_sentinel=False
+        )
 
         tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
         tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
@@ -485,7 +488,9 @@ class TestFactorize:
     def test_int_factorize_use_na_sentinel_false(
         self, data, expected_codes, expected_uniques
     ):
-        codes, uniques = algos.factorize(data, use_na_sentinel=False)
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            codes, uniques = algos.factorize(data, use_na_sentinel=False)
 
         tm.assert_numpy_array_equal(uniques, expected_uniques, strict_nan=True)
         tm.assert_numpy_array_equal(codes, expected_codes, strict_nan=True)
@@ -532,8 +537,10 @@ class TestUnique:
 
     def test_object_refcount_bug(self):
         lst = ["A", "B", "C", "D", "E"]
-        for i in range(1000):
-            len(algos.unique(lst))
+        msg = "unique with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            for i in range(1000):
+                len(algos.unique(lst))
 
     def test_on_index_object(self):
         mindex = MultiIndex.from_arrays(
@@ -655,7 +662,7 @@ class TestUnique:
 
     def test_nan_in_object_array(self):
         duplicated_items = ["a", np.nan, "c", "c"]
-        result = pd.unique(duplicated_items)
+        result = pd.unique(np.array(duplicated_items, dtype=object))
         expected = np.array(["a", np.nan, "c"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -782,7 +789,9 @@ class TestUnique:
         )
         tm.assert_index_equal(result, expected)
 
-        result = pd.unique(list("aabc"))
+        msg = "unique with argument that is not not a Series, Index,"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.unique(list("aabc"))
         expected = np.array(["a", "b", "c"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -799,7 +808,9 @@ class TestUnique:
     )
     def test_tuple_with_strings(self, arg, expected):
         # see GH 17108
-        result = pd.unique(arg)
+        msg = "unique with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.unique(arg)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_obj_none_preservation(self):
@@ -886,7 +897,9 @@ class TestIsin:
             algos.isin([1], 1)
 
     def test_basic(self):
-        result = algos.isin([1, 2], [1])
+        msg = "isin with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.isin([1, 2], [1])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -906,7 +919,8 @@ class TestIsin:
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(["a", "b"], ["a"])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.isin(["a", "b"], ["a"])
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -918,7 +932,8 @@ class TestIsin:
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(["a", "b"], [1])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.isin(["a", "b"], [1])
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1003,18 +1018,20 @@ class TestIsin:
         # nan is special, because from " a is b" doesn't follow "a == b"
         # at least, isin() should follow python's "np.nan in [nan] == True"
         # casting to -> np.float64 -> another float-object somewhere on
-        # the way could lead jepardize this behavior
+        # the way could lead jeopardize this behavior
         comps = [np.nan]  # could be casted to float64
         values = [np.nan]
         expected = np.array([True])
-        result = algos.isin(comps, values)
+        msg = "isin with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
     def test_same_nan_is_in_large(self):
         # https://github.com/pandas-dev/pandas/issues/22205
         s = np.tile(1.0, 1_000_001)
         s[0] = np.nan
-        result = algos.isin(s, [np.nan, 1])
+        result = algos.isin(s, np.array([np.nan, 1]))
         expected = np.ones(len(s), dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1023,7 +1040,7 @@ class TestIsin:
         s = np.tile(1.0, 1_000_001)
         series = Series(s)
         s[0] = np.nan
-        result = series.isin([np.nan, 1])
+        result = series.isin(np.array([np.nan, 1]))
         expected = Series(np.ones(len(s), dtype=bool))
         tm.assert_series_equal(result, expected)
 
@@ -1041,10 +1058,13 @@ class TestIsin:
                 return 0
 
         a, b = LikeNan(), LikeNan()
-        # same object -> True
-        tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
-        # different objects -> False
-        tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
+
+        msg = "isin with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # same object -> True
+            tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
+            # different objects -> False
+            tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
 
     def test_different_nans(self):
         # GH 22160
@@ -1055,7 +1075,7 @@ class TestIsin:
         assert comps[0] is not values[0]  # different nan-objects
 
         # as list of python-objects:
-        result = algos.isin(comps, values)
+        result = algos.isin(np.array(comps), values)
         tm.assert_numpy_array_equal(np.array([True]), result)
 
         # as object-array:
@@ -1076,7 +1096,9 @@ class TestIsin:
         comps = ["ss", 42]
         values = ["42"]
         expected = np.array([False, False])
-        result = algos.isin(comps, values)
+        msg = "isin with argument that is not not a Series, Index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
     @pytest.mark.parametrize("empty", [[], Series(dtype=object), np.array([])])
@@ -1130,7 +1152,7 @@ class TestIsin:
         """Comparing df with nan value (np.nan,2) with a string at isin() ("NaN")
         -> should not match values because np.nan is not equal str NaN"""
         df = DataFrame({"values": [np.nan, 2]})
-        result = df.isin(["NaN"])
+        result = df.isin(np.array(["NaN"], dtype=object))
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
@@ -1138,7 +1160,7 @@ class TestIsin:
         """Comparing df with floats (1.4245,2.32441) with a string at isin() ("1.4245")
         -> should not match values because float 1.4245 is not equal str 1.4245"""
         df = DataFrame({"values": [1.4245, 2.32441]})
-        result = df.isin(["1.4245"])
+        result = df.isin(np.array(["1.4245"], dtype=object))
         expected_false = DataFrame({"values": [False, False]})
         tm.assert_frame_equal(result, expected_false)
 
@@ -1182,10 +1204,10 @@ class TestValueCounts:
         tm.assert_series_equal(result, expected)
 
     def test_value_counts_dtypes(self):
-        result = algos.value_counts([1, 1.0])
+        result = algos.value_counts(np.array([1, 1.0]))
         assert len(result) == 1
 
-        result = algos.value_counts([1, 1.0], bins=1)
+        result = algos.value_counts(np.array([1, 1.0]), bins=1)
         assert len(result) == 1
 
         result = algos.value_counts(Series([1, 1.0, "1"]))  # object
@@ -1193,7 +1215,7 @@ class TestValueCounts:
 
         msg = "bins argument only works with numeric data"
         with pytest.raises(TypeError, match=msg):
-            algos.value_counts(["1", 1], bins=1)
+            algos.value_counts(np.array(["1", 1], dtype=object), bins=1)
 
     def test_value_counts_nat(self):
         td = Series([np.timedelta64(10000), NaT], dtype="timedelta64[ns]")
@@ -1588,7 +1610,9 @@ class TestDuplicated:
         expected = np.empty(len(uniques), dtype=object)
         expected[:] = uniques
 
-        result = pd.unique(arr)
+        msg = "unique with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.unique(arr)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1603,7 +1627,9 @@ class TestDuplicated:
     )
     def test_unique_complex_numbers(self, array, expected):
         # GH 17927
-        result = pd.unique(array)
+        msg = "unique with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.unique(array)
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2206,7 +2232,7 @@ def test_int64_add_overflow():
 class TestMode:
     def test_no_mode(self):
         exp = Series([], dtype=np.float64, index=Index([], dtype=int))
-        tm.assert_numpy_array_equal(algos.mode([]), exp.values)
+        tm.assert_numpy_array_equal(algos.mode(np.array([])), exp.values)
 
     @pytest.mark.parametrize("dt", np.typecodes["AllInteger"] + np.typecodes["Float"])
     def test_mode_single(self, dt):
@@ -2229,10 +2255,10 @@ class TestMode:
 
     def test_mode_obj_int(self):
         exp = Series([1], dtype=int)
-        tm.assert_numpy_array_equal(algos.mode([1]), exp.values)
+        tm.assert_numpy_array_equal(algos.mode(exp.values), exp.values)
 
         exp = Series(["a", "b", "c"], dtype=object)
-        tm.assert_numpy_array_equal(algos.mode(["a", "b", "c"]), exp.values)
+        tm.assert_numpy_array_equal(algos.mode(exp.values), exp.values)
 
     @pytest.mark.parametrize("dt", np.typecodes["AllInteger"] + np.typecodes["Float"])
     def test_number_mode(self, dt):
