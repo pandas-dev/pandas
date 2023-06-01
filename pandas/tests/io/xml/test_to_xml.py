@@ -983,7 +983,7 @@ xsl_expected = """\
 def test_stylesheet_file_like(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    with open(xsl, mode) as f:
+    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
         assert geom_df.to_xml(stylesheet=f) == xsl_expected
 
 
@@ -995,7 +995,7 @@ def test_stylesheet_io(datapath, mode):
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    with open(xsl_path, mode) as f:
+    with open(xsl_path, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "rb":
             xsl_obj = BytesIO(f.read())
         else:
@@ -1010,7 +1010,7 @@ def test_stylesheet_io(datapath, mode):
 def test_stylesheet_buffered_reader(datapath, mode):
     xsl = datapath("io", "data", "xml", "row_field_output.xsl")
 
-    with open(xsl, mode) as f:
+    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
         xsl_obj = f.read()
 
     output = geom_df.to_xml(stylesheet=xsl_obj)

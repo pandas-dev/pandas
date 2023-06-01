@@ -62,7 +62,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -91,7 +91,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -99,7 +99,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -128,7 +128,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -136,7 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         float64_t result
 
@@ -1075,6 +1075,13 @@ def group_mean(
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
+                    if compensation[lab, j] != compensation[lab, j]:
+                        # GH#50367
+                        # If val is +/- infinity, compensation is NaN
+                        # which would lead to results being NaN instead
+                        # of +/-infinity. We cannot use util.is_nan
+                        # because of no gil
+                        compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
         for i in range(ncounts):
@@ -1293,7 +1300,8 @@ ctypedef fused numeric_object_complex_t:
     complex128_t
 
 
-cdef bint _treat_as_na(numeric_object_complex_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_complex_t val,
+                       bint is_datetimelike) noexcept nogil:
     if numeric_object_complex_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
@@ -1360,7 +1368,7 @@ cdef inline void _check_below_mincount(
     int64_t[:, ::1] nobs,
     int64_t min_count,
     mincount_t[:, ::1] resx,
-) nogil:
+) noexcept nogil:
     """
     Check if the number of observations for a group is below min_count,
     and if so set the result for that group to the appropriate NA-like value.

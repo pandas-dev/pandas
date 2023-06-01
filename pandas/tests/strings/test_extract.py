@@ -51,7 +51,7 @@ def test_extract_expand_False_mixed_object():
     # single group
     result = ser.str.extract(".*(BAD[_]+).*BAD", expand=False)
     expected = Series(
-        ["BAD_", np.nan, "BAD_", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+        ["BAD_", np.nan, "BAD_", np.nan, np.nan, np.nan, None, np.nan, np.nan]
     )
     tm.assert_series_equal(result, expected)
 

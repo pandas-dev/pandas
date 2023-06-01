@@ -681,7 +681,11 @@ def test_concat_null_object_with_dti():
 
     exp_index = Index([None, dti[0]], dtype=object)
     expected = DataFrame(
-        {"A": [None, None], "B": [np.nan, np.nan], "C": [np.nan, 0.5274]},
+        {
+            "A": np.array([None, np.nan], dtype=object),
+            "B": [np.nan, np.nan],
+            "C": [np.nan, 0.5274],
+        },
         index=exp_index,
     )
     tm.assert_frame_equal(result, expected)
@@ -788,7 +792,7 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
     with tm.assert_produces_warning(warn, match=msg):
         result = concat([empty, df], ignore_index=True)
 
-    expected = DataFrame({"foo": [None, 1, 2], "bar": [None, 1, 2]}, dtype=df_dtype)
+    expected = DataFrame({"foo": [np.nan, 1, 2], "bar": [np.nan, 1, 2]}, dtype=df_dtype)
     tm.assert_frame_equal(result, expected)
 
 

@@ -1364,7 +1364,7 @@ We illustrate these fill methods on a simple Series:
 
    rng = pd.date_range("1/3/2000", periods=8)
    ts = pd.Series(np.random.randn(8), index=rng)
-   ts2 = ts[[0, 3, 6]]
+   ts2 = ts.iloc[[0, 3, 6]]
    ts
    ts2
 
@@ -2128,7 +2128,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.array(np.random.randn(8), dtype="uint8")),
+           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
    )
    df2
