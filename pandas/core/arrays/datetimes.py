@@ -1139,9 +1139,9 @@ default 'raise'
 
     def to_period(self, freq=None) -> PeriodArray:
         """
-        Cast to PeriodArray/Index at a particular frequency.
+        Cast to PeriodArray/PeriodIndex at a particular frequency.
 
-        Converts DatetimeArray/Index to PeriodArray/Index.
+        Converts DatetimeArray/Index to PeriodArray/PeriodIndex.
 
         Parameters
         ----------
