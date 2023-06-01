@@ -3,10 +3,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import (
-    lru_cache,
-    reduce,
-)
+import functools
 import itertools
 import re
 from typing import (
@@ -193,10 +190,10 @@ class CSSToExcelConverter:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
-        # We should avoid lru_cache on the __call__ method.
+        # We should avoid cache on the __call__ method.
         # Otherwise once the method __call__ has been called
         # garbage collection no longer deletes the instance.
-        self._call_cached = lru_cache(maxsize=None)(self._call_uncached)
+        self._call_cached = functools.cache(self._call_uncached)
 
     compute_css = CSSResolver()
 
@@ -726,7 +723,7 @@ class ExcelFormatter:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
-            if reduce(lambda x, y: x and y, (x != "" for x in row)):
+            if functools.reduce(lambda x, y: x and y, (x != "" for x in row)):
                 gen2 = (
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)

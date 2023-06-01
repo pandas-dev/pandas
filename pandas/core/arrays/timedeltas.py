@@ -78,6 +78,8 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
 
+import textwrap
+
 
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
@@ -797,21 +799,92 @@ class TimedeltaArray(dtl.TimelikeOps):
         """
         return ints_to_pytimedelta(self._ndarray)
 
-    days = _field_accessor("days", "days", "Number of days for each element.")
+    days_docstring = textwrap.dedent(
+        """Number of days for each element.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
+    >>> ser
+    0   1 days
+    1   2 days
+    2   3 days
+    dtype: timedelta64[ns]
+    >>> ser.dt.days
+    0    1
+    1    2
+    2    3
+    dtype: int64"""
+    )
+    days = _field_accessor("days", "days", days_docstring)
+
+    seconds_docstring = textwrap.dedent(
+        """Number of seconds (>= 0 and less than 1 day) for each element.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='S'))
+    >>> ser
+    0   0 days 00:00:01
+    1   0 days 00:00:02
+    2   0 days 00:00:03
+    dtype: timedelta64[ns]
+    >>> ser.dt.seconds
+    0    1
+    1    2
+    2    3
+    dtype: int32"""
+    )
     seconds = _field_accessor(
         "seconds",
         "seconds",
-        "Number of seconds (>= 0 and less than 1 day) for each element.",
+        seconds_docstring,
+    )
+
+    microseconds_docstring = textwrap.dedent(
+        """Number of microseconds (>= 0 and less than 1 second) for each element.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='U'))
+    >>> ser
+    0   0 days 00:00:00.000001
+    1   0 days 00:00:00.000002
+    2   0 days 00:00:00.000003
+    dtype: timedelta64[ns]
+    >>> ser.dt.microseconds
+    0    1
+    1    2
+    2    3
+    dtype: int32"""
     )
     microseconds = _field_accessor(
         "microseconds",
         "microseconds",
-        "Number of microseconds (>= 0 and less than 1 second) for each element.",
+        microseconds_docstring,
+    )
+
+    nanoseconds_docstring = textwrap.dedent(
+        """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='N'))
+    >>> ser
+    0   0 days 00:00:00.000000001
+    1   0 days 00:00:00.000000002
+    2   0 days 00:00:00.000000003
+    dtype: timedelta64[ns]
+    >>> ser.dt.nanoseconds
+    0    1
+    1    2
+    2    3
+    dtype: int32"""
     )
     nanoseconds = _field_accessor(
         "nanoseconds",
         "nanoseconds",
-        "Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.",
+        nanoseconds_docstring,
     )
 
     @property

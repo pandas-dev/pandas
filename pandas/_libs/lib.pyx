@@ -93,7 +93,7 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
 
@@ -1192,9 +1192,12 @@ _TYPE_MAP = {
     "u": "integer",
     "float32": "floating",
     "float64": "floating",
+    "float128": "floating",
+    "float256": "floating",
     "f": "floating",
     "complex64": "complex",
     "complex128": "complex",
+    "complex256": "complex",
     "c": "complex",
     "string": "string",
     str: "string",
@@ -1215,23 +1218,6 @@ _TYPE_MAP = {
     Decimal: "decimal",
     bytes: "bytes",
 }
-
-# types only exist on certain platform
-try:
-    np.float128
-    _TYPE_MAP["float128"] = "floating"
-except AttributeError:
-    pass
-try:
-    np.complex256
-    _TYPE_MAP["complex256"] = "complex"
-except AttributeError:
-    pass
-try:
-    np.float16
-    _TYPE_MAP["float16"] = "floating"
-except AttributeError:
-    pass
 
 
 @cython.internal
