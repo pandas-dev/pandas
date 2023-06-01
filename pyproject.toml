@@ -197,7 +197,6 @@ exclude = '''
 
 [tool.ruff]
 line-length = 88
-update-check = false
 target-version = "py310"
 fix = true
 unfixable = []
