@@ -403,6 +403,7 @@ I/O
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
+- Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 
 Period
