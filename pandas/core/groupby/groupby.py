@@ -2994,6 +2994,54 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.ffill: Object with missing values filled or None if inplace=True.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "key": [0, 0, 1, 1, 1],
+        ...         "A": [np.nan, 2, np.nan, 3, np.nan],
+        ...         "B": [2, 3, np.nan, np.nan, np.nan],
+        ...         "C": [np.nan, np.nan, 2, np.nan, np.nan],
+        ...     }
+        ... )
+        >>> df
+           key    A    B   C
+        0    0  NaN  2.0 NaN
+        1    0  2.0  3.0 NaN
+        2    1  NaN  NaN 2.0
+        3    1  3.0  NaN NaN
+        4    1  NaN  NaN NaN
+
+        Propagate non-null values forward or backward within each group along columns.
+
+        >>> df.groupby("key").ffill()
+             A    B   C
+        0  NaN  2.0 NaN
+        1  2.0  3.0 NaN
+        2  NaN  NaN 2.0
+        3  3.0  NaN 2.0
+        4  3.0  NaN 2.0
+
+        Propagate non-null values forward or backward within each group along rows.
+
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).ffill().T
+           key    A    B    C
+        0  0.0  0.0  2.0  2.0
+        1  0.0  2.0  3.0  3.0
+        2  1.0  1.0  NaN  2.0
+        3  1.0  3.0  NaN  NaN
+        4  1.0  1.0  NaN  NaN
+
+        Only replace the first NaN element within a group along rows.
+
+        >>> df.groupby("key").ffill(limit=1)
+             A    B    C
+        0  NaN  2.0  NaN
+        1  2.0  3.0  NaN
+        2  NaN  NaN  2.0
+        3  3.0  NaN  2.0
+        4  3.0  NaN  NaN
         """
         return self._fill("ffill", limit=limit)
 
