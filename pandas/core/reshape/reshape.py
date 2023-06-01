@@ -28,6 +28,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
+from pandas.core.algorithms import unique
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
@@ -545,7 +546,7 @@ def _unstack_extension_series(series: Series, level, fill_value) -> DataFrame:
     return result
 
 
-def stack(frame: DataFrame, level=-1, dropna: bool = True):
+def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
@@ -567,7 +568,9 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     level_num = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
+        return _stack_multi_columns(
+            frame, level_num=level_num, dropna=dropna, sort=sort
+        )
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_codes = [lab.repeat(K) for lab in frame.index.codes]
@@ -620,13 +623,13 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True):
     return frame._constructor_sliced(new_values, index=new_index)
 
 
-def stack_multiple(frame: DataFrame, level, dropna: bool = True):
+def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = True):
     # If all passed levels match up to column names, no
     # ambiguity about what to do
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna)
+            result = stack(result, lev, dropna=dropna, sort=sort)
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -639,7 +642,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True):
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna)
+            result = stack(result, lev, dropna=dropna, sort=sort)
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]
@@ -681,7 +684,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(
-    frame: DataFrame, level_num: int = -1, dropna: bool = True
+    frame: DataFrame, level_num: int = -1, dropna: bool = True, sort: bool = True
 ) -> DataFrame:
     def _convert_level_number(level_num: int, columns: Index):
         """
@@ -711,7 +714,7 @@ def _stack_multi_columns(
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = mi_cols = roll_columns
 
-    if not mi_cols._is_lexsorted():
+    if not mi_cols._is_lexsorted() and sort:
         # Workaround the edge case where 0 is one of the column names,
         # which interferes with trying to sort based on the first
         # level
@@ -725,7 +728,9 @@ def _stack_multi_columns(
     # time to ravel the values
     new_data = {}
     level_vals = mi_cols.levels[-1]
-    level_codes = sorted(set(mi_cols.codes[-1]))
+    level_codes = unique(mi_cols.codes[-1])
+    if sort:
+        level_codes = np.sort(level_codes)
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)

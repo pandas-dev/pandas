@@ -4,7 +4,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -136,9 +135,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
     def max_value(group):
         return group.loc[group["value"].idxmax()]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        applied = df.groupby("A").apply(max_value)
+    applied = df.groupby("A").apply(max_value)
     result = applied.dtypes
     expected = df.dtypes
     tm.assert_series_equal(result, expected)
@@ -159,9 +156,7 @@ def test_inconsistent_return_type():
         return grp.iloc[0]
 
     expected = df.groupby("A").first()[["B"]]
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_0)[["B"]]
+    result = df.groupby("A").apply(f_0)[["B"]]
     tm.assert_frame_equal(result, expected)
 
     def f_1(grp):
@@ -169,10 +164,9 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_1)[["B"]]
-    e = expected.copy()
+    result = df.groupby("A").apply(f_1)[["B"]]
+    # Cast to avoid upcast when setting nan below
+    e = expected.copy().astype("float64")
     e.loc["Tiger"] = np.nan
     tm.assert_frame_equal(result, e)
 
@@ -181,10 +175,9 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_2)[["B"]]
-    e = expected.copy()
+    result = df.groupby("A").apply(f_2)[["B"]]
+    # Explicit cast to float to avoid implicit cast when setting nan
+    e = expected.copy().astype({"B": "float"})
     e.loc["Pony"] = np.nan
     tm.assert_frame_equal(result, e)
 
@@ -194,9 +187,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_3)[["C"]]
+    result = df.groupby("A").apply(f_3)[["C"]]
     e = df.groupby("A").first()[["C"]]
     e.loc["Pony"] = pd.NaT
     tm.assert_frame_equal(result, e)
@@ -207,9 +198,7 @@ def test_inconsistent_return_type():
             return None
         return grp.iloc[0].loc["C"]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A").apply(f_4)
+    result = df.groupby("A").apply(f_4)
     e = df.groupby("A").first()["C"].copy()
     e.loc["Pony"] = np.nan
     e.name = None
@@ -386,11 +375,8 @@ def test_indices_concatenation_order():
     df2 = DataFrame({"a": [3, 2, 2, 2], "b": range(4), "c": range(5, 9)})
 
     # correct result
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result1 = df.groupby("a").apply(f1)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result2 = df2.groupby("a").apply(f1)
+    result1 = df.groupby("a").apply(f1)
+    result2 = df2.groupby("a").apply(f1)
     tm.assert_frame_equal(result1, result2)
 
     # should fail (not the same number of levels)
@@ -655,7 +641,8 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    with pytest.raises(TypeError, match="Could not convert dullshinyshiny to numeric"):
+    msg = "Could not convert string 'dullshinyshiny' to numeric"
+    with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
 
@@ -765,7 +752,13 @@ def test_groupby_as_index_agg(df):
 
     gr = df.groupby(ts)
     gr.nth(0)  # invokes set_selection_from_grouper internally
-    tm.assert_frame_equal(gr.apply(sum), df.groupby(ts).apply(sum))
+
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        res = gr.apply(sum)
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        alt = df.groupby(ts).apply(sum)
+    tm.assert_frame_equal(res, alt)
 
     for attr in ["mean", "max", "count", "idxmax", "cumsum", "all"]:
         gr = df.groupby(ts, as_index=False)
@@ -974,6 +967,8 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
         # columns when numeric_only is False
         klass = ValueError if agg_function in ("std", "sem") else TypeError
         msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
+        if agg_function == "median":
+            msg = r"Cannot convert \['one' 'three' 'two'\] to numeric"
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
@@ -1287,15 +1282,11 @@ def test_groupby_name_propagation(df):
         # inconsistent.
         return Series({"count": 1, "mean": 2, "omissions": 3}, name=df.iloc[0]["A"])
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize)
+    metrics = df.groupby("A").apply(summarize)
     assert metrics.columns.name is None
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize, "metrics")
+    metrics = df.groupby("A").apply(summarize, "metrics")
     assert metrics.columns.name == "metrics"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        metrics = df.groupby("A").apply(summarize_random_name)
+    metrics = df.groupby("A").apply(summarize_random_name)
     assert metrics.columns.name is None
 
 
@@ -1359,11 +1350,11 @@ def test_convert_objects_leave_decimal_alone():
 
     result = grouped.agg(convert_fast)
     assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
+    assert isinstance(result.iloc[0], Decimal)
 
     result = grouped.agg(convert_force_pure)
     assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
+    assert isinstance(result.iloc[0], Decimal)
 
 
 def test_groupby_dtype_inference_empty():
@@ -1566,9 +1557,7 @@ def test_dont_clobber_name_column():
         {"key": ["a", "a", "a", "b", "b", "b"], "name": ["foo", "bar", "baz"] * 2}
     )
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("key", group_keys=False).apply(lambda x: x)
+    result = df.groupby("key", group_keys=False).apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
 
@@ -1642,9 +1631,7 @@ def test_set_group_name(df, grouper):
     grouped = df.groupby(grouper, group_keys=False)
 
     # make sure all these work
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped.apply(f)
+    grouped.apply(f)
     grouped.aggregate(freduce)
     grouped.aggregate({"C": freduce, "D": freduce})
     grouped.transform(f)
@@ -1665,9 +1652,7 @@ def test_group_name_available_in_inference_pass():
         names.append(group.name)
         return group.copy()
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby("a", sort=False, group_keys=False).apply(f)
+    df.groupby("a", sort=False, group_keys=False).apply(f)
 
     expected_names = [0, 1, 2]
     assert names == expected_names
@@ -1876,9 +1861,7 @@ def test_groupby_preserves_sort(sort_column, group_column):
     def test_sort(x):
         tm.assert_frame_equal(x, x.sort_values(by=sort_column))
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        g.apply(test_sort)
+    g.apply(test_sort)
 
 
 def test_pivot_table_values_key_error():
@@ -1990,8 +1973,8 @@ def test_empty_groupby(
         expected = DataFrame([], columns=[], index=idx)
         return expected
 
-    is_per = isinstance(df.dtypes[0], pd.PeriodDtype)
-    is_dt64 = df.dtypes[0].kind == "M"
+    is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
+    is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
 
     if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
@@ -2060,9 +2043,7 @@ def test_empty_groupby_apply_nonunique_columns():
     df[3] = df[3].astype(np.int64)
     df.columns = [0, 1, 2, 0]
     gb = df.groupby(df[1], group_keys=False)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = gb.apply(lambda x: x)
+    res = gb.apply(lambda x: x)
     assert (res.dtypes == df.dtypes).all()
 
 
@@ -2496,7 +2477,6 @@ def test_groupby_series_with_tuple_name():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 @pytest.mark.parametrize(
     "func, values", [("sum", [97.0, 98.0]), ("mean", [24.25, 24.5])]
 )
@@ -2509,7 +2489,6 @@ def test_groupby_numerical_stability_sum_mean(func, values):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(not IS64, reason="GH#38778: fail on 32-bit system")
 def test_groupby_numerical_stability_cumsum():
     # GH#38934
     data = [1e16, 1e16, 97, 98, -5e15, -5e15, -5e15, -5e15]
@@ -2657,7 +2636,7 @@ def test_groupby_filtered_df_std():
     ]
     df = DataFrame(dicts)
 
-    df_filter = df[df["filter_col"] == True]  # noqa:E712
+    df_filter = df[df["filter_col"] == True]  # noqa: E712
     dfgb = df_filter.groupby("groupby_col")
     result = dfgb.std()
     expected = DataFrame(
@@ -3021,7 +3000,7 @@ def test_groupby_sum_on_nan_should_return_nan(bug_var):
     dfgb = df.groupby(lambda x: x)
     result = dfgb.sum(min_count=1)
 
-    expected_df = DataFrame([bug_var, bug_var, bug_var, np.nan], columns=["A"])
+    expected_df = DataFrame([bug_var, bug_var, bug_var, None], columns=["A"])
     tm.assert_frame_equal(result, expected_df)
 
 
@@ -3085,3 +3064,27 @@ def test_groupby_selection_other_methods(df):
     tm.assert_frame_equal(
         g.filter(lambda x: len(x) == 3), g_exp.filter(lambda x: len(x) == 3)
     )
+
+
+def test_groupby_with_Time_Grouper():
+    idx2 = [
+        to_datetime("2016-08-31 22:08:12.000"),
+        to_datetime("2016-08-31 22:09:12.200"),
+        to_datetime("2016-08-31 22:20:12.400"),
+    ]
+
+    test_data = DataFrame(
+        {"quant": [1.0, 1.0, 3.0], "quant2": [1.0, 1.0, 3.0], "time2": idx2}
+    )
+
+    expected_output = DataFrame(
+        {
+            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1T"),
+            "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        }
+    )
+
+    df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
+
+    tm.assert_frame_equal(df, expected_output)

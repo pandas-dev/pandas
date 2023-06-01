@@ -116,9 +116,11 @@ class TestSetitemCoercion(CoercionBase):
 
         if exp_dtype is IndexError:
             temp = obj.copy()
+            warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
             msg = "index 5 is out of bounds for axis 0 with size 4"
             with pytest.raises(exp_dtype, match=msg):
-                temp[5] = 5
+                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                    temp[5] = 5
         else:
             exp_index = pd.Index(list("abcd") + [val])
             self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)

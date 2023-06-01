@@ -29,7 +29,7 @@ def iterparse(request):
 
 def read_xml_iterparse(data, **kwargs):
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(data)
         return read_xml(path, **kwargs)
 

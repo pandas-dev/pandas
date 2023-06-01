@@ -335,7 +335,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
-  .. versionchanged:: 1.1.0 dict option extended to support ``gzip`` and ``bz2``.
   .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
@@ -3786,6 +3785,15 @@ one can pass an :class:`~pandas.io.excel.ExcelWriter`.
 
 .. _io.excel_writing_buffer:
 
+When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
+engine. For this, it is important to know which function pandas is using internally.
+
+* For the engine openpyxl, pandas is using :func:`openpyxl.Workbook` to create a new sheet and :func:`openpyxl.load_workbook` to append data to an existing sheet. The openpyxl engine writes to (``.xlsx``) and (``.xlsm``) files.
+
+* For the engine xlsxwriter, pandas is using :func:`xlsxwriter.Workbook` to write to (``.xlsx``) files.
+
+* For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
+
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 
@@ -3889,8 +3897,6 @@ The :func:`~pandas.read_excel` method can read OpenDocument spreadsheets
 
    # Returns a DataFrame
    pd.read_excel("path_to_file.ods", engine="odf")
-
-.. versionadded:: 1.1.0
 
 Similarly, the :func:`~pandas.to_excel` method can write OpenDocument spreadsheets
 

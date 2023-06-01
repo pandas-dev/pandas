@@ -1075,7 +1075,7 @@ class TestDataFrameReshape:
             ),
             columns=Index(["B", "C"], name="Upper"),
         )
-        expected["B"] = expected["B"].astype(df.dtypes[0])
+        expected["B"] = expected["B"].astype(df.dtypes.iloc[0])
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1180,6 +1180,10 @@ class TestDataFrameReshape:
 
         result = df.unstack(level=level)
         expected = df.astype(object).unstack(level=level)
+        if level == 0:
+            expected[("A", "B")] = expected[("A", "B")].fillna(pd.NA)
+        else:
+            expected[("A", 0)] = expected[("A", 0)].fillna(pd.NA)
 
         expected_dtypes = Series(
             [df.A.dtype] * 2 + [df.B.dtype] * 2, index=result.columns
@@ -1355,6 +1359,48 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
 
     expected = pd.concat([df[n].unstack() for n in range(4)], keys=range(4), axis=1)
     tm.assert_frame_equal(res, expected)
+
+
+def test_stack_sort_false():
+    # GH 15105
+    data = [[1, 2, 3.0, 4.0], [2, 3, 4.0, 5.0], [3, 4, np.nan, np.nan]]
+    df = DataFrame(
+        data,
+        columns=MultiIndex(
+            levels=[["B", "A"], ["x", "y"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ),
+    )
+    result = df.stack(level=0, sort=False)
+    expected = DataFrame(
+        {"x": [1.0, 3.0, 2.0, 4.0, 3.0], "y": [2.0, 4.0, 3.0, 5.0, 4.0]},
+        index=MultiIndex.from_arrays([[0, 0, 1, 1, 2], ["B", "A", "B", "A", "B"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # Codes sorted in this call
+    df = DataFrame(
+        data,
+        columns=MultiIndex.from_arrays([["B", "B", "A", "A"], ["x", "y", "x", "y"]]),
+    )
+    result = df.stack(level=0, sort=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_stack_sort_false_multi_level():
+    # GH 15105
+    idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
+    df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=idx)
+    result = df.stack([0, 1], sort=False)
+    expected_index = MultiIndex.from_tuples(
+        [
+            ("cat", "weight", "kg"),
+            ("cat", "height", "m"),
+            ("dog", "weight", "kg"),
+            ("dog", "height", "m"),
+        ]
+    )
+    expected = Series([1.0, 2.0, 3.0, 4.0], index=expected_index)
+    tm.assert_series_equal(result, expected)
 
 
 class TestStackUnstackMultiLevel:
@@ -1577,9 +1623,7 @@ Thu,Lunch,Yes,51.51,17"""
             }
         )
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
+        result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
 
         unstacked = result.unstack()
         restacked = unstacked.stack()
