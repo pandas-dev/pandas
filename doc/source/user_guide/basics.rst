@@ -463,24 +463,6 @@ which we illustrate:
    df2
    df1.combine_first(df2)
 
-General DataFrame combine
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The :meth:`~DataFrame.combine_first` method above calls the more general
-:meth:`DataFrame.combine`. This method takes another DataFrame
-and a combiner function, aligns the input DataFrame and then passes the combiner
-function pairs of Series (i.e., columns whose names are the same).
-
-So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
-
-.. ipython:: python
-
-   def combiner(x, y):
-       return np.where(pd.isna(x), y, x)
-
-
-   df1.combine(df2, combiner)
-
 .. _basics.stats:
 
 Descriptive statistics
