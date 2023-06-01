@@ -26,7 +26,7 @@ import cython
 from pandas._libs.algos import is_monotonic
 
 
-cdef extern from "../src/skiplist.h":
+cdef extern from "pandas/skiplist.h":
     ctypedef struct node_t:
         node_t **next
         int *width
