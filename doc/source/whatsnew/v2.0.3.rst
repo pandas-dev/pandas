@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -20,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.other:
