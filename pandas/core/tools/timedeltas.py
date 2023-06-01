@@ -210,7 +210,7 @@ def to_timedelta(
 
 
 def _coerce_scalar_to_timedelta_type(
-    r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "raise"
+    r, unit: UnitChoices | None = "ns", errors: DateTimeErrorChoices = "Raise"
 ):
     """Convert string 'r' to a timedelta object."""
     result: Timedelta | NaTType
