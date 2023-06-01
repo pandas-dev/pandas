@@ -8218,6 +8218,22 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0 1.0
         2  NaN  3.0 1.0
         """
+        warnings.warn(
+            # GH#53463
+            "DataFrame.combine is deprecated and will be removed in a future version.",
+            # TODO: suggested alternative?
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._combine(other, func, fill_value, overwrite)
+
+    def _combine(
+        self,
+        other: DataFrame,
+        func: Callable[[Series, Series], Series | Hashable],
+        fill_value=None,
+        overwrite: bool = True,
+    ) -> DataFrame:
         other_idxlen = len(other.index)  # save for compare
 
         this, other = self.align(other, copy=False)
@@ -8348,7 +8364,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        combined = self._combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])

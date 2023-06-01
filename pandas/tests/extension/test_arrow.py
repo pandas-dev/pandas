@@ -877,7 +877,9 @@ class TestBaseMethods(base.BaseMethodsTests):
             s1 = pd.Series(orig_data1)
             s2 = pd.Series(orig_data2)
             with pytest.raises(TypeError):
-                s1.combine(s2, lambda x1, x2: x1 + x2)
+                msg = "Series.combine is deprecated"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    s1.combine(s2, lambda x1, x2: x1 + x2)
 
         else:
             super().test_combine_add(data_repeated)
@@ -1228,7 +1230,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             # when comparing over an array
             assert result[8] is na_value
             assert result[97] is na_value
-            expected = ser.combine(other, comparison_op)
+            expected = ser._combine(other, comparison_op)
             expected[8] = na_value
             expected[97] = na_value
             self.assert_series_equal(result, expected)
@@ -1242,7 +1244,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
 
             if exc is None:
                 # Didn't error, then should match point-wise behavior
-                expected = ser.combine(other, comparison_op)
+                expected = ser._combine(other, comparison_op)
                 self.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):

@@ -15,6 +15,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+combine_msg = "DataFrame.combine is deprecated"
+
 
 class TestDataFrameCombineFirst:
     def test_combine_first_mixed(self):

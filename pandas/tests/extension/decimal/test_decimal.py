@@ -302,7 +302,9 @@ def test_combine_from_sequence_raises(monkeypatch):
 
     arr = cls([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
     ser = pd.Series(arr)
-    result = ser.combine(ser, operator.add)
+    msg = "Series.combine is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = ser.combine(ser, operator.add)
 
     # note: object dtype
     expected = pd.Series(

@@ -29,7 +29,7 @@ class Comparison(base.BaseComparisonOpsTests):
         if exc is None:
             result = op(ser, other)
             # Override to do the astype to boolean
-            expected = ser.combine(other, op).astype("boolean")
+            expected = ser._combine(other, op).astype("boolean")
             self.assert_series_equal(result, expected)
         else:
             with pytest.raises(exc):

@@ -3230,6 +3230,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         falcon    345.0
         dtype: float64
         """
+        warnings.warn(
+            # GH#53463
+            "Series.combine is deprecated and will be removed in a future version.",
+            # TODO: suggested alternative?
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return self._combine(other, func, fill_value)
+
+    def _combine(
+        self,
+        other: Series | Hashable,
+        func: Callable[[Hashable, Hashable], Hashable],
+        fill_value: Hashable = None,
+    ) -> Series:
         if fill_value is None:
             fill_value = na_value_for_dtype(self.dtype, compat=False)
 

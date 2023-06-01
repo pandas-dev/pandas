@@ -4,6 +4,8 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
+combine_msg = "DataFrame.combine is deprecated"
+
 
 class TestCombine:
     @pytest.mark.parametrize(
@@ -24,15 +26,17 @@ class TestCombine:
         def combiner(a, b):
             return b
 
-        result = df.combine(other, combiner)
+        with tm.assert_produces_warning(FutureWarning, match=combine_msg):
+            result = df.combine(other, combiner)
         tm.assert_frame_equal(result, other)
 
     def test_combine_generic(self, float_frame):
         df1 = float_frame
         df2 = float_frame.loc[float_frame.index[:-5], ["A", "B", "C"]]
 
-        combined = df1.combine(df2, np.add)
-        combined2 = df2.combine(df1, np.add)
+        with tm.assert_produces_warning(FutureWarning, match=combine_msg):
+            combined = df1.combine(df2, np.add)
+            combined2 = df2.combine(df1, np.add)
         assert combined["D"].isna().all()
         assert combined2["D"].isna().all()
 

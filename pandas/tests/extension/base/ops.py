@@ -22,9 +22,9 @@ class BaseOpsUtil(BaseExtensionTests):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
                 raise NotImplementedError
-            expected = obj.iloc[:, 0].combine(other, op).to_frame()
+            expected = obj.iloc[:, 0]._combine(other, op).to_frame()
         else:
-            expected = obj.combine(other, op)
+            expected = obj._combine(other, op)
         return expected
 
     def _check_op(
@@ -139,7 +139,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         if op.__name__ in ["eq", "ne"]:
             # comparison should match point-wise comparisons
             result = op(ser, other)
-            expected = ser.combine(other, op)
+            expected = ser._combine(other, op)
             self.assert_series_equal(result, expected)
 
         else:
@@ -151,11 +151,11 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
             if exc is None:
                 # Didn't error, then should match pointwise behavior
-                expected = ser.combine(other, op)
+                expected = ser._combine(other, op)
                 self.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
-                    ser.combine(other, op)
+                    ser._combine(other, op)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
