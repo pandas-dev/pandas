@@ -829,6 +829,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00"], freq="D")
         >>> idx.freqstr
         'D'
@@ -839,6 +841,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         ...                        freq="infer")
         >>> idx.freqstr
         '2D'
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
+        >>> idx.freqstr
+        'M'
         """
         if self.freq is None:
             return None

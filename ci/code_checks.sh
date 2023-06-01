@@ -274,16 +274,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.TimedeltaIndex.as_unit \
         pandas.TimedeltaIndex.to_pytimedelta \
         pandas.TimedeltaIndex.mean \
-        pandas.PeriodIndex.day \
-        pandas.PeriodIndex.dayofweek \
-        pandas.PeriodIndex.day_of_week \
-        pandas.PeriodIndex.dayofyear \
-        pandas.PeriodIndex.day_of_year \
-        pandas.PeriodIndex.days_in_month \
-        pandas.PeriodIndex.daysinmonth \
-        pandas.PeriodIndex.end_time \
-        pandas.PeriodIndex.freqstr \
-        pandas.PeriodIndex.hour \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \
