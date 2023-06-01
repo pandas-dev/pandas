@@ -111,13 +111,15 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.inference import is_dict_like
 
+from pandas.core.arrays.boolean import BooleanDtype
+
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
 
-cdef extern from "headers/portable.h":
+cdef extern from "pandas/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
     # so we don't get
     # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
@@ -127,7 +129,7 @@ cdef extern from "headers/portable.h":
     pass
 
 
-cdef extern from "parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -245,7 +247,7 @@ cdef extern from "parser/tokenizer.h":
 
     void COLITER_NEXT(coliter_t, const char *) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
     int del_rd_source(void *src)
@@ -1194,7 +1196,9 @@ cdef class TextReader:
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                if dtype.kind == "b":
+                if isinstance(dtype, BooleanDtype):
+                    # xref GH 47534: BooleanArray._from_sequence_of_strings has extra
+                    # kwargs
                     true_values = [x.decode() for x in self.true_values]
                     false_values = [x.decode() for x in self.false_values]
                     result = array_type._from_sequence_of_strings(

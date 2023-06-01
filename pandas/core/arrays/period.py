@@ -419,12 +419,24 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "year",
         """
         The year of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.year
+        Index([2023, 2024, 2025], dtype='int64')
         """,
     )
     month = _field_accessor(
         "month",
         """
         The month as January=1, December=12.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.month
+        Index([1, 2, 3], dtype='int64')
         """,
     )
     day = _field_accessor(
@@ -455,18 +467,38 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "minute",
         """
         The minute of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:30:00",
+        ...                       "2023-01-01 11:50:00"], freq='min')
+        >>> idx.minute
+        Index([30, 50], dtype='int64')
         """,
     )
     second = _field_accessor(
         "second",
         """
         The second of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:00:30",
+        ...                       "2023-01-01 10:00:31"], freq='s')
+        >>> idx.second
+        Index([30, 31], dtype='int64')
         """,
     )
     weekofyear = _field_accessor(
         "week",
         """
         The week ordinal of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.week  # It can be written `weekofyear`
+        Index([5, 9, 13], dtype='int64')
         """,
     )
     week = weekofyear
@@ -478,7 +510,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
-        >>> idx.day_of_week
+        >>> idx.weekday
         Index([6, 0, 1], dtype='int64')
         """,
     )
@@ -506,6 +538,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "quarter",
         """
         The quarter of the date.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.quarter
+        Index([1, 1, 1], dtype='int64')
         """,
     )
     qyear = _field_accessor("qyear")
@@ -544,6 +582,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.is_leap_year
+        array([False,  True, False])
         """
         return isleapyear_arr(np.asarray(self.year))
 
@@ -562,6 +606,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Returns
         -------
         DatetimeArray/Index
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
+        dtype='datetime64[ns]', freq='MS')
         """
         from pandas.core.arrays import DatetimeArray
 

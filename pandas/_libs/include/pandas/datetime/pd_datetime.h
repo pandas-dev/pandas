@@ -22,9 +22,9 @@ See NUMPY_LICENSE.txt for the license.
 #endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
-#include "np_datetime.h"
-#include "np_datetime_strings.h"
-#include "date_conversions.h"
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
+#include "pandas/datetime/date_conversions.h"
 
 #ifdef __cplusplus
 extern "C" {
