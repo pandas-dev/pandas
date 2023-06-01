@@ -21,10 +21,10 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_hash_pandas_object(self, data):
         # _hash_pandas_object should return a uint64 ndarray of the same length
         # as the data
+        from pandas.core.util.hashing import _default_hash_key
+
         res = data._hash_pandas_object(
-            encoding="utf-8",
-            hash_key=pd.core.util.hashing._default_hash_key,
-            categorize=False,
+            encoding="utf-8", hash_key=_default_hash_key, categorize=False
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
