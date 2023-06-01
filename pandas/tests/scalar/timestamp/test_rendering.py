@@ -1,7 +1,7 @@
 import pprint
 
 import pytest
-import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
+import pytz  # noqa: F401  # a test below uses pytz but only inside a `eval` call
 
 from pandas import Timestamp
 

@@ -5,6 +5,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
 
 import dateutil.tz
 from dateutil.tz import tzutc
@@ -13,10 +14,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.compat import (
-    PY39,
-    PY310,
-)
+from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
@@ -25,11 +23,14 @@ from pandas import (
     Timestamp,
 )
 
-if PY39:
-    import zoneinfo
-
 
 class TestTimestampConstructors:
+    def test_weekday_but_no_day_raises(self):
+        # GH#52659
+        msg = "Parsing datetimes with weekday but no day information is not supported"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2023 Sept Thu")
+
     def test_construct_from_string_invalid_raises(self):
         # dateutil (weirdly) parses "200622-12-31" as
         #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)
@@ -845,12 +846,13 @@ def test_timestamp_constructor_retain_fold(tz, fold):
     assert result == expected
 
 
-_tzs = ["dateutil/Europe/London"]
-if PY39:
-    try:
-        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
-    except zoneinfo.ZoneInfoNotFoundError:
-        pass
+try:
+    _tzs = [
+        "dateutil/Europe/London",
+        zoneinfo.ZoneInfo("Europe/London"),
+    ]
+except zoneinfo.ZoneInfoNotFoundError:
+    _tzs = ["dateutil/Europe/London"]
 
 
 @pytest.mark.parametrize("tz", _tzs)

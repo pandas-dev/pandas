@@ -49,7 +49,6 @@ def to_feather(
     **kwargs :
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
-        .. versionadded:: 1.1.0
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather

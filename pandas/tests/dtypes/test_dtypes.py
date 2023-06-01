@@ -33,13 +33,11 @@ from pandas import (
     DatetimeIndex,
     IntervalIndex,
     Series,
+    SparseDtype,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class Base:
@@ -276,6 +274,7 @@ class TestDatetimeTZDtype(Base):
         assert res._creso == NpyDatetimeUnit.NPY_FR_ms.value
         assert res.str == "|M8[ms]"
         assert str(res) == "datetime64[ms, US/Eastern]"
+        assert res.base == np.dtype("M8[ms]")
 
     def test_day_not_supported(self):
         msg = "DatetimeTZDtype only supports s, ms, us, ns units"
@@ -290,8 +289,10 @@ class TestDatetimeTZDtype(Base):
         assert issubclass(type(a), type(b))
 
     def test_compat(self, dtype):
-        assert is_datetime64tz_dtype(dtype)
-        assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
+        msg = "is_datetime64tz_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_datetime64tz_dtype(dtype)
+            assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_any_dtype(dtype)
         assert is_datetime64_any_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_ns_dtype(dtype)
@@ -349,25 +350,28 @@ class TestDatetimeTZDtype(Base):
         assert dtype == "M8[ns, US/Eastern]"
 
     def test_basic(self, dtype):
-        assert is_datetime64tz_dtype(dtype)
+        msg = "is_datetime64tz_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_datetime64tz_dtype(dtype)
 
         dr = date_range("20130101", periods=3, tz="US/Eastern")
         s = Series(dr, name="A")
 
         # dtypes
-        assert is_datetime64tz_dtype(s.dtype)
-        assert is_datetime64tz_dtype(s)
-        assert not is_datetime64tz_dtype(np.dtype("float64"))
-        assert not is_datetime64tz_dtype(1.0)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_datetime64tz_dtype(s.dtype)
+            assert is_datetime64tz_dtype(s)
+            assert not is_datetime64tz_dtype(np.dtype("float64"))
+            assert not is_datetime64tz_dtype(1.0)
 
     def test_dst(self):
         dr1 = date_range("2013-01-01", periods=3, tz="US/Eastern")
         s1 = Series(dr1, name="A")
-        assert is_datetime64tz_dtype(s1)
+        assert isinstance(s1.dtype, DatetimeTZDtype)
 
         dr2 = date_range("2013-08-01", periods=3, tz="US/Eastern")
         s2 = Series(dr2, name="A")
-        assert is_datetime64tz_dtype(s2)
+        assert isinstance(s2.dtype, DatetimeTZDtype)
         assert s1.dtype == s2.dtype
 
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern"])
@@ -421,12 +425,10 @@ class TestPeriodDtype(Base):
         for s in ["period[D]", "Period[D]", "D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day()
-            assert is_period_dtype(dt)
 
         for s in ["period[3D]", "Period[3D]", "3D"]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Day(3)
-            assert is_period_dtype(dt)
 
         for s in [
             "period[26H]",
@@ -438,7 +440,6 @@ class TestPeriodDtype(Base):
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)
-            assert is_period_dtype(dt)
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
@@ -524,20 +525,22 @@ class TestPeriodDtype(Base):
         assert not is_dtype_equal(PeriodDtype("D"), PeriodDtype("2D"))
 
     def test_basic(self, dtype):
-        assert is_period_dtype(dtype)
+        msg = "is_period_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_period_dtype(dtype)
 
-        pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
 
-        assert is_period_dtype(pidx.dtype)
-        assert is_period_dtype(pidx)
+            assert is_period_dtype(pidx.dtype)
+            assert is_period_dtype(pidx)
 
-        s = Series(pidx, name="A")
+            s = Series(pidx, name="A")
 
-        assert is_period_dtype(s.dtype)
-        assert is_period_dtype(s)
+            assert is_period_dtype(s.dtype)
+            assert is_period_dtype(s)
 
-        assert not is_period_dtype(np.dtype("float64"))
-        assert not is_period_dtype(1.0)
+            assert not is_period_dtype(np.dtype("float64"))
+            assert not is_period_dtype(1.0)
 
     def test_freq_argument_required(self):
         # GH#27388
@@ -553,6 +556,14 @@ class TestPeriodDtype(Base):
     def test_not_string(self):
         # though PeriodDtype has object kind, it cannot be string
         assert not is_string_dtype(PeriodDtype("D"))
+
+    def test_perioddtype_caching_dateoffset_normalize(self):
+        # GH 24121
+        per_d = PeriodDtype(pd.offsets.YearEnd(normalize=True))
+        assert per_d.freq.normalize
+
+        per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
+        assert not per_d2.freq.normalize
 
 
 class TestIntervalDtype(Base):
@@ -595,7 +606,9 @@ class TestIntervalDtype(Base):
     def test_construction(self, subtype):
         i = IntervalDtype(subtype, closed="right")
         assert i.subtype == np.dtype("int64")
-        assert is_interval_dtype(i)
+        msg = "is_interval_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
         "subtype", ["interval[int64]", "Interval[int64]", "int64", np.dtype("int64")]
@@ -616,7 +629,9 @@ class TestIntervalDtype(Base):
         # generic
         i = IntervalDtype(subtype)
         assert i.subtype is None
-        assert is_interval_dtype(i)
+        msg = "is_interval_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
         "subtype",
@@ -787,31 +802,35 @@ class TestIntervalDtype(Base):
         assert dtype.name == "interval"
 
     def test_basic(self, dtype):
-        assert is_interval_dtype(dtype)
+        msg = "is_interval_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_interval_dtype(dtype)
 
-        ii = IntervalIndex.from_breaks(range(3))
+            ii = IntervalIndex.from_breaks(range(3))
 
-        assert is_interval_dtype(ii.dtype)
-        assert is_interval_dtype(ii)
+            assert is_interval_dtype(ii.dtype)
+            assert is_interval_dtype(ii)
 
-        s = Series(ii, name="A")
+            s = Series(ii, name="A")
 
-        assert is_interval_dtype(s.dtype)
-        assert is_interval_dtype(s)
+            assert is_interval_dtype(s.dtype)
+            assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
-        assert is_interval_dtype("interval[int64, both]")
-        assert is_interval_dtype(IntervalIndex.from_tuples([(0, 1)]))
-        assert is_interval_dtype(IntervalIndex.from_breaks(np.arange(4)))
-        assert is_interval_dtype(
-            IntervalIndex.from_breaks(date_range("20130101", periods=3))
-        )
-        assert not is_interval_dtype("U")
-        assert not is_interval_dtype("S")
-        assert not is_interval_dtype("foo")
-        assert not is_interval_dtype(np.object_)
-        assert not is_interval_dtype(np.int64)
-        assert not is_interval_dtype(np.float64)
+        msg = "is_interval_dtype is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert is_interval_dtype("interval[int64, both]")
+            assert is_interval_dtype(IntervalIndex.from_tuples([(0, 1)]))
+            assert is_interval_dtype(IntervalIndex.from_breaks(np.arange(4)))
+            assert is_interval_dtype(
+                IntervalIndex.from_breaks(date_range("20130101", periods=3))
+            )
+            assert not is_interval_dtype("U")
+            assert not is_interval_dtype("S")
+            assert not is_interval_dtype("foo")
+            assert not is_interval_dtype(np.object_)
+            assert not is_interval_dtype(np.int64)
+            assert not is_interval_dtype(np.float64)
 
     def test_caching(self):
         IntervalDtype.reset_cache()
@@ -1113,9 +1132,15 @@ def test_is_dtype_no_warning(check):
     data = pd.DataFrame({"A": [1, 2]})
 
     warn = None
-    msg = "is_categorical_dtype is deprecated"
-    if check is is_categorical_dtype:
+    msg = f"{check.__name__} is deprecated"
+    if (
+        check is is_categorical_dtype
+        or check is is_interval_dtype
+        or check is is_datetime64tz_dtype
+        or check is is_period_dtype
+    ):
         warn = FutureWarning
+
     with tm.assert_produces_warning(warn, match=msg):
         check(data)
 
@@ -1140,6 +1165,13 @@ def test_compare_complex_dtypes():
 
     with pytest.raises(TypeError, match=msg):
         df.lt(df.astype(object))
+
+
+def test_cast_string_to_complex():
+    # GH 4895
+    expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
+    result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_multi_column_dtype_assignment():

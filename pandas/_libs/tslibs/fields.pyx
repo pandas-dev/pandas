@@ -193,7 +193,7 @@ def get_date_name_field(
     return out
 
 
-cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
+cdef bint _is_on_month(int month, int compare_month, int modby) noexcept nogil:
     """
     Analogous to DateOffset.is_on_offset checking for the month part of a date.
     """
@@ -512,18 +512,7 @@ def get_timedelta_field(
 
     out = np.empty(count, dtype="i4")
 
-    if field == "days":
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
-                out[i] = tds.days
-        return out
-
-    elif field == "seconds":
+    if field == "seconds":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -557,6 +546,34 @@ def get_timedelta_field(
         return out
 
     raise ValueError(f"Field {field} not supported")
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_timedelta_days(
+    const int64_t[:] tdindex,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
+    """
+    Given a int64-based timedelta index, extract the days,
+    field and return an array of these values.
+    """
+    cdef:
+        Py_ssize_t i, count = len(tdindex)
+        ndarray[int64_t] out
+        pandas_timedeltastruct tds
+
+    out = np.empty(count, dtype="i8")
+
+    with nogil:
+        for i in range(count):
+            if tdindex[i] == NPY_NAT:
+                out[i] = -1
+                continue
+
+            pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
+            out[i] = tds.days
+    return out
 
 
 cpdef isleapyear_arr(ndarray years):

@@ -277,9 +277,7 @@ class TestS3:
     @pytest.mark.single_cpu
     @pytest.mark.skipif(
         is_ci_environment(),
-        reason="This test can hang in our CI min_versions build "
-        "and leads to '##[error]The runner has "
-        "received a shutdown signal...' in GHA. GH: 45651",
+        reason="GH: 45651: This test can hang in our CI min_versions build",
     )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks

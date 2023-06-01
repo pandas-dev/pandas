@@ -154,7 +154,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
+    df = DataFrame({"data": ["A"], "nans": Series([None], dtype=object)})
     grouped = df.groupby("data")
 
     expected = df.set_index("data").nans
@@ -764,6 +764,29 @@ def test_groupby_nth_with_column_axis():
         gb = df.groupby(df.iloc[1], axis=1)
     result = gb.nth(0)
     expected = df.iloc[:, [0, 2]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_nth_interval():
+    # GH#24205
+    idx_result = MultiIndex(
+        [
+            pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
+        ],
+        [[0, 0, 0, 1, 1], [0, 1, 1, 0, -1]],
+    )
+    df_result = DataFrame({"col": range(len(idx_result))}, index=idx_result)
+    result = df_result.groupby(level=[0, 1], observed=False).nth(0)
+    val_expected = [0, 1, 3]
+    idx_expected = MultiIndex(
+        [
+            pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
+        ],
+        [[0, 0, 1], [0, 1, 0]],
+    )
+    expected = DataFrame(val_expected, index=idx_expected, columns=["col"])
     tm.assert_frame_equal(result, expected)
 
 

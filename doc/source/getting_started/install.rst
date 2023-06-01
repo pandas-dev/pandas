@@ -20,7 +20,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 3.8, 3.9, 3.10 and 3.11.
+Officially Python 3.9, 3.10 and 3.11.
 
 Installing pandas
 -----------------
@@ -149,14 +149,6 @@ to install pandas with the optional dependencies to read Excel files.
 
 The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
 
-Installing with ActivePython
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Installation instructions for
-`ActivePython <https://www.activestate.com/products/python/>`__ can be found
-`here <https://www.activestate.com/products/python/>`__. Versions
-2.7, 3.5 and 3.6 include pandas.
-
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -268,7 +260,7 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.20.3
+`NumPy <https://numpy.org>`__                                    1.21.6
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
@@ -303,7 +295,7 @@ Installable with ``pip install "pandas[performance]"``
 ===================================================== ================== ================== ===================================================================================================================================================================================
 Dependency                                            Minimum Version    pip extra          Notes
 ===================================================== ================== ================== ===================================================================================================================================================================================
-`numexpr <https://github.com/pydata/numexpr>`__       2.8.0              performance        Accelerates certain numerical operations by using uses multiple cores as well as smart chunking and caching to achieve large speedups
+`numexpr <https://github.com/pydata/numexpr>`__       2.8.0              performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.4              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
 `numba <https://github.com/numba/numba>`__            0.55.2             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================

@@ -22,7 +22,7 @@ from numpy cimport (
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias tzinfo_type bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,
@@ -1026,7 +1026,7 @@ cdef class _Timestamp(ABCTimestamp):
             base1, base2 = base, ""
 
         if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
-            if self.microsecond:
+            if self.microsecond or timespec == "nanoseconds":
                 base1 += f"{self.nanosecond:03d}"
             else:
                 base1 += f".{self.nanosecond:09d}"
@@ -1301,8 +1301,6 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
-
-        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -2374,7 +2372,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

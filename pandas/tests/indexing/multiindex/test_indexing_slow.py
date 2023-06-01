@@ -34,7 +34,7 @@ keys: List[Any] = [
     np.random.choice(list("ZYXWVUTSRQP"), m),
 ]
 keys = list(map(tuple, zip(*keys)))
-keys += list(map(lambda t: t[:-1], vals[:: n // m]))
+keys += [t[:-1] for t in vals[:: n // m]]
 
 
 # covers both unique index and non-unique index

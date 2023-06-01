@@ -37,14 +37,14 @@ pandas supports 4 types of windowing operations:
 #. Expanding window: Accumulating window over the values.
 #. Exponentially Weighted window: Accumulating and exponentially weighted window over the values.
 
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
-Concept                         Method             Returned Object               Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
-Rolling window                  ``rolling``        ``Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
-Weighted window                 ``rolling``        ``Window``                    No                           No                        No                                   No
-Expanding window                ``expanding``      ``Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
-Exponentially Weighted window   ``ewm``            ``ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
-=============================   =================  ===========================   ===========================  ========================  ===================================  ===========================
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
+Concept                         Method             Returned Object                                 Supports time-based windows  Supports chained groupby  Supports table method                Supports online operations
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
+Rolling window                  ``rolling``        ``pandas.typing.api.Rolling``                   Yes                          Yes                       Yes (as of version 1.3)              No
+Weighted window                 ``rolling``        ``pandas.typing.api.Window``                    No                           No                        No                                   No
+Expanding window                ``expanding``      ``pandas.typing.api.Expanding``                 No                           Yes                       Yes (as of version 1.3)              No
+Exponentially Weighted window   ``ewm``            ``pandas.typing.api.ExponentialMovingWindow``   No                           Yes (as of version 1.2)   No                                   Yes (as of version 1.3)
+=============================   =================  =============================================   ===========================  ========================  ===================================  ===========================
 
 As noted above, some operations support specifying a window based on a time offset:
 
@@ -96,7 +96,7 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
        return arr
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa:E501
+   df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
 
 .. versionadded:: 1.3
 
@@ -237,8 +237,6 @@ from present information back to past information. This allows the rolling windo
 Custom window rolling
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 1.0
-
 In addition to accepting an integer or offset as a ``window`` argument, ``rolling`` also accepts
 a ``BaseIndexer`` subclass that allows a user to define a custom method for calculating window bounds.
 The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
@@ -288,8 +286,6 @@ and we want to use an expanding window where ``use_expanding`` is ``True`` other
    4    10.0
 
 You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
-
-.. versionadded:: 1.1
 
 One subclass of note within those examples is the ``VariableOffsetWindowIndexer`` that allows
 rolling operations over a non-fixed offset like a ``BusinessDay``.
@@ -357,8 +353,6 @@ the windows are cast as :class:`Series` objects (``raw=False``) or ndarray objec
 
 Numba engine
 ~~~~~~~~~~~~
-
-.. versionadded:: 1.0
 
 Additionally, :meth:`~Rolling.apply` can leverage `Numba <https://numba.pydata.org/>`__
 if installed as an optional dependency. The apply aggregation can be executed using Numba by specifying
@@ -592,8 +586,6 @@ and **alpha** to the EW functions:
 * **Half-life** is the period of time for the exponential weight to reduce to
   one half.
 * **Alpha** specifies the smoothing factor directly.
-
-.. versionadded:: 1.1.0
 
 You can also specify ``halflife`` in terms of a timedelta convertible unit to specify the amount of
 time it takes for an observation to decay to half its value when also specifying a sequence

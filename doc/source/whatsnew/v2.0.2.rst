@@ -1,0 +1,57 @@
+.. _whatsnew_202:
+
+What's new in 2.0.2 (May 29, 2023)
+-----------------------------------
+
+These are the changes in pandas 2.0.2. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_202.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed performance regression in :meth:`GroupBy.apply` (:issue:`53195`)
+- Fixed regression in :func:`merge` on Windows when dtype is ``np.intc`` (:issue:`52451`)
+- Fixed regression in :func:`read_sql` dropping columns with duplicated column names (:issue:`53117`)
+- Fixed regression in :meth:`DataFrame.loc` losing :class:`MultiIndex` name when enlarging object (:issue:`53053`)
+- Fixed regression in :meth:`DataFrame.to_string` printing a backslash at the end of the first row of data, instead of headers, when the DataFrame doesn't fit the line width (:issue:`53054`)
+- Fixed regression in :meth:`MultiIndex.join` returning levels in wrong order (:issue:`53093`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_202.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :class:`.arrays.ArrowExtensionArray` incorrectly assigning ``dict`` instead of ``list`` for ``.type`` with ``pyarrow.map_`` and raising a ``NotImplementedError`` with ``pyarrow.struct`` (:issue:`53328`)
+- Bug in :func:`api.interchange.from_dataframe` was raising ``IndexError`` on empty categorical data (:issue:`53077`)
+- Bug in :func:`api.interchange.from_dataframe` was returning :class:`DataFrame`'s of incorrect sizes when called on slices (:issue:`52824`)
+- Bug in :func:`api.interchange.from_dataframe` was unnecessarily raising on bitmasks (:issue:`49888`)
+- Bug in :func:`merge` when merging on datetime columns on different resolutions (:issue:`53200`)
+- Bug in :func:`read_csv` raising ``OverflowError`` for ``engine="pyarrow"`` and ``parse_dates`` set (:issue:`53295`)
+- Bug in :func:`to_datetime` was inferring format to contain ``"%H"`` instead of ``"%I"`` if date contained "AM" / "PM" tokens (:issue:`53147`)
+- Bug in :func:`to_timedelta` was raising ``ValueError`` with ``pandas.NA`` (:issue:`52909`)
+- Bug in :meth:`DataFrame.__getitem__` not preserving dtypes for :class:`MultiIndex` partial keys (:issue:`51895`)
+- Bug in :meth:`DataFrame.convert_dtypes` ignores ``convert_*`` keywords when set to False ``dtype_backend="pyarrow"`` (:issue:`52872`)
+- Bug in :meth:`DataFrame.convert_dtypes` losing timezone for tz-aware dtypes and ``dtype_backend="pyarrow"`` (:issue:`53382`)
+- Bug in :meth:`DataFrame.sort_values` raising for PyArrow ``dictionary`` dtype (:issue:`53232`)
+- Bug in :meth:`Series.describe` treating pyarrow-backed timestamps and timedeltas as categorical data (:issue:`53001`)
+- Bug in :meth:`Series.rename` not making a lazy copy when Copy-on-Write is enabled when a scalar is passed to it (:issue:`52450`)
+- Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_202.other:
+
+Other
+~~~~~
+- Raised a better error message when calling :func:`Series.dt.to_pydatetime` with :class:`ArrowDtype` with ``pyarrow.date32`` or ``pyarrow.date64`` type (:issue:`52812`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_202.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.0.1..v2.0.2
