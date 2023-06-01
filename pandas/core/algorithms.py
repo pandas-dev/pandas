@@ -83,6 +83,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ListLike,
         NumpySorter,
         NumpyValueArrayLike,
     )
@@ -438,14 +439,14 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 unique1d = unique
 
 
-def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
+def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
 
     Parameters
     ----------
-    comps : array-like
-    values : array-like
+    comps : list-like
+    values : list-like
 
     Returns
     -------

@@ -558,11 +558,7 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
-                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
-                    mask = algorithms.isin(
-                        values, list(na_values)  # type: ignore[arg-type]
-                    ).view(np.uint8)
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
