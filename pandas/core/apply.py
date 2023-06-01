@@ -304,7 +304,7 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(List[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
         if op_name == "apply":
-            kwargs = {**kwargs, "array_ops_only": True}
+            kwargs = {**kwargs, "by_row": False}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -395,7 +395,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwds = {"array_ops_only": True} if op_name == "apply" else {}
+        kwds = {"by_row": False} if op_name == "apply" else {}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1057,7 +1057,7 @@ class FrameColumnApply(FrameApply):
 class SeriesApply(NDFrameApply):
     obj: Series
     axis: AxisInt = 0
-    array_ops_only: bool  # only relevant for apply()
+    by_row: bool  # only relevant for apply()
 
     def __init__(
         self,
@@ -1065,7 +1065,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
-        array_ops_only: bool = False,
+        by_row: bool = True,
         args,
         kwargs,
     ) -> None:
@@ -1080,7 +1080,7 @@ class SeriesApply(NDFrameApply):
                 stacklevel=find_stack_level(),
             )
         self.convert_dtype = convert_dtype
-        self.array_ops_only = array_ops_only
+        self.by_row = by_row
 
         super().__init__(
             obj,
@@ -1145,7 +1145,7 @@ class SeriesApply(NDFrameApply):
         if isinstance(func, np.ufunc):
             with np.errstate(all="ignore"):
                 return func(obj, *self.args, **self.kwargs)
-        elif self.array_ops_only:
+        elif not self.by_row:
             return func(obj, *self.args, **self.kwargs)
 
         if self.args or self.kwargs:

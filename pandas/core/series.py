@@ -4493,7 +4493,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
-        array_ops_only: bool = False,
+        by_row: bool = True,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4521,9 +4521,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        array_ops_only : bool, default False
-            If True, the func will be passed the whole Series at once.
-            If False, will func will be passed each element of the Series, like
+        by_row : bool, default True
+            If False, the func will be passed the whole Series at once.
+            If True, will func will be passed each element of the Series, like
             Series.map (backward compatible).
 
             .. versionadded:: 2.1.0
@@ -4618,7 +4618,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self,
             func,
             convert_dtype=convert_dtype,
-            array_ops_only=array_ops_only,
+            by_row=by_row,
             args=args,
             kwargs=kwargs,
         ).apply()
