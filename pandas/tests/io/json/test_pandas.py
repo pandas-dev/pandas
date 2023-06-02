@@ -29,7 +29,7 @@ from pandas.core.arrays import (
 )
 
 
-def test_json_deprecation():
+def test_literal_json_deprecation():
     # PR 53409
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
     msg = (
