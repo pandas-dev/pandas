@@ -272,27 +272,7 @@ def test_xz_compression_level_read(obj, method):
         compressed_size_fast = os.path.getsize(path)
         assert compressed_size_default < compressed_size_fast
         if method == "to_csv":
-            pd.read_csv(path)
-
-
-@pytest.mark.parametrize(
-    "obj",
-    [
-        pd.DataFrame(
-            100 * [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
-            columns=["X", "Y", "Z"],
-        ),
-        pd.Series(100 * [0.123456, 0.234567, 0.567567], name="X"),
-    ],
-)
-@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
-def test_xz_compression_invalid_args(obj, method):
-    with tm.ensure_clean() as path:
-        try:
-            getattr(obj, method)(path, compression={"method": "xz", "compresslevel": 9})
-            assert False
-        except Exception as e:
-            assert e != TypeError
+            pd.read_csv(path, compression="xz")
 
 
 @pytest.mark.parametrize(
