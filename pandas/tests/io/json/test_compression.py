@@ -27,7 +27,7 @@ def test_compression_roundtrip(compression):
         with tm.decompress_file(path, compression) as fh:
             result = fh.read().decode("utf8")
             data = StringIO(result)
-            tm.assert_frame_equal(df, pd.read_json(data))
+        tm.assert_frame_equal(df, pd.read_json(data))
 
 
 def test_read_zipped_json(datapath):
