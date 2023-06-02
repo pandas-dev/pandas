@@ -81,20 +81,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.str.center \
-        pandas.Series.str.decode \
-        pandas.Series.str.encode \
-        pandas.Series.str.find \
-        pandas.Series.str.fullmatch \
-        pandas.Series.str.index \
-        pandas.Series.str.ljust \
-        pandas.Series.str.match \
         pandas.Series.str.normalize \
         pandas.Series.str.rfind \
         pandas.Series.str.rindex \
-        pandas.Series.str.rjust \
         pandas.Series.str.translate \
         pandas.Series.sparse \
         pandas.DataFrame.sparse \
