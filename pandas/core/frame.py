@@ -9469,7 +9469,8 @@ class DataFrame(NDFrame, OpsMixin):
             """
             check whether dataframe's all column dtypes are bool
             """
-            for i in self.dtypes:
+            temp = self.dtypes
+            for i in temp:
                 if i != bool:
                     return False
             return True
