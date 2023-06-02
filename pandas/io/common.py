@@ -825,8 +825,10 @@ def get_handle(
         elif compression == "xz":
             # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
-            # PathLike[bytes]], IO[bytes]]]"
-            handle = get_lzma_file()(handle, ioargs.mode)  # type: ignore[arg-type]
+            # PathLike[bytes]], IO[bytes]], None]"
+            handle = get_lzma_file()(
+                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+            )
 
         # Zstd Compression
         elif compression == "zstd":
