@@ -675,7 +675,7 @@ matching index:
 Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
+The :meth:`~Series.value_counts` Series method computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
 
 .. ipython:: python
@@ -684,7 +684,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    data
    s = pd.Series(data)
    s.value_counts()
-   pd.value_counts(data)
 
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
@@ -733,7 +732,6 @@ normally distributed data into equal-size quartiles like so:
    arr = np.random.randn(30)
    factor = pd.qcut(arr, [0, 0.25, 0.5, 0.75, 1])
    factor
-   pd.value_counts(factor)
 
 We can also pass infinite values to define the bins:
 
