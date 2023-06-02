@@ -82,14 +82,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
         pandas.Series.pad \
-        pandas.Series.str.normalize \
-        pandas.Series.str.rfind \
-        pandas.Series.str.rindex \
-        pandas.Series.str.translate \
         pandas.Series.sparse \
         pandas.DataFrame.sparse \
-        pandas.Series.cat.categories \
-        pandas.Series.cat.ordered \
         pandas.Series.cat.codes \
         pandas.Series.cat.reorder_categories \
         pandas.Series.cat.set_categories \

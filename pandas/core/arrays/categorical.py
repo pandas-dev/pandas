@@ -748,6 +748,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.categories
+        Index(['a', 'b', 'c'], dtype='object')
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.categories
+        Index(['b', 'c', 'd'], dtype='object')
         """
         return self.dtype.categories
 
@@ -755,6 +766,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.ordered
+        False
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], ordered=True)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.ordered
+        True
         """
         return self.dtype.ordered
 
