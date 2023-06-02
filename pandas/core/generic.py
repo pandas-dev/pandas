@@ -7217,6 +7217,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3.0  4.0 NaN  1.0
         3  3.0  3.0 NaN  4.0
 
+        >>> ser = pd.Series([1, np.NaN, 2, 3])
+        >>> ser.ffill()
+        0   1.0
+        1   1.0
+        2   2.0
+        3   3.0
+        dtype: float64
         """
         self._deprecate_downcast(downcast)
 
