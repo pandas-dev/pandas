@@ -942,7 +942,9 @@ class TestToDatetime:
         dti_arrow = dti.astype(pd.ArrowDtype(pa.timestamp(unit="ns")))
 
         result = to_datetime(dti_arrow, utc=utc)
-        expected = to_datetime(dti, utc=utc).astype("timestamp[ns][pyarrow]")
+        expected = to_datetime(dti, utc=utc).astype(
+            f"timestamp[{'ns, UTC' if utc else 'ns'}][pyarrow]"
+        )
         if not utc:
             # Doesn't hold for utc=True, since that will astype
             assert result is dti_arrow
