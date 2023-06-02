@@ -272,7 +272,7 @@ def test_xz_compression_level_read(obj, method):
         compressed_size_fast = os.path.getsize(path)
         assert compressed_size_default < compressed_size_fast
         if method == "to_csv":
-            pd.read_csv(compressed_size_fast)
+            pd.read_csv(path)
 
 
 @pytest.mark.parametrize(
