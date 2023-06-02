@@ -252,6 +252,24 @@ def test_gzip_compression_level(obj, method):
         compressed_size_fast = os.path.getsize(path)
         assert compressed_size_default < compressed_size_fast
 
+@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+def test_xz_compression_level_read(obj, method):
+    with tm.ensure_clean() as path:
+        getattr(obj, method)(path, compression="xz")
+        compressed_size_default = os.path.getsize(path)
+        getattr(obj, method)(path, compression={"method": "xz", "preset": 1})
+        compressed_size_fast = os.path.getsize(path)
+        assert compressed_size_default < compressed_size_fast
+        if method=="to_csv":
+            pd.read_csv(compressed_size_fast)
+
+@pytest.mark.parametrize("method", ["to_pickle", "to_json", "to_csv"])
+def test_xz_compression_invalid_args(obj, method):
+    with tm.ensure_clean() as path:
+        try:
+            getattr(obj, method)(path, compression={"method": "xz", "compresslevel": 9})
+        except Exception as e:
+            assert e != TypeError
 
 @pytest.mark.parametrize(
     "obj",
@@ -271,6 +289,7 @@ def test_bzip_compression_level(obj, method):
     """
     with tm.ensure_clean() as path:
         getattr(obj, method)(path, compression={"method": "bz2", "compresslevel": 1})
+
 
 
 @pytest.mark.parametrize(
