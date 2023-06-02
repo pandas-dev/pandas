@@ -355,7 +355,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
+            if lib.is_pyarrow_array(scalars):
                 # pyarrow array; we cannot rely on the "to_numpy" check in
                 #  ensure_string_array because calling scalars.to_numpy would set
                 #  zero_copy_only to True which caused problems see GH#52076
