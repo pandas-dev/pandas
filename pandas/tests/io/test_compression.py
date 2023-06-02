@@ -60,9 +60,9 @@ def test_compression_size(obj, method, compression_only):
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
         with icom.get_handle(
-                path,
-                "w:gz" if compression_only == "tar" else "w",
-                compression=compression_only,
+            path,
+            "w:gz" if compression_only == "tar" else "w",
+            compression=compression_only,
         ) as handles:
             getattr(obj, method)(handles.handle)
             assert not handles.handle.closed
@@ -84,7 +84,7 @@ def test_compression_size_fh(obj, method, compression_only):
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, compression_only
+    write_method, write_kwargs, read_method, compression_only
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
@@ -104,7 +104,7 @@ def test_dataframe_compression_defaults_to_infer(
     ],
 )
 def test_series_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, read_kwargs, compression_only
+    write_method, write_kwargs, read_method, read_kwargs, compression_only
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
@@ -270,6 +270,7 @@ def test_xz_compression_invalid_args(obj, method):
     with tm.ensure_clean() as path:
         try:
             getattr(obj, method)(path, compression={"method": "xz", "compresslevel": 9})
+            assert False
         except Exception as e:
             assert e != TypeError
 
