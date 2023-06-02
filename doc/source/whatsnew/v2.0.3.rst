@@ -21,6 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`Series.reindex` when expanding a non-nanosecond datetime or timedelta :class:`Series` would not fill with ``NaT`` correctly (:issue:`53497`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 
 .. ---------------------------------------------------------------------------
