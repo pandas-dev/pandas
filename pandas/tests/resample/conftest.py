@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import numpy as np
 import pytest
@@ -63,7 +64,10 @@ def simple_period_range_series():
     """
 
     def _simple_period_range_series(start, end, freq="D"):
-        rng = period_range(start, end, freq=freq)
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            warnings.simplefilter("ignore")
+            rng = period_range(start, end, freq=freq)
         return Series(np.random.randn(len(rng)), index=rng)
 
     return _simple_period_range_series

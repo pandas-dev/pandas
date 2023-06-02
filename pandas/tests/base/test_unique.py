@@ -6,6 +6,7 @@ import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_unique(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
@@ -27,6 +28,7 @@ def test_unique(index_or_series_obj):
         tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
 def test_unique_null(null_obj, index_or_series_obj):
     obj = index_or_series_obj

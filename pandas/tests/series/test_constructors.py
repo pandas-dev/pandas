@@ -1331,7 +1331,9 @@ class TestSeriesConstructors:
 
         pidx = tm.makePeriodIndex(100)
         d = {pidx[0]: 0, pidx[1]: 1}
-        result = Series(d, index=pidx)
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Series(d, index=pidx)
         expected = Series(np.nan, pidx, dtype=np.float64)
         expected.iloc[0] = 0
         expected.iloc[1] = 1

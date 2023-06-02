@@ -193,6 +193,7 @@ class Base:
             repr(idx)
             assert "..." not in str(idx)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
@@ -406,6 +407,7 @@ class Base:
         with pytest.raises(IndexError, match=msg):
             index.delete(length)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):
             # IntervalIndex tested separately, the index.equals(index.astype(object))
@@ -593,6 +595,7 @@ class Base:
             lambda values, index: Series(values, index),
         ],
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_map_dictlike(self, mapper, simple_index):
         idx = simple_index
         if isinstance(idx, CategoricalIndex):

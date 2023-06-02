@@ -97,8 +97,10 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(freq="M", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 12 * 9
 
-        start = Period("02-Apr-2005", "B")
-        i1 = period_range(start=start, periods=20)
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            start = Period("02-Apr-2005", "B")
+            i1 = period_range(start=start, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -116,11 +118,15 @@ class TestPeriodIndex(DatetimeLike):
         assert i1.freq == i2.freq
 
         msg = "start and end must have same freq"
+        msg2 = "Period with BDay freq is deprecated"
         with pytest.raises(ValueError, match=msg):
-            period_range(start=start, end=end_intv)
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                period_range(start=start, end=end_intv)
 
-        end_intv = Period("2005-05-01", "B")
-        i1 = period_range(start=start, end=end_intv)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            end_intv = Period("2005-05-01", "B")
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i1 = period_range(start=start, end=end_intv)
 
         msg = (
             "Of the three parameters: start, end, and periods, exactly two "
@@ -130,11 +136,13 @@ class TestPeriodIndex(DatetimeLike):
             period_range(start=start)
 
         # infer freq from first element
-        i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
         assert len(i2) == 2
         assert i2[0] == end_intv
 
-        i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
         assert len(i2) == 2
         assert i2[0] == end_intv
 
@@ -147,6 +155,7 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(vals)
 
+    # @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
     def test_fields(self):
         # year, month, day, hour, minute
         # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
@@ -163,7 +172,10 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(freq="D", start="12/1/2001", end="6/1/2001")
         self._check_all_fields(pi)
 
-        pi = period_range(freq="B", start="12/1/2001", end="6/1/2001")
+        msg2 = "Period with BDay freq is deprecated"
+
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            pi = period_range(freq="B", start="12/1/2001", end="6/1/2001")
         self._check_all_fields(pi)
 
         pi = period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00")
@@ -279,6 +291,8 @@ class TestPeriodIndex(DatetimeLike):
         assert pi.freq == offsets.MonthEnd(2)
         assert pi.freqstr == "2M"
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
     def test_iteration(self):
         index = period_range(start="1/1/10", periods=4, freq="B")
 

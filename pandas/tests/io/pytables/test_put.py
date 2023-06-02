@@ -217,6 +217,7 @@ def test_put_mixed_type(setup_path):
         ["fixed", tm.makePeriodIndex],
     ],
 )
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types
