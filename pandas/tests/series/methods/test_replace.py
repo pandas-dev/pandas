@@ -131,7 +131,10 @@ class TestSeriesReplace:
         # GH 5319
         ser = pd.Series([0, np.nan, 2, 3, 4])
         expected = ser.ffill()
-        msg = "Series.replace without 'value' is deprecated"
+        msg = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = ser.replace([np.nan])
         tm.assert_series_equal(result, expected)
@@ -172,7 +175,10 @@ class TestSeriesReplace:
 
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
-        msg2 = "Series.replace without 'value' is deprecated"
+        msg2 = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with tm.assert_produces_warning(FutureWarning, match=msg2):
             result = ser.replace([1, 2, 3])
         tm.assert_series_equal(result, pd.Series([0, 0, 0, 0, 4]))
@@ -458,7 +464,10 @@ class TestSeriesReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
-        msg2 = "Series.replace without 'value' is deprecated"
+        msg2 = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 series.replace(lambda x: x.strip())

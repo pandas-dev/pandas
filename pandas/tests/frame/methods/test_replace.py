@@ -1326,7 +1326,10 @@ class TestDataFrameReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
-        msg2 = "DataFrame.replace without 'value' is deprecated"
+        msg2 = (
+            "DataFrame.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 df.replace(lambda x: x.strip())
