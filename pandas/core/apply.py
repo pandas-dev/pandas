@@ -403,11 +403,18 @@ class Apply(metaclass=abc.ABCMeta):
             and selected_obj.columns.nunique() < len(selected_obj.columns)
         )
 
+        # Numba Groupby engine/engine-kwargs passthrough
+        kwargs = {}
+        if is_groupby:
+            engine = self.kwargs.get("engine", None)
+            engine_kwargs = self.kwargs.get("engine_kwargs", None)
+            kwargs = {"engine": engine, "engine_kwargs": engine_kwargs}
+
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
-                result_data = [colg.agg(how) for _, how in func.items()]
+                result_data = [colg.agg(how, **kwargs) for _, how in func.items()]
                 result_index = list(func.keys())
             elif is_non_unique_col:
                 # key used for column selection and output
@@ -422,7 +429,7 @@ class Apply(metaclass=abc.ABCMeta):
                         label_to_indices[label].append(index)
 
                     key_data = [
-                        selected_obj._ixs(indice, axis=1).agg(how)
+                        selected_obj._ixs(indice, axis=1).agg(how, **kwargs)
                         for label, indices in label_to_indices.items()
                         for indice in indices
                     ]
@@ -432,7 +439,8 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 # key used for column selection and output
                 result_data = [
-                    obj._gotitem(key, ndim=1).agg(how) for key, how in func.items()
+                    obj._gotitem(key, ndim=1).agg(how, **kwargs)
+                    for key, how in func.items()
                 ]
                 result_index = list(func.keys())
 

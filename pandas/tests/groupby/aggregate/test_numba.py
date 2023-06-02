@@ -135,24 +135,127 @@ def test_use_global_config():
 
 @td.skip_if_no("numba")
 @pytest.mark.parametrize(
-    "agg_func",
+    "agg_kwargs",
     [
-        ["min", "max"],
-        "min",
-        {"B": ["min", "max"], "C": "sum"},
-        NamedAgg(column="B", aggfunc="min"),
+        {"func": ["min", "max"]},
+        {"func": "min"},
+        {"func": {1: ["min", "max"], 2: "sum"}},
+        {"bmin": NamedAgg(column=1, aggfunc="min")},
     ],
 )
-def test_multifunc_notimplimented(agg_func):
+def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     data = DataFrame(
-        {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
+        {
+            0: ["a", "a", "b", "b", "a"],
+            1: [1.0, 2.0, 3.0, 4.0, 5.0],
+            2: [1, 2, 3, 4, 5],
+        },
+        columns=[0, 1, 2],
     )
     grouped = data.groupby(0)
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped.agg(agg_func, engine="numba")
+    result = grouped.agg(**agg_kwargs, engine="numba")
+    expected = grouped.agg(**agg_kwargs, engine="cython")
+    # check_dtype can be removed if GH 44952 is addressed
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped[1].agg(agg_func, engine="numba")
+
+@td.skip_if_no("numba")
+@pytest.mark.parametrize(
+    "agg_kwargs,expected_func",
+    [
+        ({"func": lambda values, index: values.sum()}, "sum"),
+        # FIXME
+        pytest.param(
+            {
+                "func": [
+                    lambda values, index: values.sum(),
+                    lambda values, index: values.min(),
+                ]
+            },
+            ["sum", "min"],
+            marks=pytest.mark.xfail(
+                reason="This doesn't work yet! Fails in nopython pipeline!"
+            ),
+        ),
+    ],
+)
+def test_multifunc_numba_udf_frame(agg_kwargs, expected_func):
+    data = DataFrame(
+        {
+            0: ["a", "a", "b", "b", "a"],
+            1: [1.0, 2.0, 3.0, 4.0, 5.0],
+            2: [1, 2, 3, 4, 5],
+        },
+        columns=[0, 1, 2],
+    )
+    grouped = data.groupby(0)
+    result = grouped.agg(**agg_kwargs, engine="numba")
+    expected = grouped.agg(expected_func, engine="cython")
+    # check_dtype can be removed if GH 44952 is addressed
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@td.skip_if_no("numba")
+@pytest.mark.parametrize(
+    "agg_kwargs",
+    [{"func": ["min", "max"]}, {"func": "min"}, {"min_val": "min", "max_val": "max"}],
+)
+def test_multifunc_numba_vs_cython_series(agg_kwargs):
+    labels = ["a", "a", "b", "b", "a"]
+    data = Series([1.0, 2.0, 3.0, 4.0, 5.0])
+    grouped = data.groupby(labels)
+    agg_kwargs["engine"] = "numba"
+    result = grouped.agg(**agg_kwargs)
+    agg_kwargs["engine"] = "cython"
+    expected = grouped.agg(**agg_kwargs)
+    if isinstance(expected, DataFrame):
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("numba")
+@pytest.mark.single_cpu
+@pytest.mark.parametrize(
+    "data,agg_kwargs",
+    [
+        (Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": ["min", "max"]}),
+        (Series([1.0, 2.0, 3.0, 4.0, 5.0]), {"func": "min"}),
+        (
+            DataFrame(
+                {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
+            ),
+            {"func": ["min", "max"]},
+        ),
+        (
+            DataFrame(
+                {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
+            ),
+            {"func": "min"},
+        ),
+        (
+            DataFrame(
+                {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
+            ),
+            {"func": {1: ["min", "max"], 2: "sum"}},
+        ),
+        (
+            DataFrame(
+                {1: [1.0, 2.0, 3.0, 4.0, 5.0], 2: [1, 2, 3, 4, 5]}, columns=[1, 2]
+            ),
+            {"min_col": NamedAgg(column=1, aggfunc="min")},
+        ),
+    ],
+)
+def test_multifunc_numba_kwarg_propagation(data, agg_kwargs):
+    labels = ["a", "a", "b", "b", "a"]
+    grouped = data.groupby(labels)
+    result = grouped.agg(**agg_kwargs, engine="numba", engine_kwargs={"parallel": True})
+    expected = grouped.agg(**agg_kwargs, engine="numba")
+    if isinstance(expected, DataFrame):
+        tm.assert_frame_equal(result, expected)
+    else:
+        tm.assert_series_equal(result, expected)
 
 
 @td.skip_if_no("numba")
