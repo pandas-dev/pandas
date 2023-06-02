@@ -1293,6 +1293,15 @@ class StringMethods(NoNewAttributesMixin):
         contains : Analogous, but less strict, relying on re.search instead of
             re.match.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["horse", "eagle", "donkey"])
+        >>> ser.str.match("e")
+        0   False
+        1   True
+        2   False
+        dtype: bool
         """
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1324,6 +1333,15 @@ class StringMethods(NoNewAttributesMixin):
         match : Similar, but also returns `True` when only a *prefix* of the string
             matches the regular expression.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["cat", "duck", "dove"])
+        >>> ser.str.fullmatch(r'd.+')
+        0   False
+        1    True
+        2    True
+        dtype: bool
         """
         result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1616,6 +1634,35 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series/Index of objects.
+
+    Examples
+    --------
+    For Series.str.center:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.center(8, fillchar='.')
+    0   ..dog...
+    1   ..bird..
+    2   .mouse..
+    dtype: object
+
+    For Series.str.ljust:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.ljust(8, fillchar='.')
+    0   dog.....
+    1   bird....
+    2   mouse...
+    dtype: object
+
+    For Series.str.rjust:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.rjust(8, fillchar='.')
+    0   .....dog
+    1   ....bird
+    2   ...mouse
+    dtype: object
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1867,6 +1914,17 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+
+        Examples
+        --------
+        For Series:
+
+        >>> ser = pd.Series([b'cow', b'123', b'()'])
+        >>> ser.str.decode('ascii')
+        0   cow
+        1   123
+        2   ()
+        dtype: object
         """
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:
@@ -1895,6 +1953,15 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+
+        Examples
+        --------
+        >>> ser = pd.Series(['cow', '123', '()'])
+        >>> ser.str.encode(encoding='ascii')
+        0     b'cow'
+        1     b'123'
+        2      b'()'
+        dtype: object
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2730,6 +2797,15 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
+    >>> ser.str.find("_")
+    0   3
+    1   4
+    2   2
+    dtype: int64
     """
 
     @Appender(
@@ -2813,6 +2889,15 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    >>> ser = pd.Series(["horse", "eagle", "donkey"])
+    >>> ser.str.index("e")
+    0   4
+    1   0
+    2   4
+    dtype: int64
     """
 
     @Appender(
