@@ -381,9 +381,11 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self._apply_dict_like(op_name="agg")
+        return self.agg_or_apply_dict_like(op_name="agg")
 
-    def _apply_dict_like(self, op_name: Literal["agg", "apply"]) -> DataFrame | Series:
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
         from pandas import Index
         from pandas.core.groupby.generic import (
             DataFrameGroupBy,
@@ -567,7 +569,7 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if is_dict_like(func):
-            result = self._apply_dict_like(op_name="apply")
+            result = self.agg_or_apply_dict_like(op_name="apply")
         else:
             result = self.agg_or_apply_list_like(op_name="apply")
 
