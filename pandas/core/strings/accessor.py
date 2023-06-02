@@ -1293,6 +1293,15 @@ class StringMethods(NoNewAttributesMixin):
         contains : Analogous, but less strict, relying on re.search instead of
             re.match.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["horse", "eagle", "donkey"])
+        >>> ser.str.match("e")
+        0   False
+        1   True
+        2   False
+        dtype: bool
         """
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1324,6 +1333,15 @@ class StringMethods(NoNewAttributesMixin):
         match : Similar, but also returns `True` when only a *prefix* of the string
             matches the regular expression.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["cat", "duck", "dove"])
+        >>> ser.str.fullmatch(r'd.+')
+        0   False
+        1    True
+        2    True
+        dtype: bool
         """
         result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -2871,6 +2889,15 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    >>> ser = pd.Series(["horse", "eagle", "donkey"])
+    >>> ser.str.index("e")
+    0   4
+    1   0
+    2   4
+    dtype: int64
     """
 
     @Appender(
