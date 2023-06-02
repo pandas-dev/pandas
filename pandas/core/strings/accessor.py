@@ -2261,6 +2261,15 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+
+        Examples
+        --------
+        >>> ser = pd.Series(["El niño", "Françoise"])
+        >>> mytable = str.maketrans({'ñ': 'n', 'ç': 'c'})
+        >>> ser.str.translate(mytable)
+        0   El nino
+        1   Francoise
+        dtype: object
         """
         result = self._data.array._str_translate(table)
         return self._wrap_result(result)
@@ -2800,11 +2809,22 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
+    For Series.str.find:
+
     >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
     >>> ser.str.find("_")
     0   3
     1   4
     2   2
+    dtype: int64
+
+    For Series.str.rfind:
+
+    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+    >>> ser.str.rfind("_")
+    0   4
+    1   4
+    2   4
     dtype: int64
     """
 
@@ -2858,6 +2878,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+
+        Examples
+        --------
+        >>> ser = pd.Series(['ñ'])
+        >>> ser.str.normalize('NFC') == ser.str.normalize('NFD')
+        0   False
+        dtype: bool
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
@@ -2892,11 +2919,22 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
+    For Series.str.index:
+
     >>> ser = pd.Series(["horse", "eagle", "donkey"])
     >>> ser.str.index("e")
     0   4
     1   0
     2   4
+    dtype: int64
+
+    For Series.str.rindex:
+
+    >>> ser = pd.Series(["Deer", "eagle", "Sheep"])
+    >>> ser.str.rindex("e")
+    0   2
+    1   4
+    2   3
     dtype: int64
     """
 
