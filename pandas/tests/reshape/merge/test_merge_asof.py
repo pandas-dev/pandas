@@ -1630,7 +1630,7 @@ def test_merge_asof_extension_dtype(dtype):
 
 
 def test_merge_asof_read_only_ndarray():
-    # GH #####
+    # GH 53513
     left = pd.Series([2], index=[2], name="left")
     right = pd.Series([1], index=[1], name="right")
     # set to read-only
