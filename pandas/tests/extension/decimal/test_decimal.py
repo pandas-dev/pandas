@@ -115,9 +115,26 @@ class Reduce:
             expected = getattr(np.asarray(s), op_name)()
             tm.assert_almost_equal(result, expected)
 
-    @pytest.mark.skip("tests not written yet")
-    def check_reduce_and_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
-        pass
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        arr = ser.array
+        df = pd.DataFrame({"a": arr})
+
+        if op_name in ["count", "kurt", "sem", "skew", "median"]:
+            assert not hasattr(arr, op_name)
+            pytest.skip(f"{op_name} not an array method")
+
+        result1 = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs={})
+        result2 = getattr(df, op_name)(skipna=skipna).array
+
+        tm.assert_extension_array_equal(result1, result2)
+
+        if not skipna and ser.isna().any():
+            expected = DecimalArray([pd.NA])
+        else:
+            exp_value = getattr(ser.dropna(), op_name)()
+            expected = DecimalArray([exp_value])
+
+        tm.assert_extension_array_equal(result1, expected)
 
 
 class TestNumericReduce(Reduce, base.BaseNumericReduceTests):

@@ -370,7 +370,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_and_wrap(self, ser: pd.Series, op_name: str, skipna: bool):
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
         arr = ser.array
 
         if op_name in ["count", "kurt", "sem"]:

@@ -134,12 +134,6 @@ Reduction and groupby operations such as :meth:`~DataFrame.sum` work as well.
    df.sum()
    df.groupby("B").A.sum()
 
-.. versionchanged:: 2.1.0
-
-    When doing reduction operations (:meth:`~DataFrame.sum` etc.) on numeric-only data
-    frames the integer array dtype will be maintained. Previously, the dtype of reduction
-    result would have been a numpy numeric dtype.
-
 Scalar NA Value
 ---------------
 

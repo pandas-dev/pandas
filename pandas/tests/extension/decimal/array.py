@@ -253,6 +253,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             ) from err
         return op(axis=0)
 
+    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
+        result = self._reduce(name, skipna=skipna, **kwargs)
+        return type(self)([result])
+
     def _cmp_method(self, other, op):
         # For use with OpsMixin
         def convert_values(param):

@@ -509,7 +509,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
-    def check_reduce_and_wrap(self, ser, op_name, skipna):
+    def check_reduce_frame(self, ser, op_name, skipna):
         arr = ser.array
 
         if op_name in ["count", "kurt", "sem", "skew"]:
