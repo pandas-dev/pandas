@@ -567,6 +567,20 @@ def test_apply_dictlike_transformer(string_series, ops):
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ops, expected",
+    [
+        ({"a": lambda x: x}, DataFrame({"a": [1, 2, 3]})),
+        ({"a": lambda x: x.sum()}, Series([6], index=["a"])),
+    ],
+)
+def test_apply_dictlike_lambda(ops, expected):
+    # GH53400
+    ser = Series([1, 2, 3])
+    result = ser.apply(ops)
+    tm.assert_equal(result, expected)
+
+
 def test_apply_retains_column_name():
     # GH 16380
     df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
