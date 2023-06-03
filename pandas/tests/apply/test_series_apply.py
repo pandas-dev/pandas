@@ -7,12 +7,18 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
+    MultiIndex,
     Series,
     concat,
     timedelta_range,
 )
 import pandas._testing as tm
 from pandas.tests.apply.common import series_transform_kernels
+
+
+@pytest.fixture(params=[True, False])
+def by_row(request):
+    return request.param
 
 
 def test_series_map_box_timedelta():
@@ -459,25 +465,28 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scalar_on_date_time_index_aware_series():
+@pytest.mark.parametrize(
+    "by_row, expected", [(True, Series(np.ones(30), dtype="int64")), (False, 1)]
+)
+def test_apply_scalar_on_date_time_index_aware_series(by_row, expected):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
-    result = Series(series.index).apply(lambda x: 1)
-    tm.assert_series_equal(result, Series(np.ones(30), dtype="int64"))
+    result = Series(series.index).apply(lambda x: 1, by_row=by_row)
+    tm.assert_equal(result, expected)
 
 
-def test_apply_to_timedelta():
+def test_apply_to_timedelta(by_row):
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
-    b = Series(list_of_valid_strings).apply(pd.to_timedelta)
+    b = Series(list_of_valid_strings).apply(pd.to_timedelta, by_row=by_row)
     tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)
     ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)
+    b = ser.apply(pd.to_timedelta, by_row=by_row)
     tm.assert_series_equal(Series(a), b)
 
 
@@ -490,12 +499,15 @@ def test_apply_to_timedelta():
         (np.array([np.sum, np.mean]), ["sum", "mean"]),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_listlike_reducer(string_series, ops, names, how):
+@pytest.mark.parametrize(
+    "how, kwargs",
+    [["agg", {}], ["apply", {"by_row": True}], ["apply", {"by_row": False}]],
+)
+def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    result = getattr(string_series, how)(ops)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -508,12 +520,15 @@ def test_apply_listlike_reducer(string_series, ops, names, how):
         Series({"A": np.sum, "B": np.mean}),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_dictlike_reducer(string_series, ops, how):
+@pytest.mark.parametrize(
+    "how, kwargs",
+    [["agg", {}], ["apply", {"by_row": True}], ["apply", {"by_row": False}]],
+)
+def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    result = getattr(string_series, how)(ops)
+    result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -526,12 +541,12 @@ def test_apply_dictlike_reducer(string_series, ops, how):
         (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
     ],
 )
-def test_apply_listlike_transformer(string_series, ops, names):
+def test_apply_listlike_transformer(string_series, ops, names, by_row):
     # GH 39140
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
         expected.columns = names
-        result = string_series.apply(ops)
+        result = string_series.apply(ops, by_row=by_row)
         tm.assert_frame_equal(result, expected)
 
 
@@ -542,10 +557,10 @@ def test_apply_listlike_transformer(string_series, ops, names):
         ([lambda x: x.sum()], Series([6], index=["<lambda>"])),
     ],
 )
-def test_apply_listlike_lambda(ops, expected):
+def test_apply_listlike_lambda(ops, expected, by_row=by_row):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops)
+    result = ser.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
@@ -558,37 +573,48 @@ def test_apply_listlike_lambda(ops, expected):
         Series({"A": np.sqrt, "B": np.exp}),
     ],
 )
-def test_apply_dictlike_transformer(string_series, ops):
+def test_apply_dictlike_transformer(string_series, ops, by_row):
     # GH 39140
     with np.errstate(all="ignore"):
         expected = concat({name: op(string_series) for name, op in ops.items()})
         expected.name = string_series.name
-        result = string_series.apply(ops)
+        result = string_series.apply(ops, by_row=by_row)
         tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "ops, expected",
     [
-        ({"a": lambda x: x}, DataFrame({"a": [1, 2, 3]})),
+        (
+            {"a": lambda x: x},
+            Series([1, 2, 3], index=MultiIndex.from_arrays([["a"] * 3, range(3)])),
+        ),
         ({"a": lambda x: x.sum()}, Series([6], index=["a"])),
     ],
 )
-def test_apply_dictlike_lambda(ops, expected):
+def test_apply_dictlike_lambda(ops, by_row, expected):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops)
+    result = ser.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
-def test_apply_retains_column_name():
+def test_apply_retains_column_name(by_row):
     # GH 16380
     df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
     func = lambda x: Series(range(x + 1), Index(range(x + 1), name="y"))
+
+    if not by_row:
+        # GH53400
+        msg = "'Series' object cannot be interpreted as an integer"
+        with pytest.raises(TypeError, match=msg):
+            df.x.apply(func, by_row=by_row)
+        return
+
     msg = "Returning a DataFrame from Series.apply when the supplied function"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
-        result = df.x.apply(func)
+        result = df.x.apply(func, by_row=by_row)
     expected = DataFrame(
         [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
         columns=Index(range(3), name="y"),
