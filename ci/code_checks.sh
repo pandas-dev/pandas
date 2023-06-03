@@ -81,25 +81,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.str.center \
-        pandas.Series.str.decode \
-        pandas.Series.str.encode \
-        pandas.Series.str.find \
-        pandas.Series.str.fullmatch \
-        pandas.Series.str.index \
-        pandas.Series.str.ljust \
-        pandas.Series.str.match \
-        pandas.Series.str.normalize \
-        pandas.Series.str.rfind \
-        pandas.Series.str.rindex \
-        pandas.Series.str.rjust \
-        pandas.Series.str.translate \
         pandas.Series.sparse \
         pandas.DataFrame.sparse \
-        pandas.Series.cat.categories \
-        pandas.Series.cat.ordered \
         pandas.Series.cat.codes \
         pandas.Series.cat.reorder_categories \
         pandas.Series.cat.set_categories \
@@ -258,17 +242,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
-        pandas.DatetimeIndex \
-        pandas.DatetimeIndex.date \
-        pandas.DatetimeIndex.time \
-        pandas.DatetimeIndex.timetz \
-        pandas.DatetimeIndex.dayofyear \
-        pandas.DatetimeIndex.day_of_year \
-        pandas.DatetimeIndex.quarter \
-        pandas.DatetimeIndex.tz \
-        pandas.DatetimeIndex.freqstr \
-        pandas.DatetimeIndex.inferred_freq \
-        pandas.DatetimeIndex.indexer_at_time \
         pandas.DatetimeIndex.indexer_between_time \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \
@@ -277,7 +250,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.mean \
         pandas.DatetimeIndex.std \
         pandas.TimedeltaIndex \
-        pandas.TimedeltaIndex.days \
         pandas.TimedeltaIndex.seconds \
         pandas.TimedeltaIndex.microseconds \
         pandas.TimedeltaIndex.nanoseconds \
@@ -286,26 +258,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.TimedeltaIndex.as_unit \
         pandas.TimedeltaIndex.to_pytimedelta \
         pandas.TimedeltaIndex.mean \
-        pandas.PeriodIndex.day \
-        pandas.PeriodIndex.dayofweek \
-        pandas.PeriodIndex.day_of_week \
-        pandas.PeriodIndex.dayofyear \
-        pandas.PeriodIndex.day_of_year \
-        pandas.PeriodIndex.days_in_month \
-        pandas.PeriodIndex.daysinmonth \
-        pandas.PeriodIndex.end_time \
-        pandas.PeriodIndex.freqstr \
-        pandas.PeriodIndex.hour \
-        pandas.PeriodIndex.is_leap_year \
-        pandas.PeriodIndex.minute \
-        pandas.PeriodIndex.month \
-        pandas.PeriodIndex.quarter \
-        pandas.PeriodIndex.second \
-        pandas.PeriodIndex.week \
-        pandas.PeriodIndex.weekday \
-        pandas.PeriodIndex.weekofyear \
-        pandas.PeriodIndex.year \
-        pandas.PeriodIndex.to_timestamp \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \

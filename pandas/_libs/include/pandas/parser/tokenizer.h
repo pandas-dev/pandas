@@ -19,10 +19,10 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include <stdint.h>
-#include "../inline_helper.h"
-#include "../headers/portable.h"
+#include "pandas/inline_helper.h"
+#include "pandas/portable.h"
 
-#include "khash.h"
+#include "pandas/vendored/klib/khash.h"
 
 #define STREAM_INIT_SIZE 32
 
