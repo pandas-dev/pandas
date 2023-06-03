@@ -9005,7 +9005,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: Level = -1, dropna: bool = True):
+    def stack(self, level: Level = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9031,6 +9031,8 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        sort : bool, default True
+            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9174,9 +9176,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 
@@ -9308,7 +9310,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: Level = -1, fill_value=None):
+    def unstack(self, level: Level = -1, fill_value=None, sort: bool = True):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -9324,6 +9326,8 @@ class DataFrame(NDFrame, OpsMixin):
             Level(s) of index to unstack, can pass level name.
         fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -9371,7 +9375,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.reshape import unstack
 
-        result = unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value, sort)
 
         return result.__finalize__(self, method="unstack")
 

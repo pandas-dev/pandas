@@ -1098,9 +1098,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return result
 
-    def _wrap_reduction_result(self, name: str, result, skipna, **kwargs):
+    def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
         if isinstance(result, np.ndarray):
-            axis = kwargs["axis"]
             if skipna:
                 # we only retain mask for all-NA rows/columns
                 mask = self._mask.all(axis=axis)
@@ -1127,9 +1126,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "sum", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("sum", result, skipna=skipna, axis=axis)
 
     def prod(
         self,
@@ -1147,9 +1144,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "prod", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("prod", result, skipna=skipna, axis=axis)
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_mean((), kwargs)
@@ -1159,9 +1154,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             skipna=skipna,
             axis=axis,
         )
-        return self._wrap_reduction_result(
-            "mean", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("mean", result, skipna=skipna, axis=axis)
 
     def var(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1174,9 +1167,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result(
-            "var", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("var", result, skipna=skipna, axis=axis)
 
     def std(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1189,9 +1180,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result(
-            "std", result, skipna=skipna, axis=axis, **kwargs
-        )
+        return self._wrap_reduction_result("std", result, skipna=skipna, axis=axis)
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)
