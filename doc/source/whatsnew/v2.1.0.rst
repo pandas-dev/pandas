@@ -452,6 +452,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+- Bug in :func:`merge_asof` raising ``ValueError`` for data backed by read-only ndarrays (:issue:`#####`)
 -
 
 Sparse
