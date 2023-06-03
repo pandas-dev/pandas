@@ -38,7 +38,6 @@ from pandas.io.common import (
     get_handle,
     is_url,
     stringify_path,
-    urlopen,
     validate_header_arg,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -778,8 +777,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         try:
             if is_url(self.io):
-                with urlopen(self.io, storage_options=self.storage_options) as f:
-                    r = parse(f, parser=parser)
+                with get_handle(
+                    self.io, "r", storage_options=self.storage_options
+                ) as f:
+                    r = parse(f.handle, parser=parser)
             else:
                 # try to parse the input in the simplest way
                 r = parse(self.io, parser=parser)
