@@ -218,8 +218,6 @@ def test_dt64_array():
     ],
 )
 def test_array(data, dtype, expected):
-    with open("/home/richard/Desktop/file.txt", "a+") as fil:
-        fil.write(f"{dtype}\n")
     result = pd.array(data, dtype=dtype)
     tm.assert_equal(result, expected)
 
