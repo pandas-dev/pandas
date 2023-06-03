@@ -1,7 +1,18 @@
 incdir_numpy = run_command(py,
   [
     '-c',
-    'import os; os.chdir(".."); import numpy; print(numpy.get_include())'
+    '''
+import os
+import numpy as np
+try:
+    # Check if include directory is inside the pandas dir
+    # e.g. a venv created inside the pandas dir
+    # If so, convert it to a relative path
+    incdir = os.path.relpath(np.get_include())
+except Exception:
+    incdir = np.get_include()
+print(incdir)
+     '''
   ],
   check: true
 ).stdout().strip()

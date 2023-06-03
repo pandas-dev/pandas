@@ -426,6 +426,12 @@ class Apply(metaclass=abc.ABCMeta):
             and selected_obj.columns.nunique() < len(selected_obj.columns)
         )
 
+        # Numba Groupby engine/engine-kwargs passthrough
+        if is_groupby:
+            engine = self.kwargs.get("engine", None)
+            engine_kwargs = self.kwargs.get("engine_kwargs", None)
+            kwds.update({"engine": engine, "engine_kwargs": engine_kwargs})
+
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
@@ -457,7 +463,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 # key used for column selection and output
                 result_data = [
-                    getattr(obj._gotitem(key, ndim=1), op_name)(how)
+                    getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwds)
                     for key, how in func.items()
                 ]
                 result_index = list(func.keys())
