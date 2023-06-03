@@ -35,7 +35,10 @@ def test_dt64_array():
 
     for unit in dtype_unit_lst:
         dtype_var = np.dtype(unit)
-        msg = "dtype={} is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'".format(dtype_var)
+        msg = (
+            "dtype={} is not supported. Supported resolutions are 's', 'ms', "
+            "'us', and 'ns'".format(dtype_var)
+        )
         with pytest.raises(TypeError, match=re.escape(msg)):
             pd.array([], dtype=dtype_var)
 
@@ -215,8 +218,8 @@ def test_dt64_array():
     ],
 )
 def test_array(data, dtype, expected):
-    with open("/home/richard/Desktop/file.txt", 'a+') as fil:
-        fil.write(f'{dtype}\n')
+    with open("/home/richard/Desktop/file.txt", "a+") as fil:
+        fil.write(f"{dtype}\n")
     result = pd.array(data, dtype=dtype)
     tm.assert_equal(result, expected)
 
