@@ -154,6 +154,11 @@ def pytest_collection_modifyitems(items, config) -> None:
             #  No idea why 2023-05-09
             "where downcasting from floating dtype to integer dtype is deprecated",
         ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
     ]
 
     for item in items:

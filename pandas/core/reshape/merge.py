@@ -2112,6 +2112,12 @@ class _AsOfMerge(_OrderedMerge):
                 raise ValueError(f"Merge keys contain null values on {side} side")
             raise ValueError(f"{side} keys must be sorted")
 
+        if isinstance(left_values, ArrowExtensionArray):
+            left_values = left_values._maybe_convert_datelike_array()
+
+        if isinstance(right_values, ArrowExtensionArray):
+            right_values = right_values._maybe_convert_datelike_array()
+
         # initial type conversion as needed
         if needs_i8_conversion(getattr(left_values, "dtype", None)):
             if tolerance is not None:
@@ -2131,6 +2137,18 @@ class _AsOfMerge(_OrderedMerge):
             #  comparable for e.g. dt64tz
             left_values = left_values.view("i8")
             right_values = right_values.view("i8")
+
+        if isinstance(left_values, BaseMaskedArray):
+            # we've verified above that no nulls exist
+            left_values = left_values._data
+        elif isinstance(left_values, ExtensionArray):
+            left_values = np.array(left_values)
+
+        if isinstance(right_values, BaseMaskedArray):
+            # we've verified above that no nulls exist
+            right_values = right_values._data
+        elif isinstance(right_values, ExtensionArray):
+            right_values = np.array(right_values)
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
@@ -2358,7 +2376,9 @@ def _factorize_keys(
     rk = extract_array(rk, extract_numpy=True, extract_range=True)
     # TODO: if either is a RangeIndex, we can likely factorize more efficiently?
 
-    if isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype):
+    if (
+        isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype)
+    ) or (lib.is_np_dtype(lk.dtype, "M") and lib.is_np_dtype(rk.dtype, "M")):
         # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
@@ -2390,6 +2410,13 @@ def _factorize_keys(
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
             # "_values_for_factorize"
             rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
+
+    if needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
+        # GH#23917 TODO: Needs tests for non-matching dtypes
+        # GH#23917 TODO: needs tests for case where lk is integer-dtype
+        #  and rk is datetime-dtype
+        lk = np.asarray(lk, dtype=np.int64)
+        rk = np.asarray(rk, dtype=np.int64)
 
     klass, lk, rk = _convert_arrays_and_get_rizer_klass(lk, rk)
 

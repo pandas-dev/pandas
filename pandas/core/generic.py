@@ -7170,6 +7170,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, np.NaN, 2, 3])
+        >>> ser.ffill()
+        0   1.0
+        1   1.0
+        2   2.0
+        3   3.0
+        dtype: float64
         """
         return self.fillna(
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
@@ -9176,6 +9186,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
+        warnings.warn(
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -11304,6 +11320,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
+        elif axis is None:
+            axis = 0
 
         if (
             self.ndim > 1
@@ -11408,7 +11426,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11416,7 +11434,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
+            if self.ndim > 1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{name} with axis=None "
+                    "is deprecated, in a future version this will reduce over both "
+                    "axes and return a scalar. To retain the old behavior, pass "
+                    "axis=0 (or do not pass axis)",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            axis = 0
+        elif axis is lib.no_default:
             axis = 0
 
         return self._reduce(
@@ -11425,7 +11455,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sem(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11437,7 +11467,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def var(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11449,7 +11479,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def std(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11561,7 +11591,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,
@@ -11573,6 +11603,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
         if axis is None:
+            if self.ndim > 1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{name} with axis=None "
+                    "is deprecated, in a future version this will reduce over both "
+                    "axes and return a scalar. To retain the old behavior, pass "
+                    "axis=0 (or do not pass axis)",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            axis = 0
+        elif axis is lib.no_default:
             axis = 0
 
         return self._reduce(
@@ -11586,7 +11627,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sum(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,
@@ -11598,7 +11639,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def prod(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,
