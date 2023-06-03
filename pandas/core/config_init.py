@@ -407,12 +407,12 @@ with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
 use_inf_as_na_doc = """
-.. deprecated:: 2.1.0
-
 : boolean
     True means treat None, NaN, INF, -INF as NA (old way),
     False means None and NaN are null, but INF, -INF are not NA
     (new way).
+
+    .. deprecated:: 2.1.0
 """
 
 # We don't want to start importing everything at the global context level
