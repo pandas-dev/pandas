@@ -152,12 +152,6 @@ The following are just some examples of operations that are accelerated by nativ
    ser_dt = pd.Series([datetime(2022, 1, 1), None], dtype=pa_type)
    ser_dt.dt.strftime("%Y-%m")
 
-.. versionchanged:: 2.1.0
-
-    When doing :class:`DataFrame` reduction operations (:meth:`~DataFrame.sum` etc.) on
-    pyarrow data the dtype now will be maintained when possible. Previously, the dtype
-    of reduction result would have been a numpy numeric dtype.
-
 I/O Reading
 -----------
 
