@@ -31,16 +31,13 @@ from pandas.tests.extension.decimal import (
 
 def test_dt64_array():
     # PR 53439
-    dtype_dt64 = np.dtype("M8[h]")
-    dtype_td64 = np.dtype("m8[h]")
+    dtype_unit_lst = ["M8[h]", "M8[m]", "m8[h]", "M8[m]"]
 
-    msg = f"Data type {dtype_dt64} is deprecated."
-    with pytest.raises(TypeError, match=re.escape(msg)):
-        pd.array([], dtype=dtype_dt64)
-
-    msg = f"Data type {dtype_td64} is deprecated."
-    with pytest.raises(TypeError, match=re.escape(msg)):
-        pd.array([], dtype=dtype_td64)
+    for unit in dtype_unit_lst:
+        dtype_var = np.dtype(unit)
+        msg = "dtype={} is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'".format(dtype_var)
+        with pytest.raises(TypeError, match=re.escape(msg)):
+            pd.array([], dtype=dtype_var)
 
 
 @pytest.mark.parametrize(
@@ -218,13 +215,10 @@ def test_dt64_array():
     ],
 )
 def test_array(data, dtype, expected):
-    msg = f"Data type {dtype} is deprecated."
-    if isinstance(dtype, np.dtype) and dtype.kind in "mM":
-        with pytest.raises(TypeError, match=re.escape(msg)):
-            result = pd.array(data, dtype=dtype)
-    else:
-        result = pd.array(data, dtype=dtype)
-        tm.assert_equal(result, expected)
+    with open("/home/richard/Desktop/file.txt", 'a+') as fil:
+        fil.write(f'{dtype}\n')
+    result = pd.array(data, dtype=dtype)
+    tm.assert_equal(result, expected)
 
 
 def test_array_copy():

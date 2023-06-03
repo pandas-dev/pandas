@@ -41,6 +41,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_infer_to_datetimelike,
     maybe_promote,
+    _ensure_nanosecond_dtype,
 )
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -274,7 +275,7 @@ def array(
     from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(dtype, np.dtype) and dtype.kind in "mM":
-        raise TypeError(f"Data type {dtype} is deprecated.")
+        _ensure_nanosecond_dtype(dtype)
 
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
