@@ -36,8 +36,8 @@ def test_dt64_array():
     for unit in dtype_unit_lst:
         dtype_var = np.dtype(unit)
         msg = (
-            "dtype={} is not supported. Supported resolutions are 's', 'ms', "
-            "'us', and 'ns'".format(dtype_var)
+            f"dtype={dtype_var} is not supported. Supported resolutions are 's', 'ms', "
+            "'us', and 'ns'"
         )
         with pytest.raises(TypeError, match=re.escape(msg)):
             pd.array([], dtype=dtype_var)
