@@ -294,9 +294,6 @@ def array(
     )
     from pandas.core.arrays.string_ import StringDtype
 
-    if isinstance(dtype, np.dtype) and dtype.kind in "mM":
-        maybe_cast_to_datetime(data, dtype)
-
     if lib.is_scalar(data):
         msg = f"Cannot pass scalar '{data}' to 'pandas.array'."
         raise ValueError(msg)
@@ -380,6 +377,9 @@ def array(
         and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
     ):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+
+    elif isinstance(dtype, np.dtype) and dtype.kind in "mM":
+        sanitize_array(data, None, dtype, copy)
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
