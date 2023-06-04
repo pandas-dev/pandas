@@ -2723,11 +2723,16 @@ def test_groupby_none_column_name():
 
 
 def test_single_element_list_grouping():
-    # GH 42795
+    # GH#42795, GH#53500
     df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
-    result = [key for key, _ in df.groupby(["a"])]
+    grouped = df.groupby(["a"])
+
+    result1 = [key for key, _ in grouped]
+    result2 = [key for key, _ in grouped[["a", "b", "c"]]]
     expected = [(1,), (2,)]
-    assert result == expected
+
+    assert result1 == expected
+    assert result2 == expected
 
 
 def test_groupby_string_dtype():
