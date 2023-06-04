@@ -901,13 +901,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        if (
-            isinstance(keys, list)
-            and len(keys) == 1
-            or isinstance(keys, ops.BaseGrouper)
-            and len(keys.names) == 1
-        ):
-            # GH#42795, GH#53500 - if groupby by list of one, still return tuples
+        if isinstance(keys, list) and len(keys) == 1:
+            # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
         return result
 
