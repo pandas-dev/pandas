@@ -3945,8 +3945,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions = "ffill",
-        limit: int | None = None,
+        fill_method: FillnaOptions | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
     ):
@@ -3958,6 +3958,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             Percentage changes within each group.
         """
+        if fill_method is not lib.no_default or limit is not lib.no_default:
+            # GH#53491
+            warnings.warn(
+                "The 'fill_method' and 'limit' keywords in "
+                f"{type(self).__name__}.pct_change are deprecated and will be "
+                "removed in a future version. Call fillna directly before "
+                "calling pct_change instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if fill_method is lib.no_default:
+            fill_method = "ffill"
+        if limit is lib.no_default:
+            limit = None
+
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "pct_change")

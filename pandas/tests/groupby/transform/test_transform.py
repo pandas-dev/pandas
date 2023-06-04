@@ -969,9 +969,14 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(
-        periods=periods, fill_method=fill_method, limit=limit, freq=freq
+    msg = (
+        "The 'fill_method' and 'limit' keywords in "
+        f"{type(gb).__name__}.pct_change are deprecated"
     )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq
+        )
     tm.assert_equal(result, expected)
 
 
