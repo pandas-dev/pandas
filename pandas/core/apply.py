@@ -716,8 +716,8 @@ class FrameApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
-        # dispatch to agg
-        if is_list_like(self.func) or is_dict_like(self.func):
+        # dispatch to handle list-like or dict-like
+        if is_list_like(self.func):
             return self.apply_list_or_dict_like()
 
         # all empty
@@ -1105,8 +1105,8 @@ class SeriesApply(NDFrameApply):
         if len(obj) == 0:
             return self.apply_empty_result()
 
-        # dispatch to agg
-        if is_list_like(self.func) or is_dict_like(self.func):
+        # dispatch to handle list-like or dict-like
+        if is_list_like(self.func):
             return self.apply_list_or_dict_like()
 
         if isinstance(self.func, str):
