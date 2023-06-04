@@ -435,6 +435,7 @@ Groupby/resample/rolling
   grouped :class:`Series` or :class:`DataFrame` was a :class:`DatetimeIndex`, :class:`TimedeltaIndex`
   or :class:`PeriodIndex`, and the ``groupby`` method was given a function as its first argument,
   the function operated on the whole index rather than each element of the index. (:issue:`51979`)
+- Bug in :meth:`DataFrame.groupby` when grouping by a list of a single element and selecting columns of the resulting groupby object. The group keys are now tuples. (:issue:`53500`)
 - Bug in :meth:`DataFrameGroupBy.agg` with lists not respecting ``as_index=False`` (:issue:`52849`)
 - Bug in :meth:`DataFrameGroupBy.apply` causing an error to be raised when the input :class:`DataFrame` was subset as a :class:`DataFrame` after groupby (``[['a']]`` and not ``['a']``) and the given callable returned :class:`Series` that were not all indexed the same. (:issue:`52444`)
 - Bug in :meth:`DataFrameGroupBy.apply` raising a ``TypeError`` when selecting multiple columns and providing a function that returns ``np.ndarray`` results (:issue:`18930`)
