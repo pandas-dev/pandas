@@ -145,6 +145,11 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
     ]
 
     for item in items:
@@ -746,7 +751,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.randn(8)
     ser = Series(data, index=index)
-    ser[3] = np.NaN
+    ser.iloc[3] = np.NaN
     return ser
 
 

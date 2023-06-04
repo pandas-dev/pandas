@@ -103,7 +103,7 @@ def test_contains_object_mixed():
     result = mixed.str.contains("o")
     expected = Series(
         np.array(
-            [False, np.nan, False, np.nan, np.nan, True, np.nan, np.nan, np.nan],
+            [False, np.nan, False, np.nan, np.nan, True, None, np.nan, np.nan],
             dtype=np.object_,
         )
     )
@@ -251,6 +251,11 @@ def test_startswith(pat, dtype, null_value, na):
 
     result = values.str.startswith(pat)
     exp = Series([False, np.nan, True, False, False, np.nan, True])
+    if dtype is None and null_value is pd.NA:
+        # GH#18463
+        exp = exp.fillna(null_value)
+    elif dtype is None and null_value is None:
+        exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
     result = values.str.startswith(pat, na=na)
@@ -263,7 +268,7 @@ def test_startswith(pat, dtype, null_value, na):
         dtype=np.object_,
     )
     rs = Series(mixed).str.startswith("f")
-    xp = Series([False, np.nan, False, np.nan, np.nan, True, np.nan, np.nan, np.nan])
+    xp = Series([False, np.nan, False, np.nan, np.nan, True, None, np.nan, np.nan])
     tm.assert_series_equal(rs, xp)
 
 
@@ -304,6 +309,11 @@ def test_endswith(pat, dtype, null_value, na):
 
     result = values.str.endswith(pat)
     exp = Series([False, np.nan, False, False, True, np.nan, True])
+    if dtype is None and null_value is pd.NA:
+        # GH#18463
+        exp = exp.fillna(pd.NA)
+    elif dtype is None and null_value is None:
+        exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
     result = values.str.endswith(pat, na=na)
@@ -316,7 +326,7 @@ def test_endswith(pat, dtype, null_value, na):
         dtype=object,
     )
     rs = Series(mixed).str.endswith("f")
-    xp = Series([False, np.nan, False, np.nan, np.nan, False, np.nan, np.nan, np.nan])
+    xp = Series([False, np.nan, False, np.nan, np.nan, False, None, np.nan, np.nan])
     tm.assert_series_equal(rs, xp)
 
 
@@ -369,7 +379,7 @@ def test_replace_mixed_object():
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace("BAD[_]*", "", regex=True)
-    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
+    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -466,7 +476,7 @@ def test_replace_compiled_regex_mixed_object():
         ["aBAD", np.nan, "bBAD", True, datetime.today(), "fooBAD", None, 1, 2.0]
     )
     result = Series(ser).str.replace(pat, "", regex=True)
-    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", np.nan, np.nan, np.nan])
+    expected = Series(["a", np.nan, "b", np.nan, np.nan, "foo", None, np.nan, np.nan])
     tm.assert_series_equal(result, expected)
 
 
@@ -691,9 +701,7 @@ def test_match_mixed_object():
         ]
     )
     result = Series(mixed).str.match(".*(BAD[_]+).*(BAD)")
-    expected = Series(
-        [True, np.nan, True, np.nan, np.nan, False, np.nan, np.nan, np.nan]
-    )
+    expected = Series([True, np.nan, True, np.nan, np.nan, False, None, np.nan, np.nan])
     assert isinstance(result, Series)
     tm.assert_series_equal(result, expected)
 
@@ -783,6 +791,9 @@ def test_findall(any_string_dtype):
     ser = Series(["fooBAD__barBAD", np.nan, "foo", "BAD"], dtype=any_string_dtype)
     result = ser.str.findall("BAD[_]*")
     expected = Series([["BAD__", "BAD"], np.nan, [], ["BAD"]])
+    if ser.dtype != object:
+        # GH#18463
+        expected = expected.fillna(pd.NA)
     tm.assert_series_equal(result, expected)
 
 
@@ -810,7 +821,7 @@ def test_findall_mixed_object():
             np.nan,
             np.nan,
             ["BAD"],
-            np.nan,
+            None,
             np.nan,
             np.nan,
         ]
@@ -954,21 +965,21 @@ def test_flags_kwarg(any_string_dtype):
 
     with tm.maybe_produces_warning(PerformanceWarning, using_pyarrow):
         result = data.str.match(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]
 
     with tm.maybe_produces_warning(PerformanceWarning, using_pyarrow):
         result = data.str.fullmatch(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]
 
     result = data.str.findall(pat, flags=re.IGNORECASE)
-    assert result[0][0] == ("dave", "google", "com")
+    assert result.iloc[0][0] == ("dave", "google", "com")
 
     result = data.str.count(pat, flags=re.IGNORECASE)
-    assert result[0] == 1
+    assert result.iloc[0] == 1
 
     msg = "has match groups"
     with tm.assert_produces_warning(
         UserWarning, match=msg, raise_on_extra_warnings=not using_pyarrow
     ):
         result = data.str.contains(pat, flags=re.IGNORECASE)
-    assert result[0]
+    assert result.iloc[0]

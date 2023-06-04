@@ -81,29 +81,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.dt.days \
-        pandas.Series.dt.seconds \
-        pandas.Series.dt.microseconds \
-        pandas.Series.dt.nanoseconds \
-        pandas.Series.str.center \
-        pandas.Series.str.decode \
-        pandas.Series.str.encode \
-        pandas.Series.str.find \
-        pandas.Series.str.fullmatch \
-        pandas.Series.str.index \
-        pandas.Series.str.ljust \
-        pandas.Series.str.match \
-        pandas.Series.str.normalize \
-        pandas.Series.str.rfind \
-        pandas.Series.str.rindex \
-        pandas.Series.str.rjust \
-        pandas.Series.str.translate \
         pandas.Series.sparse \
         pandas.DataFrame.sparse \
-        pandas.Series.cat.categories \
-        pandas.Series.cat.ordered \
         pandas.Series.cat.codes \
         pandas.Series.cat.reorder_categories \
         pandas.Series.cat.set_categories \
@@ -119,11 +99,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
-        pandas.errors.EmptyDataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.InvalidIndexError \
-        pandas.errors.InvalidVersion \
         pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
         pandas.errors.MergeError \
@@ -139,7 +116,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.show_versions \
         pandas.test \
         pandas.NaT \
         pandas.Timestamp.as_unit \
@@ -172,29 +148,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Period.asfreq \
         pandas.Period.now \
         pandas.arrays.PeriodArray \
-        pandas.Interval.closed \
-        pandas.Interval.left \
-        pandas.Interval.length \
-        pandas.Interval.right \
-        pandas.arrays.IntervalArray.left \
-        pandas.arrays.IntervalArray.right \
-        pandas.arrays.IntervalArray.closed \
-        pandas.arrays.IntervalArray.mid \
-        pandas.arrays.IntervalArray.length \
-        pandas.arrays.IntervalArray.is_non_overlapping_monotonic \
-        pandas.arrays.IntervalArray.from_arrays \
-        pandas.arrays.IntervalArray.to_tuples \
-        pandas.Int8Dtype \
-        pandas.Int16Dtype \
-        pandas.Int32Dtype \
-        pandas.Int64Dtype \
-        pandas.UInt8Dtype \
-        pandas.UInt16Dtype \
-        pandas.UInt32Dtype \
-        pandas.UInt64Dtype \
-        pandas.NA \
-        pandas.Float32Dtype \
-        pandas.Float64Dtype \
         pandas.CategoricalDtype.categories \
         pandas.CategoricalDtype.ordered \
         pandas.Categorical.dtype \
@@ -270,31 +223,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.values \
-        pandas.Index.dtype \
-        pandas.Index.inferred_type \
-        pandas.Index.shape \
-        pandas.Index.name \
-        pandas.Index.nbytes \
-        pandas.Index.ndim \
-        pandas.Index.size \
-        pandas.Index.T \
-        pandas.Index.memory_usage \
-        pandas.Index.copy \
-        pandas.Index.drop \
-        pandas.Index.identical \
-        pandas.Index.insert \
-        pandas.Index.is_ \
-        pandas.Index.take \
-        pandas.Index.putmask \
-        pandas.Index.unique \
-        pandas.Index.fillna \
-        pandas.Index.dropna \
-        pandas.Index.astype \
-        pandas.Index.map \
-        pandas.Index.to_list \
-        pandas.Index.append \
-        pandas.Index.join \
         pandas.Index.asof_locs \
         pandas.Index.get_slice_bound \
         pandas.RangeIndex \
@@ -310,23 +238,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.CategoricalIndex.as_ordered \
         pandas.CategoricalIndex.as_unordered \
         pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.closed \
         pandas.IntervalIndex.values \
-        pandas.IntervalIndex.is_non_overlapping_monotonic \
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
-        pandas.DatetimeIndex \
-        pandas.DatetimeIndex.date \
-        pandas.DatetimeIndex.time \
-        pandas.DatetimeIndex.timetz \
-        pandas.DatetimeIndex.dayofyear \
-        pandas.DatetimeIndex.day_of_year \
-        pandas.DatetimeIndex.quarter \
-        pandas.DatetimeIndex.tz \
-        pandas.DatetimeIndex.freqstr \
-        pandas.DatetimeIndex.inferred_freq \
-        pandas.DatetimeIndex.indexer_at_time \
         pandas.DatetimeIndex.indexer_between_time \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \
@@ -335,7 +250,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.mean \
         pandas.DatetimeIndex.std \
         pandas.TimedeltaIndex \
-        pandas.TimedeltaIndex.days \
         pandas.TimedeltaIndex.seconds \
         pandas.TimedeltaIndex.microseconds \
         pandas.TimedeltaIndex.nanoseconds \
@@ -344,26 +258,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.TimedeltaIndex.as_unit \
         pandas.TimedeltaIndex.to_pytimedelta \
         pandas.TimedeltaIndex.mean \
-        pandas.PeriodIndex.day \
-        pandas.PeriodIndex.dayofweek \
-        pandas.PeriodIndex.day_of_week \
-        pandas.PeriodIndex.dayofyear \
-        pandas.PeriodIndex.day_of_year \
-        pandas.PeriodIndex.days_in_month \
-        pandas.PeriodIndex.daysinmonth \
-        pandas.PeriodIndex.end_time \
-        pandas.PeriodIndex.freqstr \
-        pandas.PeriodIndex.hour \
-        pandas.PeriodIndex.is_leap_year \
-        pandas.PeriodIndex.minute \
-        pandas.PeriodIndex.month \
-        pandas.PeriodIndex.quarter \
-        pandas.PeriodIndex.second \
-        pandas.PeriodIndex.week \
-        pandas.PeriodIndex.weekday \
-        pandas.PeriodIndex.weekofyear \
-        pandas.PeriodIndex.year \
-        pandas.PeriodIndex.to_timestamp \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \

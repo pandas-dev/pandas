@@ -114,7 +114,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_float,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -2155,6 +2154,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inf_rep: str = "inf",
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2211,6 +2211,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         {storage_options}
 
             .. versionadded:: {storage_options_versionadded}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
 
         See Also
         --------
@@ -2263,6 +2265,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')  # doctest: +SKIP
         """
+        if engine_kwargs is None:
+            engine_kwargs = {}
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
@@ -2287,6 +2291,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             freeze_panes=freeze_panes,
             engine=engine,
             storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
 
     @final
@@ -6202,21 +6207,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         return self.dtypes.nunique() > 1
 
     @final
-    def _check_inplace_setting(self, value) -> bool_t:
-        """check whether we allow in-place setting with this type of value"""
-        if self._is_mixed_type and not self._mgr.is_numeric_mixed_type:
-            # allow an actual np.nan through
-            if (is_float(value) and np.isnan(value)) or value is lib.no_default:
-                return True
-
-            raise TypeError(
-                "Cannot do inplace boolean setting on "
-                "mixed-types with a non np.nan value"
-            )
-
-        return True
-
-    @final
     def _get_numeric_data(self) -> Self:
         return self._constructor(self._mgr.get_numeric_data()).__finalize__(self)
 
@@ -6528,8 +6518,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Updates to the data shared by shallow copy and original is reflected
         in both; deep copy remains unchanged.
 
-        >>> s[0] = 3
-        >>> shallow[1] = 4
+        >>> s.iloc[0] = 3
+        >>> shallow.iloc[1] = 4
         >>> s
         a    3
         b    4
@@ -7177,6 +7167,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, np.NaN, 2, 3])
+        >>> ser.ffill()
+        0   1.0
+        1   1.0
+        2   2.0
+        3   3.0
+        dtype: float64
         """
         return self.fillna(
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
@@ -9172,6 +9172,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
+        warnings.warn(
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -10038,7 +10044,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            self._check_inplace_setting(other)
             new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor(new_data)
             return self._update_inplace(result)
@@ -11146,11 +11151,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Self:
         """
-        Percentage change between the current and a prior element.
+        Fractional change between the current and a prior element.
 
-        Computes the percentage change from the immediately previous row by
-        default. This is useful in comparing the percentage of change in a time
+        Computes the fractional change from the immediately previous row by
+        default. This is useful in comparing the fraction of change in a time
         series of elements.
+
+        .. note::
+
+            Despite the name of this method, it calculates fractional change
+            (also known as per unit change or relative change) and not
+            percentage change. If you need the percentage change, multiply
+            these values by 100.
 
         Parameters
         ----------
@@ -11296,6 +11308,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
             return res._logical_func(name, func, skipna=skipna, **kwargs)
+        elif axis is None:
+            axis = 0
 
         if (
             self.ndim > 1
@@ -11400,7 +11414,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11408,7 +11422,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+
         if axis is None:
+            if self.ndim > 1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{name} with axis=None "
+                    "is deprecated, in a future version this will reduce over both "
+                    "axes and return a scalar. To retain the old behavior, pass "
+                    "axis=0 (or do not pass axis)",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            axis = 0
+        elif axis is lib.no_default:
             axis = 0
 
         return self._reduce(
@@ -11417,7 +11443,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sem(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11429,7 +11455,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def var(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11441,7 +11467,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def std(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         ddof: int = 1,
         numeric_only: bool_t = False,
@@ -11553,7 +11579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis | None = None,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,
@@ -11565,6 +11591,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
 
         if axis is None:
+            if self.ndim > 1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{name} with axis=None "
+                    "is deprecated, in a future version this will reduce over both "
+                    "axes and return a scalar. To retain the old behavior, pass "
+                    "axis=0 (or do not pass axis)",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            axis = 0
+        elif axis is lib.no_default:
             axis = 0
 
         return self._reduce(
@@ -11578,7 +11615,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def sum(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,
@@ -11590,7 +11627,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def prod(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool_t = True,
         numeric_only: bool_t = False,
         min_count: int = 0,

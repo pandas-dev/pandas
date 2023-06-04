@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
@@ -148,6 +149,8 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
+    from pandas.core.arrays.datetimes import DatetimeArray
+    from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
 def get_unit_from_pa_dtype(pa_dtype):
@@ -170,6 +173,8 @@ def to_pyarrow_type(
         return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
         return dtype
+    elif isinstance(dtype, DatetimeTZDtype):
+        return pa.timestamp(dtype.unit, dtype.tz)
     elif dtype:
         try:
             # Accepts python types too
@@ -533,9 +538,16 @@ class ArrowExtensionArray(
         if isinstance(value, pa.ChunkedArray):
             return type(self)(value)
         else:
+            pa_type = self._pa_array.type
             scalar = value.as_py()
             if scalar is None:
                 return self._dtype.na_value
+            elif pa.types.is_timestamp(pa_type) and pa_type.unit != "ns":
+                # GH 53326
+                return Timestamp(scalar).as_unit(pa_type.unit)
+            elif pa.types.is_duration(pa_type) and pa_type.unit != "ns":
+                # GH 53326
+                return Timedelta(scalar).as_unit(pa_type.unit)
             else:
                 return scalar
 
@@ -544,10 +556,18 @@ class ArrowExtensionArray(
         Iterate over elements of the array.
         """
         na_value = self._dtype.na_value
+        # GH 53326
+        pa_type = self._pa_array.type
+        box_timestamp = pa.types.is_timestamp(pa_type) and pa_type.unit != "ns"
+        box_timedelta = pa.types.is_duration(pa_type) and pa_type.unit != "ns"
         for value in self._pa_array:
             val = value.as_py()
             if val is None:
                 yield na_value
+            elif box_timestamp:
+                yield Timestamp(val).as_unit(pa_type.unit)
+            elif box_timedelta:
+                yield Timedelta(val).as_unit(pa_type.unit)
             else:
                 yield val
 
@@ -1150,6 +1170,41 @@ class ArrowExtensionArray(
                 indices_array[indices_array < 0] += len(self._pa_array)
             return type(self)(self._pa_array.take(indices_array))
 
+    def _maybe_convert_datelike_array(self):
+        """Maybe convert to a datelike array."""
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            return self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            return self._to_timedeltaarray()
+        return self
+
+    def _to_datetimearray(self) -> DatetimeArray:
+        """Convert a pyarrow timestamp typed array to a DatetimeArray."""
+        from pandas.core.arrays.datetimes import (
+            DatetimeArray,
+            tz_to_dtype,
+        )
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_timestamp(pa_type)
+        np_dtype = np.dtype(f"M8[{pa_type.unit}]")
+        dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return DatetimeArray._simple_new(np_array, dtype=dtype)
+
+    def _to_timedeltaarray(self) -> TimedeltaArray:
+        """Convert a pyarrow duration typed array to a TimedeltaArray."""
+        from pandas.core.arrays.timedeltas import TimedeltaArray
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_duration(pa_type)
+        np_dtype = np.dtype(f"m8[{pa_type.unit}]")
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
+
     @doc(ExtensionArray.to_numpy)
     def to_numpy(
         self,
@@ -1157,16 +1212,25 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
-        if dtype is None and self._hasna:
-            dtype = object
+        if dtype is not None:
+            dtype = np.dtype(dtype)
+        elif self._hasna:
+            dtype = np.dtype(object)
+
         if na_value is lib.no_default:
             na_value = self.dtype.na_value
 
         pa_type = self._pa_array.type
-        if pa.types.is_temporal(pa_type) and not pa.types.is_date(pa_type):
-            # temporal types with units and/or timezones currently
-            #  require pandas/python scalars to pass all tests
-            # TODO: improve performance (this is slow)
+        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+            result = self._maybe_convert_datelike_array()
+            if dtype is None or dtype.kind == "O":
+                result = result.to_numpy(dtype=object, na_value=na_value)
+            else:
+                result = result.to_numpy(dtype=dtype)
+            return result
+        elif pa.types.is_time(pa_type):
+            # convert to list of python datetime.time objects before
+            # wrapping in ndarray
             result = np.array(list(self), dtype=dtype)
         elif is_object_dtype(dtype) and self._hasna:
             result = np.empty(len(self), dtype=object)
