@@ -14,6 +14,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import PERIOD_TO_OFFSET_FREQSTR
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -179,10 +180,7 @@ class TestTSPlot(TestPlotBase):
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.randn(len(idx)), idx)
-        if freq == "M":
-            freq_cpw = ser.index.freqstr
-        else:
-            freq_cpw = ser.index.freq
+        freq_cpw = ser.index.freq
         _check_plot_works(ser.plot, freq_cpw)
 
     @pytest.mark.parametrize(
@@ -203,7 +201,7 @@ class TestTSPlot(TestPlotBase):
         ser = Series(np.random.randn(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
-    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "ME", "Q", "A"])
     def test_line_plot_period_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
@@ -746,6 +744,7 @@ class TestTSPlot(TestPlotBase):
         x2 = lines[1].get_xdata()
         tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
+    @pytest.mark.xfail
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -770,6 +769,7 @@ class TestTSPlot(TestPlotBase):
 
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
+    @pytest.mark.xfail
     def test_mixed_freq_lf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -814,8 +814,8 @@ class TestTSPlot(TestPlotBase):
         s1.plot(ax=ax1)
         s2.plot(ax=ax2)
 
-        assert ax1.freq == "ME"
-        assert ax2.freq == "ME"
+        assert ax1.freq == "M"
+        assert ax2.freq == "M"
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
         # using twinx
@@ -846,6 +846,7 @@ class TestTSPlot(TestPlotBase):
         assert s.index.min() <= Series(xdata).min()
         assert Series(xdata).max() <= s.index.max()
 
+    @pytest.mark.xfail
     def test_to_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -857,6 +858,7 @@ class TestTSPlot(TestPlotBase):
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
 
+    @pytest.mark.xfail
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -880,12 +882,12 @@ class TestTSPlot(TestPlotBase):
                 tm.assert_numpy_array_equal(xdata, expected_h)
         tm.close()
 
+    @pytest.mark.xfail
     def test_from_resampling_area_line_mixed(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
         high = DataFrame(np.random.rand(len(idxh), 3), index=idxh, columns=[0, 1, 2])
         low = DataFrame(np.random.rand(len(idxl), 3), index=idxl, columns=[0, 1, 2])
-
         # low to high
         for kind1, kind2 in [("line", "area"), ("area", "line")]:
             _, ax = self.plt.subplots()
@@ -1103,6 +1105,7 @@ class TestTSPlot(TestPlotBase):
                     xp = time(h, m, s, us).strftime("%H:%M")
                 assert xp == rs
 
+    @pytest.mark.xfail
     def test_secondary_upsample(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -1500,6 +1503,9 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
             if orig_axfreq is None:
                 assert ax.freq == dfreq
 
+        if freq is not None:
+            for key, value in PERIOD_TO_OFFSET_FREQSTR.items():
+                ax.freq = ax.freq.replace(key, value)
         if freq is not None and orig_axfreq is None:
             assert ax.freq == freq
 

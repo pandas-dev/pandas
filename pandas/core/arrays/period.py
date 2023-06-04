@@ -626,6 +626,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         '2015-01'], dtype='period[ME]')
         """
         how = libperiod.validate_end_alias(how)
+        if not isinstance(freq, int):
+            freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
 
         freq = Period._maybe_convert_freq(freq)
 

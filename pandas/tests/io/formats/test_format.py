@@ -2672,7 +2672,7 @@ class TestSeriesFormatting:
             "2013-04    3\n"
             "2013-05    4\n"
             "2013-06    5\n"
-            "Freq: ME, dtype: int64"
+            "Freq: M, dtype: int64"
         )
         assert str(s) == exp
 

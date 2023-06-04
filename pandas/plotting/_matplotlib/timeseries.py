@@ -15,8 +15,10 @@ from pandas._libs.tslibs import (
     Period,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    FreqGroup,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -189,7 +191,7 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq).rule_code
+    freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -213,8 +215,8 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
-    from pandas.core.indexes.api import PeriodIndex
     from pandas import DatetimeIndex
+    from pandas.core.indexes.api import PeriodIndex
 
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
