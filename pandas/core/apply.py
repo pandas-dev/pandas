@@ -397,7 +397,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwds = {"by_row": False} if op_name == "apply" else {}
+        kwargs = {"by_row": False} if op_name == "apply" else {}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -430,14 +430,14 @@ class Apply(metaclass=abc.ABCMeta):
         if is_groupby:
             engine = self.kwargs.get("engine", None)
             engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwds.update({"engine": engine, "engine_kwargs": engine_kwargs})
+            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
                 result_data = [
-                    getattr(colg, op_name)(how, **kwds) for _, how in func.items()
+                    getattr(colg, op_name)(how, **kwargs) for _, how in func.items()
                 ]
                 result_index = list(func.keys())
             elif is_non_unique_col:
@@ -453,7 +453,9 @@ class Apply(metaclass=abc.ABCMeta):
                         label_to_indices[label].append(index)
 
                     key_data = [
-                        getattr(selected_obj._ixs(indice, axis=1), op_name)(how, **kwds)
+                        getattr(selected_obj._ixs(indice, axis=1), op_name)(
+                            how, **kwargs
+                        )
                         for label, indices in label_to_indices.items()
                         for indice in indices
                     ]
@@ -463,7 +465,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 # key used for column selection and output
                 result_data = [
-                    getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwds)
+                    getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
                     for key, how in func.items()
                 ]
                 result_index = list(func.keys())
