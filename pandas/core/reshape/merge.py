@@ -2142,13 +2142,13 @@ class _AsOfMerge(_OrderedMerge):
             # we've verified above that no nulls exist
             left_values = left_values._data
         elif isinstance(left_values, ExtensionArray):
-            left_values = np.array(left_values)
+            left_values = left_values.to_numpy()
 
         if isinstance(right_values, BaseMaskedArray):
             # we've verified above that no nulls exist
             right_values = right_values._data
         elif isinstance(right_values, ExtensionArray):
-            right_values = np.array(right_values)
+            right_values = right_values.to_numpy()
 
         # a "by" parameter requires special handling
         if self.left_by is not None:

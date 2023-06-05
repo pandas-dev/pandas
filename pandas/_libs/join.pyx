@@ -679,10 +679,10 @@ ctypedef fused by_t:
     uint64_t
 
 
-def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
-                                 numeric_t[:] right_values,
-                                 by_t[:] left_by_values,
-                                 by_t[:] right_by_values,
+def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                 ndarray[numeric_t] right_values,
+                                 ndarray[by_t] left_by_values,
+                                 ndarray[by_t] right_by_values,
                                  bint allow_exact_matches=True,
                                  tolerance=None,
                                  bint use_hashtable=True):
@@ -756,10 +756,10 @@ def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
-                                numeric_t[:] right_values,
-                                by_t[:] left_by_values,
-                                by_t[:] right_by_values,
+def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                ndarray[numeric_t] right_values,
+                                ndarray[by_t] left_by_values,
+                                ndarray[by_t] right_by_values,
                                 bint allow_exact_matches=1,
                                 tolerance=None,
                                 bint use_hashtable=True):
