@@ -455,10 +455,10 @@ _shared_docs[
     (otherwise no compression).
     Set to ``None`` for no compression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
@@ -477,10 +477,10 @@ _shared_docs[
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
