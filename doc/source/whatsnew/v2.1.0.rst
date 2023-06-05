@@ -301,6 +301,7 @@ Performance improvements
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
+- Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
 - Performance improvement in :meth:`Series.add` for pyarrow string and binary dtypes (:issue:`53150`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
@@ -310,6 +311,7 @@ Performance improvements
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
