@@ -861,9 +861,20 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
+
+        For TimedeltaIndex:
+
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days', '10 days', '20 days'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.inferred_freq
+        '10D'
         """
         if self.ndim != 1:
             return None
@@ -1535,6 +1546,15 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         Notes
         -----
         mean is only defined for Datetime and Timedelta dtypes, not for Period.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.mean()
+        Timedelta('2 days 00:00:00')
         """
         if isinstance(self.dtype, PeriodDtype):
             # See discussion in GH#24757

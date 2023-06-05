@@ -796,6 +796,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         numpy.ndarray
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.to_pytimedelta()
+        array([datetime.timedelta(days=1), datetime.timedelta(days=2),
+               datetime.timedelta(days=3)], dtype=object)
         """
         return ints_to_pytimedelta(self._ndarray)
 
@@ -804,6 +814,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
+    For Series:
+
     >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
     >>> ser
     0   1 days
@@ -814,7 +826,16 @@ class TimedeltaArray(dtl.TimelikeOps):
     0    1
     1    2
     2    3
-    dtype: int64"""
+    dtype: int64
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days', '10 days', '20 days'],
+                    dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.days
+    Index([0, 10, 20], dtype='int64')"""
     )
     days = _field_accessor("days", "days", days_docstring)
 
@@ -823,6 +844,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
+    For Series:
+
     >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='S'))
     >>> ser
     0   0 days 00:00:01
@@ -833,7 +856,16 @@ class TimedeltaArray(dtl.TimelikeOps):
     0    1
     1    2
     2    3
-    dtype: int32"""
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='S')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.seconds
+    Index([1, 2, 3], dtype='int32')"""
     )
     seconds = _field_accessor(
         "seconds",
@@ -846,6 +878,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
+    For Series:
+
     >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='U'))
     >>> ser
     0   0 days 00:00:00.000001
@@ -856,7 +890,17 @@ class TimedeltaArray(dtl.TimelikeOps):
     0    1
     1    2
     2    3
-    dtype: int32"""
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='U')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
+                    '0 days 00:00:00.000003'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.microseconds
+    Index([1, 2, 3], dtype='int32')"""
     )
     microseconds = _field_accessor(
         "microseconds",
@@ -869,6 +913,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
+    For Series:
+
     >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='N'))
     >>> ser
     0   0 days 00:00:00.000000001
@@ -879,7 +925,17 @@ class TimedeltaArray(dtl.TimelikeOps):
     0    1
     1    2
     2    3
-    dtype: int32"""
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='N')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
+                    '0 days 00:00:00.000000003'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.nanoseconds
+    Index([1, 2, 3], dtype='int32')"""
     )
     nanoseconds = _field_accessor(
         "nanoseconds",
@@ -898,6 +954,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.components
+           days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
+        0     1      0        3        0             0             2           42
         """
         from pandas import DataFrame
 
