@@ -826,7 +826,7 @@ class Resampler(BaseGroupBy, PandasObject):
         warnings.warn(
             f"{type(self).__name__}.fillna is deprecated and will be removed "
             "in a future version. Use obj.ffill(), obj.bfill(), "
-            "or obj.neaerest() instead.",
+            "or obj.nearest() instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
