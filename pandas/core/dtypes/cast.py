@@ -566,12 +566,11 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     if checknull(fill_value):
         # https://github.com/pandas-dev/pandas/pull/39692#issuecomment-1441051740
         #  avoid cache misses with NaN/NaT values that are not singletons
-        try:
-            orig_is_nat = np.isnat(fill_value)
-        except TypeError:
-            pass
-        if orig_is_nat is NA:
-            orig_is_nat = False
+        if fill_value is not NA:
+            try:
+                orig_is_nat = np.isnat(fill_value)
+            except TypeError:
+                pass
 
         fill_value = _canonical_nans.get(type(fill_value), fill_value)
 
