@@ -75,6 +75,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -557,11 +558,7 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
-                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
-                    mask = algorithms.isin(
-                        values, list(na_values)  # type: ignore[arg-type]
-                    ).view(np.uint8)
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -809,7 +806,7 @@ class ParserBase:
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
-                if is_bool_dtype(cast_type):
+                if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa: E501

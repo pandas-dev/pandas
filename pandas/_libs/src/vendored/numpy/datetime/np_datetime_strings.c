@@ -34,8 +34,8 @@ This file implements string parsing and creation for NumPy datetime.
 #include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
 
-#include "np_datetime.h"
-#include "np_datetime_strings.h"
+#include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
 
 
 /*
