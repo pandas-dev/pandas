@@ -290,7 +290,7 @@ def test_fillna():
     r = ts.resample("s")
 
     expected = r.ffill()
-    msg = "DatetimeIndexResampler.fillna with 'method' is deprecated"
+    msg = "DatetimeIndexResampler.fillna is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = r.fillna(method="ffill")
     tm.assert_series_equal(result, expected)
