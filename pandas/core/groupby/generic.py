@@ -1952,6 +1952,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj[key]
             return SeriesGroupBy(
                 subset,
+                self.keys,
                 level=self.level,
                 grouper=self.grouper,
                 exclusions=self.exclusions,

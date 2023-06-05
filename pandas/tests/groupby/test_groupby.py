@@ -2727,10 +2727,12 @@ def test_single_element_list_grouping():
     df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
     grouped = df.groupby(["a"])
 
-    result1 = [key for key, _ in grouped]
-    result2 = [key for key, _ in grouped[["a", "b", "c"]]]
+    result0 = [key for key, _ in grouped]
+    result1 = [key for key, _ in grouped["a"]]
+    result2 = [key for key, _ in grouped[["a"]]]
     expected = [(1,), (2,)]
 
+    assert result0 == expected
     assert result1 == expected
     assert result2 == expected
 
