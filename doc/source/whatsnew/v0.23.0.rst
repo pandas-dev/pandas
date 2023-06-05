@@ -7,6 +7,7 @@ What's new in 0.23.0 (May 15, 2018)
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    from pandas import * # noqa F401, F403
 
