@@ -412,7 +412,7 @@ use_inf_as_na_doc = """
     False means None and NaN are null, but INF, -INF are not NA
     (new way).
 
-    .. deprecated:: 2.1.0
+    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
 """
 
 # We don't want to start importing everything at the global context level
