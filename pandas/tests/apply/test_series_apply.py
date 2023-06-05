@@ -398,13 +398,14 @@ def test_agg_evaluate_lambdas(string_series):
     assert isinstance(result, Series) and len(result) == len(string_series)
 
 
-def test_with_nested_series(datetime_series):
+@pytest.mark.parametrize("op_name", ["agg", "apply"])
+def test_with_nested_series(datetime_series, op_name):
     # GH 2316
     # .agg with a reducer and a transform, what to do
     msg = "Returning a DataFrame from Series.apply when the supplied function"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
-        result = datetime_series.apply(
+        result = getattr(datetime_series, op_name)(
             lambda x: Series([x, x**2], index=["x", "x^2"])
         )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
