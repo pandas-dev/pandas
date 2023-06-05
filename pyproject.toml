@@ -236,7 +236,9 @@ select = [
   # comprehensions
   "C4",
   # pygrep-hooks
-  "PGH"
+  "PGH",
+  # Ruff-specific rules
+  "RUF",
 ]
 
 ignore = [
@@ -308,6 +310,18 @@ ignore = [
   "PLR2004",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
+  # ambiguous-unicode-character-string
+  "RUF001",
+  # ambiguous-unicode-character-docstring
+  "RUF002",
+  # ambiguous-unicode-character-comment
+  "RUF003",
+  # collection-literal-concatenation
+  "RUF005",
+  # pairwise-over-zipped (>=PY310 only)
+  "RUF007",
+  # explicit-f-string-type-conversion
+  "RUF010"
 ]
 
 exclude = [
