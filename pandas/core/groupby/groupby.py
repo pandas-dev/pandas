@@ -2924,7 +2924,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             libgroupby.group_fillna_indexer,
             labels=ids,
             sorted_labels=sorted_labels,
-            direction=direction,
             limit=limit,
             dropna=self.dropna,
         )
