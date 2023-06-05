@@ -829,6 +829,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00"], freq="D")
         >>> idx.freqstr
         'D'
@@ -839,6 +841,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         ...                        freq="infer")
         >>> idx.freqstr
         '2D'
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-1", "2023-2", "2023-3"], freq="M")
+        >>> idx.freqstr
+        'M'
         """
         if self.freq is None:
             return None
@@ -853,9 +861,20 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
+
+        For TimedeltaIndex:
+
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days', '10 days', '20 days'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.inferred_freq
+        '10D'
         """
         if self.ndim != 1:
             return None
@@ -1527,6 +1546,15 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         Notes
         -----
         mean is only defined for Datetime and Timedelta dtypes, not for Period.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.mean()
+        Timedelta('2 days 00:00:00')
         """
         if isinstance(self.dtype, PeriodDtype):
             # See discussion in GH#24757
@@ -2223,23 +2251,11 @@ def ensure_arraylike_for_datetimelike(data, copy: bool, cls_name: str):
     ):
         data = data.to_numpy("int64", na_value=iNaT)
         copy = False
-    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "M":
-        from pandas.core.arrays import DatetimeArray
-        from pandas.core.arrays.datetimes import tz_to_dtype
-
-        pa_type = data._pa_array.type
-        dtype = tz_to_dtype(tz=pa_type.tz, unit=pa_type.unit)
-        data = data.to_numpy(f"M8[{pa_type.unit}]", na_value=iNaT)
-        data = DatetimeArray._simple_new(data, dtype=dtype)
+    elif isinstance(data, ArrowExtensionArray):
+        data = data._maybe_convert_datelike_array()
+        data = data.to_numpy()
         copy = False
-    elif isinstance(data, ArrowExtensionArray) and data.dtype.kind == "m":
-        pa_type = data._pa_array.type
-        dtype = np.dtype(f"m8[{pa_type.unit}]")
-        data = data.to_numpy(dtype, na_value=iNaT)
-        copy = False
-    elif not isinstance(data, (np.ndarray, ExtensionArray)) or isinstance(
-        data, ArrowExtensionArray
-    ):
+    elif not isinstance(data, (np.ndarray, ExtensionArray)):
         # GH#24539 e.g. xarray, dask object
         data = np.asarray(data)
 
