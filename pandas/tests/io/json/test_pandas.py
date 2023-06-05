@@ -32,6 +32,12 @@ from pandas.core.arrays import (
 def test_literal_json_deprecation():
     # PR 53409
     expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+
+    jsonl = """{"a": 1, "b": 2}
+        {"a": 3, "b": 4}
+        {"a": 5, "b": 6}
+        {"a": 7, "b": 8}"""
+
     msg = (
         "Passing literal json to 'read_json' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -39,7 +45,32 @@ def test_literal_json_deprecation():
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
+        try:
+            read_json(jsonl, lines=False)
+        except ValueError:
+            pass
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        read_json(expected.to_json(), lines=False)
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        try:
+            result = read_json(
+                '{"a\\\\":"foo\\\\","b":"bar"}\n{"a\\\\":"foo\\"","b":"bar"}\n',
+                lines=False,
+            )
+        except ValueError:
+            pass
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        try:
+            result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=False)
+        except ValueError:
+            pass
         tm.assert_frame_equal(result, expected)
 
 

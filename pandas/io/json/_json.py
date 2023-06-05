@@ -866,6 +866,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
+        if not self.lines and "\n" in filepath_or_buffer:
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if self.engine == "pyarrow":
             if not self.lines:
                 raise ValueError(
