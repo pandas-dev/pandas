@@ -1,3 +1,4 @@
+# pylint: disable=undefined-all-variable
 from __future__ import annotations
 
 __docformat__ = "restructuredtext"
