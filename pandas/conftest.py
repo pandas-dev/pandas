@@ -151,6 +151,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             "Please create a mask and filter using `.loc` instead",
         ),
         (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
