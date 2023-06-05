@@ -366,6 +366,6 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
-    "value_counts",
+    "value_counts",  # pyright: ignore [reportUnsupportedDunderAll]
     "wide_to_long",
 ]
