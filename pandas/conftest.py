@@ -158,6 +158,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
+        ),
     ]
 
     for item in items:
