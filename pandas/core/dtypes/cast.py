@@ -586,7 +586,7 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         dtype, fill_value = _maybe_promote(dtype, fill_value)
 
     if (dtype == _dtype_obj and orig is not None) or (
-        orig_is_nat and np.datetime_data(orig)[0] != "ns"
+        orig_is_nat is True and np.datetime_data(orig)[0] != "ns"
     ):
         # GH#51592,53497 restore our potentially non-canonical fill_value
         fill_value = orig
