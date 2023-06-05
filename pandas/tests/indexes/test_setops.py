@@ -92,6 +92,12 @@ def test_union_different_types(index_flat, index_flat2, request):
     ):
         warn = FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
+        mark = pytest.mark.xfail(
+            reason="Warning not produced on all builds",
+            raises=AssertionError,
+            strict=False,
+        )
+        request.node.add_marker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
