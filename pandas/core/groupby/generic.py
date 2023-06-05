@@ -223,11 +223,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         relabeling = func is None
         columns = None
         if relabeling:
@@ -235,12 +230,19 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
+            if maybe_use_numba(engine):
+                # Not all agg functions support numba, only propagate numba kwargs
+                # if user asks for numba
+                kwargs["engine"] = engine
+                kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
         elif isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = maybe_mangle_lambdas(func)
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
             ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
             if relabeling:
                 # columns is not narrowed by mypy from relabeling flag
@@ -254,6 +256,11 @@ class SeriesGroupBy(GroupBy[Series]):
             cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
+
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             if self.ngroups == 0:
                 # e.g. test_evaluate_with_empty_groups without any groups to
@@ -1387,13 +1394,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
+
+        if maybe_use_numba(engine):
+            # Not all agg functions support numba, only propagate numba kwargs
+            # if user asks for numba
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
 
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
@@ -1416,6 +1424,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns  # type: ignore[assignment]
 
         if result is None:
+            # Remove the kwargs we inserted
+            # (already stored in engine, engine_kwargs arguments)
+            if "engine" in kwargs:
+                del kwargs["engine"]
+                del kwargs["engine_kwargs"]
+            # at this point func is not a str, list-like, dict-like,
+            # or a known callable(e.g. sum)
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
