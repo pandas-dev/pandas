@@ -129,6 +129,7 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
         ("DataFrame.combine", "DataFrame.combine is deprecated"),
+        ("Series.combine", "Series.combine is deprecated"),
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
         ("is_period_dtype", "is_period_dtype is deprecated"),
