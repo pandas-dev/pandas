@@ -35,7 +35,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
-#include "version.h"
+#include "pandas/vendored/ujson/python/version.h"
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY

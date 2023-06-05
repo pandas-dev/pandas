@@ -62,7 +62,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -91,7 +91,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -99,7 +99,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -128,7 +128,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -136,7 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         float64_t result
 
@@ -495,7 +495,6 @@ def group_fillna_indexer(
     ndarray[intp_t] labels,
     ndarray[intp_t] sorted_labels,
     ndarray[uint8_t] mask,
-    str direction,
     int64_t limit,
     bint dropna,
 ) -> None:
@@ -510,14 +509,11 @@ def group_fillna_indexer(
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
     sorted_labels : np.ndarray[np.intp]
-        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
-        direction == "bfill"
+        obtained by `np.argsort(labels, kind="mergesort")`
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
-    direction : {'ffill', 'bfill'}
-        Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
     dropna : Flag to indicate if NaN groups should return all NaN values
 
@@ -1300,7 +1296,8 @@ ctypedef fused numeric_object_complex_t:
     complex128_t
 
 
-cdef bint _treat_as_na(numeric_object_complex_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_complex_t val,
+                       bint is_datetimelike) noexcept nogil:
     if numeric_object_complex_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.

@@ -913,7 +913,6 @@ cdef class SingleConstructorOffset(BaseOffset):
 cdef class Tick(SingleConstructorOffset):
     _adjust_dst = False
     _prefix = "undefined"
-    _td64_unit = "undefined"
     _attributes = tuple(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
@@ -1093,7 +1092,6 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
-    _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
@@ -1101,7 +1099,6 @@ cdef class Day(Tick):
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
-    _td64_unit = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -1109,7 +1106,6 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
-    _td64_unit = "m"
     _period_dtype_code = PeriodDtypeCode.T
     _creso = NPY_DATETIMEUNIT.NPY_FR_m
 
@@ -1117,7 +1113,6 @@ cdef class Minute(Tick):
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
-    _td64_unit = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
@@ -1125,7 +1120,6 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
-    _td64_unit = "ms"
     _period_dtype_code = PeriodDtypeCode.L
     _creso = NPY_DATETIMEUNIT.NPY_FR_ms
 
@@ -1133,7 +1127,6 @@ cdef class Milli(Tick):
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
-    _td64_unit = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
@@ -1141,7 +1134,6 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
-    _td64_unit = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
@@ -3826,6 +3818,17 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
@@ -4494,14 +4497,14 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int year_add_months(npy_datetimestruct dts, int months) noexcept nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef int month_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int month_add_months(npy_datetimestruct dts, int months) noexcept nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
@@ -4723,7 +4726,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -4768,7 +4771,7 @@ cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
         return get_lastbday(dts.year, dts.month)
 
 
-cpdef int roll_convention(int other, int n, int compare) nogil:
+cpdef int roll_convention(int other, int n, int compare) noexcept nogil:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
