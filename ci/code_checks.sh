@@ -250,14 +250,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.mean \
         pandas.DatetimeIndex.std \
         pandas.TimedeltaIndex \
-        pandas.TimedeltaIndex.seconds \
-        pandas.TimedeltaIndex.microseconds \
-        pandas.TimedeltaIndex.nanoseconds \
-        pandas.TimedeltaIndex.components \
-        pandas.TimedeltaIndex.inferred_freq \
-        pandas.TimedeltaIndex.as_unit \
-        pandas.TimedeltaIndex.to_pytimedelta \
-        pandas.TimedeltaIndex.mean \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \
