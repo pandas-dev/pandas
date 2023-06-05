@@ -619,7 +619,7 @@ Previous behavior:
 
 .. code-block:: ipython
 
-   In [1]: pi = pd.period_range('2017-01', periods=12, freq='ME')
+   In [1]: pi = pd.period_range('2017-01', periods=12, freq='M')
 
    In [2]: s = pd.Series(np.arange(12), index=pi)
 
@@ -639,7 +639,7 @@ New behavior:
 
 .. ipython:: python
 
-   pi = pd.period_range('2017-01', periods=12, freq='ME')
+   pi = pd.period_range('2017-01', periods=12, freq='M')
 
    s = pd.Series(np.arange(12), index=pi)
 
@@ -666,7 +666,7 @@ Previous behavior:
    2000-01-10 23:00    NaN
    Freq: H, Length: 240, dtype: float64
 
-   In [4]: s.resample('ME').ohlc()
+   In [4]: s.resample('M').ohlc()
    Out[4]:
             open  high  low  close
    2000-01     0     9    0      9
@@ -681,7 +681,7 @@ New behavior:
 
    s.resample('H').ohlc()
 
-   s.resample('ME').ohlc()
+   s.resample('M').ohlc()
 
 
 .. _whatsnew_0210.api_breaking.pandas_eval:

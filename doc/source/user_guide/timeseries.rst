@@ -105,7 +105,7 @@ data however will be stored as ``object`` data.
 
 .. ipython:: python
 
-   pd.Series(pd.period_range("1/1/2011", freq="ME", periods=3))
+   pd.Series(pd.period_range("1/1/2011", freq="M", periods=3))
    pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
    pd.Series(pd.date_range("1/1/2011", freq="ME", periods=3))
 
@@ -1976,10 +1976,10 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p = pd.Period("2012", freq="A-DEC")
    p + 1
    p - 3
-   p = pd.Period("2012-01", freq="2ME")
+   p = pd.Period("2012-01", freq="2M")
    p + 2
    p - 1
-   p == pd.Period("2012-01", freq="3ME")
+   p == pd.Period("2012-01", freq="3M")
 
 
 If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
@@ -2002,7 +2002,7 @@ If ``Period`` has other frequencies, only the same ``offsets`` can be added. Oth
 
 .. ipython:: python
 
-   p = pd.Period("2014-07", freq="ME")
+   p = pd.Period("2014-07", freq="M")
    p + pd.offsets.MonthEnd(3)
 
 .. code-block:: ipython
@@ -2026,21 +2026,21 @@ which can be constructed using the ``period_range`` convenience function:
 
 .. ipython:: python
 
-   prng = pd.period_range("1/1/2011", "1/1/2012", freq="ME")
+   prng = pd.period_range("1/1/2011", "1/1/2012", freq="M")
    prng
 
 The ``PeriodIndex`` constructor can also be used directly:
 
 .. ipython:: python
 
-   pd.PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="ME")
+   pd.PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
 
 Passing multiplied frequency outputs a sequence of ``Period`` which
 has multiplied span.
 
 .. ipython:: python
 
-   pd.period_range(start="2014-01", freq="3ME", periods=4)
+   pd.period_range(start="2014-01", freq="3M", periods=4)
 
 If ``start`` or ``end`` are ``Period`` objects, they will be used as anchor
 endpoints for a ``PeriodIndex`` with frequency matching that of the
@@ -2049,7 +2049,7 @@ endpoints for a ``PeriodIndex`` with frequency matching that of the
 .. ipython:: python
 
    pd.period_range(
-       start=pd.Period("2017Q1", freq="Q"), end=pd.Period("2017Q2", freq="Q"), freq="ME"
+       start=pd.Period("2017Q1", freq="Q"), end=pd.Period("2017Q2", freq="Q"), freq="M"
    )
 
 Just like ``DatetimeIndex``, a ``PeriodIndex`` can also be used to index pandas
@@ -2068,7 +2068,7 @@ objects:
    idx
    idx + pd.offsets.Hour(2)
 
-   idx = pd.period_range("2014-07", periods=5, freq="ME")
+   idx = pd.period_range("2014-07", periods=5, freq="M")
    idx
    idx + pd.offsets.MonthEnd(3)
 
@@ -2083,11 +2083,11 @@ Period dtypes
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
-``period[freq]`` like ``period[D]`` or ``period[ME]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
 
 .. ipython:: python
 
-   pi = pd.period_range("2016-01-01", periods=3, freq="ME")
+   pi = pd.period_range("2016-01-01", periods=3, freq="M")
    pi
    pi.dtype
 
@@ -2106,7 +2106,7 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    # convert to PeriodIndex
    dti = pd.date_range("2011-01-01", freq="ME", periods=3)
    dti
-   dti.astype("period[ME]")
+   dti.astype("period[M]")
 
 PeriodIndex partial string indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2159,16 +2159,16 @@ specify whether to return the starting or ending month:
 
 .. ipython:: python
 
-   p.asfreq("ME", how="start")
+   p.asfreq("M", how="start")
 
-   p.asfreq("ME", how="end")
+   p.asfreq("M", how="end")
 
 The shorthands 's' and 'e' are provided for convenience:
 
 .. ipython:: python
 
-   p.asfreq("ME", "s")
-   p.asfreq("ME", "e")
+   p.asfreq("M", "s")
+   p.asfreq("M", "e")
 
 Converting to a "super-period" (e.g., annual frequency is a super-period of
 quarterly frequency) automatically returns the super-period that includes the
@@ -2176,7 +2176,7 @@ input period:
 
 .. ipython:: python
 
-   p = pd.Period("2011-12", freq="ME")
+   p = pd.Period("2011-12", freq="M")
 
    p.asfreq("A-NOV")
 
@@ -2253,7 +2253,7 @@ the quarter end:
 
    ts = pd.Series(np.random.randn(len(prng)), prng)
 
-   ts.index = (prng.asfreq("ME", "e") + 1).asfreq("H", "s") + 9
+   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
 
    ts.head()
 

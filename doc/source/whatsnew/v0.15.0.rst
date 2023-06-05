@@ -1035,7 +1035,7 @@ Other:
      idx + pd.offsets.Hour(2)
      idx + pd.Timedelta('120m')
 
-     idx = pd.period_range('2014-07', periods=5, freq='ME')
+     idx = pd.period_range('2014-07', periods=5, freq='M')
      idx
      idx + pd.offsets.MonthEnd(3)
 

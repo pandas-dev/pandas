@@ -945,7 +945,7 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 .. code-block:: ipython
 
-    In [2]: pi = pd.period_range('June 2018', freq='ME', periods=3)
+    In [2]: pi = pd.period_range('June 2018', freq='M', periods=3)
 
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
@@ -954,7 +954,7 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 .. ipython:: python
 
-    pi = pd.period_range('June 2018', freq='ME', periods=3)
+    pi = pd.period_range('June 2018', freq='M', periods=3)
     pi - pi[0]
 
 

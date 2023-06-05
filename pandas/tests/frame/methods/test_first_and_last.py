@@ -28,7 +28,7 @@ class TestFirst:
             assert len(result) == 10
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            result = ts.first("3M")
+            result = ts.first("3ME")
             expected = ts[:"3/31/2000"]
             tm.assert_equal(result, expected)
 
@@ -38,7 +38,7 @@ class TestFirst:
             tm.assert_equal(result, expected)
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            result = ts[:0].first("3M")
+            result = ts[:0].first("3ME")
             tm.assert_equal(result, ts[:0])
 
     def test_first_last_raises(self, frame_or_series):
@@ -85,7 +85,7 @@ class TestFirst:
         # GH#29623
         x = frame_or_series([1] * 100, index=bdate_range(start, periods=100))
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            result = x.first("1M")
+            result = x.first("1ME")
         expected = frame_or_series(
             [1] * periods, index=bdate_range(start, periods=periods)
         )
@@ -95,7 +95,7 @@ class TestFirst:
         # GH#29623
         x = frame_or_series([1] * 100, index=bdate_range("2010-03-31", periods=100))
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
-            result = x.first("2M")
+            result = x.first("2ME")
         expected = frame_or_series(
             [1] * 23, index=bdate_range("2010-03-31", "2010-04-30")
         )

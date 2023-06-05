@@ -888,7 +888,7 @@ Calculate the first day of the month for each entry in a DatetimeIndex
 .. ipython:: python
 
    dates = pd.date_range("2000-01-01", periods=5)
-   dates.to_period(freq="ME").to_timestamp()
+   dates.to_period(freq="M").to_timestamp()
 
 .. _cookbook.resample:
 

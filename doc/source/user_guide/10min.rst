@@ -656,7 +656,7 @@ the quarter end:
 
    prng = pd.period_range("1990Q1", "2000Q4", freq="Q-NOV")
    ts = pd.Series(np.random.randn(len(prng)), prng)
-   ts.index = (prng.asfreq("ME", "e") + 1).asfreq("H", "s") + 9
+   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
    ts.head()
 
 Categoricals
