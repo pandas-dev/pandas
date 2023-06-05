@@ -173,6 +173,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
     # methods that dispatch to array and wrap result in Index
     # These are defined here instead of via inherit_names for mypy
 
+    @doc(PeriodArray.strftime)
+    def strftime(self, date_format: str, fast_strftime: bool = True) -> Index:
+        arr = self._data.strftime(date_format, fast_strftime=fast_strftime)
+        return Index(arr, name=self.name, dtype=object)
+
     @doc(
         PeriodArray.asfreq,
         other="pandas.arrays.PeriodArray",
