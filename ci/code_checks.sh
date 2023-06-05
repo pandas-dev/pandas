@@ -82,15 +82,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
         pandas.Series.pad \
-        pandas.Series.sparse \
         pandas.DataFrame.sparse \
-        pandas.Series.cat.codes \
-        pandas.Series.cat.reorder_categories \
-        pandas.Series.cat.set_categories \
-        pandas.Series.cat.as_ordered \
-        pandas.Series.cat.as_unordered \
-        pandas.Series.sparse.fill_value \
-        pandas.Flags \
         pandas.Series.attrs \
         pandas.Series.plot \
         pandas.Series.hist \
@@ -242,7 +234,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
-        pandas.DatetimeIndex.indexer_between_time \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \
         pandas.DatetimeIndex.to_pydatetime \
