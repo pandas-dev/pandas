@@ -20,7 +20,7 @@ def sliding_min_max(
     end: np.ndarray,
     min_periods: int,
     is_max: bool,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
     output = np.empty(N, dtype=result_dtype)

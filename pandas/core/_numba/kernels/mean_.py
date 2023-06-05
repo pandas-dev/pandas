@@ -64,7 +64,7 @@ def sliding_mean(
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
     sum_x = 0.0

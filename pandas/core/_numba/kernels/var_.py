@@ -73,7 +73,7 @@ def sliding_var(
     end: np.ndarray,
     min_periods: int,
     ddof: int = 1,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
     mean_x = 0.0
