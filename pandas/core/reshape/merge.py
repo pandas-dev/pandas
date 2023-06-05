@@ -294,7 +294,7 @@ def merge_ordered(
     ...     }
     ... )
     >>> df1
-          key  lvalue group
+      key  lvalue group
     0   a       1     a
     1   c       2     a
     2   e       3     a
@@ -304,7 +304,7 @@ def merge_ordered(
 
     >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
     >>> df2
-          key  rvalue
+      key  rvalue
     0   b       1
     1   c       2
     2   d       3
