@@ -11275,7 +11275,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         GOOG  0.179241  0.094112   NaN
         APPL -0.252395 -0.011860   NaN
         """
-        # GH#53491: deprecate default fill_method=False
+        # GH#53491: deprecate default fill_method="pad"
         # TODO: In 3.x, change default fill_method=None, then also in 3.x
         # deprecate the fill_method and limit keywords, and finally remove
         # them in 4.x
