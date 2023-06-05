@@ -16,6 +16,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Literal,
     Sequence,
     cast,
 )
@@ -288,6 +289,11 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        return self.agg_or_apply_list_like(op_name="agg")
+
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
         from pandas.core.groupby.generic import (
             DataFrameGroupBy,
             SeriesGroupBy,
@@ -296,6 +302,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(List[AggFuncTypeBase], self.func)
+        kwargs = self.kwargs
+        if op_name == "apply":
+            kwargs = {**kwargs, "by_row": False}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -313,8 +322,6 @@ class Apply(metaclass=abc.ABCMeta):
         keys = []
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-        is_ser_or_df = isinstance(obj, (ABCDataFrame, ABCSeries))
-        this_args = [self.axis, *self.args] if is_ser_or_df else self.args
 
         context_manager: ContextManager
         if is_groupby:
@@ -323,12 +330,19 @@ class Apply(metaclass=abc.ABCMeta):
             context_manager = com.temp_setattr(obj, "as_index", True)
         else:
             context_manager = nullcontext()
+
+        def include_axis(colg) -> bool:
+            return isinstance(colg, ABCDataFrame) or (
+                isinstance(colg, ABCSeries) and op_name == "agg"
+            )
+
         with context_manager:
             # degenerate case
             if selected_obj.ndim == 1:
                 for a in func:
                     colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    new_res = colg.aggregate(a, *this_args, **self.kwargs)
+                    args = [self.axis, *self.args] if include_axis(colg) else self.args
+                    new_res = getattr(colg, op_name)(a, *args, **kwargs)
                     results.append(new_res)
 
                     # make sure we find a good name
@@ -339,7 +353,8 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = []
                 for index, col in enumerate(selected_obj):
                     colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    new_res = colg.aggregate(func, *this_args, **self.kwargs)
+                    args = [self.axis, *self.args] if include_axis(colg) else self.args
+                    new_res = getattr(colg, op_name)(func, *args, **kwargs)
                     results.append(new_res)
                     indices.append(index)
                 keys = selected_obj.columns.take(indices)
@@ -366,6 +381,11 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
+        return self.agg_or_apply_dict_like(op_name="agg")
+
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
         from pandas import Index
         from pandas.core.groupby.generic import (
             DataFrameGroupBy,
@@ -373,8 +393,11 @@ class Apply(metaclass=abc.ABCMeta):
         )
         from pandas.core.reshape.concat import concat
 
+        assert op_name in ["agg", "apply"]
+
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
+        kwargs = {"by_row": False} if op_name == "apply" else {}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -387,7 +410,7 @@ class Apply(metaclass=abc.ABCMeta):
             selected_obj = obj._selected_obj
             selection = obj._selection
 
-        func = self.normalize_dictlike_arg("agg", selected_obj, func)
+        func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
         is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
         context_manager: ContextManager
@@ -404,17 +427,18 @@ class Apply(metaclass=abc.ABCMeta):
         )
 
         # Numba Groupby engine/engine-kwargs passthrough
-        kwargs = {}
         if is_groupby:
             engine = self.kwargs.get("engine", None)
             engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwargs = {"engine": engine, "engine_kwargs": engine_kwargs}
+            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with context_manager:
             if selected_obj.ndim == 1:
                 # key only used for output
                 colg = obj._gotitem(selection, ndim=1)
-                result_data = [colg.agg(how, **kwargs) for _, how in func.items()]
+                result_data = [
+                    getattr(colg, op_name)(how, **kwargs) for _, how in func.items()
+                ]
                 result_index = list(func.keys())
             elif is_non_unique_col:
                 # key used for column selection and output
@@ -429,7 +453,9 @@ class Apply(metaclass=abc.ABCMeta):
                         label_to_indices[label].append(index)
 
                     key_data = [
-                        selected_obj._ixs(indice, axis=1).agg(how, **kwargs)
+                        getattr(selected_obj._ixs(indice, axis=1), op_name)(
+                            how, **kwargs
+                        )
                         for label, indices in label_to_indices.items()
                         for indice in indices
                     ]
@@ -439,7 +465,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 # key used for column selection and output
                 result_data = [
-                    obj._gotitem(key, ndim=1).agg(how, **kwargs)
+                    getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
                     for key, how in func.items()
                 ]
                 result_index = list(func.keys())
@@ -535,7 +561,7 @@ class Apply(metaclass=abc.ABCMeta):
                     self.kwargs["axis"] = self.axis
         return self._apply_str(obj, func, *self.args, **self.kwargs)
 
-    def apply_multiple(self) -> DataFrame | Series:
+    def apply_list_or_dict_like(self) -> DataFrame | Series:
         """
         Compute apply in case of a list-like or dict-like.
 
@@ -551,9 +577,9 @@ class Apply(metaclass=abc.ABCMeta):
         kwargs = self.kwargs
 
         if is_dict_like(func):
-            result = self.agg_dict_like()
+            result = self.agg_or_apply_dict_like(op_name="apply")
         else:
-            result = self.agg_list_like()
+            result = self.agg_or_apply_list_like(op_name="apply")
 
         result = reconstruct_and_relabel_result(result, func, **kwargs)
 
@@ -692,9 +718,9 @@ class FrameApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
-        # dispatch to agg
+        # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
-            return self.apply_multiple()
+            return self.apply_list_or_dict_like()
 
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
@@ -1041,6 +1067,7 @@ class FrameColumnApply(FrameApply):
 class SeriesApply(NDFrameApply):
     obj: Series
     axis: AxisInt = 0
+    by_row: bool  # only relevant for apply()
 
     def __init__(
         self,
@@ -1048,6 +1075,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
+        by_row: bool = True,
         args,
         kwargs,
     ) -> None:
@@ -1062,6 +1090,7 @@ class SeriesApply(NDFrameApply):
                 stacklevel=find_stack_level(),
             )
         self.convert_dtype = convert_dtype
+        self.by_row = by_row
 
         super().__init__(
             obj,
@@ -1078,9 +1107,9 @@ class SeriesApply(NDFrameApply):
         if len(obj) == 0:
             return self.apply_empty_result()
 
-        # dispatch to agg
+        # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
-            return self.apply_multiple()
+            return self.apply_list_or_dict_like()
 
         if isinstance(self.func, str):
             # if we are a string, try to dispatch
@@ -1126,6 +1155,8 @@ class SeriesApply(NDFrameApply):
         if isinstance(func, np.ufunc):
             with np.errstate(all="ignore"):
                 return func(obj, *self.args, **self.kwargs)
+        elif not self.by_row:
+            return func(obj, *self.args, **self.kwargs)
 
         if self.args or self.kwargs:
             # _map_values does not support args/kwargs
