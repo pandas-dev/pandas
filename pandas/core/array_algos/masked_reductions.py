@@ -123,7 +123,7 @@ def _minmax(
     else:
         subset = values[~mask]
         if subset.size:
-            return func(values, where=~mask, axis=axis, initial=subset[0])
+            return func(subset, axis=axis)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
