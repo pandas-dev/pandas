@@ -1992,7 +1992,7 @@ class ArrowDtype(StorageExtensionDtype):
     timestamp[s, tz=America/New_York][pyarrow]
     >>> pd.ArrowDtype(pa.list_(pa.int64()))
     list<item: int64>[pyarrow]
-    """  # noqa: E501
+    """
 
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
