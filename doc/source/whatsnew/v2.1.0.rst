@@ -99,10 +99,11 @@ Other enhancements
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
 - :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
+- :meth:`SeriesGroupby.agg` and :meth:`DataFrameGroupby.agg` now support passing in multiple functions for ``engine="numba"`` (:issue:`53486`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
+- Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
