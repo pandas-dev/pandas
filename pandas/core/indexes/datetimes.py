@@ -764,6 +764,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         --------
         indexer_at_time : Get index locations of values at particular time of day.
         DataFrame.between_time : Select values between particular times of day.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2023-01-01", periods=4, freq="H")
+        >>> idx
+        DatetimeIndex(['2023-01-01 00:00:00', '2023-01-01 01:00:00',
+                           '2023-01-01 02:00:00', '2023-01-01 03:00:00'],
+                          dtype='datetime64[ns]', freq='H')
+        >>> idx.indexer_between_time("00:00", "2:00", include_end=False)
+        array([0, 1])
         """
         start_time = to_time(start_time)
         end_time = to_time(end_time)

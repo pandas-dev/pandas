@@ -32,9 +32,9 @@ class Flags:
            it is expected that every method taking or returning one or more
            DataFrame or Series objects will propagate ``allows_duplicate_labels``.
 
-    Notes
-    -----
-    Attributes can be set in two ways
+    Examples
+    --------
+    Attributes can be set in two ways:
 
     >>> df = pd.DataFrame()
     >>> df.flags
