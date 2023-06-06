@@ -880,7 +880,7 @@ class DataFrameFormatter:
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
 
-            max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 

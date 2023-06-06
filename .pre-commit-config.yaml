@@ -28,7 +28,7 @@ repos:
         types_or: [python, pyi]
         additional_dependencies: [black==23.3.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.264
+    rev: v0.0.270
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -65,11 +65,7 @@ repos:
     rev: 1.6.1
     hooks:
     -   id: cpplint
-        # We don't lint all C files because we don't want to lint any that are built
-        # from Cython files nor do we want to lint C files that we didn't modify for
-        # this particular codebase (e.g. src/headers, src/klib). However,
-        # we can lint all header files since they aren't "generated" like C files are.
-        exclude: ^pandas/_libs/src/(klib|headers)/
+        exclude: ^pandas/_libs/include/pandas/vendored/klib
         args: [
             --quiet,
             '--extensions=c,h',
@@ -79,7 +75,7 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
+    rev: v3.0.0a6
     hooks:
     -   id: pylint
         stages: [manual]
@@ -107,7 +103,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.2
+    rev: v3.4.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
