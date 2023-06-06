@@ -98,14 +98,24 @@ def test_apply_args():
     assert isinstance(result[0], list)
 
 
-def test_agg_args():
-    def f(x, increment):
-        return x.sum() + increment
+@pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    result = s.agg(f, increment=0)
-    expected = s.sum()
-    assert result == expected
+    msg = (
+        "in Series.agg cannot aggregate and has been deprecated. "
+        "Use Series.transform to keep behavior unchanged."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.agg(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
 
 
 def test_agg_mapping_func_deprecated():
