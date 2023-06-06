@@ -424,7 +424,7 @@ def lexsort_indexer(
 
 def nargsort(
     items: ArrayLike | Index | Series,
-    kind: SortKind = "quicksort",
+    kind: SortKind = "stable",
     ascending: bool = True,
     na_position: str = "last",
     key: Callable | None = None,
