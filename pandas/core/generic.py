@@ -11330,7 +11330,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             skipna=skipna,
             numeric_only=bool_only,
             filter_type="bool",
-        ).__finalize__(self)
+        )
 
     def any(
         self,
@@ -11449,7 +11449,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         return self._stat_function_ddof(
             "sem", nanops.nansem, axis, skipna, ddof, numeric_only, **kwargs
-        ).__finalize__(self, method="max")
+        )
 
     def var(
         self,
@@ -11461,7 +11461,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         return self._stat_function_ddof(
             "var", nanops.nanvar, axis, skipna, ddof, numeric_only, **kwargs
-        ).__finalize__(self, method="var")
+        )
 
     def std(
         self,
@@ -11473,7 +11473,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         return self._stat_function_ddof(
             "std", nanops.nanstd, axis, skipna, ddof, numeric_only, **kwargs
-        ).__finalize__(self, method="std")
+        )
 
     @final
     def _stat_function(
@@ -11639,7 +11639,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             numeric_only,
             min_count,
             **kwargs,
-        ).__finalize__(self, method="prod")
+        )
 
     product = prod
 
