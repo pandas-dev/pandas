@@ -8,6 +8,7 @@ from typing import (
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
+    from typing import Any
 
 import numpy as np
 
@@ -43,7 +44,7 @@ def make_looper(func, result_dtype, nopython, nogil, parallel):
     return column_looper
 
 
-default_dtype_mapping = {
+default_dtype_mapping: dict[np.dtype, Any] = {
     np.dtype("int8"): np.int64,
     np.dtype("int16"): np.int64,
     np.dtype("int32"): np.int64,

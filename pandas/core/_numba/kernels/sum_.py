@@ -8,6 +8,8 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numba
 import numpy as np
 
@@ -16,13 +18,13 @@ from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def add_sum(
-    val: float,
+    val: Any,
     nobs: int,
-    sum_x: float,
-    compensation: float,
+    sum_x: Any,
+    compensation: Any,
     num_consecutive_same_value: int,
-    prev_value: float,
-) -> tuple[int, float, float, int, float]:
+    prev_value: Any,
+) -> tuple[int, Any, Any, int, Any]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation
@@ -41,8 +43,8 @@ def add_sum(
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_sum(
-    val: float, nobs: int, sum_x: float, compensation: float
-) -> tuple[int, float, float]:
+    val: Any, nobs: int, sum_x: Any, compensation: Any
+) -> tuple[int, Any, Any]:
     if not np.isnan(val):
         nobs -= 1
         y = -val - compensation
@@ -62,10 +64,9 @@ def sliding_sum(
 ) -> tuple[np.ndarray, list[int]]:
     dtype = values.dtype
 
+    na_val: object = np.nan
     if dtype.kind == "i":
         na_val = 0
-    else:
-        na_val = np.nan
 
     N = len(start)
     nobs = 0
@@ -128,7 +129,7 @@ def sliding_sum(
                 )
 
         if nobs == 0 == min_periods:
-            result = 0
+            result: object = 0
         elif nobs >= min_periods:
             if num_consecutive_same_value >= nobs:
                 result = prev_value * nobs

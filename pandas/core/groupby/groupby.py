@@ -135,6 +135,8 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -1347,7 +1349,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _numba_agg_general(
         self,
         func: Callable,
-        dtype_mapping: dict[np.dtype, np.dtype],
+        dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
         **aggregator_kwargs,
     ):
@@ -1381,8 +1383,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result = df._constructor(result)
 
         if data.ndim == 1:
-            result.name = data.name
             result = result.squeeze("columns")
+            result.name = data.name
         else:
             result.columns = data.columns
         return result
@@ -2427,7 +2429,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            dtype_mapping = {
+            dtype_mapping: dict[np.dtype, Any] = {
                 np.dtype("int8"): np.int8,
                 np.dtype("int16"): np.int16,
                 np.dtype("int32"): np.int32,
@@ -2467,7 +2469,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            dtype_mapping = {
+            dtype_mapping: dict[np.dtype, Any] = {
                 np.dtype("int8"): np.int8,
                 np.dtype("int16"): np.int16,
                 np.dtype("int32"): np.int32,

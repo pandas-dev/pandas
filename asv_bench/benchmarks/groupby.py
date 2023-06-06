@@ -486,7 +486,8 @@ class GroupByMethods:
         ],
         ["direct", "transformation"],
         [1, 5],
-        ["cython", "numba"],
+        # ["cython", "numba"],
+        ["numba"],
     ]
 
     def setup(self, dtype, method, application, ncols, engine):
@@ -508,7 +509,17 @@ class GroupByMethods:
             # DataFrameGroupBy doesn't have these methods
             raise NotImplementedError
 
-        if engine == "numba" and method in _numba_unsupported_methods or ncols > 1:
+        # Numba currently doesn't support
+        # multiple transform functions or strs for transform,
+        # grouping on multiple columns
+        # and we lack kernels for a bunch of methods
+        if (
+            engine == "numba"
+            and method in _numba_unsupported_methods
+            or ncols > 1
+            or application == "transformation"
+            or dtype == "datetime"
+        ):
             raise NotImplementedError
 
         if method == "describe":
@@ -565,16 +576,8 @@ class GroupByMethods:
     def time_dtype_as_group(self, dtype, method, application, ncols, engine):
         self.as_group_method()
 
-    # def time_dtype_as_group_numba(self, dtype, method, application, ncols):
-    #     with pd.option_context("compute.use_numba", True):
-    #         self.as_group_method()
-
     def time_dtype_as_field(self, dtype, method, application, ncols, engine):
         self.as_field_method()
-
-    # def time_dtype_as_field_numba(self, dtype, method, application, ncols):
-    #     with pd.option_context("compute.use_numba", True):
-    #         self.as_field_method()
 
 
 class GroupByCythonAgg:

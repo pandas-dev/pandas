@@ -649,7 +649,7 @@ class BaseWindow(SelectionMixin):
         # For now, map everything to float to match the Cython impl
         # even though it is wrong
         # TODO: Could preserve correct dtypes in future
-        dtype_mapping = {
+        dtype_mapping: dict[np.dtype, Any] = {
             np.dtype("int8"): np.float64,
             np.dtype("int16"): np.float64,
             np.dtype("int32"): np.float64,
