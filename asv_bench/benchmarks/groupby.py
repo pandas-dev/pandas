@@ -622,6 +622,11 @@ class GroupByNumbaAgg(GroupByCythonAgg):
     time is actually spent in the grouped aggregation).
     """
 
+    def setup(self, dtype, method):
+        if method in _numba_unsupported_methods:
+            raise NotImplementedError
+        super().setup(dtype, method)
+
     def time_frame_agg(self, dtype, method):
         with pd.option_context("compute.use_numba", True):
             self.df.groupby("key").agg(method)
