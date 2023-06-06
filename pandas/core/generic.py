@@ -6823,7 +6823,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @final
     def _fillna_with_method(
         self,
-        method: Literal["ffill", "bfill"],
+        method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
         axis: None | Axis = None,
         inplace: bool_t = False,
@@ -6833,6 +6833,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
+        method = clean_fill_method(method)
 
         if not self._mgr.is_single_block and axis == 1:
             if inplace:
@@ -7035,7 +7036,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if value is None:
             return self._fillna_with_method(
-                method, axis=axis, limit=limit, inplace=inplace, downcast=downcast
+                # error: Argument 1 to "_fillna_with_method" of "NDFrame" has
+                # incompatible type "Optional[Literal['backfill', 'bfill', 'ffill',
+                # 'pad']]"; expected "Literal['ffill', 'bfill', 'pad', 'backfill']"
+                method,  # type: ignore[arg-type]
+                axis=axis,
+                limit=limit,
+                inplace=inplace,
+                downcast=downcast,
             )
         else:
             if self.ndim == 1:
@@ -7136,7 +7144,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if axis == 1:
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    new_data = result
+                    # error: Incompatible types in assignment (expression
+                    # has type "Self", variable has type "Union[ArrayManager,
+                    # SingleArrayManager, BlockManager, SingleBlockManager]")
+                    new_data = result  # type: ignore[assignment]
                 else:
                     new_data = self._mgr.fillna(
                         value=value, limit=limit, inplace=inplace, downcast=downcast
