@@ -1128,7 +1128,7 @@ class SeriesApply(NDFrameApply):
 
             # GH53325: The setup below is just to keep current behavior while emitting a
             # deprecation message. In the future this will all be replaced with a simple
-            # `result = f(self.obj)`.
+            # `result = f(self.obj, *self.args, **self.kwargs)`.
             try:
                 result = obj.apply(func, args=self.args, **self.kwargs)
             except (ValueError, AttributeError, TypeError):

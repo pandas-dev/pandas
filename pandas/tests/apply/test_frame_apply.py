@@ -1489,12 +1489,24 @@ def test_agg_mapping_func_deprecated():
         return x + b + c
 
     # single func already takes the vectorized path
-    df.agg(foo1, 0, 3, c=4)
+    result = df.agg(foo1, 0, 3, c=4)
+    expected = df + 7
+    tm.assert_frame_equal(result, expected)
+
     msg = "using .+ in Series.agg cannot aggregate and"
+
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.agg([foo1, foo2], 0, 3, c=4)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.agg({"x": foo1}, 0, 3, c=4)
+        result = df.agg([foo1, foo2], 0, 3, c=4)
+    expected = pd.DataFrame(
+        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    # TODO: the result below is wrong, should be fixed (GH53325)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg({"x": foo1}, 0, 3, c=4)
+    expected = pd.DataFrame([2, 3, 4], columns=["x"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_std():
