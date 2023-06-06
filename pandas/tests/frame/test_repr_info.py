@@ -400,30 +400,36 @@ NaT   4"""
 
     def test_to_records_with_inf_as_na_record(self):
         # GH 48526
-        with option_context("use_inf_as_na", True):
-            df = DataFrame(
-                [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, np.inf]
-            )
-            df["record"] = df[[np.nan, np.inf]].to_records()
-            expected = """   NaN  inf         record
+        expected = """   NaN  inf         record
 0  NaN    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
-            result = repr(df)
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with option_context("use_inf_as_na", True):
+                df = DataFrame(
+                    [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
+                    columns=[np.nan, np.inf],
+                )
+                df["record"] = df[[np.nan, np.inf]].to_records()
+                result = repr(df)
         assert result == expected
 
     def test_to_records_with_inf_record(self):
         # GH 48526
-        with option_context("use_inf_as_na", False):
-            df = DataFrame(
-                [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]], columns=[np.nan, np.inf]
-            )
-            df["record"] = df[[np.nan, np.inf]].to_records()
-            expected = """   NaN  inf         record
+        expected = """   NaN  inf         record
 0  inf    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
-            result = repr(df)
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with option_context("use_inf_as_na", False):
+                df = DataFrame(
+                    [[np.inf, "b"], [np.nan, np.nan], ["e", "f"]],
+                    columns=[np.nan, np.inf],
+                )
+                df["record"] = df[[np.nan, np.inf]].to_records()
+                result = repr(df)
         assert result == expected
 
     def test_masked_ea_with_formatter(self):
