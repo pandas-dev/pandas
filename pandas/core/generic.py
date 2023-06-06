@@ -334,6 +334,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         DataFrame.flags : Global flags applying to this object.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser.attrs = {"A": [10, 20, 30]}
+        >>> ser.attrs
+        {'A': [10, 20, 30]}
         """
         if self._attrs is None:
             self._attrs = {}

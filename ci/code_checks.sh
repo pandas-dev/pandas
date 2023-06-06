@@ -82,12 +82,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
         pandas.Series.pad \
-        pandas.DataFrame.sparse \
-        pandas.Series.attrs \
-        pandas.Series.plot \
         pandas.Series.hist \
-        pandas.Series.to_string \
-        pandas.errors.AbstractMethodError \
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \

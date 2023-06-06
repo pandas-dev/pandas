@@ -775,6 +775,15 @@ class PlotAccessor(PandasObject):
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
       (center)
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> ser = pd.Series([1, 2, 3, 3])
+        >>> plot = ser.plot(kind='hist', title="My plot")
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")

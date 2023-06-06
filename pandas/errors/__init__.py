@@ -193,6 +193,22 @@ class AccessorRegistrationWarning(Warning):
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
+
+    Examples
+    --------
+    >>> class Foo:
+    ...     @classmethod
+    ...     def classmethod(cls):
+    ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
+    ...     def method(self):
+    ...         raise pd.errors.AbstractMethodError(self)
+    >>> test = Foo.classmethod()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+
+    >>> test2 = Foo().method()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
     """
 
     def __init__(self, class_instance, methodtype: str = "method") -> None:
