@@ -1713,6 +1713,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         str or None
             String representation of Series if ``buf=None``, otherwise None.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3]).to_string()
+        >>> ser
+        '0    1\\n1    2\\n2    3'
         """
         formatter = fmt.SeriesFormatter(
             self,
@@ -4496,6 +4502,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         func: AggFuncType,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
+        *,
+        by_row: bool = True,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4523,6 +4531,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
+        by_row : bool, default True
+            If False, the func will be passed the whole Series at once.
+            If True, will func will be passed each element of the Series, like
+            Series.map (backward compatible).
+
+            .. versionadded:: 2.1.0
         **kwargs
             Additional keyword arguments passed to func.
 
@@ -4611,7 +4625,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         return SeriesApply(
-            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+            self,
+            func,
+            convert_dtype=convert_dtype,
+            by_row=by_row,
+            args=args,
+            kwargs=kwargs,
         ).apply()
 
     def _reindex_indexer(

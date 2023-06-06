@@ -29,11 +29,6 @@ detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
 arise and we wish to also consider that "missing" or "not available" or "NA".
 
-.. note::
-
-   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
-   you can set ``pandas.options.mode.use_inf_as_na = True``.
-
 .. _missing.isna:
 
 .. ipython:: python
