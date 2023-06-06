@@ -246,8 +246,8 @@ _all_methods = [
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
     pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("squeeze")),
-        marks=not_implemented_mark,
+        # Squeeze on columns, otherwise we'll end up with a scalar
+        (pd.DataFrame, frame_data, operator.methodcaller("squeeze", axis="columns")),
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
@@ -374,11 +374,9 @@ _all_methods = [
     ),
     pytest.param(
         (pd.Series, ([1, 2],), operator.methodcaller("describe")),
-        marks=not_implemented_mark,
     ),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("describe")),
-        marks=not_implemented_mark,
     ),
     (pd.Series, ([1, 2],), operator.methodcaller("pct_change")),
     (pd.DataFrame, frame_data, operator.methodcaller("pct_change")),
@@ -767,7 +765,6 @@ def test_groupby_finalize(obj, method):
         lambda x: x.agg("sem"),
         lambda x: x.agg("size"),
         lambda x: x.agg("ohlc"),
-        lambda x: x.agg("describe"),
     ],
 )
 @not_implemented_mark
