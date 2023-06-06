@@ -866,7 +866,11 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
-        if not self.lines and "\n" in filepath_or_buffer:
+        if (
+            isinstance(filepath_or_buffer, str)
+            and not self.lines
+            and "\n" in filepath_or_buffer
+        ):
             warnings.warn(
                 "Passing literal json to 'read_json' is deprecated and "
                 "will be removed in a future version. To read from a "
