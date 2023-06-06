@@ -10933,21 +10933,20 @@ class DataFrame(NDFrame, OpsMixin):
         return res_ser
 
     @doc(make_doc("any", ndim=2))
-    # error: Signature of "any" incompatible with supertype "NDFrame"
-    def any(  # type: ignore[override]
+    def any(
         self,
         *,
         axis: Axis = 0,
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
+    ) -> Series | bool:
         result = self._logical_func(  # type: ignore[return-value]
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
-        return result.__finalize__(self, method="any")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="any")
+        return result
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -10956,13 +10955,13 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
-        result = self._logical_func(  # type: ignore[return-value]
+    ) -> Series | bool:
+        result = self._logical_func(
             "all", nanops.nanall, axis, bool_only, skipna, **kwargs
         )
-        return result.__finalize__(self, method="all")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="all")
+        return result
 
     @doc(make_doc("min", ndim=2))
     def min(
@@ -10973,7 +10972,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().min(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="min")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="min")
+        return result
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -10984,7 +10985,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().max(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="max")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="max")
+        return result
 
     @doc(make_doc("sum", ndim=2))
     def sum(
@@ -11019,7 +11022,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().mean(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="mean")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="mean")
+        return result
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11030,7 +11035,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().median(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="median")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="median")
+        return result
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11077,7 +11084,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().skew(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="skew")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="skew")
+        return result
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11088,7 +11097,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().kurt(axis, skipna, numeric_only, **kwargs)
-        return result.__finalize__(self, method="kurt")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="kurt")
+        return result
 
     kurtosis = kurt
     product = prod
