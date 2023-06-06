@@ -112,7 +112,7 @@ class TestBase:
     def test_create_index_existing_name(self, simple_index):
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
-        expected = simple_index
+        expected = simple_index.copy()
         if not isinstance(expected, MultiIndex):
             expected.name = "foo"
             result = Index(expected)
@@ -209,6 +209,12 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
+        if (
+            isinstance(simple_index, RangeIndex)
+            or is_numeric_dtype(simple_index.dtype)
+            or simple_index.dtype == object
+        ):
+            pytest.skip("Tested elsewhere.")
         idx = simple_index
         with pytest.raises(TypeError, match="cannot perform all"):
             idx.all()
@@ -539,7 +545,9 @@ class TestBase:
 
     def test_format(self, simple_index):
         # GH35439
-        if is_numeric_dtype(simple_index.dtype):
+        if is_numeric_dtype(simple_index.dtype) or isinstance(
+            simple_index, DatetimeIndex
+        ):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         expected = [str(x) for x in idx]
@@ -649,7 +657,7 @@ class TestBase:
             #  non-unique values, which raises.  This _should_ work fine for
             #  CategoricalIndex.
             pytest.skip(f"skipping tests for {type(idx)}")
-        elif isinstance(idx, DatetimeIndex, TimedeltaIndex, PeriodIndex):
+        elif isinstance(idx, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
             pytest.skip("Tested elsewhere.")
 
         identity = mapper(idx.values, idx)
@@ -905,6 +913,8 @@ class TestNumericBase:
         return request.param
 
     def test_constructor_unwraps_index(self, simple_index):
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("Tested elsewhere.")
         index_cls = type(simple_index)
         dtype = simple_index.dtype
 
@@ -919,6 +929,8 @@ class TestNumericBase:
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_view(self, simple_index):
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("Tested elsewhere.")
         index_cls = type(simple_index)
         dtype = simple_index.dtype
 

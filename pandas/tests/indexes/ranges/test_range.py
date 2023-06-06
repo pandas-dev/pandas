@@ -387,6 +387,14 @@ class TestRangeIndex:
         idx = RangeIndex(1, 2, name="asdf")
         assert idx.name == idx[1:].name
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            RangeIndex(start=0, stop=20, step=2, name="foo"),
+            RangeIndex(start=18, stop=-1, step=-2, name="bar"),
+        ],
+        ids=["index_inc", "index_dec"],
+    )
     def test_has_duplicates(self, index):
         assert index.is_unique
         assert not index.has_duplicates

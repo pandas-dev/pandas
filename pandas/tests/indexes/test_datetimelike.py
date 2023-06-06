@@ -68,7 +68,7 @@ class TestDatetimeLike:
 
     def test_str(self, simple_index):
         # test the string repr
-        idx = simple_index
+        idx = simple_index.copy()
         idx.name = "foo"
         assert f"length={len(idx)}" not in str(idx)
         assert "'foo'" in str(idx)
@@ -86,11 +86,11 @@ class TestDatetimeLike:
         idx = simple_index
 
         idx_view = idx.view("i8")
-        result = self._index_cls(idx)
+        result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx)
 
-        idx_view = idx.view(self._index_cls)
-        result = self._index_cls(idx)
+        idx_view = idx.view(type(simple_index))
+        result = type(simple_index)(idx)
         tm.assert_index_equal(result, idx_view)
 
     def test_map_callable(self, simple_index):
