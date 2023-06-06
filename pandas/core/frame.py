@@ -10970,7 +10970,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().min(axis, skipna, numeric_only, **kwargs)
+        result = super().min(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="min")
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -10980,7 +10981,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().max(axis, skipna, numeric_only, **kwargs)
+        result = super().max(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="max")
 
     @doc(make_doc("sum", ndim=2))
     def sum(
@@ -11003,7 +11005,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="prod")
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11013,7 +11016,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().mean(axis, skipna, numeric_only, **kwargs)
+        result = super().mean(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="mean")
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11023,7 +11027,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().median(axis, skipna, numeric_only, **kwargs)
+        result = super().median(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="median")
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11034,7 +11039,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        return result.__finalize__(self, method="sem")
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11045,7 +11051,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        return result.__finalize__(self, method="var")
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11056,7 +11063,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        result = cast(Series, super().std(axis, skipna, ddof, numeric_only, **kwargs))
+        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
         return result.__finalize__(self, method="std")
 
     @doc(make_doc("skew", ndim=2))
@@ -11067,7 +11074,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().skew(axis, skipna, numeric_only, **kwargs)
+        result = super().skew(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="skew")
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11077,7 +11085,8 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().kurt(axis, skipna, numeric_only, **kwargs)
+        result = super().kurt(axis, skipna, numeric_only, **kwargs)
+        return result.__finalize__(self, method="kurt")
 
     kurtosis = kurt
     product = prod
