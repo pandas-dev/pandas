@@ -284,15 +284,19 @@ class StringMethods(NoNewAttributesMixin):
                 min_len = pa.compute.min(value_lengths).as_py()
                 if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
-                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                    result = ArrowExtensionArray(
+                        result._pa_array.fill_null([None] * max_len)
+                    )
                 if min_len < max_len:
                     # append nulls to each scalar list element up to max_len
                     if not pa_version_under11p0:
-                        result._pa_array = pa.compute.list_slice(
-                            result._pa_array,
-                            start=0,
-                            stop=max_len,
-                            return_fixed_size_list=True,
+                        result = ArrowExtensionArray(
+                            pa.compute.list_slice(
+                                result._pa_array,
+                                start=0,
+                                stop=max_len,
+                                return_fixed_size_list=True,
+                            )
                         )
                     else:
                         all_null = np.full(max_len, fill_value=None, dtype=object)
@@ -304,7 +308,7 @@ class StringMethods(NoNewAttributesMixin):
                                 row = np.append(row, nulls)
                             new_values.append(row)
                         pa_type = result._pa_array.type
-                        result._pa_array = pa.array(new_values, type=pa_type)
+                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
                 if name is not None:
                     labels = name
                 else:
