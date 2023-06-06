@@ -1896,7 +1896,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj
             return DataFrameGroupBy(
                 subset,
-                self.grouper,
+                self.keys,
                 axis=self.axis,
                 level=self.level,
                 grouper=self.grouper,
@@ -1913,6 +1913,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj[key]
             return SeriesGroupBy(
                 subset,
+                self.keys,
                 level=self.level,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
