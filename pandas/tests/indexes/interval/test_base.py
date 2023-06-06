@@ -3,38 +3,24 @@ import pytest
 
 from pandas import IntervalIndex
 import pandas._testing as tm
-from pandas.tests.indexes.common import Base
 
 
-class TestBase(Base):
+class TestInterval:
     """
     Tests specific to the shared common index tests; unrelated tests should be placed
     in test_interval.py or the specific test file (e.g. test_astype.py)
     """
 
-    _index_cls = IntervalIndex
-
     @pytest.fixture
     def simple_index(self) -> IntervalIndex:
-        return self._index_cls.from_breaks(range(11), closed="right")
+        return IntervalIndex.from_breaks(range(11), closed="right")
 
     @pytest.fixture
     def index(self):
         return tm.makeIntervalIndex(10)
 
-    def create_index(self, *, closed="right"):
-        return IntervalIndex.from_breaks(range(11), closed=closed)
-
-    def test_repr_max_seq_item_setting(self):
-        # override base test: not a valid repr as we use interval notation
-        pass
-
-    def test_repr_roundtrip(self):
-        # override base test: not a valid repr as we use interval notation
-        pass
-
     def test_take(self, closed):
-        index = self.create_index(closed=closed)
+        index = IntervalIndex.from_breaks(range(11), closed=closed)
 
         result = index.take(range(10))
         tm.assert_index_equal(result, index)
