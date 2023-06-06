@@ -245,10 +245,8 @@ _all_methods = [
     ),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
-    pytest.param(
-        # Squeeze on columns, otherwise we'll end up with a scalar
-        (pd.DataFrame, frame_data, operator.methodcaller("squeeze", axis="columns")),
-    ),
+    # Squeeze on columns, otherwise we'll end up with a scalar
+    (pd.DataFrame, frame_data, operator.methodcaller("squeeze", axis="columns")),
     (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
     (pd.DataFrame, frame_data, operator.methodcaller("rename_axis", columns="a")),
@@ -372,12 +370,8 @@ _all_methods = [
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
         operator.methodcaller("tz_localize", "CET"),
     ),
-    pytest.param(
-        (pd.Series, ([1, 2],), operator.methodcaller("describe")),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("describe")),
-    ),
+    (pd.Series, ([1, 2],), operator.methodcaller("describe")),
+    (pd.DataFrame, frame_data, operator.methodcaller("describe")),
     (pd.Series, ([1, 2],), operator.methodcaller("pct_change")),
     (pd.DataFrame, frame_data, operator.methodcaller("pct_change")),
     (pd.Series, ([1],), operator.methodcaller("transform", lambda x: x - x.min())),
