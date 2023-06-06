@@ -287,6 +287,10 @@ class StringMethods(NoNewAttributesMixin):
                     labels = name
                 else:
                     labels = range(max_len)
+                # append nulls to each scalar list element up to max_len
+                result._pa_array = pa.compute.list_slice(
+                    result._pa_array, start=0, stop=max_len, return_fixed_size_list=True
+                )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
                     for label, res in zip(labels, (zip(*result.tolist())))
