@@ -562,8 +562,10 @@ class TestSeriesReductions:
         arr = np.random.randn(100, 100).astype("f4")
         arr[:, 2] = np.inf
 
-        with pd.option_context("mode.use_inf_as_na", True):
-            tm.assert_almost_equal(s.sum(), s2.sum())
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                tm.assert_almost_equal(s.sum(), s2.sum())
 
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
@@ -1102,13 +1104,15 @@ class TestSeriesReductions:
         assert s.idxmax() == 2
         assert np.isnan(s.idxmax(skipna=False))
 
-        # Using old-style behavior that treats floating point nan, -inf, and
-        # +inf as missing
-        with pd.option_context("mode.use_inf_as_na", True):
-            assert s.idxmin() == 0
-            assert np.isnan(s.idxmin(skipna=False))
-            assert s.idxmax() == 0
-            np.isnan(s.idxmax(skipna=False))
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # Using old-style behavior that treats floating point nan, -inf, and
+            # +inf as missing
+            with pd.option_context("mode.use_inf_as_na", True):
+                assert s.idxmin() == 0
+                assert np.isnan(s.idxmin(skipna=False))
+                assert s.idxmax() == 0
+                np.isnan(s.idxmax(skipna=False))
 
     def test_sum_uint64(self):
         # GH 53401

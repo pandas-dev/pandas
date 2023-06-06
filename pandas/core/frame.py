@@ -10740,8 +10740,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Count non-NA cells for each column or row.
 
-        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
-        on `pandas.options.mode.use_inf_as_na`) are considered NA.
+        The values `None`, `NaN`, `NaT`, ``pandas.NA`` are considered NA.
 
         Parameters
         ----------

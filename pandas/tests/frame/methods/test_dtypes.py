@@ -96,10 +96,12 @@ class TestDataFrameDataTypes:
         tm.assert_series_equal(result, expected)
 
         # compat, GH 8722
-        with option_context("use_inf_as_na", True):
-            df = DataFrame([[1]])
-            result = df.dtypes
-            tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with option_context("use_inf_as_na", True):
+                df = DataFrame([[1]])
+                result = df.dtypes
+                tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
 
     def test_dtypes_timedeltas(self):
         df = DataFrame(
