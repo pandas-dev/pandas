@@ -6,12 +6,10 @@ from pandas import (
     to_datetime,
 )
 
-mpl = pytest.importorskip("matplotlib")
-plt = pytest.importorskip("matplotlib.pyplot")
-
 
 @pytest.fixture(autouse=True)
 def reset_rcParams():
+    mpl = pytest.importorskip("matplotlib")
     with mpl.rc_context():
         yield
 
@@ -19,6 +17,7 @@ def reset_rcParams():
 @pytest.fixture(autouse=True)
 def close_all_figures():
     yield
+    plt = pytest.importorskip("matplotlib.pyplot")
     plt.close("all")
 
 
