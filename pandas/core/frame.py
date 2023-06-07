@@ -10740,8 +10740,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Count non-NA cells for each column or row.
 
-        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
-        on `pandas.options.mode.use_inf_as_na`) are considered NA.
+        The values `None`, `NaN`, `NaT`, ``pandas.NA`` are considered NA.
 
         Parameters
         ----------
@@ -11731,15 +11730,21 @@ class DataFrame(NDFrame, OpsMixin):
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
-            # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]"
-            res_values = algorithms.isin(
-                self.values.ravel(),
-                values,  # type: ignore[arg-type]
-            )
+
+            def isin_(x):
+                # error: Argument 2 to "isin" has incompatible type "Union[Series,
+                # DataFrame, Sequence[Any], Mapping[Any, Any]]"; expected
+                # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
+                # Series], List[Any], range]"
+                result = algorithms.isin(
+                    x.ravel(),
+                    values,  # type: ignore[arg-type]
+                )
+                return result.reshape(x.shape)
+
+            res_values = self._mgr.apply(isin_)
             result = self._constructor(
-                res_values.reshape(self.shape),
+                res_values,
                 self.index,
                 self.columns,
                 copy=False,
