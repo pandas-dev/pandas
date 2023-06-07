@@ -278,11 +278,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.get_group \
         pandas.core.groupby.DataFrameGroupBy.all \
         pandas.core.groupby.DataFrameGroupBy.any \
-        pandas.core.groupby.DataFrameGroupBy.count \
-        pandas.core.groupby.DataFrameGroupBy.cummax \
-        pandas.core.groupby.DataFrameGroupBy.cummin \
-        pandas.core.groupby.DataFrameGroupBy.cumprod \
-        pandas.core.groupby.DataFrameGroupBy.cumsum \
         pandas.core.groupby.DataFrameGroupBy.diff \
         pandas.core.groupby.DataFrameGroupBy.ffill \
         pandas.core.groupby.DataFrameGroupBy.max \
@@ -300,11 +295,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.var \
         pandas.core.groupby.SeriesGroupBy.all \
         pandas.core.groupby.SeriesGroupBy.any \
-        pandas.core.groupby.SeriesGroupBy.count \
-        pandas.core.groupby.SeriesGroupBy.cummax \
-        pandas.core.groupby.SeriesGroupBy.cummin \
-        pandas.core.groupby.SeriesGroupBy.cumprod \
-        pandas.core.groupby.SeriesGroupBy.cumsum \
         pandas.core.groupby.SeriesGroupBy.diff \
         pandas.core.groupby.SeriesGroupBy.ffill \
         pandas.core.groupby.SeriesGroupBy.max \
