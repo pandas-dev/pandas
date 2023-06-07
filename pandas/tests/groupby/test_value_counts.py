@@ -21,6 +21,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 def tests_value_counts_index_names_category_column():
@@ -285,7 +286,7 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
-    education_df, groupby, normalize, name, sort, ascending, as_index, frame
+    education_df, groupby, normalize, name, sort, ascending, as_index, frame, request
 ):
     # test all parameters:
     # - Use column, array or function as by= parameter
@@ -295,6 +296,13 @@ def test_against_frame_and_seriesgroupby(
     # - 3-way compare against:
     #   - apply with :meth:`~DataFrame.value_counts`
     #   - `~SeriesGroupBy.value_counts`
+    if sort and name == "proportion" and Version(np.__version__) >= Version("1.25"):
+        # TODO: Change the expected comparison
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="default sorting is unstable; numpy sorting changed in 1.25"
+            )
+        )
     by = {
         "column": "country",
         "array": education_df["country"].values,
@@ -441,22 +449,36 @@ def nulls_df():
     )
 
 
+# TODO: Actually fix the expected result for the xfails
 @pytest.mark.parametrize(
     "group_dropna, count_dropna, expected_rows, expected_values",
     [
-        (
+        pytest.param(
             False,
             False,
             [0, 1, 3, 5, 7, 6, 8, 2, 4],
             [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0],
+            marks=pytest.mark.xfail(
+                Version(np.__version__) >= Version("1.25"),
+                reason="default sorting is unstable; numpy sorting changed in 1.25",
+            ),
         ),
-        (False, True, [0, 1, 3, 5, 2, 4], [0.5, 0.5, 1.0, 1.0, 1.0, 1.0]),
+        pytest.param(
+            False,
+            True,
+            [0, 1, 3, 5, 2, 4],
+            [0.5, 0.5, 1.0, 1.0, 1.0, 1.0],
+            marks=pytest.mark.xfail(
+                Version(np.__version__) >= Version("1.25"),
+                reason="default sorting is unstable; numpy sorting changed in 1.25",
+            ),
+        ),
         (True, False, [0, 1, 5, 7, 6, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
         (True, True, [0, 1, 5], [0.5, 0.5, 1.0]),
     ],
 )
 def test_dropna_combinations(
-    nulls_df, group_dropna, count_dropna, expected_rows, expected_values
+    nulls_df, group_dropna, count_dropna, expected_rows, expected_values, request
 ):
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
@@ -558,8 +580,9 @@ def test_categorical_single_grouper_with_only_observed_categories(
     )
     result = gp.value_counts(normalize=normalize)
 
-    expected_index = MultiIndex.from_tuples(
-        [
+    if Version(np.__version__) < Version("1.25"):
+        # default sorting is unstable; numpy sorting changed
+        expected_tuples = [
             ("FR", "male", "low"),
             ("FR", "female", "high"),
             ("FR", "male", "medium"),
@@ -572,7 +595,25 @@ def test_categorical_single_grouper_with_only_observed_categories(
             ("US", "female", "medium"),
             ("US", "male", "high"),
             ("US", "male", "medium"),
-        ],
+        ]
+    else:
+        expected_tuples = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "male", "high"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ]
+
+    expected_index = MultiIndex.from_tuples(
+        expected_tuples,
         names=["country", "gender", "education"],
     )
 
@@ -651,20 +692,37 @@ def test_categorical_single_grouper_observed_true(
 ):
     # GH#46357
 
-    expected_index = [
-        ("FR", "male", "low"),
-        ("FR", "female", "high"),
-        ("FR", "male", "medium"),
-        ("FR", "female", "low"),
-        ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
-        ("US", "male", "low"),
-        ("US", "female", "low"),
-        ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
-    ]
+    if Version(np.__version__) < Version("1.25"):
+        # default sorting is unstable; numpy sorting changed
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("FR", "male", "high"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ]
+    else:
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("FR", "male", "high"),
+            ("FR", "male", "medium"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ]
 
     assert_categorical_single_grouper(
         education_df=education_df,
@@ -721,26 +779,49 @@ def test_categorical_single_grouper_observed_false(
 ):
     # GH#46357
 
-    expected_index = [
-        ("FR", "male", "low"),
-        ("FR", "female", "high"),
-        ("FR", "male", "medium"),
-        ("FR", "female", "low"),
-        ("FR", "male", "high"),
-        ("FR", "female", "medium"),
-        ("US", "female", "high"),
-        ("US", "male", "low"),
-        ("US", "male", "medium"),
-        ("US", "male", "high"),
-        ("US", "female", "medium"),
-        ("US", "female", "low"),
-        ("ASIA", "male", "low"),
-        ("ASIA", "male", "high"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "female", "low"),
-        ("ASIA", "female", "high"),
-        ("ASIA", "male", "medium"),
-    ]
+    if Version(np.__version__) < Version("1.25"):
+        # default sorting is unstable; numpy sorting changed
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "male", "high"),
+            ("FR", "female", "medium"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "male", "medium"),
+            ("US", "male", "high"),
+            ("US", "female", "medium"),
+            ("US", "female", "low"),
+            ("ASIA", "male", "low"),
+            ("ASIA", "male", "high"),
+            ("ASIA", "female", "medium"),
+            ("ASIA", "female", "low"),
+            ("ASIA", "female", "high"),
+            ("ASIA", "male", "medium"),
+        ]
+    else:
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("FR", "male", "high"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+            ("ASIA", "female", "medium"),
+            ("ASIA", "female", "low"),
+            ("ASIA", "female", "high"),
+            ("ASIA", "male", "medium"),
+            ("ASIA", "male", "low"),
+            ("ASIA", "male", "high"),
+        ]
 
     assert_categorical_single_grouper(
         education_df=education_df,
@@ -869,20 +950,37 @@ def test_categorical_non_groupers(
     gp = education_df.groupby("country", as_index=as_index, observed=observed)
     result = gp.value_counts(normalize=normalize)
 
-    expected_index = [
-        ("FR", "male", "low"),
-        ("FR", "female", "high"),
-        ("FR", "male", "medium"),
-        ("FR", "female", "low"),
-        ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
-        ("US", "male", "low"),
-        ("US", "female", "low"),
-        ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
-    ]
+    if Version(np.__version__) < Version("1.25"):
+        # default sorting is unstable; numpy sorting changed
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
+            ("FR", "male", "high"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ]
+    else:
+        expected_index = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("FR", "male", "high"),
+            ("FR", "female", "medium"),
+            ("FR", "female", "low"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+            ("US", "female", "low"),
+            ("US", "female", "medium"),
+            ("US", "male", "high"),
+            ("US", "male", "medium"),
+        ]
     expected_series = Series(
         data=expected_data,
         index=MultiIndex.from_tuples(
