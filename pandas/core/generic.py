@@ -11275,17 +11275,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         GOOG  0.179241  0.094112   NaN
         APPL -0.252395 -0.011860   NaN
         """
+        # GH#53491
         if fill_method is not lib.no_default or limit is not lib.no_default:
-            # GH#53491
             warnings.warn(
                 "The 'fill_method' and 'limit' keywords in "
                 f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call fillna directly before "
-                "calling pct_change instead.",
+                "removed in a future version. Call fillna before calling pct_change "
+                "instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
+            if self.isna().values.any():
+                warnings.warn(
+                    "The default fill_method='pad' in "
+                    f"{type(self).__name__}.pct_change is deprecated and will be "
+                    "removed in a future version. Call fillna with method='ffill' "
+                    "before calling pct_change to retain current behavior and "
+                    "and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None
