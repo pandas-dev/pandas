@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 class TestDataFramePctChange:
     @pytest.mark.parametrize(
-        "periods, fill_method, limit, exp",
+        "periods,fill_method,limit,exp",
         [
             (1, "ffill", None, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, 0]),
             (1, "ffill", 1, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, np.nan]),
@@ -28,12 +28,7 @@ class TestDataFramePctChange:
         vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
         obj = frame_or_series(vals)
 
-        msg = (
-            "The 'fill_method' and 'limit' keywords in "
-            f"{type(obj).__name__}.pct_change are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = obj.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+        res = obj.pct_change(periods=periods, fill_method=fill_method, limit=limit)
         tm.assert_equal(res, frame_or_series(exp))
 
     def test_pct_change_numeric(self):
@@ -45,38 +40,28 @@ class TestDataFramePctChange:
         pnl.iat[1, 1] = np.nan
         pnl.iat[2, 3] = 60
 
-        msg = (
-            "The 'fill_method' and 'limit' keywords in "
-            "DataFrame.pct_change are deprecated"
-        )
-
         for axis in range(2):
             expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(axis=axis) - 1
-
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result = pnl.pct_change(axis=axis, fill_method="pad")
+            result = pnl.pct_change(axis=axis, fill_method="pad")
             tm.assert_frame_equal(result, expected)
 
     def test_pct_change(self, datetime_frame):
-        msg = (
-            "The 'fill_method' and 'limit' keywords in "
-            "DataFrame.pct_change are deprecated"
-        )
+        msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = datetime_frame.pct_change(fill_method=None)
+        rs = datetime_frame.pct_change(fill_method=None)
         tm.assert_frame_equal(rs, datetime_frame / datetime_frame.shift(1) - 1)
 
-        rs = datetime_frame.pct_change(2)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = datetime_frame.pct_change(2)
         filled = datetime_frame.fillna(method="pad")
         tm.assert_frame_equal(rs, filled / filled.shift(2) - 1)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = datetime_frame.pct_change(fill_method="bfill", limit=1)
+        rs = datetime_frame.pct_change(fill_method="bfill", limit=1)
         filled = datetime_frame.fillna(method="bfill", limit=1)
         tm.assert_frame_equal(rs, filled / filled.shift(1) - 1)
 
-        rs = datetime_frame.pct_change(freq="5D")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = datetime_frame.pct_change(freq="5D")
         filled = datetime_frame.fillna(method="pad")
         tm.assert_frame_equal(
             rs, (filled / filled.shift(freq="5D") - 1).reindex_like(filled)
@@ -84,10 +69,12 @@ class TestDataFramePctChange:
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1.0, 1.5, np.nan, 2.5, 3.0])
-
         df = DataFrame({"a": s, "b": s})
 
-        chg = df.pct_change()
+        msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            chg = df.pct_change()
+
         expected = Series([np.nan, 0.5, 0.0, 2.5 / 1.5 - 1, 0.2])
         edf = DataFrame({"a": expected, "b": expected})
         tm.assert_frame_equal(chg, edf)
@@ -106,31 +93,18 @@ class TestDataFramePctChange:
     def test_pct_change_periods_freq(
         self, datetime_frame, freq, periods, fill_method, limit
     ):
-        msg = (
-            "The 'fill_method' and 'limit' keywords in "
-            "DataFrame.pct_change are deprecated"
-        )
-
         # GH#7292
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = datetime_frame.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_periods = datetime_frame.pct_change(
-                periods, fill_method=fill_method, limit=limit
-            )
+        rs_freq = datetime_frame.pct_change(
+            freq=freq, fill_method=fill_method, limit=limit
+        )
+        rs_periods = datetime_frame.pct_change(
+            periods, fill_method=fill_method, limit=limit
+        )
         tm.assert_frame_equal(rs_freq, rs_periods)
 
         empty_ts = DataFrame(index=datetime_frame.index, columns=datetime_frame.columns)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = empty_ts.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_periods = empty_ts.pct_change(
-                periods, fill_method=fill_method, limit=limit
-            )
+        rs_freq = empty_ts.pct_change(freq=freq, fill_method=fill_method, limit=limit)
+        rs_periods = empty_ts.pct_change(periods, fill_method=fill_method, limit=limit)
         tm.assert_frame_equal(rs_freq, rs_periods)
 
 
@@ -140,13 +114,7 @@ def test_pct_change_with_duplicated_indices(fill_method):
     data = DataFrame(
         {0: [np.nan, 1, 2, 3, 9, 18], 1: [0, 1, np.nan, 3, 9, 18]}, index=["a", "b"] * 3
     )
-
-    msg = (
-        "The 'fill_method' and 'limit' keywords in "
-        "DataFrame.pct_change are deprecated"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = data.pct_change(fill_method=fill_method)
+    result = data.pct_change(fill_method=fill_method)
 
     if fill_method is None:
         second_column = [np.nan, np.inf, np.nan, np.nan, 2.0, 1.0]
