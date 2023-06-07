@@ -2286,6 +2286,15 @@ def test_str_split():
     )
     tm.assert_frame_equal(result, expected)
 
+    result = ser.str.split("1", expand=True)
+    expected = pd.DataFrame(
+        {
+            0: ArrowExtensionArray(pa.array(["a", "a2cbcb", None])),
+            1: ArrowExtensionArray(pa.array(["cbcb", None, None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
 
 def test_str_rsplit():
     # GH 52401
@@ -2307,6 +2316,15 @@ def test_str_rsplit():
         {
             0: ArrowExtensionArray(pa.array(["a1cb", "a2cb", None])),
             1: ArrowExtensionArray(pa.array(["b", "b", None])),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = ser.str.rsplit("1", expand=True)
+    expected = pd.DataFrame(
+        {
+            0: ArrowExtensionArray(pa.array(["a", "a2cbcb", None])),
+            1: ArrowExtensionArray(pa.array(["cbcb", None, None])),
         }
     )
     tm.assert_frame_equal(result, expected)

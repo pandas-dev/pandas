@@ -234,6 +234,13 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
+    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df.sparse.density
+    0.5
     """
 
     def _validate(self, data):
