@@ -8862,7 +8862,7 @@ class DataFrame(NDFrame, OpsMixin):
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
             the same manner as column values.
-        aggfunc : function, list of functions, dict, default numpy.mean
+        aggfunc : function, list of functions, dict, default "mean"
             If a list of functions is passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves).
@@ -8937,7 +8937,7 @@ class DataFrame(NDFrame, OpsMixin):
         This first example aggregates values by taking the sum.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc=np.sum)
+        ...                        columns=['C'], aggfunc="sum")
         >>> table
         C        large  small
         A   B
@@ -8949,7 +8949,7 @@ class DataFrame(NDFrame, OpsMixin):
         We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc=np.sum, fill_value=0)
+        ...                        columns=['C'], aggfunc="sum", fill_value=0)
         >>> table
         C        large  small
         A   B
@@ -8961,7 +8961,7 @@ class DataFrame(NDFrame, OpsMixin):
         The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': np.mean, 'E': np.mean})
+        ...                        aggfunc={'D': "mean", 'E': "mean"})
         >>> table
                         D         E
         A   C
@@ -8974,8 +8974,8 @@ class DataFrame(NDFrame, OpsMixin):
         value column.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': np.mean,
-        ...                                 'E': [min, max, np.mean]})
+        ...                        aggfunc={'D': "mean",
+        ...                                 'E': ["min", "max", "mean"]})
         >>> table
                           D   E
                        mean max      mean  min
@@ -9576,7 +9576,7 @@ class DataFrame(NDFrame, OpsMixin):
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
 
-    >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
+    >>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
          A    B    C
     x  7.0  NaN  NaN
     y  NaN  2.0  NaN

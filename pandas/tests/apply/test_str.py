@@ -135,7 +135,9 @@ def test_agg_cython_table_series(series, func, expected):
     # GH21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
     else:
@@ -168,7 +170,9 @@ def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -211,7 +215,10 @@ def test_agg_cython_table_frame(df, func, expected, axis):
     # GH 21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
 
@@ -238,7 +245,10 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
