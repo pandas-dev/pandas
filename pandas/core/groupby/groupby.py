@@ -720,6 +720,33 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def groups(self) -> dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).groups
+        {'a': ['a', 'a'], 'b': ['b']}
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"])
+        >>> df
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        2  7  8  9
+        >>> df.groupby(by=["a"]).groups
+        {1: [0, 1], 7: [2]}
         """
         return self.grouper.groups
 
@@ -733,6 +760,34 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
         Dict {group name -> group indices}.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).indices
+        {'a': array([0, 1]), 'b': array([2])}
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby(by=["a"]).indices
+        {1: array([0, 1]), 7: array([2])}
         """
         return self.grouper.indices
 
@@ -867,6 +922,38 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Returns
         -------
         same type as obj
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).get_group("a")
+        a    1
+        a    2
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby(by=["a"]).get_group(1)
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
         """
         if obj is None:
             obj = self._selected_obj
@@ -886,6 +973,47 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         -------
         Generator yielding sequence of (name, subsetted object)
         for each group
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> for x, y in ser.groupby(level=0):
+        ...     print(f'{x}\\n{y}\\n')
+        a
+        a    1
+        a    2
+        dtype: int64
+        b
+        b    3
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"])
+        >>> df
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        2  7  8  9
+        >>> for x, y in df.groupby(by=["a"]):
+        ...     print(f'{x}\\n{y}\\n')
+        (1,)
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        (7,)
+           a  b  c
+        2  7  8  9
         """
         keys = self.keys
         level = self.level
@@ -1787,7 +1915,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def any(self, skipna: bool = True):
         """
         Return True if any value in the group is truthful, else False.
@@ -1802,6 +1930,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if any element
             is True within its respective group, False otherwise.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 0], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).any()
+        a     True
+        b    False
+        dtype: bool
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 3], [1, 0, 6], [7, 1, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df
+                 a  b  c
+        ostrich  1  0  3
+        penguin  1  0  6
+        parrot   7  1  9
+        >>> df.groupby(by=["a"]).any()
+               b      c
+        a
+        1  False   True
+        7   True   True
         """
         return self._cython_agg_general(
             "any",
@@ -1811,7 +1971,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def all(self, skipna: bool = True):
         """
         Return True if all values in the group are truthful, else False.
@@ -1826,6 +1986,39 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if all elements
             are True within its respective group, False otherwise.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 0], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).all()
+        a     True
+        b    False
+        dtype: bool
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df
+                 a  b  c
+        ostrich  1  0  3
+        penguin  1  5  6
+        parrot   7  8  9
+        >>> df.groupby(by=["a"]).all()
+               b      c
+        a
+        1  False   True
+        7   True   True
         """
         return self._cython_agg_general(
             "all",
