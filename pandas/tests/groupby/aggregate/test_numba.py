@@ -339,7 +339,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
-    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+    with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).agg(
             numba_func, engine="numba", engine_kwargs=engine_kwargs
         )
