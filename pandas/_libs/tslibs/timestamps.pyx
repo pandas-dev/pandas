@@ -1240,8 +1240,8 @@ cdef class _Timestamp(ABCTimestamp):
         Period('2020', 'A-DEC')
 
         >>> # Month end frequency
-        >>> ts.to_period(freq='ME')
-        Period('2020-03', 'ME')
+        >>> ts.to_period(freq='M')
+        Period('2020-03', 'M')
 
         >>> # Weekly frequency
         >>> ts.to_period(freq='W')

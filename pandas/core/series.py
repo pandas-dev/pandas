@@ -5520,7 +5520,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Using `freq` which is the offset that the Timestamps will have
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
-        >>> s2 = s2.to_timestamp(freq='ME')
+        >>> s2 = s2.to_timestamp(freq='M')
         >>> s2
         2023-01-31    1
         2024-01-31    2

@@ -1173,9 +1173,9 @@ default 'raise'
         ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
         ...                                         "2000-05-31 00:00:00",
         ...                                         "2000-08-31 00:00:00"]))
-        >>> df.index.to_period("ME")
+        >>> df.index.to_period("M")
         PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[ME]')
+                    dtype='period[M]')
 
         Infer the daily frequency
 

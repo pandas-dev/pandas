@@ -8940,7 +8940,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018Q3    3
         2018Q4    4
         Freq: Q-DEC, dtype: int64
-        >>> q.resample('ME', convention='end').asfreq()
+        >>> q.resample('M', convention='end').asfreq()
         2018-03    1.0
         2018-04    NaN
         2018-05    NaN
@@ -8951,7 +8951,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-10    NaN
         2018-11    NaN
         2018-12    4.0
-        Freq: ME, dtype: float64
+        Freq: M, dtype: float64
 
         For DataFrame objects, the keyword `on` can be used to specify the
         column instead of the index for resampling.

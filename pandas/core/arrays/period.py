@@ -708,11 +708,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         >>> pidx.asfreq('ME')
         PeriodIndex(['2010-12', '2011-12', '2012-12', '2013-12', '2014-12',
-        '2015-12'], dtype='period[ME]')
+        '2015-12'], dtype='period[M]')
 
         >>> pidx.asfreq('ME', how='S')
         PeriodIndex(['2010-01', '2011-01', '2012-01', '2013-01', '2014-01',
-        '2015-01'], dtype='period[ME]')
+        '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
         if not isinstance(freq, int):
