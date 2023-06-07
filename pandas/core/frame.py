@@ -8877,7 +8877,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: Level = -1, dropna: bool = True):
+    def stack(self, level: Level = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -8903,6 +8903,8 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        sort : bool, default True
+            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9046,9 +9048,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 
@@ -9180,7 +9182,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: Level = -1, fill_value=None):
+    def unstack(self, level: Level = -1, fill_value=None, sort: bool = True):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -9196,6 +9198,8 @@ class DataFrame(NDFrame, OpsMixin):
             Level(s) of index to unstack, can pass level name.
         fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -9243,7 +9247,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.reshape import unstack
 
-        result = unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value, sort)
 
         return result.__finalize__(self, method="unstack")
 
@@ -10622,8 +10626,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Count non-NA cells for each column or row.
 
-        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
-        on `pandas.options.mode.use_inf_as_na`) are considered NA.
+        The values `None`, `NaN`, `NaT`, ``pandas.NA`` are considered NA.
 
         Parameters
         ----------
@@ -11605,15 +11608,21 @@ class DataFrame(NDFrame, OpsMixin):
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
-            # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]"
-            res_values = algorithms.isin(
-                self.values.ravel(),
-                values,  # type: ignore[arg-type]
-            )
+
+            def isin_(x):
+                # error: Argument 2 to "isin" has incompatible type "Union[Series,
+                # DataFrame, Sequence[Any], Mapping[Any, Any]]"; expected
+                # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
+                # Series], List[Any], range]"
+                result = algorithms.isin(
+                    x.ravel(),
+                    values,  # type: ignore[arg-type]
+                )
+                return result.reshape(x.shape)
+
+            res_values = self._mgr.apply(isin_)
             result = self._constructor(
-                res_values.reshape(self.shape),
+                res_values,
                 self.index,
                 self.columns,
                 copy=False,

@@ -150,6 +150,11 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("Series.to_timestamp", "Series.to_timestamp is deprecated"),
         ("Series.to_period", "Series.to_period is deprecated"),
         ("Series.reorder_levels", "Series.reorder_levels is deprecated"),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
     ]
 
     for item in items:
