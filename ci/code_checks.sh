@@ -263,16 +263,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.DataFrameGroupBy.__iter__ \
-        pandas.core.groupby.SeriesGroupBy.__iter__ \
-        pandas.core.groupby.DataFrameGroupBy.groups \
-        pandas.core.groupby.SeriesGroupBy.groups \
-        pandas.core.groupby.DataFrameGroupBy.indices \
-        pandas.core.groupby.SeriesGroupBy.indices \
-        pandas.core.groupby.DataFrameGroupBy.get_group \
-        pandas.core.groupby.SeriesGroupBy.get_group \
-        pandas.core.groupby.DataFrameGroupBy.all \
-        pandas.core.groupby.DataFrameGroupBy.any \
         pandas.core.groupby.DataFrameGroupBy.count \
         pandas.core.groupby.DataFrameGroupBy.cummax \
         pandas.core.groupby.DataFrameGroupBy.cummin \
@@ -293,8 +283,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.std \
         pandas.core.groupby.DataFrameGroupBy.sum \
         pandas.core.groupby.DataFrameGroupBy.var \
-        pandas.core.groupby.SeriesGroupBy.all \
-        pandas.core.groupby.SeriesGroupBy.any \
         pandas.core.groupby.SeriesGroupBy.count \
         pandas.core.groupby.SeriesGroupBy.cummax \
         pandas.core.groupby.SeriesGroupBy.cummin \
