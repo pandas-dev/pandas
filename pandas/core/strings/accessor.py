@@ -277,20 +277,20 @@ class StringMethods(NoNewAttributesMixin):
 
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-                value_lengths = result._pa_array.combine_chunks().value_lengths()
+                value_lengths = result._data.combine_chunks().value_lengths()
                 max_len = pa.compute.max(value_lengths).as_py()
                 min_len = pa.compute.min(value_lengths).as_py()
                 if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
                     result = ArrowExtensionArray(
-                        result._pa_array.fill_null([None] * max_len)
+                        result._data.fill_null([None] * max_len)
                     )
                 if min_len < max_len:
                     # append nulls to each scalar list element up to max_len
                     if not pa_version_under11p0:
                         result = ArrowExtensionArray(
                             pa.compute.list_slice(
-                                result._pa_array,
+                                result._data,
                                 start=0,
                                 stop=max_len,
                                 return_fixed_size_list=True,
@@ -305,7 +305,7 @@ class StringMethods(NoNewAttributesMixin):
                                 nulls = all_null[: max_len - len(row)]
                                 row = np.append(row, nulls)
                             new_values.append(row)
-                        pa_type = result._pa_array.type
+                        pa_type = result._data.type
                         result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
                 if name is not None:
                     labels = name
