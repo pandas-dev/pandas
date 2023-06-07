@@ -7,7 +7,6 @@ Version 0.21.1 (December 12, 2017)
 
 .. ipython:: python
    :suppress:
-   :okwarning:
 
    from pandas import *  # noqa F401, F403
 
