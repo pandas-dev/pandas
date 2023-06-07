@@ -52,7 +52,7 @@ def test_read_datetime(request, engine):
     json_line = df.to_json(lines=True, orient="records")
 
     if engine == "pyarrow":
-        result = read_json(json_line, engine=engine)
+        result = read_json(StringIO(json_line), engine=engine)
     else:
         result = read_json(StringIO(json_line), engine=engine)
     expected = DataFrame(
