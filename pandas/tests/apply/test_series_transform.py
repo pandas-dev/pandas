@@ -11,6 +11,21 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
+    "args, kwargs, increment",
+    [((), {}, 0), ((), {"a": 1}, 1), ((2, 3), {}, 32), ((1,), {"c": 2}, 201)],
+)
+def test_agg_args(args, kwargs, increment):
+    # GH 43357
+    def f(x, a=0, b=0, c=0):
+        return x + a + 10 * b + 100 * c
+
+    s = Series([1, 2])
+    result = s.transform(f, 0, *args, **kwargs)
+    expected = s + increment
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "ops, names",
     [
         ([np.sqrt], ["sqrt"]),
@@ -26,6 +41,26 @@ def test_transform_listlike(string_series, ops, names):
         expected.columns = names
         result = string_series.transform(ops)
         tm.assert_frame_equal(result, expected)
+
+
+def test_transform_listlike_func_with_args():
+    # GH 50624
+
+    s = Series([1, 2, 3])
+
+    def foo1(x, a=1, c=0):
+        return x + a + c
+
+    def foo2(x, b=2, c=0):
+        return x + b + c
+
+    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
+    with pytest.raises(TypeError, match=msg):
+        s.transform([foo1, foo2], 0, 3, b=3, c=4)
+
+    result = s.transform([foo1, foo2], 0, 3, c=4)
+    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("box", [dict, Series])
