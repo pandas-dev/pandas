@@ -24,6 +24,9 @@ import pandas._testing as tm
 from pandas.core.arrays import period_array
 
 
+@pytest.mark.filterwarnings(
+    "ignore:(Series|DataFrame).fillna with 'method' is deprecated:FutureWarning"
+)
 class TestSeriesFillNA:
     def test_fillna_nat(self):
         series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
@@ -846,6 +849,9 @@ class TestSeriesFillNA:
         tm.assert_categorical_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
+)
 class TestFillnaPad:
     def test_fillna_bug(self):
         ser = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
@@ -934,7 +940,7 @@ class TestFillnaPad:
             [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
         )
 
-        filled = data.fillna(method="bfill")
+        filled = data.bfill()
 
         expected = Series(
             [
@@ -965,7 +971,7 @@ class TestFillnaPad:
         )
         expected = Series(arr)
 
-        filled = ser.fillna(method="pad")
+        filled = ser.ffill()
 
         tm.assert_series_equal(filled, expected)
 

@@ -356,9 +356,13 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    filled = grouped.fillna(method="pad")
+    msg = "DataFrameGroupBy.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        filled = grouped.fillna(method="pad")
+    msg = "Series.fillna with 'method' is deprecated"
     fillit = lambda x: x.fillna(method="pad")
-    expected = df.groupby(lambda x: x.month).transform(fillit)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
 
 

@@ -6803,6 +6803,61 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
+    def _deprecate_downcast(self, downcast) -> None:
+        if isinstance(downcast, dict):
+            # GH#40988
+            for dc in downcast.values():
+                if dc is not None and dc is not False and dc != "infer":
+                    warnings.warn(
+                        "downcast entries other than None, False, and 'infer' "
+                        "are deprecated and will raise in a future version",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+        elif downcast is not None and downcast is not False and downcast != "infer":
+            # GH#40988
+            warnings.warn(
+                "downcast other than None, False, and 'infer' are deprecated "
+                "and will raise in a future version",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+    @final
+    def _fillna_with_method(
+        self,
+        method: Literal["ffill", "bfill", "pad", "backfill"],
+        *,
+        axis: None | Axis = None,
+        inplace: bool_t = False,
+        limit: None | int = None,
+        downcast: dict | None = None,
+    ):
+        if axis is None:
+            axis = 0
+        axis = self._get_axis_number(axis)
+        method = clean_fill_method(method)
+
+        if not self._mgr.is_single_block and axis == 1:
+            if inplace:
+                raise NotImplementedError()
+            result = self.T._fillna_with_method(method=method, limit=limit).T
+
+            return result
+
+        new_mgr = self._mgr.interpolate(
+            method=method,
+            axis=axis,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+        )
+        result = self._constructor(new_mgr)
+        if inplace:
+            return self._update_inplace(result)
+        else:
+            return result.__finalize__(self, method="fillna")
+
     @overload
     def fillna(
         self,
@@ -6874,6 +6929,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * ffill: propagate last valid observation forward to next valid.
             * backfill / bfill: use next valid observation to fill gap.
 
+            .. deprecated:: 2.1.0
+                Use ffill or bfill instead.
+
         axis : {axes_single_arg}
             Axis along which to fill missing values. For `Series`
             this parameter is unused and defaults to 0.
@@ -6927,15 +6985,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  0.0  0.0  0.0  0.0
         3  0.0  3.0  0.0  4.0
 
-        We can also propagate non-null values forward or backward.
-
-        >>> df.fillna(method="ffill")
-             A    B   C    D
-        0  NaN  2.0 NaN  0.0
-        1  3.0  4.0 NaN  1.0
-        2  3.0  4.0 NaN  1.0
-        3  3.0  3.0 NaN  4.0
-
         Replace all NaN elements in column 'A', 'B', 'C', and 'D', with 0, 1,
         2, and 3 respectively.
 
@@ -6971,25 +7020,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         value, method = validate_fillna_kwargs(value, method)
-
-        if isinstance(downcast, dict):
-            # GH#40988
-            for dc in downcast.values():
-                if dc is not None and dc is not False and dc != "infer":
-                    warnings.warn(
-                        "downcast entries other than None, False, and 'infer' "
-                        "are deprecated and will raise in a future version",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-        elif downcast is not None and downcast is not False and downcast != "infer":
-            # GH#40988
+        if method is not None:
             warnings.warn(
-                "downcast other than None, False, and 'infer' are deprecated "
-                "and will raise in a future version",
+                f"{type(self).__name__}.fillna with 'method' is deprecated and "
+                "will raise in a future version. Use obj.ffill() or obj.bfill() "
+                "instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+
+        self._deprecate_downcast(downcast)
 
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -6998,15 +7038,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            if not self._mgr.is_single_block and axis == 1:
-                if inplace:
-                    raise NotImplementedError()
-                result = self.T.fillna(method=method, limit=limit).T
-
-                return result
-
-            new_data = self._mgr.interpolate(
-                method=method,
+            return self._fillna_with_method(
+                # error: Argument 1 to "_fillna_with_method" of "NDFrame" has
+                # incompatible type "Optional[Literal['backfill', 'bfill', 'ffill',
+                # 'pad']]"; expected "Literal['ffill', 'bfill', 'pad', 'backfill']"
+                method,  # type: ignore[arg-type]
                 axis=axis,
                 limit=limit,
                 inplace=inplace,
@@ -7111,7 +7147,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if axis == 1:
                     result = self.T.fillna(value=value, limit=limit).T
 
-                    new_data = result
+                    # error: Incompatible types in assignment (expression
+                    # has type "Self", variable has type "Union[ArrayManager,
+                    # SingleArrayManager, BlockManager, SingleBlockManager]")
+                    new_data = result  # type: ignore[assignment]
                 else:
                     new_data = self._mgr.fillna(
                         value=value, limit=limit, inplace=inplace, downcast=downcast
@@ -7180,6 +7219,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0],
+        ...                    [3, 4, np.nan, 1],
+        ...                    [np.nan, np.nan, np.nan, np.nan],
+        ...                    [np.nan, 3, np.nan, 4]],
+        ...                   columns=list("ABCD"))
+        >>> df
+             A    B   C    D
+        0  NaN  2.0 NaN  0.0
+        1  3.0  4.0 NaN  1.0
+        2  NaN  NaN NaN  NaN
+        3  NaN  3.0 NaN  4.0
+
+        >>> df.ffill()
+             A    B   C    D
+        0  NaN  2.0 NaN  0.0
+        1  3.0  4.0 NaN  1.0
+        2  3.0  4.0 NaN  1.0
+        3  3.0  3.0 NaN  4.0
+
         >>> ser = pd.Series([1, np.NaN, 2, 3])
         >>> ser.ffill()
         0   1.0
@@ -7188,8 +7246,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   3.0
         dtype: float64
         """
-        return self.fillna(
-            method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+        self._deprecate_downcast(downcast)
+
+        return self._fillna_with_method(
+            "ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
     @final
@@ -7319,8 +7379,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   4.0    7
         3   4.0    7
         """
-        return self.fillna(
-            method="bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+        self._deprecate_downcast(downcast)
+        return self._fillna_with_method(
+            "bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
     @final
@@ -9840,8 +9901,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
         if method is not None:
-            left = left.fillna(method=method, axis=fill_axis, limit=limit)
-            right = right.fillna(method=method, axis=fill_axis, limit=limit)
+            left = left._fillna_with_method(method, axis=fill_axis, limit=limit)
+            right = right._fillna_with_method(method, axis=fill_axis, limit=limit)
 
         return left, right, join_index
 
@@ -9916,8 +9977,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # fill
         fill_na = notna(fill_value) or (method is not None)
         if fill_na:
-            left = left.fillna(fill_value, method=method, limit=limit, axis=fill_axis)
-            right = right.fillna(fill_value, method=method, limit=limit)
+            fill_value, method = validate_fillna_kwargs(fill_value, method)
+            if method is not None:
+                left = left._fillna_with_method(method, limit=limit, axis=fill_axis)
+                right = right._fillna_with_method(method, limit=limit)
+            else:
+                left = left.fillna(fill_value, limit=limit, axis=fill_axis)
+                right = right.fillna(fill_value, limit=limit)
 
         return left, right, join_index
 
@@ -11283,9 +11349,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if fill_method is None:
             data = self
         else:
-            _data = self.fillna(method=fill_method, axis=axis, limit=limit)
-            assert _data is not None  # needed for mypy
-            data = _data
+            data = self._fillna_with_method(fill_method, axis=axis, limit=limit)
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")

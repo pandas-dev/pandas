@@ -823,6 +823,13 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and will be removed "
+            "in a future version. Use obj.ffill(), obj.bfill(), "
+            "or obj.nearest() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._upsample(method, limit=limit)
 
     def interpolate(

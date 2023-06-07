@@ -537,11 +537,11 @@ class TestDatetimeArray:
 
         # test the DataFrame method while we're here
         df = pd.DataFrame(dta)
-        res = df.fillna(method="pad")
+        res = df.ffill()
         expected = pd.DataFrame(expected1)
         tm.assert_frame_equal(res, expected)
 
-        res = df.fillna(method="backfill")
+        res = df.bfill()
         expected = pd.DataFrame(expected2)
         tm.assert_frame_equal(res, expected)
 

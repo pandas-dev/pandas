@@ -1377,12 +1377,12 @@ These methods require that the indexes are **ordered** increasing or
 decreasing.
 
 Note that the same result could have been achieved using
-:ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
+:ref:`ffill <missing_data.fillna>` (except for ``method='nearest'``) or
 :ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 
-   ts2.reindex(ts.index).fillna(method="ffill")
+   ts2.reindex(ts.index).ffill()
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonically
 increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`

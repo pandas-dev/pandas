@@ -150,6 +150,18 @@ def pytest_collection_modifyitems(items, config) -> None:
             "first is deprecated and will be removed in a future version. "
             "Please create a mask and filter using `.loc` instead",
         ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
+        ),
     ]
 
     for item in items:

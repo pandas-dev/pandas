@@ -290,19 +290,23 @@ def test_fillna():
     r = ts.resample("s")
 
     expected = r.ffill()
-    result = r.fillna(method="ffill")
+    msg = "DatetimeIndexResampler.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.fillna(method="ffill")
     tm.assert_series_equal(result, expected)
 
     expected = r.bfill()
-    result = r.fillna(method="bfill")
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.fillna(method="bfill")
     tm.assert_series_equal(result, expected)
 
-    msg = (
+    msg2 = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill "
         r"\(bfill\) or nearest\. Got 0"
     )
-    with pytest.raises(ValueError, match=msg):
-        r.fillna(0)
+    with pytest.raises(ValueError, match=msg2):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            r.fillna(0)
 
 
 @pytest.mark.parametrize(
