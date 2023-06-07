@@ -6,7 +6,7 @@ jobs:
       image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-39-arm64.yaml
+      ENV_FILE: ci/deps/circle-310-arm64.yaml
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
       PYTEST_TARGET: "pandas"
