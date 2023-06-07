@@ -878,17 +878,13 @@ class TestSortValuesLevelAsStr:
         # transposing. For some cases this will result in a frame with
         # multiple column levels
         expected = (
-            df_none.sort_values(
-                by=sort_names, ascending=ascending, axis=0, kind="stable"
-            )
+            df_none.sort_values(by=sort_names, ascending=ascending, axis=0)
             .set_index(levels)
             .T
         )
 
         # Compute result by transposing and sorting on axis=1.
-        result = df_idx.T.sort_values(
-            by=sort_names, ascending=ascending, axis=1, kind="stable"
-        )
+        result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
         tm.assert_frame_equal(result, expected)
 

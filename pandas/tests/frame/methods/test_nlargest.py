@@ -9,7 +9,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -156,7 +155,7 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order, request):
+    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order):
         # GH#13412
 
         df = df_duplicates
@@ -165,18 +164,7 @@ class TestNLargestNSmallest:
         tm.assert_frame_equal(result, expected)
 
         result = df.nlargest(n, order)
-        expected = df.sort_values(order, ascending=False, kind="stable").head(n)
-        if (
-            n == 5
-            and order in (["a"], ["a", "b"])
-            and Version(np.__version__) >= Version("1.25")
-        ):
-            # TODO: Change the expected comparison
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason="default sorting is unstable; numpy sorting changed in 1.25"
-                )
-            )
+        expected = df.sort_values(order, ascending=False).head(n)
         tm.assert_frame_equal(result, expected)
 
     def test_nlargest_duplicate_keep_all_ties(self):
