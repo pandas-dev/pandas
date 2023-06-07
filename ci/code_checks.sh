@@ -289,6 +289,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.cumprod \
         pandas.core.groupby.SeriesGroupBy.cumsum \
         pandas.core.groupby.SeriesGroupBy.diff \
+        pandas.core.groupby.SeriesGroupBy.fillna \
         pandas.core.groupby.SeriesGroupBy.ffill \
         pandas.core.groupby.SeriesGroupBy.max \
         pandas.core.groupby.SeriesGroupBy.median \
