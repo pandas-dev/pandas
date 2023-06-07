@@ -858,6 +858,10 @@ class SeriesGroupBy(GroupBy[Series]):
             Method to use for filling holes. ``'ffill'`` will propagate
             the last valid observation forward within a group.
             ``'bfill'`` will use next valid observation to fill the gap.
+
+            .. deprecated:: 2.1.0
+                Use obj.ffill or obj.bfill instead.
+
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
 
@@ -888,49 +892,6 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         ffill : Forward fill values within a group.
         bfill : Backward fill values within a group.
-
-        Examples
-        --------
-        >>> ser = pd.Series([np.nan, np.nan, 2, 3, np.nan, np.nan])
-        >>> ser
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    NaN
-        5    NaN
-        dtype: float64
-
-        Propagate non-null values forward or backward within each group.
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="ffill")
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    3.0
-        5    3.0
-        dtype: float64
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="bfill")
-        0    2.0
-        1    2.0
-        2    2.0
-        3    3.0
-        4    NaN
-        5    NaN
-        dtype: float64
-
-        Only replace the first NaN element within a group.
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="ffill", limit=1)
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    3.0
-        5    NaN
-        dtype: float64
         """
         result = self._op_via_apply(
             "fillna",
@@ -2493,6 +2454,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
+        if method is not None:
+            warnings.warn(
+                f"{type(self).__name__}.fillna with 'method' is deprecated and "
+                "will raise in a future version. Use obj.ffill() or obj.bfill() "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         result = self._op_via_apply(
             "fillna",
             value=value,
