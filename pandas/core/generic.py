@@ -964,12 +964,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
-        return self.iloc[
+        result = self.iloc[
             tuple(
                 0 if i in axes and len(a) == 1 else slice(None)
                 for i, a in enumerate(self.axes)
             )
         ]
+        if isinstance(result, NDFrame):
+            result = result.__finalize__(self, method="squeeze")
+        return result
 
     # ----------------------------------------------------------------------
     # Rename
@@ -11144,7 +11147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             include=include,
             exclude=exclude,
             percentiles=percentiles,
-        )
+        ).__finalize__(self, method="describe")
 
     @final
     def pct_change(
