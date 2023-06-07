@@ -355,7 +355,7 @@ This PDEP is exclusively to support a better API for existing of future
 connectors. It is out of scope for this PDEP to implement changes to any
 connectors existing in the pandas code base.
 
-Some ideas for future discussion related to this PDED include:
+Some ideas for future discussion related to this PDEP include:
 
 - Automatically loading of I/O plugins when pandas is imported.
 
