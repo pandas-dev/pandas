@@ -169,18 +169,8 @@ def test_transform_axis_1(request, transformation_func):
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         gb = df.groupby([0, 0, 1], axis=1)
-
-    pct_change_msg = (
-        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    )
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=pct_change_msg):
-            result = gb.transform("pct_change", *args)
-        with tm.assert_produces_warning(FutureWarning, match=pct_change_msg):
-            expected = df.T.groupby([0, 0, 1]).transform("pct_change", *args).T
-    else:
-        result = gb.transform(transformation_func, *args)
-        expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
+    result = gb.transform(transformation_func, *args)
+    expected = df.T.groupby([0, 0, 1]).transform(transformation_func, *args).T
 
     if transformation_func in ["diff", "shift"]:
         # Result contains nans, so transpose coerces to float
@@ -414,25 +404,11 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
-    groupby_msg = (
-        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    )
-
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
-            result = test_op(df.groupby("A"))
-    else:
-        result = test_op(df.groupby("A"))
-
+    result = test_op(df.groupby("A"))
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = concat([mock_op(g) for g in groups]).sort_index()
-    else:
-        expected = concat([mock_op(g) for g in groups]).sort_index()
+    expected = concat([mock_op(g) for g in groups]).sort_index()
     # sort_index does not preserve the freq
     expected = expected.set_axis(df.index)
 
@@ -993,9 +969,14 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(
-        periods=periods, fill_method=fill_method, limit=limit, freq=freq
+    msg = (
+        "The 'fill_method' and 'limit' keywords in "
+        f"{type(gb).__name__}.pct_change are deprecated"
     )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq
+        )
     tm.assert_equal(result, expected)
 
 
@@ -1413,11 +1394,6 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby("A", dropna=dropna)
 
-    msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
-    groupby_msg = (
-        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    )
-
     buffer = []
     for k, (idx, group) in enumerate(gb):
         if transformation_func == "cumcount":
@@ -1425,9 +1401,6 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
             res = DataFrame({"B": range(len(group))}, index=group.index)
         elif transformation_func == "ngroup":
             res = DataFrame(len(group) * [k], index=group.index, columns=["B"])
-        elif transformation_func == "pct_change":
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                res = getattr(group[["B"]], "pct_change")(*args)
         else:
             res = getattr(group[["B"]], transformation_func)(*args)
         buffer.append(res)
@@ -1440,11 +1413,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
-            result = gb.transform("pct_change", *args)
-    else:
-        result = gb.transform(transformation_func, *args)
+    result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 
@@ -1496,11 +1465,6 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
     args = get_groupby_method_args(transformation_func, ser)
     gb = ser.groupby([1, 1, np.nan], dropna=dropna)
 
-    msg = "The default fill_method='pad' in Series.pct_change is deprecated"
-    groupby_msg = (
-        "The default fill_method='ffill' in SeriesGroupBy.pct_change is deprecated"
-    )
-
     buffer = []
     for k, (idx, group) in enumerate(gb):
         if transformation_func == "cumcount":
@@ -1508,9 +1472,6 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
             res = Series(range(len(group)), index=group.index)
         elif transformation_func == "ngroup":
             res = Series(k, index=group.index)
-        elif transformation_func == "pct_change":
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                res = getattr(group, "pct_change")(*args)
         else:
             res = getattr(group, transformation_func)(*args)
         buffer.append(res)
@@ -1519,10 +1480,7 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
         buffer.append(Series([np.nan], index=[3], dtype=dtype))
     expected = concat(buffer)
 
-    if transformation_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
-            result = gb.transform("pct_change", *args)
-    else:
+    with tm.assert_produces_warning(None):
         result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
@@ -1565,14 +1523,6 @@ def test_as_index_no_change(keys, df, groupby_func):
     args = get_groupby_method_args(groupby_func, df)
     gb_as_index_true = df.groupby(keys, as_index=True)
     gb_as_index_false = df.groupby(keys, as_index=False)
-
-    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
-    if groupby_func == "pct_change":
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = gb_as_index_true.transform("pct_change", *args)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = gb_as_index_false.transform("pct_change", *args)
-    else:
-        result = gb_as_index_true.transform(groupby_func, *args)
-        expected = gb_as_index_false.transform(groupby_func, *args)
+    result = gb_as_index_true.transform(groupby_func, *args)
+    expected = gb_as_index_false.transform(groupby_func, *args)
     tm.assert_equal(result, expected)
