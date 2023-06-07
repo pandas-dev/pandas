@@ -339,7 +339,44 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
-    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+    with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).agg(
             numba_func, engine="numba", engine_kwargs=engine_kwargs
         )
+
+
+@td.skip_if_no("numba")
+def test_multilabel_numba_vs_cython(numba_supported_reductions):
+    reduction, kwargs = numba_supported_reductions
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.randn(8),
+            "D": np.random.randn(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    res_agg = gb.agg(reduction, engine="numba", **kwargs)
+    expected_agg = gb.agg(reduction, engine="cython", **kwargs)
+    tm.assert_frame_equal(res_agg, expected_agg)
+    # Test that calling the aggregation directly also works
+    direct_res = getattr(gb, reduction)(engine="numba", **kwargs)
+    direct_expected = getattr(gb, reduction)(engine="cython", **kwargs)
+    tm.assert_frame_equal(direct_res, direct_expected)
+
+
+@td.skip_if_no("numba")
+def test_multilabel_udf_numba_vs_cython():
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.randn(8),
+            "D": np.random.randn(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    result = gb.agg(lambda values, index: values.min(), engine="numba")
+    expected = gb.agg(lambda x: x.min(), engine="cython")
+    tm.assert_frame_equal(result, expected)
