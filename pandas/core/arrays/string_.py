@@ -337,10 +337,6 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage=self._storage))
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
-        raise NotImplementedError("_from_sequence must be implemented in subclasses")
-
-    @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
@@ -632,7 +628,7 @@ class ObjectStringArray(BaseNumpyStringArray):
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
+            if lib.is_pyarrow_array(scalars):
                 # pyarrow array; we cannot rely on the "to_numpy" check in
                 #  ensure_string_array because calling scalars.to_numpy would set
                 #  zero_copy_only to True which caused problems see GH#52076

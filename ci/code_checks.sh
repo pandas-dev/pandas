@@ -81,37 +81,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.Series.backfill \
-        pandas.Series.ffill \
         pandas.Series.pad \
-        pandas.Series.str.center \
-        pandas.Series.str.decode \
-        pandas.Series.str.encode \
-        pandas.Series.str.find \
-        pandas.Series.str.fullmatch \
-        pandas.Series.str.index \
-        pandas.Series.str.ljust \
-        pandas.Series.str.match \
-        pandas.Series.str.normalize \
-        pandas.Series.str.rfind \
-        pandas.Series.str.rindex \
-        pandas.Series.str.rjust \
-        pandas.Series.str.translate \
-        pandas.Series.sparse \
-        pandas.DataFrame.sparse \
-        pandas.Series.cat.categories \
-        pandas.Series.cat.ordered \
-        pandas.Series.cat.codes \
-        pandas.Series.cat.reorder_categories \
-        pandas.Series.cat.set_categories \
-        pandas.Series.cat.as_ordered \
-        pandas.Series.cat.as_unordered \
-        pandas.Series.sparse.fill_value \
-        pandas.Flags \
-        pandas.Series.attrs \
-        pandas.Series.plot \
         pandas.Series.hist \
-        pandas.Series.to_string \
-        pandas.errors.AbstractMethodError \
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
@@ -258,7 +229,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.IntervalIndex.to_tuples \
         pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
-        pandas.DatetimeIndex.indexer_between_time \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \
         pandas.DatetimeIndex.to_pydatetime \
@@ -266,24 +236,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.mean \
         pandas.DatetimeIndex.std \
         pandas.TimedeltaIndex \
-        pandas.TimedeltaIndex.seconds \
-        pandas.TimedeltaIndex.microseconds \
-        pandas.TimedeltaIndex.nanoseconds \
-        pandas.TimedeltaIndex.components \
-        pandas.TimedeltaIndex.inferred_freq \
-        pandas.TimedeltaIndex.as_unit \
-        pandas.TimedeltaIndex.to_pytimedelta \
-        pandas.TimedeltaIndex.mean \
-        pandas.PeriodIndex.day \
-        pandas.PeriodIndex.dayofweek \
-        pandas.PeriodIndex.day_of_week \
-        pandas.PeriodIndex.dayofyear \
-        pandas.PeriodIndex.day_of_year \
-        pandas.PeriodIndex.days_in_month \
-        pandas.PeriodIndex.daysinmonth \
-        pandas.PeriodIndex.end_time \
-        pandas.PeriodIndex.freqstr \
-        pandas.PeriodIndex.hour \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \
@@ -311,21 +263,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.DataFrameGroupBy.__iter__ \
-        pandas.core.groupby.SeriesGroupBy.__iter__ \
-        pandas.core.groupby.DataFrameGroupBy.groups \
-        pandas.core.groupby.SeriesGroupBy.groups \
-        pandas.core.groupby.DataFrameGroupBy.indices \
-        pandas.core.groupby.SeriesGroupBy.indices \
-        pandas.core.groupby.DataFrameGroupBy.get_group \
-        pandas.core.groupby.SeriesGroupBy.get_group \
-        pandas.core.groupby.DataFrameGroupBy.all \
-        pandas.core.groupby.DataFrameGroupBy.any \
-        pandas.core.groupby.DataFrameGroupBy.count \
-        pandas.core.groupby.DataFrameGroupBy.cummax \
-        pandas.core.groupby.DataFrameGroupBy.cummin \
-        pandas.core.groupby.DataFrameGroupBy.cumprod \
-        pandas.core.groupby.DataFrameGroupBy.cumsum \
         pandas.core.groupby.DataFrameGroupBy.diff \
         pandas.core.groupby.DataFrameGroupBy.ffill \
         pandas.core.groupby.DataFrameGroupBy.max \
@@ -341,13 +278,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.std \
         pandas.core.groupby.DataFrameGroupBy.sum \
         pandas.core.groupby.DataFrameGroupBy.var \
-        pandas.core.groupby.SeriesGroupBy.all \
-        pandas.core.groupby.SeriesGroupBy.any \
-        pandas.core.groupby.SeriesGroupBy.count \
-        pandas.core.groupby.SeriesGroupBy.cummax \
-        pandas.core.groupby.SeriesGroupBy.cummin \
-        pandas.core.groupby.SeriesGroupBy.cumprod \
-        pandas.core.groupby.SeriesGroupBy.cumsum \
         pandas.core.groupby.SeriesGroupBy.diff \
         pandas.core.groupby.SeriesGroupBy.ffill \
         pandas.core.groupby.SeriesGroupBy.max \

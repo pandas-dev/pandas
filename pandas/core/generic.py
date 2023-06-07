@@ -334,6 +334,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         DataFrame.flags : Global flags applying to this object.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3])
+        >>> ser.attrs = {"A": [10, 20, 30]}
+        >>> ser.attrs
+        {'A': [10, 20, 30]}
         """
         if self._attrs is None:
             self._attrs = {}
@@ -957,12 +964,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         """
         axes = range(self._AXIS_LEN) if axis is None else (self._get_axis_number(axis),)
-        return self.iloc[
+        result = self.iloc[
             tuple(
                 0 if i in axes and len(a) == 1 else slice(None)
                 for i, a in enumerate(self.axes)
             )
         ]
+        if isinstance(result, NDFrame):
+            result = result.__finalize__(self, method="squeeze")
+        return result
 
     # ----------------------------------------------------------------------
     # Rename
@@ -7167,6 +7177,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, np.NaN, 2, 3])
+        >>> ser.ffill()
+        0   1.0
+        1   1.0
+        2   2.0
+        3   3.0
+        dtype: float64
         """
         return self.fillna(
             method="ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
@@ -9162,6 +9182,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 days observed in the dataset, and therefore data for 2018-04-13 was
         not returned.
         """
+        warnings.warn(
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -11121,7 +11147,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             include=include,
             exclude=exclude,
             percentiles=percentiles,
-        )
+        ).__finalize__(self, method="describe")
 
     @final
     def pct_change(

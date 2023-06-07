@@ -149,6 +149,16 @@ i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
 
 
+cdef bint PYARROW_INSTALLED = False
+
+try:
+    import pyarrow as pa
+
+    PYARROW_INSTALLED = True
+except ImportError:
+    pa = None
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(arr: object[:]) -> int64_t:
@@ -1175,6 +1185,19 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
+
+
+def is_pyarrow_array(obj):
+    """
+    Return True if given object is a pyarrow Array or ChunkedArray.
+
+    Returns
+    -------
+    bool
+    """
+    if PYARROW_INSTALLED:
+        return isinstance(obj, (pa.Array, pa.ChunkedArray))
+    return False
 
 
 _TYPE_MAP = {
