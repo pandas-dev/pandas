@@ -252,16 +252,27 @@ def test_basic(education_df):
     result = education_df.groupby("country")[["gender", "education"]].value_counts(
         normalize=True
     )
+    if Version(np.__version__) >= Version("1.25"):
+        # default sorting is unstable; numpy sorting changed in 1.25
+        expected_tuples = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("US", "male", "low"),
+            ("US", "female", "high"),
+        ]
+    else:
+        expected_tuples = [
+            ("FR", "male", "low"),
+            ("FR", "female", "high"),
+            ("FR", "male", "medium"),
+            ("US", "female", "high"),
+            ("US", "male", "low"),
+        ]
     expected = Series(
         data=[0.5, 0.25, 0.25, 0.5, 0.5],
         index=MultiIndex.from_tuples(
-            [
-                ("FR", "male", "low"),
-                ("FR", "female", "high"),
-                ("FR", "male", "medium"),
-                ("US", "female", "high"),
-                ("US", "male", "low"),
-            ],
+            expected_tuples,
             names=["country", "gender", "education"],
         ),
         name="proportion",
@@ -296,13 +307,13 @@ def test_against_frame_and_seriesgroupby(
     # - 3-way compare against:
     #   - apply with :meth:`~DataFrame.value_counts`
     #   - `~SeriesGroupBy.value_counts`
-    if sort and name == "proportion" and Version(np.__version__) >= Version("1.25"):
-        # TODO: Change the expected comparison
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="default sorting is unstable; numpy sorting changed in 1.25"
-            )
-        )
+    # if sort and name == "proportion" and Version(np.__version__) >= Version("1.25"):
+    #     # TODO: Change the expected comparison
+    #     request.node.add_marker(
+    #         pytest.mark.xfail(
+    #             reason="default sorting is unstable; numpy sorting changed in 1.25"
+    #         )
+    #     )
     by = {
         "column": "country",
         "array": education_df["country"].values,
@@ -712,10 +723,10 @@ def test_categorical_single_grouper_observed_true(
         expected_index = [
             ("FR", "male", "low"),
             ("FR", "female", "high"),
-            ("FR", "female", "low"),
-            ("FR", "female", "medium"),
             ("FR", "male", "high"),
             ("FR", "male", "medium"),
+            ("FR", "female", "low"),
+            ("FR", "female", "medium"),
             ("US", "female", "high"),
             ("US", "male", "low"),
             ("US", "female", "low"),
@@ -815,12 +826,12 @@ def test_categorical_single_grouper_observed_false(
             ("US", "female", "medium"),
             ("US", "male", "high"),
             ("US", "male", "medium"),
-            ("ASIA", "female", "medium"),
-            ("ASIA", "female", "low"),
             ("ASIA", "female", "high"),
-            ("ASIA", "male", "medium"),
-            ("ASIA", "male", "low"),
+            ("ASIA", "female", "low"),
+            ("ASIA", "female", "medium"),
             ("ASIA", "male", "high"),
+            ("ASIA", "male", "low"),
+            ("ASIA", "male", "medium"),
         ]
 
     assert_categorical_single_grouper(
@@ -972,8 +983,8 @@ def test_categorical_non_groupers(
             ("FR", "female", "high"),
             ("FR", "male", "medium"),
             ("FR", "male", "high"),
-            ("FR", "female", "medium"),
             ("FR", "female", "low"),
+            ("FR", "female", "medium"),
             ("US", "female", "high"),
             ("US", "male", "low"),
             ("US", "female", "low"),
