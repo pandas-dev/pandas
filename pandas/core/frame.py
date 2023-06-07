@@ -6567,7 +6567,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         ascending: bool | list[bool] | tuple[bool, ...] = True,
         inplace: bool = False,
-        kind: SortKind = "quicksort",
+        kind: SortKind = "stable",
         na_position: str = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
@@ -6592,7 +6592,7 @@ class DataFrame(NDFrame, OpsMixin):
              the by.
         inplace : bool, default False
              If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'stable'
              Choice of sorting algorithm. See also :func:`numpy.sort` for more
              information. `mergesort` and `stable` are the only stable algorithms. For
              DataFrames, this option is only applied when sorting on a single

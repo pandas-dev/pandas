@@ -3440,7 +3440,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis: Axis = 0,
         ascending: bool | int | Sequence[bool] | Sequence[int] = True,
         inplace: bool = False,
-        kind: SortKind = "quicksort",
+        kind: SortKind = "stable",
         na_position: NaPosition = "last",
         ignore_index: bool = False,
         key: ValueKeyFunc = None,
@@ -3459,7 +3459,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
-        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
+        kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'stable'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable  algorithms.
         na_position : {'first' or 'last'}, default 'last'
