@@ -38,6 +38,7 @@ UnitChoices = Literal[
     "min",
     "minutes",
     "t",
+    "T",
     "s",
     "seconds",
     "sec",
