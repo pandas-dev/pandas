@@ -373,11 +373,14 @@ Prerequisites
 
 In order to be able to release a new pandas version, the next permissions are needed:
 
-- Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_,
-  `pandas-wheels <https://github.com/MacPython/pandas-wheels>`_, and
+- Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_ and
   `pandas-feedstock <https://github.com/conda-forge/pandas-feedstock/>`_ repositories.
-- Permissions to push to main in the pandas repository, to push the new tags.
-- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_
+  For the latter, open a PR adding your GitHub username to the conda-forge recipe.
+- Permissions to push to ``main`` in the pandas repository, to push the new tags.
+- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
+- Access to our website / documentation server. Share your public key with the
+  infrastructure committee to be added to the ``authorized_keys`` file of the main
+  server user.
 - Access to the social media accounts, to publish the announcements.
 
 Pre-release
@@ -443,10 +446,10 @@ which will be triggered when the tag is pushed.
 
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
-   - Title: ``Pandas <version>``
    - Tag: ``<version>``
-   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
+   - Title: ``Pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
+   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
@@ -454,6 +457,9 @@ which will be triggered when the tag is pushed.
 5. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
    Merge it once the CI is green, and it will generate the conda-forge packages.
+   In case a manual PR needs to be done, the version, sha256 and build fields are the
+   ones that usually need to be changed. If anything else in the recipe has changed since
+   the last release, those changes should be available in ``ci/meta.yaml``.
 
 6. Packages for supported versions in PyPI are built automatically from our CI.
    Once all packages are build download all wheels from the
@@ -468,8 +474,16 @@ which will be triggered when the tag is pushed.
 Post-Release
 ````````````
 
-1. Update symlink to stable documentation by logging in to our web server, and
-   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``.
+1. Update symlinks to stable documentation by logging in to our web server, and
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``
+   for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for
+   patch releases. The exact instructions are (replace the example version numbers by
+   the appropriate ones for the version you are releasing):
+
+    - Log in to the server and use the correct user.
+    - `cd /var/www/html/pandas-docs/`
+    - `ln -sfn version/2.1 stable` (for a major or minor release)
+    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
@@ -481,13 +495,16 @@ Post-Release
 
 5. Open a PR with the placeholder for the release notes of the next version. See
    for example `the PR for 1.5.3 <https://github.com/pandas-dev/pandas/pull/49843/files>`_.
+   Note that the template to use depends on whether it is a major, minor or patch release.
 
 6. Announce the new release in the official channels (use previous announcements
    for reference):
 
     - The pandas-dev and pydata mailing lists
-    - Twitter, Mastodon and Telegram
+    - Twitter, Mastodon, Telegram and LinkedIn
 
+7. Update this release instructions to fix anything incorrect and to update about any
+   change since the last release.
 
 .. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization
