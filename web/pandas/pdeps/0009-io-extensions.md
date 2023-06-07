@@ -349,6 +349,30 @@ Python structures.
 Any other format, including **domain-specific formats** could easily
 implement pandas connectors with a clear and intuitive API.
 
+### Limitations
+
+The implementation of this proposal has some limitations discussed here:
+
+- **Lack of support for multiple engines.** The current pandas I/O API
+  supports multiple engines for the same format (for the same function or
+  method name). For example `read_csv(engine='pyarrow', ...)`. Supporting
+  engines requires that all engines for a particular format use the same
+  signature (the same parameters), which is not ideal. Different connectors
+  are likely to have different parameters and using `*args` and `**kwargs`
+  provides users with a more complex and difficult experience. For this
+  reason this proposal prefers that function and method names are unique
+  instead of supporting an option for engines.
+- **Lack of support for type checking of connectors.** This PDEP proposes
+  creating functions and methods dynamically, and those are not supported
+  for type checking using stubs. This is already the case for other
+  dynamically created components of pandas, such as custom accessors.
+- **No improvements to the current I/O API**. In the discussions of this
+  proposal it has been considered to improve the current pandas I/O API to
+  fix the inconsistency of using `read` / `to` (instead of for example
+  `read` / `write`), avoid using `to_` prefixed methods for non-I/O
+  operations, or using a dedicated namespace (e.g. `DataFrame.io`) for
+  the connectors. All of these changes are out of scope for this PDEP.
+
 ## Future plans
 
 This PDEP is exclusively to support a better API for existing of future
