@@ -27,7 +27,6 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
-    get_string_dtype,
     is_array_like,
     is_bool_dtype,
     is_integer_dtype,
@@ -351,7 +350,7 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     def _empty(cls, shape, dtype) -> StringArray:
         from stringdtype import PandasStringDType
 
-        values = np.empty(shape, dtype=PandasStringDType)
+        values = np.empty(shape, dtype=PandasStringDType())
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -596,6 +595,12 @@ class ObjectStringArray(BaseNumpyStringArray):
     _na_value = None
     _storage = "python"
 
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        values = np.empty(shape, dtype=object)
+        values[:] = libmissing.NA
+        return cls(values).astype(dtype, copy=False)
+
     def _validate(self):
         super()._validate()
         # Check to see if need to convert Na values to pd.NA
@@ -668,12 +673,22 @@ class NumpyStringArray(BaseNumpyStringArray):
         return new_string_array
 
     def _values_for_factorize(self):
-        arr = self._ndarray.astype(get_string_dtype(na_object=None))
-        return arr, None
+        arr = self._ndarray.copy()
+        # sentinel value used by StringHashTable
+        arr[np.isnan(arr)] = "__nan__"
+        return arr, "__nan__"
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return original._from_backing_data(values.astype(original._ndarray.dtype))
+        values[values == "__nan__"] = libmissing.NA
+        return original._from_backing_data(values)
+
+    @classmethod
+    def _empty(cls, shape, dtype) -> StringArray:
+        from stringdtype import PandasStringDType
+
+        values = np.empty(shape, dtype=PandasStringDType())
+        return cls(values).astype(dtype, copy=False)
 
     def _validate(self):
         """Validate that we only store NA or strings."""
@@ -688,3 +703,10 @@ class NumpyStringArray(BaseNumpyStringArray):
                 f"{PandasStringDType()}. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
+
+    def _validate_setitem_value(self, value):
+        from stringdtype import PandasStringDType
+
+        if value is np.nan:
+            value = np.array(libmissing.NA, dtype=PandasStringDType())
+        return value
