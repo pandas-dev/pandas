@@ -1713,6 +1713,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         str or None
             String representation of Series if ``buf=None``, otherwise None.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3]).to_string()
+        >>> ser
+        '0    1\\n1    2\\n2    3'
         """
         formatter = fmt.SeriesFormatter(
             self,
