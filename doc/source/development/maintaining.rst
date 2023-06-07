@@ -477,7 +477,13 @@ Post-Release
 1. Update symlinks to stable documentation by logging in to our web server, and
    editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``
    for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for
-   patch releases.
+   patch releases. The exact instructions are (replace the example version numbers by
+   the appropriate ones for the version you are releasing):
+
+    - Log in to the server and use the correct user.
+    - `cd /var/www/html/pandas-docs/`
+    - `ln -sfn version/2.1 stable` (for a major or minor release)
+    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
