@@ -6,6 +6,21 @@ from pandas import (
     to_datetime,
 )
 
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
+
+
+@pytest.fixture(autouse=True)
+def reset_rcParams():
+    with mpl.rc_context():
+        yield
+
+
+@pytest.fixture(autouse=True)
+def close_all_figures():
+    yield
+    plt.close("all")
+
 
 @pytest.fixture
 def hist_df():
