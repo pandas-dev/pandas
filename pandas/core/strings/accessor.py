@@ -273,14 +273,40 @@ class StringMethods(NoNewAttributesMixin):
             if isinstance(result.dtype, ArrowDtype):
                 import pyarrow as pa
 
+                from pandas.compat import pa_version_under11p0
+
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-                max_len = pa.compute.max(
-                    result._data.combine_chunks().value_lengths()
-                ).as_py()
-                if result.isna().any():
+                value_lengths = result._data.combine_chunks().value_lengths()
+                max_len = pa.compute.max(value_lengths).as_py()
+                min_len = pa.compute.min(value_lengths).as_py()
+                if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
-                    result._data = result._data.fill_null([None] * max_len)
+                    result = ArrowExtensionArray(
+                        result._data.fill_null([None] * max_len)
+                    )
+                if min_len < max_len:
+                    # append nulls to each scalar list element up to max_len
+                    if not pa_version_under11p0:
+                        result = ArrowExtensionArray(
+                            pa.compute.list_slice(
+                                result._data,
+                                start=0,
+                                stop=max_len,
+                                return_fixed_size_list=True,
+                            )
+                        )
+                    else:
+                        all_null = np.full(max_len, fill_value=None, dtype=object)
+                        values = result.to_numpy()
+                        new_values = []
+                        for row in values:
+                            if len(row) < max_len:
+                                nulls = all_null[: max_len - len(row)]
+                                row = np.append(row, nulls)
+                            new_values.append(row)
+                        pa_type = result._data.type
+                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
                 if name is not None:
                     labels = name
                 else:
