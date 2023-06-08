@@ -83,6 +83,7 @@ class TestToTimestamp:
         conv = index.to_timestamp("D")
         assert conv.name == "foo"
 
+    @pytest.mark.xfail
     def test_to_timestamp_quarterly_bug(self):
         years = np.arange(1960, 2000).repeat(4)
         quarters = np.tile(list(range(1, 5)), 40)

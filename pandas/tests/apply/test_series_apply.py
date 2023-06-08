@@ -189,8 +189,6 @@ def test_apply_box():
     assert s.dtype == "Period[M]"
     res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}", by_row=True)
     exp = Series(["Period_M", "Period_M"])
-    print("AAAAAAA =", res)
-    print("BBBBBBB =", exp)
     tm.assert_series_equal(res, exp)
 
 
