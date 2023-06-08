@@ -2583,7 +2583,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                   index=["tiger", "leopard", "cheetah", "lion"])
         >>> df
                   a  b  c
-        tiger     1  8  2
+          tiger   1  8  2
         leopard   1  2  5
         cheetah   2  5  8
            lion   2  6  9
@@ -2652,7 +2652,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                   index=["tiger", "leopard", "cheetah", "lion"])
         >>> df
                   a  b  c
-        tiger     1  8  2
+          tiger   1  8  2
         leopard   1  2  5
         cheetah   2  5  8
            lion   2  6  9
@@ -2698,7 +2698,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                   index=["tiger", "leopard", "cheetah", "lion"])
         >>> df
                   a  b  c
-        tiger     1  8  2
+          tiger   1  8  2
         leopard   1  2  5
         cheetah   2  5  8
            lion   2  6  9
@@ -2758,7 +2758,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                   index=["tiger", "leopard", "cheetah", "lion"])
         >>> df
                   a  b  c
-        tiger     1  8  2
+          tiger   1  8  2
         leopard   1  2  5
         cheetah   2  5  8
            lion   2  6  9
