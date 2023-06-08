@@ -267,10 +267,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.DataFrameGroupBy.ffill \
         pandas.core.groupby.DataFrameGroupBy.median \
         pandas.core.groupby.DataFrameGroupBy.ohlc \
-        pandas.core.groupby.DataFrameGroupBy.pct_change \
-        pandas.core.groupby.DataFrameGroupBy.sem \
-        pandas.core.groupby.DataFrameGroupBy.shift \
-        pandas.core.groupby.DataFrameGroupBy.size \
         pandas.core.groupby.DataFrameGroupBy.skew \
         pandas.core.groupby.DataFrameGroupBy.std \
         pandas.core.groupby.DataFrameGroupBy.var \
@@ -280,10 +276,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.median \
         pandas.core.groupby.SeriesGroupBy.nunique \
         pandas.core.groupby.SeriesGroupBy.ohlc \
-        pandas.core.groupby.SeriesGroupBy.pct_change \
-        pandas.core.groupby.SeriesGroupBy.sem \
-        pandas.core.groupby.SeriesGroupBy.shift \
-        pandas.core.groupby.SeriesGroupBy.size \
         pandas.core.groupby.SeriesGroupBy.skew \
         pandas.core.groupby.SeriesGroupBy.std \
         pandas.core.groupby.SeriesGroupBy.var \
