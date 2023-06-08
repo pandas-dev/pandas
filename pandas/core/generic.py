@@ -11304,7 +11304,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    85.0
         dtype: float64
 
-        >>> s.fillna(method='ffill').pct_change()
+        >>> s.ffill().pct_change()
         0         NaN
         1    0.011111
         2    0.000000
