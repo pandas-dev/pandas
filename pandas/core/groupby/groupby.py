@@ -4381,8 +4381,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             warnings.warn(
                 "The 'fill_method' and 'limit' keywords in "
                 f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call fillna before calling pct_change "
-                "instead.",
+                "removed in a future version. Call "
+                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
+                "before calling pct_change instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -4391,9 +4392,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 warnings.warn(
                     "The default fill_method='ffill' in "
                     f"{type(self).__name__}.pct_change is deprecated and will be "
-                    "removed in a future version. Call fillna with method='ffill' "
-                    "before calling pct_change to retain current behavior and "
-                    "silence this warning.",
+                    "removed in a future version. Call ffill before calling "
+                    "pct_change to retain current behavior and silence this warning.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
