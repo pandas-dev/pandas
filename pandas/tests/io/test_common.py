@@ -620,3 +620,15 @@ def test_pickle_reader(reader):
     # GH 22265
     with BytesIO() as buffer:
         pickle.dump(reader, buffer)
+
+
+def test_comment_writer(salaries_table, salaries_table_comments):
+    tm.assert_frame_equal(salaries_table, salaries_table_comments)
+    with tm.ensure_clean() as path:
+        # salaries_table.to_csv(path, comment="#", comment_lines=comment_lines)
+        salaries_table.to_csv(path, sep="\t", index=False)
+        new_table = pd.read_csv(path, sep="\t")
+        print(salaries_table.head())
+        print(new_table.head())
+        # new_table = pd.read_csv(path, comment="#", sep="\t")
+        tm.assert_frame_equal(salaries_table, new_table)

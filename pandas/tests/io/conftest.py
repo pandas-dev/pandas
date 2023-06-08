@@ -37,6 +37,13 @@ def salaries_table(datapath):
 
 
 @pytest.fixture
+def salaries_table_comments(datapath):
+    return read_csv(
+        datapath("io", "parser", "data", "salaries_comments.csv"), sep="\t", comment="#"
+    )
+
+
+@pytest.fixture
 def feather_file(datapath):
     return datapath("io", "data", "feather", "feather-0_3_1.feather")
 
