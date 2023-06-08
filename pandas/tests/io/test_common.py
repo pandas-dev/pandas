@@ -3,6 +3,7 @@ Tests for the pandas.io.common functionalities
 """
 import codecs
 import errno
+import filecmp
 from functools import partial
 from io import (
     BytesIO,
@@ -622,13 +623,21 @@ def test_pickle_reader(reader):
         pickle.dump(reader, buffer)
 
 
-def test_comment_writer(salaries_table, salaries_table_comments):
+def test_comment_writer(salaries_table, salaries_table_comments, datapath):
+    comment = "#"
+    comment_lines = ["line one", "line_two", "three lines_hello_world"]
     tm.assert_frame_equal(salaries_table, salaries_table_comments)
     with tm.ensure_clean() as path:
-        # salaries_table.to_csv(path, comment="#", comment_lines=comment_lines)
-        salaries_table.to_csv(path, sep="\t", index=False)
-        new_table = pd.read_csv(path, sep="\t")
-        print(salaries_table.head())
-        print(new_table.head())
-        # new_table = pd.read_csv(path, comment="#", sep="\t")
-        tm.assert_frame_equal(salaries_table, new_table)
+        # Check commented table can be read and matches non-commented version
+        tm.assert_frame_equal(salaries_table, salaries_table_comments)
+
+        # Write comments on uncommted table, validate
+        salaries_table.to_csv(
+            path, sep="\t", comment=comment, comment_lines=comment_lines
+        )
+
+        assert filecmp.cmp(
+            path,
+            datapath("io", "parser", "data", "salaries_comments.csv"),
+            shallow=False,
+        ), "Generated csv file with comments does not match expectation"

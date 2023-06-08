@@ -15,6 +15,7 @@ from typing import (
     Callable,
     ClassVar,
     Hashable,
+    Iterable,
     Iterator,
     Literal,
     Mapping,
@@ -3662,6 +3663,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
+        comment: str | None = None,
+        comment_lines: Iterable[str] | None = None,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.

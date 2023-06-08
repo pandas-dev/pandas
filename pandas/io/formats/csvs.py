@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Hashable,
+    Iterable,
     Iterator,
     Sequence,
     cast,
@@ -67,6 +68,8 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions = None,
+        comment: str | None = None,
+        comment_lines: Iterable[str] | None = None,
     ) -> None:
         self.fmt = formatter
 
@@ -89,6 +92,8 @@ class CSVFormatter:
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
+        self.comment = comment
+        self.comment_lines = comment_lines
 
     @property
     def na_rep(self) -> str:
@@ -260,6 +265,8 @@ class CSVFormatter:
             self._save()
 
     def _save(self) -> None:
+        if self.comment_lines:
+            self._save_comment_lines()
         if self._need_to_save_header:
             self._save_header()
         self._save_body()
@@ -318,3 +325,6 @@ class CSVFormatter:
             self.cols,
             self.writer,
         )
+
+    def _save_comments(self):
+        pass
