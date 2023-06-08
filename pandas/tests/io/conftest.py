@@ -49,7 +49,13 @@ def s3so(worker_id):
 
 
 @pytest.fixture(scope="session")
-def s3_base(worker_id, monkeypatch):
+def monkeysession():
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp
+
+
+@pytest.fixture(scope="session")
+def s3_base(worker_id, monkeysession):
     """
     Fixture for mocking S3 interaction.
 
@@ -61,8 +67,8 @@ def s3_base(worker_id, monkeypatch):
 
     # temporary workaround as moto fails for botocore >= 1.11 otherwise,
     # see https://github.com/spulec/moto/issues/1924 & 1952
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+    monkeysession.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
+    monkeysession.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
     if is_ci_environment():
         if is_platform_arm() or is_platform_mac() or is_platform_windows():
             # NOT RUN on Windows/macOS/ARM, only Ubuntu
