@@ -3774,6 +3774,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.2.0
 
+        comment: str, default None
+            Prefix which should be written to lines preceding the body
+            of an output csv. These lines can be used for comments or
+            metadata which are not part of the csv data itself. Complement
+            of pd.read_csv 'comment' param.
+        comment_lines: Iterable['str'], default None
+            Comment or metadata lines to write to the beginning of the csv
+            file. Each item is a row and will be prefixed with the character in
+            the 'comment' param
+
+
         Returns
         -------
         None or str
