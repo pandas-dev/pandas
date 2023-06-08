@@ -439,6 +439,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = arr
 
         if dtype.categories is None:
+            if not isinstance(values, ABCIndex):
+                # in particular RangeIndex xref test_index_equal_range_categories
+                values = sanitize_array(values, None)
             try:
                 codes, categories = factorize(values, sort=True)
             except TypeError as err:
@@ -649,7 +652,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     @classmethod
     def from_codes(
-        cls, codes, categories=None, ordered=None, dtype: Dtype | None = None
+        cls,
+        codes,
+        categories=None,
+        ordered=None,
+        dtype: Dtype | None = None,
+        validate: bool = True,
     ) -> Self:
         """
         Make a Categorical type from codes and categories or dtype.
@@ -677,6 +685,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         dtype : CategoricalDtype or "category", optional
             If :class:`CategoricalDtype`, cannot be used together with
             `categories` or `ordered`.
+        validate : bool, default True
+            If True, validate that the codes are valid for the dtype.
+            If False, don't validate that the codes are valid. Be careful about skipping
+            validation, as invalid codes can lead to severe problems, such as segfaults.
+
+            .. versionadded:: 2.1.0
 
         Returns
         -------
@@ -699,18 +713,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             )
             raise ValueError(msg)
 
-        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
-            # Avoid the implicit conversion of Int to object
-            if isna(codes).any():
-                raise ValueError("codes cannot contain NA values")
-            codes = codes.to_numpy(dtype=np.int64)
-        else:
-            codes = np.asarray(codes)
-        if len(codes) and codes.dtype.kind not in "iu":
-            raise ValueError("codes need to be array-like integers")
-
-        if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
-            raise ValueError("codes need to be between -1 and len(categories)-1")
+        if validate:
+            # beware: non-valid codes may segfault
+            codes = cls._validate_codes_for_dtype(codes, dtype=dtype)
 
         return cls._simple_new(codes, dtype=dtype)
 
@@ -743,6 +748,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.categories
+        Index(['a', 'b', 'c'], dtype='object')
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.categories
+        Index(['b', 'c', 'd'], dtype='object')
         """
         return self.dtype.categories
 
@@ -750,6 +766,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.ordered
+        False
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], ordered=True)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.ordered
+        True
         """
         return self.dtype.ordered
 
@@ -848,6 +875,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Ordered Categorical.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.ordered
+        False
+        >>> ser = ser.cat.as_ordered()
+        >>> ser.cat.ordered
+        True
         """
         return self.set_ordered(True)
 
@@ -859,6 +895,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Unordered Categorical.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c"],
+        ...                           categories=["a", "b", "c"], ordered=True)
+        >>> ser = pd.Series(raw_cate)
+        >>> ser = ser.cat.as_unordered()
+        >>> ser.cat.ordered
+        False
         """
         return self.set_ordered(False)
 
@@ -909,6 +954,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         add_categories : Add new categories.
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "A"],
+        ...                           categories=["a", "b", "c"], ordered=True)
+        >>> ser = pd.Series(raw_cate)
+        >>> ser
+        0   a
+        1   b
+        2   c
+        3   NaN
+        dtype: category
+        Categories (3, object): ['a' < 'b' < 'c']
+        >>> ser.cat.set_categories(["A", "B", "C"], rename=True)
+        0   A
+        1   B
+        2   C
+        3   NaN
+        dtype: category
+        Categories (3, object): ['A' < 'B' < 'C']
         """
 
         if ordered is None:
@@ -1035,6 +1100,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser = ser.cat.reorder_categories(['c', 'b', 'a'], ordered=True)
+        >>> ser
+        0   a
+        1   b
+        2   c
+        3   a
+        dtype: category
+        Categories (3, object): ['c' < 'b' < 'a']
+        >>> ser = ser.sort_values()
+        >>> ser
+        2   c
+        1   b
+        0   a
+        3   a
+        dtype: category
+        Categories (3, object): ['c' < 'b' < 'a']
         """
         if (
             len(self.categories) != len(new_categories)
@@ -1325,7 +1410,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         if new_categories.is_unique and not new_categories.hasnans and na_val is np.nan:
             new_dtype = CategoricalDtype(new_categories, ordered=self.ordered)
-            return self.from_codes(self._codes.copy(), dtype=new_dtype)
+            return self.from_codes(self._codes.copy(), dtype=new_dtype, validate=False)
 
         if has_nans:
             new_categories = new_categories.insert(len(new_categories), na_val)
@@ -1377,6 +1462,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 f"category ({fill_value}), set the categories first"
             ) from None
         return fill_value
+
+    @classmethod
+    def _validate_codes_for_dtype(cls, codes, *, dtype: CategoricalDtype) -> np.ndarray:
+        if isinstance(codes, ExtensionArray) and is_integer_dtype(codes.dtype):
+            # Avoid the implicit conversion of Int to object
+            if isna(codes).any():
+                raise ValueError("codes cannot contain NA values")
+            codes = codes.to_numpy(dtype=np.int64)
+        else:
+            codes = np.asarray(codes)
+        if len(codes) and codes.dtype.kind not in "iu":
+            raise ValueError("codes need to be array-like integers")
+
+        if len(codes) and (codes.max() >= len(dtype.categories) or codes.min() < -1):
+            raise ValueError("codes need to be between -1 and len(categories)-1")
+        return codes
 
     # -------------------------------------------------------------
 
@@ -2620,6 +2721,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def codes(self) -> Series:
         """
         Return Series of codes as well as the index.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
+        >>> ser = pd.Series(raw_cate)
+        >>> ser.cat.codes
+        0   0
+        1   1
+        2  -1
+        3   0
+        dtype: int8
         """
         from pandas import Series
 
@@ -2724,7 +2836,7 @@ def factorize_from_iterable(values) -> tuple[np.ndarray, Index]:
         # The Categorical we want to build has the same categories
         # as values but its codes are by def [0, ..., len(n_categories) - 1]
         cat_codes = np.arange(len(values.categories), dtype=values.codes.dtype)
-        cat = Categorical.from_codes(cat_codes, dtype=values.dtype)
+        cat = Categorical.from_codes(cat_codes, dtype=values.dtype, validate=False)
 
         categories = CategoricalIndex(cat)
         codes = values.codes

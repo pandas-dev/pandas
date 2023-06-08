@@ -26,7 +26,9 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
+    DataFrame,
     DatetimeIndex,
+    Series,
     Timedelta,
     Timestamp,
     bdate_range,
@@ -354,6 +356,34 @@ class TestDateRanges:
             ]
         )
         tm.assert_index_equal(result, expected)
+
+    def test_date_range_index_comparison(self):
+        rng = date_range("2011-01-01", periods=3, tz="US/Eastern")
+        df = Series(rng).to_frame()
+        arr = np.array([rng.to_list()]).T
+        arr2 = np.array([rng]).T
+
+        with pytest.raises(ValueError, match="Unable to coerce to Series"):
+            rng == df
+
+        with pytest.raises(ValueError, match="Unable to coerce to Series"):
+            df == rng
+
+        expected = DataFrame([True, True, True])
+
+        results = df == arr2
+        tm.assert_frame_equal(results, expected)
+
+        expected = Series([True, True, True], name=0)
+
+        results = df[0] == arr2[:, 0]
+        tm.assert_series_equal(results, expected)
+
+        expected = np.array(
+            [[True, False, False], [False, True, False], [False, False, True]]
+        )
+        results = rng == arr
+        tm.assert_numpy_array_equal(results, expected)
 
     @pytest.mark.parametrize(
         "start,end,result_tz",

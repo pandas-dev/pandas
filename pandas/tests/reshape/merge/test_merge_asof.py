@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Index,
@@ -455,7 +457,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
-            MergeError, match="left_by and right_by must be same length"
+            MergeError, match="left_by and right_by must be the same length"
         ):
             merge_asof(
                 left,
@@ -1589,3 +1591,51 @@ def test_merge_asof_raise_for_duplicate_columns():
 
     with pytest.raises(ValueError, match="column label 'a'"):
         merge_asof(left, right, left_on="left_val", right_on="a")
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("timestamp[s][pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_merge_asof_extension_dtype(dtype):
+    # GH 52904
+    left = pd.DataFrame(
+        {
+            "join_col": [1, 3, 5],
+            "left_val": [1, 2, 3],
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "join_col": [2, 3, 4],
+            "right_val": [1, 2, 3],
+        }
+    )
+    left = left.astype({"join_col": dtype})
+    right = right.astype({"join_col": dtype})
+    result = merge_asof(left, right, on="join_col")
+    expected = pd.DataFrame(
+        {
+            "join_col": [1, 3, 5],
+            "left_val": [1, 2, 3],
+            "right_val": [np.nan, 2.0, 3.0],
+        }
+    )
+    expected = expected.astype({"join_col": dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_read_only_ndarray():
+    # GH 53513
+    left = pd.Series([2], index=[2], name="left")
+    right = pd.Series([1], index=[1], name="right")
+    # set to read-only
+    left.index.values.flags.writeable = False
+    right.index.values.flags.writeable = False
+    result = merge_asof(left, right, left_index=True, right_index=True)
+    expected = pd.DataFrame({"left": [2], "right": [1]}, index=[2])
+    tm.assert_frame_equal(result, expected)

@@ -3,10 +3,7 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
-from functools import (
-    lru_cache,
-    reduce,
-)
+import functools
 import itertools
 import re
 from typing import (
@@ -193,10 +190,10 @@ class CSSToExcelConverter:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
-        # We should avoid lru_cache on the __call__ method.
+        # We should avoid cache on the __call__ method.
         # Otherwise once the method __call__ has been called
         # garbage collection no longer deletes the instance.
-        self._call_cached = lru_cache(maxsize=None)(self._call_uncached)
+        self._call_cached = functools.cache(self._call_uncached)
 
     compute_css = CSSResolver()
 
@@ -726,7 +723,7 @@ class ExcelFormatter:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
-            if reduce(lambda x, y: x and y, (x != "" for x in row)):
+            if functools.reduce(lambda x, y: x and y, (x != "" for x in row)):
                 gen2 = (
                     ExcelCell(self.rowcounter, colindex, val, self.header_style)
                     for colindex, val in enumerate(row)
@@ -901,6 +898,7 @@ class ExcelFormatter:
         freeze_panes: tuple[int, int] | None = None,
         engine: str | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
@@ -922,6 +920,8 @@ class ExcelFormatter:
         {storage_options}
 
             .. versionadded:: 1.2.0
+        engine_kwargs: dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         from pandas.io.excel import ExcelWriter
 
@@ -932,6 +932,9 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
@@ -939,7 +942,10 @@ class ExcelFormatter:
             # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
             # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
             writer = ExcelWriter(  # type: ignore[abstract]
-                writer, engine=engine, storage_options=storage_options
+                writer,
+                engine=engine,
+                storage_options=storage_options,
+                engine_kwargs=engine_kwargs,
             )
             need_save = True
 

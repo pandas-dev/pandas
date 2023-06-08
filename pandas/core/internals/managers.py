@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -53,8 +54,6 @@ from pandas.core.dtypes.missing import (
 import pandas.core.algorithms as algos
 from pandas.core.arrays import DatetimeArray
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
-from pandas.core.arrays.sparse import SparseDtype
-import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -514,10 +513,6 @@ class BaseBlockManager(DataManager):
         in formatting (repr / csv).
         """
         return self.apply("to_native_types", **kwargs)
-
-    @property
-    def is_numeric_mixed_type(self) -> bool:
-        return all(block.is_numeric for block in self.blocks)
 
     @property
     def any_extension_types(self) -> bool:
@@ -1872,7 +1867,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 # We need to do getitem_block here otherwise we would be altering
                 #  blk.mgr_locs in place, which would render it invalid. This is only
                 #  relevant in the copy=False case.
-                nb = blk.getitem_block(slice(None))
+                nb = blk.slice_block_columns(slice(None))
                 nb._mgr_locs = nb._mgr_locs.add(offset)
                 blocks.append(nb)
 
@@ -2018,21 +2013,12 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """compat with BlockManager"""
         return None
 
-    def getitem_mgr(self, indexer: slice | np.ndarray) -> SingleBlockManager:
+    def get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Self:
         # similar to get_slice, but not restricted to slice indexer
         blk = self._block
-        if (
-            using_copy_on_write()
-            and isinstance(indexer, np.ndarray)
-            and len(indexer) > 0
-            and com.is_bool_indexer(indexer)
-            and indexer.all()
-        ):
+        if using_copy_on_write() and len(indexer) > 0 and indexer.all():
             return type(self)(blk.copy(deep=False), self.index)
-        array = blk._slice(indexer)
-        if array.ndim > 1:
-            # This will be caught by Series._get_values
-            raise ValueError("dimension-expanding indexing not allowed")
+        array = blk.values[indexer]
 
         bp = BlockPlacement(slice(0, len(array)))
         # TODO(CoW) in theory only need to track reference if new_array is a view
@@ -2048,7 +2034,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             raise IndexError("Requested axis not found in manager")
 
         blk = self._block
-        array = blk._slice(slobj)
+        array = blk.values[slobj]
         bp = BlockPlacement(slice(0, len(array)))
         # TODO this method is only used in groupby SeriesSplitter at the moment,
         # so passing refs is not yet covered by the tests

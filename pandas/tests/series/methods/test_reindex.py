@@ -156,7 +156,7 @@ def test_reindex_pad():
 
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
-    result = s.shift(1).fillna(method="bfill")
+    result = s.shift(1).bfill()
     expected = Series(False, index=range(0, 5))
     tm.assert_series_equal(result, expected)
 
@@ -314,7 +314,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([None, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
