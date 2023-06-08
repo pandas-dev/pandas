@@ -341,6 +341,10 @@ Returns
 -------
 Series or DataFrame
     Computed {fname} of values within each group.
+
+Examples
+--------
+{example}
 """
 
 _pipe_template = """
@@ -2324,7 +2328,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
+    @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0, example="Testing")
     def sum(
         self,
         numeric_only: bool = False,
@@ -2354,14 +2358,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
+    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0, example="Testing")
     def prod(self, numeric_only: bool = False, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
 
     @final
-    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1, example="Testing")
     def min(
         self,
         numeric_only: bool = False,
@@ -2382,7 +2386,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
+    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1, example=">>> ")
     def max(
         self,
         numeric_only: bool = False,
