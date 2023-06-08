@@ -1146,7 +1146,7 @@ default 'raise'
         Parameters
         ----------
         freq : str or Period, optional
-            One of pandas' :ref:`period strings <timeseries.period_aliases>`
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
             or an Period object. Will be inferred by default.
 
         Returns
