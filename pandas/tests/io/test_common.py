@@ -631,11 +631,18 @@ def test_comment_writer(salaries_table, salaries_table_comments, datapath):
         # Check commented table can be read and matches non-commented version
         tm.assert_frame_equal(salaries_table, salaries_table_comments)
 
-        # Write comments on uncommted table, validate
+        # Write comments on uncommented table, validate
         salaries_table.to_csv(
-            path, sep="\t", comment=comment, comment_lines=comment_lines
+            path, sep="\t", comment=comment, comment_lines=comment_lines, index=False
         )
 
+        salaries_table.to_csv(
+            "testing-test.csv",
+            sep="\t",
+            comment=comment,
+            comment_lines=comment_lines,
+            index=False,
+        )
         assert filecmp.cmp(
             path,
             datapath("io", "parser", "data", "salaries_comments.csv"),

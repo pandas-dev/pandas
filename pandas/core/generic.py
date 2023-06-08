@@ -3605,6 +3605,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        comment: str | None = ...,
+        comment_lines: Iterable[str] | None = ...,
     ) -> str:
         ...
 
@@ -3632,6 +3634,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        comment: str | None = ...,
+        comment_lines: Iterable[str] | None = ...,
     ) -> None:
         ...
 
@@ -3836,6 +3840,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            comment=comment,
+            comment_lines=comment_lines,
         )
 
     # ----------------------------------------------------------------------
