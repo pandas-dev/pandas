@@ -1350,7 +1350,7 @@ class Block(PandasObject):
         index: Index | None = None,
         inplace: bool = False,
         limit: int | None = None,
-        limit_direction: str = "forward",
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
