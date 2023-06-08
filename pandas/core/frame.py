@@ -10932,7 +10932,8 @@ class DataFrame(NDFrame, OpsMixin):
         return res_ser
 
     @doc(make_doc("any", ndim=2))
-    def any(
+    # error: Signature of "any" incompatible with supertype "NDFrame"
+    def any(  # type: ignore[override]
         self,
         *,
         axis: Axis = 0,
@@ -10940,7 +10941,7 @@ class DataFrame(NDFrame, OpsMixin):
         skipna: bool = True,
         **kwargs,
     ) -> Series | bool:
-        result = self._logical_func(  # type: ignore[return-value]
+        result = self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
         if isinstance(result, Series):
@@ -11048,7 +11049,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
-        return result.__finalize__(self, method="sem")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sem")
+        return result
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11060,7 +11063,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
-        return result.__finalize__(self, method="var")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="var")
+        return result
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11072,7 +11077,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ):
         result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
-        return result.__finalize__(self, method="std")
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="std")
+        return result
 
     @doc(make_doc("skew", ndim=2))
     def skew(
