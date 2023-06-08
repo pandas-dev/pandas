@@ -49,6 +49,7 @@ UnitChoices = Literal[
     "milli",
     "millis",
     "l",
+    "L",
     "us",
     "microseconds",
     "microsecond",

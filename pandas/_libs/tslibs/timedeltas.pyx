@@ -722,7 +722,7 @@ cpdef inline str parse_timedelta_unit(str unit):
     """
     if unit is None:
         return "ns"
-    elif unit == "M":
+    elif unit in {"M", "t", "T", "l", "L"}:
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]

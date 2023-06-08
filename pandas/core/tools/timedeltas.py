@@ -110,9 +110,9 @@ def to_timedelta(
         * 'W'
         * 'D' / 'days' / 'day'
         * 'hours' / 'hour' / 'hr' / 'h'
-        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
+        * 'm' / 'minute' / 'min' / 'minutes'
         * 'S' / 'seconds' / 'sec' / 'second'
-        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
@@ -180,6 +180,9 @@ def to_timedelta(
             "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
         )
+
+    if unit in {"t", "T", "l", "L"}:
+        raise ValueError("Units 't', 'T', 'l' and 'L' are no longer supported.")
 
     if arg is None:
         return arg
