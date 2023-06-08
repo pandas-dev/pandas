@@ -2574,17 +2574,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'b', 'c']
+        >>> lst = ['a', 'a', 'b']
         >>> ser = pd.Series([1, 2, 3], index=lst)
         >>> ser
         a     1
-        b     2
-        c     3
+        a     2
+        b     3
         dtype: int64
         >>> ser.groupby(level=0).size()
         a    2
         b    1
-        dtype: float64
+        dtype: int64
 
         >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
         >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
