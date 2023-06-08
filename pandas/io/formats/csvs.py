@@ -326,6 +326,7 @@ class CSVFormatter:
             self.writer,
         )
 
-    def _save_comment_lines(self):
-        for line in self.comment_lines:
-            self.writer.writerow([f"{self.comment}" + line])
+    def _save_comment_lines(self) -> None:
+        if self.comment_lines:
+            for line in self.comment_lines:
+                self.writer.writerow([f"{self.comment}" + line])
