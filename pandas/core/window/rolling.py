@@ -1136,7 +1136,7 @@ class Window(BaseWindow):
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
         signal = import_optional_dependency(
-            "scipy.signal", extra="Scipy is required to generate window weight."
+            "scipy.signal.windows", extra="Scipy is required to generate window weight."
         )
         self._scipy_weight_generator = getattr(signal, self.win_type, None)
         if self._scipy_weight_generator is None:
