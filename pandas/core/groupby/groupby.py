@@ -2612,7 +2612,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1, example=">>> ")
+    @doc(
+        _groupby_agg_method_template,
+        fname="max",
+        no=False,
+        mc=-1,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).max()
+        a    2
+        b    3
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah"])
+        >>> df
+                  a  b  c
+        tiger     1  8  2
+        leopard   1  2  5
+        cheetah   2  6  9
+        >>> df.groupby("a").max()
+            b  c
+        a
+        1   8  5
+        2   6  9"""
+        ),
+    )
     def max(
         self,
         numeric_only: bool = False,
