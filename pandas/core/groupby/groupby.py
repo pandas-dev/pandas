@@ -2279,6 +2279,40 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([5, 10, 8, 14], index=lst)
+        >>> ser
+        a     5
+        a    10
+        b     8
+        b    14
+        dtype: int64
+        >>> ser.groupby(level=0).sem()
+        a    2.5
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 12, 11], [1, 15, 2], [2, 5, 8], [2, 6, 12]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a   b   c
+            tuna   1  12  11
+          salmon   1  15   2
+         catfish   2   5   8
+        goldfish   2   6  12
+        >>> df.groupby("a").sem()
+              b  c
+        a
+        1    1.5  4.5
+        2    0.5  2.0
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
@@ -2294,7 +2328,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
@@ -2304,6 +2338,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame or Series
             Number of rows in each group as a Series if as_index is True
             or a DataFrame if as_index is False.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'b', 'c']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a     1
+        b     2
+        c     3
+        dtype: int64
+        >>> ser.groupby(level=0).size()
+        a    2
+        b    1
+        dtype: float64
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby("a").size()
+        a
+        1    2
+        7    1
+        dtype: int64
         """
         result = self.grouper.size()
 
@@ -3853,6 +3918,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).shift(1)
+        a    NaN
+        a    1.0
+        b    NaN
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a  b  c
+            tuna   1  2  3
+          salmon   1  5  6
+         catfish   2  5  8
+        goldfish   2  6  9
+        >>> df.groupby("a").shift(1)
+                      b    c
+            tuna    NaN  NaN
+          salmon    2.0  3.0
+         catfish    NaN  NaN
+        goldfish    5.0  8.0
         """
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
@@ -3986,7 +4089,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             tuna    NaN    NaN
           salmon    1.5  1.000
          catfish    NaN    NaN
-        goldfish    0.2  0.125"""
+        goldfish    0.2  0.125
+        """
 
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
