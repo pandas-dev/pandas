@@ -99,9 +99,9 @@ strings (``object``).
 .. note::
     When asking for the ``dtypes``, no brackets are used!
     ``dtypes`` is an attribute of a ``DataFrame`` and ``Series``. Attributes
-    of ``DataFrame`` or ``Series`` do not need brackets. Attributes
-    represent a characteristic of a ``DataFrame``/``Series``, whereas a
-    method (which requires brackets) *do* something with the
+    of a ``DataFrame`` or ``Series`` do not need brackets. Attributes
+    represent a characteristic of a ``DataFrame``/``Series``, whereas
+    methods (which require brackets) *do* something with the
     ``DataFrame``/``Series`` as introduced in the :ref:`first tutorial <10min_tut_01_tableoriented>`.
 
 .. raw:: html
