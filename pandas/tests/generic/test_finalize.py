@@ -153,7 +153,7 @@ _all_methods = [
         ({"A": ["a", "b", "c"], "B": [1, 3, 5], "C": [2, 4, 6]},),
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
-    pytest.param((pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x))),
+    (pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x)),
     pytest.param(
         (
             pd.DataFrame,
@@ -162,9 +162,7 @@ _all_methods = [
         ),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("cov")),
@@ -172,19 +170,13 @@ _all_methods = [
             pytest.mark.filterwarnings("ignore::RuntimeWarning"),
         ],
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("corrwith", pd.DataFrame(*frame_data)),
-        ),
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("corrwith", pd.DataFrame(*frame_data)),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("count")),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("count")),
+    (pd.DataFrame, frame_data, operator.methodcaller("nunique")),
     (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
     (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
     (pd.DataFrame, frame_data, operator.methodcaller("mode")),
@@ -192,33 +184,25 @@ _all_methods = [
         (pd.Series, [0], operator.methodcaller("mode")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("quantile", numeric_only=True),
-        ),
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("quantile", numeric_only=True),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("quantile", q=[0.25, 0.75], numeric_only=True),
-        ),
+    (
+        pd.DataFrame,
+        frame_data,
+        operator.methodcaller("quantile", q=[0.25, 0.75], numeric_only=True),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
-            operator.methodcaller("quantile", numeric_only=False),
-        ),
+    (
+        pd.DataFrame,
+        ({"A": [pd.Timedelta(days=1), pd.Timedelta(days=2)]},),
+        operator.methodcaller("quantile", numeric_only=False),
     ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            ({"A": [np.datetime64("2022-01-01"), np.datetime64("2022-01-02")]},),
-            operator.methodcaller("quantile", numeric_only=True),
-        ),
+    (
+        pd.DataFrame,
+        ({"A": [np.datetime64("2022-01-01"), np.datetime64("2022-01-02")]},),
+        operator.methodcaller("quantile", numeric_only=True),
     ),
     (
         pd.DataFrame,
@@ -230,25 +214,17 @@ _all_methods = [
         ({"A": [1]}, [pd.Timestamp("2000")]),
         operator.methodcaller("to_period", freq="D"),
     ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", [1])),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", pd.Series([1]))),
-    ),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_mi_data,
-            operator.methodcaller("isin", pd.DataFrame({"A": [1]})),
-        ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", [1])),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("isin", pd.Series([1]))),
+    (
+        pd.DataFrame,
+        frame_mi_data,
+        operator.methodcaller("isin", pd.DataFrame({"A": [1]})),
     ),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("droplevel", "A")),
     (pd.DataFrame, frame_data, operator.methodcaller("pop", "A")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("squeeze")),
-        marks=not_implemented_mark,
-    ),
+    # Squeeze on columns, otherwise we'll end up with a scalar
+    (pd.DataFrame, frame_data, operator.methodcaller("squeeze", axis="columns")),
     (pd.Series, ([1, 2],), operator.methodcaller("squeeze")),
     (pd.Series, ([1, 2],), operator.methodcaller("rename_axis", index="a")),
     (pd.DataFrame, frame_data, operator.methodcaller("rename_axis", columns="a")),
@@ -261,7 +237,7 @@ _all_methods = [
     (pd.Series, [1], operator.inv),
     (pd.DataFrame, frame_data, abs),
     (pd.Series, [1], abs),
-    pytest.param((pd.DataFrame, frame_data, round)),
+    (pd.DataFrame, frame_data, round),
     (pd.Series, [1], round),
     (pd.DataFrame, frame_data, operator.methodcaller("take", [0, 0])),
     (pd.DataFrame, frame_mi_data, operator.methodcaller("xs", "a")),
@@ -372,28 +348,18 @@ _all_methods = [
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
         operator.methodcaller("tz_localize", "CET"),
     ),
-    pytest.param(
-        (pd.Series, ([1, 2],), operator.methodcaller("describe")),
-        marks=not_implemented_mark,
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("describe")),
-        marks=not_implemented_mark,
-    ),
+    (pd.Series, ([1, 2],), operator.methodcaller("describe")),
+    (pd.DataFrame, frame_data, operator.methodcaller("describe")),
     (pd.Series, ([1, 2],), operator.methodcaller("pct_change")),
     (pd.DataFrame, frame_data, operator.methodcaller("pct_change")),
     (pd.Series, ([1],), operator.methodcaller("transform", lambda x: x - x.min())),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_mi_data,
-            operator.methodcaller("transform", lambda x: x - x.min()),
-        ),
+    (
+        pd.DataFrame,
+        frame_mi_data,
+        operator.methodcaller("transform", lambda x: x - x.min()),
     ),
     (pd.Series, ([1],), operator.methodcaller("apply", lambda x: x)),
-    pytest.param(
-        (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
-    ),
+    (pd.DataFrame, frame_mi_data, operator.methodcaller("apply", lambda x: x)),
     # Cumulative reductions
     (pd.Series, ([1],), operator.methodcaller("cumsum")),
     (pd.DataFrame, frame_data, operator.methodcaller("cumsum")),
@@ -402,12 +368,8 @@ _all_methods = [
         (pd.DataFrame, frame_data, operator.methodcaller("any")),
         marks=not_implemented_mark,
     ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("sum")),
-    ),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("std")),
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("sum")),
+    (pd.DataFrame, frame_data, operator.methodcaller("std")),
     pytest.param(
         (pd.DataFrame, frame_data, operator.methodcaller("mean")),
         marks=not_implemented_mark,
@@ -767,7 +729,6 @@ def test_groupby_finalize(obj, method):
         lambda x: x.agg("sem"),
         lambda x: x.agg("size"),
         lambda x: x.agg("ohlc"),
-        lambda x: x.agg("describe"),
     ],
 )
 @not_implemented_mark
