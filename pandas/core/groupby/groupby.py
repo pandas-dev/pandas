@@ -906,7 +906,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return com.pipe(self, func, *args, **kwargs)
 
     @final
-    def get_group(self, name, obj=None) -> DataFrame | Series:
+    def get_group(self, name) -> DataFrame | Series:
         """
         Construct DataFrame from group with provided name.
 
@@ -914,14 +914,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         ----------
         name : object
             The name of the group to get as a DataFrame.
-        obj : DataFrame, default None
-            The DataFrame to take the DataFrame out of.  If
-            it is None, the object groupby was called on will
-            be used.
 
         Returns
         -------
-        same type as obj
+        DataFrame
 
         Examples
         --------
@@ -955,14 +951,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         """
-        if obj is None:
-            obj = self._selected_obj
-
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take_with_is_copy(inds, axis=self.axis)
+        return self._selected_obj.iloc[inds]
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
