@@ -12,6 +12,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 class TestDataFrameSortValues:
@@ -849,9 +850,22 @@ def ascending(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if (
+            Version(np.__version__) >= Version("1.25")
+            and request.node.callspec.id == "df_idx0-inner-True"
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
