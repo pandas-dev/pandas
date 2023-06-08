@@ -341,6 +341,10 @@ Returns
 -------
 Series or DataFrame
     Computed {fname} of values within each group.
+
+Examples
+--------
+{example}
 """
 
 _pipe_template = """
@@ -1453,13 +1457,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        if len(self.grouper.groupings) > 1:
-            raise NotImplementedError(
-                "More than 1 grouping labels are not supported with engine='numba'"
-            )
         # GH 46867
         index_data = data.index
         if isinstance(index_data, MultiIndex):
+            if len(self.grouper.groupings) > 1:
+                raise NotImplementedError(
+                    "Grouping with more than 1 grouping labels and "
+                    "a MultiIndex is not supported with engine='numba'"
+                )
             group_key = self.grouper.groupings[0].name
             index_data = index_data.get_level_values(group_key)
         sorted_index_data = index_data.take(sorted_index).to_numpy()
@@ -2028,7 +2033,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
@@ -2037,6 +2042,38 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Count of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, np.nan], index=lst)
+        >>> ser
+        a    1.0
+        a    2.0
+        b    NaN
+        dtype: float64
+        >>> ser.groupby(level=0).count()
+        a    2
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, np.nan, 3], [1, np.nan, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a	  b	c
+        cow     1	NaN	3
+        horse	1	NaN	6
+        bull	7	8.0	9
+        >>> df.groupby("a").count()
+            b   c
+        a
+        1   0   2
+        7   1   1
         """
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -2517,7 +2554,46 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
+    @doc(
+        _groupby_agg_method_template,
+        fname="sum",
+        no=False,
+        mc=0,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).sum()
+        a    3
+        b    7
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").sum()
+             b   c
+        a
+        1   10   7
+        2   11  17"""
+        ),
+    )
     def sum(
         self,
         numeric_only: bool = False,
@@ -2547,14 +2623,92 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
+    @doc(
+        _groupby_agg_method_template,
+        fname="prod",
+        no=False,
+        mc=0,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).prod()
+        a    2
+        b   12
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").prod()
+             b    c
+        a
+        1   16   10
+        2   30   72"""
+        ),
+    )
     def prod(self, numeric_only: bool = False, min_count: int = 0):
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
 
     @final
-    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
+    @doc(
+        _groupby_agg_method_template,
+        fname="min",
+        no=False,
+        mc=-1,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).min()
+        a    1
+        b    3
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").min()
+            b  c
+        a
+        1   2  2
+        2   5  8"""
+        ),
+    )
     def min(
         self,
         numeric_only: bool = False,
@@ -2575,7 +2729,46 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
+    @doc(
+        _groupby_agg_method_template,
+        fname="max",
+        no=False,
+        mc=-1,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).max()
+        a    2
+        b    4
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").max()
+            b  c
+        a
+        1   8  5
+        2   6  9"""
+        ),
+    )
     def max(
         self,
         numeric_only: bool = False,
@@ -3186,6 +3379,54 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.ffill: Object with missing values filled or None if inplace=True.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "key": [0, 0, 1, 1, 1],
+        ...         "A": [np.nan, 2, np.nan, 3, np.nan],
+        ...         "B": [2, 3, np.nan, np.nan, np.nan],
+        ...         "C": [np.nan, np.nan, 2, np.nan, np.nan],
+        ...     }
+        ... )
+        >>> df
+           key    A    B   C
+        0    0  NaN  2.0 NaN
+        1    0  2.0  3.0 NaN
+        2    1  NaN  NaN 2.0
+        3    1  3.0  NaN NaN
+        4    1  NaN  NaN NaN
+
+        Propagate non-null values forward or backward within each group along columns.
+
+        >>> df.groupby("key").ffill()
+             A    B   C
+        0  NaN  2.0 NaN
+        1  2.0  3.0 NaN
+        2  NaN  NaN 2.0
+        3  3.0  NaN 2.0
+        4  3.0  NaN 2.0
+
+        Propagate non-null values forward or backward within each group along rows.
+
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).ffill().T
+           key    A    B    C
+        0  0.0  0.0  2.0  2.0
+        1  0.0  2.0  3.0  3.0
+        2  1.0  1.0  NaN  2.0
+        3  1.0  3.0  NaN  NaN
+        4  1.0  1.0  NaN  NaN
+
+        Only replace the first NaN element within a group along rows.
+
+        >>> df.groupby("key").ffill(limit=1)
+             A    B    C
+        0  NaN  2.0  NaN
+        1  2.0  3.0  NaN
+        2  NaN  NaN  2.0
+        3  3.0  NaN  2.0
+        4  3.0  NaN  NaN
         """
         return self._fill("ffill", limit=limit)
 
@@ -3890,7 +4131,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cumprod(
         self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
     ) -> NDFrameT:
@@ -3900,6 +4141,41 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([6, 2, 0], index=lst)
+        >>> ser
+        a    6
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).cumprod()
+        a    6
+        a   12
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a   b   c
+        cow     1   8   2
+        horse   1   2   5
+        bull    2   6   9
+        >>> df.groupby("a").groups
+        {1: ['cow', 'horse'], 2: ['bull']}
+        >>> df.groupby("a").cumprod()
+                b   c
+        cow     8   2
+        horse  16  10
+        bull    6   9
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
         if axis is not lib.no_default:
@@ -3916,7 +4192,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cumsum(
         self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
     ) -> NDFrameT:
@@ -3926,6 +4202,41 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([6, 2, 0], index=lst)
+        >>> ser
+        a    6
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).cumsum()
+        a    6
+        a    8
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["fox", "gorilla", "lion"])
+        >>> df
+                  a   b   c
+        fox       1   8   2
+        gorilla   1   2   5
+        lion      2   6   9
+        >>> df.groupby("a").groups
+        {1: ['fox', 'gorilla'], 2: ['lion']}
+        >>> df.groupby("a").cumsum()
+                  b   c
+        fox       8   2
+        gorilla  10   7
+        lion      6   9
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
         if axis is not lib.no_default:
@@ -3942,7 +4253,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cummin(
         self,
         axis: AxisInt | lib.NoDefault = lib.no_default,
@@ -3955,6 +4266,47 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 6, 2, 3, 0, 4], index=lst)
+        >>> ser
+        a    1
+        a    6
+        a    2
+        b    3
+        b    0
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).cummin()
+        a    1
+        a    1
+        a    1
+        b    3
+        b    0
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 2], [1, 1, 5], [6, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["snake", "rabbit", "turtle"])
+        >>> df
+                a   b   c
+        snake   1   0   2
+        rabbit  1   1   5
+        turtle  6   6   9
+        >>> df.groupby("a").groups
+        {1: ['snake', 'rabbit'], 6: ['turtle']}
+        >>> df.groupby("a").cummin()
+                b   c
+        snake   0   2
+        rabbit  0   2
+        turtle  6   9
         """
         skipna = kwargs.get("skipna", True)
         if axis is not lib.no_default:
@@ -3976,7 +4328,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cummax(
         self,
         axis: AxisInt | lib.NoDefault = lib.no_default,
@@ -3989,6 +4341,47 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 6, 2, 3, 1, 4], index=lst)
+        >>> ser
+        a    1
+        a    6
+        a    2
+        b    3
+        b    1
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).cummax()
+        a    1
+        a    6
+        a    6
+        b    3
+        b    3
+        b    4
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 1, 0], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a   b   c
+        cow     1   8   2
+        horse   1   1   0
+        bull    2   6   9
+        >>> df.groupby("a").groups
+        {1: ['cow', 'horse'], 2: ['bull']}
+        >>> df.groupby("a").cummax()
+                b   c
+        cow     8   2
+        horse   8   2
+        bull    6   9
         """
         skipna = kwargs.get("skipna", True)
         if axis is not lib.no_default:
