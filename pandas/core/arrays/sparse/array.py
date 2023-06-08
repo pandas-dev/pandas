@@ -51,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -66,7 +69,6 @@ from pandas.core import arraylike
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.construction import (
@@ -627,6 +629,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        Examples
+        --------
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
+        >>> ser.sparse.fill_value
+        0
+        >>> spa_dtype = pd.SparseDtype(dtype=np.int32, fill_value=2)
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype=spa_dtype)
+        >>> ser.sparse.fill_value
+        2
         """
         return self.dtype.fill_value
 
