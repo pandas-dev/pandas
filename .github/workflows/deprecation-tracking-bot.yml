@@ -1,11 +1,13 @@
+# This bot updates the issue with number DEPRECATION_TRACKER_ISSUE
+# with the PR number that issued the deprecation.
+
+# It runs on commits to main, and will trigger if the PR linked to a merged commit has the "Deprecate" label
 name: Deprecations Bot
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
-    types:
-      [closed]
+      - test
 
 
 permissions:
@@ -15,12 +17,44 @@ jobs:
   deprecation_update:
     permissions:
       issues: write
-    if: >-
-      contains(github.event.pull_request.labels.*.name, 'Deprecate') && github.event.pull_request.merged == true
     runs-on: ubuntu-22.04
     env:
-      DEPRECATION_TRACKER_ISSUE: 50578
+      DEPRECATION_TRACKER_ISSUE: 35
     steps:
+    - uses: actions/github-script@v6
+      id: update-deprecation-issue
+      with:
+        script: |
+          body = github.rest.issues.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${DEPRECATION_TRACKER_ISSUE},
+          })["body"]
+          // Add the PR number to body
+          // (we always get the first linked PR)
+          linkedPR = github.rest.issues.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: ${{ GITHUB_SHA }}
+          })[0]
+          
+          isDeprecation = false
+          for (label in linkedPR["labels"]) {
+            if (label["name"] == "Deprecate") {
+              isDeprecation = true;
+              break;
+            }
+          }
+          
+          PR_NUMBER = linkedPR["number"];
+          
+          body += ("- [ ] #" + PR_NUMBER);
+          github.rest.issues.update({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${DEPRECATION_TRACKER_ISSUE},
+            body: body
+          })
     - name: Checkout
       run: |
         echo "Adding deprecation PR number to deprecation tracking issue"
