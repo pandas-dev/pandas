@@ -28,12 +28,12 @@ upload_wheels() {
             if compgen -G "./dist/*.gz"; then
                 echo "Found sdist"
                 anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./dist/*.gz
-            elif compgen -G "./wheelhouse/*.whl"; then
+                echo "Uploaded sdist"
+            fi
+            if compgen -G "./wheelhouse/*.whl"; then
                 echo "Found wheel"
                 anaconda -q -t ${TOKEN} upload --skip -u ${ANACONDA_ORG} ./wheelhouse/*.whl
-            else
-                echo "Files do not exist"
-                return 1
+                echo "Uploaded wheel"
             fi
             echo "PyPI-style index: https://pypi.anaconda.org/$ANACONDA_ORG/simple"
         fi
