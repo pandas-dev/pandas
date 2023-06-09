@@ -255,7 +255,11 @@ def responder(request):
     [
         (CSVUserAgentResponder, pd.read_csv, None),
         (JSONUserAgentResponder, pd.read_json, None),
-        (HTMLUserAgentResponder, HTMLUserAgentResponder.read_html_first_df, None),
+        (
+            HTMLUserAgentResponder,
+            lambda *args, **kwargs: pd.read_html(*args, **kwargs)[0],
+            None,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,
@@ -293,7 +297,11 @@ def test_server_and_default_headers(responder, read_method, parquet_engine):
     [
         (CSVUserAgentResponder, pd.read_csv, None),
         (JSONUserAgentResponder, pd.read_json, None),
-        (HTMLUserAgentResponder, HTMLUserAgentResponder.read_html_first_df, None),
+        (
+            HTMLUserAgentResponder,
+            lambda *args, **kwargs: pd.read_html(*args, **kwargs)[0],
+            None,
+        ),
         (ParquetPyArrowUserAgentResponder, pd.read_parquet, "pyarrow"),
         pytest.param(
             ParquetFastParquetUserAgentResponder,
