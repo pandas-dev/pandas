@@ -107,7 +107,7 @@ E-mail:
 
 #### Casting Votes
 
-As the voting period starts, a VOTE issue is created which links to the PDEP discussion issue.
+As the voting period starts, a VOTE issue is created which links to the PDEP discussion pull request.
 Each voting member may cast a vote by adding one of the following comments:
 
 - +1: approve.
@@ -241,7 +241,7 @@ hope can help clarify our meaning here:
 
 - 3 August 2022: Initial version ([GH-47938][47938])
 - 15 February 2023: Version 2 ([GH-51417][51417]) clarifies the scope of PDEPs and adds examples
-- DD MM YY: Version 3(link) defines a structured decision making process for PDEPs
+- 09 June 2023: Version 3([GH-53576][53576]) defines a structured decision making process for PDEPs
 
 [7217]: https://github.com/pandas-dev/pandas/pull/7217
 [8074]: https://github.com/pandas-dev/pandas/issues/8074
