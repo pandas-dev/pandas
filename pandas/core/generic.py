@@ -8104,13 +8104,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         locs = self.index.asof_locs(where, ~(nulls._values))
 
         # mask the missing
-        missing = locs == -1
+        mask = locs == -1
         data = self.take(locs)
         data.index = where
-        if missing.any():
+        if mask.any():
             # GH#16063 only do this setting when necessary, otherwise
             #  we'd cast e.g. bools to floats
-            data.loc[missing] = np.nan
+            data.loc[mask] = np.nan
         return data if is_list else data.iloc[-1]
 
     # ----------------------------------------------------------------------
