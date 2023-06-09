@@ -70,7 +70,7 @@ def test_copy_method(deep):
 @pytest.mark.parametrize(
     "kwarg, value",
     [
-        ("names", ["third", "fourth"]),
+        ("names", ("third", "fourth")),
     ],
 )
 def test_copy_method_kwargs(deep, kwarg, value):

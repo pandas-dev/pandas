@@ -102,7 +102,6 @@ from pandas.core.indexes.base import (
     ensure_index,
     get_unanimous_names,
 )
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.ops.invalid import make_invalid_op
 from pandas.core.sorting import (
     get_group_index,
@@ -312,8 +311,8 @@ class MultiIndex(Index):
     # initialize to zero-length tuples to make everything work
     _typ = "multiindex"
     _names: list[Hashable | None] = []
-    _levels = FrozenList()
-    _codes = FrozenList()
+    _levels = ()
+    _codes = ()
     _comparables = ["names"]
 
     sortorder: int | None
@@ -467,7 +466,7 @@ class MultiIndex(Index):
             else:
                 result_codes.append(codes[i])
 
-        new_codes = FrozenList(result_codes)
+        new_codes = tuple(result_codes)
         return new_codes
 
     @classmethod
@@ -841,15 +840,17 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self) -> FrozenList:
+    def levels(self) -> tuple:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
-        result = [x._rename(name=name) for x, name in zip(self._levels, self._names)]
+        result = tuple(
+            x._rename(name=name) for x, name in zip(self._levels, self._names)
+        )
         for level in result:
             # disallow midx.levels[0].name = "foo"
             level._no_setting_name = True
-        return FrozenList(result)
+        return result
 
     def _set_levels(
         self,
@@ -872,16 +873,14 @@ class MultiIndex(Index):
                 raise ValueError("Length of levels must match length of level.")
 
         if level is None:
-            new_levels = FrozenList(
-                ensure_index(lev, copy=copy)._view() for lev in levels
-            )
+            new_levels = tuple(ensure_index(lev, copy=copy)._view() for lev in levels)
             level_numbers = list(range(len(new_levels)))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
             for lev_num, lev in zip(level_numbers, levels):
                 new_levels_list[lev_num] = ensure_index(lev, copy=copy)._view()
-            new_levels = FrozenList(new_levels_list)
+            new_levels = tuple(new_levels_list)
 
         if verify_integrity:
             new_codes = self._verify_integrity(
@@ -976,7 +975,7 @@ class MultiIndex(Index):
             ('c', 2)],
            names=['foo', 'bar'])
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
-        FrozenList([['a', 'b', 'c'], [1, 2, 3, 4]])
+        (['a', 'b', 'c'], [1, 2, 3, 4]])
         """
 
         if isinstance(levels, Index):
@@ -1050,7 +1049,7 @@ class MultiIndex(Index):
 
         level_numbers: list[int] | range
         if level is None:
-            new_codes = FrozenList(
+            new_codes = tuple(
                 _coerce_indexer_frozen(level_codes, lev, copy=copy).view()
                 for lev, level_codes in zip(self._levels, codes)
             )
@@ -1063,7 +1062,7 @@ class MultiIndex(Index):
                 new_codes_list[lev_num] = _coerce_indexer_frozen(
                     level_codes, lev, copy=copy
                 )
-            new_codes = FrozenList(new_codes_list)
+            new_codes = tuple(new_codes_list)
 
         if verify_integrity:
             new_codes = self._verify_integrity(
@@ -1447,8 +1446,8 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Names Methods
 
-    def _get_names(self) -> FrozenList:
-        return FrozenList(self._names)
+    def _get_names(self) -> tuple[Hashable, ...]:
+        return tuple(self._names)
 
     def _set_names(self, names, *, level=None, validate: bool = True):
         """
@@ -1523,7 +1522,7 @@ class MultiIndex(Index):
                     (2, 4, 6)],
                    names=['x', 'y', 'z'])
         >>> mi.names
-        FrozenList(['x', 'y', 'z'])
+        ('x', 'y', 'z')
         """,
     )
 
@@ -1991,7 +1990,7 @@ class MultiIndex(Index):
 
         >>> mi2 = mi[2:].remove_unused_levels()
         >>> mi2.levels
-        FrozenList([[1], ['a', 'b']])
+        ([1], ['a', 'b']])
         """
         new_levels = []
         new_codes = []

@@ -58,7 +58,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.arrays import ExtensionArray
-    from pandas.core.indexes.frozen import FrozenList
 
 
 class _Unstacker:
@@ -334,7 +333,7 @@ class _Unstacker:
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
 
-        new_levels: FrozenList | list[Index]
+        new_levels: tuple | list[Index]
 
         if isinstance(value_columns, MultiIndex):
             # error: Cannot determine type of "__add__"  [has-type]

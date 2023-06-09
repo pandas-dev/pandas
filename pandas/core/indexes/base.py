@@ -168,7 +168,6 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
-from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
 from pandas.core.ops.invalid import make_invalid_op
@@ -1736,8 +1735,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         return names
 
-    def _get_names(self) -> FrozenList:
-        return FrozenList((self.name,))
+    def _get_names(self) -> tuple[Hashable, ...]:
+        return (self.name,)
 
     def _set_names(self, values, *, level=None) -> None:
         """

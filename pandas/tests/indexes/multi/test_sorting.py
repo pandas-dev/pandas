@@ -16,7 +16,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.indexes.frozen import FrozenList
 
 
 def test_sortlevel(idx):
@@ -289,7 +288,7 @@ def test_remove_unused_levels_with_nan():
     idx = idx.set_levels(["a", np.nan], level="id1")
     idx = idx.remove_unused_levels()
     result = idx.levels
-    expected = FrozenList([["a", np.nan], [4]])
+    expected = (Index(["a", np.nan], name="id1"), Index([4], name="id2"))
     assert str(result) == str(expected)
 
 

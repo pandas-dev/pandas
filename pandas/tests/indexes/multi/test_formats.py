@@ -90,14 +90,14 @@ MultiIndex([('foo', 'one'),
             ('baz', 'two'),
             ('qux', 'one'),
             ('qux', 'two')],
-           names=['first', 'second'])"""
+           names=('first', 'second'))"""
             assert result == expected
 
     def test_repr(self, idx):
         result = idx[:1].__repr__()
         expected = """\
 MultiIndex([('foo', 'one')],
-           names=['first', 'second'])"""
+           names=('first', 'second'))"""
         assert result == expected
 
         result = idx.__repr__()
@@ -108,7 +108,7 @@ MultiIndex([('foo', 'one'),
             ('baz', 'two'),
             ('qux', 'one'),
             ('qux', 'two')],
-           names=['first', 'second'])"""
+           names=('first', 'second'))"""
         assert result == expected
 
         with pd.option_context("display.max_seq_items", 5):
@@ -119,7 +119,7 @@ MultiIndex([('foo', 'one'),
             ...
             ('qux', 'one'),
             ('qux', 'two')],
-           names=['first', 'second'], length=6)"""
+           names=('first', 'second'), length=6)"""
             assert result == expected
 
         # display.max_seq_items == 1
@@ -128,7 +128,7 @@ MultiIndex([('foo', 'one'),
             expected = """\
 MultiIndex([...
             ('qux', 'two')],
-           names=['first', ...], length=6)"""
+           names=('first', ...), length=6)"""
             assert result == expected
 
     def test_rjust(self, narrow_multi_index):
@@ -136,7 +136,7 @@ MultiIndex([...
         result = mi[:1].__repr__()
         expected = """\
 MultiIndex([('a', 9, '2000-01-01 00:00:00')],
-           names=['a', 'b', 'dti'])"""
+           names=('a', 'b', 'dti'))"""
         assert result == expected
 
         result = mi[::500].__repr__()
@@ -145,7 +145,7 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
             (  'a',  9, '2000-01-01 00:08:20'),
             ('abc', 10, '2000-01-01 00:16:40'),
             ('abc', 10, '2000-01-01 00:25:00')],
-           names=['a', 'b', 'dti'])"""
+           names=('a', 'b', 'dti'))"""
         assert result == expected
 
         result = mi.__repr__()
@@ -171,14 +171,14 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
             ('abc', 10, '2000-01-01 00:33:17'),
             ('abc', 10, '2000-01-01 00:33:18'),
             ('abc', 10, '2000-01-01 00:33:19')],
-           names=['a', 'b', 'dti'], length=2000)"""
+           names=('a', 'b', 'dti'), length=2000)"""
         assert result == expected
 
     def test_tuple_width(self, wide_multi_index):
         mi = wide_multi_index
         result = mi[:1].__repr__()
         expected = """MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...)],
-           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""  # noqa: E501
+           names=('a', 'b', 'dti_1', 'dti_2', 'dti_3'))"""  # noqa: E501
         assert result == expected
 
         result = mi[:10].__repr__()
@@ -193,7 +193,7 @@ MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
             ('a', 9, '2000-01-01 00:00:07', '2000-01-01 00:00:07', ...),
             ('a', 9, '2000-01-01 00:00:08', '2000-01-01 00:00:08', ...),
             ('a', 9, '2000-01-01 00:00:09', '2000-01-01 00:00:09', ...)],
-           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""
+           names=('a', 'b', 'dti_1', 'dti_2', 'dti_3'))"""
         assert result == expected
 
         result = mi.__repr__()
@@ -219,5 +219,5 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
             ('abc', 10, '2000-01-01 00:33:17', '2000-01-01 00:33:17', ...),
             ('abc', 10, '2000-01-01 00:33:18', '2000-01-01 00:33:18', ...),
             ('abc', 10, '2000-01-01 00:33:19', '2000-01-01 00:33:19', ...)],
-           names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'], length=2000)"""
+           names=('a', 'b', 'dti_1', 'dti_2', 'dti_3'), length=2000)"""
         assert result == expected

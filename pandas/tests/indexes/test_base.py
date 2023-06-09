@@ -894,7 +894,7 @@ class TestIndex:
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
         if isinstance(index, MultiIndex):
-            index = index.rename(["foo", "bar"] + index.names[2:])
+            index = index.rename(["foo", "bar"] + list(index.names[2:]))
             msg = f"'Level {label} not found'"
         else:
             index = index.rename("foo")

@@ -50,7 +50,7 @@ def idx_dup():
 def index_names():
     # names that match those in the idx fixture for testing equality of
     # names assigned to the idx
-    return ["first", "second"]
+    return ("first", "second")
 
 
 @pytest.fixture
