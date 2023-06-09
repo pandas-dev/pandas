@@ -130,7 +130,7 @@ def hist_frame(
     sharey: bool = False,
     figsize: tuple[int, int] | None = None,
     layout: tuple[int, int] | None = None,
-    bins: int | Sequence[int] = 10,
+    bins: int | Sequence[int] = None,
     backend: str | None = None,
     legend: bool = False,
     **kwargs,

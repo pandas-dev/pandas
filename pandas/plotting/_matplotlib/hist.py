@@ -5,15 +5,18 @@ from typing import (
     Literal,
 )
 
+import matplotlib.axes
 import numpy as np
+
+from pandas import Series
 
 from pandas.core.dtypes.common import (
     is_integer,
-    is_list_like,
+    is_list_like, is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndex,
+    ABCIndex, ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -275,8 +278,13 @@ def _grouped_plot(
     layout=None,
     rot: float = 0,
     ax=None,
-    **kwargs,
 ):
+    def get_column_names(obj):
+        if isinstance(obj, ABCSeries):
+            return Series([obj.name])
+
+        return obj.columns
+
     # error: Non-overlapping equality check (left operand type: "Optional[Tuple[float,
     # float]]", right operand type: "Literal['default']")
     if figsize == "default":  # type: ignore[comparison-overlap]
@@ -285,24 +293,37 @@ def _grouped_plot(
             "figsize='default' is no longer supported. "
             "Specify figure size by tuple instead"
         )
-
+    # the default value of dropna in grouby() is True
     grouped = data.groupby(by)
+
+    # It shows all the column(s) listed in column except `by` if column contains `by`
     if column is not None:
         grouped = grouped[column]
 
-    naxes = len(grouped)
+    column_names = get_column_names(grouped.first())
+
+    # What if Series?
+    # Assume that numeric_only and ABCDataFrame always hold
+    if numeric_only and isinstance(grouped.obj, ABCDataFrame):
+        # numeric_columns = grouped.obj[column_names].select_dtypes(include=np.number)
+        # column_names = get_column_names(numeric_columns)
+        dtypes = grouped.obj[column_names].dtypes
+        is_numeric = dtypes.map(is_numeric_dtype)
+        column_names = column_names[is_numeric]
+
+    non_duplicated = [not dup for dup in column_names.duplicated()]
+    column_names = column_names[non_duplicated]
+    naxes = len(column_names)
+
     fig, axes = create_subplots(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
     _axes = flatten_axes(axes)
 
-    for i, (key, group) in enumerate(grouped):
-        ax = _axes[i]
-        if numeric_only and isinstance(group, ABCDataFrame):
-            group = group._get_numeric_data()
-        plotf(group, ax, **kwargs)
-        ax.set_title(pprint_thing(key))
+    for i, column_name in enumerate(column_names):
+        _ax = _axes[i]
+        plotf(grouped, _ax, column_name, numeric_only)
 
     return fig, axes
 
@@ -324,6 +345,10 @@ def _grouped_hist(
     ylabelsize: int | None = None,
     yrot=None,
     legend: bool = False,
+    alpha: float = 0.5,
+    edgecolor: str = 'black',
+    linewidth: float = 1.2,
+    numeric_only: bool = True,
     **kwargs,
 ):
     """
@@ -351,17 +376,40 @@ def _grouped_hist(
     """
     if legend:
         assert "label" not in kwargs
-        if data.ndim == 1:
-            kwargs["label"] = data.name
-        elif column is None:
-            kwargs["label"] = data.columns
-        else:
-            kwargs["label"] = column
+        # if data.ndim == 1:
+        #     kwargs["label"] = data.name
+        # elif column is None:
+        #     kwargs["label"] = data.columns
+        # else:
+        #     kwargs["label"] = column
 
-    def plot_group(group, ax) -> None:
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
+    bins_copy = bins
+    def plot_group(grouped, ax, column_name, numeric_only) -> None:
+        def get_column_data(obj, column_name):
+            if isinstance(obj, ABCSeries):
+                return obj
+            return obj[column_name]
+
+        ax.set_ylabel("Count")
+        ax.set_title(pprint_thing(column_name))
+
+        nonlocal bins, bins_copy
+        raw_column = get_column_data(grouped.obj, column_name)
+        if bins_copy is None and (numeric_only or is_numeric_dtype(raw_column)):
+            # numeric means grouped.obj[column_name] is a numeric df.
+            # precomputed reused bins
+            bins = np.histogram_bin_edges(raw_column, bins='auto')
+
+        for key, group in grouped:
+            column_data = get_column_data(group, column_name)
+            if isinstance(column_data, ABCDataFrame):
+                column_data = column_data.stack().reset_index(drop=True)
+
+            ax.hist(column_data, alpha=alpha, label=key, bins=bins, edgecolor=edgecolor, linewidth=linewidth, **kwargs)
         if legend:
             ax.legend()
+
+        bins = bins_copy
 
     if xrot is None:
         xrot = rot
@@ -377,6 +425,7 @@ def _grouped_hist(
         figsize=figsize,
         layout=layout,
         rot=rot,
+        numeric_only=numeric_only,
     )
 
     set_ticks_props(
@@ -422,6 +471,8 @@ def hist_series(
         elif ax.get_figure() != fig:
             raise AssertionError("passed axis not bound to passed figure")
         values = self.dropna().values
+        ax.set_ylabel("Counts")
+        ax.set_xlabel(self.name)
         if legend:
             kwds["label"] = self.name
         ax.hist(values, bins=bins, **kwds)
@@ -477,8 +528,13 @@ def hist_frame(
     layout=None,
     bins: int = 10,
     legend: bool = False,
+    alpha: float = 0.5,
+    edgecolor: str = 'black',
+    linewidth: float = 1.2,
+    numeric_only: bool = True,
     **kwds,
 ):
+    # in matplotlib, legend is not contradict to label
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
     if by is not None:
@@ -498,6 +554,10 @@ def hist_frame(
             ylabelsize=ylabelsize,
             yrot=yrot,
             legend=legend,
+            alpha=alpha,
+            edgecolor=edgecolor,
+            linewidth=linewidth,
+            numeric_only=numeric_only,
             **kwds,
         )
         return axes
@@ -534,8 +594,10 @@ def hist_frame(
         ax = _axes[i]
         if legend and can_set_label:
             kwds["label"] = col
-        ax.hist(data[col].dropna().values, bins=bins, **kwds)
+        ax.hist(data[col].dropna().values, bins=bins, alpha=alpha, edgecolor=edgecolor, linewidth=linewidth, **kwds)
         ax.set_title(col)
+        ax.set_xlabel(col)
+        ax.set_ylabel("Count")
         ax.grid(grid)
         if legend:
             ax.legend()
