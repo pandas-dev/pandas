@@ -14,9 +14,19 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
-    TestPlotBase,
+    _check_ax_scales,
+    _check_axes_shape,
+    _check_colors,
+    _check_legend_labels,
+    _check_patches_all_filled,
     _check_plot_works,
+    _check_text_labels,
+    _check_ticks_props,
+    get_x_axis,
+    get_y_axis,
 )
+
+mpl = pytest.importorskip("matplotlib")
 
 
 @pytest.fixture
@@ -24,8 +34,7 @@ def ts():
     return tm.makeTimeSeries(name="ts")
 
 
-@td.skip_if_no_mpl
-class TestSeriesPlots(TestPlotBase):
+class TestSeriesPlots:
     def test_hist_legacy(self, ts):
         _check_plot_works(ts.hist)
         _check_plot_works(ts.hist, grid=False)
@@ -36,13 +45,13 @@ class TestSeriesPlots(TestPlotBase):
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(ts.hist, by=ts.index.month, bins=5)
 
-        fig, ax = self.plt.subplots(1, 1)
+        fig, ax = mpl.pyplot.subplots(1, 1)
         _check_plot_works(ts.hist, ax=ax, default_axes=True)
         _check_plot_works(ts.hist, ax=ax, figure=fig, default_axes=True)
         _check_plot_works(ts.hist, figure=fig, default_axes=True)
         tm.close()
 
-        fig, (ax1, ax2) = self.plt.subplots(1, 2)
+        fig, (ax1, ax2) = mpl.pyplot.subplots(1, 2)
         _check_plot_works(ts.hist, figure=fig, ax=ax1, default_axes=True)
         _check_plot_works(ts.hist, figure=fig, ax=ax2, default_axes=True)
 
@@ -76,34 +85,34 @@ class TestSeriesPlots(TestPlotBase):
         # though we don't explicing pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
+        _check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
-        self._check_axes_shape(axes, axes_num=2, layout=(3, 1))
+        _check_axes_shape(axes, axes_num=2, layout=(3, 1))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
+        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
-        self._check_axes_shape(axes, axes_num=4, layout=(3, 2))
+        _check_axes_shape(axes, axes_num=4, layout=(3, 2))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
-        self._check_axes_shape(axes, axes_num=4, layout=(1, 4))
+        _check_axes_shape(axes, axes_num=4, layout=(1, 4))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
+        _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
 
     def test_hist_no_overlap(self):
         from matplotlib.pyplot import (
@@ -124,7 +133,7 @@ class TestSeriesPlots(TestPlotBase):
     def test_hist_by_no_extra_plots(self, hist_df):
         df = hist_df
         df.height.hist(by=df.gender)
-        assert len(self.plt.get_fignums()) == 1
+        assert len(mpl.pyplot.get_fignums()) == 1
 
     def test_plot_fails_when_ax_differs_from_figure(self, ts):
         from pylab import figure
@@ -149,7 +158,7 @@ class TestSeriesPlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         ser = Series(np.random.randint(1, 10))
         ax = ser.hist(histtype=histtype)
-        self._check_patches_all_filled(ax, filled=expected)
+        _check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout", [(None, 1, (1, 1)), ("b", 2, (1, 2))]
@@ -162,8 +171,8 @@ class TestSeriesPlots(TestPlotBase):
 
         # Use default_axes=True when plotting method generate subplots itself
         axes = _check_plot_works(s.hist, default_axes=True, legend=True, by=by)
-        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-        self._check_legend_labels(axes, "a")
+        _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        _check_legend_labels(axes, "a")
 
     @pytest.mark.parametrize("by", [None, "b"])
     def test_hist_with_legend_raises(self, by):
@@ -176,61 +185,60 @@ class TestSeriesPlots(TestPlotBase):
             s.hist(legend=True, by=by, label="c")
 
     def test_hist_kwargs(self, ts):
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 5
-        self._check_text_labels(ax.yaxis.get_label(), "Frequency")
+        _check_text_labels(ax.yaxis.get_label(), "Frequency")
         tm.close()
 
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(orientation="horizontal", ax=ax)
-        self._check_text_labels(ax.xaxis.get_label(), "Frequency")
+        _check_text_labels(ax.xaxis.get_label(), "Frequency")
         tm.close()
 
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
         tm.close()
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
+        _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         # ticks are values, thus ticklabels are blank
-        self._check_text_labels(xlabels, [""] * len(xlabels))
+        _check_text_labels(xlabels, [""] * len(xlabels))
         ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
+        _check_text_labels(ylabels, [""] * len(ylabels))
 
         _check_plot_works(ts.plot.kde)
         _check_plot_works(ts.plot.density)
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
+        _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
-        self._check_text_labels(xlabels, [""] * len(xlabels))
+        _check_text_labels(xlabels, [""] * len(xlabels))
         ylabels = ax.get_yticklabels()
-        self._check_text_labels(ylabels, [""] * len(ylabels))
+        _check_text_labels(ylabels, [""] * len(ylabels))
 
     @td.skip_if_no_scipy
     def test_hist_kde_color(self, ts):
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
+        _check_ax_scales(ax, yaxis="log")
         assert len(ax.patches) == 10
-        self._check_colors(ax.patches, facecolors=["b"] * 10)
+        _check_colors(ax.patches, facecolors=["b"] * 10)
 
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, color="r", ax=ax)
-        self._check_ax_scales(ax, yaxis="log")
+        _check_ax_scales(ax, yaxis="log")
         lines = ax.get_lines()
         assert len(lines) == 1
-        self._check_colors(lines, ["r"])
+        _check_colors(lines, ["r"])
 
 
-@td.skip_if_no_mpl
-class TestDataFramePlots(TestPlotBase):
+class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
         from matplotlib.patches import Rectangle
@@ -250,7 +258,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.hist, grid=False)
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
         assert not axes[1, 1].get_visible()
 
         _check_plot_works(df[[2]].hist)
@@ -269,7 +277,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.hist, layout=(4, 2))
-        self._check_axes_shape(axes, axes_num=6, layout=(4, 2))
+        _check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
         # make sure sharex, sharey is handled
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -288,16 +296,12 @@ class TestDataFramePlots(TestPlotBase):
         xf, yf = 20, 18
         xrot, yrot = 30, 40
         axes = ser.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        self._check_ticks_props(
-            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
-        )
+        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
         xf, yf = 20, 18
         xrot, yrot = 30, 40
         axes = df.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        self._check_ticks_props(
-            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
-        )
+        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
         tm.close()
 
@@ -309,7 +313,7 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
         ax = ser.hist(log=True)
         # scale of y must be 'log'
-        self._check_ax_scales(ax, yaxis="log")
+        _check_ax_scales(ax, yaxis="log")
 
         tm.close()
 
@@ -368,7 +372,7 @@ class TestDataFramePlots(TestPlotBase):
         for layout_test in layout_to_expected_size:
             axes = df.hist(layout=layout_test["layout"])
             expected = layout_test["expected_size"]
-            self._check_axes_shape(axes, axes_num=3, layout=expected)
+            _check_axes_shape(axes, axes_num=3, layout=expected)
 
         # layout too small for all 4 plots
         msg = "Layout of 1x1 must be larger than required size 3"
@@ -396,7 +400,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         # Use default_axes=True when plotting method generate subplots itself
         _check_plot_works(df.hist, default_axes=True)
-        self.plt.tight_layout()
+        mpl.pyplot.tight_layout()
 
         tm.close()
 
@@ -417,7 +421,7 @@ class TestDataFramePlots(TestPlotBase):
             bins=5,
             xrot=0,
         )
-        self._check_ticks_props(axes, xrot=0)
+        _check_ticks_props(axes, xrot=0)
 
     @pytest.mark.parametrize(
         "column, expected",
@@ -461,7 +465,7 @@ class TestDataFramePlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(histtype=histtype)
-        self._check_patches_all_filled(ax, filled=expected)
+        _check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -485,11 +489,11 @@ class TestDataFramePlots(TestPlotBase):
             column=column,
         )
 
-        self._check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
+        _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
         for expected_label, ax in zip(expected_labels, axes):
-            self._check_legend_labels(ax, expected_label)
+            _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("by", [None, "c"])
     @pytest.mark.parametrize("column", [None, "b"])
@@ -503,7 +507,7 @@ class TestDataFramePlots(TestPlotBase):
 
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.randn(10, 2))
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
 
@@ -513,11 +517,11 @@ class TestDataFramePlots(TestPlotBase):
             np.random.RandomState(42).randn(10, 4), columns=["A", "B", "C", "D"]
         )
         df["E"] = ["x", "y"] * 5
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 20
 
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(ax=ax)  # bins=10
         assert len(ax.patches) == 40
 
@@ -526,35 +530,35 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(np.random.randn(30, 4), columns=list("abcd"))
 
         # primary -> secondary
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df["a"].plot.hist(legend=True, ax=ax)
         df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
         # both legends are drawn on left ax
         # left and right axis must be visible
-        self._check_legend_labels(ax, labels=["a", "b (right)"])
+        _check_legend_labels(ax, labels=["a", "b (right)"])
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> secondary
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
         df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
         # both legends are draw on left ax
         # left axis must be invisible, right axis must be visible
-        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
+        _check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
         tm.close()
 
         # secondary -> primary
-        _, ax = self.plt.subplots()
+        _, ax = mpl.pyplot.subplots()
         ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
         # right axes is returned
         df["b"].plot.hist(ax=ax, legend=True)
         # both legends are draw on left ax
         # left and right axis must be visible
-        self._check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
+        _check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
         assert ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
         tm.close()
@@ -572,11 +576,11 @@ class TestDataFramePlots(TestPlotBase):
 
         from matplotlib.patches import Rectangle
 
-        _, ax0 = self.plt.subplots()
+        _, ax0 = mpl.pyplot.subplots()
         df.plot.hist(ax=ax0, weights=weights)
         rects = [x for x in ax0.get_children() if isinstance(x, Rectangle)]
         heights = [rect.get_height() for rect in rects]
-        _, ax1 = self.plt.subplots()
+        _, ax1 = mpl.pyplot.subplots()
         no_nan_df.plot.hist(ax=ax1, weights=no_nan_weights)
         no_nan_rects = [x for x in ax1.get_children() if isinstance(x, Rectangle)]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
@@ -586,12 +590,11 @@ class TestDataFramePlots(TestPlotBase):
 
         msg = "weights must have the same shape as data, or be a single column"
         with pytest.raises(ValueError, match=msg):
-            _, ax2 = self.plt.subplots()
+            _, ax2 = mpl.pyplot.subplots()
             no_nan_df.plot.hist(ax=ax2, weights=idxerror_weights)
 
 
-@td.skip_if_no_mpl
-class TestDataFrameGroupByPlots(TestPlotBase):
+class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
         from matplotlib.patches import Rectangle
 
@@ -610,17 +613,17 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         df["D"] = ["X"] * 500
 
         axes = _grouped_hist(df.A, by=df.C)
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
         axes = df.hist(by=df.C)
-        self._check_axes_shape(axes, axes_num=4, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
         tm.close()
         # group by a key with single value
         axes = df.hist(by="D", rot=30)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
-        self._check_ticks_props(axes, xrot=30)
+        _check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        _check_ticks_props(axes, xrot=30)
 
         tm.close()
         # make sure kwargs to hist are handled
@@ -643,14 +646,12 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
             tm.assert_almost_equal(height, 1.0)
-        self._check_ticks_props(
-            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
-        )
+        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
         tm.close()
         axes = _grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
-        self._check_ax_scales(axes, yaxis="log")
+        _check_ax_scales(axes, yaxis="log")
 
         tm.close()
         # propagate attr exception from matplotlib.Axes.hist
@@ -670,7 +671,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         gb = df_int.groupby("gender")
         axes = gb.hist()
         assert len(axes) == 2
-        assert len(self.plt.get_fignums()) == 2
+        assert len(mpl.pyplot.get_fignums()) == 2
         tm.close()
 
     @pytest.mark.slow
@@ -692,22 +693,22 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             axes = _check_plot_works(
                 df.hist, column="height", by=df.gender, layout=(2, 1)
             )
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
+        _check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 df.hist, column="height", by=df.gender, layout=(2, -1)
             )
-        self._check_axes_shape(axes, axes_num=2, layout=(2, 1))
+        _check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
         axes = df.hist(column="height", by=df.category, layout=(4, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
+        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.hist(column="height", by=df.category, layout=(-1, 1))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 1))
+        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
         axes = df.hist(column="height", by=df.category, layout=(4, 2), figsize=(12, 8))
-        self._check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
+        _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
         tm.close()
 
         # GH 6769
@@ -715,34 +716,34 @@ class TestDataFrameGroupByPlots(TestPlotBase):
             axes = _check_plot_works(
                 df.hist, column="height", by="classroom", layout=(2, 2)
             )
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.hist, by="classroom")
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         axes = df.hist(by="gender", layout=(3, 5))
-        self._check_axes_shape(axes, axes_num=2, layout=(3, 5))
+        _check_axes_shape(axes, axes_num=2, layout=(3, 5))
 
         axes = df.hist(column=["height", "weight", "category"])
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
+        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
     def test_grouped_hist_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
         df = hist_df
 
-        fig, axes = self.plt.subplots(2, 3)
+        fig, axes = mpl.pyplot.subplots(2, 3)
         returned = df.hist(column=["height", "weight", "category"], ax=axes[0])
-        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[0])
         assert returned[0].figure is fig
         returned = df.hist(by="classroom", ax=axes[1])
-        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
         tm.assert_numpy_array_equal(returned, axes[1])
         assert returned[0].figure is fig
 
-        fig, axes = self.plt.subplots(2, 3)
+        fig, axes = mpl.pyplot.subplots(2, 3)
         # pass different number of axes from required
         msg = "The number of passed axes must be 1, the same as the output plot"
         with pytest.raises(ValueError, match=msg):
@@ -754,35 +755,35 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True)
 
         # share x
-        assert self.get_x_axis(ax1).joined(ax1, ax2)
-        assert self.get_x_axis(ax2).joined(ax1, ax2)
+        assert get_x_axis(ax1).joined(ax1, ax2)
+        assert get_x_axis(ax2).joined(ax1, ax2)
 
         # don't share y
-        assert not self.get_y_axis(ax1).joined(ax1, ax2)
-        assert not self.get_y_axis(ax2).joined(ax1, ax2)
+        assert not get_y_axis(ax1).joined(ax1, ax2)
+        assert not get_y_axis(ax2).joined(ax1, ax2)
 
     def test_axis_share_y(self, hist_df):
         df = hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharey=True)
 
         # share y
-        assert self.get_y_axis(ax1).joined(ax1, ax2)
-        assert self.get_y_axis(ax2).joined(ax1, ax2)
+        assert get_y_axis(ax1).joined(ax1, ax2)
+        assert get_y_axis(ax2).joined(ax1, ax2)
 
         # don't share x
-        assert not self.get_x_axis(ax1).joined(ax1, ax2)
-        assert not self.get_x_axis(ax2).joined(ax1, ax2)
+        assert not get_x_axis(ax1).joined(ax1, ax2)
+        assert not get_x_axis(ax2).joined(ax1, ax2)
 
     def test_axis_share_xy(self, hist_df):
         df = hist_df
         ax1, ax2 = df.hist(column="height", by=df.gender, sharex=True, sharey=True)
 
         # share both x and y
-        assert self.get_x_axis(ax1).joined(ax1, ax2)
-        assert self.get_x_axis(ax2).joined(ax1, ax2)
+        assert get_x_axis(ax1).joined(ax1, ax2)
+        assert get_x_axis(ax2).joined(ax1, ax2)
 
-        assert self.get_y_axis(ax1).joined(ax1, ax2)
-        assert self.get_y_axis(ax2).joined(ax1, ax2)
+        assert get_y_axis(ax1).joined(ax1, ax2)
+        assert get_y_axis(ax2).joined(ax1, ax2)
 
     @pytest.mark.parametrize(
         "histtype, expected",
@@ -797,4 +798,4 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(by="a", histtype=histtype)
-        self._check_patches_all_filled(ax, filled=expected)
+        _check_patches_all_filled(ax, filled=expected)

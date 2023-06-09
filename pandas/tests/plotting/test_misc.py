@@ -15,9 +15,14 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
-    TestPlotBase,
+    _check_colors,
+    _check_legend_labels,
     _check_plot_works,
+    _check_text_labels,
+    _check_ticks_props,
 )
+
+mpl = pytest.importorskip("matplotlib")
 
 
 @td.skip_if_mpl
@@ -63,8 +68,7 @@ def test_get_accessor_args():
     assert len(kwargs) == 24
 
 
-@td.skip_if_no_mpl
-class TestSeriesPlots(TestPlotBase):
+class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
 
@@ -75,7 +79,7 @@ class TestSeriesPlots(TestPlotBase):
             _check_plot_works(autocorrelation_plot, series=ser.values)
 
             ax = autocorrelation_plot(ser, label="Test")
-        self._check_legend_labels(ax, labels=["Test"])
+        _check_legend_labels(ax, labels=["Test"])
 
     @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
     def test_lag_plot(self, kwargs):
@@ -91,8 +95,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(bootstrap_plot, series=ser, size=10)
 
 
-@td.skip_if_no_mpl
-class TestDataFramePlots(TestPlotBase):
+class TestDataFramePlots:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
@@ -100,7 +103,7 @@ class TestDataFramePlots(TestPlotBase):
 
         ax = None
         if pass_axis:
-            _, ax = self.plt.subplots(3, 3)
+            _, ax = mpl.pyplot.subplots(3, 3)
 
         df = DataFrame(np.random.RandomState(42).randn(100, 3))
 
@@ -116,8 +119,8 @@ class TestDataFramePlots(TestPlotBase):
 
         # GH 5662
         expected = ["-2", "0", "2"]
-        self._check_text_labels(axes0_labels, expected)
-        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+        _check_text_labels(axes0_labels, expected)
+        _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
         df[0] = (df[0] - 2) / 3
 
@@ -131,8 +134,8 @@ class TestDataFramePlots(TestPlotBase):
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ["-1.0", "-0.5", "0.0"]
-        self._check_text_labels(axes0_labels, expected)
-        self._check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
+        _check_text_labels(axes0_labels, expected)
+        _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @pytest.mark.slow
     def test_andrews_curves(self, iris):
@@ -149,25 +152,19 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", color=rgba
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
 
         cnames = ["dodgerblue", "aquamarine", "seagreen"]
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", color=cnames
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
 
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", colormap=cm.jet
         )
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
         length = 10
         df = DataFrame(
@@ -185,31 +182,25 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", color=rgba
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
 
         cnames = ["dodgerblue", "aquamarine", "seagreen"]
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", color=cnames
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
 
         ax = _check_plot_works(
             andrews_curves, frame=df, class_column="Name", colormap=cm.jet
         )
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
         ax = andrews_curves(df, "Name", color=colors)
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, linecolors=colors)
+        _check_colors(handles, linecolors=colors)
 
     @pytest.mark.slow
     def test_parallel_coordinates(self, iris):
@@ -227,25 +218,19 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", color=rgba
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
 
         cnames = ["dodgerblue", "aquamarine", "seagreen"]
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", color=cnames
         )
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
 
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
         )
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        self._check_colors(
-            ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10]
-        )
+        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", axvlines=False
@@ -256,7 +241,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
         ax = parallel_coordinates(df, "Name", color=colors)
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, linecolors=colors)
+        _check_colors(handles, linecolors=colors)
 
     # not sure if this is indicative of a problem
     @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
@@ -299,17 +284,17 @@ class TestDataFramePlots(TestPlotBase):
         ax = _check_plot_works(radviz, frame=df, class_column="Name", color=rgba)
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
-        self._check_colors(patches[:10], facecolors=rgba, mapping=df["Name"][:10])
+        _check_colors(patches[:10], facecolors=rgba, mapping=df["Name"][:10])
 
         cnames = ["dodgerblue", "aquamarine", "seagreen"]
         _check_plot_works(radviz, frame=df, class_column="Name", color=cnames)
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
-        self._check_colors(patches, facecolors=cnames, mapping=df["Name"][:10])
+        _check_colors(patches, facecolors=cnames, mapping=df["Name"][:10])
 
         _check_plot_works(radviz, frame=df, class_column="Name", colormap=cm.jet)
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
-        self._check_colors(patches, facecolors=cmaps, mapping=df["Name"][:10])
+        _check_colors(patches, facecolors=cmaps, mapping=df["Name"][:10])
 
         colors = [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 1.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
         df = DataFrame(
@@ -317,7 +302,7 @@ class TestDataFramePlots(TestPlotBase):
         )
         ax = radviz(df, "Name", color=colors)
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, facecolors=colors)
+        _check_colors(handles, facecolors=colors)
 
     def test_subplot_titles(self, iris):
         df = iris.drop("Name", axis=1).head()
@@ -478,7 +463,7 @@ class TestDataFramePlots(TestPlotBase):
         # Test _has_externally_shared_axis() works for x-axis
         func = plotting._matplotlib.tools._has_externally_shared_axis
 
-        fig = self.plt.figure()
+        fig = mpl.pyplot.figure()
         plots = fig.subplots(2, 4)
 
         # Create *externally* shared axes for first and third columns
@@ -503,7 +488,7 @@ class TestDataFramePlots(TestPlotBase):
         # Test _has_externally_shared_axis() works for y-axis
         func = plotting._matplotlib.tools._has_externally_shared_axis
 
-        fig = self.plt.figure()
+        fig = mpl.pyplot.figure()
         plots = fig.subplots(4, 2)
 
         # Create *externally* shared axes for first and third rows
@@ -529,7 +514,7 @@ class TestDataFramePlots(TestPlotBase):
         # passed an invalid value as compare_axis parameter
         func = plotting._matplotlib.tools._has_externally_shared_axis
 
-        fig = self.plt.figure()
+        fig = mpl.pyplot.figure()
         plots = fig.subplots(4, 2)
 
         # Create arbitrary axes
@@ -546,7 +531,7 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame({"a": np.random.randn(1000), "b": np.random.randn(1000)})
 
         # Create figure
-        fig = self.plt.figure()
+        fig = mpl.pyplot.figure()
         plots = fig.subplots(2, 3)
 
         # Create *externally* shared axes
