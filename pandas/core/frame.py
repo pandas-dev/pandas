@@ -3915,7 +3915,6 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
         """
-        using_cow = using_copy_on_write()
         if isinstance(value, DataFrame):
             if is_integer(loc):
                 loc = [loc]
@@ -3927,13 +3926,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             for i, idx in enumerate(loc):
-                arraylike, refs = self._sanitize_column(
-                    value.iloc[:, i], using_cow=using_cow
-                )
+                arraylike, refs = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        arraylike, refs = self._sanitize_column(value, using_cow=using_cow)
+        arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value):
@@ -4170,7 +4167,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        value, refs = self._sanitize_column(value)
 
         if (
             key in self.columns
@@ -4813,7 +4810,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
 
-        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -4884,9 +4881,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(
-        self, value, using_cow: bool = False
-    ) -> tuple[ArrayLike, BlockValuesRefs | None]:
+    def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied (or a reference is being tracked to them under CoW)
@@ -4907,7 +4902,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_dict_like(value):
             if not isinstance(value, Series):
                 value = Series(value)
-            return _reindex_for_setitem(value, self.index, using_cow=using_cow)
+            return _reindex_for_setitem(value, self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
@@ -9296,7 +9291,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: Level = -1, fill_value=None):
+    def unstack(self, level: Level = -1, fill_value=None, sort: bool = True):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -9312,6 +9307,8 @@ class DataFrame(NDFrame, OpsMixin):
             Level(s) of index to unstack, can pass level name.
         fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -9359,7 +9356,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.reshape import unstack
 
-        result = unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value, sort)
 
         return result.__finalize__(self, method="unstack")
 
@@ -10738,8 +10735,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Count non-NA cells for each column or row.
 
-        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
-        on `pandas.options.mode.use_inf_as_na`) are considered NA.
+        The values `None`, `NaN`, `NaT`, ``pandas.NA`` are considered NA.
 
         Parameters
         ----------
@@ -11729,15 +11725,21 @@ class DataFrame(NDFrame, OpsMixin):
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
-            # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]"
-            res_values = algorithms.isin(
-                self.values.ravel(),
-                values,  # type: ignore[arg-type]
-            )
+
+            def isin_(x):
+                # error: Argument 2 to "isin" has incompatible type "Union[Series,
+                # DataFrame, Sequence[Any], Mapping[Any, Any]]"; expected
+                # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
+                # Series], List[Any], range]"
+                result = algorithms.isin(
+                    x.ravel(),
+                    values,  # type: ignore[arg-type]
+                )
+                return result.reshape(x.shape)
+
+            res_values = self._mgr.apply(isin_)
             result = self._constructor(
-                res_values.reshape(self.shape),
+                res_values,
                 self.index,
                 self.columns,
                 copy=False,
@@ -11916,12 +11918,12 @@ def _from_nested_dict(data) -> collections.defaultdict:
 
 
 def _reindex_for_setitem(
-    value: DataFrame | Series, index: Index, using_cow: bool = False
+    value: DataFrame | Series, index: Index
 ) -> tuple[ArrayLike, BlockValuesRefs | None]:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        if using_cow and isinstance(value, Series):
+        if using_copy_on_write() and isinstance(value, Series):
             return value._values, value._references
         return value._values.copy(), None
 
