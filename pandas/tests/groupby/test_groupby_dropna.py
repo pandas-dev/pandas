@@ -622,8 +622,15 @@ def test_categorical_transformers(
         "x", dropna=False, observed=observed, sort=sort, as_index=as_index
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
-    result = getattr(gb_keepna, transformation_func)(*args)
+
+    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = getattr(gb_keepna, "pct_change")(*args)
+    else:
+        result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
+
     for iloc, value in zip(
         df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
     ):
