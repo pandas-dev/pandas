@@ -400,13 +400,13 @@ class IndexingMixin:
                     max_speed
         sidewinder          7
 
-        Multiple conditional using ``and`` that returns a boolean Series
+        Multiple conditional using ``&`` that returns a boolean Series
 
         >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
                max_speed  shield
         viper          4       5
 
-        Multiple conditional using ``or`` that returns a boolean Series
+        Multiple conditional using ``|`` that returns a boolean Series
 
         >>> df.loc[(df['max_speed'] > 4) | (df['shield'] < 5)]
                     max_speed  shield
