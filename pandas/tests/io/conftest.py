@@ -12,7 +12,13 @@ from pandas.compat import (
 )
 import pandas.util._test_decorators as td
 
+import pandas.io.common as icom
 from pandas.io.parsers import read_csv
+
+
+@pytest.fixture
+def compression_to_extension():
+    return {value: key for key, value in icom.extension_to_compression.items()}
 
 
 @pytest.fixture

@@ -2217,6 +2217,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Median of values within each group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).median()
+        a    7.0
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).median()
+                 a    b
+        dog    3.0  4.0
+        mouse  7.0  3.0
         """
         result = self._cython_agg_general(
             "median",
@@ -2227,7 +2265,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def std(
         self,
         ddof: int = 1,
@@ -2275,6 +2313,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard deviation of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).std()
+        a    3.21455
+        b    0.57735
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).std()
+                      a         b
+        dog    2.000000  3.511885
+        mouse  2.217356  1.500000
         """
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
@@ -2290,7 +2366,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def var(
         self,
         ddof: int = 1,
@@ -2338,6 +2414,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Variance of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).var()
+        a    10.333333
+        b     0.333333
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).var()
+                      a          b
+        dog    4.000000  12.333333
+        mouse  4.916667   2.250000
         """
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
@@ -2509,6 +2623,40 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([5, 10, 8, 14], index=lst)
+        >>> ser
+        a     5
+        a    10
+        b     8
+        b    14
+        dtype: int64
+        >>> ser.groupby(level=0).sem()
+        a    2.5
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 12, 11], [1, 15, 2], [2, 5, 8], [2, 6, 12]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a   b   c
+            tuna   1  12  11
+          salmon   1  15   2
+         catfish   2   5   8
+        goldfish   2   6  12
+        >>> df.groupby("a").sem()
+              b  c
+        a
+        1    1.5  4.5
+        2    0.5  2.0
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
@@ -2524,7 +2672,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
@@ -2534,6 +2682,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame or Series
             Number of rows in each group as a Series if as_index is True
             or a DataFrame if as_index is False.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a     1
+        a     2
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).size()
+        a    2
+        b    1
+        dtype: int64
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby("a").size()
+        a
+        1    2
+        7    1
+        dtype: int64
         """
         result = self.grouper.size()
 
@@ -4439,6 +4618,44 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).shift(1)
+        a    NaN
+        a    1.0
+        b    NaN
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a  b  c
+            tuna   1  2  3
+          salmon   1  5  6
+         catfish   2  5  8
+        goldfish   2  6  9
+        >>> df.groupby("a").shift(1)
+                      b    c
+            tuna    NaN  NaN
+          salmon    2.0  3.0
+         catfish    NaN  NaN
+        goldfish    5.0  8.0
         """
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
@@ -4466,7 +4683,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def diff(
         self, periods: int = 1, axis: AxisInt | lib.NoDefault = lib.no_default
     ) -> NDFrameT:
@@ -4491,6 +4708,53 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             First differences.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).diff()
+        a    NaN
+        a   -5.0
+        a    6.0
+        b    NaN
+        b   -1.0
+        b    0.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).diff()
+                 a    b
+          dog  NaN  NaN
+          dog  2.0  3.0
+          dog  2.0  4.0
+        mouse  NaN  NaN
+        mouse  0.0  0.0
+        mouse  1.0 -2.0
+        mouse -5.0 -1.0
         """
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
@@ -4519,7 +4783,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def pct_change(
         self,
         periods: int = 1,
@@ -4535,7 +4799,46 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Percentage changes within each group.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).pct_change()
+        a         NaN
+        a    1.000000
+        b         NaN
+        b    0.333333
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a  b  c
+            tuna   1  2  3
+          salmon   1  5  6
+         catfish   2  5  8
+        goldfish   2  6  9
+        >>> df.groupby("a").pct_change()
+                    b  c
+            tuna    NaN    NaN
+          salmon    1.5  1.000
+         catfish    NaN    NaN
+        goldfish    0.2  0.125
         """
+
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "pct_change")
