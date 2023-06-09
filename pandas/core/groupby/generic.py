@@ -622,6 +622,22 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
             Number of unique values within each group.
+
+        Examples
+        --------
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).nunique()
+        a    2
+        b    1
+        dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 
