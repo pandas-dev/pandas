@@ -35,7 +35,7 @@ jobs:
           linkedPR = github.rest.issues.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            commit_sha: ${{ github.sha }}
+            commit_sha: '${{ github.sha }}'
           })[0]
           
           isDeprecation = false
