@@ -417,13 +417,10 @@ class IndexingMixin:
         for more details and explanations of Boolean indexing.
 
         .. note::
-            If you find yourself using 3 or more conditionals in ``.loc[]``, you may
-            experience performance gains by restructuring the DataFrame into a
-            MultiIndex object. 
+            If you find yourself using 3 or more conditionals in ``.loc[]``,
+            consider using :ref:`advanced indexing<advanced.advanced_hierarchical>`.
 
             See below for using ``.loc[]`` on MultiIndex DataFrames.
-            Please see the :ref:`user guide<advanced.advanced_hierarchical>`
-            for more details and explanations of advanced indexing.
 
         Callable that returns a boolean Series
 
