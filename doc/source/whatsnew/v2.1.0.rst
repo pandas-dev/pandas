@@ -14,10 +14,12 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_210.enhancements.enhancement1:
+.. _whatsnew_210.enhancements.cow:
 
-enhancement1
-^^^^^^^^^^^^
+Copy-on-Write improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Setting a :class:`Series` into a :class:`DataFrame` now creates a lazy instead of a deep copy (:issue:`53142`)
 
 .. _whatsnew_210.enhancements.enhancement2:
 
