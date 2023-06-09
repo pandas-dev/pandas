@@ -400,6 +400,31 @@ class IndexingMixin:
                     max_speed
         sidewinder          7
 
+        Multiple conditional using ``and`` that returns a boolean Series
+
+        >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
+               max_speed  shield
+        viper          4       5
+
+        Multiple conditional using ``or`` that returns a boolean Series
+
+        >>> df.loc[(df['max_speed'] > 4) | (df['shield'] < 5)]
+                    max_speed  shield
+        cobra               1       2
+        sidewinder          7       8
+
+        Please see the :ref:`user guide<indexing.boolean>`
+        for more details and explanations of Boolean indexing.
+
+        .. note::
+            If you find yourself using 3 or more conditionals in ``.loc[]``, you may
+            experience performance gains by restructuring the DataFrame into a
+            MultiIndex object. 
+
+            See below for using ``.loc[]`` on MultiIndex DataFrames.
+            Please see the :ref:`user guide<advanced.advanced_hierarchical>`
+            for more details and explanations of advanced indexing.
+
         Callable that returns a boolean Series
 
         >>> df.loc[lambda df: df['shield'] == 8]
