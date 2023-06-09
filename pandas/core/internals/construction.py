@@ -27,8 +27,6 @@ from pandas.core.dtypes.cast import (
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_float_dtype,
     is_integer_dtype,
     is_list_like,
     is_named_tuple,
@@ -44,14 +42,10 @@ from pandas.core import (
     algorithms,
     common as com,
 )
-from pandas.core.arrays import (
-    BooleanArray,
-    ExtensionArray,
-    FloatingArray,
-    IntegerArray,
-)
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
+    array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
     range_to_ndarray,
@@ -681,8 +675,7 @@ def reorder_arrays(
     if columns is not None:
         if not columns.equals(arr_columns):
             # if they are equal, there is nothing to do
-            new_arrays: list[ArrayLike | None]
-            new_arrays = [None] * len(columns)
+            new_arrays: list[ArrayLike] = []
             indexer = arr_columns.get_indexer(columns)
             for i, k in enumerate(indexer):
                 if k == -1:
@@ -691,12 +684,9 @@ def reorder_arrays(
                     arr.fill(np.nan)
                 else:
                     arr = arrays[k]
-                new_arrays[i] = arr
+                new_arrays.append(arr)
 
-            # Incompatible types in assignment (expression has type
-            # "List[Union[ExtensionArray, ndarray[Any, Any], None]]", variable
-            # has type "List[Union[ExtensionArray, ndarray[Any, Any]]]")
-            arrays = new_arrays  # type: ignore[assignment]
+            arrays = new_arrays
             arr_columns = columns
 
     return arrays, arr_columns
@@ -1027,12 +1017,8 @@ def convert_object_array(
                     if dtype_backend != "numpy" and arr.dtype == np.dtype("O"):
                         arr = StringDtype().construct_array_type()._from_sequence(arr)
                 elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
-                    if is_integer_dtype(arr.dtype):
-                        arr = IntegerArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                    elif is_bool_dtype(arr.dtype):
-                        arr = BooleanArray(arr, np.zeros(arr.shape, dtype=np.bool_))
-                    elif is_float_dtype(arr.dtype):
-                        arr = FloatingArray(arr, np.isnan(arr))
+                    if arr.dtype.kind in "iufb":
+                        arr = pd_array(arr, copy=False)
 
             elif isinstance(dtype, ExtensionDtype):
                 # TODO: test(s) that get here

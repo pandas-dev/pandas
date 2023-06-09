@@ -33,13 +33,11 @@ from pandas import (
     DatetimeIndex,
     IntervalIndex,
     Series,
+    SparseDtype,
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
 
 class Base:
@@ -1174,6 +1172,15 @@ def test_cast_string_to_complex():
     expected = pd.DataFrame(["1.0+5j", "1.5-3j"], dtype=complex)
     result = pd.DataFrame(["1.0+5j", "1.5-3j"]).astype(complex)
     tm.assert_frame_equal(result, expected)
+
+
+def test_categorical_complex():
+    result = Categorical([1, 2 + 2j])
+    expected = Categorical([1.0 + 0.0j, 2.0 + 2.0j])
+    tm.assert_categorical_equal(result, expected)
+    result = Categorical([1, 2, 2 + 2j])
+    expected = Categorical([1.0 + 0.0j, 2.0 + 0.0j, 2.0 + 2.0j])
+    tm.assert_categorical_equal(result, expected)
 
 
 def test_multi_column_dtype_assignment():

@@ -124,6 +124,14 @@ class DtypeWarning(Warning):
 class EmptyDataError(ValueError):
     """
     Exception raised in ``pd.read_csv`` when empty data or header is encountered.
+
+    Examples
+    --------
+    >>> from io import StringIO
+    >>> empty = StringIO()
+    >>> pd.read_csv(empty)
+    Traceback (most recent call last):
+    EmptyDataError: No columns to parse from file
     """
 
 
@@ -185,6 +193,22 @@ class AccessorRegistrationWarning(Warning):
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
+
+    Examples
+    --------
+    >>> class Foo:
+    ...     @classmethod
+    ...     def classmethod(cls):
+    ...         raise pd.errors.AbstractMethodError(cls, methodtype="classmethod")
+    ...     def method(self):
+    ...         raise pd.errors.AbstractMethodError(self)
+    >>> test = Foo.classmethod()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
+
+    >>> test2 = Foo().method()
+    Traceback (most recent call last):
+    AbstractMethodError: This classmethod must be defined in the concrete class Foo
     """
 
     def __init__(self, class_instance, methodtype: str = "method") -> None:
@@ -234,6 +258,20 @@ class DuplicateLabelError(ValueError):
 class InvalidIndexError(Exception):
     """
     Exception raised when attempting to use an invalid index key.
+
+    Examples
+    --------
+    >>> idx = pd.MultiIndex.from_product([["x", "y"], [0, 1]])
+    >>> df = pd.DataFrame([[1, 1, 2, 2],
+    ...                   [3, 3, 4, 4]], columns=idx)
+    >>> df
+        x       y
+        0   1   0   1
+    0   1   1   2   2
+    1   3   3   4   4
+    >>> df[:, 0]
+    Traceback (most recent call last):
+    InvalidIndexError: (slice(None, None, None), 0)
     """
 
 

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.errors import NumbaUtilError
@@ -224,7 +225,48 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
-    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+    with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).transform(
             numba_func, engine="numba", engine_kwargs=engine_kwargs
         )
+
+
+@td.skip_if_no("numba")
+@pytest.mark.xfail(
+    reason="Groupby transform doesn't support strings as function inputs yet with numba"
+)
+def test_multilabel_numba_vs_cython(numba_supported_reductions):
+    reduction, kwargs = numba_supported_reductions
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.randn(8),
+            "D": np.random.randn(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    res_agg = gb.transform(reduction, engine="numba", **kwargs)
+    expected_agg = gb.transform(reduction, engine="cython", **kwargs)
+    tm.assert_frame_equal(res_agg, expected_agg)
+
+
+@td.skip_if_no("numba")
+def test_multilabel_udf_numba_vs_cython():
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.randn(8),
+            "D": np.random.randn(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    result = gb.transform(
+        lambda values, index: (values - values.min()) / (values.max() - values.min()),
+        engine="numba",
+    )
+    expected = gb.transform(
+        lambda x: (x - x.min()) / (x.max() - x.min()), engine="cython"
+    )
+    tm.assert_frame_equal(result, expected)

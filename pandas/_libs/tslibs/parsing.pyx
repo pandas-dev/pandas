@@ -46,7 +46,6 @@ from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
 )
-from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -84,10 +83,10 @@ from pandas._libs.tslibs.util cimport (
 )
 
 
-cdef extern from "../src/headers/portable.h":
+cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
-cdef extern from "../src/parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                    int skip_trailing, int *error, int *maybe_int)
 
@@ -692,7 +691,11 @@ cdef datetime dateutil_parse(
         ) from err
 
     if res.weekday is not None and not res.day:
-        ret = ret + relativedelta.relativedelta(weekday=res.weekday)
+        # GH#52659
+        raise ValueError(
+            "Parsing datetimes with weekday but no day information is "
+            "not supported"
+        )
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
@@ -1016,6 +1019,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
             output_format.append(tokens[i])
 
+    # if am/pm token present, replace 24-hour %H, with 12-hour %I
+    if "%p" in output_format and "%H" in output_format:
+        i = output_format.index("%H")
+        output_format[i] = "%I"
+
     guessed_format = "".join(output_format)
 
     try:
@@ -1049,7 +1057,7 @@ cdef str _fill_token(token: str, padding: int):
     return token_filled
 
 
-cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
+cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
         int day_index = format.find("%d")

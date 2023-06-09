@@ -279,7 +279,9 @@ def test_transform_datetime_to_timedelta():
     # GH 15429
     # transforming a datetime to timedelta
     df = DataFrame({"A": Timestamp("20130101"), "B": np.arange(5)})
-    expected = Series([Timestamp("20130101") - Timestamp("20130101")] * 5, name="A")
+    expected = Series(
+        Timestamp("20130101") - Timestamp("20130101"), index=range(5), name="A"
+    )
 
     # this does date math without changing result type in transform
     base_time = df["A"][0]
@@ -354,19 +356,23 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    filled = grouped.fillna(method="pad")
+    msg = "DataFrameGroupBy.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        filled = grouped.fillna(method="pad")
+    msg = "Series.fillna with 'method' is deprecated"
     fillit = lambda x: x.fillna(method="pad")
-    expected = df.groupby(lambda x: x.month).transform(fillit)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
 
 
 def test_transform_fillna_null():
     df = DataFrame(
-        dict(
-            price=[10, 10, 20, 20, 30, 30],
-            color=[10, 10, 20, 20, 30, 30],
-            cost=(100, 200, 300, 400, 500, 600),
-        )
+        {
+            "price": [10, 10, 20, 20, 30, 30],
+            "color": [10, 10, 20, 20, 30, 30],
+            "cost": (100, 200, 300, 400, 500, 600),
+        }
     )
     with pytest.raises(ValueError, match="Must specify a fill 'value' or 'method'"):
         df.groupby(["price"]).transform("fillna")
@@ -744,6 +750,11 @@ def test_cython_transform_frame(op, args, targop):
                 expected = gb.apply(targop)
 
             expected = expected.sort_index(axis=1)
+            if op == "shift":
+                expected["string_missing"] = expected["string_missing"].fillna(
+                    np.nan, downcast=False
+                )
+                expected["string"] = expected["string"].fillna(np.nan, downcast=False)
 
             result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
             tm.assert_frame_equal(result, expected)
@@ -770,8 +781,13 @@ def test_cython_transform_frame(op, args, targop):
                 else:
                     expected = gb[c].apply(targop)
                     expected.name = c
-                    tm.assert_series_equal(expected, gb[c].transform(op, *args))
-                    tm.assert_series_equal(expected, getattr(gb[c], op)(*args))
+                    if c in ["string_missing", "string"]:
+                        expected = expected.fillna(np.nan, downcast=False)
+
+                    res = gb[c].transform(op, *args)
+                    tm.assert_series_equal(expected, res)
+                    res2 = getattr(gb[c], op)(*args)
+                    tm.assert_series_equal(expected, res2)
 
 
 def test_transform_with_non_scalar_group():

@@ -25,6 +25,12 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_weekday_but_no_day_raises(self):
+        # GH#52659
+        msg = "Parsing datetimes with weekday but no day information is not supported"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp("2023 Sept Thu")
+
     def test_construct_from_string_invalid_raises(self):
         # dateutil (weirdly) parses "200622-12-31" as
         #  datetime(2022, 6, 20, 12, 0, tzinfo=tzoffset(None, -111600)

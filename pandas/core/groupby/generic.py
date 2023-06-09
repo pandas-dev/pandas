@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_dict_like,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_scalar,
 )
@@ -51,6 +52,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
 )
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -221,11 +223,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(_agg_template_series, examples=_agg_examples_doc, klass="Series")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         relabeling = func is None
         columns = None
         if relabeling:
@@ -233,12 +230,19 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
+            if maybe_use_numba(engine):
+                # Not all agg functions support numba, only propagate numba kwargs
+                # if user asks for numba
+                kwargs["engine"] = engine
+                kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
         elif isinstance(func, abc.Iterable):
             # Catch instances of lists / tuples
             # but not the class list / tuple itself.
             func = maybe_mangle_lambdas(func)
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
             ret = self._aggregate_multiple_funcs(func, *args, **kwargs)
             if relabeling:
                 # columns is not narrowed by mypy from relabeling flag
@@ -252,6 +256,11 @@ class SeriesGroupBy(GroupBy[Series]):
             cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
                 return getattr(self, cyfunc)()
+
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
 
             if self.ngroups == 0:
                 # e.g. test_evaluate_with_empty_groups without any groups to
@@ -849,6 +858,10 @@ class SeriesGroupBy(GroupBy[Series]):
             Method to use for filling holes. ``'ffill'`` will propagate
             the last valid observation forward within a group.
             ``'bfill'`` will use next valid observation to fill the gap.
+
+            .. deprecated:: 2.1.0
+                Use obj.ffill or obj.bfill instead.
+
         axis : {0 or 'index', 1 or 'columns'}
             Unused, only for compatibility with :meth:`DataFrameGroupBy.fillna`.
 
@@ -879,49 +892,6 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         ffill : Forward fill values within a group.
         bfill : Backward fill values within a group.
-
-        Examples
-        --------
-        >>> ser = pd.Series([np.nan, np.nan, 2, 3, np.nan, np.nan])
-        >>> ser
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    NaN
-        5    NaN
-        dtype: float64
-
-        Propagate non-null values forward or backward within each group.
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="ffill")
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    3.0
-        5    3.0
-        dtype: float64
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="bfill")
-        0    2.0
-        1    2.0
-        2    2.0
-        3    3.0
-        4    NaN
-        5    NaN
-        dtype: float64
-
-        Only replace the first NaN element within a group.
-
-        >>> ser.groupby([0, 0, 0, 1, 1, 1]).fillna(method="ffill", limit=1)
-        0    NaN
-        1    NaN
-        2    2.0
-        3    3.0
-        4    3.0
-        5    NaN
-        dtype: float64
         """
         result = self._op_via_apply(
             "fillna",
@@ -1170,13 +1140,41 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
-    @doc(Series.is_monotonic_increasing.__doc__)
     def is_monotonic_increasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically increasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_increasing
+        Falcon    False
+        Parrot     True
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_increasing)
 
     @property
-    @doc(Series.is_monotonic_decreasing.__doc__)
     def is_monotonic_decreasing(self) -> Series:
+        """
+        Return whether each group's values are monotonically decreasing.
+
+        Returns
+        -------
+        Series
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 1, 3, 4], index=['Falcon', 'Falcon', 'Parrot', 'Parrot'])
+        >>> s.groupby(level=0).is_monotonic_decreasing
+        Falcon     True
+        Parrot    False
+        dtype: bool
+        """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
     @doc(Series.hist.__doc__)
@@ -1217,8 +1215,46 @@ class SeriesGroupBy(GroupBy[Series]):
     def dtype(self) -> Series:
         return self.apply(lambda ser: ser.dtype)
 
-    @doc(Series.unique.__doc__)
     def unique(self) -> Series:
+        """
+        Return unique values for each group.
+
+        It returns unique values for each of the grouped values. Returned in
+        order of appearance. Hash table-based unique, therefore does NOT sort.
+
+        Returns
+        -------
+        Series
+            Unique values for each of the grouped values.
+
+        See Also
+        --------
+        Series.unique : Return unique values of Series object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('Chihuahua', 'dog', 6.1),
+        ...                    ('Beagle', 'dog', 15.2),
+        ...                    ('Chihuahua', 'dog', 6.9),
+        ...                    ('Persian', 'cat', 9.2),
+        ...                    ('Chihuahua', 'dog', 7),
+        ...                    ('Persian', 'cat', 8.8)],
+        ...                   columns=['breed', 'animal', 'height_in'])
+        >>> df
+               breed     animal   height_in
+        0  Chihuahua        dog         6.1
+        1     Beagle        dog        15.2
+        2  Chihuahua        dog         6.9
+        3    Persian        cat         9.2
+        4  Chihuahua        dog         7.0
+        5    Persian        cat         8.8
+        >>> ser = df.groupby('animal')['breed'].unique()
+        >>> ser
+        animal
+        cat              [Persian]
+        dog    [Chihuahua, Beagle]
+        Name: breed, dtype: object
+        """
         result = self._op_via_apply("unique")
         return result
 
@@ -1319,18 +1355,23 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     @doc(_agg_template_frame, examples=_agg_examples_doc, klass="DataFrame")
     def aggregate(self, func=None, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._aggregate_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         relabeling, func, columns, order = reconstruct_func(func, **kwargs)
         func = maybe_mangle_lambdas(func)
+
+        if maybe_use_numba(engine):
+            # Not all agg functions support numba, only propagate numba kwargs
+            # if user asks for numba
+            kwargs["engine"] = engine
+            kwargs["engine_kwargs"] = engine_kwargs
 
         op = GroupByApply(self, func, args=args, kwargs=kwargs)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
-            return result
+            # GH #52849
+            if not self.as_index and is_list_like(func):
+                return result.reset_index()
+            else:
+                return result
         elif relabeling:
             # this should be the only (non-raising) case with relabeling
             # used reordered index of columns
@@ -1344,6 +1385,17 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             result.columns = columns  # type: ignore[assignment]
 
         if result is None:
+            # Remove the kwargs we inserted
+            # (already stored in engine, engine_kwargs arguments)
+            if "engine" in kwargs:
+                del kwargs["engine"]
+                del kwargs["engine_kwargs"]
+            # at this point func is not a str, list-like, dict-like,
+            # or a known callable(e.g. sum)
+            if maybe_use_numba(engine):
+                return self._aggregate_with_numba(
+                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                )
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
                 # test_groupby_as_index_series_scalar gets here with 'not self.as_index'
@@ -1474,9 +1526,16 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             #  fall through to the outer else clause
             # TODO: sure this is right?  we used to do this
             #  after raising AttributeError above
-            return self.obj._constructor_sliced(
-                values, index=key_index, name=self._selection
-            )
+            # GH 18930
+            if not is_hashable(self._selection):
+                # error: Need type annotation for "name"
+                name = tuple(self._selection)  # type: ignore[var-annotated, arg-type]
+            else:
+                # error: Incompatible types in assignment
+                # (expression has type "Hashable", variable
+                # has type "Tuple[Any, ...]")
+                name = self._selection  # type: ignore[assignment]
+            return self.obj._constructor_sliced(values, index=key_index, name=name)
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
             # self._selection not passed through to Series as the
@@ -1837,7 +1896,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj
             return DataFrameGroupBy(
                 subset,
-                self.grouper,
+                self.keys,
                 axis=self.axis,
                 level=self.level,
                 grouper=self.grouper,
@@ -1854,6 +1913,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 subset = self.obj[key]
             return SeriesGroupBy(
                 subset,
+                self.keys,
                 level=self.level,
                 grouper=self.grouper,
                 exclusions=self.exclusions,
@@ -2394,6 +2454,15 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
+        if method is not None:
+            warnings.warn(
+                f"{type(self).__name__}.fillna with 'method' is deprecated and "
+                "will raise in a future version. Use obj.ffill() or obj.bfill() "
+                "instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         result = self._op_via_apply(
             "fillna",
             value=value,

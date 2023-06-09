@@ -145,6 +145,23 @@ def pytest_collection_modifyitems(items, config) -> None:
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
         ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
+        ),
     ]
 
     for item in items:
@@ -746,7 +763,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.randn(8)
     ser = Series(data, index=index)
-    ser[3] = np.NaN
+    ser.iloc[3] = np.NaN
     return ser
 
 
@@ -931,7 +948,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(tz="US/Eastern"),
+            DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
     ]
