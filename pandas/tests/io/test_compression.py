@@ -18,10 +18,6 @@ import pandas._testing as tm
 
 import pandas.io.common as icom
 
-_compression_to_extension = {
-    value: key for key, value in icom.extension_to_compression.items()
-}
-
 
 @pytest.mark.parametrize(
     "obj",
@@ -84,11 +80,11 @@ def test_compression_size_fh(obj, method, compression_only):
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, compression_only
+    write_method, write_kwargs, read_method, compression_only, compression_to_extension
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -104,11 +100,16 @@ def test_dataframe_compression_defaults_to_infer(
     ],
 )
 def test_series_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, read_kwargs, compression_only
+    write_method,
+    write_kwargs,
+    read_method,
+    read_kwargs,
+    compression_only,
+    compression_to_extension,
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:

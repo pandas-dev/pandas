@@ -11,7 +11,7 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
+pyarrow = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu
