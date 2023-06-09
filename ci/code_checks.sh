@@ -263,38 +263,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.DataFrameGroupBy.diff \
         pandas.core.groupby.DataFrameGroupBy.ffill \
-        pandas.core.groupby.DataFrameGroupBy.max \
-        pandas.core.groupby.DataFrameGroupBy.median \
-        pandas.core.groupby.DataFrameGroupBy.min \
         pandas.core.groupby.DataFrameGroupBy.ohlc \
-        pandas.core.groupby.DataFrameGroupBy.pct_change \
-        pandas.core.groupby.DataFrameGroupBy.prod \
-        pandas.core.groupby.DataFrameGroupBy.sem \
-        pandas.core.groupby.DataFrameGroupBy.shift \
-        pandas.core.groupby.DataFrameGroupBy.size \
-        pandas.core.groupby.DataFrameGroupBy.skew \
-        pandas.core.groupby.DataFrameGroupBy.std \
-        pandas.core.groupby.DataFrameGroupBy.sum \
-        pandas.core.groupby.DataFrameGroupBy.var \
-        pandas.core.groupby.SeriesGroupBy.diff \
         pandas.core.groupby.SeriesGroupBy.fillna \
         pandas.core.groupby.SeriesGroupBy.ffill \
-        pandas.core.groupby.SeriesGroupBy.max \
-        pandas.core.groupby.SeriesGroupBy.median \
-        pandas.core.groupby.SeriesGroupBy.min \
         pandas.core.groupby.SeriesGroupBy.nunique \
         pandas.core.groupby.SeriesGroupBy.ohlc \
-        pandas.core.groupby.SeriesGroupBy.pct_change \
-        pandas.core.groupby.SeriesGroupBy.prod \
-        pandas.core.groupby.SeriesGroupBy.sem \
-        pandas.core.groupby.SeriesGroupBy.shift \
-        pandas.core.groupby.SeriesGroupBy.size \
-        pandas.core.groupby.SeriesGroupBy.skew \
-        pandas.core.groupby.SeriesGroupBy.std \
-        pandas.core.groupby.SeriesGroupBy.sum \
-        pandas.core.groupby.SeriesGroupBy.var \
         pandas.core.groupby.SeriesGroupBy.hist \
         pandas.core.groupby.DataFrameGroupBy.plot \
         pandas.core.groupby.SeriesGroupBy.plot \
