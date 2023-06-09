@@ -3,12 +3,12 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
 )
 
 if TYPE_CHECKING:
     from pandas._typing import Scalar
-    from typing import Any
 
 import numpy as np
 
@@ -54,6 +54,39 @@ default_dtype_mapping: dict[np.dtype, Any] = {
     np.dtype("uint32"): np.uint64,
     np.dtype("uint64"): np.uint64,
     np.dtype("float32"): np.float64,
+    np.dtype("float64"): np.float64,
+    np.dtype("complex64"): np.complex128,
+    np.dtype("complex128"): np.complex128,
+}
+
+
+# TODO: Preserve complex dtypes
+
+float_dtype_mapping: dict[np.dtype, Any] = {
+    np.dtype("int8"): np.float64,
+    np.dtype("int16"): np.float64,
+    np.dtype("int32"): np.float64,
+    np.dtype("int64"): np.float64,
+    np.dtype("uint8"): np.float64,
+    np.dtype("uint16"): np.float64,
+    np.dtype("uint32"): np.float64,
+    np.dtype("uint64"): np.float64,
+    np.dtype("float32"): np.float64,
+    np.dtype("float64"): np.float64,
+    np.dtype("complex64"): np.float64,
+    np.dtype("complex128"): np.float64,
+}
+
+identity_dtype_mapping: dict[np.dtype, Any] = {
+    np.dtype("int8"): np.int8,
+    np.dtype("int16"): np.int16,
+    np.dtype("int32"): np.int32,
+    np.dtype("int64"): np.int64,
+    np.dtype("uint8"): np.uint8,
+    np.dtype("uint16"): np.uint16,
+    np.dtype("uint32"): np.uint32,
+    np.dtype("uint64"): np.uint64,
+    np.dtype("float32"): np.float32,
     np.dtype("float64"): np.float64,
     np.dtype("complex64"): np.complex64,
     np.dtype("complex128"): np.complex128,

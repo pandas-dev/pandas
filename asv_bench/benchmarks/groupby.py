@@ -486,8 +486,7 @@ class GroupByMethods:
         ],
         ["direct", "transformation"],
         [1, 5],
-        # ["cython", "numba"],
-        ["numba"],
+        ["cython", "numba"],
     ]
 
     def setup(self, dtype, method, application, ncols, engine):

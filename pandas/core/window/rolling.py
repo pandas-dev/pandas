@@ -649,20 +649,8 @@ class BaseWindow(SelectionMixin):
         # For now, map everything to float to match the Cython impl
         # even though it is wrong
         # TODO: Could preserve correct dtypes in future
-        dtype_mapping: dict[np.dtype, Any] = {
-            np.dtype("int8"): np.float64,
-            np.dtype("int16"): np.float64,
-            np.dtype("int32"): np.float64,
-            np.dtype("int64"): np.float64,
-            np.dtype("uint8"): np.float64,
-            np.dtype("uint16"): np.float64,
-            np.dtype("uint32"): np.float64,
-            np.dtype("uint64"): np.float64,
-            np.dtype("float32"): np.float64,
-            np.dtype("float64"): np.float64,
-            np.dtype("complex64"): np.float64,
-            np.dtype("complex128"): np.float64,
-        }
+        # xref #53214
+        dtype_mapping = executor.float_dtype_mapping
         aggregator = executor.generate_shared_aggregator(
             func, dtype_mapping, **get_jit_arguments(engine_kwargs)
         )

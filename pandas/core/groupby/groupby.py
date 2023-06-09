@@ -1970,19 +1970,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            dtype_mapping = executor.default_dtype_mapping.copy()
-            # Need to map all integer types -> float
-            dtype_mapping[np.dtype("int8")] = np.float64
-            dtype_mapping[np.dtype("int16")] = np.float64
-            dtype_mapping[np.dtype("int32")] = np.float64
-            dtype_mapping[np.dtype("int64")] = np.float64
-            dtype_mapping[np.dtype("uint8")] = np.float64
-            dtype_mapping[np.dtype("uint16")] = np.float64
-            dtype_mapping[np.dtype("uint32")] = np.float64
-            dtype_mapping[np.dtype("uint64")] = np.float64
-
             return self._numba_agg_general(
-                sliding_mean, dtype_mapping, engine_kwargs, min_periods=0
+                sliding_mean, executor.float_dtype_mapping, engine_kwargs, min_periods=0
             )
         else:
             result = self._cython_agg_general(
@@ -2074,20 +2063,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            dtype_mapping = executor.default_dtype_mapping.copy()
-            # Need to map all integer types -> float
-            dtype_mapping[np.dtype("int8")] = np.float64
-            dtype_mapping[np.dtype("int16")] = np.float64
-            dtype_mapping[np.dtype("int32")] = np.float64
-            dtype_mapping[np.dtype("int64")] = np.float64
-            dtype_mapping[np.dtype("uint8")] = np.float64
-            dtype_mapping[np.dtype("uint16")] = np.float64
-            dtype_mapping[np.dtype("uint32")] = np.float64
-            dtype_mapping[np.dtype("uint64")] = np.float64
-
             return np.sqrt(
                 self._numba_agg_general(
-                    sliding_var, dtype_mapping, engine_kwargs, min_periods=0, ddof=ddof
+                    sliding_var,
+                    executor.float_dtype_mapping,
+                    engine_kwargs,
+                    min_periods=0,
+                    ddof=ddof,
                 )
             )
         else:
@@ -2152,19 +2134,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            dtype_mapping = executor.default_dtype_mapping.copy()
-            # Need to map all integer types -> float
-            dtype_mapping[np.dtype("int8")] = np.float64
-            dtype_mapping[np.dtype("int16")] = np.float64
-            dtype_mapping[np.dtype("int32")] = np.float64
-            dtype_mapping[np.dtype("int64")] = np.float64
-            dtype_mapping[np.dtype("uint8")] = np.float64
-            dtype_mapping[np.dtype("uint16")] = np.float64
-            dtype_mapping[np.dtype("uint32")] = np.float64
-            dtype_mapping[np.dtype("uint64")] = np.float64
-
             return self._numba_agg_general(
-                sliding_var, dtype_mapping, engine_kwargs, min_periods=0, ddof=ddof
+                sliding_var,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                min_periods=0,
+                ddof=ddof,
             )
         else:
             return self._cython_agg_general(
@@ -2388,11 +2363,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_sum
 
-            dtype_mapping = executor.default_dtype_mapping.copy()
-
             return self._numba_agg_general(
                 sliding_sum,
-                dtype_mapping,
+                executor.default_dtype_mapping,
                 engine_kwargs,
                 min_periods=min_count,
             )
@@ -2429,22 +2402,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            dtype_mapping: dict[np.dtype, Any] = {
-                np.dtype("int8"): np.int8,
-                np.dtype("int16"): np.int16,
-                np.dtype("int32"): np.int32,
-                np.dtype("int64"): np.int64,
-                np.dtype("uint8"): np.uint8,
-                np.dtype("uint16"): np.uint16,
-                np.dtype("uint32"): np.uint32,
-                np.dtype("uint64"): np.uint64,
-                np.dtype("float32"): np.float32,
-                np.dtype("float64"): np.float64,
-            }
-
             return self._numba_agg_general(
                 sliding_min_max,
-                dtype_mapping,
+                executor.identity_dtype_mapping,
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=False,
@@ -2469,22 +2429,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            dtype_mapping: dict[np.dtype, Any] = {
-                np.dtype("int8"): np.int8,
-                np.dtype("int16"): np.int16,
-                np.dtype("int32"): np.int32,
-                np.dtype("int64"): np.int64,
-                np.dtype("uint8"): np.uint8,
-                np.dtype("uint16"): np.uint16,
-                np.dtype("uint32"): np.uint32,
-                np.dtype("uint64"): np.uint64,
-                np.dtype("float32"): np.float32,
-                np.dtype("float64"): np.float64,
-            }
-
             return self._numba_agg_general(
                 sliding_min_max,
-                dtype_mapping,
+                executor.identity_dtype_mapping,
                 engine_kwargs,
                 min_periods=min_count,
                 is_max=True,
