@@ -23,6 +23,8 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :func:`Series.reindex` when expanding a non-nanosecond datetime or timedelta :class:`Series` would not fill with ``NaT`` correctly (:issue:`53497`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
+- Bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` with ``expand=True`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`53532`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.other:
