@@ -97,7 +97,6 @@ from pandas._testing.compat import (
 from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
-    ensure_safe_environment_variables,
     raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
@@ -1104,7 +1103,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",
     "FLOAT_EA_DTYPES",
