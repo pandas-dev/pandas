@@ -28,14 +28,14 @@ jobs:
           body = github.rest.issues.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: ${DEPRECATION_TRACKER_ISSUE},
+            issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
           })["body"]
           // Add the PR number to body
           // (we always get the first linked PR)
           linkedPR = github.rest.issues.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            commit_sha: ${{ GITHUB_SHA }}
+            commit_sha: ${{ github.sha }}
           })[0]
           
           isDeprecation = false
@@ -52,7 +52,7 @@ jobs:
           github.rest.issues.update({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            issue_number: ${DEPRECATION_TRACKER_ISSUE},
+            issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
             body: body
           })
     - name: Checkout
