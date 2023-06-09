@@ -408,8 +408,10 @@ class TestDataFrameAlign:
             ea = ea.reindex(columns=join_columns)
             eb = eb.reindex(columns=join_columns)
 
-        ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
-        eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
+        msg = "DataFrame.fillna with 'method' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
+            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
 
         tm.assert_frame_equal(aa, ea)
         tm.assert_frame_equal(ab, eb)
