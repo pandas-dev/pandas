@@ -629,6 +629,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        Examples
+        --------
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
+        >>> ser.sparse.fill_value
+        0
+        >>> spa_dtype = pd.SparseDtype(dtype=np.int32, fill_value=2)
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype=spa_dtype)
+        >>> ser.sparse.fill_value
+        2
         """
         return self.dtype.fill_value
 
