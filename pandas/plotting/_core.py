@@ -98,6 +98,16 @@ def hist_series(
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.groupby(level=0).hist()
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_series(
@@ -778,12 +788,23 @@ class PlotAccessor(PandasObject):
 
     Examples
     --------
+    For SeriesGroupBy:
 
     .. plot::
         :context: close-figs
 
         >>> ser = pd.Series([1, 2, 3, 3])
         >>> plot = ser.plot(kind='hist', title="My plot")
+
+    For DataFrameGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> plot = df.plot()
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
