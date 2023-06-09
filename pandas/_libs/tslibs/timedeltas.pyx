@@ -42,11 +42,9 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
 )
-
-from pandas._libs.tslibs.dtypes import is_supported_unit
-
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
