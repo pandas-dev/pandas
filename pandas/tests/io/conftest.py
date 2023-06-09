@@ -1,4 +1,3 @@
-import os
 import shlex
 import subprocess
 import time
@@ -12,8 +11,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
-
-import pandas._testing as tm
 
 import pandas.io.common as icom
 from pandas.io.parsers import read_csv
@@ -58,7 +55,13 @@ def s3so(worker_id):
 
 
 @pytest.fixture(scope="session")
-def s3_base(worker_id):
+def monkeysession():
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp
+
+
+@pytest.fixture(scope="session")
+def s3_base(worker_id, monkeysession):
     """
     Fixture for mocking S3 interaction.
 
@@ -68,56 +71,55 @@ def s3_base(worker_id):
     pytest.importorskip("s3fs")
     pytest.importorskip("boto3")
 
-    with tm.ensure_safe_environment_variables():
-        # temporary workaround as moto fails for botocore >= 1.11 otherwise,
-        # see https://github.com/spulec/moto/issues/1924 & 1952
-        os.environ.setdefault("AWS_ACCESS_KEY_ID", "foobar_key")
-        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-        if is_ci_environment():
-            if is_platform_arm() or is_platform_mac() or is_platform_windows():
-                # NOT RUN on Windows/macOS/ARM, only Ubuntu
-                # - subprocess in CI can cause timeouts
-                # - GitHub Actions do not support
-                #   container services for the above OSs
-                # - CircleCI will probably hit the Docker rate pull limit
-                pytest.skip(
-                    "S3 tests do not have a corresponding service in "
-                    "Windows, macOS or ARM platforms"
-                )
-            else:
-                yield "http://localhost:5000"
+    # temporary workaround as moto fails for botocore >= 1.11 otherwise,
+    # see https://github.com/spulec/moto/issues/1924 & 1952
+    monkeysession.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
+    monkeysession.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
+    if is_ci_environment():
+        if is_platform_arm() or is_platform_mac() or is_platform_windows():
+            # NOT RUN on Windows/macOS/ARM, only Ubuntu
+            # - subprocess in CI can cause timeouts
+            # - GitHub Actions do not support
+            #   container services for the above OSs
+            # - CircleCI will probably hit the Docker rate pull limit
+            pytest.skip(
+                "S3 tests do not have a corresponding service in "
+                "Windows, macOS or ARM platforms"
+            )
         else:
-            requests = pytest.importorskip("requests")
-            pytest.importorskip("moto", minversion="1.3.14")
-            pytest.importorskip("flask")  # server mode needs flask too
+            yield "http://localhost:5000"
+    else:
+        requests = pytest.importorskip("requests")
+        pytest.importorskip("moto", minversion="1.3.14")
+        pytest.importorskip("flask")  # server mode needs flask too
 
-            # Launching moto in server mode, i.e., as a separate process
-            # with an S3 endpoint on localhost
+        # Launching moto in server mode, i.e., as a separate process
+        # with an S3 endpoint on localhost
 
-            worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-            endpoint_port = f"555{worker_id}"
-            endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
+        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+        endpoint_port = f"555{worker_id}"
+        endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
 
-            # pipe to null to avoid logging in terminal
-            with subprocess.Popen(
-                shlex.split(f"moto_server s3 -p {endpoint_port}"),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            ) as proc:
-                timeout = 5
-                while timeout > 0:
-                    try:
-                        # OK to go once server is accepting connections
-                        r = requests.get(endpoint_uri)
-                        if r.ok:
-                            break
-                    except Exception:
-                        pass
-                    timeout -= 0.1
-                    time.sleep(0.1)
-                yield endpoint_uri
+        # pipe to null to avoid logging in terminal
+        with subprocess.Popen(
+            shlex.split(f"moto_server s3 -p {endpoint_port}"),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        ) as proc:
+            timeout = 5
+            while timeout > 0:
+                try:
+                    # OK to go once server is accepting connections
+                    r = requests.get(endpoint_uri)
+                    if r.ok:
+                        break
+                except Exception:
+                    pass
+                timeout -= 0.1
+                time.sleep(0.1)
+            yield endpoint_uri
 
-                proc.terminate()
+            proc.terminate()
 
 
 @pytest.fixture
