@@ -636,13 +636,6 @@ def test_comment_writer(salaries_table, salaries_table_comments, datapath):
             path, sep="\t", comment=comment, comment_lines=comment_lines, index=False
         )
 
-        salaries_table.to_csv(
-            "testing-test.csv",
-            sep="\t",
-            comment=comment,
-            comment_lines=comment_lines,
-            index=False,
-        )
         assert filecmp.cmp(
             path,
             datapath("io", "parser", "data", "salaries_comments.csv"),
