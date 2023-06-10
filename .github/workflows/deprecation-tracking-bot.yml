@@ -7,7 +7,7 @@ name: Deprecations Bot
 on:
   push:
     branches:
-      - test
+      - main
 
 
 permissions:
@@ -19,7 +19,7 @@ jobs:
       issues: write
     runs-on: ubuntu-22.04
     env:
-      DEPRECATION_TRACKER_ISSUE: 35
+      DEPRECATION_TRACKER_ISSUE: 50578
     steps:
     - uses: actions/github-script@v6
       id: update-deprecation-issue
