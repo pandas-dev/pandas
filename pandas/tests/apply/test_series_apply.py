@@ -693,6 +693,7 @@ def test_series_apply_by_row_raises(func, by_row, error, msg):
 
 
 def test_deprecate_positional_params():
+    # GH53592
     ser = Series([1, 2, 3])
     msg = (
         "Starting with pandas version 2.1 all arguments of Series.apply except "

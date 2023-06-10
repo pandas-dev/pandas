@@ -1534,6 +1534,7 @@ def test_agg_dist_like_and_nonunique_columns():
 
 
 def test_deprecate_positional_params():
+    # GH53592
     df = DataFrame({"x": [1, 2, 3]})
     msg = (
         "Starting with pandas version 2.1 all arguments of DataFrame.apply except for "
