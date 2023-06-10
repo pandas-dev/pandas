@@ -379,13 +379,9 @@ cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev):
         return NPY_DATETIMEUNIT.NPY_FR_h
     elif abbrev == "m":
         return NPY_DATETIMEUNIT.NPY_FR_m
-    elif abbrev == "T"  or abbrev == "t":
-        return NPY_DATETIMEUNIT.NPY_FR_m
     elif abbrev == "s":
         return NPY_DATETIMEUNIT.NPY_FR_s
     elif abbrev == "ms":
-        return NPY_DATETIMEUNIT.NPY_FR_ms
-    elif abbrev == "L"  or abbrev == "l":
         return NPY_DATETIMEUNIT.NPY_FR_ms
     elif abbrev == "us":
         return NPY_DATETIMEUNIT.NPY_FR_us

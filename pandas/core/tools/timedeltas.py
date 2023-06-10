@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -19,6 +20,7 @@ from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -110,13 +112,16 @@ def to_timedelta(
         * 'W'
         * 'D' / 'days' / 'day'
         * 'hours' / 'hour' / 'hr' / 'h'
-        * 'm' / 'minute' / 'min' / 'minutes'
+        * 'm' / 'minute' / 'min' / 'minutes' / 'T'
         * 'S' / 'seconds' / 'sec' / 'second'
-        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
+        * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
         Must not be specified when `arg` context strings and ``errors="raise"``.
+
+        .. deprecated:: 2.1.0
+            Units 'T' and 'L' are deprecated and will be removed in a future version.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -181,8 +186,12 @@ def to_timedelta(
             "represent unambiguous timedelta values durations."
         )
 
-    if unit in {"t", "T", "l", "L"}:
-        raise ValueError("Units 't', 'T', 'l' and 'L' are no longer supported.")
+    if unit in {"T", "t", "L", "l"}:
+        warnings.warn(
+            f"Unit {unit} is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     if arg is None:
         return arg

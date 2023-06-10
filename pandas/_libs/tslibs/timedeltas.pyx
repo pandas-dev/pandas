@@ -123,6 +123,7 @@ cdef dict timedelta_abbrevs = {
     "minute": "m",
     "min": "m",
     "minutes": "m",
+    "T": "m",
     "t": "m",
     "s": "s",
     "seconds": "s",
@@ -133,6 +134,7 @@ cdef dict timedelta_abbrevs = {
     "millisecond": "ms",
     "milli": "ms",
     "millis": "ms",
+    "L": "ms",
     "l": "ms",
     "us": "us",
     "microseconds": "us",
@@ -722,7 +724,7 @@ cpdef inline str parse_timedelta_unit(str unit):
     """
     if unit is None:
         return "ns"
-    elif unit in {"M", "t", "T", "l", "L"}:
+    elif unit == "M":
         return unit
     try:
         return timedelta_abbrevs[unit.lower()]
