@@ -6951,7 +6951,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def value_counts(
         self,
-        subset: Sequence[Hashable] | None = None,
+        subset: IndexLabel | None = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -7075,8 +7075,8 @@ class DataFrame(NDFrame, OpsMixin):
         if normalize:
             counts /= counts.sum()
 
-        # Force MultiIndex for single column
-        if is_list_like(subset) and len(subset) == 1:
+        # Force MultiIndex for a list_like subset with a single column
+        if is_list_like(subset) and len(subset) == 1:  # type: ignore[arg-type]
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
@@ -8986,7 +8986,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: Level = -1, dropna: bool = True, sort: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9291,7 +9291,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: Level = -1, fill_value=None, sort: bool = True):
+    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
