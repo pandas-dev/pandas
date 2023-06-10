@@ -9619,6 +9619,11 @@ class DataFrame(NDFrame, OpsMixin):
         is inferred from the return type of the applied function. Otherwise,
         it depends on the `result_type` argument.
 
+        .. versionchanged:: 2.1.0
+
+            Supplying other arguments than ``func`` and ``axis`` as positional arguments
+            has been deprecated.
+
         Parameters
         ----------
         func : function
@@ -9659,10 +9664,6 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
-
-        .. versionchanged:: 2.1.0
-            Supplying other arguments than `func` and `axis` as a positional argument
-            has been deprecated.
 
         Returns
         -------
