@@ -79,6 +79,7 @@ def frame_apply(
     obj: DataFrame,
     func: AggFuncType,
     axis: Axis = 0,
+    *,
     raw: bool = False,
     result_type: str | None = None,
     args=None,
