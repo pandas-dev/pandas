@@ -2262,18 +2262,22 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
         if method == "linear":  # type: ignore[comparison-overlap]
             # TODO: GH#50950 implement for arbitrary EAs
             refs = None
+            arr_inplace = inplace
             if using_cow:
                 if inplace and not self.refs.has_reference():
-                    data_out = values._ndarray
                     refs = self.refs
                 else:
-                    data_out = values._ndarray.copy()
-            else:
-                data_out = values._ndarray if inplace else values._ndarray.copy()
-            missing.interpolate_array_2d(
-                data_out, method=method, limit=limit, index=index, axis=axis
+                    arr_inplace = False
+
+            new_values = self.values.interpolate(
+                method=method,
+                index=index,
+                axis=axis,
+                inplace=arr_inplace,
+                limit=limit,
+                fill_value=fill_value,
+                **kwargs,
             )
-            new_values = type(values)._simple_new(data_out, dtype=values.dtype)
             return self.make_block_same_class(new_values, refs=refs)
 
         elif values.ndim == 2 and axis == 0:
