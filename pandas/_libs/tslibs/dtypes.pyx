@@ -10,20 +10,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
-# ----------------------------------------------------------------------
-# Constants
-
-OFFSET_TO_PERIOD_FREQSTR = {
-    "ME": "M",
-}
-
-PERIOD_TO_OFFSET_FREQSTR = {
-    "M": "ME",
-}
-
-
-# ----------------------------------------------------------------------
-
 cdef class PeriodDtypeBase:
     """
     Similar to an actual dtype, this contains all of the information
@@ -198,6 +184,16 @@ _attrname_to_abbrevs = {
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
+_OFFSET_TO_PERIOD_FREQSTR = {
+    "ME": "M",
+}
+
+_PERIOD_TO_OFFSET_FREQSTR = {
+    "M": "ME",
+}
+
+cdef dict OFFSET_TO_PERIOD_FREQSTR = _OFFSET_TO_PERIOD_FREQSTR
+cdef dict PERIOD_TO_OFFSET_FREQSTR = _PERIOD_TO_OFFSET_FREQSTR
 
 class FreqGroup(Enum):
     # Mirrors c_FreqGroup in the .pxd file

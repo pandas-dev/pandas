@@ -10,6 +10,8 @@ cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=*) except? -1
 cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
 cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
 
+cdef dict OFFSET_TO_PERIOD_FREQSTR
+cdef dict PERIOD_TO_OFFSET_FREQSTR
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit
