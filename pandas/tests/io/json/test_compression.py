@@ -6,7 +6,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 def test_compression_roundtrip(compression):
@@ -91,13 +90,15 @@ def test_read_unsupported_compression_type():
 
 @pytest.mark.parametrize("to_infer", [True, False])
 @pytest.mark.parametrize("read_infer", [True, False])
-def test_to_json_compression(compression_only, read_infer, to_infer):
+def test_to_json_compression(
+    compression_only, read_infer, to_infer, compression_to_extension
+):
     # see gh-15008
     compression = compression_only
 
     # We'll complete file extension subsequently.
     filename = "test."
-    filename += _compression_to_extension[compression]
+    filename += compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 
