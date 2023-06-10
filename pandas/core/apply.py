@@ -397,7 +397,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if isinstance(self, SeriesApply) and op_name == "apply":
             kwargs = {**kwargs, "by_row": self.by_row}
 
