@@ -965,7 +965,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             raise KeyError(name)
 
         if obj is None:
-            obj = self._selected_obj
             return self._selected_obj.iloc[inds]
         else:
             warnings.warn(
