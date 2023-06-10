@@ -920,7 +920,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             be used.
 
         .. deprecated:: 2.1.0
-                The convert_dtype has been deprecated.
+                The obj is deprecated and will be removed in a future version.
                 Do ``df.iloc[gb.indices.get(name)]``
                 instead of ``gb.get_group(name, obj=df)``.
 
