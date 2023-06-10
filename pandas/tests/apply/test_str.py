@@ -30,10 +30,10 @@ from pandas.tests.apply.common import (
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
-    if len(args) > 1 and how == "agg":
+    if len(args) > 1:
         request.node.add_marker(
             pytest.mark.xfail(
-                raises=TypeError,
+                raises=TypeError if how == "agg" else FutureWarning,
                 reason="agg/apply signature mismatch - agg passes 2nd "
                 "argument to func",
             )

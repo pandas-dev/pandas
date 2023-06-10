@@ -1531,3 +1531,13 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
+
+
+def test_deprecate_positional_params():
+    df = DataFrame({"x": [1, 2, 3]})
+    msg = (
+        "Starting with pandas version 2.1 all arguments of DataFrame.apply except for "
+        "the arguments 'func' and 'axis' will be keyword-only."
+    )
+    with pytest.raises(FutureWarning, match=msg):
+        df.apply("sum", 0, True)

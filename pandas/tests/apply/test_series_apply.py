@@ -676,3 +676,27 @@ def test_apply_type():
     result = s.apply(type)
     expected = Series([int, str, type], index=["a", "b", "c"])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, by_row, error, msg",
+    [
+        [lambda x: x.sum(), True, AttributeError, "object has no attribute 'sum'"],
+        [lambda x: int(x), False, TypeError, "cannot convert the series"],
+    ],
+)
+def test_series_apply_by_row_raises(func, by_row, error, msg):
+    # GH53400
+    ser = Series([1, 2, 3])
+    with pytest.raises(error, match=msg):
+        ser.apply(func, by_row=by_row)
+
+
+def test_deprecate_positional_params():
+    ser = Series([1, 2, 3])
+    msg = (
+        "Starting with pandas version 2.1 all arguments of Series.apply except "
+        "for the argument 'func' will be keyword-only."
+    )
+    with pytest.raises(FutureWarning, match=msg):
+        ser.apply("sum", True)

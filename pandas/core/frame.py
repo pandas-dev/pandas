@@ -66,6 +66,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -9597,6 +9598,9 @@ class DataFrame(NDFrame, OpsMixin):
         assert isinstance(result, DataFrame)
         return result
 
+    @deprecate_nonkeyword_arguments(
+        version="2.1", allowed_args=["self", "func", "axis"]
+    )
     def apply(
         self,
         func: AggFuncType,
@@ -9655,6 +9659,10 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
+
+        .. versionchanged:: 2.1.0
+            Supplying other arguments than `func` and `axis` as a positional argument
+            has been deprecated.
 
         Returns
         -------

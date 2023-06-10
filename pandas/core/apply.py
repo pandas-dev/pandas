@@ -112,9 +112,9 @@ class Apply(metaclass=abc.ABCMeta):
         self,
         obj: AggObjType,
         func: AggFuncType,
+        *,
         raw: bool,
         result_type: str | None,
-        *,
         args,
         kwargs,
     ) -> None:

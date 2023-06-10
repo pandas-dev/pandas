@@ -46,6 +46,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -4497,6 +4498,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
         return result
 
+    @deprecate_nonkeyword_arguments(version="2.1", allowed_args=["self", "func"])
     def apply(
         self,
         func: AggFuncType,
@@ -4516,6 +4518,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Can be ufunc (a NumPy function that applies to the entire Series)
         or a Python function that only works on single values.
+
+        .. versionchanged:: 2.1.0
+            Supplying other arguments than `func` as a positional argument has been
+            deprecated.
 
         Parameters
         ----------
