@@ -237,9 +237,6 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
 
 
 @td.skip_if_no("numba")
-@pytest.mark.xfail(
-    reason="Groupby transform doesn't support strings as function inputs yet with numba"
-)
 def test_multilabel_numba_vs_cython(numba_supported_reductions):
     reduction, kwargs = numba_supported_reductions
     df = DataFrame(
