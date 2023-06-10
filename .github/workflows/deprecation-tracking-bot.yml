@@ -25,41 +25,41 @@ jobs:
       id: update-deprecation-issue
       with:
         script: |
-          body = github.rest.issues.get({
+          body = await github.rest.issues.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
-          })["body"]
-          // Add the PR number to body
-          // (we always get the first linked PR)
-          linkedPR = github.rest.issues.get({
+          })
+          body = body["data"]["body"];
+          linkedPRs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
             owner: context.repo.owner,
             repo: context.repo.repo,
             commit_sha: '${{ github.sha }}'
-          })[0]
-          
-          isDeprecation = false
-          for (label in linkedPR["labels"]) {
-            if (label["name"] == "Deprecate") {
-              isDeprecation = true;
-              break;
+          })
+          linkedPRs = linkedPRs["data"];
+          console.log(linkedPRs);
+          if (linkedPRs.length > 0) {
+            console.log("Found linked PR");
+            linkedPR = linkedPRs[0]
+            isDeprecation = false
+            for (label of linkedPR["labels"]) {
+              if (label["name"] == "Deprecate") {
+                isDeprecation = true;
+                break;
+              }
+            }
+
+            PR_NUMBER = linkedPR["number"];
+
+            body += ("\n- [ ] #" + PR_NUMBER);
+            if (isDeprecation) {
+              console.log("PR is a deprecation PR. Printing new body of issue");
+              console.log(body);
+              github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
+                body: body
+              })
             }
           }
-          
-          PR_NUMBER = linkedPR["number"];
-          
-          body += ("- [ ] #" + PR_NUMBER);
-          github.rest.issues.update({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
-            body: body
-          })
-    - name: Checkout
-      run: |
-        echo "Adding deprecation PR number to deprecation tracking issue"
-        export PR=${{ github.event.pull_request.number }}
-        BODY=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/issues/${DEPRECATION_TRACKER_ISSUE} |
-          python3 -c "import sys, json, os; x = {'body': json.load(sys.stdin)['body']}; pr = os.environ['PR']; x['body'] += f'\n- [ ] #{pr}'; print(json.dumps(x))")
-        echo ${BODY}
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -X PATCH -d "${BODY}" https://api.github.com/repos/${{ github.repository }}/issues/${DEPRECATION_TRACKER_ISSUE}
