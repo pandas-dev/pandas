@@ -303,8 +303,8 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         func = cast(List[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
-        if op_name == "apply":
-            kwargs = {**kwargs, "by_row": False}
+        if isinstance(self, SeriesApply) and op_name == "apply":
+            kwargs = {**kwargs, "by_row": self.by_row}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -397,7 +397,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwargs = {"by_row": False} if op_name == "apply" else {}
+        kwargs = {}
+        if isinstance(self, SeriesApply) and op_name == "apply":
+            kwargs = {**kwargs, "by_row": self.by_row}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1075,7 +1077,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
-        by_row: bool = True,
+        by_row: bool | lib.NoDefault = lib.no_default,
         args,
         kwargs,
     ) -> None:
@@ -1089,6 +1091,12 @@ class SeriesApply(NDFrameApply):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        if by_row is lib.no_default:
+            if is_list_like(func):
+                by_row = False
+            else:
+                by_row = True
+
         self.convert_dtype = convert_dtype
         self.by_row = by_row
 

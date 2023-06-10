@@ -422,7 +422,7 @@ def test_with_nested_series(datetime_series, op_name):
     tm.assert_frame_equal(result, expected)
 
 
-def test_replicate_describe(string_series, by_row):
+def test_replicate_describe(string_series):
     # this also tests a result set that is all scalars
     expected = string_series.describe()
     result = string_series.apply(
@@ -436,7 +436,6 @@ def test_replicate_describe(string_series, by_row):
             "75%": lambda x: x.quantile(0.75),
             "max": "max",
         },
-        by_row=by_row,
     )
     tm.assert_series_equal(result, expected)
 
@@ -475,10 +474,10 @@ def test_non_callable_aggregates(how, kwds):
     tm.assert_series_equal(result, expected)
 
 
-def test_series_apply_no_suffix_index(by_row):
+def test_series_apply_no_suffix_index():
     # GH36189
     s = Series([4] * 3)
-    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()], by_row=by_row)
+    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
 
     tm.assert_series_equal(result, expected)
@@ -546,15 +545,12 @@ def test_apply_to_timedelta(by_row):
         (np.array([np.sum, np.mean]), ["sum", "mean"]),
     ],
 )
-@pytest.mark.parametrize(
-    "how, kwargs",
-    [["agg", {}], ["apply", {"by_row": True}], ["apply", {"by_row": False}]],
-)
-def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_listlike_reducer(string_series, ops, names, how):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -567,15 +563,12 @@ def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
         Series({"A": np.sum, "B": np.mean}),
     ],
 )
-@pytest.mark.parametrize(
-    "how, kwargs",
-    [["agg", {}], ["apply", {"by_row": True}], ["apply", {"by_row": False}]],
-)
-def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
+@pytest.mark.parametrize("how", ["agg", "apply"])
+def test_apply_dictlike_reducer(string_series, ops, how):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    result = getattr(string_series, how)(ops, **kwargs)
+    result = getattr(string_series, how)(ops)
     tm.assert_series_equal(result, expected)
 
 
@@ -604,10 +597,10 @@ def test_apply_listlike_transformer(string_series, ops, names, by_row):
         ([lambda x: x.sum()], Series([6], index=["<lambda>"])),
     ],
 )
-def test_apply_listlike_lambda(ops, expected, by_row=by_row):
+def test_apply_listlike_lambda(ops, expected):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops, by_row=by_row)
+    result = ser.apply(ops)
     tm.assert_equal(result, expected)
 
 
@@ -639,10 +632,10 @@ def test_apply_dictlike_transformer(string_series, ops, by_row):
         ({"a": lambda x: x.sum()}, Series([6], index=["a"])),
     ],
 )
-def test_apply_dictlike_lambda(ops, by_row, expected):
+def test_apply_dictlike_lambda(ops, expected):
     # GH53400
     ser = Series([1, 2, 3])
-    result = ser.apply(ops, by_row=by_row)
+    result = ser.apply(ops)
     tm.assert_equal(result, expected)
 
 
@@ -676,3 +669,17 @@ def test_apply_type():
     result = s.apply(type)
     expected = Series([int, str, type], index=["a", "b", "c"])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, by_row, error, msg",
+    [
+        [lambda x: x.sum(), True, AttributeError, "object has no attribute 'sum'"],
+        [lambda x: int(x), False, TypeError, "cannot convert the series"],
+    ],
+)
+def test_series_apply_by_row_raises(func, by_row, error, msg):
+    # GH53400
+    ser = Series([1, 2, 3])
+    with pytest.raises(error, match=msg):
+        ser.apply(func, by_row=by_row)
