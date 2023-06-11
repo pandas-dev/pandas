@@ -40,6 +40,14 @@ class BaseAccessor:
 class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
+
+    Examples
+    --------
+    >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
+    >>> ser.sparse.density
+    0.6
+    >>> ser.sparse.sp_values
+    array([2, 2, 2])
     """
 
     def _validate(self, data):
@@ -226,6 +234,13 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
+    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df.sparse.density
+    0.5
     """
 
     def _validate(self, data):

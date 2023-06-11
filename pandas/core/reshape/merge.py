@@ -294,7 +294,7 @@ def merge_ordered(
     ...     }
     ... )
     >>> df1
-          key  lvalue group
+      key  lvalue group
     0   a       1     a
     1   c       2     a
     2   e       3     a
@@ -304,7 +304,7 @@ def merge_ordered(
 
     >>> df2 = pd.DataFrame({"key": ["b", "c", "d"], "rvalue": [1, 2, 3]})
     >>> df2
-          key  rvalue
+      key  rvalue
     0   b       1
     1   c       2
     2   d       3
@@ -2142,13 +2142,13 @@ class _AsOfMerge(_OrderedMerge):
             # we've verified above that no nulls exist
             left_values = left_values._data
         elif isinstance(left_values, ExtensionArray):
-            left_values = np.array(left_values)
+            left_values = left_values.to_numpy()
 
         if isinstance(right_values, BaseMaskedArray):
             # we've verified above that no nulls exist
             right_values = right_values._data
         elif isinstance(right_values, ExtensionArray):
-            right_values = np.array(right_values)
+            right_values = right_values.to_numpy()
 
         # a "by" parameter requires special handling
         if self.left_by is not None:
