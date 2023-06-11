@@ -431,6 +431,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.as_unit('s')
+        TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
         return type(self)._simple_new(arr, name=self.name)
