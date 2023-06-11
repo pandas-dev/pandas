@@ -667,6 +667,24 @@ def test_infer_row_shape():
     assert result == (6, 2)
 
 
+@pytest.mark.parametrize(
+    "ops, expected",
+    [
+        ({"a": lambda x: x + 1}, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, Series({"a": 3})),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+    ],
+)
+def test_dictlike_lambda(ops, expected):
+    # GHXXXXX
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops)
+    tm.assert_equal(result, expected)
+
+
 def test_with_dictlike_columns():
     # GH 17602
     df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
@@ -714,6 +732,28 @@ def test_with_dictlike_columns_with_infer():
     ]
     result = df.apply(lambda x: {"s": x["a"] + x["b"]}, axis=1, result_type="expand")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, expected",
+    [
+        ([lambda x: x + 1], DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            [lambda x: x + 1, lambda x: 3],
+            DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+    ],
+)
+def test_listlike_lambda(ops, expected):
+    # GHxxxxx
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops)
+    tm.assert_equal(result, expected)
 
 
 def test_with_listlike_columns():

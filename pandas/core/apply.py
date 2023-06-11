@@ -303,8 +303,9 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         func = cast(List[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
-        if op_name == "apply":
-            kwargs = {**kwargs, "by_row": False}
+        if op_name == "apply" and isinstance(self, SeriesApply):
+            by_row = "compat" if self.by_row else False
+            kwargs = {**kwargs, "by_row": by_row}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -397,7 +398,13 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwargs = {"by_row": False} if op_name == "apply" else {}
+        kwargs = {}
+        if op_name == "apply":
+            by_row: bool | Literal["compat"] = False
+            is_series_apply = isinstance(self, SeriesApply) and self.by_row
+            if isinstance(self, FrameApply) or is_series_apply:
+                by_row = "compat"
+            kwargs.update({"by_row": by_row})
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1067,7 +1074,7 @@ class FrameColumnApply(FrameApply):
 class SeriesApply(NDFrameApply):
     obj: Series
     axis: AxisInt = 0
-    by_row: bool  # only relevant for apply()
+    by_row: bool | Literal["compat"]  # only relevant for apply()
 
     def __init__(
         self,
@@ -1075,7 +1082,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
-        by_row: bool = True,
+        by_row: bool | Literal["compat"] = True,
         args,
         kwargs,
     ) -> None:
@@ -1090,6 +1097,7 @@ class SeriesApply(NDFrameApply):
                 stacklevel=find_stack_level(),
             )
         self.convert_dtype = convert_dtype
+        assert isinstance(by_row, bool) or by_row == "compat"
         self.by_row = by_row
 
         super().__init__(
@@ -1114,6 +1122,9 @@ class SeriesApply(NDFrameApply):
         if isinstance(self.func, str):
             # if we are a string, try to dispatch
             return self.apply_str()
+
+        if self.by_row == "compat":
+            return self.apply_compat()
 
         # self.func is Callable
         return self.apply_standard()
@@ -1148,6 +1159,28 @@ class SeriesApply(NDFrameApply):
         return obj._constructor(dtype=obj.dtype, index=obj.index).__finalize__(
             obj, method="apply"
         )
+
+    def apply_compat(self):
+        """compat apply method.
+
+         Used for each callable when giving listlikes and dictlikes of callables to
+         apply. Needed for copatability with Pandas < v2.1.
+
+        .. versionadded:: 2.1.0
+        """
+        obj = self.obj
+        func = self.func
+
+        if callable(func):
+            f = com.get_cython_func(func)
+            if f and not self.args and not self.kwargs:
+                return obj.apply(func, by_row=False)
+
+        try:
+            result = obj.apply(func, by_row=True)
+        except (ValueError, AttributeError, TypeError):
+            result = obj.apply(func, by_row=False)
+        return result
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable

@@ -4503,7 +4503,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
-        by_row: bool = True,
+        by_row: bool | Literal["compat"] = True,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4531,10 +4531,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        by_row : bool, default True
+        by_row : bool or "compat", default True
             If False, the func will be passed the whole Series at once.
             If True, will func will be passed each element of the Series, like
             Series.map (backward compatible).
+            If "compat", will if possible first translate the func into pandas
+            methods (e.g. ``Series().apply(np.sum)`` will be translated to
+            ``Series().sum()``). If that doesn't work, will try call apply again with
+            ``by_row=True`` and if that fails, will call apply again with
+            ``by_row=False``. Added for backwards compatability, should not be used
+            directly.
 
             .. versionadded:: 2.1.0
         **kwargs

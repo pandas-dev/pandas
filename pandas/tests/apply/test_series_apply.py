@@ -73,11 +73,6 @@ def test_apply_map_same_length_inference_bug():
     expected = s.map(f)
     tm.assert_series_equal(result, expected)
 
-    s = Series([1, 2, 3])
-    result = s.apply(f, by_row=by_row)
-    expected = s.map(f)
-    tm.assert_series_equal(result, expected)
-
 
 @pytest.mark.parametrize("convert_dtype", [True, False])
 def test_apply_convert_dtype_deprecated(convert_dtype):
@@ -422,7 +417,7 @@ def test_with_nested_series(datetime_series, op_name):
     tm.assert_frame_equal(result, expected)
 
 
-def test_replicate_describe(string_series, by_row):
+def test_replicate_describe(string_series):
     # this also tests a result set that is all scalars
     expected = string_series.describe()
     result = string_series.apply(
@@ -436,7 +431,6 @@ def test_replicate_describe(string_series, by_row):
             "75%": lambda x: x.quantile(0.75),
             "max": "max",
         },
-        by_row=by_row,
     )
     tm.assert_series_equal(result, expected)
 
@@ -604,7 +598,7 @@ def test_apply_listlike_transformer(string_series, ops, names, by_row):
         ([lambda x: x.sum()], Series([6], index=["<lambda>"])),
     ],
 )
-def test_apply_listlike_lambda(ops, expected, by_row=by_row):
+def test_apply_listlike_lambda(ops, expected, by_row):
     # GH53400
     ser = Series([1, 2, 3])
     result = ser.apply(ops, by_row=by_row)
