@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -140,4 +142,26 @@ def test_explode_scalars_can_ignore_index():
     s = pd.Series([1, 2, 3], index=["a", "b", "c"])
     result = s.explode(ignore_index=True)
     expected = pd.Series([1, 2, 3])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
+def test_explode_pyarrow_list_type():
+    # GH #####
+    import pyarrow as pa
+
+    data = [
+        [None, None],
+        [1],
+        [],
+        [2, 3],
+        None,
+    ]
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    result = ser.explode()
+    expected = pd.Series(
+        data=[None, None, 1, None, 2, 3, None],
+        index=[0, 0, 1, 2, 3, 3, 4],
+        dtype=pd.ArrowDtype(pa.int64()),
+    )
     tm.assert_series_equal(result, expected)
