@@ -1139,19 +1139,19 @@ default 'raise'
 
     def to_period(self, freq=None) -> PeriodArray:
         """
-        Cast to PeriodArray/Index at a particular frequency.
+        Cast to PeriodArray/PeriodIndex at a particular frequency.
 
-        Converts DatetimeArray/Index to PeriodArray/Index.
+        Converts DatetimeArray/Index to PeriodArray/PeriodIndex.
 
         Parameters
         ----------
-        freq : str or Offset, optional
-            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
-            or an Offset object. Will be inferred by default.
+        freq : str or Period, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
+            or an Period object. Will be inferred by default.
 
         Returns
         -------
-        PeriodArray/Index
+        PeriodArray/PeriodIndex
 
         Raises
         ------
