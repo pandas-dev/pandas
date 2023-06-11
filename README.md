@@ -152,6 +152,13 @@ python setup.py develop
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html#installing-from-source).
 
+## Installation from Notebook
+If installing the library directly in a notebook for instance Jupyter, use the prefix "%" before the installation command
+
+```sh
+% pip install cython
+```
+
 ## License
 [BSD 3](LICENSE)
 
