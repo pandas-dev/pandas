@@ -4539,7 +4539,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             methods (e.g. ``Series().apply(np.sum)`` will be translated to
             ``Series().sum()``). If that doesn't work, will try call apply again with
             ``by_row=True`` and if that fails, will call apply again with
-            ``by_row=False``. Added for backwards compatability, should not be used
+            ``by_row=False``. Added for backwards compatibility, should not be used
             directly.
 
             .. versionadded:: 2.1.0
