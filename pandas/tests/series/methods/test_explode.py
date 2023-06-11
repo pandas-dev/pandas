@@ -147,7 +147,7 @@ def test_explode_scalars_can_ignore_index():
 
 @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
 def test_explode_pyarrow_list_type():
-    # GH #####
+    # GH 53602
     import pyarrow as pa
 
     data = [
