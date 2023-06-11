@@ -679,7 +679,7 @@ def test_infer_row_shape():
     ],
 )
 def test_dictlike_lambda(ops, expected):
-    # GHXXXXX
+    # GH53601
     df = DataFrame({"a": [1, 2]})
     result = df.apply(ops)
     tm.assert_equal(result, expected)
@@ -750,7 +750,7 @@ def test_with_dictlike_columns_with_infer():
     ],
 )
 def test_listlike_lambda(ops, expected):
-    # GHxxxxx
+    # GH53601
     df = DataFrame({"a": [1, 2]})
     result = df.apply(ops)
     tm.assert_equal(result, expected)
