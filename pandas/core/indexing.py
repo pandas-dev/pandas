@@ -413,7 +413,8 @@ class IndexingMixin:
         cobra               1       2
         sidewinder          7       8
 
-        Please see the :ref:`user guide<indexing.boolean>`
+        Please ensure that each condition is wrapped in parentheses ``()``.
+        See the :ref:`user guide<indexing.boolean>`
         for more details and explanations of Boolean indexing.
 
         .. note::
