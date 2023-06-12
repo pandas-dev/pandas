@@ -685,5 +685,5 @@ def test_deprecate_positional_params():
         "Starting with pandas version 2.1 all arguments of Series.apply except "
         "for the argument 'func' will be keyword-only."
     )
-    with pytest.raises(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         ser.apply("sum", True)
