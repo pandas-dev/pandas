@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from itertools import chain
 import operator
 
@@ -30,15 +31,24 @@ from pandas.tests.apply.common import (
 )
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
-    if len(args) > 1:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=TypeError if how == "agg" else FutureWarning,
-                reason="agg/apply signature mismatch - agg passes 2nd "
-                "argument to func",
-            )
+    if how == "agg" and len(args) > 1:
+        msg = "got multiple values for argument 'axis'"
+        with pytest.raises(TypeError, match=msg):
+            getattr(float_frame, how)(func, *args, **kwds)
+        return
+
+    if how == "apply" and len(args) > 1:
+        msg = (
+            "Starting with pandas version 2.1 all arguments of DataFrame.apply "
+            "except for the arguments 'func' and 'axis' will be keyword-only."
         )
-    result = getattr(float_frame, how)(func, *args, **kwds)
+        context_manager = tm.assert_produces_warning(FutureWarning, match=msg)
+    else:
+        context_manager = nullcontext()
+
+    with context_manager:
+        result = getattr(float_frame, how)(func, *args, **kwds)
+
     expected = getattr(float_frame, func)(*args, **kwds)
     tm.assert_series_equal(result, expected)
 
