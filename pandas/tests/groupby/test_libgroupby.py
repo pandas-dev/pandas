@@ -6,6 +6,7 @@ from pandas._libs.groupby import (
     group_cumprod,
     group_cumsum,
     group_mean,
+    group_sum,
     group_var,
 )
 
@@ -297,6 +298,23 @@ def test_cython_group_mean_Inf_at_begining_and_end():
     group_mean(actual, counts, data, labels, is_datetimelike=False)
 
     expected = np.array([[np.inf, 3], [3, np.inf]], dtype="float64")
+
+    tm.assert_numpy_array_equal(
+        actual,
+        expected,
+    )
+
+
+def test_cython_group_sum_Inf_at_begining_and_end():
+    # GH #53606
+    actual = np.array([[np.nan], [np.nan]], dtype="float64")
+    counts = np.array([0, 0], dtype="int64")
+    data = np.array([[np.inf], [np.inf], [np.inf]], dtype="float64")
+    labels = np.array([0, 1, 1], dtype=np.intp)
+
+    group_sum(actual, counts, data, labels, None, is_datetimelike=False)
+
+    expected = np.array([[np.inf], [np.inf]], dtype="float64")
 
     tm.assert_numpy_array_equal(
         actual,
