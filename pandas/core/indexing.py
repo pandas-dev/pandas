@@ -687,7 +687,7 @@ class IndexingMixin:
         """
         Select one or multiple columns from a DataFrame.
 
-        ``.select()`` is a pass-thru method, which utilises ``.loc[]`` to
+        ``.select()`` is a pass-through method, which utilises ``.loc[]`` to
             only retrieve the selected columns from the DataFrame.
         The equivalent call to this function would be: ``DataFrame.loc[:,columns]``.
 
