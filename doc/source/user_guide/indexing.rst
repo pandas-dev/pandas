@@ -356,6 +356,18 @@ Accessing via label slices:
 
    df1.loc['d':, 'A':'C']
 
+For accessing only a single column:
+
+.. ipython:: python
+
+   df1.select('A')
+
+Or for accessing a list of columns:
+
+.. ipython:: python
+
+   df1.select(['A', 'B'])
+
 For getting a cross section using a label (equivalent to ``df.xs('a')``):
 
 .. ipython:: python

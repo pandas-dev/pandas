@@ -176,6 +176,7 @@ class IndexingMixin:
         --------
         DataFrame.iat : Fast integer location scalar accessor.
         DataFrame.loc : Purely label-location based indexer for selection by label.
+        DataFrame.select : Purely column based indexer for selection by label.
         Series.iloc : Purely integer-location based indexing for
                        selection by position.
 
@@ -325,6 +326,7 @@ class IndexingMixin:
         DataFrame.iloc : Access group of rows and columns by integer position(s).
         DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
             Series/DataFrame.
+        DataFrame.select : Purely column based indexer for selection by label.
         Series.loc : Access group of values using labels.
 
         Examples
@@ -593,6 +595,7 @@ class IndexingMixin:
         DataFrame.loc : Access a group of rows and columns by label(s).
         DataFrame.iloc : Access a group of rows and columns by integer
             position(s).
+        DataFrame.select : Purely column based indexer for selection by label.
         Series.at : Access a single value by label.
         Series.iat : Access a single value by integer position.
         Series.loc : Access a group of rows by label(s).
@@ -650,6 +653,7 @@ class IndexingMixin:
         DataFrame.at : Access a single value for a row/column label pair.
         DataFrame.loc : Access a group of rows and columns by label(s).
         DataFrame.iloc : Access a group of rows and columns by integer position(s).
+        DataFrame.select : Purely column based indexer for selection by label.
 
         Examples
         --------
@@ -678,6 +682,78 @@ class IndexingMixin:
         2
         """
         return _iAtIndexer("iat", self)
+
+    def select(self, columns: str | list):
+        """
+        Select one or multiple columns from a DataFrame.
+
+        ``.select()`` is a pass-thru method, which utilises ``.loc[]`` to
+            only retrieve the selected columns from the DataFrame.
+        The equivalent call to this function would be: ``DataFrame.loc[:,columns]``.
+
+          .. note:: All calls to this function will return a DataFrame.
+
+          .. versionadded:: 2.1.0
+
+        Raises
+        ------
+        KeyError
+            If any items are not found.
+        IndexingError
+            If an indexed key is passed and its index is unalignable to the frame index.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame containing only the selected columns.
+
+        See Also
+        --------
+        DataFrame.loc : Purely label-location based indexer for selection by label.
+        DataFrame.iloc : Access group of rows and columns by integer position(s).
+        DataFrame.at : Access a single value for a row/column label pair.
+        DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
+            Series/DataFrame.
+
+        Examples
+        --------
+        **Getting values**
+
+        >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
+        ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+        >>> df = pd.DataFrame(mydict)
+        >>> df
+              a     b     c     d
+        0     1     2     3     4
+        1   100   200   300   400
+        2  1000  2000  3000  4000
+
+        A single column.
+
+        >>> type(df.select('a'))
+        <class 'pandas.core.frame.DataFrame'>
+        >>> df.select('a')
+              a
+        0     1
+        1   100
+        2  1000
+        >>> df.select(['a'])
+              a
+        0     1
+        1   100
+        2  1000
+
+        A list of columns.
+
+        >>> type(df.select['a', 'b'])
+              a     b
+        0     1     2
+        1   100   200
+        2  1000  2000
+        """
+        columns = columns if isinstance(columns, list) else [columns]
+        return self.loc[:, columns]
 
 
 class _LocationIndexer(NDFrameIndexerBase):

@@ -2727,6 +2727,32 @@ class TestLocListlike:
         tm.assert_frame_equal(result, expected)
 
 
+class TestSelect:
+    @property
+    def df() -> pd.DataFrame:
+        mydict = [
+            {"a": 1, "b": 2, "c": 3, "d": 4},
+            {"a": 100, "b": 200, "c": 300, "d": 400},
+            {"a": 1000, "b": 2000, "c": 3000, "d": 4000},
+        ]
+        return pd.DataFrame(mydict)
+
+    def test_select_single_column(self):
+        expected = self.df.loc[:, ["a"]]
+        result = self.df.select("a")
+        tm.assert_frame_equal(result, expected)
+
+    def test_select_single_column_as_list(self):
+        expected = self.df.loc[:, ["a"]]
+        result = self.df.select(["a"])
+        tm.assert_frame_equal(result, expected)
+
+    def test_select_list_of_columns(self):
+        expected = self.df.loc[:, ["a", "b", "c"]]
+        result = self.df.select(["a", "b", "c"])
+        tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "columns, column_key, expected_columns",
     [
