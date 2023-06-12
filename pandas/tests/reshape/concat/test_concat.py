@@ -142,7 +142,7 @@ class TestConcatenate:
         tm.assert_index_equal(result.columns.levels[0], Index(level, name="group_key"))
         tm.assert_index_equal(result.columns.levels[1], Index([0, 1, 2, 3]))
 
-        assert result.columns.names == ["group_key", None]
+        assert result.columns.names == ("group_key", None)
 
     @pytest.mark.parametrize("mapping", ["mapping", "dict"])
     def test_concat_mapping(self, mapping, non_dict_mapping_subclass):

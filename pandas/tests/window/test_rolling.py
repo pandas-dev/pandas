@@ -521,7 +521,7 @@ def test_multi_index_names():
     result = df.rolling(3).cov()
 
     tm.assert_index_equal(result.columns, df.columns)
-    assert result.index.names == [None, "1", "2"]
+    assert result.index.names == (None, "1", "2")
 
 
 def test_rolling_axis_sum(axis_frame):

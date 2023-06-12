@@ -112,13 +112,13 @@ class TestBuildSchema:
                 {"name": "C", "type": "datetime"},
                 {"name": "D", "type": "duration"},
             ],
-            "primaryKey": ["level_0", "level_1"],
+            "primaryKey": ("level_0", "level_1"),
         }
         assert result == expected
 
         df.index.names = ["idx0", None]
         expected["fields"][0]["name"] = "idx0"
-        expected["primaryKey"] = ["idx0", "level_1"]
+        expected["primaryKey"] = ("idx0", "level_1")
         result = build_table_schema(df, version=False)
         assert result == expected
 
@@ -585,21 +585,21 @@ class TestTableOrient:
             (pd.Index([1], name="myname"), "myname", "name"),
             (
                 pd.MultiIndex.from_product([("a", "b"), ("c", "d")]),
-                ["level_0", "level_1"],
+                ("level_0", "level_1"),
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", "n2"]
                 ),
-                ["n1", "n2"],
+                ("n1", "n2"),
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", None]
                 ),
-                ["n1", "level_1"],
+                ("n1", "level_1"),
                 "names",
             ),
         ],

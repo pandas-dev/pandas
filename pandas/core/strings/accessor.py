@@ -3507,7 +3507,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
 
     from pandas import MultiIndex
 
-    index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
+    index = MultiIndex.from_tuples(index_list, names=list(arr.index.names) + ["match"])
     dtype = _result_dtype(arr)
 
     result = arr._constructor_expanddim(

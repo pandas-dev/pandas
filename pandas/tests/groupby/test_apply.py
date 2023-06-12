@@ -903,7 +903,7 @@ def test_apply_multi_level_name(category):
     ).set_index(["A", "B"])
     result = df.groupby("B", observed=False).apply(lambda x: x.sum())
     tm.assert_frame_equal(result, expected)
-    assert df.index.names == ["A", "B"]
+    assert df.index.names == ("A", "B")
 
 
 def test_groupby_apply_datetime_result_dtypes():

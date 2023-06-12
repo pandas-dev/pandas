@@ -874,7 +874,7 @@ class TestSortValuesLevelAsStr:
             )
 
         # Get index levels from df_idx
-        levels = df_idx.index.names
+        levels = list(df_idx.index.names)
 
         # Compute expected by sorting on columns and the setting index
         expected = df_none.sort_values(
@@ -892,7 +892,7 @@ class TestSortValuesLevelAsStr:
         # GH#14353
 
         # Get levels from df_idx
-        levels = df_idx.index.names
+        levels = list(df_idx.index.names)
 
         # Compute expected by sorting on axis=0, setting index levels, and then
         # transposing. For some cases this will result in a frame with

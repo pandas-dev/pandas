@@ -783,7 +783,7 @@ class TestDataFrameReshape:
                 [[10, 20, 30], [10, 20, 40]], names=["i1", "i2", "i3"]
             ),
         )
-        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ["i2", "i1"]
+        assert df.unstack(["i2", "i1"]).columns.names[-2:] == ("i2", "i1")
 
     def test_unstack_multi_level_rows_and_cols(self):
         # PH 28306: Unstack df with multi level cols and rows
@@ -1780,7 +1780,7 @@ Thu,Lunch,Yes,51.51,17"""
 
         unstacked = frame.unstack()
         assert unstacked.index.name == "first"
-        assert unstacked.columns.names == ["exp", "second"]
+        assert unstacked.columns.names == ("exp", "second")
 
         restacked = unstacked.stack(future_stack=future_stack)
         assert restacked.index.names == frame.index.names

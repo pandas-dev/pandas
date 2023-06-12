@@ -132,7 +132,7 @@ def melt(
         else:
             mdata[col] = np.tile(id_data._values, K)
 
-    mcolumns = id_vars + var_name + [value_name]
+    mcolumns = id_vars + list(var_name) + [value_name]
 
     if frame.shape[1] > 0:
         mdata[value_name] = concat(
