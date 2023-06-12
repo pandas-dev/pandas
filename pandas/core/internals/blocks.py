@@ -1369,6 +1369,9 @@ class Block(PandasObject):
             m = missing.clean_fill_method(method)
         except ValueError:
             m = None
+            if method == "asfreq":
+                # clean_fill_method used to allow this
+                raise
         if m is None and self.dtype.kind != "f":
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
