@@ -12,7 +12,7 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
-    Timestamp
+    Timestamp,
 )
 import pandas._testing as tm
 
@@ -85,16 +85,20 @@ class TestDataFrameCumulativeOps:
     def test_numeric_only_flag(self, method):
         df = DataFrame(
             {
-                "int": [1, 2, 3], 
-                "bool": [True, False, False], 
-                "string": ["a", "b", "c"], 
-                "float": [1.0, 3.5, 4.0], 
-                "datetime": [Timestamp(2018, 1, 1), Timestamp(2019, 1, 1), Timestamp(2020, 1, 1)]})
+                "int": [1, 2, 3],
+                "bool": [True, False, False],
+                "string": ["a", "b", "c"],
+                "float": [1.0, 3.5, 4.0],
+                "datetime": [
+                    Timestamp(2018, 1, 1),
+                    Timestamp(2019, 1, 1),
+                    Timestamp(2020, 1, 1),
+                ],
+            }
+        )
         df_numeric_only = df.drop(["string", "datetime"], axis=1)
 
         for axis in [0, 1]:
             result = getattr(df, method)(axis=axis, numeric_only=True)
             expected = getattr(df_numeric_only, method)(axis)
-            tm.assert_frame_equal(result, expected)        
-
-    
+            tm.assert_frame_equal(result, expected)

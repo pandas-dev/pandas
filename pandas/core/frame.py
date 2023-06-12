@@ -11077,22 +11077,50 @@ class DataFrame(NDFrame, OpsMixin):
     product = prod
 
     @doc(make_doc("cummin", ndim=2))
-    def cummin(self, axis: Axis | None = None, skipna: bool = True, numeric_only: bool = False, *args, **kwargs):
+    def cummin(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummin(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cummax", ndim=2))
-    def cummax(self, axis: Axis | None = None, skipna: bool = True, numeric_only: bool = False, *args, **kwargs):
+    def cummax(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummax(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=2))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, numeric_only: bool = False, *args, **kwargs):
+    def cumsum(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumsum(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, numeric_only: bool = False, *args, **kwargs):
+    def cumprod(
+        self,
+        axis: Axis | None = None,
+        skipna: bool = True,
+        numeric_only: bool = False,
+        *args,
+        **kwargs,
+    ):
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumprod(data, axis, skipna, *args, **kwargs)
 
