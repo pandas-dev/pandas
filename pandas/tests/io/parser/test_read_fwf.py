@@ -26,7 +26,6 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.common import urlopen
 from pandas.io.parsers import (
@@ -667,13 +666,13 @@ cc\tdd """
 
 
 @pytest.mark.parametrize("infer", [True, False])
-def test_fwf_compression(compression_only, infer):
+def test_fwf_compression(compression_only, infer, compression_to_extension):
     data = """1111111111
     2222222222
     3333333333""".strip()
 
     compression = compression_only
-    extension = _compression_to_extension[compression]
+    extension = compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
