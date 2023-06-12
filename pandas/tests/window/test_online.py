@@ -14,7 +14,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(GH#44584): Mark these as pytest.mark.single_cpu
 pytestmark = [
     pytest.mark.single_cpu,
     pytest.mark.skipif(
