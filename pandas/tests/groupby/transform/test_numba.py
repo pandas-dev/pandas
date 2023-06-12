@@ -132,20 +132,25 @@ def test_use_global_config():
     tm.assert_frame_equal(expected, result)
 
 
+# TODO: Test more than just reductions (e.g. actually test transformations once we have
 @td.skip_if_no("numba")
 @pytest.mark.parametrize(
     "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
 )
-def test_multifunc_notimplimented(agg_func):
+def test_string_cython_vs_numba(agg_func, numba_supported_reductions):
+    agg_func, kwargs = numba_supported_reductions
     data = DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped.transform(agg_func, engine="numba")
 
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped[1].transform(agg_func, engine="numba")
+    result = grouped.transform(agg_func, engine="numba", **kwargs)
+    expected = grouped.transform(agg_func, engine="cython", **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = grouped[1].transform(agg_func, engine="numba", **kwargs)
+    expected = grouped[1].transform(agg_func, engine="cython", **kwargs)
+    tm.assert_series_equal(result, expected)
 
 
 @td.skip_if_no("numba")
@@ -234,9 +239,6 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
 
 
 @td.skip_if_no("numba")
-@pytest.mark.xfail(
-    reason="Groupby transform doesn't support strings as function inputs yet with numba"
-)
 def test_multilabel_numba_vs_cython(numba_supported_reductions):
     reduction, kwargs = numba_supported_reductions
     df = DataFrame(
