@@ -25,6 +25,7 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
+from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -273,8 +274,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        from pandas.core.algorithms import value_counts
-
         return value_counts(self.to_numpy(), dropna=dropna)
 
 

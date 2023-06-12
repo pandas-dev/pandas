@@ -79,7 +79,7 @@ from pandas.core.algorithms import (
     isin,
     take,
     unique,
-    value_counts,
+    value_counts_internal as value_counts,
 )
 from pandas.core.arrays.base import (
     ExtensionArray,

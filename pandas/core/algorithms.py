@@ -838,6 +838,31 @@ def value_counts(
     -------
     Series
     """
+    warnings.warn(
+        # GH#53493
+        "pandas.value_counts is deprecated and will be removed in a "
+        "future version. Use pd.Series(obj).value_counts() instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
+    return value_counts_internal(
+        values,
+        sort=sort,
+        ascending=ascending,
+        normalize=normalize,
+        bins=bins,
+        dropna=dropna,
+    )
+
+
+def value_counts_internal(
+    values,
+    sort: bool = True,
+    ascending: bool = False,
+    normalize: bool = False,
+    bins=None,
+    dropna: bool = True,
+) -> Series:
     from pandas import (
         Index,
         Series,
@@ -1678,8 +1703,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    l_count = value_counts(lvals, dropna=False)
-    r_count = value_counts(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)
