@@ -12271,6 +12271,8 @@ axis : {{0 or 'index', 1 or 'columns'}}, default 0
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
+numeric_only : bool, default False
+    Include only float, int, boolean columns.
 *args, **kwargs
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
