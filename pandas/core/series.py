@@ -4534,13 +4534,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         by_row : bool or "compat", default True
             If False, the func will be passed the whole Series at once.
             If True, will func will be passed each element of the Series, like
-            Series.map (backward compatible).
+            ``Series.map`` (backward compatible).
             If "compat", will if possible first translate the func into pandas
             methods (e.g. ``Series().apply(np.sum)`` will be translated to
-            ``Series().sum()``). If that doesn't work, will try call apply again with
+            ``Series().sum()``). If that doesn't work, will try call to apply again with
             ``by_row=True`` and if that fails, will call apply again with
             ``by_row=False``. Added for backwards compatibility, should not be used
             directly.
+            ``by_row`` has no effect when ``func`` is a string.
 
             .. versionadded:: 2.1.0
         **kwargs

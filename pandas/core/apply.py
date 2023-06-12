@@ -81,6 +81,7 @@ def frame_apply(
     axis: Axis = 0,
     raw: bool = False,
     result_type: str | None = None,
+    by_row: bool | Literal["compat"] = "compat",
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -100,6 +101,7 @@ def frame_apply(
         func,
         raw=raw,
         result_type=result_type,
+        by_row=by_row,
         args=args,
         kwargs=kwargs,
     )
@@ -115,11 +117,16 @@ class Apply(metaclass=abc.ABCMeta):
         raw: bool,
         result_type: str | None,
         *,
+        by_row: bool | Literal["compat"] = True,
         args,
         kwargs,
     ) -> None:
         self.obj = obj
         self.raw = raw
+
+        assert isinstance(by_row, bool) or by_row == "compat"
+        self.by_row = by_row
+
         self.args = args or ()
         self.kwargs = kwargs or {}
 
@@ -303,8 +310,14 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         func = cast(List[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
-        if op_name == "apply" and isinstance(self, SeriesApply):
-            by_row = "compat" if self.by_row else False
+        if op_name == "apply":
+            if isinstance(self, FrameApply):
+                by_row = self.by_row
+
+            elif isinstance(self, SeriesApply):
+                by_row = "compat" if self.by_row else False
+            else:
+                by_row = False
             kwargs = {**kwargs, "by_row": by_row}
 
         if getattr(obj, "axis", 0) == 1:
@@ -400,10 +413,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeDict, self.func)
         kwargs = {}
         if op_name == "apply":
-            by_row: bool | Literal["compat"] = False
-            is_series_apply = isinstance(self, SeriesApply) and self.by_row
-            if isinstance(self, FrameApply) or is_series_apply:
+            if isinstance(self, FrameApply):
+                by_row = self.by_row
+            elif isinstance(self, SeriesApply) and self.by_row:
                 by_row = "compat"
+            else:
+                by_row = False
             kwargs.update({"by_row": by_row})
 
         if getattr(obj, "axis", 0) == 1:
@@ -1097,14 +1112,13 @@ class SeriesApply(NDFrameApply):
                 stacklevel=find_stack_level(),
             )
         self.convert_dtype = convert_dtype
-        assert isinstance(by_row, bool) or by_row == "compat"
-        self.by_row = by_row
 
         super().__init__(
             obj,
             func,
             raw=False,
             result_type=None,
+            by_row=by_row,
             args=args,
             kwargs=kwargs,
         )

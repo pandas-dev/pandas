@@ -668,20 +668,30 @@ def test_infer_row_shape():
 
 
 @pytest.mark.parametrize(
-    "ops, expected",
+    "ops, by_row, expected",
     [
-        ({"a": lambda x: x + 1}, DataFrame({"a": [2, 3]})),
-        ({"a": lambda x: x.sum()}, Series({"a": 3})),
+        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
         (
             {"a": ["sum", np.sum, lambda x: x.sum()]},
+            "compat",
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, Series({"a": 1})),
     ],
 )
-def test_dictlike_lambda(ops, expected):
+def test_dictlike_lambda(ops, by_row, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops)
+    result = df.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
@@ -735,24 +745,40 @@ def test_with_dictlike_columns_with_infer():
 
 
 @pytest.mark.parametrize(
-    "ops, expected",
+    "ops, by_row, expected",
     [
-        ([lambda x: x + 1], DataFrame({("a", "<lambda>"): [2, 3]})),
-        ([lambda x: x.sum()], DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], True, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], True, DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
         (
             ["sum", np.sum, lambda x: x.sum()],
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            False,
             DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
         ),
         (
             [lambda x: x + 1, lambda x: 3],
+            "compat",
             DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+        (
+            [lambda x: 2, lambda x: 3],
+            False,
+            DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
         ),
     ],
 )
-def test_listlike_lambda(ops, expected):
+def test_listlike_lambda(ops, by_row, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops)
+    result = df.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
 
 
