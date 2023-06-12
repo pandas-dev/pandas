@@ -33,10 +33,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like,
+    is_numeric_dtype,
     is_numeric_v_string_like,
     is_object_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -223,6 +225,56 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
     # Incompatible return value type (got "signedinteger[Any]",
     # expected "Optional[int]")
     return idxpos  # type: ignore[return-value]
+
+
+def infer_limit_direction(limit_direction, method):
+    # Set `limit_direction` depending on `method`
+    if limit_direction is None:
+        if method in ("backfill", "bfill"):
+            limit_direction = "backward"
+        else:
+            limit_direction = "forward"
+    else:
+        if method in ("pad", "ffill") and limit_direction != "forward":
+            raise ValueError(
+                f"`limit_direction` must be 'forward' for method `{method}`"
+            )
+        if method in ("backfill", "bfill") and limit_direction != "backward":
+            raise ValueError(
+                f"`limit_direction` must be 'backward' for method `{method}`"
+            )
+    return limit_direction
+
+
+def get_interp_index(method, index: Index) -> Index:
+    # create/use the index
+    if method == "linear":
+        # prior default
+        from pandas import Index
+
+        index = Index(np.arange(len(index)))
+    else:
+        methods = {"index", "values", "nearest", "time"}
+        is_numeric_or_datetime = (
+            is_numeric_dtype(index.dtype)
+            or isinstance(index.dtype, DatetimeTZDtype)
+            or lib.is_np_dtype(index.dtype, "mM")
+        )
+        if method not in methods and not is_numeric_or_datetime:
+            raise ValueError(
+                "Index column must be numeric or datetime type when "
+                f"using {method} method other than linear. "
+                "Try setting a numeric or datetime index column before "
+                "interpolating."
+            )
+
+    if isna(index).any():
+        raise NotImplementedError(
+            "Interpolation with NaNs in the index "
+            "has not been implemented. Try filling "
+            "those NaNs before interpolating."
+        )
+    return index
 
 
 def interpolate_array_2d(
