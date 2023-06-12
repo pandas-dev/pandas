@@ -1367,8 +1367,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
 
-        # starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-
         sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
         sorted_ids = self.grouper._sorted_ids
         _, _, ngroups = self.grouper.group_info
