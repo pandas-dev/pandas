@@ -871,3 +871,90 @@ def _reorder_for_extension_array_stack(
     #  c0r1, c1r1, c2r1, ...]
     idx = np.arange(n_rows * n_columns).reshape(n_columns, n_rows).T.ravel()
     return arr.take(idx)
+
+
+def new_stack(df, levels):
+    stack_cols = (
+        df.columns
+        ._drop_level_numbers([k for k in range(df.columns.nlevels) if k not in levels][::-1])
+    )
+    _, taker = np.unique(levels, return_inverse=True)
+    if len(levels) > 1:
+        # Arrange columns in the order we want to take them
+        ordered_stack_cols = stack_cols._reorder_ilevels(taker)
+    else:
+        ordered_stack_cols = stack_cols
+
+    buf = []
+    for idx in stack_cols.unique():
+        if not isinstance(idx, tuple):
+            idx = (idx,)
+        # Take the data from df corresponding to this idx value
+        gen = iter(idx)
+        column_indexer = tuple(
+            next(gen) if k in levels else slice(None)
+            for k in range(df.columns.nlevels)
+        )
+        if len(df.columns) == 1:
+            # TODO: Are there other cases that cause issues; e.g. one column?
+            data = df
+        else:
+            data = df.loc[:, column_indexer]
+
+        # When len(levels) == df.columns.nlevels, we're stacking all columns
+        # and end up with a Series
+        if len(levels) < df.columns.nlevels:
+            levnums = sorted(levels)[::-1]
+            data.columns = data.columns._drop_level_numbers(levnums)
+        elif stack_cols.nlevels == 1:
+            from pandas.core.indexes.range import RangeIndex
+            data.columns = RangeIndex(0, 1)
+
+        buf.append(data)
+
+    from pandas.core.reshape.concat import concat
+    result = concat(buf)
+
+    # Construct the correct MultiIndex by combining the input's index and
+    # stacked columns.
+    if isinstance(df.index, MultiIndex):
+        index_levels = [level.unique() for level in df.index.levels]
+    else:
+        index_levels = [
+            df.index.get_level_values(k).values for k in range(df.index.nlevels)
+        ]
+    if isinstance(stack_cols, MultiIndex):
+        column_levels = ordered_stack_cols.levels
+    else:
+        column_levels = [
+            ordered_stack_cols.get_level_values(e).unique()
+            for e in range(ordered_stack_cols.nlevels)
+        ]
+    if isinstance(df.index, MultiIndex):
+        index_codes = np.tile(df.index.codes, (1, len(result) // len(df)))
+    else:
+        index_codes = np.tile(np.arange(len(df)), (1, len(result) // len(df)))
+    index_codes = [e for e in index_codes]
+    if isinstance(stack_cols, MultiIndex):
+        column_codes = ordered_stack_cols.drop_duplicates().codes
+    else:
+        column_codes = [np.arange(stack_cols.nunique())]
+    column_codes = [np.repeat(codes, len(df)) for codes in column_codes]
+    index_names = df.index.names
+    column_names = list(ordered_stack_cols.names)
+    result.index = MultiIndex(
+        levels=index_levels + column_levels,
+        codes=index_codes + column_codes,
+        names=index_names + column_names,
+    )
+
+    # sort result, but faster than calling sort_index since we know the order we need
+    len_df = len(df)
+    n_uniques = len(ordered_stack_cols.unique())
+    idxs = (
+        np.tile(len_df * np.arange(n_uniques), len_df)
+        + np.repeat(np.arange(len_df), n_uniques)
+    )
+    result = result.take(idxs)
+
+    return result

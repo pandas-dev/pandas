@@ -9154,14 +9154,37 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.reshape.reshape import (
             stack,
             stack_multiple,
+            new_stack,
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            old_result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+            old_result = stack(self, level, dropna=dropna, sort=sort)
 
-        return result.__finalize__(self, method="stack")
+        new_level = level
+        if not isinstance(new_level, (tuple, list)):
+            new_level = [new_level]
+        new_level = [self.columns._get_level_number(lev) for lev in new_level]
+        result = new_stack(self, new_level)
+        if result.ndim == 2 and len(result.columns) == 1 and len(new_level) == self.columns.nlevels:
+            result = result.iloc[:, 0]
+        if result.ndim == 1:
+            result = result.rename(None)
+        if sort:
+            if isinstance(self.columns, MultiIndex) and not self.columns._is_lexsorted():
+                result = result.sort_index()
+            if result.ndim == 2:
+                # TODO: Hack! Should we be sorting the columns?
+                try:
+                    result = result[sorted(result.columns)]
+                except Exception:
+                    pass
+
+        import pandas._testing as tm
+        tm.assert_equal(result.sort_index(), old_result.sort_index(), check_dtype=False)
+
+        return old_result.__finalize__(self, method="stack")
 
     def explode(
         self,
