@@ -1506,6 +1506,8 @@ class DatetimeIndexResampler(Resampler):
             result = obj.copy()
             result.index = res_index
         else:
+            if method == "asfreq":
+                method = None
             result = obj.reindex(
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
@@ -1624,6 +1626,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
+        if method == "asfreq":
+            method = None
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
         new_obj = _take_new_index(
             obj,

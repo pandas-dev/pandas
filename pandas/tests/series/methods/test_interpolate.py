@@ -845,3 +845,9 @@ class TestSeriesInterpolateData:
         result = ts.sort_index(ascending=ascending).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
+
+    def test_interpolate_afreq_raises(self):
+        ser = Series(["a", None, "b"], dtype=object)
+        msg = "Invalid fill method"
+        with pytest.raises(ValueError, match=msg):
+            ser.interpolate(method="asfreq")
