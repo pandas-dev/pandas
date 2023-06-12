@@ -1540,5 +1540,5 @@ def test_deprecate_positional_params():
         "Starting with pandas version 2.1 all arguments of DataFrame.apply except for "
         "the arguments 'func' and 'axis' will be keyword-only."
     )
-    with pytest.raises(FutureWarning, match=msg):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         df.apply("sum", 0, True)
