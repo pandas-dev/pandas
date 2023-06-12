@@ -9151,15 +9151,22 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import (
-            stack,
-            stack_multiple,
-        )
+        from pandas.core.reshape.reshape import stack_v2
 
-        if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
-        else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+        if (
+            isinstance(level, (tuple, list))
+            and not all(lev in self.columns.names for lev in level)
+            and not all(isinstance(lev, int) for lev in level)
+        ):
+            raise ValueError(
+                "level should contain all level names or all level "
+                "numbers, not a mixture of the two."
+            )
+
+        if not isinstance(level, (tuple, list)):
+            level = [level]
+        level = [self.columns._get_level_number(lev) for lev in level]
+        result = stack_v2(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 

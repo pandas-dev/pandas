@@ -516,10 +516,10 @@ class TestDataFrameReshape:
 
         expected = DataFrame(
             np.array(
-                [[np.nan, 0], [0, np.nan], [np.nan, 0], [0, np.nan]], dtype=np.float64
+                [[0, np.nan], [np.nan, 0], [0, np.nan], [np.nan, 0]], dtype=np.float64
             ),
             index=expected_mi,
-            columns=Index(["a", "b"], name="third"),
+            columns=Index(["b", "a"], name="third"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1080,10 +1080,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
-    @pytest.mark.parametrize("labels", [list("yxz"), list("yxy")])
-    def test_stack_preserve_categorical_dtype(self, ordered, labels):
+    def test_stack_preserve_categorical_dtype(self, ordered):
         # GH13854
-        cidx = pd.CategoricalIndex(labels, categories=list("xyz"), ordered=ordered)
+        cidx = pd.CategoricalIndex(list("yxz"), categories=list("xyz"), ordered=ordered)
         df = DataFrame([[10, 11, 12]], columns=cidx)
         result = df.stack()
 
@@ -1091,8 +1090,7 @@ class TestDataFrameReshape:
         # it's tested elsewhere.
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
-
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
     @pytest.mark.parametrize(
@@ -1110,8 +1108,10 @@ class TestDataFrameReshape:
         df = DataFrame([sorted(data)], columns=midx)
         result = df.stack([0, 1])
 
-        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
-        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
+        s_cidx = pd.CategoricalIndex(labels, ordered=ordered)
+        expected = Series(
+            sorted(data), index=MultiIndex.from_product([[0], s_cidx, cidx2])
+        )
 
         tm.assert_series_equal(result, expected)
 
@@ -1311,7 +1311,7 @@ def test_stack_timezone_aware_values():
 def test_stack_empty_frame(dropna):
     # GH 36113
     levels = [np.array([], dtype=np.int64), np.array([], dtype=np.int64)]
-    expected = Series(dtype=np.float64, index=MultiIndex(levels=levels, codes=[[], []]))
+    expected = Series(index=MultiIndex(levels=levels, codes=[[], []]))
     result = DataFrame(dtype=np.float64).stack(dropna=dropna)
     tm.assert_series_equal(result, expected)
 
@@ -1536,7 +1536,6 @@ class TestStackUnstackMultiLevel:
 
         # columns unsorted
         unstacked = ymd.unstack()
-        unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
         tm.assert_frame_equal(restacked, ymd)
 
@@ -1571,17 +1570,6 @@ class TestStackUnstackMultiLevel:
         [
             [
                 list("abab"),
-                ["1st", "2nd", "3rd"],
-                MultiIndex(
-                    levels=[["a", "b"], ["1st", "2nd", "3rd"]],
-                    codes=[
-                        np.tile(np.arange(2).repeat(3), 2),
-                        np.tile(np.arange(3), 4),
-                    ],
-                ),
-            ],
-            [
-                list("abab"),
                 ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], ["1st", "2nd"]],
@@ -1609,12 +1597,9 @@ class TestStackUnstackMultiLevel:
             index=idx,
             columns=columns,
         )
-        result = df.stack()
-        expected = Series(np.arange(12), index=exp_idx)
-        tm.assert_series_equal(result, expected)
-        assert result.index.is_unique is False
-        li, ri = result.index, expected.index
-        tm.assert_index_equal(li, ri)
+        msg = "Columns with duplicate values are not supported in stack"
+        with pytest.raises(ValueError, match=msg):
+            df.stack()
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
@@ -2200,8 +2185,14 @@ Thu,Lunch,Yes,51.51,17"""
         result = df.stack(2)
         expected = DataFrame(
             [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
-            index=Index([(0, None), (0, 0), (0, 1)]),
-            columns=Index([(0, None), (0, 2), (0, 3)]),
+            index=MultiIndex(
+                levels=[[0], [0.0, 1.0]],
+                codes=[[0, 0, 0], [-1, 0, 1]],
+            ),
+            columns=MultiIndex(
+                levels=[[0], [2, 3]],
+                codes=[[0, 0, 0], [-1, 0, 1]],
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2219,20 +2210,20 @@ Thu,Lunch,Yes,51.51,17"""
         expected = DataFrame(
             [
                 [0, np.nan],
-                [np.nan, 2],
                 [1, np.nan],
+                [np.nan, 2],
                 [np.nan, 3],
                 [4, np.nan],
-                [np.nan, 6],
                 [5, np.nan],
+                [np.nan, 6],
                 [np.nan, 7],
             ],
             columns=["A", "B"],
             index=MultiIndex.from_arrays(
                 [
                     [0] * 4 + [1] * 4,
-                    pd.Categorical(list("aabbaabb")),
-                    pd.Categorical(list("cdcdcdcd")),
+                    pd.Categorical(list("abababab")),
+                    pd.Categorical(list("ccddccdd")),
                 ]
             ),
         )
@@ -2252,8 +2243,10 @@ Thu,Lunch,Yes,51.51,17"""
         expected = DataFrame(
             [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
             columns=Index(["A", "B"], name="Upper"),
-            index=MultiIndex.from_tuples(
-                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+            index=MultiIndex(
+                levels=[[0, 1], [np.nan, "b"]],
+                codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                names=["Num", "Lower"],
             ),
         )
         tm.assert_frame_equal(result, expected)
