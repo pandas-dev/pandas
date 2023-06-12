@@ -8822,22 +8822,22 @@ class DataFrame(NDFrame, OpsMixin):
         values : list-like or scalar, optional
             Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
-            If an array is passed, it must be the same length as the data. The
-            list can contain any of the other types (except list).
-            Keys to group by on the pivot table index.  If an array is passed,
-            it is being used as the same manner as column values.
+            Keys to group by on the pivot table index. If a list is passed,
+            it can contain any of the other types (except list). If an array is
+            passed, it must be the same length as the data and will be used in
+            the same manner as column values.
         columns : column, Grouper, array, or list of the previous
-            If an array is passed, it must be the same length as the data. The
-            list can contain any of the other types (except list).
-            Keys to group by on the pivot table column.  If an array is passed,
-            it is being used as the same manner as column values.
+            Keys to group by on the pivot table column. If a list is passed,
+            it can contain any of the other types (except list). If an array is
+            passed, it must be the same length as the data and will be used in
+            the same manner as column values.
         aggfunc : function, list of functions, dict, default numpy.mean
-            If list of functions passed, the resulting pivot table will have
+            If a list of functions is passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
-            (inferred from the function objects themselves)
-            If dict is passed, the key is column to aggregate and value
-            is function or list of functions. If ``margin=True``,
-            aggfunc will be used to calculate the partial aggregates.
+            (inferred from the function objects themselves).
+            If a dict is passed, the key is column to aggregate and the value is
+            function or list of functions. If ``margin=True``, aggfunc will be
+            used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
             after aggregation).
