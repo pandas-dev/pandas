@@ -17,10 +17,13 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.skipif(
-    is_ci_environment(),
-    reason="GH 45651: This test can hang in our CI min_versions build",
-)
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.skipif(
+        is_ci_environment(),
+        reason="GH 45651: This test can hang in our CI min_versions build",
+    ),
+]
 
 
 class BaseUserAgentResponder(http.server.BaseHTTPRequestHandler):

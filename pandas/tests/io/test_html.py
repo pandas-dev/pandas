@@ -1347,6 +1347,7 @@ class TestReadHtml:
         assert self.read_html(bad)
 
     @pytest.mark.slow
+    @pytest.mark.single_cpu
     def test_importcheck_thread_safety(self, datapath):
         # see gh-16928
 

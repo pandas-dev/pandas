@@ -8,6 +8,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.single_cpu
+
 
 @td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore")
