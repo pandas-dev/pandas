@@ -311,7 +311,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
    df.columns = pd.MultiIndex.from_tuples([tuple(c.split("_")) for c in df.columns])
    df
    # Now stack & Reset
-   df = df.stack(0).reset_index(1)
+   df = df.stack(0, v3=True).reset_index(1)
    df
    # And fix the labels (Notice the label 'level_1' got added automatically)
    df.columns = ["Sample", "All_X", "All_Y"]
@@ -688,7 +688,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        aggfunc=np.sum,
        margins=True,
    )
-   table.stack("City")
+   table.stack("City", v3=True)
 
 `Frequency table like plyr in R
 <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__

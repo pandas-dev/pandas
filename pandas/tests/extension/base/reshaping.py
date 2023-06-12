@@ -252,11 +252,12 @@ class BaseReshapingTests(BaseExtensionTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
+    @pytest.mark.parametrize("v3", [True, False])
+    def test_stack(self, data, columns, v3):
         df = pd.DataFrame({"A": data[:5], "B": data[:5]})
         df.columns = columns
-        result = df.stack()
-        expected = df.astype(object).stack()
+        result = df.stack(v3=v3)
+        expected = df.astype(object).stack(v3=v3)
         # we need a second astype(object), in case the constructor inferred
         # object -> specialized, as is done for period.
         expected = expected.astype(object)

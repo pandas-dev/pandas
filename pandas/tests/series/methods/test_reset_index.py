@@ -34,7 +34,7 @@ class TestResetIndex:
 
     def test_reset_index(self):
         df = tm.makeDataFrame()[:5]
-        ser = df.stack()
+        ser = df.stack(v3=True)
         ser.index.names = ["hash", "category"]
 
         ser.name = "value"

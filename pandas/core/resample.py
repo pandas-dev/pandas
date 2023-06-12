@@ -1292,7 +1292,7 @@ class Resampler(BaseGroupBy, PandasObject):
         # If the result is a non-empty DataFrame we stack to get a Series
         # GH 46826
         if isinstance(result, ABCDataFrame) and not result.empty:
-            result = result.stack()
+            result = result.stack(v3=True)
 
         if not len(self.ax):
             from pandas import Series

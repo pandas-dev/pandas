@@ -2386,6 +2386,10 @@ class MultiIndex(Index):
                    names=['y', 'x'])
         """
         order = [self._get_level_number(i) for i in order]
+        result = self._reorder_ilevels(order)
+        return result
+
+    def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:
             raise AssertionError(
                 f"Length of order must be same as number of levels ({self.nlevels}), "

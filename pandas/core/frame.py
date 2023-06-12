@@ -9017,7 +9017,12 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True):
+    def stack(
+        self,
+        level: IndexLabel = -1,
+        dropna: bool | lib.NoDefault = lib.no_default,
+        v3: bool = False,
+    ):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9043,6 +9048,11 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        v3: bool, default False
+            Whether to use the new implementation that will replace the current
+            implementation in pandas 3.0. When True, dropna and sort have no impact
+            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
+            notes <whatsnew_210.enhancements.new_stack>` for more details.
 
         Returns
         -------
@@ -9082,7 +9092,7 @@ class DataFrame(NDFrame, OpsMixin):
              weight height
         cat       0      1
         dog       2      3
-        >>> df_single_level_cols.stack()
+        >>> df_single_level_cols.stack(v3=True)
         cat  weight    0
              height    1
         dog  weight    2
@@ -9104,7 +9114,7 @@ class DataFrame(NDFrame, OpsMixin):
                  kg    pounds
         cat       1        2
         dog       2        4
-        >>> df_multi_level_cols1.stack()
+        >>> df_multi_level_cols1.stack(v3=True)
                     weight
         cat kg           1
             pounds       2
@@ -9129,7 +9139,7 @@ class DataFrame(NDFrame, OpsMixin):
                 kg      m
         cat    1.0    2.0
         dog    3.0    4.0
-        >>> df_multi_level_cols2.stack()
+        >>> df_multi_level_cols2.stack(v3=True)
                 weight  height
         cat kg     1.0     NaN
             m      NaN     2.0
@@ -9140,13 +9150,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack(0)
+        >>> df_multi_level_cols2.stack(0, v3=True)
                      kg    m
         cat weight  1.0  NaN
             height  NaN  2.0
         dog weight  3.0  NaN
             height  NaN  4.0
-        >>> df_multi_level_cols2.stack([0, 1])
+        >>> df_multi_level_cols2.stack([0, 1], v3=True)
         cat  weight  kg    1.0
              height  m     2.0
         dog  weight  kg    3.0
@@ -9180,15 +9190,42 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     2.0     NaN
             m      NaN     3.0
         """
-        from pandas.core.reshape.reshape import (
-            stack,
-            stack_multiple,
-        )
+        if not v3:
+            from pandas.core.reshape.reshape import (
+                stack,
+                stack_multiple,
+            )
 
-        if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            if dropna is lib.no_default:
+                dropna = True
+
+            if isinstance(level, (tuple, list)):
+                result = stack_multiple(self, level, dropna=dropna)
+            else:
+                result = stack(self, level, dropna=dropna)
         else:
-            result = stack(self, level, dropna=dropna)
+            from pandas.core.reshape.reshape import stack_v3
+
+            if dropna is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify dropna with v3=True, this argument will be "
+                    "removed in a future version of pandas"
+                )
+
+            if (
+                isinstance(level, (tuple, list))
+                and not all(lev in self.columns.names for lev in level)
+                and not all(isinstance(lev, int) for lev in level)
+            ):
+                raise ValueError(
+                    "level should contain all level names or all level "
+                    "numbers, not a mixture of the two."
+                )
+
+            if not isinstance(level, (tuple, list)):
+                level = [level]
+            level = [self.columns._get_level_number(lev) for lev in level]
+            result = stack_v3(self, level)
 
         return result.__finalize__(self, method="stack")
 
