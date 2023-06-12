@@ -7899,6 +7899,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return None
             return self.copy()
 
+        if not isinstance(method, str):
+            raise ValueError("'method' should be a string, not None.")
+        elif method.lower() in fillna_methods:
+            # GH#53581
+            warnings.warn(
+                f"{type(self).__name__}.interpolate with method={method} is "
+                "deprecated and will raise in a future version. "
+                "Use obj.ffill() or obj.bfill() instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if method not in fillna_methods:
             axis = self._info_axis_number
 
