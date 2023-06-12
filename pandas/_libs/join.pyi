@@ -50,28 +50,28 @@ def outer_join_indexer(
     npt.NDArray[np.intp],
 ]: ...
 def asof_join_backward_on_X_by_Y(
-    left_values: np.ndarray,  # asof_t[:]
-    right_values: np.ndarray,  # asof_t[:]
-    left_by_values: np.ndarray,  # by_t[:]
-    right_by_values: np.ndarray,  # by_t[:]
+    left_values: np.ndarray,  # ndarray[numeric_t]
+    right_values: np.ndarray,  # ndarray[numeric_t]
+    left_by_values: np.ndarray,  # ndarray[by_t]
+    right_by_values: np.ndarray,  # ndarray[by_t]
     allow_exact_matches: bool = ...,
     tolerance: np.number | float | None = ...,
     use_hashtable: bool = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_forward_on_X_by_Y(
-    left_values: np.ndarray,  # asof_t[:]
-    right_values: np.ndarray,  # asof_t[:]
-    left_by_values: np.ndarray,  # by_t[:]
-    right_by_values: np.ndarray,  # by_t[:]
+    left_values: np.ndarray,  # ndarray[numeric_t]
+    right_values: np.ndarray,  # ndarray[numeric_t]
+    left_by_values: np.ndarray,  # ndarray[by_t]
+    right_by_values: np.ndarray,  # ndarray[by_t]
     allow_exact_matches: bool = ...,
     tolerance: np.number | float | None = ...,
     use_hashtable: bool = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def asof_join_nearest_on_X_by_Y(
-    left_values: np.ndarray,  # asof_t[:]
-    right_values: np.ndarray,  # asof_t[:]
-    left_by_values: np.ndarray,  # by_t[:]
-    right_by_values: np.ndarray,  # by_t[:]
+    left_values: np.ndarray,  # ndarray[numeric_t]
+    right_values: np.ndarray,  # ndarray[numeric_t]
+    left_by_values: np.ndarray,  # ndarray[by_t]
+    right_by_values: np.ndarray,  # ndarray[by_t]
     allow_exact_matches: bool = ...,
     tolerance: np.number | float | None = ...,
     use_hashtable: bool = ...,
