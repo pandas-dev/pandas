@@ -188,7 +188,7 @@ def to_timedelta(
 
     if unit in {"T", "t", "L", "l"}:
         warnings.warn(
-            f"Unit {unit} is deprecated and will be removed in a future version.",
+            "Units 'T' and'L' are deprecated and will be removed in a future version.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
