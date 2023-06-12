@@ -1,11 +1,13 @@
+# This bot updates the issue with number DEPRECATION_TRACKER_ISSUE
+# with the PR number that issued the deprecation.
+
+# It runs on commits to main, and will trigger if the PR linked to a merged commit has the "Deprecate" label
 name: Deprecations Bot
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types:
-      [closed]
 
 
 permissions:
@@ -15,17 +17,49 @@ jobs:
   deprecation_update:
     permissions:
       issues: write
-    if: >-
-      contains(github.event.pull_request.labels.*.name, 'Deprecate') && github.event.pull_request.merged == true
     runs-on: ubuntu-22.04
     env:
       DEPRECATION_TRACKER_ISSUE: 50578
     steps:
-    - name: Checkout
-      run: |
-        echo "Adding deprecation PR number to deprecation tracking issue"
-        export PR=${{ github.event.pull_request.number }}
-        BODY=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/issues/${DEPRECATION_TRACKER_ISSUE} |
-          python3 -c "import sys, json, os; x = {'body': json.load(sys.stdin)['body']}; pr = os.environ['PR']; x['body'] += f'\n- [ ] #{pr}'; print(json.dumps(x))")
-        echo ${BODY}
-        curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -X PATCH -d "${BODY}" https://api.github.com/repos/${{ github.repository }}/issues/${DEPRECATION_TRACKER_ISSUE}
+    - uses: actions/github-script@v6
+      id: update-deprecation-issue
+      with:
+        script: |
+          body = await github.rest.issues.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
+          })
+          body = body["data"]["body"];
+          linkedPRs = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            commit_sha: '${{ github.sha }}'
+          })
+          linkedPRs = linkedPRs["data"];
+          console.log(linkedPRs);
+          if (linkedPRs.length > 0) {
+            console.log("Found linked PR");
+            linkedPR = linkedPRs[0]
+            isDeprecation = false
+            for (label of linkedPR["labels"]) {
+              if (label["name"] == "Deprecate") {
+                isDeprecation = true;
+                break;
+              }
+            }
+
+            PR_NUMBER = linkedPR["number"];
+
+            body += ("\n- [ ] #" + PR_NUMBER);
+            if (isDeprecation) {
+              console.log("PR is a deprecation PR. Printing new body of issue");
+              console.log(body);
+              github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
+                body: body
+              })
+            }
+          }
