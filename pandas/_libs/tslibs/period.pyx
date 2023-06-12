@@ -2656,7 +2656,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or str, default None
+    value : Period, str, datetime, date or pandas.Timestamp, default None
         The time period represented (e.g., '4Q2005'). This represents neither
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
