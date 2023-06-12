@@ -523,10 +523,16 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
-    def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
+    def _transform_general(
+        self, func: Callable, engine, engine_kwargs, *args, **kwargs
+    ) -> Series:
         """
         Transform with a callable `func`.
         """
+        if maybe_use_numba(engine):
+            return self._transform_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
         assert callable(func)
         klass = type(self.obj)
 
@@ -1654,7 +1660,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_df = self._maybe_transpose_result(res_df)
         return res_df
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(self, func, engine, engine_kwargs, *args, **kwargs):
+        if maybe_use_numba(engine):
+            return self._transform_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
         from pandas.core.reshape.concat import concat
 
         applied = []
