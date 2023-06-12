@@ -1369,7 +1369,10 @@ class Block(PandasObject):
             m = missing.clean_fill_method(method)
         except ValueError:
             m = None
-            if method == "asfreq":
+            # error: Non-overlapping equality check (left operand type:
+            # "Literal['backfill', 'bfill', 'ffill', 'pad']", right
+            # operand type: "Literal['asfreq']")
+            if method == "asfreq":  # type: ignore[comparison-overlap]
                 # clean_fill_method used to allow this
                 raise
         if m is None and self.dtype.kind != "f":
