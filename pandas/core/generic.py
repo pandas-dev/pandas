@@ -9681,7 +9681,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method = None
         if limit is lib.no_default:
             limit = None
-        method = clean_fill_method(method)
+
+        if method is not None:
+            method = clean_fill_method(method)
 
         if broadcast_axis is not lib.no_default:
             # GH#51856
