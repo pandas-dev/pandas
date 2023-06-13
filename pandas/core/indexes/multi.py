@@ -975,8 +975,8 @@ class MultiIndex(Index):
             ('c', 2)],
            names=('foo', 'bar'))
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
-        (['a', 'b', 'c'], [1, 2, 3, 4]])
-        """
+        (Index(['a', 'b', 'c'], dtype='object', name='foo'), Index([1, 2, 3, 4], dtype='int64', name='bar'))
+        """  # noqa: E501
 
         if isinstance(levels, Index):
             pass
@@ -1101,32 +1101,32 @@ class MultiIndex(Index):
             (1, 'two'),
             (2, 'one'),
             (2, 'two')],
-           names=['foo', 'bar'])
+           names=('foo', 'bar'))
 
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
         MultiIndex([(2, 'one'),
                     (1, 'one'),
                     (2, 'two'),
                     (1, 'two')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         >>> idx.set_codes([1, 0, 1, 0], level=0)
         MultiIndex([(2, 'one'),
                     (1, 'two'),
                     (2, 'one'),
                     (1, 'two')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         >>> idx.set_codes([0, 0, 1, 1], level='bar')
         MultiIndex([(1, 'one'),
                     (1, 'one'),
                     (2, 'two'),
                     (2, 'two')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]], level=[0, 1])
         MultiIndex([(2, 'one'),
                     (1, 'one'),
                     (2, 'two'),
                     (1, 'two')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         """
 
         level, codes = _require_listlike(level, codes, "Codes")
