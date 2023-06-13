@@ -1998,18 +1998,20 @@ Thu,Lunch,Yes,51.51,17"""
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))
-    def test_stack_order_with_unsorted_levels(self, levels, stack_lev):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_stack_order_with_unsorted_levels(self, levels, stack_lev, sort):
         # GH#16323
         # deep check for 1-row case
         columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(columns=columns, data=[range(4)])
-        df_stacked = df.stack(stack_lev)
-        assert all(
-            df.loc[row, col]
-            == df_stacked.loc[(row, col[stack_lev]), col[1 - stack_lev]]
-            for row in df.index
-            for col in df.columns
-        )
+        df_stacked = df.stack(stack_lev, sort=sort)
+        for row in df.index:
+            for col in df.columns:
+                expected = df.loc[row, col]
+                result_row = row, col[stack_lev]
+                result_col = col[1 - stack_lev]
+                result = df_stacked.loc[result_row, result_col]
+                assert result == expected
 
     def test_stack_order_with_unsorted_levels_multi_row(self):
         # GH#16323
@@ -2027,6 +2029,26 @@ Thu,Lunch,Yes,51.51,17"""
             for row in df.index
             for col in df.columns
         )
+
+    def test_stack_order_with_unsorted_levels_multi_row_2(self):
+        # GH#53636
+        levels = ((0, 1), (1, 0))
+        stack_lev = 1
+        columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        df = DataFrame(columns=columns, data=[range(4)], index=[1, 0, 2, 3])
+        result = df.stack(stack_lev, sort=True)
+        expected_index = MultiIndex(
+            levels=[[0, 1, 2, 3], [0, 1]],
+            codes=[[1, 1, 0, 0, 2, 2, 3, 3], [1, 0, 1, 0, 1, 0, 1, 0]],
+        )
+        expected = DataFrame(
+            {
+                0: [0, 1, 0, 1, 0, 1, 0, 1],
+                1: [2, 3, 2, 3, 2, 3, 2, 3],
+            },
+            index=expected_index,
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_stack_unstack_unordered_multiindex(self):
         # GH# 18265
