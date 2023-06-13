@@ -419,42 +419,86 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "year",
         """
         The year of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.year
+        Index([2023, 2024, 2025], dtype='int64')
         """,
     )
     month = _field_accessor(
         "month",
         """
         The month as January=1, December=12.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.month
+        Index([1, 2, 3], dtype='int64')
         """,
     )
     day = _field_accessor(
         "day",
         """
         The days of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(['2020-01-31', '2020-02-28'], freq='D')
+        >>> idx.day
+        Index([31, 28], dtype='int64')
         """,
     )
     hour = _field_accessor(
         "hour",
         """
         The hour of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:00", "2023-01-01 11:00"], freq='H')
+        >>> idx.hour
+        Index([10, 11], dtype='int64')
         """,
     )
     minute = _field_accessor(
         "minute",
         """
         The minute of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:30:00",
+        ...                       "2023-01-01 11:50:00"], freq='min')
+        >>> idx.minute
+        Index([30, 50], dtype='int64')
         """,
     )
     second = _field_accessor(
         "second",
         """
         The second of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:00:30",
+        ...                       "2023-01-01 10:00:31"], freq='s')
+        >>> idx.second
+        Index([30, 31], dtype='int64')
         """,
     )
     weekofyear = _field_accessor(
         "week",
         """
         The week ordinal of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.week  # It can be written `weekofyear`
+        Index([5, 9, 13], dtype='int64')
         """,
     )
     week = weekofyear
@@ -462,6 +506,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day_of_week",
         """
         The day of the week with Monday=0, Sunday=6.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
+        >>> idx.weekday
+        Index([6, 0, 1], dtype='int64')
         """,
     )
     dayofweek = day_of_week
@@ -470,12 +520,30 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
+        >>> idx.dayofyear
+        Index([10, 32, 60], dtype='int64')
+
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        >>> idx.dayofyear
+        Index([365, 366, 365], dtype='int64')
         """,
     )
     quarter = _field_accessor(
         "quarter",
         """
         The quarter of the date.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.quarter
+        Index([1, 1, 1], dtype='int64')
         """,
     )
     qyear = _field_accessor("qyear")
@@ -486,6 +554,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
+        For Series:
+
         >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
         >>> s = pd.Series(period)
         >>> s
@@ -498,6 +568,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         1    29
         2    31
         dtype: int64
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.days_in_month   # It can be also entered as `daysinmonth`
+        Index([31, 28, 31], dtype='int64')
         """,
     )
     daysinmonth = days_in_month
@@ -506,6 +582,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def is_leap_year(self) -> npt.NDArray[np.bool_]:
         """
         Logical indicating if the date belongs to a leap year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx.is_leap_year
+        array([False,  True, False])
         """
         return isleapyear_arr(np.asarray(self.year))
 
@@ -524,6 +606,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Returns
         -------
         DatetimeArray/Index
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.to_timestamp()
+        DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
+        dtype='datetime64[ns]', freq='MS')
         """
         from pandas.core.arrays import DatetimeArray
 
@@ -767,14 +856,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray
         """
-        freq = self.freq
-        if not isinstance(freq, Tick):
+        if not self.dtype._is_tick_like():
             # We cannot add timedelta-like to non-tick PeriodArray
             raise TypeError(
                 f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
             )
 
-        dtype = np.dtype(f"m8[{freq._td64_unit}]")
+        dtype = np.dtype(f"m8[{self.dtype._td64_unit}]")
 
         # Similar to _check_timedeltalike_freq_compat, but we raise with a
         #  more specific exception message if necessary.
@@ -818,9 +906,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         ------
         IncompatibleFrequency
         """
-        assert isinstance(self.freq, Tick)  # checked by calling function
+        assert self.dtype._is_tick_like()  # checked by calling function
 
-        dtype = np.dtype(f"m8[{self.freq._td64_unit}]")
+        dtype = np.dtype(f"m8[{self.dtype._td64_unit}]")
 
         if isinstance(other, (timedelta, np.timedelta64, Tick)):
             td = np.asarray(Timedelta(other).asm8)

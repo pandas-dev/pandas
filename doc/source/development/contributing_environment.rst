@@ -223,7 +223,10 @@ Because the meson build system is newer, you may find bugs/minor issues as it ma
 To compile pandas with meson, run::
 
    # Build and install pandas
-   python -m pip install -ve . --no-build-isolation
+   # By default, this will print verbose output
+   # showing the "rebuild" taking place on import (see section below for explanation)
+   # If you do not want to see this, omit everything after --no-build-isolation
+   python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 
 **Build options**
 

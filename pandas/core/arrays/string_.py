@@ -355,7 +355,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
+            if lib.is_pyarrow_array(scalars):
                 # pyarrow array; we cannot rely on the "to_numpy" check in
                 #  ensure_string_array because calling scalars.to_numpy would set
                 #  zero_copy_only to True which caused problems see GH#52076
@@ -496,7 +496,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas.core.algorithms import value_counts_internal as value_counts
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
