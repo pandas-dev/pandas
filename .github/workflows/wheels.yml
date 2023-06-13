@@ -110,7 +110,7 @@ jobs:
           path: ./dist
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.0
+        uses: pypa/cibuildwheel@v2.13.1
         with:
           package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
