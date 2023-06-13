@@ -245,9 +245,7 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
                 freq_str, is_period=True
             )._period_dtype_code  # type: ignore[attr-defined]
         else:
-            base = to_offset(
-                freq_str, is_period=False
-            )._period_dtype_code  # type: ignore[attr-defined]
+            base = to_offset(freq_str, is_period=False)._period_dtype_code
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
