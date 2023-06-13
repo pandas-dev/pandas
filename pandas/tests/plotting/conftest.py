@@ -7,6 +7,20 @@ from pandas import (
 )
 
 
+@pytest.fixture(autouse=True)
+def reset_rcParams():
+    mpl = pytest.importorskip("matplotlib")
+    with mpl.rc_context():
+        yield
+
+
+@pytest.fixture(autouse=True)
+def close_all_figures():
+    yield
+    plt = pytest.importorskip("matplotlib.pyplot")
+    plt.close("all")
+
+
 @pytest.fixture
 def hist_df():
     n = 100
