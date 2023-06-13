@@ -846,8 +846,10 @@ class TestSeriesInterpolateData:
         expected = Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
 
-    def test_interpolate_afreq_raises(self):
+    def test_interpolate_asfreq_raises(self):
         ser = Series(["a", None, "b"], dtype=object)
+        msg2 = "Series.interpolate with object dtype"
         msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
-            ser.interpolate(method="asfreq")
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                ser.interpolate(method="asfreq")
