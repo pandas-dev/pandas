@@ -108,14 +108,18 @@ def test_agg_args(args, kwargs, increment):
         return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    result = s.agg(f, 0, *args, **kwargs)
+    msg = (
+        "in Series.agg cannot aggregate and has been deprecated. "
+        "Use Series.transform to keep behavior unchanged."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
-
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     s = Series([1, 2, 3])
 
     def foo1(x, a=1, c=0):
@@ -124,13 +128,13 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        s.agg([foo1, foo2], 0, 3, b=3, c=4)
-
-    result = s.agg([foo1, foo2], 0, 3, c=4)
-    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
-    tm.assert_frame_equal(result, expected)
+    msg = "using .+ in Series.agg cannot aggregate and"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg(foo1, 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg([foo1, foo2], 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
 
 def test_series_apply_map_box_timestamps(by_row):
@@ -391,21 +395,30 @@ def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
         assert result == str(string_series)
 
 
-def test_with_nested_series(datetime_series):
+def test_agg_evaluate_lambdas(string_series):
+    # GH53325
+    # in the future, the result will be a Series class.
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(lambda x: type(x))
+    assert isinstance(result, Series) and len(result) == len(string_series)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(type)
+    assert isinstance(result, Series) and len(result) == len(string_series)
+
+
+@pytest.mark.parametrize("op_name", ["agg", "apply"])
+def test_with_nested_series(datetime_series, op_name):
     # GH 2316
     # .agg with a reducer and a transform, what to do
     msg = "Returning a DataFrame from Series.apply when the supplied function"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         # GH52123
-        result = datetime_series.apply(
+        result = getattr(datetime_series, op_name)(
             lambda x: Series([x, x**2], index=["x", "x^2"])
         )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH52123
-        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 

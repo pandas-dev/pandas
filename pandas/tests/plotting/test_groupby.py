@@ -4,19 +4,21 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import (
+    _check_axes_shape,
+    _check_legend_labels,
+)
+
+pytest.importorskip("matplotlib")
 
 
-@td.skip_if_no_mpl
-class TestDataFrameGroupByPlots(TestPlotBase):
+class TestDataFrameGroupByPlots:
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
         weight = Series(np.random.normal(166, 20, size=n))
@@ -80,11 +82,9 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         for axes in g.hist(legend=True, column=column):
-            self._check_axes_shape(
-                axes, axes_num=expected_axes_num, layout=expected_layout
-            )
+            _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
             for ax, expected_label in zip(axes[0], expected_labels):
-                self._check_legend_labels(ax, expected_label)
+                _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("column", [None, "b"])
     def test_groupby_hist_frame_with_legend_raises(self, column):
@@ -103,8 +103,8 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         g = df.groupby("c")
 
         for ax in g["a"].hist(legend=True):
-            self._check_axes_shape(ax, axes_num=1, layout=(1, 1))
-            self._check_legend_labels(ax, ["1", "2"])
+            _check_axes_shape(ax, axes_num=1, layout=(1, 1))
+            _check_legend_labels(ax, ["1", "2"])
 
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises

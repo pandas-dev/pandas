@@ -31,14 +31,14 @@ jobs:
         pattern: [""]
         include:
           - name: "Downstream Compat"
-            env_file: actions-39-downstream_compat.yaml
+            env_file: actions-311-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
           - name: "Minimum Versions"
             env_file: actions-39-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
           - name: "Locale: it_IT"
-            env_file: actions-310.yaml
+            env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -48,7 +48,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "it_IT"
           - name: "Locale: zh_CN"
-            env_file: actions-310.yaml
+            env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -58,7 +58,7 @@ jobs:
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
           - name: "Copy-on-Write"
-            env_file: actions-310.yaml
+            env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
           - name: "Pypy"
@@ -66,7 +66,7 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             test_args: "--max-worker-restart 0"
           - name: "Numpy Dev"
-            env_file: actions-310-numpydev.yaml
+            env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
@@ -337,7 +337,7 @@ jobs:
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple numpy
+          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install git+https://github.com/nedbat/coveragepy.git
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz cython hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
