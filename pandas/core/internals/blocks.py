@@ -35,6 +35,7 @@ from pandas._typing import (
     F,
     FillnaOptions,
     IgnoreRaise,
+    InterpolateOptions,
     QuantileInterpolation,
     Self,
     Shape,
@@ -1345,7 +1346,7 @@ class Block(PandasObject):
     def interpolate(
         self,
         *,
-        method: FillnaOptions = "pad",
+        method: FillnaOptions | InterpolateOptions = "pad",
         axis: AxisInt = 0,
         index: Index | None = None,
         inplace: bool = False,
@@ -1365,17 +1366,8 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        try:
-            m = missing.clean_fill_method(method)
-        except ValueError:
-            m = None
-            # error: Non-overlapping equality check (left operand type:
-            # "Literal['backfill', 'bfill', 'ffill', 'pad']", right
-            # operand type: "Literal['asfreq']")
-            if method == "asfreq":  # type: ignore[comparison-overlap]
-                # clean_fill_method used to allow this
-                raise
-        if m is None and self.dtype == _dtype_obj:
+        # TODO(3.0): this case will not be reachable once GH#53638 is enforced
+        if not _interp_method_is_pad_or_backfill(method) and self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
@@ -1407,10 +1399,11 @@ class Block(PandasObject):
             else:
                 refs = self.refs
 
-        # Dispatch to the PandasArray method.
-        # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).interpolate(
-            method=method,
+        # Dispatch to the EA method.
+        new_values = self.array_values.interpolate(
+            # error: Argument "method" to "interpolate" of "ExtensionArray" has
+            # incompatible type [...]
+            method=method,  # type: ignore[arg-type]
             axis=axis,
             index=index,
             limit=limit,
@@ -1420,7 +1413,7 @@ class Block(PandasObject):
             inplace=arr_inplace,
             **kwargs,
         )
-        data = new_values._ndarray
+        data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
@@ -1841,7 +1834,8 @@ class EABackedBlock(Block):
     def interpolate(
         self,
         *,
-        method: FillnaOptions = "pad",
+        method: FillnaOptions | InterpolateOptions = "pad",
+        index: Index | None = None,
         axis: int = 0,
         inplace: bool = False,
         limit: int | None = None,
@@ -1850,11 +1844,28 @@ class EABackedBlock(Block):
         **kwargs,
     ):
         values = self.values
-        if values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+
+        if not _interp_method_is_pad_or_backfill(method):
+            method = cast(InterpolateOptions, method)
+            return super().interpolate(
+                method=method,
+                index=index,
+                axis=axis,
+                inplace=inplace,
+                limit=limit,
+                fill_value=fill_value,
+                using_cow=using_cow,
+                **kwargs,
+            )
         else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
+            method = cast(FillnaOptions, method)
+            if values.ndim == 2 and axis == 0:
+                # NDArrayBackedExtensionArray.fillna assumes axis=1
+                new_values = values.T.fillna(
+                    value=fill_value, method=method, limit=limit
+                ).T
+            else:
+                new_values = values.fillna(value=fill_value, method=method, limit=limit)
         return self.make_block_same_class(new_values)
 
 
@@ -2248,51 +2259,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
 
-    def interpolate(
-        self,
-        *,
-        method: FillnaOptions = "pad",
-        index: Index | None = None,
-        axis: int = 0,
-        inplace: bool = False,
-        limit: int | None = None,
-        fill_value=None,
-        using_cow: bool = False,
-        **kwargs,
-    ):
-        values = self.values
-
-        # error: Non-overlapping equality check (left operand type:
-        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
-        # "Literal['linear']")  [comparison-overlap]
-        if method == "linear":  # type: ignore[comparison-overlap]
-            # TODO: GH#50950 implement for arbitrary EAs
-            refs = None
-            arr_inplace = inplace
-            if using_cow:
-                if inplace and not self.refs.has_reference():
-                    refs = self.refs
-                else:
-                    arr_inplace = False
-
-            new_values = self.values.interpolate(
-                method=method,
-                index=index,
-                axis=axis,
-                inplace=arr_inplace,
-                limit=limit,
-                fill_value=fill_value,
-                **kwargs,
-            )
-            return self.make_block_same_class(new_values, refs=refs)
-
-        elif values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
-        else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
-
 
 class DatetimeTZBlock(DatetimeLikeBlock):
     """implement a datetime64 block with a tz attribute"""
@@ -2606,3 +2572,14 @@ def external_values(values: ArrayLike) -> ArrayLike:
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
 
     return values
+
+
+def _interp_method_is_pad_or_backfill(method: str) -> bool:
+    try:
+        m = missing.clean_fill_method(method)
+    except ValueError:
+        m = None
+        if method == "asfreq":
+            # clean_fill_method used to allow this
+            raise
+    return m is not None

@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        InterpolateOptions,
         NpDtype,
         Scalar,
         Self,
@@ -227,7 +228,7 @@ class PandasArray(  # type: ignore[misc]
     def interpolate(
         self,
         *,
-        method,
+        method: InterpolateOptions,
         axis: int,
         index: Index | None,
         limit,

@@ -58,6 +58,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -2233,7 +2234,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def interpolate(
         self,
         *,
-        method,
+        method: InterpolateOptions,
         axis: int,
         index: Index | None,
         limit,
