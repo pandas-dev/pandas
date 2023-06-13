@@ -1,7 +1,7 @@
 # PDEP-9: Allow third-party projects to register pandas connectors with a standard API
 
 - Created: 5 March 2023
-- Status: Under discussion
+- Status: Rejected
 - Discussion: [#51799](https://github.com/pandas-dev/pandas/pull/51799)
               [#53005](https://github.com/pandas-dev/pandas/pull/53005)
 - Author: [Marc Garcia](https://github.com/datapythonista)
@@ -402,3 +402,5 @@ constructor.
 - 30 May 2023: Major refactoring to use the pandas existing API,
   the dataframe interchange API and to make the user be explicit to load
   the plugins
+- 13 June 2023: The PDEP did not get any support after several iterations,
+  and its been closed as rejected by the author
