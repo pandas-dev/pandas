@@ -456,7 +456,7 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` after performing column selection when using ``dropna="any"`` or ``dropna="all"`` would not subset columns (:issue:`53518`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` raised after performing column selection when using ``dropna="any"`` or ``dropna="all"`` resulted in rows being dropped (:issue:`53518`)
-- Bug in :meth:`SeriesGroupBy.sum` and :meth:`DataFrameGroupby.sum` summing ``np.inf`` to ``np.nan`` (:issue:`53606`)
+- Bug in :meth:`SeriesGroupBy.sum` and :meth:`DataFrameGroupby.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` (:issue:`53606`)
 
 Reshaping
 ^^^^^^^^^
