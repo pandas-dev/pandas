@@ -826,3 +826,17 @@ def test_concat_mismatched_keys_length():
         concat((x for x in sers), keys=(y for y in keys), axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=0)
+
+
+def test_concat_datetime64_diff_resolution():
+    # GH#53640
+    df1 = DataFrame({"a": [0, 1], "b": [4, 5]}, dtype="datetime64[s]")
+    df2 = DataFrame({"a": [2, 3], "b": [6, 7]}, dtype="datetime64[ms]")
+    result = concat([df1, df2])
+
+    expected = DataFrame(
+        data={"a": [0, 1000, 2, 3], "b": [4000, 5000, 6, 7]},
+        index=[0, 1, 0, 1],
+        dtype="datetime64[ms]",
+    )
+    tm.assert_frame_equal(result, expected)
