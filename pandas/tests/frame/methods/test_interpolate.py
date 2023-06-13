@@ -14,6 +14,7 @@ import pandas._testing as tm
 
 class TestDataFrameInterpolate:
     def test_interpolate_complex(self):
+        # GH#53635
         ser = Series([complex("1+1j"), float("nan"), complex("2+2j")])
         assert ser.dtype.kind == "c"
 
