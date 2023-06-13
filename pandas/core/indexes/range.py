@@ -607,7 +607,7 @@ class RangeIndex(Index):
             return False
         return other.start in self._range and other[-1] in self._range
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -615,9 +615,9 @@ class RangeIndex(Index):
         ----------
         other : Index or array-like
 
-        sort : False or None, default None
+        sort : bool or None, default None
             Whether to sort (monotonically increasing) the resulting index.
-            ``sort=None`` returns a ``RangeIndex`` if possible or a sorted
+            ``sort=None|True`` returns a ``RangeIndex`` if possible or a sorted
             ``Index`` with a int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
@@ -628,7 +628,7 @@ class RangeIndex(Index):
         union : Index
         """
         if isinstance(other, RangeIndex):
-            if sort is None or (
+            if sort in (None, True) or (
                 sort is False and self.step > 0 and self._range_in_self(other._range)
             ):
                 # GH 47557: Can still return a RangeIndex
