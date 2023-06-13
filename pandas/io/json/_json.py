@@ -725,7 +725,7 @@ def read_json(
 
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
-git config pull.rebase false
+
     >>> pd.read_json(io.StringIO(_), orient='index')
           col 1 col 2
     row 1     a     b
