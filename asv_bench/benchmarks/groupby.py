@@ -4,7 +4,6 @@ from string import ascii_letters
 
 import numpy as np
 
-import pandas as pd
 from pandas import (
     NA,
     Categorical,
@@ -627,8 +626,7 @@ class GroupByNumbaAgg(GroupByCythonAgg):
         super().setup(dtype, method)
 
     def time_frame_agg(self, dtype, method):
-        with pd.option_context("compute.use_numba", True):
-            self.df.groupby("key").agg(method)
+        self.df.groupby("key").agg(method, engine="numba")
 
 
 class GroupByCythonAggEaDtypes:
