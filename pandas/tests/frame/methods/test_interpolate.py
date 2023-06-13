@@ -13,6 +13,19 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_complex(self):
+        ser = Series([complex("1+1j"), float("nan"), complex("2+2j")])
+        assert ser.dtype.kind == "c"
+
+        res = ser.interpolate()
+        expected = Series([ser[0], ser[0] * 1.5, ser[2]])
+        tm.assert_series_equal(res, expected)
+
+        df = ser.to_frame()
+        res = df.interpolate()
+        expected = expected.to_frame()
+        tm.assert_frame_equal(res, expected)
+
     def test_interpolate_datetimelike_values(self, frame_or_series):
         # GH#11312, GH#51005
         orig = Series(date_range("2012-01-01", periods=5))
