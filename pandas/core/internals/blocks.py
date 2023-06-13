@@ -457,6 +457,7 @@ class Block(PandasObject):
         # In the latter case the future behavior is to stop doing inference,
         #  so we issue a warning if and only if some inference occurred.
         if caller == "where":
+            # GH#53656
             if len(blocks) != len(nbs) or any(
                 left.dtype != right.dtype for left, right in zip(blocks, nbs)
             ):
