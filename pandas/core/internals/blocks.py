@@ -1350,7 +1350,7 @@ class Block(PandasObject):
         index: Index | None = None,
         inplace: bool = False,
         limit: int | None = None,
-        limit_direction: str = "forward",
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
@@ -1369,7 +1369,13 @@ class Block(PandasObject):
             m = missing.clean_fill_method(method)
         except ValueError:
             m = None
-        if m is None and self.dtype.kind != "f":
+            # error: Non-overlapping equality check (left operand type:
+            # "Literal['backfill', 'bfill', 'ffill', 'pad']", right
+            # operand type: "Literal['asfreq']")
+            if method == "asfreq":  # type: ignore[comparison-overlap]
+                # clean_fill_method used to allow this
+                raise
+        if m is None and self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
