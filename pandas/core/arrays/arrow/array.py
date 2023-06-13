@@ -2230,10 +2230,10 @@ class ArrowExtensionArray(
         n_cols = len(uniques)
         indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
         indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
-        result = np.zeros(n_rows * n_cols, dtype=np.bool_)
-        result[indices] = True
-        result = result.reshape((n_rows, n_cols))
-        result = type(self)(pa.array(list(result)))
+        dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
+        dummies[indices] = True
+        dummies = dummies.reshape((n_rows, n_cols))
+        result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None):
