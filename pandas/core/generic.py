@@ -7882,6 +7882,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        elif np.any(obj.dtypes == object):
+            # GH#53631
+            if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
+                # don't warn in cases that already raise
+                warnings.warn(
+                    f"{type(self).__name__}.interpolate with object dtype is "
+                    "deprecated and will raise in a future version. Call "
+                    "obj.infer_objects(copy=False) before interpolating instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if method not in fillna_methods:
             axis = self._info_axis_number
 
