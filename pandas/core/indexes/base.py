@@ -3315,7 +3315,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._wrap_setop_result(other, result)
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Specific union logic should go here. In subclasses, union behavior
         should be overwritten here rather than in `self.union`.
@@ -3326,6 +3326,7 @@ class Index(IndexOpsMixin, PandasObject):
         sort : False or None, default False
             Whether to sort the resulting index.
 
+            * True : sort the result
             * False : do not sort the result.
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
@@ -3338,7 +3339,7 @@ class Index(IndexOpsMixin, PandasObject):
         rvals = other._values
 
         if (
-            sort is None
+            sort in (None, True)
             and self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)

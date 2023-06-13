@@ -536,11 +536,9 @@ class TestUnique:
         assert isinstance(result, np.ndarray)
 
     def test_object_refcount_bug(self):
-        lst = ["A", "B", "C", "D", "E"]
-        msg = "unique with argument that is not not a Series"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            for i in range(1000):
-                len(algos.unique(lst))
+        lst = np.array(["A", "B", "C", "D", "E"], dtype=object)
+        for i in range(1000):
+            len(algos.unique(lst))
 
     def test_on_index_object(self):
         mindex = MultiIndex.from_arrays(
