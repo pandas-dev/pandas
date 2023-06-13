@@ -48,7 +48,7 @@ from pandas.core import missing
 from pandas.core.algorithms import (
     take,
     unique,
-    value_counts,
+    value_counts_internal as value_counts,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift

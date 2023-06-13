@@ -142,14 +142,29 @@ class ArrowParserWrapper(ParserBase):
                 elif item not in frame.columns:
                     raise ValueError(f"Index {item} invalid")
 
+                # Process dtype for index_col and drop from dtypes
+                if self.dtype is not None:
+                    key, new_dtype = (
+                        (item, self.dtype.get(item))
+                        if self.dtype.get(item) is not None
+                        else (frame.columns[item], self.dtype.get(frame.columns[item]))
+                    )
+                    if new_dtype is not None:
+                        frame[key] = frame[key].astype(new_dtype)
+                        del self.dtype[key]
+
             frame.set_index(index_to_set, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
 
-        if self.kwds.get("dtype") is not None:
+        if self.dtype is not None:
+            # Ignore non-existent columns from dtype mapping
+            # like other parsers do
+            if isinstance(self.dtype, dict):
+                self.dtype = {k: v for k, v in self.dtype.items() if k in frame.columns}
             try:
-                frame = frame.astype(self.kwds.get("dtype"))
+                frame = frame.astype(self.dtype)
             except TypeError as e:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(e)
