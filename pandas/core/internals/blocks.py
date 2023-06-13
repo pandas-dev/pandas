@@ -12,6 +12,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -42,6 +43,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -428,7 +430,7 @@ class Block(PandasObject):
 
     @final
     def _maybe_downcast(
-        self, blocks: list[Block], downcast=None, using_cow: bool = False
+        self, blocks: list[Block], downcast, using_cow: bool, caller: str
     ) -> list[Block]:
         if downcast is False:
             return blocks
@@ -440,14 +442,38 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
+            nbs = extend_blocks(
                 [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
             )
 
-        if downcast is None:
+        elif downcast is None:
             return blocks
+        else:
+            nbs = extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
 
-        return extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
+        # When _maybe_downcast is called with caller="where", it is either
+        #  a) with downcast=False, which is a no-op (the desired future behavior)
+        #  b) with downcast="infer", which is _not_ passed by the user.
+        # In the latter case the future behavior is to stop doing inference,
+        #  so we issue a warning if and only if some inference occurred.
+        if caller == "where":
+            if len(blocks) != len(nbs) or any(
+                left.dtype != right.dtype for left, right in zip(blocks, nbs)
+            ):
+                # In this case _maybe_downcast was _not_ a no-op, so the behavior
+                #  will change, so we issue a warning.
+                warnings.warn(
+                    "Downcasting behavior in Series and DataFrame methods 'where', "
+                    "'mask', and 'clip' is deprecated. In a future "
+                    "version this will not infer object dtypes or cast all-round "
+                    "floats to integers. For the old behavior, call "
+                    "result.infer_objects(copy=False) for object inference, "
+                    "or cast round floats explicitly.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        return nbs
 
     @final
     @maybe_split
@@ -1223,7 +1249,7 @@ class Block(PandasObject):
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(orig_other, cond, using_cow=using_cow)
                 return self._maybe_downcast(
-                    blocks, downcast=_downcast, using_cow=using_cow
+                    blocks, downcast=_downcast, using_cow=using_cow, caller="where"
                 )
 
             else:
@@ -1319,7 +1345,9 @@ class Block(PandasObject):
             else:
                 # GH#45423 consistent downcasting on no-ops.
                 nb = self.copy(deep=not using_cow)
-                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
+                nbs = nb._maybe_downcast(
+                    [nb], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 return nbs
 
         if limit is not None:
@@ -1337,7 +1365,9 @@ class Block(PandasObject):
         #  different behavior in _maybe_downcast.
         return extend_blocks(
             [
-                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                blk._maybe_downcast(
+                    [blk], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 for blk in nbs
             ]
         )
@@ -1417,7 +1447,7 @@ class Block(PandasObject):
         data = new_values._ndarray
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="interpolate")
 
     def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
         """return block for the diff of the values"""
@@ -1700,7 +1730,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
@@ -1709,7 +1739,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 else:
@@ -1894,7 +1924,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             refs = None
             new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow=using_cow, caller="fillna")
 
     @cache_readonly
     def shape(self) -> Shape:
