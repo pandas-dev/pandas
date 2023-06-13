@@ -1834,7 +1834,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
+                   names=('species', 'year'))
 
         When renaming levels with a dict, levels can not be passed.
 
@@ -1843,7 +1843,7 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['snake', 'year'])
+                   names=('snake', 'year'))
         """
         if level is not None and not isinstance(self, ABCMultiIndex):
             raise ValueError("Level must be None for non-MultiIndex")
@@ -1922,13 +1922,13 @@ class Index(IndexOpsMixin, PandasObject):
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['kind', 'year'])
+                   names=('kind', 'year'))
         >>> idx.rename(['species', 'year'])
         MultiIndex([('python', 2018),
                     ('python', 2019),
                     ( 'cobra', 2018),
                     ( 'cobra', 2019)],
-                   names=['species', 'year'])
+                   names=('species', 'year'))
         >>> idx.rename('species')
         Traceback (most recent call last):
         TypeError: Must pass list-like as `names`.
@@ -2087,26 +2087,26 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> mi = pd.MultiIndex.from_arrays(
-        ... [[1, 2], [3, 4], [5, 6]], names=['x', 'y', 'z'])
+        ... [[1, 2], [3, 4], [5, 6]], names=('x', 'y', 'z'))
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=['x', 'y', 'z'])
+                   names=('x', 'y', 'z'))
 
         >>> mi.droplevel()
         MultiIndex([(3, 5),
                     (4, 6)],
-                   names=['y', 'z'])
+                   names=('y', 'z'))
 
         >>> mi.droplevel(2)
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
         >>> mi.droplevel('z')
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
         >>> mi.droplevel(['x', 'y'])
         Index([5, 6], dtype='int64', name='z')
@@ -6496,7 +6496,7 @@ class Index(IndexOpsMixin, PandasObject):
         MultiIndex([(1,   'red'),
                     (2,  'blue'),
                     (3, 'green')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
 
         Check whether the strings in the 'color' level of the MultiIndex
         are in a list of colors.
@@ -7467,7 +7467,7 @@ def ensure_index_from_sequences(sequences, names=None) -> Index:
     >>> ensure_index_from_sequences([["a", "a"], ["a", "b"]], names=["L1", "L2"])
     MultiIndex([('a', 'a'),
                 ('a', 'b')],
-               names=['L1', 'L2'])
+               names=('L1', 'L2'))
 
     See Also
     --------

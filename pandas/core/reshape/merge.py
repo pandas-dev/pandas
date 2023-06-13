@@ -1792,8 +1792,7 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = list(join_levels) + [restore_levels]  # type: ignore[has-type]
+        join_levels = list(join_levels) + [restore_levels]
         join_codes = list(join_codes) + [restore_codes]
         join_names = list(join_names) + [dropped_level_name]
 

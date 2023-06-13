@@ -300,7 +300,7 @@ class MultiIndex(Index):
                 (1, 'blue'),
                 (2,  'red'),
                 (2, 'blue')],
-               names=['number', 'color'])
+               names=('number', 'color'))
 
     See further examples for how to construct a MultiIndex in the doc strings
     of the mentioned helper methods.
@@ -393,16 +393,16 @@ class MultiIndex(Index):
 
     def _verify_integrity(
         self,
-        codes: list | None = None,
-        levels: list | None = None,
+        codes: tuple | None = None,
+        levels: tuple | None = None,
         levels_to_verify: list[int] | range | None = None,
     ):
         """
         Parameters
         ----------
-        codes : optional list
+        codes : optional tuple
             Codes to check for validity. Defaults to current codes.
-        levels : optional list
+        levels : optional tuple
             Levels to check for validity. Defaults to current levels.
         levels_to_validate: optional list
             Specifies the levels to verify.
@@ -509,7 +509,7 @@ class MultiIndex(Index):
                     (1, 'blue'),
                     (2,  'red'),
                     (2, 'blue')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
         """
         error_msg = "Input must be a list / sequence of array-likes."
         if not is_list_like(arrays):
@@ -581,7 +581,7 @@ class MultiIndex(Index):
                     (1, 'blue'),
                     (2,  'red'),
                     (2, 'blue')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
         """
         if not is_list_like(tuples):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
@@ -665,7 +665,7 @@ class MultiIndex(Index):
                     (1, 'purple'),
                     (2,  'green'),
                     (2, 'purple')],
-                   names=['number', 'color'])
+                   names=('number', 'color'))
         """
         from pandas.core.reshape.util import cartesian_product
 
@@ -733,7 +733,7 @@ class MultiIndex(Index):
                     ('HI', 'Precip'),
                     ('NJ',   'Temp'),
                     ('NJ', 'Precip')],
-                   names=['a', 'b'])
+                   names=('a', 'b'))
 
         Using explicit names, instead of the column names
 
@@ -742,7 +742,7 @@ class MultiIndex(Index):
                     ('HI', 'Precip'),
                     ('NJ',   'Temp'),
                     ('NJ', 'Precip')],
-                   names=['state', 'observation'])
+                   names=('state', 'observation'))
         """
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
@@ -934,7 +934,7 @@ class MultiIndex(Index):
             (2, 'two'),
             (3, 'one'),
             (3, 'two')],
-           names=['foo', 'bar'])
+           names=('foo', 'bar'))
 
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2]])
         MultiIndex([('a', 1),
@@ -943,7 +943,7 @@ class MultiIndex(Index):
                     ('b', 2),
                     ('c', 1),
                     ('c', 2)],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         >>> idx.set_levels(['a', 'b', 'c'], level=0)
         MultiIndex([('a', 'one'),
                     ('a', 'two'),
@@ -951,7 +951,7 @@ class MultiIndex(Index):
                     ('b', 'two'),
                     ('c', 'one'),
                     ('c', 'two')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
         >>> idx.set_levels(['a', 'b'], level='bar')
         MultiIndex([(1, 'a'),
                     (1, 'b'),
@@ -959,7 +959,7 @@ class MultiIndex(Index):
                     (2, 'b'),
                     (3, 'a'),
                     (3, 'b')],
-                   names=['foo', 'bar'])
+                   names=('foo', 'bar'))
 
         If any of the levels passed to ``set_levels()`` exceeds the
         existing length, all of the values from that argument will
@@ -973,7 +973,7 @@ class MultiIndex(Index):
             ('b', 2),
             ('c', 1),
             ('c', 2)],
-           names=['foo', 'bar'])
+           names=('foo', 'bar'))
         >>> idx.set_levels([['a', 'b', 'c'], [1, 2, 3, 4]], level=[0, 1]).levels
         (['a', 'b', 'c'], [1, 2, 3, 4]])
         """
@@ -1520,7 +1520,7 @@ class MultiIndex(Index):
         >>> mi
         MultiIndex([(1, 3, 5),
                     (2, 4, 6)],
-                   names=['x', 'y', 'z'])
+                   names=('x', 'y', 'z'))
         >>> mi.names
         ('x', 'y', 'z')
         """,
@@ -1990,7 +1990,7 @@ class MultiIndex(Index):
 
         >>> mi2 = mi[2:].remove_unused_levels()
         >>> mi2.levels
-        ([1], ['a', 'b']])
+        (Index([1], dtype='int64'), Index(['a', 'b'], dtype='object'))
         """
         new_levels = []
         new_codes = []
@@ -2427,17 +2427,17 @@ class MultiIndex(Index):
         >>> mi
         MultiIndex([(1, 3),
                     (2, 4)],
-                   names=['x', 'y'])
+                   names=('x', 'y'))
 
         >>> mi.reorder_levels(order=[1, 0])
         MultiIndex([(3, 1),
                     (4, 2)],
-                   names=['y', 'x'])
+                   names=('y', 'x'))
 
         >>> mi.reorder_levels(order=['y', 'x'])
         MultiIndex([(3, 1),
                     (4, 2)],
-                   names=['y', 'x'])
+                   names=('y', 'x'))
         """
         order = [self._get_level_number(i) for i in order]
         result = self._reorder_ilevels(order)
@@ -2675,7 +2675,8 @@ class MultiIndex(Index):
         Optimized equivalent to `self.get_level_values(0).get_indexer_for(target)`.
         """
         lev = self.levels[0]
-        codes = self._codes[0]
+        # error: Tuple index out of range
+        codes = self._codes[0]  # type: ignore[misc]
         cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat)
         return ci.get_indexer_for(target)
