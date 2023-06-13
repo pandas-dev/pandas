@@ -105,8 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.as_unit \
-        pandas.Timestamp.ctime \
         pandas.Timestamp.date \
         pandas.Timestamp.dst \
         pandas.Timestamp.isocalendar \
@@ -263,15 +261,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.DataFrameGroupBy.ffill \
-        pandas.core.groupby.DataFrameGroupBy.ohlc \
         pandas.core.groupby.SeriesGroupBy.fillna \
-        pandas.core.groupby.SeriesGroupBy.ffill \
-        pandas.core.groupby.SeriesGroupBy.nunique \
-        pandas.core.groupby.SeriesGroupBy.ohlc \
-        pandas.core.groupby.SeriesGroupBy.hist \
-        pandas.core.groupby.DataFrameGroupBy.plot \
-        pandas.core.groupby.SeriesGroupBy.plot \
         pandas.io.formats.style.Styler \
         pandas.io.formats.style.Styler.from_custom_template \
         pandas.io.formats.style.Styler.set_caption \
