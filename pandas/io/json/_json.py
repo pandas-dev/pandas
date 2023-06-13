@@ -715,7 +715,7 @@ def read_json(
 "data":[["a","b"],["c","d"]]\
 }}\
 '
-    >>> pd.read_json(StringIO(_), orient='split')
+    >>> pd.read_json(io.StringIO(_), orient='split')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -724,8 +724,8 @@ def read_json(
 
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
-
-    >>> pd.read_json(StringIO(_), orient='index')
+git config pull.rebase false
+    >>> pd.read_json(io.StringIO(_), orient='index')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -735,7 +735,7 @@ def read_json(
 
     >>> df.to_json(orient='records')
     '[{{"col 1":"a","col 2":"b"}},{{"col 1":"c","col 2":"d"}}]'
-    >>> pd.read_json(StringIO(_), orient='records')
+    >>> pd.read_json(io.StringIO(_), orient='records')
       col 1 col 2
     0     a     b
     1     c     d
