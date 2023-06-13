@@ -113,6 +113,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -6037,7 +6038,7 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
-        if keyarr.dtype.kind in "mM":
+        if keyarr.dtype.kind in "mM" and not isinstance(keyarr.dtype, ArrowDtype):
             # DTI/TDI.take can infer a freq in some cases when we dont want one
             if isinstance(key, list) or (
                 isinstance(key, type(self))
