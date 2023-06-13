@@ -201,9 +201,9 @@ Installing a nightly build is the quickest way to:
 * Try a new feature that will be shipped in the next release (that is, a feature from a pull-request that was recently merged to the main branch).
 * Check whether a bug you encountered has been fixed since the last release.
 
-You can install the nightly build of pandas using the scipy-wheels-nightly index from the PyPI registry of anaconda.org with the following command::
+You can install the nightly build of pandas using the scientific-python-nightly-wheels index from the PyPI registry of anaconda.org with the following command::
 
-    pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas
+    pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
 Note that first uninstalling pandas might be required to be able to install nightly builds::
 
