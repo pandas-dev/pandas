@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,13 @@ from pandas import (
     DataFrame,
     to_datetime,
 )
+
+
+@pytest.fixture(autouse=True)
+def non_interactive():
+    mpl = pytest.importorskip("matplotlib")
+    mpl.use("template")
+    yield
 
 
 @pytest.fixture(autouse=True)
@@ -16,9 +25,13 @@ def reset_rcParams():
 
 @pytest.fixture(autouse=True)
 def close_all_figures():
+    # https://stackoverflow.com/q/31156578
     yield
     plt = pytest.importorskip("matplotlib.pyplot")
+    plt.cla()
+    plt.clf()
     plt.close("all")
+    gc.collect()
 
 
 @pytest.fixture
