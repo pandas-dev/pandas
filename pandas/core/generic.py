@@ -7365,11 +7365,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2   4.0   7.0
         3   4.0   7.0
         >>> df.bfill(limit=1)
-              A	   B
-        0   1.0    5
-        1   NaN    5
-        2   4.0    7
-        3   4.0    7
+              A     B
+        0   1.0   5.0
+        1   NaN   5.0
+        2   4.0   7.0
+        3   4.0   7.0
         """
         downcast = self._deprecate_downcast(downcast, "bfill")
         return self._fillna_with_method(
