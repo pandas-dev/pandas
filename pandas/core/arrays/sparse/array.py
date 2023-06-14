@@ -769,7 +769,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             )
             new_values = np.asarray(self)
             # interpolate_2d modifies new_values inplace
-            interpolate_2d(new_values, method=method, limit=limit)
+            # error: Argument "method" to "interpolate_2d" has incompatible type
+            # "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
+            # "Literal['pad', 'backfill']"
+            interpolate_2d(
+                new_values, method=method, limit=limit  # type: ignore[arg-type]
+            )
             return type(self)(new_values, fill_value=self.fill_value)
 
         else:
