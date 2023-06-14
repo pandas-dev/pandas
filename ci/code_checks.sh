@@ -119,16 +119,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.utcoffset \
         pandas.Timestamp.utctimetuple \
         pandas.Timestamp.weekday \
-        pandas.arrays.DatetimeArray \
-        pandas.Timedelta.view \
-        pandas.Timedelta.as_unit \
-        pandas.Timedelta.ceil \
-        pandas.Timedelta.floor \
-        pandas.Timedelta.round \
-        pandas.Timedelta.to_pytimedelta \
-        pandas.Timedelta.to_timedelta64 \
-        pandas.Timedelta.to_numpy \
-        pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
         pandas.Period.asfreq \
         pandas.Period.now \
@@ -261,7 +251,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.SeriesGroupBy.fillna \
         pandas.io.formats.style.Styler \
         pandas.io.formats.style.Styler.from_custom_template \
         pandas.io.formats.style.Styler.set_caption \

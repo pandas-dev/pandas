@@ -4,7 +4,6 @@ from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
     import_datetime,
-    timedelta,
 )
 
 import_datetime()
@@ -440,7 +439,20 @@ class NaTType(_NaT):
         Monday == 1 ... Sunday == 7.
         """,
     )
-    total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
+    total_seconds = _make_nan_func(
+        "total_seconds",
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """,
+    )
     month_name = _make_nan_func(
         "month_name",
         """

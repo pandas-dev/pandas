@@ -914,6 +914,27 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         ffill : Forward fill values within a group.
         bfill : Backward fill values within a group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['cat', 'cat', 'cat', 'mouse', 'mouse']
+        >>> ser = pd.Series([1, None, None, 2, None], index=lst)
+        >>> ser
+        cat    1.0
+        cat    NaN
+        cat    NaN
+        mouse  2.0
+        mouse  NaN
+        dtype: float64
+        >>> ser.groupby(level=0).fillna(0, limit=1)
+        cat    1.0
+        cat    0.0
+        cat    NaN
+        mouse  2.0
+        mouse  0.0
+        dtype: float64
         """
         result = self._op_via_apply(
             "fillna",
