@@ -19,6 +19,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     arraylike,
+    missing,
     nanops,
     ops,
 )
@@ -33,8 +34,11 @@ if TYPE_CHECKING:
         Dtype,
         NpDtype,
         Scalar,
+        Self,
         npt,
     )
+
+    from pandas import Index
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -219,6 +223,43 @@ class PandasArray(  # type: ignore[misc]
         else:
             fv = np.nan
         return self._ndarray, fv
+
+    def interpolate(
+        self,
+        *,
+        method,
+        axis: int,
+        index: Index | None,
+        limit,
+        limit_direction,
+        limit_area,
+        fill_value,
+        inplace: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if inplace=True
+        if inplace:
+            out_data = self._ndarray
+        else:
+            out_data = self._ndarray.copy()
+
+        missing.interpolate_array_2d(
+            out_data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+        if inplace:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
 
     # ------------------------------------------------------------------------
     # Reductions
