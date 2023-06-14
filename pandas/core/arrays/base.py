@@ -1443,6 +1443,10 @@ class ExtensionArray:
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
 
+    def _values_for_json(self) -> np.ndarray:
+        # TODO: document!
+        return np.asarray(self)
+
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool
     ) -> npt.NDArray[np.uint64]:
