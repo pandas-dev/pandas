@@ -501,8 +501,8 @@ Metadata
 
 Algos
 ^^^^^
-- Bug in :class:`DataFrame.diff` raising `TypeError` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`) 
-- 
+- Bug in :class:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
+-
 
 Other
 ^^^^^
