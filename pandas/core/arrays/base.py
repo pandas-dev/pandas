@@ -772,7 +772,7 @@ class ExtensionArray:
         **kwargs,
     ) -> Self:
         """
-        See NDFrame.interpolate.__doc__.
+        See DataFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if inplace=True
         raise NotImplementedError(
