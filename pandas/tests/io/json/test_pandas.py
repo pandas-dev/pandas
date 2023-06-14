@@ -935,7 +935,9 @@ class TestPandasContainer:
         s = df.to_json()
         result = read_json(s)
         res = result.reindex(index=df.index, columns=df.columns)
-        res = res.fillna(np.nan, downcast=False)
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = res.fillna(np.nan, downcast=False)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
