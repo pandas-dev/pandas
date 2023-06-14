@@ -347,9 +347,9 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray or pa.Scalar
         """
-        if is_list_like(value):
-            return cls._box_pa_array(value, pa_type)
-        return cls._box_pa_scalar(value, pa_type)
+        if isinstance(value, pa.Scalar) or not is_list_like(value):
+            return cls._box_pa_scalar(value, pa_type)
+        return cls._box_pa_array(value, pa_type)
 
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
@@ -1549,6 +1549,24 @@ class ArrowExtensionArray(
 
         return result.as_py()
 
+    def _explode(self):
+        """
+        See Series.explode.__doc__.
+        """
+        values = self
+        counts = pa.compute.list_value_length(values._pa_array)
+        counts = counts.fill_null(1).to_numpy()
+        fill_value = pa.scalar([None], type=self._pa_array.type)
+        mask = counts == 0
+        if mask.any():
+            values = values.copy()
+            values[mask] = fill_value
+            counts = counts.copy()
+            counts[mask] = 1
+        values = values.fillna(fill_value)
+        values = type(self)(pa.compute.list_flatten(values._pa_array))
+        return values, counts
+
     def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
@@ -1591,10 +1609,10 @@ class ArrowExtensionArray(
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {n}"
                 )
-            if is_list_like(value):
-                raise ValueError("Length of indexer and values mismatch")
-            elif isinstance(value, pa.Scalar):
+            if isinstance(value, pa.Scalar):
                 value = value.as_py()
+            elif is_list_like(value):
+                raise ValueError("Length of indexer and values mismatch")
             chunks = [
                 *self._pa_array[:key].chunks,
                 pa.array([value], type=self._pa_array.type, from_pandas=True),
@@ -2073,7 +2091,12 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        return type(self)(pc.binary_join(self._pa_array, sep))
+        if pa.types.is_string(self._pa_array.type):
+            result = self._apply_elementwise(list)
+            result = pa.chunked_array(result, type=pa.list_(pa.string()))
+        else:
+            result = self._pa_array
+        return type(self)(pc.binary_join(result, sep))
 
     def _str_partition(self, sep: str, expand: bool):
         predicate = lambda val: val.partition(sep)
