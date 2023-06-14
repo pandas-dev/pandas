@@ -756,7 +756,16 @@ def _stack_multi_columns(
     level_vals = mi_cols.levels[-1]
     level_codes = unique(mi_cols.codes[-1])
     if sort:
+        _, index, inverse = np.unique(
+            level_vals, return_index=True, return_inverse=True
+        )
+        sorted_level_vals = np.take(level_vals, index)
         level_codes = np.sort(level_codes)
+        # Take level_codes according to where level_vals get sorted to, while
+        # also allowing for NA (-1) values
+        level_codes = np.where(level_codes == -1, -1, np.take(inverse, level_codes))
+    else:
+        sorted_level_vals = level_vals
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)
@@ -818,7 +827,7 @@ def _stack_multi_columns(
         new_codes = [old_codes.repeat(levsize)]
         new_names = [this.index.name]  # something better?
 
-    new_levels.append(level_vals)
+    new_levels.append(sorted_level_vals)
     new_codes.append(np.tile(level_codes, N))
     new_names.append(frame.columns.names[level_num])
 
