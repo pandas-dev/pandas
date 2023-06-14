@@ -35,7 +35,12 @@ def test_repr(dtype):
     expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
     assert repr(df.A) == expected
 
-    arr_name = "ArrowStringArray" if dtype.storage == "pyarrow" else "StringArray"
+    if dtype.storage == "pyarrow":
+        arr_name = "ArrowStringArray"
+    elif dtype.storage == "python":
+        arr_name = "ObjectStringArray"
+    elif dtype.storage == "numpy":
+        arr_name = "NumpyStringArray"
     expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     assert repr(df.A.array) == expected
 
@@ -49,14 +54,16 @@ def test_none_to_nan(cls):
 def test_setitem_validates(cls):
     arr = cls._from_sequence(["a", "b"])
 
-    if cls is pd.arrays.StringArray:
+    is_string = issubclass(cls, pd.core.arrays.string_.BaseNumpyStringArray)
+
+    if is_string:
         msg = "Cannot set non-string value '10' into a StringArray."
     else:
         msg = "Scalar must be NA or str"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
 
-    if cls is pd.arrays.StringArray:
+    if is_string:
         msg = "Must provide strings."
     else:
         msg = "Scalar must be NA or str"
@@ -574,7 +581,8 @@ def test_setitem_scalar_with_mask_validation(dtype):
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
-    if type(ser.array) is pd.arrays.StringArray:
+
+    if isinstance(ser.array, pd.core.arrays.string_.BaseNumpyStringArray):
         msg = "Cannot set non-string value"
     else:
         msg = "Scalar must be NA or str"

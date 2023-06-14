@@ -409,13 +409,10 @@ class PandasArray(  # type: ignore[misc]
         na_value: object = lib.no_default,
     ) -> np.ndarray:
         mask = self.isna()
+        result = np.asarray(self._ndarray, dtype=dtype)
         if na_value is not lib.no_default and mask.any():
-            result = self._ndarray.copy()
+            result = result.copy()
             result[mask] = na_value
-        else:
-            result = self._ndarray
-
-        result = np.asarray(result, dtype=dtype)
 
         if copy and result is self._ndarray:
             result = result.copy()

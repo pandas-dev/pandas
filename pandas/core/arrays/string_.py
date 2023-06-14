@@ -706,3 +706,11 @@ class NumpyStringArray(BaseNumpyStringArray):
         if value is np.nan:
             value = np.array(libmissing.NA, dtype=PandasStringDType())
         return value
+
+    def _validate_scalar(self, fill_value):
+        fill_value = super()._validate_scalar(fill_value)
+        if fill_value is np.nan:
+            fill_value = self.dtype.na_value
+        if not isinstance(fill_value, str) and fill_value is not self.dtype.na_value:
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
+        return fill_value

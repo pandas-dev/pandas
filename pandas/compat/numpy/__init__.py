@@ -9,7 +9,7 @@ _nlv = Version(_np_version)
 np_version_under1p22 = _nlv < Version("1.22")
 np_version_gte1p24 = _nlv >= Version("1.24")
 np_version_gte1p24p3 = _nlv >= Version("1.24.3")
-is_numpy_dev = _nlv.dev is not None
+is_numpy_dev = _nlv.dev is not None or _nlv.is_prerelease
 _min_numpy_ver = "1.21.6"
 
 np_percentile_argname = "interpolation" if np_version_under1p22 else "method"
