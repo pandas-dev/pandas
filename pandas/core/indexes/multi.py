@@ -840,7 +840,7 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self) -> tuple[np.ndarray, ...]:
+    def levels(self) -> tuple[Index, ...]:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
