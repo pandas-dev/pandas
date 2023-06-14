@@ -111,8 +111,11 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.13.1
-        with:
-          package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
+        # TODO: Build wheels from sdist again
+        # There's some sort of weird race condition?
+        # within Github that makes the sdist be missing files
+        #with:
+        #  package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
