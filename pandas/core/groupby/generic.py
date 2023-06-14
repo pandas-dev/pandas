@@ -919,19 +919,21 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         For SeriesGroupBy:
 
-        >>> lst = ['a', 'a', 'b', 'b']
-        >>> ser = pd.Series([1, np.nan, 3, np.nan], index=lst)
+        >>> lst = ['cat', 'cat', 'cat', 'mouse', 'mouse']
+        >>> ser = pd.Series([1, None, None, 2, None], index=lst)
         >>> ser
-        a    1.0
-        a    NaN
-        b    3.0
-        b    NaN
+        cat    1.0
+        cat    NaN
+        cat    NaN
+        mouse  2.0
+        mouse  NaN
         dtype: float64
-        >>> ser.groupby(level=0).fillna(value=0)
-        a    1.0
-        a    0.0
-        b    3.0
-        b    0.0
+        >>> ser.groupby(level=0).fillna(0, limit=1)
+        cat    1.0
+        cat    0.0
+        cat    NaN
+        mouse  2.0
+        mouse  0.0
         dtype: float64
         """
         result = self._op_via_apply(
