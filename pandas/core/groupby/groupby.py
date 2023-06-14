@@ -1484,6 +1484,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         func: Callable,
         dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
+        is_grouped_kernel: bool = False,
         **aggregator_kwargs,
     ):
         """
@@ -1500,16 +1501,31 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
 
-        sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
-        sorted_ids = self.grouper._sorted_ids
-        _, _, ngroups = self.grouper.group_info
-        starts, ends = lib.generate_slices(sorted_ids, ngroups)
         aggregator = executor.generate_shared_aggregator(
-            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+            func, dtype_mapping, is_grouped_kernel, **get_jit_arguments(engine_kwargs)
         )
-        result = sorted_df._mgr.apply(
-            aggregator, start=starts, end=ends, **aggregator_kwargs
-        )
+        if is_grouped_kernel:
+            # Pass group ids to kernel directly if it can handle it
+            # (This is faster since it doesn't require a sort)
+            ids, _, _ = self.grouper.group_info
+            ngroups = self.grouper.ngroups
+
+            result = df._mgr.apply(
+                aggregator, labels=ids, ngroups=ngroups, **aggregator_kwargs
+            )
+        else:
+            # Go through window version of kernel
+            # This requires a sort
+
+            sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
+            sorted_ids = self.grouper._sorted_ids
+            _, _, ngroups = self.grouper.group_info
+            starts, ends = lib.generate_slices(sorted_ids, ngroups)
+
+            result = sorted_df._mgr.apply(
+                aggregator, start=starts, end=ends, **aggregator_kwargs
+            )
+
         result.axes[1] = self.grouper.result_index
         result = df._constructor(result)
 
@@ -2197,10 +2213,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_mean
+            from pandas.core._numba.kernels import grouped_mean
 
             return self._numba_agg_general(
-                sliding_mean, executor.float_dtype_mapping, engine_kwargs, min_periods=0
+                grouped_mean,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                is_grouped_kernel=True,
+                min_periods=0,
             )
         else:
             result = self._cython_agg_general(
@@ -2366,13 +2386,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mouse  2.217356  1.500000
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import grouped_var
 
             return np.sqrt(
                 self._numba_agg_general(
-                    sliding_var,
+                    grouped_var,
                     executor.float_dtype_mapping,
                     engine_kwargs,
+                    is_grouped_kernel=True,
                     min_periods=0,
                     ddof=ddof,
                 )
@@ -2475,12 +2496,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         mouse  4.916667   2.250000
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import grouped_var
 
             return self._numba_agg_general(
-                sliding_var,
+                grouped_var,
                 executor.float_dtype_mapping,
                 engine_kwargs,
+                is_grouped_kernel=True,
                 min_periods=0,
                 ddof=ddof,
             )
@@ -2808,12 +2830,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_sum
+            from pandas.core._numba.kernels import grouped_sum
 
             return self._numba_agg_general(
-                sliding_sum,
+                grouped_sum,
                 executor.default_dtype_mapping,
                 engine_kwargs,
+                is_grouped_kernel=True,
                 min_periods=min_count,
             )
         else:
@@ -2925,12 +2948,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import grouped_min_max
 
             return self._numba_agg_general(
-                sliding_min_max,
+                grouped_min_max,
                 executor.identity_dtype_mapping,
                 engine_kwargs,
+                is_grouped_kernel=True,
                 min_periods=min_count,
                 is_max=False,
             )
@@ -2991,12 +3015,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import grouped_min_max
 
             return self._numba_agg_general(
-                sliding_min_max,
+                grouped_min_max,
                 executor.identity_dtype_mapping,
                 engine_kwargs,
+                is_grouped_kernel=True,
                 min_periods=min_count,
                 is_max=True,
             )

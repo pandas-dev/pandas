@@ -72,3 +72,49 @@ def sliding_min_max(
                 na_pos.append(i)
 
     return output, na_pos
+
+
+@numba.jit(nopython=True, nogil=True, parallel=False)
+def grouped_min_max(
+    values: np.ndarray,
+    result_dtype: np.dtype,
+    labels: np.ndarray,
+    ngroups: int,
+    min_periods: int,
+    is_max: bool,
+) -> np.ndarray:
+    N = len(labels)
+    nobs = np.empty(ngroups, dtype=np.int64)
+    na_pos = []
+    output = np.empty(ngroups, dtype=result_dtype)
+
+    for i in range(N):
+        lab = labels[i]
+        val = values[i]
+        if lab < 0:
+            continue
+
+        if values.dtype.kind == "i" or not np.isnan(val):
+            nobs[lab] += 1
+        else:
+            # NaN value cannot be a min/max value
+            continue
+
+        if nobs[lab] == 1:
+            # First element in group, set output equal to this
+            output[lab] = val
+            continue
+
+        if is_max:
+            if val > output[lab]:
+                output[lab] = val
+        else:
+            if val < output[lab]:
+                output[lab] = val
+
+    # Set labels that don't satisfy min_periods as np.nan
+    for lab, count in enumerate(nobs):
+        if count < min_periods:
+            na_pos.append(lab)
+
+    return output, na_pos
