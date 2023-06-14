@@ -7,7 +7,7 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#include "io.h"
+#include "pandas/parser/io.h"
 
 /*
   On-disk FILE, uncompressed
