@@ -7470,6 +7470,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         regex: bool_t = False,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ) -> Self | None:
+        if method is not lib.no_default:
+            warnings.warn(
+                # GH#33302
+                f"The 'method' keyword in {type(self).__name__}.replace is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif limit is not None:
+            warnings.warn(
+                # GH#33302
+                f"The 'limit' keyword in {type(self).__name__}.replace is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if (
+            value is lib.no_default
+            and method is lib.no_default
+            and not is_dict_like(to_replace)
+            and regex is False
+        ):
+            # case that goes through _replace_single and defaults to method="pad"
+            warnings.warn(
+                # GH#33302
+                f"{type(self).__name__}.replace without 'value' and with "
+                "non-dict-like 'to_replace' is deprecated "
+                "and will raise in a future version. "
+                "Explicitly specify the new values instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)

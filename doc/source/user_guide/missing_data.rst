@@ -551,13 +551,6 @@ For a DataFrame, you can specify individual values by column:
 
    df.replace({"a": 0, "b": 5}, 100)
 
-Instead of replacing with specified values, you can treat all given values as
-missing and interpolate over them:
-
-.. ipython:: python
-
-   ser.replace([1, 2, 3], method="pad")
-
 .. _missing_data.replace_expression:
 
 String/regular expression replacement
