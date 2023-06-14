@@ -99,7 +99,7 @@ E-mail:
 - Once a PDEP is ready for discussion.
 - After 30 discussion days, with 30 days remaining for discussion.
 - After 45 discussion days, with 15 days remaining for discussion.
-- In case 15 days passed without any new comments, the authors may close the discussion period
+- In case 15 days passed without any new comments, the authors may close the discussion period preemptively, 
   and open the voting period.
 - Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
   remaining for voting.
