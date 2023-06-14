@@ -7807,35 +7807,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    3.0
         dtype: float64
 
-        Filling in ``NaN`` in a Series by padding, but filling at most two
-        consecutive ``NaN`` at a time.
-
-        >>> s = pd.Series([np.nan, "single_one", np.nan,
-        ...                "fill_two_more", np.nan, np.nan, np.nan,
-        ...                4.71, np.nan])
-        >>> s
-        0              NaN
-        1       single_one
-        2              NaN
-        3    fill_two_more
-        4              NaN
-        5              NaN
-        6              NaN
-        7             4.71
-        8              NaN
-        dtype: object
-        >>> s.interpolate(method='pad', limit=2)
-        0              NaN
-        1       single_one
-        2       single_one
-        3    fill_two_more
-        4    fill_two_more
-        5    fill_two_more
-        6              NaN
-        7             4.71
-        8             4.71
-        dtype: object
-
         Filling in ``NaN`` in a Series via polynomial interpolation or splines:
         Both 'polynomial' and 'spline' methods require that you also specify
         an ``order`` (int).
@@ -7899,6 +7870,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if inplace:
                 return None
             return self.copy()
+
+        if not isinstance(method, str):
+            raise ValueError("'method' should be a string, not None.")
+        elif method.lower() in fillna_methods:
+            # GH#53581
+            warnings.warn(
+                f"{type(self).__name__}.interpolate with method={method} is "
+                "deprecated and will raise in a future version. "
+                "Use obj.ffill() or obj.bfill() instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif np.any(obj.dtypes == object):
+            # GH#53631
+            if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
+                # don't warn in cases that already raise
+                warnings.warn(
+                    f"{type(self).__name__}.interpolate with object dtype is "
+                    "deprecated and will raise in a future version. Call "
+                    "obj.infer_objects(copy=False) before interpolating instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         if method not in fillna_methods:
             axis = self._info_axis_number
@@ -9699,7 +9693,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             method = None
         if limit is lib.no_default:
             limit = None
-        method = clean_fill_method(method)
+
+        if method is not None:
+            method = clean_fill_method(method)
 
         if broadcast_axis is not lib.no_default:
             # GH#51856
