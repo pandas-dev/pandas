@@ -37,7 +37,8 @@ from libc.time cimport (
     strftime,
     tm,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+
+from pandas._libs.tslibs.dtypes cimport c_OFFSET_TO_PERIOD_FREQSTR
 
 # import datetime C API
 import_datetime()
@@ -1538,7 +1539,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
-    for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+    for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
         freqstr = freqstr.replace(key, value)
 
     for i in range(n):
@@ -1712,7 +1713,7 @@ cdef class PeriodMixin:
             condition = self.freq != other_freq
 
         if condition:
-            for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
+            for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
                 freqstr = self.freqstr.replace(key, value)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,

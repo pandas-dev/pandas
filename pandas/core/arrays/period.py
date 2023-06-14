@@ -953,6 +953,7 @@ def raise_on_incompatible(left, right):
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
+        assert right.freqstr is not None  # help mypy
         other_freq = OFFSET_TO_PERIOD_FREQSTR.get(right.freqstr, right.freqstr)
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr

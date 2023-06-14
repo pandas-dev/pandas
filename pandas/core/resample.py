@@ -1677,7 +1677,7 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(obj, **kwds)
+    tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -1730,7 +1730,7 @@ class TimeGrouper(Grouper):
 
     def __init__(
         self,
-        obj: Grouper = None,
+        obj: Grouper | None = None,
         freq: Frequency = "Min",
         key: str | None = None,
         closed: Literal["left", "right"] | None = None,
@@ -1759,11 +1759,11 @@ class TimeGrouper(Grouper):
         if (
             key is None
             and obj is not None
-            and isinstance(obj.index, PeriodIndex)
+            and isinstance(obj.index, PeriodIndex)  # type: ignore[attr-defined]
             or (
                 key is not None
                 and obj is not None
-                and getattr(obj[key], "dtype", None) == "period"
+                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
             )
         ):
             freq = to_offset(freq, is_period=True)

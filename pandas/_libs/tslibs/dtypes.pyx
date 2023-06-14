@@ -184,13 +184,15 @@ _attrname_to_abbrevs = {
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
-cdef dict OFFSET_TO_PERIOD_FREQSTR = {
+OFFSET_TO_PERIOD_FREQSTR: dict = {
     "ME": "M",
 }
 
-cdef dict PERIOD_TO_OFFSET_FREQSTR = {
+PERIOD_TO_OFFSET_FREQSTR: dict = {
     "M": "ME",
 }
+cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_PERIOD_TO_OFFSET_FREQSTR = PERIOD_TO_OFFSET_FREQSTR
 
 
 class FreqGroup(Enum):
