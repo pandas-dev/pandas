@@ -107,12 +107,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def freqstr(self) -> str:
         from pandas import PeriodIndex
 
-        if isinstance(self._data, (PeriodArray, PeriodIndex)):
+        if self._data.freqstr is not None and isinstance(
+            self._data, (PeriodArray, PeriodIndex)
+        ):
             for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
                 freq = self._data.freqstr.replace(key, value)
             return freq
         else:
-            return self._data.freqstr
+            return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
