@@ -249,6 +249,13 @@ class TestIndexing:
         assert lib.is_range_indexer(left, 100)
 
     @pytest.mark.parametrize("dtype", ["int64", "int32"])
+    def test_is_range_indexer_big_n(self, dtype):
+        # GH53616
+        left = np.arange(0, 100, dtype=dtype)
+
+        assert not lib.is_range_indexer(left, 2**31)
+
+    @pytest.mark.parametrize("dtype", ["int64", "int32"])
     def test_is_range_indexer_not_equal(self, dtype):
         # GH#50592
         left = np.array([1, 2], dtype=dtype)
