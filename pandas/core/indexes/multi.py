@@ -840,7 +840,7 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self) -> tuple:
+    def levels(self) -> tuple[np.ndarray, ...]:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -877,7 +877,7 @@ class MultiIndex(Index):
             level_numbers = list(range(len(new_levels)))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
-            new_levels_list = list(self._levels)
+            new_levels_list: tuple[Index, ...] = list(self._levels)
             for lev_num, lev in zip(level_numbers, levels):
                 new_levels_list[lev_num] = ensure_index(lev, copy=copy)._view()
             new_levels = tuple(new_levels_list)
@@ -889,7 +889,7 @@ class MultiIndex(Index):
             self._codes = new_codes
 
         names = self.names
-        self._levels = new_levels
+        self._levels: tuple[Index, ...] = new_levels
         if any(names):
             self._set_names(names)
 
@@ -1056,7 +1056,7 @@ class MultiIndex(Index):
             level_numbers = range(len(new_codes))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
-            new_codes_list = list(self._codes)
+            new_codes_list: list[np.ndarray[np.int8]] = list(self._codes)
             for lev_num, level_codes in zip(level_numbers, codes):
                 lev = self.levels[lev_num]
                 new_codes_list[lev_num] = _coerce_indexer_frozen(

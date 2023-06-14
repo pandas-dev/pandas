@@ -69,12 +69,12 @@ class MaskedUInt8Engine(MaskedIndexEngine): ...
 class MaskedBoolEngine(MaskedUInt8Engine): ...
 
 class BaseMultiIndexCodesEngine:
-    levels: list[np.ndarray]
+    levels: tuple[np.ndarray]
     offsets: np.ndarray  # ndarray[uint64_t, ndim=1]
 
     def __init__(
         self,
-        levels: list[np.ndarray],  # all entries hashable
+        levels: tuple[np.ndarray],  # all entries hashable
         labels: list[np.ndarray],  # all entries integer-dtyped
         offsets: np.ndarray,  # np.ndarray[np.uint64, ndim=1]
     ) -> None: ...

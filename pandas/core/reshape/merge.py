@@ -1767,9 +1767,9 @@ def restore_dropped_levels_multijoin(
     # so that dropped levels can be appended
     join_index = _convert_to_multiindex(join_index)
 
-    join_levels = join_index.levels
-    join_codes = join_index.codes
-    join_names = join_index.names
+    join_levels = list(join_index.levels)
+    join_codes = list(join_index.codes)
+    join_names = list(join_index.names)
 
     # Iterate through the levels that must be restored
     for dropped_level_name in dropped_level_names:
@@ -1792,9 +1792,9 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = list(join_levels) + [restore_levels]
-        join_codes = list(join_codes) + [restore_codes]
-        join_names = list(join_names) + [dropped_level_name]
+        join_levels = join_levels + [restore_levels]
+        join_codes = join_codes + [restore_codes]
+        join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
 
