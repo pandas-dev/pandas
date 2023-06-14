@@ -323,6 +323,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
 - Performance improvement in :meth:`Series.add` for pyarrow string and binary dtypes (:issue:`53150`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
+- Performance improvement in :meth:`Series.str.get_dummies` for pyarrow-backed strings (:issue:`53655`)
 - Performance improvement in :meth:`Series.str.get` for pyarrow-backed strings (:issue:`53152`)
 - Performance improvement in :meth:`Series.str.split` with ``expand=True`` for pyarrow-backed strings (:issue:`53585`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
