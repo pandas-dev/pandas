@@ -549,7 +549,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         kwargs["numeric_only"] = numeric_only
 
     # Functions without numeric_only and axis args
-    no_args = ("cumprod", "cumsum", "diff", "fillna", "pct_change", "rank", "shift")
+    no_args = ("diff", "fillna", "pct_change", "rank", "shift")
     # Functions with axis args
     has_axis = (
         "cumprod",
@@ -568,9 +568,8 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if numeric_only is not None and groupby_func in no_args:
         msg = "got an unexpected keyword argument 'numeric_only'"
         if groupby_func in ["cumprod", "cumsum"]:
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    method(*args, **kwargs)
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                method(*args, **kwargs)
         else:
             with pytest.raises(TypeError, match=msg):
                 method(*args, **kwargs)
