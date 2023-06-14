@@ -10,10 +10,8 @@ from pandas.io.excel._base import inspect_excel_format
 
 xlrd = pytest.importorskip("xlrd")
 
-exts = [".xls"]
 
-
-@pytest.fixture(params=exts)
+@pytest.fixture(params=[".xls"])
 def read_ext_xlrd(request):
     """
     Valid extensions for reading Excel files with xlrd.
