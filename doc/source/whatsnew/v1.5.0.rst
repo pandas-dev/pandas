@@ -474,7 +474,7 @@ upon serialization. (Related issue :issue:`12997`)
 
 .. code-block:: ipython
 
-    In[4]: from io import StringIO
+    In [4]: from io import StringIO
 
     In [5]: a.to_json(date_format='iso')
     Out[5]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
@@ -485,6 +485,7 @@ upon serialization. (Related issue :issue:`12997`)
 *New Behavior*
 
 .. ipython:: python
+
     from io import StringIO
     a.to_json(date_format='iso')
     # Roundtripping now works
