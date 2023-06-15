@@ -157,3 +157,8 @@ class TestSeries:
             result = pd.concat([ser, ser2])
             assert result.filename == "foo+bar"
             assert result.name is None
+
+    def test_series_with_complex_nan(self):
+        # GH#53627
+        ser = Series([complex("nan")])
+        assert np.isnan(ser[0].real) and ser[0].imag == 0
