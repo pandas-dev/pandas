@@ -1500,7 +1500,7 @@ cdef accessor _get_accessor_func(str field):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def from_ordinals(const int64_t[:] values, freq, is_period):
+def from_ordinals(const int64_t[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
         int64_t[::1] result = np.empty(len(values), dtype="i8")
@@ -1729,7 +1729,6 @@ cdef class _Period(PeriodMixin):
         int64_t ordinal
         PeriodDtypeBase _dtype
         BaseOffset freq
-        bint is_period
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -2782,6 +2781,8 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
+                    if freq == "ME":
+                        freq = "M"
                     freq = to_offset(freq, is_period=True)
 
         elif PyDateTime_Check(value):

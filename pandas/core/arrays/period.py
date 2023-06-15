@@ -314,7 +314,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
-        # freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
 
@@ -1058,7 +1057,7 @@ def period_array(
         arr = arrdata.astype(np.int64, copy=False)
         # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
         # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
-        ordinals = libperiod.from_ordinals(arr, freq, True)  # type: ignore[arg-type]
+        ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
         return PeriodArray(ordinals, dtype=dtype)
 
     data = ensure_object(arrdata)

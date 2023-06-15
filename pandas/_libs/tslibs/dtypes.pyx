@@ -172,7 +172,7 @@ cdef set _month_names = {
 _attrname_to_abbrevs = {
     "year": "A",
     "quarter": "Q",
-    "month": "M",
+    "month": "ME",
     "day": "D",
     "hour": "H",
     "minute": "T",
