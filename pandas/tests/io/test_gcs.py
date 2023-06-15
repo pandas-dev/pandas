@@ -44,6 +44,8 @@ def gcs_buffer():
 
 
 @td.skip_if_no("gcsfs")
+# Patches pyarrow; other processes should not pick up change
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
     """
