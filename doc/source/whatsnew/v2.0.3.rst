@@ -21,11 +21,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
-<<<<<<< Updated upstream
-- Bug in :func:`RangeIndex.union` when using ``sort=True`` with another :class:`RangeIndex` (:issue:`53490`)
-=======
 - Bug in :class:`RelativeDeltaOffset` which caused inconsistent behavior upon multiplying a :class:`DateOffset` (:issue:`47953`)
->>>>>>> Stashed changes
+- Bug in :func:`RangeIndex.union` when using ``sort=True`` with another :class:`RangeIndex` (:issue:`53490`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 - Bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` with ``expand=True`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`53532`)
 -
