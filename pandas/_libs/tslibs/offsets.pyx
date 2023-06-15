@@ -1221,12 +1221,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if hasattr(self, "nanoseconds"):
-                td_nano = Timedelta(nanoseconds=self.nanoseconds)
-            else:
-                td_nano = Timedelta(other_nanos)
+            other = other + (self._offset * self.n)
 
-            other = other + ((self._offset + td_nano) * self.n)
+            if hasattr(self, "nanoseconds"):
+                other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
+            if other_nanos != 0:
+                other = Timedelta(nanoseconds=other_nanos) + other
 
             if other_nanos != 0:
                 other = Timedelta(nanoseconds=other_nanos) + other
