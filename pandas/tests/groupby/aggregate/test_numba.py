@@ -157,8 +157,7 @@ def test_multifunc_numba_vs_cython_frame(agg_kwargs):
     grouped = data.groupby(0)
     result = grouped.agg(**agg_kwargs, engine="numba")
     expected = grouped.agg(**agg_kwargs, engine="cython")
-    # check_dtype can be removed if GH 44952 is addressed
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
 
 @td.skip_if_no("numba")
@@ -194,6 +193,7 @@ def test_multifunc_numba_udf_frame(agg_kwargs, expected_func):
     result = grouped.agg(**agg_kwargs, engine="numba")
     expected = grouped.agg(expected_func, engine="cython")
     # check_dtype can be removed if GH 44952 is addressed
+    # Currently, UDFs still always return float64 while reductions can preserve dtype
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
