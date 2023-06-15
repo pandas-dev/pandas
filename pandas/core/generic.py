@@ -15,7 +15,6 @@ from typing import (
     Callable,
     ClassVar,
     Hashable,
-    Iterable,
     Iterator,
     Literal,
     Mapping,
@@ -3606,7 +3605,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
         comment: str | None = ...,
-        comment_lines: Iterable[str] | None = ...,
     ) -> str:
         ...
 
@@ -3635,7 +3633,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
         comment: str | None = ...,
-        comment_lines: Iterable[str] | None = ...,
     ) -> None:
         ...
 
@@ -3668,7 +3665,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
         comment: str | None = None,
-        comment_lines: Iterable[str] | None = None,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3775,14 +3771,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionadded:: 1.2.0
 
         comment : str, default None
-            Prefix which should be written to lines preceding the body
-            of an output csv. These lines can be used for comments or
-            metadata which are not part of the csv data itself. Complement
-            of pd.read_csv 'comment' param.
-        comment_lines : Iterable['str'], default None
-            Comment or metadata lines to write to the beginning of the csv
-            file. Each item is a row and will be prefixed with the character in
-            the 'comment' param.
+            If set the contents of df.attrs will be written to the beginning
+            of the csv file, prefixed by this value.
+            Complement of pd.read_csv 'comment' param.
 
         Returns
         -------
@@ -3851,7 +3842,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             escapechar=escapechar,
             storage_options=storage_options,
             comment=comment,
-            comment_lines=comment_lines,
         )
 
     # ----------------------------------------------------------------------

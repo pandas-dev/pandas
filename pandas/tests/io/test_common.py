@@ -625,16 +625,18 @@ def test_pickle_reader(reader):
 
 def test_comment_writer(salaries_table, salaries_table_comments, datapath):
     comment = "#"
-    comment_lines = ["line one", "line_two", "three lines_hello_world"]
-    tm.assert_frame_equal(salaries_table, salaries_table_comments)
+    test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
     with tm.ensure_clean() as path:
         # Check commented table can be read and matches non-commented version
         tm.assert_frame_equal(salaries_table, salaries_table_comments)
+        salaries_table.attrs = test_attrs
+        # Check frames still match
+        tm.assert_frame_equal(salaries_table, salaries_table_comments)
 
         # Write comments on uncommented table then validate
-        salaries_table.to_csv(
-            path, sep="\t", comment=comment, comment_lines=comment_lines, index=False
-        )
+        salaries_table.to_csv(path, sep="\t", comment=comment, index=False)
+
+        salaries_table.to_csv("TESTING.CSV", comment="#", index=False)
 
         assert filecmp.cmp(
             path,

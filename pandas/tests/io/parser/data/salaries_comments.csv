@@ -1,6 +1,6 @@
-#line one
-#line_two
-#three lines_hello_world
+#one:line one
+#two:line 2
+#three:Hello, World!
 S	X	E	M
 13876	1	1	1
 11608	1	3	0

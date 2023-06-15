@@ -1118,7 +1118,6 @@ class DataFrameRenderer:
         errors: str = "strict",
         storage_options: StorageOptions = None,
         comment: str | None = None,
-        comment_lines: Iterable[str] | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -1150,7 +1149,6 @@ class DataFrameRenderer:
             storage_options=storage_options,
             formatter=self.fmt,
             comment=comment,
-            comment_lines=comment_lines,
         )
         csv_formatter.save()
 
