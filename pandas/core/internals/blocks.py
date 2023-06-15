@@ -1375,7 +1375,7 @@ class Block(PandasObject):
             if method == "asfreq":  # type: ignore[comparison-overlap]
                 # clean_fill_method used to allow this
                 raise
-        if m is None and self.dtype.kind != "f":
+        if m is None and self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
