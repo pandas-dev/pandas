@@ -113,7 +113,9 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
     df_orig = df.copy()
 
-    result = df.interpolate(method="linear")
+    msg = "DataFrame.interpolate with object dtype"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.interpolate(method="linear")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
