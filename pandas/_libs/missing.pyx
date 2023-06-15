@@ -377,6 +377,26 @@ class NAType(C_NAType):
 
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
+
+    Examples
+    --------
+    >>> pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
+
+    >>> True & pd.NA
+    <NA>
+
+    >>> pd.NA != pd.NA
+    <NA>
+
+    >>> pd.NA == pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
     """
 
     _instance = None

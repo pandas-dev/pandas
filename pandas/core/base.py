@@ -765,8 +765,19 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series
+
         >>> s = pd.Series([1, 2, 3])
         >>> s.to_list()
+        [1, 2, 3]
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+
+        >>> idx.to_list()
         [1, 2, 3]
         """
         return self._values.tolist()
@@ -947,7 +958,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         Name: count, dtype: int64
         """
-        return algorithms.value_counts(
+        return algorithms.value_counts_internal(
             self,
             sort=sort,
             ascending=ascending,
