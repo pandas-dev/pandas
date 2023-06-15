@@ -215,9 +215,6 @@ def _get_freq(ax: Axes, series: Series):
 
 
 def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
-    from pandas import DatetimeIndex
-    from pandas.core.indexes.api import PeriodIndex
-
     freq = _get_index_freq(data.index)
     ax_freq = _get_ax_freq(ax)
 

@@ -2782,8 +2782,6 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                    for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
-                        freq = freq.replace(key, value)
                     freq = to_offset(freq, is_period=True)
 
         elif PyDateTime_Check(value):
