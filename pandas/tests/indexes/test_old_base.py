@@ -8,7 +8,10 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 
-from pandas.core.dtypes.common import is_integer_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype,
+    is_numeric_dtype,
+)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -24,27 +27,52 @@ from pandas import (
     Series,
     TimedeltaIndex,
     isna,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import BaseMaskedArray
 
 
-class Base:
-    """
-    Base class for index sub-class tests.
-    """
+class TestBase:
+    @pytest.fixture(
+        params=[
+            RangeIndex(start=0, stop=20, step=2),
+            Index(np.arange(5, dtype=np.float64)),
+            Index(np.arange(5, dtype=np.float32)),
+            Index(np.arange(5, dtype=np.uint64)),
+            Index(range(0, 20, 2), dtype=np.int64),
+            Index(range(0, 20, 2), dtype=np.int32),
+            Index(range(0, 20, 2), dtype=np.int16),
+            Index(range(0, 20, 2), dtype=np.int8),
+            Index(list("abcde")),
+            Index([0, "a", 1, "b", 2, "c"]),
+            period_range("20130101", periods=5, freq="D"),
+            TimedeltaIndex(
+                [
+                    "0 days 01:00:00",
+                    "1 days 01:00:00",
+                    "2 days 01:00:00",
+                    "3 days 01:00:00",
+                    "4 days 01:00:00",
+                ],
+                dtype="timedelta64[ns]",
+                freq="D",
+            ),
+            DatetimeIndex(
+                ["2013-01-01", "2013-01-02", "2013-01-03", "2013-01-04", "2013-01-05"],
+                dtype="datetime64[ns]",
+                freq="D",
+            ),
+            IntervalIndex.from_breaks(range(11), closed="right"),
+        ]
+    )
+    def simple_index(self, request):
+        return request.param
 
-    _index_cls: type[Index]
-
-    @pytest.fixture
-    def simple_index(self):
-        raise NotImplementedError("Method not implemented")
-
-    def create_index(self) -> Index:
-        raise NotImplementedError("Method not implemented")
-
-    def test_pickle_compat_construction(self):
+    def test_pickle_compat_construction(self, simple_index):
         # need an object to create with
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("RangeIndex() is a valid constructor")
         msg = "|".join(
             [
                 r"Index\(\.\.\.\) must be called with a collection of some "
@@ -58,10 +86,12 @@ class Base:
             ]
         )
         with pytest.raises(TypeError, match=msg):
-            self._index_cls()
+            type(simple_index)()
 
     def test_shift(self, simple_index):
         # GH8083 test the base class for shift
+        if isinstance(simple_index, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+            pytest.skip("Tested in test_ops/test_arithmetic")
         idx = simple_index
         msg = (
             f"This method is only implemented for DatetimeIndex, PeriodIndex and "
@@ -82,7 +112,7 @@ class Base:
     def test_create_index_existing_name(self, simple_index):
         # GH11193, when an existing index is passed, and a new name is not
         # specified, the new index should inherit the previous object name
-        expected = simple_index
+        expected = simple_index.copy()
         if not isinstance(expected, MultiIndex):
             expected.name = "foo"
             result = Index(expected)
@@ -138,6 +168,10 @@ class Base:
         assert not isinstance(idx, MultiIndex)
         if type(idx) is Index:
             return
+        if is_numeric_dtype(simple_index.dtype) or isinstance(
+            simple_index, TimedeltaIndex
+        ):
+            pytest.skip("Tested elsewhere.")
 
         typ = type(idx._data).__name__
         cls = type(idx).__name__
@@ -175,6 +209,12 @@ class Base:
             1 // idx
 
     def test_logical_compat(self, simple_index):
+        if (
+            isinstance(simple_index, RangeIndex)
+            or is_numeric_dtype(simple_index.dtype)
+            or simple_index.dtype == object
+        ):
+            pytest.skip("Tested elsewhere.")
         idx = simple_index
         with pytest.raises(TypeError, match="cannot perform all"):
             idx.all()
@@ -182,11 +222,15 @@ class Base:
             idx.any()
 
     def test_repr_roundtrip(self, simple_index):
+        if isinstance(simple_index, IntervalIndex):
+            pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
         idx = simple_index
         tm.assert_index_equal(eval(repr(idx)), idx)
 
     def test_repr_max_seq_item_setting(self, simple_index):
         # GH10182
+        if isinstance(simple_index, IntervalIndex):
+            pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
         idx = simple_index
         idx = idx.repeat(50)
         with pd.option_context("display.max_seq_items", None):
@@ -330,6 +374,10 @@ class Base:
             np.repeat(idx, rep, axis=0)
 
     def test_where(self, listlike_box, simple_index):
+        if isinstance(simple_index, (IntervalIndex, PeriodIndex)) or is_numeric_dtype(
+            simple_index.dtype
+        ):
+            pytest.skip("Tested elsewhere.")
         klass = listlike_box
 
         idx = simple_index
@@ -497,13 +545,19 @@ class Base:
 
     def test_format(self, simple_index):
         # GH35439
+        if is_numeric_dtype(simple_index.dtype) or isinstance(
+            simple_index, DatetimeIndex
+        ):
+            pytest.skip("Tested elsewhere.")
         idx = simple_index
         expected = [str(x) for x in idx]
         assert idx.format() == expected
 
-    def test_format_empty(self):
+    def test_format_empty(self, simple_index):
         # GH35712
-        empty_idx = self._index_cls([])
+        if isinstance(simple_index, (PeriodIndex, RangeIndex)):
+            pytest.skip("Tested elsewhere")
+        empty_idx = type(simple_index)([])
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
@@ -580,6 +634,8 @@ class Base:
 
     def test_map(self, simple_index):
         # callable
+        if isinstance(simple_index, (TimedeltaIndex, PeriodIndex)):
+            pytest.skip("Tested elsewhere.")
         idx = simple_index
 
         result = idx.map(lambda x: x)
@@ -601,6 +657,8 @@ class Base:
             #  non-unique values, which raises.  This _should_ work fine for
             #  CategoricalIndex.
             pytest.skip(f"skipping tests for {type(idx)}")
+        elif isinstance(idx, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+            pytest.skip("Tested elsewhere.")
 
         identity = mapper(idx.values, idx)
 
@@ -619,6 +677,8 @@ class Base:
 
     def test_map_str(self, simple_index):
         # GH 31202
+        if isinstance(simple_index, CategoricalIndex):
+            pytest.skip("See test_map.py")
         idx = simple_index
         result = idx.map(str)
         expected = Index([str(x) for x in idx], dtype=object)
@@ -682,6 +742,8 @@ class Base:
 
     def test_getitem_2d_deprecated(self, simple_index):
         # GH#30588, GH#31479
+        if isinstance(simple_index, IntervalIndex):
+            pytest.skip("Tested elsewhere")
         idx = simple_index
         msg = "Multi-dimensional indexing"
         with pytest.raises(ValueError, match=msg):
@@ -834,30 +896,43 @@ class Base:
             idx.is_object()
 
 
-class NumericBase(Base):
-    """
-    Base class for numeric index (incl. RangeIndex) sub-class tests.
-    """
+class TestNumericBase:
+    @pytest.fixture(
+        params=[
+            RangeIndex(start=0, stop=20, step=2),
+            Index(np.arange(5, dtype=np.float64)),
+            Index(np.arange(5, dtype=np.float32)),
+            Index(np.arange(5, dtype=np.uint64)),
+            Index(range(0, 20, 2), dtype=np.int64),
+            Index(range(0, 20, 2), dtype=np.int32),
+            Index(range(0, 20, 2), dtype=np.int16),
+            Index(range(0, 20, 2), dtype=np.int8),
+        ]
+    )
+    def simple_index(self, request):
+        return request.param
 
-    def test_constructor_unwraps_index(self, dtype):
-        index_cls = self._index_cls
+    def test_constructor_unwraps_index(self, simple_index):
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("Tested elsewhere.")
+        index_cls = type(simple_index)
+        dtype = simple_index.dtype
 
         idx = Index([1, 2], dtype=dtype)
         result = index_cls(idx)
         expected = np.array([1, 2], dtype=idx.dtype)
         tm.assert_numpy_array_equal(result._data, expected)
 
-    def test_where(self):
-        # Tested in numeric.test_indexing
-        pass
-
     def test_can_hold_identifiers(self, simple_index):
         idx = simple_index
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-    def test_view(self, dtype):
-        index_cls = self._index_cls
+    def test_view(self, simple_index):
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("Tested elsewhere.")
+        index_cls = type(simple_index)
+        dtype = simple_index.dtype
 
         idx = index_cls([], dtype=dtype, name="Foo")
         idx_view = idx.view()
@@ -871,13 +946,12 @@ class NumericBase(Base):
 
     def test_format(self, simple_index):
         # GH35439
+        if isinstance(simple_index, DatetimeIndex):
+            pytest.skip("Tested elsewhere")
         idx = simple_index
         max_width = max(len(str(x)) for x in idx)
         expected = [str(x).ljust(max_width) for x in idx]
         assert idx.format() == expected
-
-    def test_numeric_compat(self):
-        pass  # override Base method
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should
@@ -905,10 +979,10 @@ class NumericBase(Base):
         result = index.insert(1, na_val)
         tm.assert_index_equal(result, expected, exact=True)
 
-    def test_arithmetic_explicit_conversions(self):
+    def test_arithmetic_explicit_conversions(self, simple_index):
         # GH 8608
         # add/sub are overridden explicitly for Float/Int Index
-        index_cls = self._index_cls
+        index_cls = type(simple_index)
         if index_cls is RangeIndex:
             idx = RangeIndex(5)
         else:
@@ -939,7 +1013,9 @@ class NumericBase(Base):
 
         assert type(result) is Index and result.dtype == complex_dtype
 
-    def test_cast_string(self, dtype):
-        result = self._index_cls(["0", "1", "2"], dtype=dtype)
-        expected = self._index_cls([0, 1, 2], dtype=dtype)
+    def test_cast_string(self, simple_index):
+        if isinstance(simple_index, RangeIndex):
+            pytest.skip("casting of strings not relevant for RangeIndex")
+        result = type(simple_index)(["0", "1", "2"], dtype=simple_index.dtype)
+        expected = type(simple_index)([0, 1, 2], dtype=simple_index.dtype)
         tm.assert_index_equal(result, expected)

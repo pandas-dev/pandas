@@ -151,7 +151,6 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.datetimes import tz_to_dtype
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
     IndexOpsMixin,
@@ -192,11 +191,7 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import (
-        DatetimeArray,
-        PeriodArray,
-        TimedeltaArray,
-    )
+    from pandas.core.arrays import PeriodArray
 
 __all__ = ["Index"]
 
@@ -845,14 +840,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             pa_type = self._values._pa_array.type
             if pa.types.is_timestamp(pa_type):
-                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
-                target_values = self._values.astype(dtype)
-                target_values = cast("DatetimeArray", target_values)
+                target_values = self._values._to_datetimearray()
                 return libindex.DatetimeEngine(target_values._ndarray)
             elif pa.types.is_duration(pa_type):
-                dtype = np.dtype(f"m8[{pa_type.unit}]")
-                target_values = self._values.astype(dtype)
-                target_values = cast("TimedeltaArray", target_values)
+                target_values = self._values._to_timedeltaarray()
                 return libindex.TimedeltaEngine(target_values._ndarray)
 
         if isinstance(target_values, ExtensionArray):
@@ -2829,8 +2820,7 @@ class Index(IndexOpsMixin, PandasObject):
         NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
         mapped to ``True`` values.
         Everything else get mapped to ``False`` values. Characters such as
-        empty strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values.
 
         Returns
         -------
@@ -2885,8 +2875,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Return a boolean same-sized object indicating if the values are not NA.
         Non-missing values get mapped to ``True``. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
 
@@ -3326,7 +3315,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._wrap_setop_result(other, result)
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Specific union logic should go here. In subclasses, union behavior
         should be overwritten here rather than in `self.union`.
@@ -3337,6 +3326,7 @@ class Index(IndexOpsMixin, PandasObject):
         sort : False or None, default False
             Whether to sort the resulting index.
 
+            * True : sort the result
             * False : do not sort the result.
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
@@ -3349,7 +3339,7 @@ class Index(IndexOpsMixin, PandasObject):
         rvals = other._values
 
         if (
-            sort is None
+            sort in (None, True)
             and self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
@@ -5117,14 +5107,10 @@ class Index(IndexOpsMixin, PandasObject):
 
             pa_type = vals._pa_array.type
             if pa.types.is_timestamp(pa_type):
-                dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
-                vals = vals.astype(dtype)
-                vals = cast("DatetimeArray", vals)
+                vals = vals._to_datetimearray()
                 return vals._ndarray.view("i8")
             elif pa.types.is_duration(pa_type):
-                dtype = np.dtype(f"m8[{pa_type.unit}]")
-                vals = vals.astype(dtype)
-                vals = cast("TimedeltaArray", vals)
+                vals = vals._to_timedeltaarray()
                 return vals._ndarray.view("i8")
         if (
             type(self) is Index
