@@ -2485,7 +2485,8 @@ def maybe_convert_objects(ndarray[object] objects,
         elif util.is_nan(val):
             seen.nan_ = True
             mask[i] = True
-            floats[i] = complexes[i] = val
+            floats[i] = fnan
+            complexes[i] = val
         elif util.is_bool_object(val):
             seen.bool_ = True
             bools[i] = val
