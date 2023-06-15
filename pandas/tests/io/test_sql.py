@@ -1835,11 +1835,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_engine(cls):
         raise NotImplementedError()
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
