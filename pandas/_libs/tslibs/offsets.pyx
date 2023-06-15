@@ -1223,9 +1223,8 @@ cdef class RelativeDeltaOffset(BaseOffset):
 
             if hasattr(self, "nanoseconds"):
                 td_nano = Timedelta(nanoseconds=self.nanoseconds)
-                other = self.n * td_nano + other
             else:
-                td_nano = Timedelta(0)
+                td_nano = Timedelta(other_nanos)
 
             other = other + ((self._offset + td_nano) * self.n)
 
