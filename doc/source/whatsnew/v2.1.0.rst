@@ -406,7 +406,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)
 - Bug in :meth:`DataFrame.__setitem__` with a boolean mask and :meth:`DataFrame.putmask` with mixed non-numeric dtypes and a value other than ``NaN`` incorrectly raising ``TypeError`` (:issue:`53291`)
--
+- Bug in indexing methods (e.g. :meth:`DataFrame.__getitem__`) where taking the entire :class:`DataFrame`/:class:`Series` would raise an ``OverflowError`` when Copy on Write was enabled and the length of the array was over the maximum size a 32-bit integer can hold (:issue:`53616`)
 
 Missing
 ^^^^^^^
