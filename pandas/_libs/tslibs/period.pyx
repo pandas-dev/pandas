@@ -2697,7 +2697,7 @@ class Period(_Period):
     Period('2012-01-01', 'D')
     """
 
-    def __new__(cls, value=None, freq=None, is_period=None, ordinal=None,
+    def __new__(cls, value=None, freq=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
         # freq points to a tuple (base, mult);  base is one of the defined
@@ -2769,7 +2769,7 @@ class Period(_Period):
                 if match:
                     # Case that cannot be parsed (correctly) by our datetime
                     #  parsing logic
-                    dt, freq = _parse_weekly_str(value, freq, is_period)
+                    dt, freq = _parse_weekly_str(value, freq, is_period=True)
                 else:
                     raise err
 
@@ -2782,7 +2782,9 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                    freq = to_offset(freq, is_period)
+                    for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
+                        freq = freq.replace(key, value)
+                    freq = to_offset(freq, is_period=True)
 
         elif PyDateTime_Check(value):
             dt = value
