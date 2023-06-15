@@ -7041,7 +7041,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 limit=limit,
                 inplace=inplace,
-                downcast=downcast,
+                # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+                # has incompatible type "Union[Dict[Any, Any], None,
+                # Literal[_NoDefault.no_default]]"; expected
+                # "Optional[Dict[Any, Any]]"
+                downcast=downcast,  # type: ignore[arg-type]
             )
         else:
             if self.ndim == 1:
@@ -7088,11 +7092,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if was_no_default:
                         downcast_k = lib.no_default
                     else:
-                        # error: Item "None" of "Optional[Dict[Any, Any]]" has no
-                        # attribute "get"
                         downcast_k = (
-                            downcast
+                            # error: Incompatible types in assignment (expression
+                            # has type "Union[Dict[Any, Any], None,
+                            # Literal[_NoDefault.no_default], Any]", variable has
+                            # type "_NoDefault")
+                            downcast  # type: ignore[assignment]
                             if not is_dict
+                            # error: Item "None" of "Optional[Dict[Any, Any]]" has
+                            # no attribute "get"
                             else downcast.get(k)  # type: ignore[union-attr]
                         )
 
@@ -7247,7 +7255,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast = self._deprecate_downcast(downcast, "ffill")
 
         return self._fillna_with_method(
-            "ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+            "ffill",
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+            # has incompatible type "Union[Dict[Any, Any], None,
+            # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
+            downcast=downcast,  # type: ignore[arg-type]
         )
 
     @final
@@ -7373,7 +7388,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         downcast = self._deprecate_downcast(downcast, "bfill")
         return self._fillna_with_method(
-            "bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+            "bfill",
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+            # has incompatible type "Union[Dict[Any, Any], None,
+            # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
+            downcast=downcast,  # type: ignore[arg-type]
         )
 
     @final
