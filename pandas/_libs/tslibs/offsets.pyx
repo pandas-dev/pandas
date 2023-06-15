@@ -1228,9 +1228,6 @@ cdef class RelativeDeltaOffset(BaseOffset):
             if other_nanos != 0:
                 other = Timedelta(nanoseconds=other_nanos) + other
 
-            if other_nanos != 0:
-                other = Timedelta(nanoseconds=other_nanos) + other
-
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
                 other = localize_pydatetime(other, tzinfo)
