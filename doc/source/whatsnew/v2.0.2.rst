@@ -40,6 +40,8 @@ Bug fixes
 - Bug in :meth:`Series.describe` treating pyarrow-backed timestamps and timedeltas as categorical data (:issue:`53001`)
 - Bug in :meth:`Series.rename` not making a lazy copy when Copy-on-Write is enabled when a scalar is passed to it (:issue:`52450`)
 - Bug in :meth:`pd.array` raising for ``NumPy`` array and ``pa.large_string`` or ``pa.large_binary`` (:issue:`52590`)
+- Bug in indexing methods (e.g. :meth:`DataFrame.__getitem__`) where taking the entire :class:`DataFrame`/:class:`Series` would raise an ``OverflowError`` when Copy on Write was enabled and the length of the array was over the maximum size a 32-bit integer can hold (:issue:`53616`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.other:
