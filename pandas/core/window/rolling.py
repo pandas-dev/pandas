@@ -837,13 +837,17 @@ class BaseWindowGroupby(BaseWindow):
             result_names = list(result.index.names)
         else:
             idx_codes, idx_levels = factorize(result.index)
+            idx_levels = cast(Index, idx_levels)
             result_codes = [idx_codes]
             result_levels = [idx_levels]
             result_names = [result.index.name]
 
         # 3) Create the resulting index by combining 1) + 2)
         result_codes = groupby_codes + result_codes
-        result_levels = groupby_levels + result_levels
+        # error: Incompatible types in assignment
+        # (expression has type "List[Union[Index, ndarray[Any, Any]]]",
+        # variable has type "List[Index]")
+        result_levels = groupby_levels + result_levels  # type: ignore[assignment]
         result_names = self._grouper.names + result_names
 
         result_index = MultiIndex(

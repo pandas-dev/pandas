@@ -462,7 +462,9 @@ class MultiIndex(Index):
         result_codes = []
         for i in range(len(levels)):
             if i in levels_to_verify:
-                result_codes.append(self._validate_codes(levels[i], codes[i]))
+                # error: Argument 1 to "_validate_codes" of "MultiIndex"
+                # has incompatible type "Union[Any, Index]"; expected "List[Any]"
+                result_codes.append(self._validate_codes(levels[i], codes[i]))  # type: ignore[arg-type]  # noqa: E501
             else:
                 result_codes.append(codes[i])
 
@@ -772,9 +774,9 @@ class MultiIndex(Index):
             ):
                 vals = vals.astype(object)
 
-            vals = np.array(vals, copy=False)
-            vals = algos.take_nd(vals, codes, fill_value=index._na_value)
-            values.append(vals)
+            array_vals = np.array(vals, copy=False)
+            array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
+            values.append(array_vals)
 
         arr = lib.fast_zip(values)
         return arr
@@ -840,7 +842,7 @@ class MultiIndex(Index):
     # Levels Methods
 
     @cache_readonly
-    def levels(self) -> tuple:
+    def levels(self) -> tuple[Index, ...]:
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648

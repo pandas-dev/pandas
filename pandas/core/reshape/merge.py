@@ -1796,7 +1796,11 @@ def restore_dropped_levels_multijoin(
         join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
-    return join_levels, join_codes, join_names
+    # error: Incompatible return value type
+    # (got "Tuple[List[Index], List[Any], List[Any]]",
+    # expected "Tuple[List[Index], ndarray[Any, dtype[signedinteger[Any]]],
+    # List[Hashable]]")
+    return join_levels, join_codes, join_names  # type: ignore[return-value]
 
 
 class _OrderedMerge(_MergeOperation):
@@ -2222,8 +2226,10 @@ def _get_multiindex_indexer(
     join_keys: list[ArrayLike], index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     # left & right join labels and num. of levels at each location
+    # error: Argument 1 to "_factorize_keys" has incompatible type "Index";
+    # expected "Union[ExtensionArray, ndarray[Any, Any]]"
     mapped = (
-        _factorize_keys(index.levels[n]._values, join_keys[n], sort=sort)
+        _factorize_keys(index.levels[n]._values, join_keys[n], sort=sort)  # type: ignore[arg-type]  # noqa: E501
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
