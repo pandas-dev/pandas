@@ -135,6 +135,8 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -1480,8 +1482,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _numba_agg_general(
         self,
         func: Callable,
+        dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
-        *aggregator_args,
+        **aggregator_kwargs,
     ):
         """
         Perform groupby with a standard numerical aggregation function (e.g. mean)
@@ -1496,19 +1499,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
-        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-        aggregator = executor.generate_shared_aggregator(
-            func, **get_jit_arguments(engine_kwargs)
-        )
-        result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
-        index = self.grouper.result_index
+        sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
+        sorted_ids = self.grouper._sorted_ids
+        _, _, ngroups = self.grouper.group_info
+        starts, ends = lib.generate_slices(sorted_ids, ngroups)
+        aggregator = executor.generate_shared_aggregator(
+            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+        )
+        result = sorted_df._mgr.apply(
+            aggregator, start=starts, end=ends, **aggregator_kwargs
+        )
+        result.axes[1] = self.grouper.result_index
+        result = df._constructor(result)
+
         if data.ndim == 1:
-            result_kwargs = {"name": data.name}
-            result = result.ravel()
+            result = result.squeeze("columns")
+            result.name = data.name
         else:
-            result_kwargs = {"columns": data.columns}
-        return data._constructor(result, index=index, **result_kwargs)
+            result.columns = data.columns
+        return result
 
     @final
     def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
@@ -2189,7 +2199,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            return self._numba_agg_general(sliding_mean, engine_kwargs)
+            return self._numba_agg_general(
+                sliding_mean, executor.float_dtype_mapping, engine_kwargs, min_periods=0
+            )
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -2356,7 +2368,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
+            return np.sqrt(
+                self._numba_agg_general(
+                    sliding_var,
+                    executor.float_dtype_mapping,
+                    engine_kwargs,
+                    min_periods=0,
+                    ddof=ddof,
+                )
+            )
         else:
             return self._cython_agg_general(
                 "std",
@@ -2457,7 +2477,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
+            return self._numba_agg_general(
+                sliding_var,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                min_periods=0,
+                ddof=ddof,
+            )
         else:
             return self._cython_agg_general(
                 "var",
@@ -2786,7 +2812,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(
                 sliding_sum,
+                executor.default_dtype_mapping,
                 engine_kwargs,
+                min_periods=min_count,
             )
         else:
             # If we are grouping on categoricals we want unobserved categories to
@@ -2899,7 +2927,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
+            return self._numba_agg_general(
+                sliding_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=False,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2959,7 +2993,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
+            return self._numba_agg_general(
+                sliding_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=True,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
