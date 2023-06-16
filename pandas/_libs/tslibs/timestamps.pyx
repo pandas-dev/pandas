@@ -1592,8 +1592,6 @@ class Timestamp(_Timestamp):
             raise NotImplementedError(
                 "isocalendar not yet supported on Timestamps which "
                 "are outside the range of Python's standard library. "
-                "For now, please call the components you need (such as `.year` "
-                "and `.month`) and construct your string from there."
             ) from err
         return _dt.isocalendar()
 
@@ -2461,7 +2459,16 @@ default 'raise'
         """
         # same as super().isoweekday(), but that breaks because of how
         #  we have overridden year, see note in create_timestamp_from_ts
-        return self.weekday() + 1
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "isocalendar not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.weekday() + 1
 
     def weekday(self):
         """
