@@ -36,10 +36,12 @@ def test_dt64_array():
     for unit in dtype_unit_lst:
         dtype_var = np.dtype(unit)
         msg = (
-            f"dtype={dtype_var} is not supported. Supported resolutions are 's', 'ms', "
-            "'us', and 'ns'"
+            r"dt/td64 dtypes with 'm' and 'h' resolutions are deprecated."
+            r"Supported resolutions are 's', 'ms','us', and 'ns'. "
+            r"In future releases, 'm' and 'h' resolutions will be cast to the "
+            r"closest supported unit."
         )
-        with pytest.raises(TypeError, match=re.escape(msg)):
+        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
             pd.array([], dtype=dtype_var)
 
 

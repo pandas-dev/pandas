@@ -14,6 +14,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -31,6 +32,7 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -378,8 +380,15 @@ def array(
     ):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
-    elif isinstance(dtype, np.dtype) and dtype.kind in "mM":
-        sanitize_array(data, None, dtype, copy)
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"dt/td64 dtypes with 'm' and 'h' resolutions are deprecated."
+            r"Supported resolutions are 's', 'ms','us', and 'ns'. "
+            r"In future releases, 'm' and 'h' resolutions will be cast to the closest "
+            r"supported unit.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
