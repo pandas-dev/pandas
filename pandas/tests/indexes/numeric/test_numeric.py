@@ -327,7 +327,7 @@ class TestIntNumericIndex:
         index = Index([1, 2, 3])
         assert index.dtype == np.int64
 
-    def test_constructor(self, dtype):
+    def test_constructor(self, dtype, using_copy_on_write):
         index_cls = Index
 
         # scalar raise Exception
@@ -347,8 +347,12 @@ class TestIntNumericIndex:
         val = arr[0] + 3000
 
         # this should not change index
-        arr[0] = val
-        assert new_index[0] != val
+        if not using_copy_on_write:
+            arr[0] = val
+            assert new_index[0] != val
+        else:
+            with pytest.raises(ValueError, match="assignment"):
+                arr[0] = val
 
         if dtype == np.int64:
             # pass list, coerce fine
