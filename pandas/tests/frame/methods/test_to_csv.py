@@ -1,5 +1,6 @@
 import csv
 from io import StringIO
+import filecmp
 import os
 
 import numpy as np
@@ -1307,3 +1308,36 @@ class TestDataFrameToCSV:
         expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_comment_writer_tabs(self, salaries_table, salaries_table_comments_tsv, datapath):
+        comment = "#"
+        test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
+        with tm.ensure_clean() as path:
+            # Check commented table can be read and matches non-commented version
+            tm.assert_frame_equal(salaries_table, salaries_table_comments_tsv)
+            salaries_table.attrs = test_attrs
+            # Check frames still match
+            tm.assert_frame_equal(salaries_table, salaries_table_comments_tsv)
+
+            # Write comments on uncommented table then validate
+            salaries_table.to_csv(path, sep="\t", comment=comment, index=False)
+
+            assert filecmp.cmp(
+                path,
+                datapath("io", "parser", "data", "salaries_comments.tsv"),
+                shallow=False,
+            ), "Generated tsv file with comments does not match expectation"
+
+
+    def test_comment_writer_commas(self, salaries_table, datapath): 
+        comment = "#"
+        test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
+        with tm.ensure_clean() as path:
+            salaries_table.attrs = test_attrs
+            salaries_table.to_csv(path, comment=comment, index=False)
+
+            assert filecmp.cmp(
+                path,
+                datapath("io", "parser", "data", "salaries_comments.csv"),
+                shallow=False
+            ), "Generated csv file does not match expectations. Were commas sanitized?"

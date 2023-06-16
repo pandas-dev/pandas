@@ -7,6 +7,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.io.parsers import read_csv
 
 
 @pytest.fixture
@@ -258,4 +259,16 @@ def frame_of_index_cols():
             ("tuple", "as", "label"): np.random.randn(5),
         }
     )
+    return df
+
+
+@pytest.fixture
+def comments_attrs():
+    return {"one": "Hello", "two": "Hello World", "three": "Hello, World!"}
+
+
+@pytest.fixture
+def frame_for_comments(comments_attrs):
+    df = DataFrame(np.zeros((5, 5)))
+    df.attrs = comments_attrs
     return df

@@ -325,8 +325,7 @@ class CSVFormatter:
 
     def _save_df_attrs(self) -> None:
         for key, value in self.fmt.frame.attrs.items():
-            # If output delim is a comma, those must be sanitized from the output string
-            if self.writer.dialect.delimiter == ",":
-                key = key.replace(",", "")
-                value = value.replace(",", "")
+            # remove the delimiter from the attr string values as to not break downstream reading
+            key.replace(self.writer.dialect.delimiter, "")
+            value = value.replace(self.writer.dialect.delimiter, "")
             self.writer.writerow([f"{self.comment}{key}:{value}"])
