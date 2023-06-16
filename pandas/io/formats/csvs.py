@@ -263,7 +263,7 @@ class CSVFormatter:
 
     def _save(self) -> None:
         if self.comment:
-            self._save_comment_lines()
+            self._save_df_attrs()
         if self._need_to_save_header:
             self._save_header()
         self._save_body()
@@ -323,8 +323,6 @@ class CSVFormatter:
             self.writer,
         )
 
-    def _save_comment_lines(self) -> None:
-        print("test show fmt stuff")
-        print(self.fmt.frame.attrs)
+    def _save_df_attrs(self) -> None:
         for key, value in self.fmt.frame.attrs.items():
             self.writer.writerow([f"{self.comment}{key}:{value}"])
