@@ -108,7 +108,7 @@ E-mail:
 #### Casting Votes
 
 As the voting period starts, a VOTE issue is created which links to the PDEP discussion pull request.
-Each voting member may cast a vote by adding one of the following comments:
+Each voting member, including the author(s) may cast a vote by adding one of the following comments:
 
 - +1: approve.
 - 0: abstain.
@@ -116,6 +116,8 @@ Each voting member may cast a vote by adding one of the following comments:
 - -1: disapprove
   - Reason: A one sentence reason is required.
 A disapprove vote requires prior participation in the PDEP discussion issue.
+
+Comments made on the public VOTE issue by non-voting members will be deleted.
 
 Once the voting period ends, any voter may tally the votes in a comment, using the format: x-y-z,
 where x stands for the total of approving, y of abstaining, and z of disapproving votes cast.
@@ -136,6 +138,9 @@ Thus, abstaining votes count towards a quorum, but not towards a majority. A vot
 choose to abstain when they have participated in the discussion, have some objections to the
 proposal, but do not wish to stop the proposal from moving forward, nor indicate their full
 support.
+
+If a quorum was not reached by the end of the voting period, the PDEP is not accepted. Its status
+will change to rejected.
 
 #### Accepted PDEP
 
@@ -165,6 +170,11 @@ there is visibility on what was discussed and what was the outcome of the
 discussion. A PDEP can be rejected for different reasons, for example good ideas
 that are not backward-compatible, and the breaking changes are not considered worth
 implementing.
+
+The author(s) may choose to resubmit a rejected PDEP. We expect authors to use their judgement in
+that case, as to whether they believe more discussion, or an amended proposal has the potential to
+lead to a diffrent result. A new PDEP is then created, which includes a link to the previously
+rejected PDEP.
 
 #### Invalid PDEP
 
