@@ -325,7 +325,7 @@ class CSVFormatter:
 
     def _save_df_attrs(self) -> None:
         for key, value in self.fmt.frame.attrs.items():
-            # remove the delimiter from the attr string values as to not break downstream reading
+            # remove the delimiter from the attr string values
             key.replace(self.writer.dialect.delimiter, "")
             value = value.replace(self.writer.dialect.delimiter, "")
             self.writer.writerow([f"{self.comment}{key}:{value}"])

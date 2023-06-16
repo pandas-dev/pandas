@@ -1,5 +1,4 @@
 import csv
-import filecmp
 from io import StringIO
 import os
 
@@ -1309,36 +1308,65 @@ class TestDataFrameToCSV:
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
-    def test_comment_writer_tabs(
-        self, salaries_table, salaries_table_comments_tsv, datapath
+    def prepate_string_rep_of_comment_output(
+        self, delim: str, comments_attrs, data_for_comments_raw, frame_for_comments
+    ) -> str:
+        comment = "#"
+
+        data_for_comments_raw = data_for_comments_raw.replace(",", delim)
+        # Create string representation of data with attrs written at start
+        output_data = []
+        for k, v in comments_attrs.items():
+            # Make sure delims being used are sanitized from comment lines
+            k = k.replace(delim, "")
+            v = v.replace(delim, "")
+            output_data.append(f"{comment}{k}:{v}\n")
+        output_data = "".join(output_data)
+        output_data = output_data + data_for_comments_raw
+        return output_data
+
+    # TODO MAYBE MAKE THIS A MATRIX OF PARAMS
+    def test_comment_writer_csv(
+        self, comments_attrs, data_for_comments_raw, frame_for_comments
     ):
         comment = "#"
-        test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
+        delim = ","
+        output_data = self.prepate_string_rep_of_comment_output(
+            delim, comments_attrs, data_for_comments_raw, frame_for_comments
+        )
+        read_output = read_csv(StringIO(output_data), comment=comment)
+
+        # Check output data can be read correctly
+        tm.assert_frame_equal(
+            read_output, frame_for_comments
+        ), "Frame read from test data did not match expected results."
+
+        # Check saved output is as expected
         with tm.ensure_clean() as path:
-            # Check commented table can be read and matches non-commented version
-            tm.assert_frame_equal(salaries_table, salaries_table_comments_tsv)
-            salaries_table.attrs = test_attrs
-            # Check frames still match
-            tm.assert_frame_equal(salaries_table, salaries_table_comments_tsv)
+            frame_for_comments.to_csv(path, comment=comment, index=False)
+            with open(path) as fp:
+                lines = fp.read()
+                assert (
+                    lines == output_data
+                ), "csv output with comment lines not as expected"
 
-            # Write comments on uncommented table then validate
-            salaries_table.to_csv(path, sep="\t", comment=comment, index=False)
-
-            assert filecmp.cmp(
-                path,
-                datapath("io", "parser", "data", "salaries_comments.tsv"),
-                shallow=False,
-            ), "Generated tsv file with comments does not match expectation"
-
-    def test_comment_writer_commas(self, salaries_table, datapath):
+    def test_comment_writer_tabs(
+        self, comments_attrs, data_for_comments_raw, frame_for_comments
+    ):
         comment = "#"
-        test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
-        with tm.ensure_clean() as path:
-            salaries_table.attrs = test_attrs
-            salaries_table.to_csv(path, comment=comment, index=False)
+        delim = "\t"
+        output_data = self.prepate_string_rep_of_comment_output(
+            delim, comments_attrs, data_for_comments_raw, frame_for_comments
+        )
+        read_output = read_csv(StringIO(output_data), comment=comment, sep="\t")
 
-            assert filecmp.cmp(
-                path,
-                datapath("io", "parser", "data", "salaries_comments.csv"),
-                shallow=False,
-            ), "Generated csv file does not match expectations. Were commas sanitized?"
+        tm.assert_frame_equal(
+            read_output, frame_for_comments
+        ), "Read tab outputs are not as expected"
+        with tm.ensure_clean() as path:
+            frame_for_comments.to_csv(path, comment=comment, index=False, sep="\t")
+            with open(path) as fp:
+                lines = fp.read()
+                assert (
+                    lines == output_data
+                ), "tsv output with comment lines not as expected"
