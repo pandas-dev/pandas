@@ -272,7 +272,6 @@ def comments_attrs():
 @pytest.fixture
 def data_for_comments_raw():
     data = "col1,col2,col3\n0,0,0\n1,1,1\n2,2,2\n"
-
     return data
 
 
