@@ -197,6 +197,7 @@ class BaseBlockManager(DataManager):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
+            # TODO shallow copy remaining axis?
             axes = [Index([])] + self.axes[1:]
 
         # preserve dtype if possible
@@ -355,6 +356,7 @@ class BaseBlockManager(DataManager):
                 applied = getattr(b, f)(**kwargs)
             result_blocks = extend_blocks(applied, result_blocks)
 
+        # TODO shallow copy axes (in from_blocks or here?)
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
@@ -575,6 +577,7 @@ class BaseBlockManager(DataManager):
             # Avoid somewhat expensive _combine
             if copy:
                 return self.copy(deep=True)
+            # TODO(CoW) need to return a shallow copy here?
             return self
         return self._combine(numeric_blocks, copy)
 
@@ -606,6 +609,7 @@ class BaseBlockManager(DataManager):
             new_blocks.append(nb)
 
         axes = list(self.axes)
+        # TODO shallow copy of axes?
         if index is not None:
             axes[-1] = index
         axes[0] = self.items.take(indexer)
@@ -647,7 +651,10 @@ class BaseBlockManager(DataManager):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            new_axes = list(self.axes)
+            if using_copy_on_write():
+                new_axes = [ax.view() for ax in self.axes]
+            else:
+                new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -674,6 +681,7 @@ class BaseBlockManager(DataManager):
         if self.is_consolidated():
             return self
 
+        # TODO shallow copy is not needed here?
         bm = type(self)(self.blocks, self.axes, verify_integrity=False)
         bm._is_consolidated = False
         bm._consolidate_inplace()
@@ -718,6 +726,7 @@ class BaseBlockManager(DataManager):
 
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
+                # TODO(CoW) need to handle CoW?
                 return self
 
             result = self.copy(deep=copy)
@@ -756,6 +765,8 @@ class BaseBlockManager(DataManager):
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
+        if self.ndim == 2 and using_copy_on_write():
+            new_axes[1 - axis] = self.axes[1 - axis]._view()
 
         new_mgr = type(self).from_blocks(new_blocks, new_axes)
         if axis == 1:
@@ -1034,6 +1045,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 ndim=1,
                 refs=self.blocks[0].refs,
             )
+            # TODO shallow copy columns
             return SingleBlockManager(block, self.axes[0])
 
         dtype = interleaved_dtype([blk.dtype for blk in self.blocks])
@@ -1067,6 +1079,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
+        # TODO shallow copy columns
         return SingleBlockManager(block, self.axes[0])
 
     def iget(self, i: int, track_ref: bool = True) -> SingleBlockManager:
@@ -1081,6 +1094,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = type(block)(
             values, placement=bp, ndim=1, refs=block.refs if track_ref else None
         )
+        # TODO shallow copy index? (might already be done where this gets called)
         return SingleBlockManager(nb, self.axes[1])
 
     def iget_values(self, i: int) -> ArrayLike:
@@ -1479,6 +1493,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
         new_columns = self.items[~is_deleted]
+        # TODO shallow copy index?
         axes = [new_columns, self.axes[1]]
         return type(self)(tuple(nbs), axes, verify_integrity=False)
 
@@ -1516,6 +1531,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nrows = result_blocks[0].values.shape[-1]
         index = Index(range(nrows))
 
+        # TODO shallow copy columns?
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
     def reduce(self, func: Callable) -> Self:
@@ -1539,6 +1555,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             res_blocks.extend(nbs)
 
         index = Index([None])  # placeholder
+        # TODO shallow copy self.items
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
@@ -1585,6 +1602,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         assert is_list_like(qs)  # caller is responsible for this
         assert axis == 1  # only ever called this way
 
+        # TODO shallow copy axes
         new_axes = list(self.axes)
         new_axes[1] = Index(qs, dtype=np.float64)
 
@@ -1873,6 +1891,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
             offset += len(mgr.items)
 
+        # TODO relevant axis already shallow-copied at caller?
         new_mgr = cls(tuple(blocks), axes)
         return new_mgr
 
@@ -1942,6 +1961,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         arr = ensure_block_shape(blk.values, ndim=2)
         bp = BlockPlacement(0)
         new_blk = type(blk)(arr, placement=bp, ndim=2, refs=blk.refs)
+        # TODO shallow copy index
         axes = [columns, self.axes[0]]
         return BlockManager([new_blk], axes=axes, verify_integrity=False)
 

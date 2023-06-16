@@ -760,7 +760,9 @@ class ArrayManager(BaseArrayManager):
             result = np.array(values, dtype=dtype)
         return SingleArrayManager([result], [self._axes[1]])
 
-    def get_slice(self, slobj: slice, axis: AxisInt = 0) -> ArrayManager:
+    def get_slice(
+        self, slobj: slice, axis: AxisInt = 0, using_cow: bool = False
+    ) -> ArrayManager:
         axis = self._normalize_axis(axis)
 
         if axis == 0:

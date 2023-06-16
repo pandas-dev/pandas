@@ -28,6 +28,9 @@ def test_copy(using_copy_on_write):
         assert not df_copy._mgr.blocks[0].refs.has_reference()
         assert not df_copy._mgr.blocks[1].refs.has_reference()
 
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+
     # mutating copy doesn't mutate original
     df_copy.iloc[0, 0] = 0
     assert df.iloc[0, 0] == 1
@@ -36,6 +39,13 @@ def test_copy(using_copy_on_write):
 def test_copy_shallow(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
+
+    if using_copy_on_write:
+        assert df_copy.index is not df.index
+        assert df_copy.columns is not df.columns
+    else:
+        assert df_copy.index is df.index
+        assert df_copy.columns is df.columns
 
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
