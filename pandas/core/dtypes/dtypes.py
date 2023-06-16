@@ -61,6 +61,8 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
+import pandas as pd
+
 if not pa_version_under7p0:
     import pyarrow as pa
 
@@ -2214,10 +2216,13 @@ class ArrowDtype(StorageExtensionDtype):
         # Mirrors BaseMaskedDtype
         from pandas.core.dtypes.cast import find_common_type
 
+        null_dtype = pd.ArrowDtype(pa.null())
+
         new_dtype = find_common_type(
             [
                 dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
                 for dtype in dtypes
+                if dtype != null_dtype
             ]
         )
         if not isinstance(new_dtype, np.dtype):
