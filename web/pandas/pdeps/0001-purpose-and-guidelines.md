@@ -175,7 +175,7 @@ implementing.
 
 The author(s) may choose to resubmit a rejected PDEP. We expect authors to use their judgement in
 that case, as to whether they believe more discussion, or an amended proposal has the potential to
-lead to a diffrent result. A new PDEP is then created, which includes a link to the previously
+lead to a different result. A new PDEP is then created, which includes a link to the previously
 rejected PDEP.
 
 #### Invalid PDEP
