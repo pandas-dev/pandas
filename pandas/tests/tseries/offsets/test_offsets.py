@@ -1080,7 +1080,14 @@ def test_dateoffset_add_sub_timestamp_series_with_nano(offset, expected):
 
 @pytest.mark.parametrize(
     "n_months, scaling_factor, start_timestamp, expected_timestamp",
-    [(1, 2, "2020-01-30", "2020-03-30"), (2, 1, "2020-01-30", "2020-03-30")],
+    [
+        (1, 2, "2020-01-30", "2020-03-30"),
+        (2, 1, "2020-01-30", "2020-03-30"),
+        (1, 0, "2020-01-30", "2020-01-30"),
+        (2, 0, "2020-01-30", "2020-01-30"),
+        (1, -1, "2020-01-30", "2019-12-30"),
+        (2, -1, "2020-01-30", "2019-11-30"),
+    ],
 )
 def test_offset_multiplication(
     n_months, scaling_factor, start_timestamp, expected_timestamp
