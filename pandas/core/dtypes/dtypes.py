@@ -955,7 +955,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         return self._freq
 
     @classmethod
-    def _parse_dtype_strict(cls, freq: str_type, is_period=None) -> BaseOffset:
+    def _parse_dtype_strict(cls, freq: str_type) -> BaseOffset:
         if isinstance(freq, str):  # note: freq is already of type str!
             if freq.startswith(("Period[", "period[")):
                 m = cls._match.search(freq)

@@ -67,8 +67,6 @@ def maybe_resample(series: Series, ax: Axes, kwargs):
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
-            if ax_freq == "M":
-                ax_freq = "ME"
             series = series.copy()
             # error: "Index" has no attribute "asfreq"
             series.index = series.index.asfreq(  # type: ignore[attr-defined]
@@ -203,7 +201,7 @@ def _get_freq(ax: Axes, series: Series):
     freq = getattr(series.index, "freq", None)
     if freq is None:
         freq = getattr(series.index, "inferred_freq", None)
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
 
     ax_freq = _get_ax_freq(ax)
 

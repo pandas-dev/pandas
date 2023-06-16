@@ -744,7 +744,6 @@ class TestTSPlot(TestPlotBase):
         x2 = lines[1].get_xdata()
         tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
-    @pytest.mark.xfail
     def test_mixed_freq_hf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -769,7 +768,6 @@ class TestTSPlot(TestPlotBase):
 
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
-    @pytest.mark.xfail
     def test_mixed_freq_lf_first(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -846,7 +844,6 @@ class TestTSPlot(TestPlotBase):
         assert s.index.min() <= Series(xdata).min()
         assert Series(xdata).max() <= s.index.max()
 
-    @pytest.mark.xfail
     def test_to_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -858,7 +855,6 @@ class TestTSPlot(TestPlotBase):
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
 
-    @pytest.mark.xfail
     def test_from_weekly_resampling(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -882,7 +878,6 @@ class TestTSPlot(TestPlotBase):
                 tm.assert_numpy_array_equal(xdata, expected_h)
         tm.close()
 
-    @pytest.mark.xfail
     def test_from_resampling_area_line_mixed(self):
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="ME")
@@ -1105,7 +1100,6 @@ class TestTSPlot(TestPlotBase):
                     xp = time(h, m, s, us).strftime("%H:%M")
                 assert xp == rs
 
-    @pytest.mark.xfail
     def test_secondary_upsample(self):
         idxh = date_range("1/1/1999", periods=365, freq="D")
         idxl = date_range("1/1/1999", periods=12, freq="ME")

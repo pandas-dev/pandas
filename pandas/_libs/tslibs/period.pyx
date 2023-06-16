@@ -1923,7 +1923,8 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency.
+            The desired frequency. If passing a `str`, it needs to be a
+            valid :ref:`period alias <timeseries.period_aliases>`.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.
 
@@ -1946,7 +1947,7 @@ cdef class _Period(PeriodMixin):
 
         return Period(ordinal=ordinal, freq=freq)
 
-    def to_timestamp(self, freq=None, is_period=None, how="start") -> Timestamp:
+    def to_timestamp(self, freq=None, how="start") -> Timestamp:
         """
         Return the Timestamp representation of the Period.
 
@@ -2768,7 +2769,7 @@ class Period(_Period):
                 if match:
                     # Case that cannot be parsed (correctly) by our datetime
                     #  parsing logic
-                    dt, freq = _parse_weekly_str(value, freq, is_period=True)
+                    dt, freq = _parse_weekly_str(value, freq)
                 else:
                     raise err
 
@@ -2845,7 +2846,7 @@ def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
     return how
 
 
-cdef _parse_weekly_str(value, BaseOffset freq, bint is_period):
+cdef _parse_weekly_str(value, BaseOffset freq):
     """
     Parse e.g. "2017-01-23/2017-01-29", which cannot be parsed by the general
     datetime-parsing logic.  This ensures that we can round-trip with
@@ -2864,7 +2865,7 @@ cdef _parse_weekly_str(value, BaseOffset freq, bint is_period):
     if freq is None:
         day_name = end.day_name()[:3].upper()
         freqstr = f"W-{day_name}"
-        freq = to_offset(freqstr, is_period)
+        freq = to_offset(freqstr, is_period=True)
         # We _should_ have freq.is_on_offset(end)
 
     return end, freq

@@ -57,15 +57,15 @@ if TYPE_CHECKING:
 
 _offset_to_period_map = {
     "WEEKDAY": "D",
-    "EOM": "ME",
-    "BM": "ME",
+    "EOM": "M",
+    "BM": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQ": "Q",
     "BA": "A",
     "AS": "A",
     "BAS": "A",
-    "MS": "ME",
+    "MS": "M",
     "D": "D",
     "B": "B",
     "T": "T",
@@ -77,7 +77,7 @@ _offset_to_period_map = {
     "Q": "Q",
     "A": "A",
     "W": "W",
-    "ME": "ME",
+    "ME": "M",
     "Y": "A",
     "BY": "A",
     "YS": "A",
@@ -543,9 +543,9 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
     elif _is_monthly(source):
         return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
     elif _is_weekly(source):
@@ -609,7 +609,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule in ("ME", "BM")
+    return rule in ("M", "BM")
 
 
 def _is_weekly(rule: str) -> bool:
