@@ -37,9 +37,9 @@ def salaries_table(datapath):
 
 
 @pytest.fixture
-def salaries_table_comments(datapath):
+def salaries_table_comments_tsv(datapath):
     return read_csv(
-        datapath("io", "parser", "data", "salaries_comments.csv"), sep="\t", comment="#"
+        datapath("io", "parser", "data", "salaries_comments.tsv"), sep="\t", comment="#"
     )
 
 
