@@ -99,8 +99,8 @@ E-mail:
 - Once a PDEP is ready for discussion.
 - After 30 discussion days, with 30 days remaining for discussion.
 - After 45 discussion days, with 15 days remaining for discussion.
-- In case 15 days passed without any new comments, the authors may close the discussion period preemptively, 
-  and open the voting period.
+- In case 15 days passed without any new comments, the authors may close the discussion period
+  preemptively, and open the voting period.
 - Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
   remaining for voting.
 - After 10 voting days, with 5 days remaining for voting.
@@ -119,8 +119,10 @@ A disapprove vote requires prior participation in the PDEP discussion issue.
 
 Comments made on the public VOTE issue by non-voting members will be deleted.
 
-Once the voting period ends, any voter may tally the votes in a comment, using the format: x-y-z,
-where x stands for the total of approving, y of abstaining, and z of disapproving votes cast.
+Once the voting period ends, any voter may tally the votes in a comment, using the format: w-x-y-z,
+where w stands for the total of approving, x of abstaining, z of disapproving votes cast, and z
+of number of voting members who did not respond to the VOTE issue. The tally of the votes will state
+if a quorum has been reached or not.
 
 #### Quorum and Majority
 
