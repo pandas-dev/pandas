@@ -7,7 +7,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.io.parsers import read_csv
 
 
 @pytest.fixture

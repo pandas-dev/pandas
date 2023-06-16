@@ -1,6 +1,6 @@
 import csv
-from io import StringIO
 import filecmp
+from io import StringIO
 import os
 
 import numpy as np
@@ -1309,7 +1309,9 @@ class TestDataFrameToCSV:
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
-    def test_comment_writer_tabs(self, salaries_table, salaries_table_comments_tsv, datapath):
+    def test_comment_writer_tabs(
+        self, salaries_table, salaries_table_comments_tsv, datapath
+    ):
         comment = "#"
         test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
         with tm.ensure_clean() as path:
@@ -1328,8 +1330,7 @@ class TestDataFrameToCSV:
                 shallow=False,
             ), "Generated tsv file with comments does not match expectation"
 
-
-    def test_comment_writer_commas(self, salaries_table, datapath): 
+    def test_comment_writer_commas(self, salaries_table, datapath):
         comment = "#"
         test_attrs = {"one": "line one", "two": "line 2", "three": "Hello, World!"}
         with tm.ensure_clean() as path:
@@ -1339,5 +1340,5 @@ class TestDataFrameToCSV:
             assert filecmp.cmp(
                 path,
                 datapath("io", "parser", "data", "salaries_comments.csv"),
-                shallow=False
+                shallow=False,
             ), "Generated csv file does not match expectations. Were commas sanitized?"
