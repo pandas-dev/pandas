@@ -186,7 +186,8 @@ cdef bint is_decimal_na(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
+cpdef object isnaobj(ndarray arr, bint inf_as_na=False,
+                     bint check_for_any_na=False):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -201,15 +202,19 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
     Parameters
     ----------
     arr : ndarray
-
+    inf_as_na : boolean
+       Treat inf as NA-like
+    check_for_any_na : boolean
+       If true, the return value of this function
     Returns
     -------
-    result : ndarray (dtype=np.bool_)
+    result : ndarray (dtype=np.bool_) or tuple of boolean ndarray and a bool
     """
     cdef:
         Py_ssize_t i, n = arr.size
         object val
         bint is_null
+        bint any_na = 0
         ndarray result = np.empty((<object>arr).shape, dtype=np.uint8)
         flatiter it = cnp.PyArray_IterNew(arr)
         flatiter it2 = cnp.PyArray_IterNew(result)
@@ -222,7 +227,11 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         is_null = checknull(val, inf_as_na=inf_as_na)
         # Dereference pointer (set value)
         (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
+        if not any_na and is_null:
+            any_na = 1
         cnp.PyArray_ITER_NEXT(it2)
+    if check_for_any_na:
+        return (result.view(np.bool_), bool(any_na))
     return result.view(np.bool_)
 
 

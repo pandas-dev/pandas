@@ -4,6 +4,7 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
 import numpy as np
 import pytest
+from stringdtype import PandasStringDType
 
 import pandas.util._test_decorators as td
 
@@ -228,7 +229,6 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     if op_name not in ["__eq__", "__ne__"]:
         with pytest.raises(TypeError, match="not supported between"):
             getattr(a, op_name)(other)
-
         return
 
     result = getattr(a, op_name)(other)
@@ -258,7 +258,7 @@ def test_comparison_methods_array(comparison_op, dtype):
 
 
 def test_constructor_raises(cls):
-    if cls is pd.arrays.StringArray:
+    if issubclass(cls, pd.core.arrays.string_.BaseNumpyStringArray):
         msg = "StringArray requires a sequence of strings or pandas.NA"
     else:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
@@ -537,7 +537,11 @@ def test_astype_from_float_dtype(float_dtype, dtype):
 def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
-    expected = np.array(["a", pd.NA, "b"], dtype=object)
+    if dtype.storage == "numpy":
+        res_dtype = PandasStringDType()
+    else:
+        res_dtype = object
+    expected = np.array(["a", pd.NA, "b"], dtype=res_dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -545,7 +549,11 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     na_value = nulls_fixture
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = arr.to_numpy(na_value=na_value)
-    expected = np.array(["a", na_value, "b"], dtype=object)
+    if dtype.storage == "numpy":
+        res_dtype = PandasStringDType()
+    else:
+        res_dtype = object
+    expected = np.array(["a", na_value, "b"], dtype=res_dtype)
     tm.assert_numpy_array_equal(result, expected)
 
 

@@ -359,7 +359,7 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         if type is None:
             type = pa.string()
 
-        values = self._ndarray.copy()
+        values = self._ndarray.astype("object").copy()
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
@@ -511,18 +511,28 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
-            other = np.asarray(other)
+            other = np.asarray(other, dtype=self._ndarray.dtype)
             other = other[valid]
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
-            result = np.empty_like(self._ndarray, dtype="object")
+            result = np.empty_like(self._ndarray)
             result[mask] = libmissing.NA
             result[valid] = op(self._ndarray[valid], other)
-            return StringArray(result)
+            return type(self)(result)
         else:
             # logical
             result = np.zeros(len(self._ndarray), dtype="bool")
-            result[valid] = op(self._ndarray[valid], other)
+            try:
+                result[valid] = op(self._ndarray[valid], other)
+            except np.core._exceptions._UFuncNoLoopError:
+                if hasattr(other, "_ndarray"):
+                    other_type = other._ndarray.dtype
+                else:
+                    other_type = type(other)
+                raise TypeError(
+                    f"'{op.__name__}' operator not supported between "
+                    f"'{self._ndarray.dtype}' and '{other_type}'"
+                )
             return BooleanArray(result, mask)
 
     _arith_method = _cmp_method
@@ -653,11 +663,22 @@ class NumpyStringArray(BaseNumpyStringArray):
     _na_value = libmissing.NA
     _storage = "numpy"
 
+    def __init__(self, values, copy: bool = False) -> None:
+        from stringdtype import PandasStringDType
+
+        values = np.asarray(values, dtype=PandasStringDType())
+        super().__init__(values, copy=copy)
+
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         from stringdtype import PandasStringDType
 
+        na_mask, any_na = libmissing.isnaobj(np.asarray(scalars), check_for_any_na=True)
+
         result = np.array(scalars, dtype=PandasStringDType)
+
+        if any_na:
+            result[na_mask] = libmissing.NA
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?

@@ -529,6 +529,11 @@ def array_equivalent(
         #  or `in ("O", "S", "U")`
         return _array_equivalent_object(left, right, strict_nan)
 
+    if is_string_or_object_np_dtype(left.dtype) or is_string_or_object_np_dtype(
+        right.dtype
+    ):
+        return _array_equivalent_object(left, right, strict_nan)
+
     # NaNs can occur in float and complex arrays.
     if left.dtype.kind in "fc":
         if not (left.size and right.size):
@@ -676,7 +681,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
         if compat:
             return False
         return np.nan
-    return np.nan
+    return getattr(dtype, "na_object", np.nan)
 
 
 def dtype_supports_na(dtype: np.dtype):
