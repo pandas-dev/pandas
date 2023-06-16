@@ -1136,12 +1136,14 @@ def test_negative_dates():
         ts.date()
 
     msg = (
-        "isocalendar not yet supported on Timestamps which "
+        " not yet supported on Timestamps which "
         "are outside the range of Python's standard library. "
     )
-    with pytest.raises(NotImplementedError, match=msg):
+    func = "^isocalendar"
+    with pytest.raises(NotImplementedError, match=func + msg):
         ts.isocalendar()
-    with pytest.raises(NotImplementedError, match=msg):
+    func = "^isoweekday"
+    with pytest.raises(NotImplementedError, match=func + msg):
         ts.isoweekday()
 
     with pytest.raises(pytz.NonExistentTimeError, match="-2000-01-01 00:00:00"):

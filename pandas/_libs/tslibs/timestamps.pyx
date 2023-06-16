@@ -2465,7 +2465,7 @@ default 'raise'
                            self.microsecond, self.tzinfo, fold=self.fold)
         except ValueError as err:
             raise NotImplementedError(
-                "isocalendar not yet supported on Timestamps which "
+                "isoweekday not yet supported on Timestamps which "
                 "are outside the range of Python's standard library. "
             ) from err
         return _dt.weekday() + 1
