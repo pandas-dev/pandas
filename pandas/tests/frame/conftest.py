@@ -1,3 +1,5 @@
+from io import StringIO
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ from pandas import (
     DataFrame,
     NaT,
     date_range,
+    read_csv,
 )
 import pandas._testing as tm
 
@@ -267,7 +270,14 @@ def comments_attrs():
 
 
 @pytest.fixture
-def frame_for_comments(comments_attrs):
-    df = DataFrame(np.zeros((5, 5)))
+def data_for_comments_raw():
+    data = "col1,col2,col3\n0,0,0\n1,1,1\n2,2,2\n"
+
+    return data
+
+
+@pytest.fixture
+def frame_for_comments(data_for_comments_raw, comments_attrs):
+    df = read_csv(StringIO(data_for_comments_raw))
     df.attrs = comments_attrs
     return df
