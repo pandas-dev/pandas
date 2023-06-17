@@ -157,8 +157,8 @@ usecols : list-like or callable, optional
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
 dtype : Type name or dict of column -> type, optional
-    Data type for data or columns. E.g., ``{'a': np.float64, 'b': np.int32,
-    'c': 'Int64'}``
+    Data type for data or columns. E.g., ``{{'a': np.float64, 'b': np.int32,
+    'c': 'Int64'}}``
     Use ``str`` or ``object`` together with suitable ``na_values`` settings
     to preserve and not interpret ``dtype``.
     If ``converters`` are specified, they will be applied INSTEAD
@@ -236,7 +236,7 @@ default False
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as
       a single date column.
-    * ``dict``, e.g. ``{'foo' : [1, 3]}`` -> parse columns 1, 3 as date and call
+    * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
       result 'foo'
 
     If a column or index cannot be represented as an array of ``datetime``,
