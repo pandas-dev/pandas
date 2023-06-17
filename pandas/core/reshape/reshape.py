@@ -28,13 +28,17 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.algorithms import unique
+from pandas.core.algorithms import (
+    factorize,
+    unique,
+)
 from pandas.core.arrays.categorical import factorize_from_iterable
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    RangeIndex,
 )
 from pandas.core.series import Series
 from pandas.core.sorting import (
@@ -882,10 +886,9 @@ def _reorder_for_extension_array_stack(
     return arr.take(idx)
 
 
-def new_stack(df, levels):
-    stack_cols = (
-        df.columns
-        ._drop_level_numbers([k for k in range(df.columns.nlevels) if k not in levels][::-1])
+def new_stack(df, levels, sort: bool = True):
+    stack_cols = df.columns._drop_level_numbers(
+        [k for k in range(df.columns.nlevels) if k not in levels][::-1]
     )
     _, taker = np.unique(levels, return_inverse=True)
     if len(levels) > 1:
@@ -901,14 +904,13 @@ def new_stack(df, levels):
         # Take the data from df corresponding to this idx value
         gen = iter(idx)
         column_indexer = tuple(
-            next(gen) if k in levels else slice(None)
-            for k in range(df.columns.nlevels)
+            next(gen) if k in levels else slice(None) for k in range(df.columns.nlevels)
         )
         if len(df.columns) == 1:
             # TODO: Are there other cases that cause issues; e.g. one column?
-            data = df
+            data = df.copy()
         else:
-            data = df.loc[:, column_indexer]
+            data = df.loc[:, column_indexer].copy()
 
         # When len(levels) == df.columns.nlevels, we're stacking all columns
         # and end up with a Series
@@ -916,22 +918,28 @@ def new_stack(df, levels):
             levnums = sorted(levels)[::-1]
             data.columns = data.columns._drop_level_numbers(levnums)
         elif stack_cols.nlevels == 1:
-            from pandas.core.indexes.range import RangeIndex
-            data.columns = RangeIndex(0, 1)
+            if data.ndim == 2:
+                data.columns = RangeIndex(len(data.columns))
+            else:
+                data = data.rename(0)
 
         buf.append(data)
 
+    if len(buf) == 0:
+        return df
+
     from pandas.core.reshape.concat import concat
+
     result = concat(buf)
+    if len(levels) < df.columns.nlevels:
+        result = result[df.columns._drop_level_numbers(sorted(levels)[::-1]).unique()]
 
     # Construct the correct MultiIndex by combining the input's index and
     # stacked columns.
     if isinstance(df.index, MultiIndex):
         index_levels = [level.unique() for level in df.index.levels]
     else:
-        index_levels = [
-            df.index.get_level_values(k).values for k in range(df.index.nlevels)
-        ]
+        index_levels = [df.index.unique()]
     if isinstance(stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
     else:
@@ -941,13 +949,21 @@ def new_stack(df, levels):
         ]
     if isinstance(df.index, MultiIndex):
         index_codes = np.tile(df.index.codes, (1, len(result) // len(df)))
-    else:
+    elif isinstance(df.index, RangeIndex):
         index_codes = np.tile(np.arange(len(df)), (1, len(result) // len(df)))
-    index_codes = [e for e in index_codes]
+    else:
+        codes = factorize(df.index)[0]
+        index_codes = np.tile(codes, (1, len(result) // len(df)))
+    index_codes = list(index_codes)
     if isinstance(stack_cols, MultiIndex):
         column_codes = ordered_stack_cols.drop_duplicates().codes
+    elif isinstance(stack_cols, RangeIndex):
+        column_codes = [np.arange(len(stack_cols))]
     else:
-        column_codes = [np.arange(stack_cols.nunique())]
+        # TODO: use_na_sentinel?
+        column_codes = [
+            factorize(ordered_stack_cols.unique(), use_na_sentinel=False)[0]
+        ]
     column_codes = [np.repeat(codes, len(df)) for codes in column_codes]
     index_names = df.index.names
     column_names = list(ordered_stack_cols.names)
@@ -960,10 +976,11 @@ def new_stack(df, levels):
     # sort result, but faster than calling sort_index since we know the order we need
     len_df = len(df)
     n_uniques = len(ordered_stack_cols.unique())
-    idxs = (
-        np.tile(len_df * np.arange(n_uniques), len_df)
-        + np.repeat(np.arange(len_df), n_uniques)
-    )
+    if sort:
+        indexer = np.argsort(stack_cols.unique().to_numpy(), kind="stable")
+    else:
+        indexer = np.arange(n_uniques)
+    idxs = np.tile(len_df * indexer, len_df) + np.repeat(np.arange(len_df), n_uniques)
     result = result.take(idxs)
 
     return result

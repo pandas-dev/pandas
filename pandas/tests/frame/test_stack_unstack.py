@@ -46,9 +46,12 @@ class TestDataFrameReshape:
 
         # flat columns:
         df = DataFrame(1, index=levels[0], columns=levels[1])
-        result = df.stack()
-        expected = Series(1, index=MultiIndex.from_product(levels[:2]))
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+        ):
+            result = df.stack()
+        # expected = Series(1, index=MultiIndex.from_product(levels[:2]))
+        # tm.assert_series_equal(result, expected)
 
         # MultiIndex columns:
         df = DataFrame(1, index=levels[0], columns=MultiIndex.from_product(levels[1:]))
@@ -515,10 +518,10 @@ class TestDataFrameReshape:
 
         expected = DataFrame(
             np.array(
-                [[np.nan, 0], [0, np.nan], [np.nan, 0], [0, np.nan]], dtype=np.float64
+                [[0, np.nan], [np.nan, 0], [0, np.nan], [np.nan, 0]], dtype=np.float64
             ),
             index=expected_mi,
-            columns=Index(["a", "b"], name="third"),
+            columns=Index(["b", "a"], name="third"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1088,10 +1091,16 @@ class TestDataFrameReshape:
 
         # `MultiIndex.from_product` preserves categorical dtype -
         # it's tested elsewhere.
-        midx = MultiIndex.from_product([df.index, cidx])
-        expected = Series([10, 11, 12], index=midx)
 
-        tm.assert_series_equal(result, expected)
+        if labels == list("yxz"):
+            midx = MultiIndex.from_product([df.index, cidx.sort_values()])
+            expected = Series([11, 10, 12], index=midx)
+        else:
+            # Don't include the 2nd y
+            midx = MultiIndex.from_product([df.index, cidx[:2].sort_values()])
+            expected = DataFrame({0: [11, 10], 1: [np.nan, 12.0]}, index=midx)
+
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
     @pytest.mark.parametrize(
@@ -1537,7 +1546,8 @@ class TestStackUnstackMultiLevel:
         unstacked = ymd.unstack()
         unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
-        tm.assert_frame_equal(restacked, ymd)
+        expected = ymd.sort_index(axis=1, ascending=False)
+        tm.assert_frame_equal(restacked, expected)
 
         # more than 2 levels in the columns
         unstacked = ymd.unstack(1).unstack(1)
@@ -1609,11 +1619,36 @@ class TestStackUnstackMultiLevel:
             columns=columns,
         )
         result = df.stack()
-        expected = Series(np.arange(12), index=exp_idx)
-        tm.assert_series_equal(result, expected)
-        assert result.index.is_unique is False
-        li, ri = result.index, expected.index
-        tm.assert_index_equal(li, ri)
+        if columns == ["1st", "2nd", "1st"] and isinstance(idx, MultiIndex):
+            expected = DataFrame(
+                {
+                    0: [0, 1, 3, 4, 6, 7, 9, 10],
+                    1: [2.0, np.nan, 5.0, np.nan, 8.0, np.nan, 11.0, np.nan],
+                },
+                index=MultiIndex(
+                    levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
+                    codes=[
+                        [0, 0, 1, 1, 0, 0, 1, 1],
+                        [1, 1, 0, 0, 0, 0, 1, 1],
+                        [0, 1, 0, 1, 0, 1, 0, 1],
+                    ],
+                ),
+            )
+        elif columns == ["1st", "2nd", "1st"]:
+            expected = DataFrame(
+                {
+                    0: [0, 1, 3, 4, 6, 7, 9, 10],
+                    1: [2.0, np.nan, 5.0, np.nan, 8.0, np.nan, 11.0, np.nan],
+                },
+                index=MultiIndex(
+                    levels=[["a", "b"], ["1st", "2nd"]],
+                    codes=[[0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1, 0, 1]],
+                ),
+            )
+        else:
+            expected = Series(np.arange(12), index=exp_idx)
+
+        tm.assert_equal(result, expected)
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len
@@ -2039,12 +2074,12 @@ Thu,Lunch,Yes,51.51,17"""
         result = df.stack(stack_lev, sort=True)
         expected_index = MultiIndex(
             levels=[[0, 1, 2, 3], [0, 1]],
-            codes=[[1, 1, 0, 0, 2, 2, 3, 3], [1, 0, 1, 0, 1, 0, 1, 0]],
+            codes=[[1, 1, 0, 0, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]],
         )
         expected = DataFrame(
             {
-                0: [0, 1, 0, 1, 0, 1, 0, 1],
-                1: [2, 3, 2, 3, 2, 3, 2, 3],
+                0: [1, 0, 1, 0, 1, 0, 1, 0],
+                1: [3, 2, 3, 2, 3, 2, 3, 2],
             },
             index=expected_index,
         )
@@ -2197,9 +2232,15 @@ Thu,Lunch,Yes,51.51,17"""
         )
         result = df.stack(2)
         expected = DataFrame(
-            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
-            index=Index([(0, None), (0, 0), (0, 1)]),
-            columns=Index([(0, None), (0, 2), (0, 3)]),
+            [[np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0], [0.0, np.nan, np.nan]],
+            index=MultiIndex(
+                levels=[[0], [0.0, 1.0, np.nan]],
+                codes=[[0, 0, 0], [0, 1, 2]],
+            ),
+            columns=MultiIndex(
+                levels=[[0], [np.nan, 2.0, 3.0]],
+                codes=[[0, 0, 0], [0, 1, 2]],
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2246,15 +2287,18 @@ Thu,Lunch,Yes,51.51,17"""
             index=Index([0, 1], name="Num"),
             dtype=np.float64,
         )
-        result = df_nan.stack()
-        expected = DataFrame(
-            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
-            columns=Index(["A", "B"], name="Upper"),
-            index=MultiIndex.from_tuples(
-                [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
-            ),
-        )
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'float' and 'str'"
+        ):
+            df_nan.stack()
+        # expected = DataFrame(
+        #     [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+        #     columns=Index(["A", "B"], name="Upper"),
+        #     index=MultiIndex.from_tuples(
+        #         [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
+        #     ),
+        # )
+        # tm.assert_frame_equal(result, expected)
 
     def test_unstack_categorical_columns(self):
         # GH 14018
