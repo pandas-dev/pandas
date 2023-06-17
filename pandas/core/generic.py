@@ -229,6 +229,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     size-mutable, labeled data structure
 
     Parameters
+    Parameters
     ----------
     data : BlockManager
     axes : list
@@ -9290,6 +9291,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         first : Select initial periods of time series based on a date offset.
         at_time : Select values at a particular time of the day.
         between_time : Select values between particular times of the day.
+
+        Notes
+        -----
+        .. deprecated:: 2.1.0
+            Please create a mask and filter using `.loc` instead
 
         Examples
         --------
