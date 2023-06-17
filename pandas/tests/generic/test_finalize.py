@@ -432,6 +432,7 @@ def test_finalize_first(data):
     ],
 )
 def test_finalize_last(data):
+    # GH 53710
     deprecated_msg = "last is deprecated"
 
     data.attrs = {"a": 1}
