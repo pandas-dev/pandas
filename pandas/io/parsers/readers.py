@@ -130,7 +130,7 @@ names : array-like, optional
     then you should explicitly pass ``header=0`` to override the column names.
     Duplicates in this list are not allowed.
 index_col : int, str, sequence of int / str, or False, optional, default ``None``
-  Column(s) to use as the row labels of the ``DataFrame``, either given as
+  Column(s) to use as the row labels of the :class:`~pandas.DataFrame`, either given as
   string name or column index. If a sequence of ``int`` / ``str`` is given, a
   ``MultiIndex`` is used.
 
