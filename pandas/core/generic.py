@@ -9313,6 +9313,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
         """
+        warnings.warn(
+            "last is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
