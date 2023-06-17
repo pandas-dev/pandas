@@ -380,7 +380,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
           Only supported when ``engine="python"``
 
 delim_whitespace : bool, default False
-    Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
+    Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
     used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
     is set to ``True``, nothing should be passed in for the ``delimiter``
     parameter.
