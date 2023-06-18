@@ -145,7 +145,7 @@ objects.
    :suppress:
 
    df = df2.loc[:, ["one", "two", "three"]]
-   a = df2.loc[df2.index[:5], ["one", "two"]].fillna(method="pad")
+   a = df2.loc[df2.index[:5], ["one", "two"]].ffill()
    b = df2.loc[df2.index[:5], ["one", "two", "three"]]
 
 .. ipython:: python
@@ -237,7 +237,7 @@ can propagate non-NA values forward or backward:
 .. ipython:: python
 
    df
-   df.fillna(method="pad")
+   df.ffill()
 
 .. _missing_data.fillna.limit:
 
@@ -254,7 +254,7 @@ we can use the ``limit`` keyword:
 .. ipython:: python
 
    df
-   df.fillna(method="pad", limit=1)
+   df.ffill(limit=1)
 
 To remind you, these are the available filling methods:
 
@@ -550,13 +550,6 @@ For a DataFrame, you can specify individual values by column:
    df = pd.DataFrame({"a": [0, 1, 2, 3, 4], "b": [5, 6, 7, 8, 9]})
 
    df.replace({"a": 0, "b": 5}, 100)
-
-Instead of replacing with specified values, you can treat all given values as
-missing and interpolate over them:
-
-.. ipython:: python
-
-   ser.replace([1, 2, 3], method="pad")
 
 .. _missing_data.replace_expression:
 
