@@ -933,7 +933,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return freq
 
         if not isinstance(freq, BaseOffset):
-            freq = cls._parse_dtype_strict(freq, is_period=True)
+            freq = cls._parse_dtype_strict(freq)
 
         try:
             return cls._cache_dtypes[freq]
@@ -1026,7 +1026,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith(("period[", "Period[")):
                 try:
-                    return cls._parse_dtype_strict(dtype, is_period=True) is not None
+                    return cls._parse_dtype_strict(dtype) is not None
                 except ValueError:
                     return False
             else:
