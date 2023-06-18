@@ -9151,16 +9151,17 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     NaN     2.0
             m      3.0     NaN
         """
-        from pandas.core.reshape.reshape import (
-            new_stack,
-            stack,
-            stack_multiple,
-        )
+        from pandas.core.reshape.reshape import new_stack
 
-        if isinstance(level, (tuple, list)):
-            stack_multiple(self, level, dropna=dropna, sort=sort)
-        else:
-            stack(self, level, dropna=dropna, sort=sort)
+        if (
+            isinstance(level, (tuple, list))
+            and not all(lev in self.columns.names for lev in level)
+            and not all(isinstance(lev, int) for lev in level)
+        ):
+            raise ValueError(
+                "level should contain all level names or all level "
+                "numbers, not a mixture of the two."
+            )
 
         new_level = level
         if not isinstance(new_level, (tuple, list)):
@@ -9176,10 +9177,13 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 or (not isinstance(self.columns, MultiIndex))
             )
-            and not result.empty
-            and len(result.columns) == 1
+            # and not result.empty
+            and len(result.columns) <= 1
         ):
-            result = result.iloc[:, 0]
+            if len(result.columns) == 0:
+                result = Series(index=result.index)
+            else:
+                result = result.iloc[:, 0]
         if result.ndim == 1:
             result = result.rename(None)
         if dropna:

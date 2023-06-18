@@ -279,7 +279,6 @@ def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
         expected.index = Index(range(2))
 
     tm.assert_frame_equal(res, expected)
-    assert False
 
 
 def test_len():

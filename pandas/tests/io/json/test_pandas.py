@@ -1812,7 +1812,7 @@ class TestPandasContainer:
             True,
             index=pd.date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack()
+        ).stack(sort=False)
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"
