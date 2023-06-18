@@ -463,7 +463,7 @@ def maybe_cast_pointwise_result(
     """
 
     if isinstance(dtype, ExtensionDtype):
-        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
+        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype, ArrowDtype)):
             # TODO: avoid this special-casing
             # We have to special case categorical so as not to upcast
             # things like counts back to categorical
@@ -473,7 +473,17 @@ def maybe_cast_pointwise_result(
                 result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
             else:
                 result = _maybe_cast_to_extension_array(cls, result)
-
+        elif isinstance(dtype, ArrowDtype):
+            pyarrow_type = convert_dtypes(result, dtype_backend="pyarrow")
+            if isinstance(pyarrow_type, ExtensionDtype):
+                cls = pyarrow_type.construct_array_type()
+                result = _maybe_cast_to_extension_array(cls, result)
+            else:
+                cls = dtype.construct_array_type()
+                if same_dtype:
+                    result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
+                else:
+                    result = _maybe_cast_to_extension_array(cls, result)
     elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
 

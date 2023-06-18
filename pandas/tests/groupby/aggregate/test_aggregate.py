@@ -5,6 +5,7 @@ import datetime
 import functools
 from functools import partial
 import re
+import typing
 
 import numpy as np
 import pytest
@@ -1630,4 +1631,25 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     )
     gb = df.groupby("grps")
     result = gb.agg(td=("td", "cumsum"))
+
+
+@pytest.mark.skipif(
+    not typing.TYPE_CHECKING, reason="let pyarrow to be imported in dtypes.py"
+)
+def test_agg_arrow_type():
+    df = DataFrame.from_dict(
+        {
+            "category": ["A"] * 10 + ["B"] * 10,
+            "bool_numpy": [True] * 5 + [False] * 5 + [True] * 5 + [False] * 5,
+        }
+    )
+    df["bool_arrow"] = df["bool_numpy"].astype("bool[pyarrow]")
+    result = df.groupby("category").agg(lambda x: x.sum() / x.count())
+    expected = DataFrame(
+        {
+            "bool_numpy": [0.5, 0.5],
+            "bool_arrow": Series([0.5, 0.5]).astype("double[pyarrow]").values,
+        },
+        index=Index(["A", "B"], name="category"),
+    )
     tm.assert_frame_equal(result, expected)
