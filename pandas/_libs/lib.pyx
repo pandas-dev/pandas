@@ -93,7 +93,7 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
 
@@ -147,6 +147,16 @@ cdef:
 # python-visible
 i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
+
+
+cdef bint PYARROW_INSTALLED = False
+
+try:
+    import pyarrow as pa
+
+    PYARROW_INSTALLED = True
+except ImportError:
+    pa = None
 
 
 @cython.wraparound(False)
@@ -658,7 +668,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, int n) -> bool:
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -1175,6 +1185,19 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         # exclude sets if allow_sets is False
         and not (allow_sets is False and isinstance(obj, abc.Set))
     )
+
+
+def is_pyarrow_array(obj):
+    """
+    Return True if given object is a pyarrow Array or ChunkedArray.
+
+    Returns
+    -------
+    bool
+    """
+    if PYARROW_INSTALLED:
+        return isinstance(obj, (pa.Array, pa.ChunkedArray))
+    return False
 
 
 _TYPE_MAP = {

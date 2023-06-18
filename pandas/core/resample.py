@@ -823,6 +823,13 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and will be removed "
+            "in a future version. Use obj.ffill(), obj.bfill(), "
+            "or obj.nearest() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._upsample(method, limit=limit)
 
     def interpolate(
@@ -1499,6 +1506,8 @@ class DatetimeIndexResampler(Resampler):
             result = obj.copy()
             result.index = res_index
         else:
+            if method == "asfreq":
+                method = None
             result = obj.reindex(
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
@@ -1617,6 +1626,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
+        if method == "asfreq":
+            method = None
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
         new_obj = _take_new_index(
             obj,

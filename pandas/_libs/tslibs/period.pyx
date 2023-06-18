@@ -1684,6 +1684,15 @@ cdef class PeriodMixin:
         1   2020-02-29 23:59:59.999999999
         2   2020-03-31 23:59:59.999999999
         dtype: datetime64[ns]
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.end_time
+        DatetimeIndex(['2023-01-31 23:59:59.999999999',
+                       '2023-02-28 23:59:59.999999999',
+                       '2023-03-31 23:59:59.999999999'],
+                       dtype='datetime64[ns]', freq=None)
         """
         return self.to_timestamp(how="end")
 
@@ -2647,7 +2656,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or str, default None
+    value : Period, str, datetime, date or pandas.Timestamp, default None
         The time period represented (e.g., '4Q2005'). This represents neither
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
