@@ -73,8 +73,12 @@ def test_set_column_with_index(using_copy_on_write):
     df["d"] = idx
 
     assert not np.shares_memory(get_array(df, "d"), arr)
-    arr[0] = 0
-    tm.assert_series_equal(df["d"], Series([1, 2, 3], name="d"))
+    if using_copy_on_write:
+        with pytest.raises(ValueError, match="assignment"):
+            arr[0] = 0
+    else:
+        arr[0] = 0
+        tm.assert_series_equal(df["d"], Series([1, 2, 3], name="d"))
 
 
 def test_set_columns_with_dataframe(using_copy_on_write):
