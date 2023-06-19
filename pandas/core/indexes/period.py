@@ -455,9 +455,9 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
-        freq = reso.attr_abbrev.replace(key, value)
+        freq = reso.attr_abbrev
         for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
-            freq = reso.attr_abbrev.replace(key, value)
+            freq = freq.replace(key, value)
         iv = Period(parsed, freq=freq)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 

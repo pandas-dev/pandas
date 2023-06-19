@@ -1577,10 +1577,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how = com.get_cython_func(how) or how
         ax = self.ax
 
-        if is_subperiod(ax.freqstr, self.freq):
+        if is_subperiod(ax.freq, self.freq):
             # Downsampling
             return self._groupby_and_aggregate(how, **kwargs)
-        elif is_superperiod(ax.freqstr, self.freq):
+        elif is_superperiod(ax.freq, self.freq):
             if how == "ohlc":
                 # GH #13083
                 # upsampling to subperiods is handled as an asfreq, which works
@@ -1589,7 +1589,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
                 # values for each period -> handle by _groupby_and_aggregate()
                 return self._groupby_and_aggregate(how)
             return self.asfreq()
-        elif ax.freqstr == self.freq:
+        elif ax.freq == self.freq:
             return self.asfreq()
 
         raise IncompatibleFrequency(

@@ -485,9 +485,9 @@ def is_subperiod(source, target) -> bool:
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
-        return source in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "M", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_quarterly(target):
-        return source in {"D", "C", "B", "ME", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "M", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_monthly(target):
         return source in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
     elif _is_weekly(target):
@@ -543,9 +543,9 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "ME", "H", "T", "S", "L", "U", "N"}
     elif _is_monthly(source):
         return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
     elif _is_weekly(source):
@@ -609,7 +609,7 @@ def _is_quarterly(rule: str) -> bool:
 
 def _is_monthly(rule: str) -> bool:
     rule = rule.upper()
-    return rule in ("M", "BM")
+    return rule in ("M", "BM", "ME")
 
 
 def _is_weekly(rule: str) -> bool:
