@@ -758,6 +758,7 @@ class ExtensionArray:
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill NA/NaN values using the specified method.
@@ -782,6 +783,12 @@ class ExtensionArray:
             maximum number of entries along the entire axis where NaNs will be
             filled.
 
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+
         Returns
         -------
         ExtensionArray
@@ -802,12 +809,20 @@ class ExtensionArray:
                 npvalues = self.astype(object)
                 func(npvalues, limit=limit, mask=mask)
                 new_values = self._from_sequence(npvalues, dtype=self.dtype)
+                if not copy:
+                    self[:] = new_values
             else:
                 # fill with value
-                new_values = self.copy()
+                if not copy:
+                    new_values = self[:]
+                else:
+                    new_values = self.copy()
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:

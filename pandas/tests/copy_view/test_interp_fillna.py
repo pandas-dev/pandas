@@ -326,7 +326,11 @@ def test_fillna_inplace_ea_noop_shares_memory(
     view = df[:]
     df.fillna(100, inplace=True)
 
-    assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+    if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+    else:
+        # MaskedArray can actually respect inplace=True
+        assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
@@ -336,6 +340,11 @@ def test_fillna_inplace_ea_noop_shares_memory(
         # arrow is immutable, so no-ops do not need to copy underlying array
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     else:
-        assert not np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+        # MaskedArray can actually respect inplace=True
+        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     df.iloc[0, 1] = 100
-    tm.assert_frame_equal(df_orig, view)
+    if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
+        tm.assert_frame_equal(df_orig, view)
+    else:
+        # we actually have a view
+        tm.assert_frame_equal(df, view)

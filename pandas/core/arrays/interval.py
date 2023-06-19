@@ -886,7 +886,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -908,6 +910,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
 
         Returns
         -------
@@ -917,6 +924,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise TypeError("Filling by method is not supported for IntervalArray.")
         if limit is not None:
             raise TypeError("limit is not supported for IntervalArray.")
+        if copy is False:
+            raise NotImplementedError
 
         value_left, value_right = self._validate_scalar(value)
 

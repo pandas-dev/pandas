@@ -907,6 +907,7 @@ class ArrowExtensionArray(
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
@@ -915,11 +916,11 @@ class ArrowExtensionArray(
             return self.copy()
 
         if limit is not None:
-            return super().fillna(value=value, method=method, limit=limit)
+            return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if method is not None:
             fallback_performancewarning()
-            return super().fillna(value=value, method=method, limit=limit)
+            return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -962,7 +963,7 @@ class ArrowExtensionArray(
             #   a kernel for duration types.
             pass
 
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.

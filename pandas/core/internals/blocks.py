@@ -1850,12 +1850,24 @@ class EABackedBlock(Block):
         **kwargs,
     ):
         values = self.values
+        refs = None
+        copy = not inplace
+        if using_cow:
+            if inplace and not self.refs.has_reference():
+                refs = self.refs
+            else:
+                copy = True
+
         if values.ndim == 2 and axis == 0:
             # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+            new_values = values.T.fillna(
+                value=fill_value, method=method, limit=limit, copy=copy
+            ).T
         else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
+            new_values = values.fillna(
+                value=fill_value, method=method, limit=limit, copy=copy
+            )
+        return self.make_block_same_class(new_values, refs=refs)
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -1898,7 +1910,16 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             new_values = self.values
         else:
             refs = None
-            new_values = self.values.fillna(value=value, method=None, limit=limit)
+            copy = not inplace
+            if using_cow:
+                if inplace and not self.refs.has_reference():
+                    refs = self.refs
+                else:
+                    copy = True
+
+            new_values = self.values.fillna(
+                value=value, method=None, limit=limit, copy=copy
+            )
         nb = self.make_block_same_class(new_values, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 
@@ -2285,13 +2306,25 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
                 **kwargs,
             )
             return self.make_block_same_class(new_values, refs=refs)
-
-        elif values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
         else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
+            copy = not inplace
+            refs = None
+            if using_cow:
+                if inplace and not self.refs.has_reference():
+                    refs = self.refs
+                else:
+                    copy = True
+
+            if values.ndim == 2 and axis == 0:
+                # NDArrayBackedExtensionArray.fillna assumes axis=1
+                new_values = values.T.fillna(
+                    value=fill_value, method=method, limit=limit, copy=copy
+                ).T
+            else:
+                new_values = values.fillna(
+                    value=fill_value, method=method, limit=limit, copy=copy
+                )
+        return self.make_block_same_class(new_values, refs=refs)
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):
