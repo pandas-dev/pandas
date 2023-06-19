@@ -1745,12 +1745,6 @@ class Timedelta(_Timedelta):
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
-        if unit in {"T", "t", "L", "l"}:
-            warnings.warn(
-                "Units 'T' and'L' are deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=2,
-            )
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed

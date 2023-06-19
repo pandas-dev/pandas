@@ -174,6 +174,13 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
+    if unit in {"T", "t", "L", "l"}:
+        warnings.warn(
+            f"Unit '{unit}' is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
@@ -184,13 +191,6 @@ def to_timedelta(
         raise ValueError(
             "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
             "represent unambiguous timedelta values durations."
-        )
-
-    if unit in {"T", "t", "L", "l"}:
-        warnings.warn(
-            "Units 'T' and'L' are deprecated and will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
         )
 
     if arg is None:
