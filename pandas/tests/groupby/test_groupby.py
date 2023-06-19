@@ -695,6 +695,16 @@ def test_as_index_select_column():
     tm.assert_series_equal(result, expected)
 
 
+def test_obj_arg_get_group_deprecated():
+    depr_msg = "obj is deprecated"
+
+    df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]})
+    expected = df.iloc[df.groupby("b").indices.get(4)]
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        result = df.groupby("b").get_group(4, obj=df)
+        tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_as_index_select_column_sum_empty_df():
     # GH 35246
     df = DataFrame(columns=Index(["A", "B", "C"], name="alpha"))
