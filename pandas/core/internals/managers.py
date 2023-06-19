@@ -398,8 +398,8 @@ class BaseBlockManager(DataManager):
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
                     blk_loc = [blk_loc]
-                if len(blk_loc.shape) == 0:
-                    return self
+                elif len(blk_loc.shape) == 0:
+                    return self.copy(deep=False)
 
                 values = self.blocks[0].values
                 if values.ndim == 2:
