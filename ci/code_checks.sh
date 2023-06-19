@@ -110,11 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Timestamp.isocalendar \
         pandas.Timestamp.isoweekday \
         pandas.Timestamp.strptime \
-        pandas.Timestamp.time \
-        pandas.Timestamp.timetuple \
-        pandas.Timestamp.timetz \
-        pandas.Timestamp.to_datetime64 \
-        pandas.Timestamp.toordinal \
         pandas.Timestamp.tzname \
         pandas.Timestamp.utcoffset \
         pandas.Timestamp.utctimetuple \
