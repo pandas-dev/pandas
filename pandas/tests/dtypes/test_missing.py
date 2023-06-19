@@ -9,7 +9,7 @@ from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -460,7 +460,7 @@ def test_array_equivalent_series(val):
     cm = (
         # stacklevel is chosen to make sense when called from .equals
         tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if isinstance(val, str) and not is_numpy_dev
+        if isinstance(val, str) and not np_version_gte1p25
         else nullcontext()
     )
     with cm:

@@ -11,6 +11,7 @@ np_version_under1p22 = _nlv < Version("1.22")
 np_version_gte1p22 = _nlv >= Version("1.22")
 np_version_gte1p24 = _nlv >= Version("1.24")
 np_version_gte1p24p3 = _nlv >= Version("1.24.3")
+np_version_gte1p25 = _nlv >= Version("1.25")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.20.3"
 
