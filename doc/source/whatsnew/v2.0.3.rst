@@ -21,8 +21,10 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`RangeIndex.union` when using ``sort=True`` with another :class:`RangeIndex` (:issue:`53490`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 - Bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` with ``expand=True`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`53532`)
+- Bug in indexing methods (e.g. :meth:`DataFrame.__getitem__`) where taking the entire :class:`DataFrame`/:class:`Series` would raise an ``OverflowError`` when Copy on Write was enabled and the length of the array was over the maximum size a 32-bit integer can hold (:issue:`53616`)
 -
 
 .. ---------------------------------------------------------------------------
