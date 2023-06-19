@@ -109,7 +109,7 @@ sep : str, default {_default_sep}
     ``'\s+'`` will be interpreted as regular expressions and will also force
     the use of the Python parsing engine. Note that regex delimiters are prone
     to ignoring quoted data. Regex example: ``'\r\t'``.
-delimiter : str, default None
+delimiter : str, optional
     Alias for ``sep``.
 header : int, list of int, None, default 'infer'
     Row number(s) to use as the column names, and the start of the
@@ -129,7 +129,7 @@ names : array-like, optional
     List of column names to use. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
     Duplicates in this list are not allowed.
-index_col : int, str, sequence of int / str, or False, optional, default None
+index_col : int, str, sequence of int / str, or False, optional
   Column(s) to use as the row labels of the :class:`~pandas.DataFrame`, either given as
   string name or column index. If a sequence of ``int`` / ``str`` is given, a
   :class:`~pandas.MultiIndex` is used.
@@ -272,7 +272,7 @@ date_parser : function, optional
     .. deprecated:: 2.0.0
        Use ``date_format`` instead, or read in as ``object`` and then apply
        :func:`~pandas.to_datetime` as-needed.
-date_format : str or dict of column -> format, default None
+date_format : str or dict of column -> format, optional
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
    please read in as ``object`` and then apply :func:`~pandas.to_datetime` as-needed.
