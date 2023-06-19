@@ -401,7 +401,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- :meth:`pd.IntervalIndex.get_indexer` and :meth:`pd.IntervalIndex.get_indexer_nonunique` raising if ``target`` is read-only array (:issue:`53703`)
 -
 
 Indexing
