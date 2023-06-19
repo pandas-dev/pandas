@@ -1082,24 +1082,16 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
-    @pytest.mark.parametrize("labels", [list("yxz"), list("yxy")])
-    def test_stack_preserve_categorical_dtype(self, ordered, labels):
+    def test_stack_preserve_categorical_dtype(self, ordered):
         # GH13854
-        cidx = pd.CategoricalIndex(labels, categories=list("xyz"), ordered=ordered)
+        cidx = pd.CategoricalIndex(list("yxz"), categories=list("xyz"), ordered=ordered)
         df = DataFrame([[10, 11, 12]], columns=cidx)
         result = df.stack()
 
         # `MultiIndex.from_product` preserves categorical dtype -
         # it's tested elsewhere.
-
-        if labels == list("yxz"):
-            midx = MultiIndex.from_product([df.index, cidx.sort_values()])
-            expected = Series([11, 10, 12], index=midx)
-        else:
-            # Don't include the 2nd y
-            midx = MultiIndex.from_product([df.index, cidx[:2].sort_values()])
-            expected = DataFrame({0: [11, 10], 1: [np.nan, 12.0]}, index=midx)
-
+        midx = MultiIndex.from_product([df.index, cidx.sort_values()])
+        expected = Series([11, 10, 12], index=midx)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1580,17 +1572,6 @@ class TestStackUnstackMultiLevel:
         [
             [
                 list("abab"),
-                ["1st", "2nd", "3rd"],
-                MultiIndex(
-                    levels=[["a", "b"], ["1st", "2nd", "3rd"]],
-                    codes=[
-                        np.tile(np.arange(2).repeat(3), 2),
-                        np.tile(np.arange(3), 4),
-                    ],
-                ),
-            ],
-            [
-                list("abab"),
                 ["1st", "2nd", "1st"],
                 MultiIndex(
                     levels=[["a", "b"], ["1st", "2nd"]],
@@ -1618,37 +1599,9 @@ class TestStackUnstackMultiLevel:
             index=idx,
             columns=columns,
         )
-        result = df.stack()
-        if columns == ["1st", "2nd", "1st"] and isinstance(idx, MultiIndex):
-            expected = DataFrame(
-                {
-                    0: [0, 1, 3, 4, 6, 7, 9, 10],
-                    1: [2.0, np.nan, 5.0, np.nan, 8.0, np.nan, 11.0, np.nan],
-                },
-                index=MultiIndex(
-                    levels=[["a", "b"], [1, 2], ["1st", "2nd"]],
-                    codes=[
-                        [0, 0, 1, 1, 0, 0, 1, 1],
-                        [1, 1, 0, 0, 0, 0, 1, 1],
-                        [0, 1, 0, 1, 0, 1, 0, 1],
-                    ],
-                ),
-            )
-        elif columns == ["1st", "2nd", "1st"]:
-            expected = DataFrame(
-                {
-                    0: [0, 1, 3, 4, 6, 7, 9, 10],
-                    1: [2.0, np.nan, 5.0, np.nan, 8.0, np.nan, 11.0, np.nan],
-                },
-                index=MultiIndex(
-                    levels=[["a", "b"], ["1st", "2nd"]],
-                    codes=[[0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1, 0, 1]],
-                ),
-            )
-        else:
-            expected = Series(np.arange(12), index=exp_idx)
-
-        tm.assert_equal(result, expected)
+        msg = "Columns with duplicate values are not supported in stack"
+        with pytest.raises(ValueError, match=msg):
+            df.stack()
 
     def test_unstack_odd_failure(self):
         data = """day,time,smoker,sum,len

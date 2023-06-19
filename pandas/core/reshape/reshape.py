@@ -887,6 +887,8 @@ def _reorder_for_extension_array_stack(
 
 
 def new_stack(df, levels, sort: bool = True):
+    if df.columns.nunique() != len(df.columns):
+        raise ValueError("Columns with duplicate values are not supported in stack")
     if df.empty:
         N, K = df.shape
         if len(levels) < df.index.nlevels:
