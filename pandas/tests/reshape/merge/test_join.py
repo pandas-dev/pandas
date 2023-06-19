@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -567,7 +569,8 @@ class TestJoin:
         df.insert(5, "dt", "foo")
 
         grouped = df.groupby("id")
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        with pytest.raises(TypeError, match=msg):
             grouped.mean()
         mn = grouped.mean(numeric_only=True)
         cn = grouped.count()
