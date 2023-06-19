@@ -1040,7 +1040,7 @@ class TestDataFrameReshape:
             np.arange(3 * len(multiindex)).reshape(3, len(multiindex)),
             columns=multiindex,
         )
-        result = df.stack(level=level, dropna=True)
+        result = df.stack(level=level, dropna=False)
 
         if isinstance(level, int):
             # Stacking a single level should not make any all-NaN rows,
@@ -1055,7 +1055,7 @@ class TestDataFrameReshape:
         df.columns = MultiIndex.from_tuples(
             df.columns.to_numpy(), names=df.columns.names
         )
-        expected = df.stack(level=level, dropna=True)
+        expected = df.stack(level=level, dropna=False)
         if isinstance(expected, Series):
             tm.assert_series_equal(result, expected)
         else:
