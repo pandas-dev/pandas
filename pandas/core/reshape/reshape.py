@@ -887,73 +887,10 @@ def _reorder_for_extension_array_stack(
     return arr.take(idx)
 
 
-def stack_v2(frame, level, dropna: bool = True, sort: bool = True):
+def stack_v2(frame, level: list[int], dropna: bool = True, sort: bool = True):
     if frame.columns.nunique() != len(frame.columns):
         raise ValueError("Columns with duplicate values are not supported in stack")
-    if frame.empty:
-        result = stack_v2_empty(frame, level)
-    else:
-        result = stack_v2_nonempty(frame, level, sort)
 
-    if (
-        result.ndim == 2
-        and (
-            (
-                isinstance(frame.columns, MultiIndex)
-                and frame.columns.nlevels == len(level)
-            )
-            or (not isinstance(frame.columns, MultiIndex))
-        )
-        # and not result.empty
-        and len(result.columns) <= 1
-    ):
-        if len(result.columns) == 0:
-            result = Series(index=result.index)
-        else:
-            result = result.iloc[:, 0]
-    if result.ndim == 1:
-        result = result.rename(None)
-    if dropna:
-        result = result.dropna(how="all")
-
-    return result
-
-
-def stack_v2_empty(df, level):
-    N, K = df.shape
-    if len(level) < df.index.nlevels:
-        # TODO: is this hit by tests?
-        new_columns = df.columns._drop_level_numbers(level)
-        new_levels = list(df.index.levels)
-        new_codes = [lab.repeat(K) for lab in df.index.codes]
-
-        clev, clab = factorize(df.columns)
-        new_levels.append(clev)
-        new_codes.append(np.tile(clab, N).ravel())
-
-        new_names = list(df.index.names)
-        new_names.append(df.columns.name)
-        new_index = MultiIndex(
-            levels=new_levels,
-            codes=new_codes,
-            names=new_names,
-            verify_integrity=False,
-        )
-    else:
-        new_columns = RangeIndex(0)
-        levels, (ilab, clab) = zip(*map(factorize, (df.index, df.columns)))
-        codes = ilab.repeat(K), np.tile(clab, N).ravel()
-        new_index = MultiIndex(
-            levels=levels,
-            codes=codes,
-            names=[df.index.name, df.columns.name],
-            verify_integrity=False,
-        )
-    result = DataFrame(index=new_index, columns=new_columns)
-    return result
-
-
-def stack_v2_nonempty(frame, level, sort):
     # If we need to drop `level` from columns, it needs to be in descending order
     drop_levnums = sorted(level)[::-1]
     stack_cols = frame.columns._drop_level_numbers(
@@ -993,7 +930,18 @@ def stack_v2_nonempty(frame, level, sort):
             else:
                 data.columns = RangeIndex(len(data.columns))
         buf.append(data)
-    result = concat(buf)
+    if len(buf) > 0:
+        result = concat(buf)
+        ratio = len(result) // len(frame)
+    else:
+        # input is empty
+        if len(level) < frame.columns.nlevels:
+            # concat column order may be different from dropping the levels
+            new_columns = frame.columns._drop_level_numbers(drop_levnums).unique()
+        else:
+            new_columns = [0]
+        result = DataFrame(columns=new_columns)
+        ratio = 0
 
     if len(level) < frame.columns.nlevels:
         # concat column order may be different from dropping the levels
@@ -1001,28 +949,23 @@ def stack_v2_nonempty(frame, level, sort):
         if not result.columns.equals(desired_columns):
             result = result[desired_columns]
 
-    # Construct the correct MultiIndex by combining the input's index and
+    # Construct the correct MultiIndex by combining the frame's index and
     # stacked columns.
     if isinstance(frame.index, MultiIndex):
-        index_levels = [level.unique() for level in frame.index.levels]
-        index_codes = np.tile(frame.index.codes, (1, len(result) // len(frame)))
+        index_levels = frame.index.levels
+        index_codes = np.tile(frame.index.codes, (1, ratio))
     else:
         index_levels = [frame.index.unique()]
         codes = factorize(frame.index)[0]
-        index_codes = np.tile(codes, (1, len(result) // len(frame)))
+        index_codes = np.tile(codes, (1, ratio))
     index_codes = list(index_codes)
-
     if isinstance(stack_cols, MultiIndex):
         column_levels = ordered_stack_cols.levels
         column_codes = ordered_stack_cols.drop_duplicates().codes
     else:
-        column_levels = [
-            ordered_stack_cols.get_level_values(e).unique()
-            for e in range(ordered_stack_cols.nlevels)
-        ]
+        column_levels = [ordered_stack_cols.unique()]
         column_codes = [factorize(ordered_stack_cols_unique, use_na_sentinel=False)[0]]
     column_codes = [np.repeat(codes, len(frame)) for codes in column_codes]
-
     result.index = MultiIndex(
         levels=index_levels + column_levels,
         codes=index_codes + column_codes,
@@ -1039,5 +982,16 @@ def stack_v2_nonempty(frame, level, sort):
         indexer = np.arange(n_uniques)
     idxs = np.tile(len_df * indexer, len_df) + np.repeat(np.arange(len_df), n_uniques)
     result = result.take(idxs)
+
+    # Reshape/rename if needed and dropna
+    if result.ndim == 2 and frame.columns.nlevels == len(level):
+        if len(result.columns) == 0:
+            result = Series(index=result.index)
+        else:
+            result = result.iloc[:, 0]
+    if result.ndim == 1:
+        result.name = None
+    if dropna:
+        result = result.dropna(how="all")
 
     return result
