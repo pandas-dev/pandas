@@ -8,6 +8,8 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
+from typing import cast
+
 import numba
 import numpy as np
 
@@ -82,7 +84,7 @@ def sliding_mean(
         s = start[i]
         e = end[i]
         if i == 0 or not is_monotonic_increasing_bounds:
-            prev_value = values[s]
+            prev_value = cast(float, values[s])
             num_consecutive_same_value = 0
 
             for j in range(s, e):
