@@ -433,7 +433,6 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
         result = idx.get_indexer_non_unique(arr)[0]
-        expected = np.array([0, 1])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
 
