@@ -229,7 +229,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     size-mutable, labeled data structure
 
     Parameters
-    Parameters
     ----------
     data : BlockManager
     axes : list
