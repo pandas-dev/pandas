@@ -4,7 +4,6 @@ from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
     import_datetime,
-    timedelta,
 )
 
 import_datetime()
@@ -440,7 +439,20 @@ class NaTType(_NaT):
         Monday == 1 ... Sunday == 7.
         """,
     )
-    total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
+    total_seconds = _make_nan_func(
+        "total_seconds",
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """,
+    )
     month_name = _make_nan_func(
         "month_name",
         """
@@ -501,7 +513,6 @@ class NaTType(_NaT):
     timetuple = _make_error_func("timetuple", datetime)
     isocalendar = _make_error_func("isocalendar", datetime)
     dst = _make_error_func("dst", datetime)
-    ctime = _make_error_func("ctime", datetime)
     time = _make_error_func("time", datetime)
     toordinal = _make_error_func("toordinal", datetime)
     tzname = _make_error_func("tzname", datetime)
@@ -513,6 +524,21 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+
+    ctime = _make_error_func(
+        "ctime",
+        """
+        Return ctime() style string.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.ctime()
+        'Sun Jan  1 10:00:00 2023'
+        """,
+    )
 
     strftime = _make_error_func(
         "strftime",
@@ -1210,6 +1236,19 @@ default 'raise'
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00.010000')
+        >>> ts.unit
+        'ms'
+        >>> ts = ts.as_unit('s')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00')
+        >>> ts.unit
+        's'
         """
         return c_NaT
 
