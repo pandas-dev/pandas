@@ -925,6 +925,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             it is None, the object groupby was called on will
             be used.
 
+            .. deprecated:: 2.1.0
+                The obj is deprecated and will be removed in a future version.
+                Do ``df.iloc[gb.indices.get(name)]``
+                instead of ``gb.get_group(name, obj=df)``.
+
         Returns
         -------
         same type as obj
@@ -961,14 +966,21 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         """
-        if obj is None:
-            obj = self._selected_obj
-
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take_with_is_copy(inds, axis=self.axis)
+        if obj is None:
+            return self._selected_obj.iloc[inds]
+        else:
+            warnings.warn(
+                "obj is deprecated and will be removed in a future version. "
+                "Do ``df.iloc[gb.indices.get(name)]`` "
+                "instead of ``gb.get_group(name, obj=df)``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
