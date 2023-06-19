@@ -1,4 +1,4 @@
-# PDEP-7: Compact and reversible JSON interface
+# PDEP-12: Compact and reversible JSON interface
 
 - Created: 16 June 2023
 - Status: Under discussions
