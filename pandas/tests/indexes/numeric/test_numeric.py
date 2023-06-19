@@ -341,18 +341,14 @@ class TestIntNumericIndex:
         # copy
         # pass list, coerce fine
         index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        arr = index.values
+        arr = index.values.copy()
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
         val = arr[0] + 3000
 
         # this should not change index
-        if not using_copy_on_write:
-            arr[0] = val
-            assert new_index[0] != val
-        else:
-            with pytest.raises(ValueError, match="assignment"):
-                arr[0] = val
+        arr[0] = val
+        assert new_index[0] != val
 
         if dtype == np.int64:
             # pass list, coerce fine
