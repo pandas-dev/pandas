@@ -176,7 +176,6 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize(
     "pickle_writer",
     [

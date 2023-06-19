@@ -2479,10 +2479,9 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        if "ME" in self._dtype._freqstr:
-            return self._dtype._freqstr.replace("E", "")
-        else:
-            return self._dtype._freqstr
+        for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
+            freqstr = self._dtype._freqstr.replace(key, value)
+        return freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
@@ -2782,8 +2781,7 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                    if freq == "ME":
-                        freq = "M"
+                    freq = c_OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
                     freq = to_offset(freq, is_period=True)
 
         elif PyDateTime_Check(value):
