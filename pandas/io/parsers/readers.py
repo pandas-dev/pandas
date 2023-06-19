@@ -96,7 +96,7 @@ filepath_or_buffer : str, path object or file-like object
     URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
-    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
+    If you want to pass in a path object, ``pandas`` accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
@@ -119,7 +119,7 @@ header : int, list of int, None, default 'infer'
     names are passed explicitly to ``names`` then the behavior is identical to
     ``header=None``. Explicitly pass ``header=0`` to be able to
     replace existing names. The header can be a list of integers that
-    specify row locations for a multi-index on the columns
+    specify row locations for a :class:`~pandas.MultiIndex` on the columns
     e.g. ``[0,1,3]``. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example is skipped). Note that this
     parameter ignores commented lines and empty lines if
@@ -132,9 +132,9 @@ names : array-like, optional
 index_col : int, str, sequence of int / str, or False, optional, default ``None``
   Column(s) to use as the row labels of the :class:`~pandas.DataFrame`, either given as
   string name or column index. If a sequence of ``int`` / ``str`` is given, a
-  ``MultiIndex`` is used.
+  :class:`~pandas.MultiIndex` is used.
 
-  Note: ``index_col=False`` can be used to force pandas to *not* use the first
+  Note: ``index_col=False`` can be used to force ``pandas`` to *not* use the first
   column as the index, e.g. when you have a malformed file with delimiters at
   the end of each line.
 usecols : list-like or callable, optional
@@ -192,7 +192,7 @@ skiprows : list-like, int or Callable, optional
     at the start of the file.
 
     If ``Callable``, the callable function will be evaluated against the row
-    indices, returning True if the row should be skipped and ``False`` otherwise.
+    indices, returning ``True`` if the row should be skipped and ``False`` otherwise.
     An example of a valid ``Callable`` argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
@@ -242,12 +242,12 @@ default False
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
     or index will be returned unaltered as an ``object`` data type. For
-    non-standard ``datetime`` parsing, use ``pd.to_datetime`` after
-    ``pd.read_csv``.
+    non-standard ``datetime`` parsing, use :func:`~pandas.to_datetime` after
+    :func:`~pandas.read_csv`.
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
-    If ``True`` and ``parse_dates`` is enabled, pandas will attempt to infer the
+    If ``True`` and ``parse_dates`` is enabled, ``pandas`` will attempt to infer the
     format of the ``datetime`` strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
@@ -271,11 +271,11 @@ date_parser : function, optional
 
     .. deprecated:: 2.0.0
        Use ``date_format`` instead, or read in as ``object`` and then apply
-       :func:`to_datetime` as-needed.
+       :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
-   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+   please read in as ``object`` and then apply :func:`~pandas.to_datetime` as-needed.
 
    .. versionadded:: 2.0.0
 dayfirst : bool, default False
@@ -318,8 +318,8 @@ quoting : int or csv.QUOTE_* instance, default 0
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
     ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or ``QUOTE_NONE`` (3).
 doublequote : bool, default ``True``
-   When quotechar is specified and quoting is not ``QUOTE_NONE``, indicate
-   whether or not to interpret two consecutive quotechar elements INSIDE a
+   When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
+   whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
    field as a single ``quotechar`` element.
 escapechar : str (length 1), optional
     One-character string used to escape other characters.
@@ -375,7 +375,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
           If the function returns ``None``, the bad line will be ignored.
-          If the function returns a new list of strings with more elements than
+          If the function returns a new ``list`` of strings with more elements than
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine="python"``
 
@@ -388,7 +388,7 @@ low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
     types either set ``False``, or specify the type with the ``dtype`` parameter.
-    Note that the entire file is read into a single ``DataFrame`` regardless,
+    Note that the entire file is read into a single :class:`~pandas.DataFrame` regardless,
     use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
     (Only valid with C parser).
 memory_map : bool, default False
@@ -398,7 +398,7 @@ memory_map : bool, default False
 float_precision : str, optional
     Specifies which converter the C engine should use for floating-point
     values. The options are ``None`` or ``'high'`` for the ordinary converter,
-    ``'legacy'`` for the original lower precision pandas converter, and
+    ``'legacy'`` for the original lower precision ``pandas`` converter, and
     ``'round_trip'`` for the round-trip converter.
 
     .. versionchanged:: 1.2
@@ -407,8 +407,8 @@ float_precision : str, optional
 
     .. versionadded:: 1.2
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed ``DataFrame``
-    Which ``dtype_backend`` to use, e.g. whether a ``DataFrame`` should have NumPy
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrame
+    Which ``dtype_backend`` to use, e.g. whether a :class:`~pandas.DataFrame` should have NumPy
     arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a nullable
     implementation when ``"numpy_nullable"`` is set, pyarrow is used for all
     dtypes if ``"pyarrow"`` is set.
