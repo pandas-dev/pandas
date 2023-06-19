@@ -10,7 +10,7 @@ dependencies:
   - cython>=0.29.32
 
   # test dependencies
-  - pytest>=7.0.0
+  - pytest>=7.3.2
   - pytest-cov
   - pytest-xdist>=2.2.0
   - psutil
