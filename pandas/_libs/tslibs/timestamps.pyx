@@ -45,6 +45,8 @@ from cpython.object cimport (
 
 import_datetime()
 
+import datetime as dt
+
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -1544,7 +1546,7 @@ class Timestamp(_Timestamp):
         datetime.date(2023, 1, 1)
         """
         try:
-            _dt = date(self.year, self.month, self.day)
+            _dt = dt.date(self.year, self.month, self.day)
         except ValueError as err:
             raise NotImplementedError(
                 "date not yet supported on Timestamps which "
