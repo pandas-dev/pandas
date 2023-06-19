@@ -23,6 +23,7 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
         numba = import_optional_dependency("numba")
 
     if is_grouped_kernel:
+
         @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
         def column_looper(
             values: np.ndarray,
@@ -41,7 +42,9 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
                 if len(na_pos) > 0:
                     na_positions[i] = np.array(na_pos)
             return result, na_positions
+
     else:
+
         @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
         def column_looper(
             values: np.ndarray,
@@ -156,9 +159,13 @@ def generate_shared_aggregator(
     # is less than min_periods
     # Cannot do this in numba nopython mode
     # (you'll run into type-unification error when you cast int -> float)
-    def looper_wrapper(values, start=None, end=None, labels=None, ngroups=None, min_periods=0, **kwargs):
+    def looper_wrapper(
+        values, start=None, end=None, labels=None, ngroups=None, min_periods=0, **kwargs
+    ):
         result_dtype = dtype_mapping[values.dtype]
-        column_looper = make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel)
+        column_looper = make_looper(
+            func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
+        )
         # Need to unpack kwargs since numba only supports *args
         if is_grouped_kernel:
             result, na_positions = column_looper(

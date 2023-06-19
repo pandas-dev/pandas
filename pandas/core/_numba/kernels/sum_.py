@@ -215,7 +215,7 @@ def grouped_sum(
             else:
                 result = sum_x
         else:
-            result = sum_x # Don't change val, will be replaced by nan later
+            result = sum_x  # Don't change val, will be replaced by nan later
             na_pos.append(lab)
         output[lab] = result
 
