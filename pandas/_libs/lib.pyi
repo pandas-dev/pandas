@@ -30,7 +30,7 @@ from enum import Enum
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = _NoDefault.no_default
+no_default: Final = _NoDefault.no_default  # noqa: PYI015
 NoDefault = Literal[_NoDefault.no_default]
 
 i8max: int
@@ -42,6 +42,7 @@ def infer_dtype(value: object, skipna: bool = ...) -> str: ...
 def is_iterator(obj: object) -> bool: ...
 def is_scalar(val: object) -> bool: ...
 def is_list_like(obj: object, allow_sets: bool = ...) -> bool: ...
+def is_pyarrow_array(obj: object) -> bool: ...
 def is_period(val: object) -> TypeGuard[Period]: ...
 def is_interval(val: object) -> TypeGuard[Interval]: ...
 def is_decimal(val: object) -> TypeGuard[Decimal]: ...
@@ -70,34 +71,6 @@ def map_infer(
     convert: bool = ...,
     ignore_na: bool = ...,
 ) -> np.ndarray: ...
-@overload  # all convert_foo False -> only convert numeric
-def maybe_convert_objects(
-    objects: npt.NDArray[np.object_],
-    *,
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_numeric: bool = ...,
-    convert_datetime: Literal[False] = ...,
-    convert_timedelta: Literal[False] = ...,
-    convert_period: Literal[False] = ...,
-    convert_interval: Literal[False] = ...,
-    convert_to_nullable_dtype: Literal[False] = ...,
-    dtype_if_all_nat: DtypeObj | None = ...,
-) -> npt.NDArray[np.object_ | np.number]: ...
-@overload  # both convert_datetime and convert_to_nullable_integer False -> np.ndarray
-def maybe_convert_objects(
-    objects: npt.NDArray[np.object_],
-    *,
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_numeric: bool = ...,
-    convert_datetime: Literal[False] = ...,
-    convert_timedelta: bool = ...,
-    convert_period: Literal[False] = ...,
-    convert_interval: Literal[False] = ...,
-    convert_to_nullable_dtype: Literal[False] = ...,
-    dtype_if_all_nat: DtypeObj | None = ...,
-) -> np.ndarray: ...
 @overload
 def maybe_convert_objects(
     objects: npt.NDArray[np.object_],
@@ -105,10 +78,18 @@ def maybe_convert_objects(
     try_float: bool = ...,
     safe: bool = ...,
     convert_numeric: bool = ...,
-    convert_datetime: bool = ...,
-    convert_timedelta: bool = ...,
-    convert_period: bool = ...,
-    convert_interval: bool = ...,
+    convert_non_numeric: Literal[False] = ...,
+    convert_to_nullable_dtype: Literal[False] = ...,
+    dtype_if_all_nat: DtypeObj | None = ...,
+) -> npt.NDArray[np.object_ | np.number]: ...
+@overload
+def maybe_convert_objects(
+    objects: npt.NDArray[np.object_],
+    *,
+    try_float: bool = ...,
+    safe: bool = ...,
+    convert_numeric: bool = ...,
+    convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: Literal[True] = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...
@@ -119,38 +100,7 @@ def maybe_convert_objects(
     try_float: bool = ...,
     safe: bool = ...,
     convert_numeric: bool = ...,
-    convert_datetime: Literal[True] = ...,
-    convert_timedelta: bool = ...,
-    convert_period: bool = ...,
-    convert_interval: bool = ...,
-    convert_to_nullable_dtype: bool = ...,
-    dtype_if_all_nat: DtypeObj | None = ...,
-) -> ArrayLike: ...
-@overload
-def maybe_convert_objects(
-    objects: npt.NDArray[np.object_],
-    *,
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_numeric: bool = ...,
-    convert_datetime: bool = ...,
-    convert_timedelta: bool = ...,
-    convert_period: Literal[True] = ...,
-    convert_interval: bool = ...,
-    convert_to_nullable_dtype: bool = ...,
-    dtype_if_all_nat: DtypeObj | None = ...,
-) -> ArrayLike: ...
-@overload
-def maybe_convert_objects(
-    objects: npt.NDArray[np.object_],
-    *,
-    try_float: bool = ...,
-    safe: bool = ...,
-    convert_numeric: bool = ...,
-    convert_datetime: bool = ...,
-    convert_timedelta: bool = ...,
-    convert_period: bool = ...,
-    convert_interval: bool = ...,
+    convert_non_numeric: bool = ...,
     convert_to_nullable_dtype: bool = ...,
     dtype_if_all_nat: DtypeObj | None = ...,
 ) -> ArrayLike: ...

@@ -33,10 +33,7 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import (
-    find_stack_level,
-    rewrite_warning,
-)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -55,7 +52,6 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
-    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -424,9 +420,6 @@ class Resampler(BaseGroupBy, PandasObject):
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
 
-        target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-        new_message = _apply_groupings_depr.format(type(self).__name__)
-
         try:
             if callable(how):
                 # TODO: test_resample_apply_with_additional_args fails if we go
@@ -443,12 +436,7 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            with rewrite_warning(
-                target_message=target_message,
-                target_category=FutureWarning,
-                new_message=new_message,
-            ):
-                result = grouped.apply(how, *args, **kwargs)
+            result = grouped.apply(how, *args, **kwargs)
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -460,12 +448,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            with rewrite_warning(
-                target_message=target_message,
-                target_category=FutureWarning,
-                new_message=new_message,
-            ):
-                result = grouped.apply(how, *args, **kwargs)
+            result = grouped.apply(how, *args, **kwargs)
 
         return self._wrap_result(result)
 
@@ -840,6 +823,13 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and will be removed "
+            "in a future version. Use obj.ffill(), obj.bfill(), "
+            "or obj.nearest() instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         return self._upsample(method, limit=limit)
 
     def interpolate(
@@ -908,7 +898,6 @@ class Resampler(BaseGroupBy, PandasObject):
                 * If 'method' is 'backfill' or 'bfill', the default is 'backward'
                 * else the default is 'forward'
 
-            .. versionchanged:: 1.1.0
                 raises ValueError if `limit_direction` is 'forward' or 'both' and
                     method is 'backfill' or 'bfill'.
                 raises ValueError if `limit_direction` is 'backward' or 'both' and
@@ -1359,18 +1348,7 @@ class _GroupByMixin(PandasObject):
 
             return x.apply(f, *args, **kwargs)
 
-        msg = (
-            "DataFrameGroupBy.resample operated on the grouping columns. "
-            "This behavior is deprecated, and in a future version of "
-            "pandas the grouping columns will be excluded from the operation. "
-            "Subset the data to exclude the groupings and silence this warning."
-        )
-        with rewrite_warning(
-            target_message="DataFrameGroupBy.apply operated on the grouping columns",
-            target_category=FutureWarning,
-            new_message=msg,
-        ):
-            result = self._groupby.apply(func)
+        result = self._groupby.apply(func)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1528,6 +1506,8 @@ class DatetimeIndexResampler(Resampler):
             result = obj.copy()
             result.index = res_index
         else:
+            if method == "asfreq":
+                method = None
             result = obj.reindex(
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
@@ -1646,6 +1626,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
+        if method == "asfreq":
+            method = None
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
         new_obj = _take_new_index(
             obj,

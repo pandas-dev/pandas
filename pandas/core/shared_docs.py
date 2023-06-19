@@ -60,8 +60,6 @@ _shared_docs[
 ] = """
 Compare to another {klass} and show the differences.
 
-.. versionadded:: 1.1.0
-
 Parameters
 ----------
 other : {klass}
@@ -175,8 +173,6 @@ dropna : bool, default True
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
 pandas.api.typing.%(klass)sGroupBy
@@ -223,8 +219,6 @@ col_level : int or str, optional
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
     Index labels will be repeated as necessary.
-
-    .. versionadded:: 1.1.0
 
 Returns
 -------
@@ -461,10 +455,10 @@ _shared_docs[
     (otherwise no compression).
     Set to ``None`` for no compression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
@@ -483,10 +477,10 @@ _shared_docs[
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
@@ -568,6 +562,8 @@ _shared_docs[
     {inplace}
     limit : int, default None
         Maximum size gap to forward or backward fill.
+
+        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
         expressions. If this is ``True`` then `to_replace` *must* be a
@@ -577,6 +573,8 @@ _shared_docs[
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
+
+        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -771,6 +769,9 @@ _shared_docs[
     3     b
     4     b
     dtype: object
+
+        .. deprecated:: 2.1.0
+            The 'method' parameter and padding behavior are deprecated.
 
     On the other hand, if ``None`` is explicitly passed for ``value``, it will
     be respected:

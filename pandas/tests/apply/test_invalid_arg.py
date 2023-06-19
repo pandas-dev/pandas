@@ -8,6 +8,7 @@
 
 from itertools import chain
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -244,6 +245,9 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
 def test_agg_cython_table_raises_series(series, func, expected):
     # GH21224
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+    if func == "median" or func is np.nanmedian or func is np.median:
+        msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
         series.agg(func)
@@ -304,7 +308,10 @@ def test_transform_and_agg_err_series(string_series, func, msg):
     # we are trying to transform with an aggregator
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
-            string_series.agg(func)
+            # GH53325
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                string_series.agg(func)
 
 
 @pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])

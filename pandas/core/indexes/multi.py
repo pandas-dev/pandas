@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCSeries,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
@@ -83,9 +84,13 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import validate_putmask
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
 from pandas.core.arrays.categorical import factorize_from_iterables
 import pandas.core.common as com
+from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -1116,11 +1121,7 @@ class MultiIndex(Index):
         # calculating the indexer are shifted to 0
         sizes = np.ceil(
             np.log2(
-                [
-                    len(level)
-                    + libindex.multiindex_nulls_shift  # type: ignore[attr-defined]
-                    for level in self.levels
-                ]
+                [len(level) + libindex.multiindex_nulls_shift for level in self.levels]
             )
         )
 
@@ -2397,7 +2398,7 @@ class MultiIndex(Index):
             )
 
         return [
-            Categorical.from_codes(level_codes, cats(level_codes), ordered=True)
+            Categorical.from_codes(level_codes, cats(level_codes), True, validate=False)
             for level_codes in self.codes
         ]
 
@@ -2587,7 +2588,7 @@ class MultiIndex(Index):
         """
         lev = self.levels[0]
         codes = self._codes[0]
-        cat = Categorical.from_codes(codes=codes, categories=lev)
+        cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat)
         return ci.get_indexer_for(target)
 
@@ -3408,6 +3409,8 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
                 # Generate a map with all level codes as sorted initially
+                if not isinstance(k, (np.ndarray, ExtensionArray, Index, ABCSeries)):
+                    k = sanitize_array(k, None)
                 k = algos.unique(k)
                 key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
                     self.levels[i]

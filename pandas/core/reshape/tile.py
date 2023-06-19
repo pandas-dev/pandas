@@ -114,8 +114,6 @@ def cut(
         the resulting categorical will be ordered. If False, the resulting
         categorical will be unordered (labels must be provided).
 
-        .. versionadded:: 1.1.0
-
     Returns
     -------
     out : Categorical, Series, or ndarray
@@ -413,7 +411,8 @@ def _bins_to_cuts(
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
-        result = Categorical.from_codes(ids, categories=bins, ordered=True)
+        cat_dtype = CategoricalDtype(bins, ordered=True)
+        result = Categorical.from_codes(ids, dtype=cat_dtype, validate=False)
         return result, bins
 
     unique_bins = algos.unique(bins)
@@ -652,7 +651,7 @@ def _infer_precision(base_precision: int, bins) -> int:
     Infer an appropriate precision for _round_frac
     """
     for precision in range(base_precision, 20):
-        levels = [_round_frac(b, precision) for b in bins]
+        levels = np.asarray([_round_frac(b, precision) for b in bins])
         if algos.unique(levels).size == bins.size:
             return precision
     return base_precision  # default

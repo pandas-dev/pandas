@@ -56,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.generic import (
@@ -243,6 +242,9 @@ def _maybe_cache(
         # Perform a quicker unique check
         if not should_cache(arg):
             return cache_array
+
+        if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
+            arg = np.array(arg)
 
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
@@ -599,8 +601,7 @@ def _adjust_to_origin(arg, origin, unit):
     else:
         # arg must be numeric
         if not (
-            (is_scalar(arg) and (is_integer(arg) or is_float(arg)))
-            or is_numeric_dtype(np.asarray(arg))
+            (is_integer(arg) or is_float(arg)) or is_numeric_dtype(np.asarray(arg))
         ):
             raise ValueError(
                 f"'{arg}' is not compatible with origin='{origin}'; "
@@ -1254,9 +1255,7 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
 
     # string with NaN-like
     try:
-        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
-        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
-        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
+        mask = ~algorithms.isin(arg, list(nat_strings))
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

@@ -66,8 +66,10 @@ from typing import (
 )
 import warnings
 
-from pandas._typing import F  # noqa: TCH001
-from pandas._typing import T  # noqa: TCH001
+from pandas._typing import (
+    F,
+    T,
+)
 from pandas.util._exceptions import find_stack_level
 
 
@@ -436,7 +438,7 @@ class option_context(ContextDecorator):
         self.ops = list(zip(args[::2], args[1::2]))
 
     def __enter__(self) -> None:
-        self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
+        self.undo = [(pat, _get_option(pat)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)

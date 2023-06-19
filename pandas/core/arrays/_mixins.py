@@ -36,10 +36,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
@@ -51,7 +48,7 @@ from pandas.core import missing
 from pandas.core.algorithms import (
     take,
     unique,
-    value_counts,
+    value_counts_internal as value_counts,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
@@ -172,7 +169,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def equals(self, other) -> bool:
         if type(self) is not type(other):
             return False
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
         return bool(array_equivalent(self._ndarray, other._ndarray, dtype_equal=True))
 

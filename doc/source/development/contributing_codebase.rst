@@ -770,7 +770,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage.herokuapp.com/)
+entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage.herokuapp.com/))
 to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::
@@ -959,9 +959,9 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 1.1.0
+    .. versionadded:: 2.1.0
 
-This will put the text *New in version 1.1.0* wherever you put the sphinx
+This will put the text *New in version 2.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).

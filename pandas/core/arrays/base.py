@@ -38,9 +38,8 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_to_extension_array
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_list_like,
     is_scalar,
     pandas_dtype,
@@ -570,7 +569,7 @@ class ExtensionArray:
         """
 
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if not copy:
                 return self
             else:
@@ -958,7 +957,7 @@ class ExtensionArray:
         if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
             return False
@@ -994,7 +993,6 @@ class ExtensionArray:
         Returns
         -------
         values : ndarray
-
             An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
@@ -1003,6 +1001,12 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`. If needed, this can be
+        overridden in the ``self._hash_pandas_object()`` method.
         """
         return self.astype(object), np.nan
 
@@ -1450,7 +1454,7 @@ class ExtensionArray:
         """
         Hook for hash_pandas_object.
 
-        Default is likely non-performant.
+        Default is to use the values returned by _values_for_factorize.
 
         Parameters
         ----------
@@ -1464,7 +1468,7 @@ class ExtensionArray:
         """
         from pandas.core.util.hashing import hash_array
 
-        values = self.to_numpy(copy=False)
+        values, _ = self._values_for_factorize()
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
@@ -1958,7 +1962,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_to_extension_array(type(self), arr)
+                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

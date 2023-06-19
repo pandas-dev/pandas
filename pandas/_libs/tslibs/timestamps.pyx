@@ -22,7 +22,7 @@ from numpy cimport (
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias tzinfo_type bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,
@@ -1026,7 +1026,7 @@ cdef class _Timestamp(ABCTimestamp):
             base1, base2 = base, ""
 
         if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
-            if self.microsecond:
+            if self.microsecond or timespec == "nanoseconds":
                 base1 += f"{self.nanosecond:03d}"
             else:
                 base1 += f".{self.nanosecond:09d}"
@@ -1122,6 +1122,19 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00.010000')
+        >>> ts.unit
+        'ms'
+        >>> ts = ts.as_unit('s')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00')
+        >>> ts.unit
+        's'
         """
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
@@ -1301,8 +1314,6 @@ class Timestamp(_Timestamp):
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
-
-        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -1494,6 +1505,31 @@ class Timestamp(_Timestamp):
                 "and `.month`) and construct your string from there."
             ) from err
         return _dt.strftime(format)
+
+    def ctime(self):
+        """
+        Return ctime() style string.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.ctime()
+        'Sun Jan  1 10:00:00 2023'
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "ctime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.ctime()
 
     # Issue 25016.
     @classmethod
@@ -2374,7 +2410,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

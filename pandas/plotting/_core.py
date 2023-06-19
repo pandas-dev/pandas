@@ -87,8 +87,6 @@ def hist_series(
     legend : bool, default False
         Whether to show the legend.
 
-        .. versionadded:: 1.1.0
-
     **kwargs
         To be passed to the actual plotting function.
 
@@ -100,6 +98,16 @@ def hist_series(
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.groupby(level=0).hist()
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_series(
@@ -196,8 +204,6 @@ def hist_frame(
 
     legend : bool, default False
         Whether to show the legend.
-
-        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -393,7 +399,7 @@ the matplotlib axes on which the boxplot is drawn are returned:
 
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], return_type='axes')
     >>> type(boxplot)
-    <class 'matplotlib.axes._subplots.AxesSubplot'>
+    <class 'matplotlib.axes._axes.Axes'>
 
 When grouping with ``by``, a Series mapping columns to ``return_type``
 is returned:
@@ -447,8 +453,6 @@ _bar_or_line_doc = """
                 colored accordingly. For example, if your columns are called `a` and
                 `b`, then passing {'a': 'green', 'b': 'red'} will color %(kind)ss for
                 column `a` in green and %(kind)ss for column `b` in red.
-
-            .. versionadded:: 1.1.0
 
         **kwargs
             Additional keyword arguments are documented in
@@ -705,8 +709,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
@@ -718,8 +720,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.2.0
 
@@ -785,6 +785,26 @@ class PlotAccessor(PandasObject):
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
       (center)
+
+    Examples
+    --------
+    For SeriesGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> ser = pd.Series([1, 2, 3, 3])
+        >>> plot = ser.plot(kind='hist', title="My plot")
+
+    For DataFrameGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> plot = df.plot()
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
@@ -1637,8 +1657,6 @@ class PlotAccessor(PandasObject):
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
 
-              .. versionchanged:: 1.1.0
-
         c : str, int or array-like, optional
             The color of each point. Possible values are:
 
@@ -1831,7 +1849,9 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
-        entry = eps.get(key, ())
+        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
+        # expected "EntryPoints"  [arg-type]
+        entry = eps.get(key, ())  # type: ignore[arg-type]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

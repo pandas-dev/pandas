@@ -34,6 +34,7 @@ import_datetime()
 
 
 cimport pandas._libs.tslibs.util as util
+from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
@@ -341,8 +342,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     Return an ns based int64
     """
     # Caller is responsible for checking unit not in ["Y", "y", "M"]
-
-    if checknull_with_nat(ts):
+    if checknull_with_nat_and_na(ts):
         return np.timedelta64(NPY_NAT, "ns")
     elif isinstance(ts, _Timedelta):
         # already in the proper format
@@ -1112,7 +1112,17 @@ cdef class _Timedelta(timedelta):
         return self._ms * 1000 + self._us
 
     def total_seconds(self) -> float:
-        """Total seconds in the duration."""
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """
         # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
@@ -1274,6 +1284,14 @@ cdef class _Timedelta(timedelta):
         Notes
         -----
         Any nanosecond resolution will be lost.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_pytimedelta()
+        datetime.timedelta(days=3)
         """
         if self._creso == NPY_FR_ns:
             return timedelta(microseconds=int(self._value) / 1000)
@@ -1287,6 +1305,14 @@ cdef class _Timedelta(timedelta):
     def to_timedelta64(self) -> np.timedelta64:
         """
         Return a numpy.timedelta64 object with 'ns' precision.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_timedelta64()
+        numpy.timedelta64(259200000000000,'ns')
         """
         cdef:
             str abbrev = npy_unit_to_abbrev(self._creso)
@@ -1309,6 +1335,14 @@ cdef class _Timedelta(timedelta):
         See Also
         --------
         Series.to_numpy : Similar method for Series.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_numpy()
+        numpy.timedelta64(259200000000000,'ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1324,6 +1358,14 @@ cdef class _Timedelta(timedelta):
         ----------
         dtype : str or dtype
             The dtype to view the underlying data as.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.view(int)
+        259200000000000
         """
         return np.timedelta64(self._value).view(dtype)
 
@@ -1592,7 +1634,7 @@ cdef class _Timedelta(timedelta):
 
     def as_unit(self, str unit, bint round_ok=True):
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------
@@ -1603,6 +1645,14 @@ cdef class _Timedelta(timedelta):
         Returns
         -------
         Timedelta
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.as_unit('s')
+        Timedelta('0 days 00:00:01')
         """
         dtype = np.dtype(f"m8[{unit}]")
         reso = get_unit_from_dtype(dtype)
@@ -1808,7 +1858,7 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
-        elif checknull_with_nat(value):
+        elif checknull_with_nat_and_na(value):
             return NaT
         else:
             raise ValueError(
@@ -1875,6 +1925,14 @@ class Timedelta(_Timedelta):
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.round('s')
+        Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
 
@@ -1886,6 +1944,14 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the flooring resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.floor('s')
+        Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.MINUS_INFTY)
 
@@ -1897,6 +1963,14 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the ceiling resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.ceil('s')
+        Timedelta('0 days 00:00:02')
         """
         return self._round(freq, RoundTo.PLUS_INFTY)
 

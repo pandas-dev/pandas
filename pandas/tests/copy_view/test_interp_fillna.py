@@ -20,7 +20,12 @@ def test_interpolate_no_op(using_copy_on_write, method):
     df = DataFrame({"a": [1, 2]})
     df_orig = df.copy()
 
-    result = df.interpolate(method=method)
+    warn = None
+    if method == "pad":
+        warn = FutureWarning
+    msg = "DataFrame.interpolate with method=pad is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = df.interpolate(method=method)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
@@ -108,7 +113,9 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
     df_orig = df.copy()
 
-    result = df.interpolate(method="asfreq")
+    msg = "DataFrame.interpolate with object dtype"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.interpolate(method="linear")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
@@ -125,7 +132,9 @@ def test_interpolate_cleaned_fill_method(using_copy_on_write):
 def test_interpolate_object_convert_no_op(using_copy_on_write):
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
     arr_a = get_array(df, "a")
-    df.interpolate(method="pad", inplace=True)
+    msg = "DataFrame.interpolate with method=pad is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.interpolate(method="pad", inplace=True)
 
     # Now CoW makes a copy, it should not!
     if using_copy_on_write:
@@ -136,7 +145,9 @@ def test_interpolate_object_convert_no_op(using_copy_on_write):
 def test_interpolate_object_convert_copies(using_copy_on_write):
     df = DataFrame({"a": Series([1, 2], dtype=object), "b": 1})
     arr_a = get_array(df, "a")
-    df.interpolate(method="pad", inplace=True)
+    msg = "DataFrame.interpolate with method=pad is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.interpolate(method="pad", inplace=True)
 
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
@@ -146,7 +157,9 @@ def test_interpolate_object_convert_copies(using_copy_on_write):
 def test_interpolate_downcast(using_copy_on_write):
     df = DataFrame({"a": [1, np.nan, 2.5], "b": 1})
     arr_a = get_array(df, "a")
-    df.interpolate(method="pad", inplace=True, downcast="infer")
+    msg = "DataFrame.interpolate with method=pad is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.interpolate(method="pad", inplace=True, downcast="infer")
 
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
@@ -158,7 +171,9 @@ def test_interpolate_downcast_reference_triggers_copy(using_copy_on_write):
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
-    df.interpolate(method="pad", inplace=True, downcast="infer")
+    msg = "DataFrame.interpolate with method=pad is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.interpolate(method="pad", inplace=True, downcast="infer")
 
     if using_copy_on_write:
         assert df._mgr._has_no_reference(0)
@@ -287,7 +302,7 @@ def test_fillna_ea_noop_shares_memory(
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
         assert not df2._mgr._has_no_reference(1)
-    elif isinstance(df.dtypes[0], ArrowDtype):
+    elif isinstance(df.dtypes.iloc[0], ArrowDtype):
         # arrow is immutable, so no-ops do not need to copy underlying array
         assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
     else:
@@ -317,7 +332,7 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
-    elif isinstance(df.dtypes[0], ArrowDtype):
+    elif isinstance(df.dtypes.iloc[0], ArrowDtype):
         # arrow is immutable, so no-ops do not need to copy underlying array
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     else:

@@ -141,6 +141,7 @@ def test_methods_copy_keyword(
     "method",
     [
         lambda ser, copy: ser.rename(index={0: 100}, copy=copy),
+        lambda ser, copy: ser.rename(None, copy=copy),
         lambda ser, copy: ser.reindex(index=ser.index, copy=copy),
         lambda ser, copy: ser.reindex_like(ser, copy=copy),
         lambda ser, copy: ser.align(ser, copy=copy)[0],
@@ -158,6 +159,7 @@ def test_methods_copy_keyword(
         lambda ser, copy: ser.set_flags(allows_duplicate_labels=False, copy=copy),
     ],
     ids=[
+        "rename (dict)",
         "rename",
         "reindex",
         "reindex_like",
@@ -351,6 +353,36 @@ def test_reindex_columns(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
     df2 = df.reindex(columns=["a", "c"])
+
+    if using_copy_on_write:
+        # still shares memory (df2 is a shallow copy)
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        lambda idx: idx,
+        lambda idx: idx.view(),
+        lambda idx: idx.copy(),
+        lambda idx: list(idx),
+    ],
+    ids=["identical", "view", "copy", "values"],
+)
+def test_reindex_rows(index, using_copy_on_write):
+    # Case: reindexing the rows with an index that matches the current index
+    # can use a shallow copy
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.reindex(index=index(df.index))
 
     if using_copy_on_write:
         # still shares memory (df2 is a shallow copy)
@@ -1525,8 +1557,8 @@ def test_isetitem_series(using_copy_on_write, dtype):
     df.isetitem(0, ser)
 
     if using_copy_on_write:
-        # TODO(CoW) this can share memory
-        assert not np.shares_memory(get_array(df, "a"), get_array(ser))
+        assert np.shares_memory(get_array(df, "a"), get_array(ser))
+        assert not df._mgr._has_no_reference(0)
 
     # mutating dataframe doesn't update series
     df.loc[0, "a"] = 0
@@ -1539,6 +1571,23 @@ def test_isetitem_series(using_copy_on_write, dtype):
 
     ser.loc[0] = 0
     expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_isetitem_frame(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1, "c": 2})
+    rhs = DataFrame({"a": [4, 5, 6], "b": 2})
+    df.isetitem([0, 1], rhs)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
+        assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+        assert not df._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(rhs, "a"))
+        assert not np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+    expected = df.copy()
+    rhs.iloc[0, 0] = 100
+    rhs.iloc[0, 1] = 100
     tm.assert_frame_equal(df, expected)
 
 
@@ -1743,3 +1792,18 @@ def test_series_view(using_copy_on_write):
     else:
         expected = Series([100, 2, 3])
         tm.assert_series_equal(ser, expected)
+
+
+def test_insert_series(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+    df.insert(loc=1, value=ser, column="b")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(ser), get_array(df, "b"))
+        assert not df._mgr._has_no_reference(1)
+    else:
+        assert not np.shares_memory(get_array(ser), get_array(df, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_series_equal(ser, ser_orig)

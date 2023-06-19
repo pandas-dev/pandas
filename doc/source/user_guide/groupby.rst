@@ -218,8 +218,6 @@ For example, the groups created by ``groupby()`` below are in the order they app
 
 .. _groupby.dropna:
 
-.. versionadded:: 1.1.0
-
 GroupBy dropna
 ^^^^^^^^^^^^^^
 
@@ -430,12 +428,6 @@ This is mainly syntactic sugar for the alternative, which is much more verbose:
 
 Additionally, this method avoids recomputing the internal grouping information
 derived from the passed key.
-
-You can also include the grouping columns if you want to operate on them.
-
-.. ipython:: python
-
-   grouped[["A", "B"]].sum()
 
 .. _groupby.iterating-label:
 
@@ -1074,7 +1066,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group")[["val"]].resample("1D").ffill()
+   df_re.groupby("group").resample("1D").ffill()
 
 .. _groupby.filter:
 
@@ -1240,13 +1232,13 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True)[["B", "C", "D"]].apply(lambda x: x)
+    df.groupby("A", group_keys=True).apply(lambda x: x)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False)[["B", "C", "D"]].apply(lambda x: x)
+    df.groupby("A", group_keys=False).apply(lambda x: x)
 
 
 Numba Accelerated Routines
@@ -1730,7 +1722,7 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a")[["b", "c"]].apply(compute_metrics)
+   result = df.groupby("a").apply(compute_metrics)
 
    result
 
