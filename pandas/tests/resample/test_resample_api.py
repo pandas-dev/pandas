@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -186,7 +187,8 @@ def tests_raises_on_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].mean()
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
@@ -886,8 +888,13 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if isinstance(expected_data, str):
-        klass = TypeError if method in ("var", "mean", "median", "prod") else ValueError
-        with pytest.raises(klass, match=expected_data):
+        if method in ("var", "mean", "median", "prod"):
+            klass = TypeError
+            msg = re.escape(f"agg function failed [how->{method},dtype->object]")
+        else:
+            klass = ValueError
+            msg = expected_data
+        with pytest.raises(klass, match=msg):
             _ = func(**kwargs)
     else:
         result = func(**kwargs)
@@ -933,7 +940,8 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
-        with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
+        msg = re.escape("agg function failed [how->prod,dtype->object]")
+        with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     else:
         result = func(**kwargs)

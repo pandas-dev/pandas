@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
 )
 from itertools import product
+import re
 
 import numpy as np
 import pytest
@@ -923,7 +924,8 @@ class TestPivotTable:
 
         # to help with a buglet
         data.columns = [k * 2 for k in data.columns]
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc=np.mean)
         table = data.drop(columns="CC").pivot_table(
             index=["AA", "BB"], margins=True, aggfunc=np.mean
@@ -932,7 +934,7 @@ class TestPivotTable:
             totals = table.loc[("All", ""), value_col]
             assert totals == data[value_col].mean()
 
-        with pytest.raises(TypeError, match="Could not convert"):
+        with pytest.raises(TypeError, match=msg):
             data.pivot_table(index=["AA", "BB"], margins=True, aggfunc="mean")
         table = data.drop(columns="CC").pivot_table(
             index=["AA", "BB"], margins=True, aggfunc="mean"
@@ -995,7 +997,8 @@ class TestPivotTable:
             }
         )
         if aggfunc != "sum":
-            with pytest.raises(TypeError, match="Could not convert"):
+            msg = re.escape("agg function failed [how->mean,dtype->object]")
+            with pytest.raises(TypeError, match=msg):
                 df.pivot_table(columns=columns, margins=True, aggfunc=aggfunc)
         if "B" not in columns:
             df = df.drop(columns="B")

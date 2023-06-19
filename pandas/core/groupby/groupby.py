@@ -1723,7 +1723,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
-        self, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1749,7 +1749,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # We do not get here with UDFs, so we know that our dtype
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
-        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        try:
+            res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        except Exception as err:
+            msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
@@ -1791,8 +1796,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: shouldn't min_count matter?
                 if how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+            else:
+                return result
 
+            result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
