@@ -545,13 +545,14 @@ class NaTType(_NaT):
     dst = _make_error_func(
         "dst",
         """
-        Return self.tzinfo.dst(self).
+        Return the daylight saving time (DST) adjustment.
 
         Examples
         --------
-        >>> ts = pd.Timestamp('2000-06-01 00:00:00',
-        ...                   tz='Europe/Brussels').dst()
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
         >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
         datetime.timedelta(seconds=3600)
         """
         )

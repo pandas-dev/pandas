@@ -1544,33 +1544,27 @@ class Timestamp(_Timestamp):
         datetime.date(2023, 1, 1)
         """
         try:
-            _dt = datetime(self.year, self.month, self.day,
-                           self.hour, self.minute, self.second,
-                           self.microsecond, self.tzinfo, fold=self.fold)
+            _dt = date(self.year, self.month, self.day)
         except ValueError as err:
             raise NotImplementedError(
                 "date not yet supported on Timestamps which "
                 "are outside the range of Python's standard library. "
-                "For now, please call the components you need (such as `.year` "
-                "and `.month`) and construct your string from there."
             ) from err
-        return _dt.date()
+        return _dt
 
     def dst(self):
         """
-        Return self.tzinfo.dst(self).
+        Return the daylight saving time (DST) adjustment.
 
         Examples
         --------
-        >>> ts = pd.Timestamp('2000-06-01 00:00:00',
-        ...                   tz='Europe/Brussels').dst()
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
         >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
         datetime.timedelta(seconds=3600)
         """
-        _dt = datetime(self.year, self.month, self.day,
-                       self.hour, self.minute, self.second,
-                       self.microsecond, self.tzinfo, fold=self.fold)
-        return _dt.dst()
+        return super().dst()
 
     def isocalendar(self):
         """

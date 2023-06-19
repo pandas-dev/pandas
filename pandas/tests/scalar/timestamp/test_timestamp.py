@@ -1131,14 +1131,14 @@ def test_negative_dates():
     func = "^strftime"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.strftime("%Y")
-    func = "^date"
-    with pytest.raises(NotImplementedError, match=func + msg):
-        ts.date()
 
     msg = (
         " not yet supported on Timestamps which "
         "are outside the range of Python's standard library. "
     )
+    func = "^date"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.date()
     func = "^isocalendar"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.isocalendar()
