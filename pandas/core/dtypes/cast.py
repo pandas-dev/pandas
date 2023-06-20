@@ -562,9 +562,16 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         If fill_value is a non-scalar and dtype is not object.
     """
     orig = fill_value
+    orig_is_nat = False
     if checknull(fill_value):
         # https://github.com/pandas-dev/pandas/pull/39692#issuecomment-1441051740
         #  avoid cache misses with NaN/NaT values that are not singletons
+        if fill_value is not NA:
+            try:
+                orig_is_nat = np.isnat(fill_value)
+            except TypeError:
+                pass
+
         fill_value = _canonical_nans.get(type(fill_value), fill_value)
 
     # for performance, we are using a cached version of the actual implementation
@@ -580,8 +587,10 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         # if fill_value is not hashable (required for caching)
         dtype, fill_value = _maybe_promote(dtype, fill_value)
 
-    if dtype == _dtype_obj and orig is not None:
-        # GH#51592 restore our potentially non-canonical fill_value
+    if (dtype == _dtype_obj and orig is not None) or (
+        orig_is_nat and np.datetime_data(orig)[0] != "ns"
+    ):
+        # GH#51592,53497 restore our potentially non-canonical fill_value
         fill_value = orig
     return dtype, fill_value
 
