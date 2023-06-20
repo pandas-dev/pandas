@@ -1142,9 +1142,3 @@ def test_negative_dates():
     func = "^isocalendar"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.isocalendar()
-    func = "^isoweekday"
-    with pytest.raises(NotImplementedError, match=func + msg):
-        ts.isoweekday()
-
-    with pytest.raises(pytz.NonExistentTimeError, match="-2000-01-01 00:00:00"):
-        Timestamp("-2000", tz="Europe/Brussels").dst()
