@@ -327,7 +327,7 @@ class TestIntNumericIndex:
         index = Index([1, 2, 3])
         assert index.dtype == np.int64
 
-    def test_constructor(self, dtype, using_copy_on_write):
+    def test_constructor(self, dtype):
         index_cls = Index
 
         # scalar raise Exception
