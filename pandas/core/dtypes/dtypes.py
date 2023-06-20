@@ -1992,7 +1992,7 @@ class ArrowDtype(StorageExtensionDtype):
     timestamp[s, tz=America/New_York][pyarrow]
     >>> pd.ArrowDtype(pa.list_(pa.int64()))
     list<item: int64>[pyarrow]
-    """  # noqa: E501
+    """
 
     _metadata = ("storage", "pyarrow_dtype")  # type: ignore[assignment]
 
@@ -2214,10 +2214,13 @@ class ArrowDtype(StorageExtensionDtype):
         # Mirrors BaseMaskedDtype
         from pandas.core.dtypes.cast import find_common_type
 
+        null_dtype = type(self)(pa.null())
+
         new_dtype = find_common_type(
             [
                 dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
                 for dtype in dtypes
+                if dtype != null_dtype
             ]
         )
         if not isinstance(new_dtype, np.dtype):

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import numpy as np
 import pytest
@@ -186,7 +187,8 @@ def tests_raises_on_nuisance(test_frame):
     tm.assert_frame_equal(result, expected)
 
     expected = r[["A", "B", "C"]].mean()
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
@@ -290,19 +292,23 @@ def test_fillna():
     r = ts.resample("s")
 
     expected = r.ffill()
-    result = r.fillna(method="ffill")
+    msg = "DatetimeIndexResampler.fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.fillna(method="ffill")
     tm.assert_series_equal(result, expected)
 
     expected = r.bfill()
-    result = r.fillna(method="bfill")
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = r.fillna(method="bfill")
     tm.assert_series_equal(result, expected)
 
-    msg = (
+    msg2 = (
         r"Invalid fill method\. Expecting pad \(ffill\), backfill "
         r"\(bfill\) or nearest\. Got 0"
     )
-    with pytest.raises(ValueError, match=msg):
-        r.fillna(0)
+    with pytest.raises(ValueError, match=msg2):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            r.fillna(0)
 
 
 @pytest.mark.parametrize(
@@ -882,8 +888,13 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
 
     func = getattr(resampled, method)
     if isinstance(expected_data, str):
-        klass = TypeError if method in ("var", "mean", "median", "prod") else ValueError
-        with pytest.raises(klass, match=expected_data):
+        if method in ("var", "mean", "median", "prod"):
+            klass = TypeError
+            msg = re.escape(f"agg function failed [how->{method},dtype->object]")
+        else:
+            klass = ValueError
+            msg = expected_data
+        with pytest.raises(klass, match=msg):
             _ = func(**kwargs)
     else:
         result = func(**kwargs)
@@ -929,7 +940,8 @@ def test_series_downsample_method(method, numeric_only, expected_data):
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     elif method == "prod":
-        with pytest.raises(TypeError, match="can't multiply sequence by non-int"):
+        msg = re.escape("agg function failed [how->prod,dtype->object]")
+        with pytest.raises(TypeError, match=msg):
             func(**kwargs)
     else:
         result = func(**kwargs)

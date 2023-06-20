@@ -12,6 +12,7 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -156,7 +157,7 @@ def test_reindex_pad():
 
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
-    result = s.shift(1).fillna(method="bfill")
+    result = s.shift(1).bfill()
     expected = Series(False, index=range(0, 5))
     tm.assert_series_equal(result, expected)
 
@@ -422,3 +423,14 @@ def test_reindexing_with_float64_NA_log():
         result_log = np.log(s_reindex)
         expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
+
+
+@pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
+def test_reindex_expand_nonnano_nat(dtype):
+    # GH 53497
+    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(RangeIndex(2))
+    expected = Series(
+        np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
+    )
+    tm.assert_series_equal(result, expected)
