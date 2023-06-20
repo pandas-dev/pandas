@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
@@ -148,6 +149,8 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
+    from pandas.core.arrays.datetimes import DatetimeArray
+    from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
 def get_unit_from_pa_dtype(pa_dtype):
@@ -170,6 +173,8 @@ def to_pyarrow_type(
         return dtype.pyarrow_dtype
     elif isinstance(dtype, pa.DataType):
         return dtype
+    elif isinstance(dtype, DatetimeTZDtype):
+        return pa.timestamp(dtype.unit, dtype.tz)
     elif dtype:
         try:
             # Accepts python types too
@@ -342,9 +347,9 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray or pa.Scalar
         """
-        if is_list_like(value):
-            return cls._box_pa_array(value, pa_type)
-        return cls._box_pa_scalar(value, pa_type)
+        if isinstance(value, pa.Scalar) or not is_list_like(value):
+            return cls._box_pa_scalar(value, pa_type)
+        return cls._box_pa_array(value, pa_type)
 
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
@@ -1165,6 +1170,41 @@ class ArrowExtensionArray(
                 indices_array[indices_array < 0] += len(self._pa_array)
             return type(self)(self._pa_array.take(indices_array))
 
+    def _maybe_convert_datelike_array(self):
+        """Maybe convert to a datelike array."""
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            return self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            return self._to_timedeltaarray()
+        return self
+
+    def _to_datetimearray(self) -> DatetimeArray:
+        """Convert a pyarrow timestamp typed array to a DatetimeArray."""
+        from pandas.core.arrays.datetimes import (
+            DatetimeArray,
+            tz_to_dtype,
+        )
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_timestamp(pa_type)
+        np_dtype = np.dtype(f"M8[{pa_type.unit}]")
+        dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return DatetimeArray._simple_new(np_array, dtype=dtype)
+
+    def _to_timedeltaarray(self) -> TimedeltaArray:
+        """Convert a pyarrow duration typed array to a TimedeltaArray."""
+        from pandas.core.arrays.timedeltas import TimedeltaArray
+
+        pa_type = self._pa_array.type
+        assert pa.types.is_duration(pa_type)
+        np_dtype = np.dtype(f"m8[{pa_type.unit}]")
+        np_array = self._pa_array.to_numpy()
+        np_array = np_array.astype(np_dtype)
+        return TimedeltaArray._simple_new(np_array, dtype=np_dtype)
+
     @doc(ExtensionArray.to_numpy)
     def to_numpy(
         self,
@@ -1181,33 +1221,12 @@ class ArrowExtensionArray(
             na_value = self.dtype.na_value
 
         pa_type = self._pa_array.type
-        if pa.types.is_timestamp(pa_type):
-            from pandas.core.arrays.datetimes import (
-                DatetimeArray,
-                tz_to_dtype,
-            )
-
-            np_dtype = np.dtype(f"M8[{pa_type.unit}]")
-            result = self._pa_array.to_numpy()
-            result = result.astype(np_dtype, copy=copy)
+        if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+            result = self._maybe_convert_datelike_array()
             if dtype is None or dtype.kind == "O":
-                dta_dtype = tz_to_dtype(pa_type.tz, pa_type.unit)
-                result = DatetimeArray._simple_new(result, dtype=dta_dtype)
                 result = result.to_numpy(dtype=object, na_value=na_value)
-            elif result.dtype != dtype:
-                result = result.astype(dtype, copy=False)
-            return result
-        elif pa.types.is_duration(pa_type):
-            from pandas.core.arrays.timedeltas import TimedeltaArray
-
-            np_dtype = np.dtype(f"m8[{pa_type.unit}]")
-            result = self._pa_array.to_numpy()
-            result = result.astype(np_dtype, copy=copy)
-            if dtype is None or dtype.kind == "O":
-                result = TimedeltaArray._simple_new(result, dtype=np_dtype)
-                result = result.to_numpy(dtype=object, na_value=na_value)
-            elif result.dtype != dtype:
-                result = result.astype(dtype, copy=False)
+            else:
+                result = result.to_numpy(dtype=dtype)
             return result
         elif pa.types.is_time(pa_type):
             # convert to list of python datetime.time objects before
@@ -1530,6 +1549,24 @@ class ArrowExtensionArray(
 
         return result.as_py()
 
+    def _explode(self):
+        """
+        See Series.explode.__doc__.
+        """
+        values = self
+        counts = pa.compute.list_value_length(values._pa_array)
+        counts = counts.fill_null(1).to_numpy()
+        fill_value = pa.scalar([None], type=self._pa_array.type)
+        mask = counts == 0
+        if mask.any():
+            values = values.copy()
+            values[mask] = fill_value
+            counts = counts.copy()
+            counts[mask] = 1
+        values = values.fillna(fill_value)
+        values = type(self)(pa.compute.list_flatten(values._pa_array))
+        return values, counts
+
     def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
@@ -1572,10 +1609,10 @@ class ArrowExtensionArray(
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {n}"
                 )
-            if is_list_like(value):
-                raise ValueError("Length of indexer and values mismatch")
-            elif isinstance(value, pa.Scalar):
+            if isinstance(value, pa.Scalar):
                 value = value.as_py()
+            elif is_list_like(value):
+                raise ValueError("Length of indexer and values mismatch")
             chunks = [
                 *self._pa_array[:key].chunks,
                 pa.array([value], type=self._pa_array.type, from_pandas=True),
@@ -2054,7 +2091,12 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        return type(self)(pc.binary_join(self._pa_array, sep))
+        if pa.types.is_string(self._pa_array.type):
+            result = self._apply_elementwise(list)
+            result = pa.chunked_array(result, type=pa.list_(pa.string()))
+        else:
+            result = self._pa_array
+        return type(self)(pc.binary_join(result, sep))
 
     def _str_partition(self, sep: str, expand: bool):
         predicate = lambda val: val.partition(sep)
@@ -2197,17 +2239,19 @@ class ArrowExtensionArray(
         return type(self)(pa.chunked_array(result))
 
     def _str_get_dummies(self, sep: str = "|"):
-        split = pc.split_pattern(self._pa_array, sep).combine_chunks()
-        uniques = split.flatten().unique()
+        split = pc.split_pattern(self._pa_array, sep)
+        flattened_values = pc.list_flatten(split)
+        uniques = flattened_values.unique()
         uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
-        result_data = []
-        for lst in split.to_pylist():
-            if lst is None:
-                result_data.append([False] * len(uniques_sorted))
-            else:
-                res = pc.is_in(uniques_sorted, pa.array(set(lst)))
-                result_data.append(res.to_pylist())
-        result = type(self)(pa.array(result_data))
+        lengths = pc.list_value_length(split).fill_null(0).to_numpy()
+        n_rows = len(self)
+        n_cols = len(uniques)
+        indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
+        indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
+        dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
+        dummies[indices] = True
+        dummies = dummies.reshape((n_rows, n_cols))
+        result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None):

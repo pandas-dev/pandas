@@ -183,6 +183,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.DatetimeArray(pd.DatetimeIndex(['2023-01-01', '2023-01-02']),
+    ...                         freq='D')
+    <DatetimeArray>
+    ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
+    Length: 2, dtype: datetime64[ns]
     """
 
     _typ = "datetimearray"
@@ -567,6 +575,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -574,6 +584,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         1   2020-02-01 11:00:00+00:00
         dtype: datetime64[ns, UTC]
         >>> s.dt.tz
+        datetime.timezone.utc
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.tz
         datetime.timezone.utc
         """
         # GH 18595
@@ -1130,19 +1147,19 @@ default 'raise'
 
     def to_period(self, freq=None) -> PeriodArray:
         """
-        Cast to PeriodArray/Index at a particular frequency.
+        Cast to PeriodArray/PeriodIndex at a particular frequency.
 
-        Converts DatetimeArray/Index to PeriodArray/Index.
+        Converts DatetimeArray/Index to PeriodArray/PeriodIndex.
 
         Parameters
         ----------
-        freq : str or Offset, optional
-            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
-            or an Offset object. Will be inferred by default.
+        freq : str or Period, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
+            or an Period object. Will be inferred by default.
 
         Returns
         -------
-        PeriodArray/Index
+        PeriodArray/PeriodIndex
 
         Raises
         ------
@@ -1326,6 +1343,8 @@ default 'raise'
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -1336,6 +1355,13 @@ default 'raise'
         0    10:00:00
         1    11:00:00
         dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.time
+        array([datetime.time(10, 0), datetime.time(11, 0)], dtype=object)
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1353,6 +1379,8 @@ default 'raise'
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -1363,6 +1391,14 @@ default 'raise'
         0    10:00:00+00:00
         1    11:00:00+00:00
         dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.timetz
+        array([datetime.time(10, 0, tzinfo=datetime.timezone.utc),
+        datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._creso)
 
@@ -1376,6 +1412,8 @@ default 'raise'
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -1386,6 +1424,13 @@ default 'raise'
         0    2020-01-01
         1    2020-02-01
         dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.date
+        array([datetime.date(2020, 1, 1), datetime.date(2020, 2, 1)], dtype=object)
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1667,6 +1712,8 @@ default 'raise'
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -1677,6 +1724,13 @@ default 'raise'
         0    1
         1   32
         dtype: int32
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.dayofyear
+        Index([1, 32], dtype='int32')
         """,
     )
     dayofyear = day_of_year
@@ -1688,6 +1742,8 @@ default 'raise'
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "4/1/2020 11:00:00+00:00"])
         >>> s = pd.to_datetime(s)
         >>> s
@@ -1698,6 +1754,13 @@ default 'raise'
         0    1
         1    2
         dtype: int32
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.quarter
+        Index([1, 1], dtype='int32')
         """,
     )
     days_in_month = _field_accessor(

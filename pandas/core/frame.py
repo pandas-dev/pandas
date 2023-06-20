@@ -122,10 +122,7 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.accessor import CachedAccessor
-from pandas.core.apply import (
-    reconstruct_func,
-    relabel_result,
-)
+from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
@@ -3918,7 +3915,6 @@ class DataFrame(NDFrame, OpsMixin):
         In cases where ``frame.columns`` is unique, this is equivalent to
         ``frame[frame.columns[i]] = value``.
         """
-        using_cow = using_copy_on_write()
         if isinstance(value, DataFrame):
             if is_integer(loc):
                 loc = [loc]
@@ -3930,13 +3926,11 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
             for i, idx in enumerate(loc):
-                arraylike, refs = self._sanitize_column(
-                    value.iloc[:, i], using_cow=using_cow
-                )
+                arraylike, refs = self._sanitize_column(value.iloc[:, i])
                 self._iset_item_mgr(idx, arraylike, inplace=False, refs=refs)
             return
 
-        arraylike, refs = self._sanitize_column(value, using_cow=using_cow)
+        arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value):
@@ -4173,7 +4167,7 @@ class DataFrame(NDFrame, OpsMixin):
         Series/TimeSeries will be conformed to the DataFrames index to
         ensure homogeneity.
         """
-        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        value, refs = self._sanitize_column(value)
 
         if (
             key in self.columns
@@ -4816,7 +4810,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif isinstance(value, DataFrame):
             value = value.iloc[:, 0]
 
-        value, refs = self._sanitize_column(value, using_cow=using_copy_on_write())
+        value, refs = self._sanitize_column(value)
         self._mgr.insert(loc, column, value, refs=refs)
 
     def assign(self, **kwargs) -> DataFrame:
@@ -4887,9 +4881,7 @@ class DataFrame(NDFrame, OpsMixin):
             data[k] = com.apply_if_callable(v, data)
         return data
 
-    def _sanitize_column(
-        self, value, using_cow: bool = False
-    ) -> tuple[ArrayLike, BlockValuesRefs | None]:
+    def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
         always copied (or a reference is being tracked to them under CoW)
@@ -4910,7 +4902,7 @@ class DataFrame(NDFrame, OpsMixin):
         if is_dict_like(value):
             if not isinstance(value, Series):
                 value = Series(value)
-            return _reindex_for_setitem(value, self.index, using_cow=using_cow)
+            return _reindex_for_setitem(value, self.index)
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
@@ -6959,7 +6951,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def value_counts(
         self,
-        subset: Sequence[Hashable] | None = None,
+        subset: IndexLabel | None = None,
         normalize: bool = False,
         sort: bool = True,
         ascending: bool = False,
@@ -7083,8 +7075,8 @@ class DataFrame(NDFrame, OpsMixin):
         if normalize:
             counts /= counts.sum()
 
-        # Force MultiIndex for single column
-        if is_list_like(subset) and len(subset) == 1:
+        # Force MultiIndex for a list_like subset with a single column
+        if is_list_like(subset) and len(subset) == 1:  # type: ignore[arg-type]
             counts.index = MultiIndex.from_arrays(
                 [counts.index], names=[counts.index.name]
             )
@@ -8830,22 +8822,22 @@ class DataFrame(NDFrame, OpsMixin):
         values : list-like or scalar, optional
             Column or columns to aggregate.
         index : column, Grouper, array, or list of the previous
-            If an array is passed, it must be the same length as the data. The
-            list can contain any of the other types (except list).
-            Keys to group by on the pivot table index.  If an array is passed,
-            it is being used as the same manner as column values.
+            Keys to group by on the pivot table index. If a list is passed,
+            it can contain any of the other types (except list). If an array is
+            passed, it must be the same length as the data and will be used in
+            the same manner as column values.
         columns : column, Grouper, array, or list of the previous
-            If an array is passed, it must be the same length as the data. The
-            list can contain any of the other types (except list).
-            Keys to group by on the pivot table column.  If an array is passed,
-            it is being used as the same manner as column values.
+            Keys to group by on the pivot table column. If a list is passed,
+            it can contain any of the other types (except list). If an array is
+            passed, it must be the same length as the data and will be used in
+            the same manner as column values.
         aggfunc : function, list of functions, dict, default numpy.mean
-            If list of functions passed, the resulting pivot table will have
+            If a list of functions is passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
-            (inferred from the function objects themselves)
-            If dict is passed, the key is column to aggregate and value
-            is function or list of functions. If ``margin=True``,
-            aggfunc will be used to calculate the partial aggregates.
+            (inferred from the function objects themselves).
+            If a dict is passed, the key is column to aggregate and the value is
+            function or list of functions. If ``margin=True``, aggfunc will be
+            used to calculate the partial aggregates.
         fill_value : scalar, default None
             Value to replace missing values with (in the resulting pivot table,
             after aggregation).
@@ -8994,7 +8986,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: Level = -1, dropna: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9020,6 +9012,8 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        sort : bool, default True
+            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9163,9 +9157,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 
@@ -9297,7 +9291,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         return result.__finalize__(self, method="explode")
 
-    def unstack(self, level: Level = -1, fill_value=None):
+    def unstack(self, level: IndexLabel = -1, fill_value=None, sort: bool = True):
         """
         Pivot a level of the (necessarily hierarchical) index labels.
 
@@ -9313,6 +9307,8 @@ class DataFrame(NDFrame, OpsMixin):
             Level(s) of index to unstack, can pass level name.
         fill_value : int, str or dict
             Replace NaN with this value if the unstack produces missing values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -9360,7 +9356,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.reshape import unstack
 
-        result = unstack(self, level, fill_value)
+        result = unstack(self, level, fill_value, sort)
 
         return result.__finalize__(self, method="unstack")
 
@@ -9579,23 +9575,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         axis = self._get_axis_number(axis)
 
-        relabeling, func, columns, order = reconstruct_func(func, **kwargs)
-
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.agg()
-
-        if relabeling:
-            # This is to keep the order to columns occurrence unchanged, and also
-            # keep the order of new columns occurrence unchanged
-
-            # For the return values of reconstruct_func, if relabeling is
-            # False, columns and order will be None.
-            assert columns is not None
-            assert order is not None
-
-            result_in_dict = relabel_result(result, func, columns, order)
-            result = DataFrame(result_in_dict, index=columns)
-
+        result = reconstruct_and_relabel_result(result, func, **kwargs)
         return result
 
     agg = aggregate
@@ -10753,8 +10735,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Count non-NA cells for each column or row.
 
-        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
-        on `pandas.options.mode.use_inf_as_na`) are considered NA.
+        The values `None`, `NaN`, `NaT`, ``pandas.NA`` are considered NA.
 
         Parameters
         ----------
@@ -10998,7 +10979,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sum", ndim=2))
     def sum(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11010,7 +10991,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("prod", ndim=2))
     def prod(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         numeric_only: bool = False,
         min_count: int = 0,
@@ -11041,7 +11022,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("sem", ndim=2))
     def sem(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11052,7 +11033,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("var", ndim=2))
     def var(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11063,7 +11044,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("std", ndim=2))
     def std(
         self,
-        axis: Axis | None = None,
+        axis: Axis | None = 0,
         skipna: bool = True,
         ddof: int = 1,
         numeric_only: bool = False,
@@ -11744,15 +11725,21 @@ class DataFrame(NDFrame, OpsMixin):
                     "to be passed to DataFrame.isin(), "
                     f"you passed a '{type(values).__name__}'"
                 )
-            # error: Argument 2 to "isin" has incompatible type "Union[Sequence[Any],
-            # Mapping[Any, Any]]"; expected "Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]"
-            res_values = algorithms.isin(
-                self.values.ravel(),
-                values,  # type: ignore[arg-type]
-            )
+
+            def isin_(x):
+                # error: Argument 2 to "isin" has incompatible type "Union[Series,
+                # DataFrame, Sequence[Any], Mapping[Any, Any]]"; expected
+                # "Union[Union[Union[ExtensionArray, ndarray[Any, Any]], Index,
+                # Series], List[Any], range]"
+                result = algorithms.isin(
+                    x.ravel(),
+                    values,  # type: ignore[arg-type]
+                )
+                return result.reshape(x.shape)
+
+            res_values = self._mgr.apply(isin_)
             result = self._constructor(
-                res_values.reshape(self.shape),
+                res_values,
                 self.index,
                 self.columns,
                 copy=False,
@@ -11931,12 +11918,12 @@ def _from_nested_dict(data) -> collections.defaultdict:
 
 
 def _reindex_for_setitem(
-    value: DataFrame | Series, index: Index, using_cow: bool = False
+    value: DataFrame | Series, index: Index
 ) -> tuple[ArrayLike, BlockValuesRefs | None]:
     # reindex if necessary
 
     if value.index.equals(index) or not len(index):
-        if using_cow and isinstance(value, Series):
+        if using_copy_on_write() and isinstance(value, Series):
             return value._values, value._references
         return value._values.copy(), None
 
