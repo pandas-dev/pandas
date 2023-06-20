@@ -2657,6 +2657,12 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
         tm.assert_frame_equal(df, expected)
 
+    def test_construct_from_dict_ea_series(self):
+        # GH#53744
+        ser = Series([1, 2, 3], dtype="Int64")
+        df = DataFrame({"a": ser})
+        assert not np.shares_memory(ser.values._data, df["a"].values._data)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
