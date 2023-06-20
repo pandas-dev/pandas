@@ -266,7 +266,12 @@ def frame_of_index_cols():
 
 @pytest.fixture
 def comments_attrs():
-    return {"one": "Hello", "two": "Hello World", "three": "Hello, World!"}
+    return {
+        "one": "Hello",
+        "two": "Hello World",
+        "three": "Hello, World!",
+        "four,": "comma in keym",
+    }
 
 
 @pytest.fixture

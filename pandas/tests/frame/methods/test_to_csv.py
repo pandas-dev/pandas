@@ -1315,13 +1315,13 @@ class TestDataFrameToCSV:
 
         data_for_comments_raw = data_for_comments_raw.replace(",", delim)
         # Create string representation of data with attrs written at start
-        output_data = []
+        output_data_rows = []
         for k, v in comments_attrs.items():
             # Make sure delims being used are sanitized from comment lines
             k = k.replace(delim, "")
             v = v.replace(delim, "")
-            output_data.append(f"{comment}{k}:{v}\n")
-        output_data = "".join(output_data)
+            output_data_rows.append(f"{comment}{k}:{v}\n")
+        output_data = "".join(output_data_rows)
         output_data = output_data + data_for_comments_raw
         return output_data
 
@@ -1343,7 +1343,7 @@ class TestDataFrameToCSV:
         # Check saved output is as expected
         with tm.ensure_clean() as path:
             frame_for_comments.to_csv(path, comment=comment, index=False)
-            with open(path) as fp:
+            with open(path, encoding="utf-8") as fp:
                 lines = fp.read()
                 assert (
                     lines == output_data
@@ -1364,7 +1364,7 @@ class TestDataFrameToCSV:
         ), "Read tab outputs are not as expected"
         with tm.ensure_clean() as path:
             frame_for_comments.to_csv(path, comment=comment, index=False, sep="\t")
-            with open(path) as fp:
+            with open(path, encoding="utf-8") as fp:
                 lines = fp.read()
                 assert (
                     lines == output_data
