@@ -510,7 +510,7 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
             "y": [12.0, 13.0, np.nan, 14.0],
         },
         index=MultiIndex.from_arrays(
-            [[1, 2, 3, 4], [np.nan, 5.0, 6.0, 7.0]], names=["a", "b"]
+            [[1, 2, 3, 4], [np.nan, 5, 6, 7]], names=["a", "b"]
         ),
     )
     combined = df1.combine_first(df2)

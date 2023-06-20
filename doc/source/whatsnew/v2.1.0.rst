@@ -325,6 +325,7 @@ Performance improvements
 - Performance improvement accessing :attr:`arrays.IntegerArrays.dtype` & :attr:`arrays.FloatingArray.dtype` (:issue:`52998`)
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
+- Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
