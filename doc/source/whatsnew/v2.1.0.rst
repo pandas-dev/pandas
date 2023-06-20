@@ -20,6 +20,9 @@ Copy-on-Write improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Setting a :class:`Series` into a :class:`DataFrame` now creates a lazy instead of a deep copy (:issue:`53142`)
+- The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
+  of Index objects and specifying ``copy=False``, will now use a lazy copy
+  of those Index objects for the columns of the DataFrame (:issue:`52947`)
 
 .. _whatsnew_210.enhancements.enhancement2:
 
