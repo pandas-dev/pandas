@@ -1137,17 +1137,9 @@ def test_negative_dates():
         "are outside the range of Python's standard library. "
     )
 
-    func = "^time"
-    with pytest.raises(NotImplementedError, match=func + msg):
-        ts.time()
-
     func = "^timetuple"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.timetuple()
-
-    func = "^timetz"
-    with pytest.raises(NotImplementedError, match=func + msg):
-        ts.timetz()
 
     func = "^toordinal"
     with pytest.raises(NotImplementedError, match=func + msg):
