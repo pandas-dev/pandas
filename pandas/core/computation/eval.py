@@ -375,7 +375,11 @@ def eval(
             # if returning a copy, copy only on the first assignment
             if not inplace and first_expr:
                 try:
-                    target = env.target.copy(deep=not using_copy_on_write())
+                    target = env.target
+                    if isinstance(target, NDFrame):
+                        target = target.copy(deep=not using_copy_on_write())
+                    else:
+                        target = target.copy()
                 except AttributeError as err:
                     raise ValueError("Cannot return a copy of the target") from err
             else:
