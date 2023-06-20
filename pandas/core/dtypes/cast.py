@@ -1039,6 +1039,8 @@ def convert_dtypes(
     """
     inferred_dtype: str | DtypeObj
 
+    from pandas.core.arrays.arrow.dtype import ArrowDtype
+
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
@@ -1121,7 +1123,6 @@ def convert_dtypes(
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
