@@ -84,7 +84,7 @@ def grouped_min_max(
     is_max: bool,
 ) -> np.ndarray:
     N = len(labels)
-    nobs = np.empty(ngroups, dtype=np.int64)
+    nobs = np.zeros(ngroups, dtype=np.int64)
     na_pos = []
     output = np.empty(ngroups, dtype=result_dtype)
 
