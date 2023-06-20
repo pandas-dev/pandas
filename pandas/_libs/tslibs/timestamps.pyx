@@ -1531,6 +1531,34 @@ class Timestamp(_Timestamp):
             ) from err
         return _dt.ctime()
 
+    def tzname(self):
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        return super().tzname()
+
+    def utcoffset(self):
+        """
+        Return utc offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        return super().utcoffset()
+
     # Issue 25016.
     @classmethod
     def strptime(cls, date_string, format):

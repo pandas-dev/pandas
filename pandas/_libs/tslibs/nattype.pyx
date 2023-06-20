@@ -515,8 +515,6 @@ class NaTType(_NaT):
     dst = _make_error_func("dst", datetime)
     time = _make_error_func("time", datetime)
     toordinal = _make_error_func("toordinal", datetime)
-    tzname = _make_error_func("tzname", datetime)
-    utcoffset = _make_error_func("utcoffset", datetime)
 
     # "fromisocalendar" was introduced in 3.8
     fromisocalendar = _make_error_func("fromisocalendar", datetime)
@@ -524,7 +522,34 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+    utcoffset = _make_error_func(
+        "utcoffset",
+        """
+        Return utc offset.
 
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    tzname = _make_error_func(
+        "tzname",
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        )
     ctime = _make_error_func(
         "ctime",
         """
