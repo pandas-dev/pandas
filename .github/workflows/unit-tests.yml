@@ -336,7 +336,7 @@ jobs:
       - name: Install dependencies
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install git+https://github.com/nedbat/coveragepy.git
           python -m pip install versioneer[toml]
