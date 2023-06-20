@@ -648,7 +648,7 @@ cdef class {{name}}HashTable(HashTable):
             UInt8Vector result_mask
             UInt8VectorData *rmd
             bint use_na_value, use_mask, seen_na = False
-            uint8_t[:] mask_values
+            const uint8_t[:] mask_values
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
