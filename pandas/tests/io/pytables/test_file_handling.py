@@ -224,7 +224,9 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 
 def test_complibs(tmp_path, setup_path):
     # GH14478
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
+    )
 
     # Building list of all complibs and complevels tuples
     all_complibs = tables.filters.all_complibs
