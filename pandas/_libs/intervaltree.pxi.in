@@ -125,7 +125,7 @@ cdef class IntervalTree(IntervalMixin):
         sort_order = self.left_sorter
         return is_monotonic(sort_order, False)[0]
 
-    def get_indexer(self, scalar_t[:] target) -> np.ndarray:
+    def get_indexer(self, ndarray[scalar_t, ndim=1] target) -> np.ndarray:
         """Return the positions corresponding to unique intervals that overlap
         with the given array of scalar targets.
         """
@@ -153,7 +153,7 @@ cdef class IntervalTree(IntervalMixin):
             old_len = result.data.n
         return result.to_array().astype('intp')
 
-    def get_indexer_non_unique(self, scalar_t[:] target):
+    def get_indexer_non_unique(self, ndarray[scalar_t, ndim=1] target):
         """Return the positions corresponding to intervals that overlap with
         the given array of scalar targets. Non-unique positions are repeated.
         """
