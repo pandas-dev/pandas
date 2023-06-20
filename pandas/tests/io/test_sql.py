@@ -75,31 +75,34 @@ try:
 except ImportError:
     SQLALCHEMY_INSTALLED = False
 
-SQL_STRINGS = {
-    "read_parameters": {
-        "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
-        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
-    },
-    "read_named_parameters": {
-        "sqlite": """
+
+@pytest.fixture
+def sql_strings():
+    return {
+        "read_parameters": {
+            "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
+            "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
+            "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        },
+        "read_named_parameters": {
+            "sqlite": """
                 SELECT * FROM iris WHERE Name=:name AND SepalLength=:length
                 """,
-        "mysql": """
+            "mysql": """
                 SELECT * FROM iris WHERE
                 `Name`=%(name)s AND `SepalLength`=%(length)s
                 """,
-        "postgresql": """
+            "postgresql": """
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
-    },
-    "read_no_parameters_with_percent": {
-        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
-        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
-        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
-    },
-}
+        },
+        "read_no_parameters_with_percent": {
+            "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+            "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+            "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        },
+    }
 
 
 def iris_table_metadata(dialect: str):
@@ -669,12 +672,12 @@ def test_read_iris_query_expression_with_parameter(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris_query_string_with_parameter(conn, request):
-    for db, query in SQL_STRINGS["read_parameters"].items():
+def test_read_iris_query_string_with_parameter(conn, request, sql_strings):
+    for db, query in sql_strings["read_parameters"].items():
         if db in conn:
             break
     else:
-        raise KeyError(f"No part of {conn} found in SQL_STRINGS['read_parameters']")
+        raise KeyError(f"No part of {conn} found in sql_strings['read_parameters']")
     conn = request.getfixturevalue(conn)
     iris_frame = read_sql_query(query, conn, params=("Iris-setosa", 5.1))
     check_iris_frame(iris_frame)
@@ -933,20 +936,20 @@ class PandasSQLTest:
         else:
             create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _read_sql_iris_parameter(self):
-        query = SQL_STRINGS["read_parameters"][self.flavor]
+    def _read_sql_iris_parameter(self, sql_strings):
+        query = sql_strings["read_parameters"][self.flavor]
         params = ("Iris-setosa", 5.1)
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_named_parameter(self):
-        query = SQL_STRINGS["read_named_parameters"][self.flavor]
+    def _read_sql_iris_named_parameter(self, sql_strings):
+        query = sql_strings["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_no_parameter_with_percent(self):
-        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+    def _read_sql_iris_no_parameter_with_percent(self, sql_strings):
+        query = sql_strings["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
         check_iris_frame(iris_frame)
 
@@ -1832,11 +1835,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_engine(cls):
         raise NotImplementedError()
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
@@ -2948,11 +2951,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self.load_types_data(types_data)
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
