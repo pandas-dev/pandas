@@ -2157,10 +2157,7 @@ class MultiIndex(Index):
                     level_values = level_values.union(mi.levels[i])
                 level_codes = [
                     recode_for_categories(
-                        mi.codes[i],
-                        mi.levels[i],
-                        level_values,
-                        copy=False,
+                        mi.codes[i], mi.levels[i], level_values, copy=False
                     )
                     for mi in ([self, *other])
                 ]
