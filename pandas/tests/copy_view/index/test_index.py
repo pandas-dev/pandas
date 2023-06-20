@@ -167,3 +167,12 @@ def test_index_to_frame(using_copy_on_write):
 
     df.iloc[0, 0] = 100
     tm.assert_index_equal(idx, expected)
+
+
+def test_index_values(using_copy_on_write):
+    idx = Index([1, 2, 3])
+    result = idx.values
+    if using_copy_on_write:
+        assert result.flags.writeable is False
+    else:
+        assert result.flags.writeable is True
