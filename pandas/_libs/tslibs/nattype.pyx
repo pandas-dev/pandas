@@ -429,6 +429,14 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01')
+        >>> ts
+        Timestamp('2023-01-01  00:00:00')
+        >>> ts.weekday()
+        6
         """,
     )
     isoweekday = _make_nan_func(
@@ -508,7 +516,6 @@ class NaTType(_NaT):
     # _nat_methods
     date = _make_nat_func("date", datetime.date.__doc__)
 
-    utctimetuple = _make_error_func("utctimetuple", datetime)
     timetz = _make_error_func("timetz", datetime)
     timetuple = _make_error_func("timetuple", datetime)
     isocalendar = _make_error_func("isocalendar", datetime)
@@ -522,6 +529,21 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+    utctimetuple = _make_error_func(
+        "utctimetuple",
+        """
+        Return UTC time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utctimetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1, tm_hour=9,
+        tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=0)
+        """
+        )
     utcoffset = _make_error_func(
         "utcoffset",
         """
@@ -591,6 +613,12 @@ class NaTType(_NaT):
         Timestamp.strptime(string, format)
 
         Function is not implemented. Use pd.to_datetime().
+
+        Examples
+        --------
+        >>> pd.Timestamp.strptime("2023-01-01", "%d/%m/%y")
+        Traceback (most recent call last):
+        NotImplementedError
         """,
     )
 
