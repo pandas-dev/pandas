@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+import re
 
 import numpy as np
 import pytest
@@ -641,7 +642,7 @@ def test_frame_multi_key_function_list_partial_failure():
 
     grouped = data.groupby(["A", "B"])
     funcs = [np.mean, np.std]
-    msg = "Could not convert string 'dullshinyshiny' to numeric"
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
 
@@ -925,9 +926,10 @@ def test_groupby_multi_corner(df):
 
 def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    with pytest.raises(TypeError, match=msg):
         grouped.agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
+    with pytest.raises(TypeError, match=msg):
         grouped.mean()
 
     df = df.loc[:, ["A", "C", "D"]]
@@ -975,10 +977,12 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
     if agg_function in no_drop_nuisance and not numeric_only:
         # Added numeric_only as part of GH#46560; these do not drop nuisance
         # columns when numeric_only is False
-        klass = ValueError if agg_function in ("std", "sem") else TypeError
-        msg = "|".join(["[C|c]ould not convert", "can't multiply sequence"])
-        if agg_function == "median":
-            msg = r"Cannot convert \['one' 'three' 'two'\] to numeric"
+        if agg_function in ("std", "sem"):
+            klass = ValueError
+            msg = "could not convert string to float: 'one'"
+        else:
+            klass = TypeError
+            msg = re.escape(f"agg function failed [how->{agg_function},dtype->object]")
         with pytest.raises(klass, match=msg):
             getattr(grouped, agg_function)(numeric_only=numeric_only)
     else:
@@ -1003,9 +1007,10 @@ def test_raise_on_nuisance_python_single(df):
 
 def test_raise_on_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    with pytest.raises(TypeError, match=msg):
         grouped.agg(np.mean)
-    with pytest.raises(TypeError, match="Could not convert"):
+    with pytest.raises(TypeError, match=msg):
         grouped.mean()
 
 
@@ -1045,7 +1050,8 @@ def test_wrap_aggregated_output_multindex(mframe):
     df["baz", "two"] = "peekaboo"
 
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
-    with pytest.raises(TypeError, match="Could not convert"):
+    msg = re.escape("agg function failed [how->mean,dtype->object]")
+    with pytest.raises(TypeError, match=msg):
         df.groupby(keys).agg(np.mean)
     agged = df.drop(columns=("baz", "two")).groupby(keys).agg(np.mean)
     assert isinstance(agged.columns, MultiIndex)
