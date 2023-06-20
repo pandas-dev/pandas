@@ -145,9 +145,9 @@ usecols : list-like or callable, optional
     header row(s) are not taken into account. For example, a valid list-like
     ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
     Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
-    To instantiate a :class:`~pandas.DataFrame` from ``data`` with element order preserved use
-    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
-    in ``['foo', 'bar']`` order or
+    To instantiate a :class:`~pandas.DataFrame` from ``data`` with element order
+    preserved use ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]``
+    for columns in ``['foo', 'bar']`` order or
     ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
     for ``['bar', 'foo']`` order.
 
@@ -221,8 +221,8 @@ keep_default_na : bool, default True
     ``na_values`` parameters will be ignored.
 na_filter : bool, default True
     Detect missing value markers (empty strings and the value of ``na_values``). In
-    data without any ``NA`` values, passing ``na_filter=False`` can improve the performance
-    of reading a large file.
+    data without any ``NA`` values, passing ``na_filter=False`` can improve the
+    performance of reading a large file.
 verbose : bool, default False
     Indicate number of ``NA`` values placed in non-numeric columns.
 skip_blank_lines : bool, default True
@@ -234,8 +234,8 @@ default False
     * ``bool``. If ``True`` -> try parsing the index.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as
-      a single date column.
+    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
+    as a single date column.
     * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
       result 'foo'
 
@@ -316,7 +316,8 @@ quotechar : str (length 1), optional
     items can include the ``delimiter`` and it will be ignored.
 quoting : int or csv.QUOTE_* instance, default 0
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
-    ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or ``QUOTE_NONE`` (3).
+    ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
+    ``QUOTE_NONE`` (3).
 doublequote : bool, default True
    When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
    whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
@@ -388,9 +389,9 @@ low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
     types either set ``False``, or specify the type with the ``dtype`` parameter.
-    Note that the entire file is read into a single :class:`~pandas.DataFrame` regardless,
-    use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
-    (Only valid with C parser).
+    Note that the entire file is read into a single :class:`~pandas.DataFrame`
+    regardless, use the ``chunksize`` or ``iterator`` parameter to return the data in
+    chunks. (Only valid with C parser).
 memory_map : bool, default False
     If a filepath is provided for ``filepath_or_buffer``, map the file object
     directly onto memory and access the data directly from there. Using this
@@ -408,9 +409,9 @@ float_precision : str, optional
     .. versionadded:: 1.2
 
 dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrame
-    Which ``dtype_backend`` to use, e.g. whether a :class:`~pandas.DataFrame` should have NumPy
-    arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a nullable
-    implementation when ``"numpy_nullable"`` is set, pyarrow is used for all
+    Which ``dtype_backend`` to use, e.g. whether a :class:`~pandas.DataFrame` should
+    have NumPy arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a
+    nullable implementation when ``"numpy_nullable"`` is set, pyarrow is used for all
     dtypes if ``"pyarrow"`` is set.
 
     The ``dtype_backends`` are still experimential.
