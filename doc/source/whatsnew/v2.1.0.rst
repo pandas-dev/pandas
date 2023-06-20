@@ -109,6 +109,7 @@ Other enhancements
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Added a new parameter ``by_row`` to :meth:`Series.apply`. When set to ``False`` the supplied callables will always operate on the whole Series (:issue:`53400`).
 - Groupby aggregations (such as :meth:`DataFrameGroupby.sum`) now can preserve the dtype of the input instead of casting to ``float64`` (:issue:`44952`)
+- Improved error message when :meth:`DataFrameGroupBy.agg` failed (:issue:`52930`)
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
@@ -289,6 +290,7 @@ Deprecations
 - Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
 - Deprecated falling back to filling when ``value`` is not specified in :meth:`DataFrame.replace` and :meth:`Series.replace` with non-dict-like ``to_replace`` (:issue:`33302`)
 - Deprecated option "mode.use_inf_as_na", convert inf entries to ``NaN`` before instead (:issue:`51684`)
+- Deprecated parameter ``obj`` in :meth:`GroupBy.get_group` (:issue:`53545`)
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
 - Deprecated the "method" and "limit" keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`SeriesGroupBy.fillna`, :meth:`DataFrameGroupBy.fillna`, and :meth:`Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)
 - Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)
@@ -401,7 +403,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- :meth:`pd.IntervalIndex.get_indexer` and :meth:`pd.IntervalIndex.get_indexer_nonunique` raising if ``target`` is read-only array (:issue:`53703`)
 -
 
 Indexing
