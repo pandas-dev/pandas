@@ -240,3 +240,11 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(infer_objects=infer_objects)
         expected = pd.Series([1.5, pd.NA], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_to_np_nullable(self):
+        # GH 53648
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(range(2), dtype="int32[pyarrow]")
+        result = ser.convert_dtypes(dtype_backend="numpy_nullable")
+        expected = pd.Series(range(2), dtype="Int32")
+        tm.assert_series_equal(result, expected)
