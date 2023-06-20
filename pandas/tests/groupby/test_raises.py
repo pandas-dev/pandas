@@ -3,6 +3,7 @@
 # test file.
 
 import datetime
+import re
 
 import numpy as np
 import pytest
@@ -162,24 +163,20 @@ def test_groupby_raises_string(
         "max": (None, ""),
         "mean": (
             TypeError,
-            "Could not convert string '(xy|xyzwt|xyz|xztuo)' to numeric",
+            re.escape("agg function failed [how->mean,dtype->object]"),
         ),
         "median": (
             TypeError,
-            "|".join(
-                [
-                    r"Cannot convert \['x' 'y' 'z'\] to numeric",
-                    r"Cannot convert \['x' 'y'\] to numeric",
-                    r"Cannot convert \['x' 'y' 'z' 'w' 't'\] to numeric",
-                    r"Cannot convert \['x' 'z' 't' 'u' 'o'\] to numeric",
-                ]
-            ),
+            re.escape("agg function failed [how->median,dtype->object]"),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
-        "prod": (TypeError, "can't multiply sequence by non-int of type 'str'"),
+        "prod": (
+            TypeError,
+            re.escape("agg function failed [how->prod,dtype->object]"),
+        ),
         "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
@@ -188,7 +185,10 @@ def test_groupby_raises_string(
         "skew": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
-        "var": (TypeError, "could not convert string to float"),
+        "var": (
+            TypeError,
+            re.escape("agg function failed [how->var,dtype->object]"),
+        ),
     }[groupby_func]
 
     _call_and_check(klass, msg, how, gb, groupby_func, args)
@@ -225,7 +225,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert string '(xyzwt|xy|xyz|xztuo)' to numeric",
+            re.escape("agg function failed [how->mean,dtype->object]"),
         ),
     }[groupby_func_np]
 
