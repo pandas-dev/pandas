@@ -1136,11 +1136,15 @@ def test_negative_dates():
         " not yet supported on Timestamps which "
         "are outside the range of Python's standard library. "
     )
-
+    func = "^date"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.date()
+    func = "^isocalendar"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.isocalendar()
     func = "^timetuple"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.timetuple()
-
     func = "^toordinal"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.toordinal()
