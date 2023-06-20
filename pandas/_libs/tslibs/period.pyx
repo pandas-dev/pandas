@@ -1539,8 +1539,10 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
-    for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
-        freqstr = freqstr.replace(key, value)
+    if freq.n == 1:
+        freqstr = f"{c_OFFSET_TO_PERIOD_FREQSTR.get(freq.name, freq.name)}"
+    else:
+        freqstr = f"{freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(freq.name, freq.name)}"
 
     for i in range(n):
         # Analogous to: p = values[i]
@@ -1713,8 +1715,12 @@ cdef class PeriodMixin:
             condition = self.freq != other_freq
 
         if condition:
-            for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
-                freqstr = self.freqstr.replace(key, value)
+            if self.freq.n == 1:
+                freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
+                            self.freq.name, self.freq.name)}"""
+            else:
+                freqstr = f"""{self.freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
+                            self.freq.name, self.freq.name)}"""
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
@@ -1923,8 +1929,7 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency. If passing a `str`, it needs to be a
-            valid :ref:`period alias <timeseries.period_aliases>`.
+            The desired frequency.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.
 
@@ -2479,8 +2484,12 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        for key, value in c_OFFSET_TO_PERIOD_FREQSTR.items():
-            freqstr = self._dtype._freqstr.replace(key, value)
+        if self.freq.n == 1:
+            freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
+                        self.freq.name, self.freq.name)}"""
+        else:
+            freqstr = f"""{self.freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
+                        self.freq.name, self.freq.name)}"""
         return freqstr
 
     def __repr__(self) -> str:

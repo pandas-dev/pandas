@@ -520,8 +520,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
-            freq = reso.attr_abbrev.replace(key, value)
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
         per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
 

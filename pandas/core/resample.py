@@ -2399,8 +2399,10 @@ def asfreq(
         if how is None:
             how = "E"
 
-        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
-            freq = freq.replace(key, value)
+        if obj.index.freq.n == 1:
+            freq = f"{OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)}"
+        else:
+            freq = f"{obj.index.freq.n}{OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)}"
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
