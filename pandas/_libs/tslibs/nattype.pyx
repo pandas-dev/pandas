@@ -437,6 +437,14 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isoweekday()
+        7
         """,
     )
     total_seconds = _make_nan_func(
@@ -506,13 +514,9 @@ class NaTType(_NaT):
         """,
     )
     # _nat_methods
-    date = _make_nat_func("date", datetime.date.__doc__)
-
     utctimetuple = _make_error_func("utctimetuple", datetime)
     timetz = _make_error_func("timetz", datetime)
     timetuple = _make_error_func("timetuple", datetime)
-    isocalendar = _make_error_func("isocalendar", datetime)
-    dst = _make_error_func("dst", datetime)
     time = _make_error_func("time", datetime)
     toordinal = _make_error_func("toordinal", datetime)
     tzname = _make_error_func("tzname", datetime)
@@ -524,6 +528,48 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+    isocalendar = _make_error_func(
+        "isocalendar",
+        """
+        Return a named tuple containing ISO year, week number, and weekday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isocalendar()
+        datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
+        """
+        )
+    dst = _make_error_func(
+        "dst",
+        """
+        Return the daylight saving time (DST) adjustment.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    date = _make_nat_func(
+        "date",
+        """
+        Return date object with same year, month and day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.date()
+        datetime.date(2023, 1, 1)
+        """
+        )
 
     ctime = _make_error_func(
         "ctime",
