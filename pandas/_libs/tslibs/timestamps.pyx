@@ -45,6 +45,8 @@ from cpython.object cimport (
 
 import_datetime()
 
+import datetime as dt
+
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -1531,6 +1533,64 @@ class Timestamp(_Timestamp):
             ) from err
         return _dt.ctime()
 
+    def date(self):
+        """
+        Return date object with same year, month and day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.date()
+        datetime.date(2023, 1, 1)
+        """
+        try:
+            _dt = dt.date(self.year, self.month, self.day)
+        except ValueError as err:
+            raise NotImplementedError(
+                "date not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt
+
+    def dst(self):
+        """
+        Return the daylight saving time (DST) adjustment.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
+        datetime.timedelta(seconds=3600)
+        """
+        return super().dst()
+
+    def isocalendar(self):
+        """
+        Return a named tuple containing ISO year, week number, and weekday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isocalendar()
+        datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "isocalendar not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.isocalendar()
+
     # Issue 25016.
     @classmethod
     def strptime(cls, date_string, format):
@@ -2384,9 +2444,18 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isoweekday()
+        7
         """
         # same as super().isoweekday(), but that breaks because of how
         #  we have overridden year, see note in create_timestamp_from_ts
+
         return self.weekday() + 1
 
     def weekday(self):

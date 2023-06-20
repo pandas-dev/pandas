@@ -585,7 +585,8 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 
     def test_in_numeric_groupby(self, data_for_grouping):
-        if is_string_dtype(data_for_grouping.dtype):
+        dtype = data_for_grouping.dtype
+        if is_string_dtype(dtype):
             df = pd.DataFrame(
                 {
                     "A": [1, 1, 2, 2, 3, 3, 1, 4],
@@ -595,8 +596,9 @@ class TestBaseGroupby(base.BaseGroupbyTests):
             )
 
             expected = pd.Index(["C"])
-            with pytest.raises(TypeError, match="does not support"):
-                df.groupby("A").sum().columns
+            msg = re.escape(f"agg function failed [how->sum,dtype->{dtype}")
+            with pytest.raises(TypeError, match=msg):
+                df.groupby("A").sum()
             result = df.groupby("A").sum(numeric_only=True).columns
             tm.assert_index_equal(result, expected)
         else:
@@ -2870,6 +2872,15 @@ def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
     result = pd.array(np.array(data), dtype=dtype)
     expected = pd.array(data, dtype=dtype)
     tm.assert_extension_array_equal(result, expected)
+
+
+def test_concat_null_array():
+    df = pd.DataFrame({"a": [None, None]}, dtype=ArrowDtype(pa.null()))
+    df2 = pd.DataFrame({"a": [0, 1]}, dtype="int64[pyarrow]")
+
+    result = pd.concat([df, df2], ignore_index=True)
+    expected = pd.DataFrame({"a": [None, None, 0, 1]}, dtype="int64[pyarrow]")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
