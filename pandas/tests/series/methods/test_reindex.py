@@ -10,6 +10,7 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -422,3 +423,14 @@ def test_reindexing_with_float64_NA_log():
         result_log = np.log(s_reindex)
         expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
+
+
+@pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
+def test_reindex_expand_nonnano_nat(dtype):
+    # GH 53497
+    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(RangeIndex(2))
+    expected = Series(
+        np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
+    )
+    tm.assert_series_equal(result, expected)
