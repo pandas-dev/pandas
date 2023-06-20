@@ -3771,9 +3771,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionadded:: 1.2.0
 
         comment : str, default None
-            If set the contents of df.attrs will be written to the beginning
+            If set the key and values of df.attrs will be written to the beginning
             of the csv file, prefixed by this value.
-            Complement of pd.read_csv 'comment' param.
+            Complement of pd.read_csv's 'comment' param.
 
         Returns
         -------
