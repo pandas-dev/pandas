@@ -2874,6 +2874,15 @@ def test_conversion_large_dtypes_from_numpy_array(data, arrow_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_concat_null_array():
+    df = pd.DataFrame({"a": [None, None]}, dtype=ArrowDtype(pa.null()))
+    df2 = pd.DataFrame({"a": [0, 1]}, dtype="int64[pyarrow]")
+
+    result = pd.concat([df, df2], ignore_index=True)
+    expected = pd.DataFrame({"a": [None, None, 0, 1]}, dtype="int64[pyarrow]")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES + tm.FLOAT_PYARROW_DTYPES)
 def test_describe_numeric_data(pa_type):
     # GH 52470
