@@ -102,7 +102,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
         else:
             for j in range(start[i - 1], s):
@@ -127,7 +127,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
 
         if nobs >= min_periods and nobs > 0:
