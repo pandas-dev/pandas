@@ -145,14 +145,14 @@ usecols : list-like or callable, optional
     header row(s) are not taken into account. For example, a valid list-like
     ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
     Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
-    To instantiate a DataFrame from ``data`` with element order preserved use
+    To instantiate a :class:`~pandas.DataFrame` from ``data`` with element order preserved use
     ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
     in ``['foo', 'bar']`` order or
     ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
     for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
-    names, returning names where the callable function evaluates to True. An
+    names, returning names where the callable function evaluates to ``True``. An
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
@@ -187,13 +187,13 @@ false_values : list, optional
     Values to consider as ``False`` in addition to case-insensitive variants of "False".
 skipinitialspace : bool, default False
     Skip spaces after delimiter.
-skiprows : list-like, int or Callable, optional
+skiprows : list-like, int or callable, optional
     Line numbers to skip (0-indexed) or number of lines to skip (``int``)
     at the start of the file.
 
-    If ``Callable``, the callable function will be evaluated against the row
+    If callable, the callable function will be evaluated against the row
     indices, returning ``True`` if the row should be skipped and ``False`` otherwise.
-    An example of a valid ``Callable`` argument would be ``lambda x: x in [0, 2]``.
+    An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
@@ -261,7 +261,7 @@ keep_date_col : bool, default False
 date_parser : function, optional
     Function to use for converting a sequence of string columns to an array of
     ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. Pandas will try to call ``date_parser`` in three different ways,
+    conversion. ``pandas`` will try to call ``date_parser`` in three different ways,
     advancing to the next if an exception occurs: 1) Pass one or more arrays
     (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
     string values from the columns defined by ``parse_dates`` into a single array
@@ -371,7 +371,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or callable, default 'error'
 
     .. versionadded:: 1.4.0
 
-        - ``Callable``, function with signature
+        - Callable, function with signature
           ``(bad_line: list[str]) -> list[str] | None`` that will process a single
           bad line. ``bad_line`` is a list of strings split by the ``sep``.
           If the function returns ``None``, the bad line will be ignored.
