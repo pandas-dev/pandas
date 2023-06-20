@@ -30,8 +30,6 @@ from pandas.tests.io.pytables.common import (
     safe_close,
 )
 
-_default_compressor = "blosc"
-
 from pandas.io.pytables import (
     HDFStore,
     read_hdf,

@@ -24,11 +24,6 @@ import pytz
 
 from pandas._config import config
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -47,8 +42,6 @@ import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-
-use_32bit_repr = is_platform_windows() or not IS64
 
 
 def get_local_am_pm():
