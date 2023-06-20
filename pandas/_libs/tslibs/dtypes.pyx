@@ -321,7 +321,7 @@ cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso):
     return reso
 
 
-def is_supported_unit(NPY_DATETIMEUNIT reso):
+cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns
         or reso == NPY_DATETIMEUNIT.NPY_FR_us
