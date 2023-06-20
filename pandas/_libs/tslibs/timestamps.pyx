@@ -45,8 +45,6 @@ from cpython.object cimport (
 
 import_datetime()
 
-import datetime as dt
-
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -1554,9 +1552,7 @@ class Timestamp(_Timestamp):
         >>> ts.time()
         datetime.time(10, 0)
         """
-        _dt = dt.time(self.hour, self.minute, self.second,
-                      self.microsecond, self.tzinfo, fold=self.fold)
-        return _dt
+        return super().time()
 
     def timetuple(self):
         """
@@ -1594,9 +1590,7 @@ class Timestamp(_Timestamp):
         >>> ts.timetz()
         datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
         """
-        _dt = dt.time(self.hour, self.minute, self.second,
-                      self.microsecond, self.tzinfo)
-        return _dt
+        return super().timetz()
 
     def toordinal(self):
         """
