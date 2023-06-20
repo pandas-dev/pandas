@@ -1325,7 +1325,6 @@ class TestDataFrameToCSV:
         output_data = output_data + data_for_comments_raw
         return output_data
 
-    # TODO MAYBE MAKE THIS A MATRIX OF PARAMS
     def test_comment_writer_csv(
         self, comments_attrs, data_for_comments_raw, frame_for_comments
     ):
