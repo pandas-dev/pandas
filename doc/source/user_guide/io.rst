@@ -2111,7 +2111,8 @@ Reading from a JSON string:
 
 .. ipython:: python
 
-   pd.read_json(json)
+   from io import StringIO
+   pd.read_json(StringIO(json))
 
 Reading from a file:
 
@@ -2135,6 +2136,7 @@ Preserve string indices:
 
 .. ipython:: python
 
+   from io import StringIO
    si = pd.DataFrame(
        np.zeros((4, 4)), columns=list(range(4)), index=[str(i) for i in range(4)]
    )
@@ -2143,7 +2145,7 @@ Preserve string indices:
    si.columns
    json = si.to_json()
 
-   sij = pd.read_json(json, convert_axes=False)
+   sij = pd.read_json(StringIO(json), convert_axes=False)
    sij
    sij.index
    sij.columns
@@ -2152,18 +2154,19 @@ Dates written in nanoseconds need to be read back in nanoseconds:
 
 .. ipython:: python
 
+   from io import StringIO
    json = dfj2.to_json(date_unit="ns")
 
    # Try to parse timestamps as milliseconds -> Won't Work
-   dfju = pd.read_json(json, date_unit="ms")
+   dfju = pd.read_json(StringIO(json), date_unit="ms")
    dfju
 
    # Let pandas detect the correct precision
-   dfju = pd.read_json(json)
+   dfju = pd.read_json(StringIO(json))
    dfju
 
    # Or specify that all timestamps are in nanoseconds
-   dfju = pd.read_json(json, date_unit="ns")
+   dfju = pd.read_json(StringIO(json), date_unit="ns")
    dfju
 
 By setting the ``dtype_backend`` argument you can control the default dtypes used for the resulting DataFrame.
@@ -2251,11 +2254,12 @@ For line-delimited json files, pandas can also return an iterator which reads in
 
 .. ipython:: python
 
+  from io import StringIO
   jsonl = """
       {"a": 1, "b": 2}
       {"a": 3, "b": 4}
   """
-  df = pd.read_json(jsonl, lines=True)
+  df = pd.read_json(StringIO(jsonl), lines=True)
   df
   df.to_json(orient="records", lines=True)
 
