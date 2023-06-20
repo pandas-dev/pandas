@@ -424,6 +424,17 @@ class TestGetIndexer:
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(actual, expected)
 
+    def test_get_indexer_read_only(self):
+        idx = interval_range(start=0, end=5)
+        arr = np.array([1, 2])
+        arr.flags.writeable = False
+        result = idx.get_indexer(arr)
+        expected = np.array([0, 1])
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+        result = idx.get_indexer_non_unique(arr)[0]
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
 
 class TestSliceLocs:
     def test_slice_locs_with_interval(self):

@@ -135,6 +135,8 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from typing import Any
+
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -923,6 +925,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             it is None, the object groupby was called on will
             be used.
 
+            .. deprecated:: 2.1.0
+                The obj is deprecated and will be removed in a future version.
+                Do ``df.iloc[gb.indices.get(name)]``
+                instead of ``gb.get_group(name, obj=df)``.
+
         Returns
         -------
         same type as obj
@@ -959,14 +966,21 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         """
-        if obj is None:
-            obj = self._selected_obj
-
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take_with_is_copy(inds, axis=self.axis)
+        if obj is None:
+            return self._selected_obj.iloc[inds]
+        else:
+            warnings.warn(
+                "obj is deprecated and will be removed in a future version. "
+                "Do ``df.iloc[gb.indices.get(name)]`` "
+                "instead of ``gb.get_group(name, obj=df)``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
@@ -1480,8 +1494,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _numba_agg_general(
         self,
         func: Callable,
+        dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
-        *aggregator_args,
+        **aggregator_kwargs,
     ):
         """
         Perform groupby with a standard numerical aggregation function (e.g. mean)
@@ -1496,19 +1511,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
-        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-        aggregator = executor.generate_shared_aggregator(
-            func, **get_jit_arguments(engine_kwargs)
-        )
-        result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
-        index = self.grouper.result_index
+        sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
+        sorted_ids = self.grouper._sorted_ids
+        _, _, ngroups = self.grouper.group_info
+        starts, ends = lib.generate_slices(sorted_ids, ngroups)
+        aggregator = executor.generate_shared_aggregator(
+            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+        )
+        result = sorted_df._mgr.apply(
+            aggregator, start=starts, end=ends, **aggregator_kwargs
+        )
+        result.axes[1] = self.grouper.result_index
+        result = df._constructor(result)
+
         if data.ndim == 1:
-            result_kwargs = {"name": data.name}
-            result = result.ravel()
+            result = result.squeeze("columns")
+            result.name = data.name
         else:
-            result_kwargs = {"columns": data.columns}
-        return data._constructor(result, index=index, **result_kwargs)
+            result.columns = data.columns
+        return result
 
     @final
     def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
@@ -1701,7 +1723,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
-        self, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1727,7 +1749,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # We do not get here with UDFs, so we know that our dtype
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
-        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        try:
+            res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        except Exception as err:
+            msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
@@ -1769,8 +1796,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: shouldn't min_count matter?
                 if how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+            else:
+                return result
 
+            result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
@@ -1787,22 +1816,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._transform_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         # optimized transforms
         func = com.get_cython_func(func) or func
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
 
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transform or canned "agg+broadcast"
+            if engine is not None:
+                kwargs["engine"] = engine
+                kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
         else:
@@ -1817,6 +1844,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 with com.temp_setattr(self, "as_index", True):
                     # GH#49834 - result needs groups in the index for
                     # _wrap_transform_fast_result
+                    if engine is not None:
+                        kwargs["engine"] = engine
+                        kwargs["engine_kwargs"] = engine_kwargs
                     result = getattr(self, func)(*args, **kwargs)
 
             return self._wrap_transform_fast_result(result)
@@ -2188,7 +2218,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_mean
 
-            return self._numba_agg_general(sliding_mean, engine_kwargs)
+            return self._numba_agg_general(
+                sliding_mean, executor.float_dtype_mapping, engine_kwargs, min_periods=0
+            )
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -2355,7 +2387,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
+            return np.sqrt(
+                self._numba_agg_general(
+                    sliding_var,
+                    executor.float_dtype_mapping,
+                    engine_kwargs,
+                    min_periods=0,
+                    ddof=ddof,
+                )
+            )
         else:
             return self._cython_agg_general(
                 "std",
@@ -2456,7 +2496,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_var
 
-            return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
+            return self._numba_agg_general(
+                sliding_var,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                min_periods=0,
+                ddof=ddof,
+            )
         else:
             return self._cython_agg_general(
                 "var",
@@ -2785,7 +2831,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return self._numba_agg_general(
                 sliding_sum,
+                executor.default_dtype_mapping,
                 engine_kwargs,
+                min_periods=min_count,
             )
         else:
             # If we are grouping on categoricals we want unobserved categories to
@@ -2898,7 +2946,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
+            return self._numba_agg_general(
+                sliding_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=False,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2958,7 +3012,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if maybe_use_numba(engine):
             from pandas.core._numba.kernels import sliding_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
+            return self._numba_agg_general(
+                sliding_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=True,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -3107,6 +3167,50 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         DataFrame
             Open, high, low and close values within each group.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC',]
+        >>> ser = pd.Series([3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 0.1, 0.5], index=lst)
+        >>> ser
+        SPX     3.4
+        CAC     9.0
+        SPX     7.2
+        CAC     5.2
+        SPX     8.8
+        CAC     9.4
+        SPX     0.1
+        CAC     0.5
+        dtype: float64
+        >>> ser.groupby(level=0).ohlc()
+             open  high  low  close
+        CAC   9.0   9.4  0.5    0.5
+        SPX   3.4   8.8  0.1    0.1
+
+        For DataFrameGroupBy:
+
+        >>> data = {2022: [1.2, 2.3, 8.9, 4.5, 4.4, 3, 2 , 1],
+        ...         2023: [3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 8.2, 1.0]}
+        >>> df = pd.DataFrame(data, index=['SPX', 'CAC', 'SPX', 'CAC',
+        ...                   'SPX', 'CAC', 'SPX', 'CAC'])
+        >>> df
+             2022  2023
+        SPX   1.2   3.4
+        CAC   2.3   9.0
+        SPX   8.9   7.2
+        CAC   4.5   5.2
+        SPX   4.4   8.8
+        CAC   3.0   9.4
+        SPX   2.0   8.2
+        CAC   1.0   1.0
+        >>> df.groupby(level=0).ohlc()
+            2022                 2023
+            open high  low close open high  low close
+        CAC  2.3  4.5  1.0   1.0  9.0  9.4  1.0   1.0
+        SPX  1.2  8.9  1.2   2.0  3.4  8.8  3.4   8.2
         """
         if self.obj.ndim == 1:
             obj = self._selected_obj
@@ -3561,6 +3665,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
+
+        For SeriesGroupBy:
+
+        >>> key = [0, 0, 1, 1]
+        >>> ser = pd.Series([np.nan, 2, 3, np.nan], index=key)
+        >>> ser
+        0    NaN
+        0    2.0
+        1    3.0
+        1    NaN
+        dtype: float64
+        >>> ser.groupby(level=0).ffill()
+        0    NaN
+        0    2.0
+        1    3.0
+        1    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
         >>> df = pd.DataFrame(
         ...     {
         ...         "key": [0, 0, 1, 1, 1],
@@ -4787,8 +4911,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions = "ffill",
-        limit: int | None = None,
+        fill_method: FillnaOptions | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
     ):
@@ -4838,6 +4962,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
          catfish    NaN    NaN
         goldfish    0.2  0.125
         """
+        # GH#53491
+        if fill_method is not lib.no_default or limit is not lib.no_default:
+            warnings.warn(
+                "The 'fill_method' and 'limit' keywords in "
+                f"{type(self).__name__}.pct_change are deprecated and will be "
+                "removed in a future version. Call "
+                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
+                "before calling pct_change instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if fill_method is lib.no_default:
+            if any(grp.isna().values.any() for _, grp in self):
+                warnings.warn(
+                    "The default fill_method='ffill' in "
+                    f"{type(self).__name__}.pct_change is deprecated and will be "
+                    "removed in a future version. Call ffill before calling "
+                    "pct_change to retain current behavior and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            fill_method = "ffill"
+        if limit is lib.no_default:
+            limit = None
 
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
