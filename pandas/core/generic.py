@@ -3772,7 +3772,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         comment : str, default None
             If set the key and values of df.attrs will be written to the beginning
-            of the csv file, prefixed by this value.
+            of the csv file, prefixed by this value, each key/value
+            pair to a single ling. To prevent downstream reading issues
+            this char will be removed from the df.attrs if present.
             Complement of pd.read_csv's 'comment' param.
 
         Returns
