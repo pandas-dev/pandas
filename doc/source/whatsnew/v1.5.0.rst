@@ -474,19 +474,22 @@ upon serialization. (Related issue :issue:`12997`)
 
 .. code-block:: ipython
 
-    In [4]: a.to_json(date_format='iso')
-    Out[4]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+    In [4]: from io import StringIO
 
-    In [5]: pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
-    Out[5]: array([False, False, False])
+    In [5]: a.to_json(date_format='iso')
+    Out[5]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
+    In [6]: pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    Out[6]: array([False, False, False])
 
 *New Behavior*
 
 .. ipython:: python
 
+    from io import StringIO
     a.to_json(date_format='iso')
     # Roundtripping now works
-    pd.read_json(a.to_json(date_format='iso'), typ="series").index == a.index
+    pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
 
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 
