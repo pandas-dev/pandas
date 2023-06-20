@@ -368,7 +368,7 @@ class Grouper:
                 # before we call _grouper.take.
                 assert self._grouper is not None
                 if self._indexer is not None:
-                    reverse_indexer = self._indexer.argsort()
+                    reverse_indexer = self._indexer.argsort(kind="stable")
                     unsorted_ax = self._grouper.take(reverse_indexer)
                     ax = unsorted_ax.take(obj.index)
                 else:
@@ -398,7 +398,7 @@ class Grouper:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
             indexer = self._indexer_deprecated = ax.array.argsort(
-                kind="mergesort", na_position="first"
+                kind="stable", na_position="first"
             )
             ax = ax.take(indexer)
             obj = obj.take(indexer, axis=self.axis)
@@ -750,7 +750,7 @@ class Grouping:
                 ucodes = algorithms.unique1d(cat.codes)
                 ucodes = ucodes[ucodes != -1]
                 if self._sort:
-                    ucodes = np.sort(ucodes)
+                    ucodes = np.sort(ucodes, kind="stable")
             else:
                 ucodes = np.arange(len(categories))
 

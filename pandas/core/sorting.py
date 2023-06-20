@@ -707,7 +707,7 @@ def get_group_index_sorter(
         shape = map(len, keys)
     that is, linear in the number of combinations (cartesian product) of unique
     values of groupby keys. This can be huge when doing multi-key groupby.
-    np.argsort(kind='mergesort') is O(count x log(count)) where count is the
+    np.argsort(kind='stable') is O(count x log(count)) where count is the
     length of the data-frame;
     Both algorithms are `stable` sort and that is necessary for correctness of
     groupby operations. e.g. consider:
@@ -736,7 +736,7 @@ def get_group_index_sorter(
         )
         # sorter _should_ already be intp, but mypy is not yet able to verify
     else:
-        sorter = group_index.argsort(kind="mergesort")
+        sorter = group_index.argsort(kind="stable")
     return ensure_platform_int(sorter)
 
 

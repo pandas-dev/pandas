@@ -139,7 +139,7 @@ class SelectNSeries(SelectN):
         # here because kth_smallest will modify its input
         kth_val = libalgos.kth_smallest(arr.copy(order="C"), n - 1)
         (ns,) = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind="mergesort")]
+        inds = ns[arr[ns].argsort(kind="stable")]
 
         if self.keep != "all":
             inds = inds[:n]

@@ -1635,7 +1635,7 @@ class ArrowExtensionArray(
                 raise ValueError("Length of indexer and values mismatch")
             if len(indices) == 0:
                 return
-            argsort = np.argsort(indices)
+            argsort = np.argsort(indices, kind="stable")
             indices = indices[argsort]
             value = value.take(argsort)
             mask = np.zeros(len(self), dtype=np.bool_)

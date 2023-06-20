@@ -1625,7 +1625,7 @@ the string values returned are correct."""
             val = np.frombuffer(
                 self._path_or_buf.read(4 * n), dtype=f"{self._byteorder}i4", count=n
             )
-            ii = np.argsort(off)
+            ii = np.argsort(off, kind="stable")
             off = off[ii]
             val = val[ii]
             txt = self._path_or_buf.read(txtlen)

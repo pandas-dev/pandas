@@ -787,7 +787,7 @@ cdef class BaseMultiIndexCodesEngine:
             ndarray[int64_t, ndim=1] new_codes, new_target_codes
             ndarray[intp_t, ndim=1] sorted_indexer
 
-        target_order = np.argsort(target).astype("int64")
+        target_order = np.argsort(target, kind="stable").astype("int64")
         target_values = target[target_order]
         num_values, num_target_values = len(values), len(target_values)
         new_codes, new_target_codes = (
@@ -828,7 +828,7 @@ cdef class BaseMultiIndexCodesEngine:
         # get the indexer, and undo the sorting of `target.values`
         algo = algos.backfill if method == "backfill" else algos.pad
         sorted_indexer = algo(new_codes, new_target_codes, limit=limit)
-        return sorted_indexer[np.argsort(target_order)]
+        return sorted_indexer[np.argsort(target_order, kind="stable")]
 
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):

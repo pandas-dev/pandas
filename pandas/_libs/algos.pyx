@@ -162,7 +162,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
     kh_destroy_int64(table)
 
     result = np.array(uniques, dtype=np.int64)
-    result.sort()
+    result.sort(kind="stable")
     return result
 
 

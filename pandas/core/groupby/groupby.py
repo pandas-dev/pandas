@@ -1887,7 +1887,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if len(indices) == 0:
             indices = np.array([], dtype="int64")
         else:
-            indices = np.sort(np.concatenate(indices))
+            indices = np.sort(np.concatenate(indices), kind="stable")
         if dropna:
             filtered = self._selected_obj.take(indices, axis=self.axis)
         else:
@@ -3585,7 +3585,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             limit = -1
 
         ids, _, _ = self.grouper.group_info
-        sorted_labels = np.argsort(ids, kind="mergesort").astype(np.intp, copy=False)
+        sorted_labels = np.argsort(ids, kind="stable").astype(np.intp, copy=False)
         if direction == "bfill":
             sorted_labels = sorted_labels[::-1]
 

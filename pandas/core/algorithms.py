@@ -1031,7 +1031,7 @@ def mode(
 
     npresult = htable.mode(values, dropna=dropna, mask=mask)
     try:
-        npresult = np.sort(npresult)
+        npresult = np.sort(npresult, kind="stable")
     except TypeError as err:
         warnings.warn(
             f"Unable to sort modes: {err}",
@@ -1583,7 +1583,7 @@ def safe_sort(
         ordered = _sort_mixed(values)
     else:
         try:
-            sorter = values.argsort()
+            sorter = values.argsort(kind="stable")
             ordered = values.take(sorter)
         except TypeError:
             # Previous sorters failed or were not applicable, try `_sort_mixed`
@@ -1624,7 +1624,7 @@ def safe_sort(
 
     if use_na_sentinel:
         # take_nd is faster, but only works for na_sentinels of -1
-        order2 = sorter.argsort()
+        order2 = sorter.argsort(kind="stable")
         new_codes = take_nd(order2, codes, fill_value=-1)
         if verify:
             mask = (codes < -len(values)) | (codes >= len(values))
@@ -1653,8 +1653,8 @@ def _sort_mixed(values) -> AnyArrayLike:
     str_pos = np.array([isinstance(x, str) for x in values], dtype=bool)
     null_pos = np.array([isna(x) for x in values], dtype=bool)
     num_pos = ~str_pos & ~null_pos
-    str_argsort = np.argsort(values[str_pos])
-    num_argsort = np.argsort(values[num_pos])
+    str_argsort = np.argsort(values[str_pos], kind="stable")
+    num_argsort = np.argsort(values[num_pos], kind="stable")
     # convert boolean arrays to positional indices, then order by underlying values
     str_locs = str_pos.nonzero()[0].take(str_argsort)
     num_locs = num_pos.nonzero()[0].take(num_argsort)

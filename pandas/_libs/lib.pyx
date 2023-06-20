@@ -912,7 +912,7 @@ def get_level_sorter(
     Argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
     to leading levels; equivalent to:
-        np.hstack([codes[starts[i]:starts[i+1]].argsort(kind='mergesort')
+        np.hstack([codes[starts[i]:starts[i+1]].argsort(kind='stable')
             + starts[i] for i in range(len(starts) - 1)])
 
     Parameters
@@ -930,7 +930,7 @@ def get_level_sorter(
 
     for i in range(len(starts) - 1):
         l, r = starts[i], starts[i + 1]
-        out[l:r] = l + codes[l:r].argsort(kind="mergesort")
+        out[l:r] = l + codes[l:r].argsort(kind="stable")
 
     return out
 

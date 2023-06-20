@@ -593,7 +593,9 @@ class BaseBlockManager(DataManager):
             return self.make_empty()
 
         # FIXME: optimization potential
-        indexer = np.sort(np.concatenate([b.mgr_locs.as_array for b in blocks]))
+        indexer = np.sort(
+            np.concatenate([b.mgr_locs.as_array for b in blocks]), kind="stable"
+        )
         inv_indexer = lib.get_reverse_indexer(indexer, self.shape[0])
 
         new_blocks: list[Block] = []
@@ -2345,7 +2347,7 @@ def _merge_blocks(
             bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
             new_values = bvals2[0]._concat_same_type(bvals2, axis=0)
 
-        argsort = np.argsort(new_mgr_locs)
+        argsort = np.argsort(new_mgr_locs, kind="stable")
         new_values = new_values[argsort]
         new_mgr_locs = new_mgr_locs[argsort]
 

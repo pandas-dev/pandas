@@ -3547,7 +3547,7 @@ class Index(IndexOpsMixin, PandasObject):
         if sort is False:
             # sort bc we want the elements in the same order they are in self
             # unnecessary in the case with sort=None bc we will sort later
-            taker = np.sort(taker)
+            taker = np.sort(taker, kind="stable")
 
         if isinstance(left_unique, ABCMultiIndex):
             result = left_unique.take(taker)
