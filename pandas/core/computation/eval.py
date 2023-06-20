@@ -7,6 +7,8 @@ import tokenize
 from typing import TYPE_CHECKING
 import warnings
 
+from pandas._config import using_copy_on_write
+
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -373,7 +375,7 @@ def eval(
             # if returning a copy, copy only on the first assignment
             if not inplace and first_expr:
                 try:
-                    target = env.target.copy()
+                    target = env.target.copy(deep=not using_copy_on_write())
                 except AttributeError as err:
                     raise ValueError("Cannot return a copy of the target") from err
             else:

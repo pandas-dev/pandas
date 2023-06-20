@@ -211,6 +211,7 @@ following methods:
   - :meth:`DataFrame.astype` / :meth:`Series.astype`
   - :meth:`DataFrame.convert_dtypes` / :meth:`Series.convert_dtypes`
   - :meth:`DataFrame.join`
+  - :meth:`DataFrame.eval`
   - :func:`concat`
   - :func:`merge`
 
