@@ -30,7 +30,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     AxisInt,
-    DtypeObj,
     IndexLabel,
     JoinHow,
     MergeHow,
@@ -49,7 +48,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
-    ensure_float64,
     ensure_int64,
     ensure_object,
     is_bool,
@@ -1840,23 +1838,6 @@ def _asof_by_function(direction: str):
     return getattr(libjoin, name, None)
 
 
-_type_casters = {
-    "int64_t": ensure_int64,
-    "double": ensure_float64,
-    "object": ensure_object,
-}
-
-
-def _get_cython_type_upcast(dtype: DtypeObj) -> str:
-    """Upcast a dtype to 'int64_t', 'double', or 'object'"""
-    if is_integer_dtype(dtype):
-        return "int64_t"
-    elif is_float_dtype(dtype):
-        return "double"
-    else:
-        return "object"
-
-
 class _AsOfMerge(_OrderedMerge):
     _merge_type = "asof_merge"
 
@@ -2163,23 +2144,20 @@ class _AsOfMerge(_OrderedMerge):
             if len(left_by_values) == 1:
                 lbv = left_by_values[0]
                 rbv = right_by_values[0]
+
+                # TODO: conversions for EAs that can be no-copy.
+                lbv = np.asarray(lbv)
+                rbv = np.asarray(rbv)
             else:
                 # We get here with non-ndarrays in test_merge_by_col_tz_aware
                 #  and test_merge_groupby_multiple_column_with_categorical_column
                 lbv = flip(left_by_values)
                 rbv = flip(right_by_values)
+                lbv = ensure_object(lbv)
+                rbv = ensure_object(rbv)
 
-            # upcast 'by' parameter because HashTable is limited
-            by_type = _get_cython_type_upcast(lbv.dtype)
-            by_type_caster = _type_casters[by_type]
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[generic]]", variable has type
-            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
-            left_by_values = by_type_caster(lbv)  # type: ignore[assignment]
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[generic]]", variable has type
-            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
-            right_by_values = by_type_caster(rbv)  # type: ignore[assignment]
+            right_by_values = rbv
+            left_by_values = lbv
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
