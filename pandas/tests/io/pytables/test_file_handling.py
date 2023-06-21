@@ -3,7 +3,12 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import (
+    PY311,
+    is_ci_environment,
+    is_platform_linux,
+    is_platform_little_endian,
+)
 from pandas.errors import (
     ClosedFileError,
     PossibleDataLossError,
@@ -224,6 +229,12 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 
 @pytest.mark.parametrize("lvl", range(10))
 @pytest.mark.parametrize("lib", tables.filters.all_complibs)
+@pytest.mark.xfail(
+    not PY311 and is_ci_environment() and is_platform_linux(),
+    reason="producing invalid start bytes",
+    raises=UnicodeDecodeError,
+    strict=False,
+)
 def test_complibs(tmp_path, lvl, lib):
     # GH14478
     df = DataFrame(
