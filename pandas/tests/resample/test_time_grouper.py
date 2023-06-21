@@ -14,10 +14,13 @@ import pandas._testing as tm
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.indexes.datetimes import date_range
 
-test_series = Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
+
+@pytest.fixture
+def test_series():
+    return Series(np.random.randn(1000), index=date_range("1/1/2000", periods=1000))
 
 
-def test_apply():
+def test_apply(test_series):
     grouper = Grouper(freq="A", label="right", closed="right")
 
     grouped = test_series.groupby(grouper)
@@ -33,7 +36,7 @@ def test_apply():
     tm.assert_series_equal(applied, expected)
 
 
-def test_count():
+def test_count(test_series):
     test_series[::3] = np.nan
 
     expected = test_series.groupby(lambda x: x.year).count()
@@ -48,7 +51,7 @@ def test_count():
     tm.assert_series_equal(result, expected)
 
 
-def test_numpy_reduction():
+def test_numpy_reduction(test_series):
     result = test_series.resample("A", closed="right").prod()
 
     expected = test_series.groupby(lambda x: x.year).agg(np.prod)
