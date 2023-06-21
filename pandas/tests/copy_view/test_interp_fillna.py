@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
+
 from pandas import (
     NA,
     ArrowDtype,
@@ -339,3 +341,16 @@ def test_fillna_inplace_ea_noop_shares_memory(
         assert not np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     df.iloc[0, 1] = 100
     tm.assert_frame_equal(df_orig, view)
+
+
+def test_fillna_chained_assignment(using_copy_on_write):
+    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.assert_produces_warning(ChainedAssignmentError):
+            df["a"].fillna(100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.assert_produces_warning(ChainedAssignmentError):
+            df[["a"]].fillna(100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
