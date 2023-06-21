@@ -276,18 +276,17 @@ def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
 
 
 @td.skip_if_no("lxml")
-def test_parser_consistency_file(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
-    df_file_lxml = read_xml(filename, parser="lxml")
-    df_file_etree = read_xml(filename, parser="etree")
+def test_parser_consistency_file(xml_books):
+    df_file_lxml = read_xml(xml_books, parser="lxml")
+    df_file_etree = read_xml(xml_books, parser="etree")
 
     df_iter_lxml = read_xml(
-        filename,
+        xml_books,
         parser="lxml",
         iterparse={"book": ["category", "title", "year", "author", "price"]},
     )
     df_iter_etree = read_xml(
-        filename,
+        xml_books,
         parser="etree",
         iterparse={"book": ["category", "title", "year", "author", "price"]},
     )
@@ -349,9 +348,8 @@ def test_parser_consistency_url(parser):
     tm.assert_frame_equal(df_xpath, df_iter)
 
 
-def test_file_like(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_file_like(xml_books, parser, mode):
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         df_file = read_xml(f, parser=parser)
 
     df_expected = DataFrame(
@@ -367,9 +365,8 @@ def test_file_like(datapath, parser, mode):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-def test_file_io(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_file_io(xml_books, parser, mode):
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         xml_obj = f.read()
 
     df_io = read_xml(
@@ -390,9 +387,8 @@ def test_file_io(datapath, parser, mode):
     tm.assert_frame_equal(df_io, df_expected)
 
 
-def test_file_buffered_reader_string(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_file_buffered_reader_string(xml_books, parser, mode):
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         xml_obj = f.read()
 
     df_str = read_xml(xml_obj, parser=parser)
@@ -410,9 +406,8 @@ def test_file_buffered_reader_string(datapath, parser, mode):
     tm.assert_frame_equal(df_str, df_expected)
 
 
-def test_file_buffered_reader_no_xml_declaration(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_file_buffered_reader_no_xml_declaration(xml_books, parser, mode):
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         next(f)
         xml_obj = f.read()
 
@@ -441,10 +436,8 @@ def test_string_charset(parser):
     tm.assert_frame_equal(df_str, df_expected)
 
 
-def test_file_charset(datapath, parser):
-    xml_file = datapath("io", "data", "xml", "doc_ch_utf.xml")
-
-    df_file = read_xml(datapath(xml_file), parser=parser)
+def test_file_charset(xml_doc_ch_utf, parser):
+    df_file = read_xml(xml_doc_ch_utf, parser=parser)
 
     df_expected = DataFrame(
         {
@@ -474,10 +467,8 @@ def test_file_charset(datapath, parser):
     tm.assert_frame_equal(df_file, df_expected)
 
 
-def test_file_handle_close(datapath, parser):
-    xml_file = datapath("io", "data", "xml", "books.xml")
-
-    with open(xml_file, "rb") as f:
+def test_file_handle_close(xml_books, parser):
+    with open(xml_books, "rb") as f:
         read_xml(BytesIO(f.read()), parser=parser)
 
         assert not f.closed
@@ -564,27 +555,24 @@ def test_wrong_url(parser):
 
 
 @td.skip_if_no("lxml")
-def test_empty_xpath_lxml(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_empty_xpath_lxml(xml_books):
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
-        read_xml(filename, xpath=".//python", parser="lxml")
+        read_xml(xml_books, xpath=".//python", parser="lxml")
 
 
-def test_bad_xpath_etree(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_bad_xpath_etree(xml_books):
     with pytest.raises(
         SyntaxError, match=("You have used an incorrect or unsupported XPath")
     ):
-        read_xml(filename, xpath=".//[book]", parser="etree")
+        read_xml(xml_books, xpath=".//[book]", parser="etree")
 
 
 @td.skip_if_no("lxml")
-def test_bad_xpath_lxml(datapath):
+def test_bad_xpath_lxml(xml_books):
     from lxml.etree import XPathEvalError
 
-    filename = datapath("io", "data", "xml", "books.xml")
     with pytest.raises(XPathEvalError, match=("Invalid expression")):
-        read_xml(filename, xpath=".//[book]", parser="lxml")
+        read_xml(xml_books, xpath=".//[book]", parser="lxml")
 
 
 # NAMESPACE
@@ -680,25 +668,22 @@ def test_consistency_prefix_namespace():
 # PREFIX
 
 
-def test_missing_prefix_with_default_namespace(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_missing_prefix_with_default_namespace(xml_books, parser):
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
-        read_xml(filename, xpath=".//Placemark", parser=parser)
+        read_xml(xml_books, xpath=".//Placemark", parser=parser)
 
 
-def test_missing_prefix_definition_etree(datapath):
-    filename = datapath("io", "data", "xml", "cta_rail_lines.kml")
+def test_missing_prefix_definition_etree(kml_cta_rail_lines):
     with pytest.raises(SyntaxError, match=("you used an undeclared namespace prefix")):
-        read_xml(filename, xpath=".//kml:Placemark", parser="etree")
+        read_xml(kml_cta_rail_lines, xpath=".//kml:Placemark", parser="etree")
 
 
 @td.skip_if_no("lxml")
-def test_missing_prefix_definition_lxml(datapath):
+def test_missing_prefix_definition_lxml(kml_cta_rail_lines):
     from lxml.etree import XPathEvalError
 
-    filename = datapath("io", "data", "xml", "cta_rail_lines.kml")
     with pytest.raises(XPathEvalError, match=("Undefined namespace prefix")):
-        read_xml(filename, xpath=".//kml:Placemark", parser="lxml")
+        read_xml(kml_cta_rail_lines, xpath=".//kml:Placemark", parser="lxml")
 
 
 @td.skip_if_no("lxml")
@@ -718,11 +703,10 @@ def test_none_namespace_prefix(key):
 # ELEMS AND ATTRS
 
 
-def test_file_elems_and_attrs(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
-    df_file = read_xml(filename, parser=parser)
+def test_file_elems_and_attrs(xml_books, parser):
+    df_file = read_xml(xml_books, parser=parser)
     df_iter = read_xml(
-        filename,
+        xml_books,
         parser=parser,
         iterparse={"book": ["category", "title", "author", "year", "price"]},
     )
@@ -740,21 +724,19 @@ def test_file_elems_and_attrs(datapath, parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_file_only_attrs(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
-    df_file = read_xml(filename, attrs_only=True, parser=parser)
-    df_iter = read_xml(filename, parser=parser, iterparse={"book": ["category"]})
+def test_file_only_attrs(xml_books, parser):
+    df_file = read_xml(xml_books, attrs_only=True, parser=parser)
+    df_iter = read_xml(xml_books, parser=parser, iterparse={"book": ["category"]})
     df_expected = DataFrame({"category": ["cooking", "children", "web"]})
 
     tm.assert_frame_equal(df_file, df_expected)
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_file_only_elems(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
-    df_file = read_xml(filename, elems_only=True, parser=parser)
+def test_file_only_elems(xml_books, parser):
+    df_file = read_xml(xml_books, elems_only=True, parser=parser)
     df_iter = read_xml(
-        filename,
+        xml_books,
         parser=parser,
         iterparse={"book": ["title", "author", "year", "price"]},
     )
@@ -771,13 +753,12 @@ def test_file_only_elems(datapath, parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_elem_and_attrs_only(datapath, parser):
-    filename = datapath("io", "data", "xml", "cta_rail_lines.kml")
+def test_elem_and_attrs_only(kml_cta_rail_lines, parser):
     with pytest.raises(
         ValueError,
         match=("Either element or attributes can be parsed not both"),
     ):
-        read_xml(filename, elems_only=True, attrs_only=True, parser=parser)
+        read_xml(kml_cta_rail_lines, elems_only=True, attrs_only=True, parser=parser)
 
 
 def test_empty_attrs_only(parser):
@@ -856,13 +837,12 @@ def test_attribute_centric_xml():
 # NAMES
 
 
-def test_names_option_output(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_names_option_output(xml_books, parser):
     df_file = read_xml(
-        filename, names=["Col1", "Col2", "Col3", "Col4", "Col5"], parser=parser
+        xml_books, names=["Col1", "Col2", "Col3", "Col4", "Col5"], parser=parser
     )
     df_iter = read_xml(
-        filename,
+        xml_books,
         parser=parser,
         names=["Col1", "Col2", "Col3", "Col4", "Col5"],
         iterparse={"book": ["category", "title", "author", "year", "price"]},
@@ -1006,31 +986,25 @@ def test_repeat_elements(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_names_option_wrong_length(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
-
+def test_names_option_wrong_length(xml_books, parser):
     with pytest.raises(ValueError, match=("names does not match length")):
-        read_xml(filename, names=["Col1", "Col2", "Col3"], parser=parser)
+        read_xml(xml_books, names=["Col1", "Col2", "Col3"], parser=parser)
 
 
-def test_names_option_wrong_type(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
-
+def test_names_option_wrong_type(xml_books, parser):
     with pytest.raises(TypeError, match=("is not a valid type for names")):
-        read_xml(filename, names="Col1, Col2, Col3", parser=parser)
+        read_xml(xml_books, names="Col1, Col2, Col3", parser=parser)
 
 
 # ENCODING
 
 
-def test_wrong_encoding(datapath, parser):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
+def test_wrong_encoding(xml_baby_names, parser):
     with pytest.raises(UnicodeDecodeError, match=("'utf-8' codec can't decode")):
-        read_xml(filename, parser=parser)
+        read_xml(xml_baby_names, parser=parser)
 
 
-def test_utf16_encoding(datapath, parser):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
+def test_utf16_encoding(xml_baby_names, parser):
     with pytest.raises(
         UnicodeError,
         match=(
@@ -1038,35 +1012,32 @@ def test_utf16_encoding(datapath, parser):
             "'utf-16-le' codec can't decode byte"
         ),
     ):
-        read_xml(filename, encoding="UTF-16", parser=parser)
+        read_xml(xml_baby_names, encoding="UTF-16", parser=parser)
 
 
-def test_unknown_encoding(datapath, parser):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
+def test_unknown_encoding(xml_baby_names, parser):
     with pytest.raises(LookupError, match=("unknown encoding: UFT-8")):
-        read_xml(filename, encoding="UFT-8", parser=parser)
+        read_xml(xml_baby_names, encoding="UFT-8", parser=parser)
 
 
-def test_ascii_encoding(datapath, parser):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
+def test_ascii_encoding(xml_baby_names, parser):
     with pytest.raises(UnicodeDecodeError, match=("'ascii' codec can't decode byte")):
-        read_xml(filename, encoding="ascii", parser=parser)
+        read_xml(xml_baby_names, encoding="ascii", parser=parser)
 
 
 @td.skip_if_no("lxml")
-def test_parser_consistency_with_encoding(datapath):
-    filename = datapath("io", "data", "xml", "baby_names.xml")
-    df_xpath_lxml = read_xml(filename, parser="lxml", encoding="ISO-8859-1")
-    df_xpath_etree = read_xml(filename, parser="etree", encoding="iso-8859-1")
+def test_parser_consistency_with_encoding(xml_baby_names):
+    df_xpath_lxml = read_xml(xml_baby_names, parser="lxml", encoding="ISO-8859-1")
+    df_xpath_etree = read_xml(xml_baby_names, parser="etree", encoding="iso-8859-1")
 
     df_iter_lxml = read_xml(
-        filename,
+        xml_baby_names,
         parser="lxml",
         encoding="ISO-8859-1",
         iterparse={"row": ["rank", "malename", "femalename"]},
     )
     df_iter_etree = read_xml(
-        filename,
+        xml_baby_names,
         parser="etree",
         encoding="ISO-8859-1",
         iterparse={"row": ["rank", "malename", "femalename"]},
@@ -1107,41 +1078,34 @@ def test_none_encoding_etree():
 
 
 @td.skip_if_installed("lxml")
-def test_default_parser_no_lxml(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
-
+def test_default_parser_no_lxml(xml_books):
     with pytest.raises(
         ImportError, match=("lxml not found, please install or use the etree parser.")
     ):
-        read_xml(filename)
+        read_xml(xml_books)
 
 
-def test_wrong_parser(datapath):
-    filename = datapath("io", "data", "xml", "books.xml")
-
+def test_wrong_parser(xml_books):
     with pytest.raises(
         ValueError, match=("Values for parser can only be lxml or etree.")
     ):
-        read_xml(filename, parser="bs4")
+        read_xml(xml_books, parser="bs4")
 
 
 # STYLESHEET
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_file(datapath):
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
-
+def test_stylesheet_file(kml_cta_rail_lines, xsl_flatten_doc):
     df_style = read_xml(
-        kml,
+        kml_cta_rail_lines,
         xpath=".//k:Placemark",
         namespaces={"k": "http://www.opengis.net/kml/2.2"},
-        stylesheet=xsl,
+        stylesheet=xsl_flatten_doc,
     )
 
     df_iter = read_xml(
-        kml,
+        kml_cta_rail_lines,
         iterparse={
             "Placemark": [
                 "id",
@@ -1159,13 +1123,10 @@ def test_stylesheet_file(datapath):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_file_like(datapath, mode):
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
-
-    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_stylesheet_file_like(kml_cta_rail_lines, xsl_flatten_doc, mode):
+    with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         df_style = read_xml(
-            kml,
+            kml_cta_rail_lines,
             xpath=".//k:Placemark",
             namespaces={"k": "http://www.opengis.net/kml/2.2"},
             stylesheet=f,
@@ -1175,22 +1136,19 @@ def test_stylesheet_file_like(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_io(datapath, mode):
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
-
+def test_stylesheet_io(kml_cta_rail_lines, xsl_flatten_doc, mode):
     # note: By default the bodies of untyped functions are not checked,
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+    with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "rb":
             xsl_obj = BytesIO(f.read())
         else:
             xsl_obj = StringIO(f.read())
 
     df_style = read_xml(
-        kml,
+        kml_cta_rail_lines,
         xpath=".//k:Placemark",
         namespaces={"k": "http://www.opengis.net/kml/2.2"},
         stylesheet=xsl_obj,
@@ -1200,15 +1158,12 @@ def test_stylesheet_io(datapath, mode):
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_buffered_reader(datapath, mode):
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
-
-    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_stylesheet_buffered_reader(kml_cta_rail_lines, xsl_flatten_doc, mode):
+    with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         xsl_obj = f.read()
 
     df_style = read_xml(
-        kml,
+        kml_cta_rail_lines,
         xpath=".//k:Placemark",
         namespaces={"k": "http://www.opengis.net/kml/2.2"},
         stylesheet=xsl_obj,
@@ -1247,18 +1202,15 @@ def test_style_charset():
 
 
 @td.skip_if_no("lxml")
-def test_not_stylesheet(datapath):
+def test_not_stylesheet(kml_cta_rail_lines, xml_books):
     from lxml.etree import XSLTParseError
 
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "books.xml")
-
     with pytest.raises(XSLTParseError, match=("document is not a stylesheet")):
-        read_xml(kml, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=xml_books)
 
 
 @td.skip_if_no("lxml")
-def test_incorrect_xsl_syntax(datapath):
+def test_incorrect_xsl_syntax(kml_cta_rail_lines):
     from lxml.etree import XMLSyntaxError
 
     xsl = """\
@@ -1281,16 +1233,14 @@ def test_incorrect_xsl_syntax(datapath):
     <xsl:template match="k:description|k:Snippet|k:Style"/>
 </xsl:stylesheet>"""
 
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
     with pytest.raises(
         XMLSyntaxError, match=("Extra content at the end of the document")
     ):
-        read_xml(kml, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
-def test_incorrect_xsl_eval(datapath):
+def test_incorrect_xsl_eval(kml_cta_rail_lines):
     from lxml.etree import XSLTParseError
 
     xsl = """\
@@ -1313,14 +1263,12 @@ def test_incorrect_xsl_eval(datapath):
     <xsl:template match="k:description|k:Snippet|k:Style"/>
 </xsl:stylesheet>"""
 
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
     with pytest.raises(XSLTParseError, match=("failed to compile")):
-        read_xml(kml, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
-def test_incorrect_xsl_apply(datapath):
+def test_incorrect_xsl_apply(kml_cta_rail_lines):
     from lxml.etree import XSLTApplyError
 
     xsl = """\
@@ -1335,55 +1283,46 @@ def test_incorrect_xsl_apply(datapath):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-
     with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
-        read_xml(kml, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
-def test_wrong_stylesheet():
+def test_wrong_stylesheet(kml_cta_rail_lines, xml_data_path):
     from lxml.etree import XMLSyntaxError
 
-    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
-    xsl = os.path.join("data", "xml", "flatten.xsl")
+    xsl = xml_data_path / "flatten.xsl"
 
     with pytest.raises(
         XMLSyntaxError,
         match=("Start tag expected, '<' not found"),
     ):
-        read_xml(kml, stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_file_close(datapath, mode):
-    kml = datapath("io", "data", "xml", "cta_rail_lines.kml")
-    xsl = datapath("io", "data", "xml", "flatten_doc.xsl")
-
+def test_stylesheet_file_close(kml_cta_rail_lines, xsl_flatten_doc, mode):
     # note: By default the bodies of untyped functions are not checked,
     # consider using --check-untyped-defs
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
-    with open(xsl, mode, encoding="utf-8" if mode == "r" else None) as f:
+    with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "rb":
             xsl_obj = BytesIO(f.read())
         else:
             xsl_obj = StringIO(f.read())
 
-        read_xml(kml, stylesheet=xsl_obj)
+        read_xml(kml_cta_rail_lines, stylesheet=xsl_obj)
 
         assert not f.closed
 
 
 @td.skip_if_no("lxml")
-def test_stylesheet_with_etree():
-    kml = os.path.join("data", "xml", "cta_rail_lines.kml")
-    xsl = os.path.join("data", "xml", "flatten_doc.xsl")
-
+def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
     with pytest.raises(
         ValueError, match=("To use stylesheet, you need lxml installed")
     ):
-        read_xml(kml, parser="etree", stylesheet=xsl)
+        read_xml(kml_cta_rail_lines, parser="etree", stylesheet=xsl_flatten_doc)
 
 
 @td.skip_if_no("lxml")
@@ -1413,10 +1352,8 @@ def test_string_error(parser):
         )
 
 
-def test_file_like_iterparse(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-
-    with open(filename, mode, encoding="utf-8" if mode == "r" else None) as f:
+def test_file_like_iterparse(xml_books, parser, mode):
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "r" and parser == "lxml":
             with pytest.raises(
                 TypeError, match=("reading file objects must return bytes objects")
@@ -1449,12 +1386,10 @@ def test_file_like_iterparse(datapath, parser, mode):
     tm.assert_frame_equal(df_filelike, df_expected)
 
 
-def test_file_io_iterparse(datapath, parser, mode):
-    filename = datapath("io", "data", "xml", "books.xml")
-
+def test_file_io_iterparse(xml_books, parser, mode):
     funcIO = StringIO if mode == "r" else BytesIO
     with open(
-        filename,
+        xml_books,
         mode,
         encoding="utf-8" if mode == "r" else None,
     ) as f:
@@ -1522,22 +1457,20 @@ def test_compression_error(parser, compression_only):
             )
 
 
-def test_wrong_dict_type(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_wrong_dict_type(xml_books, parser):
     with pytest.raises(TypeError, match="list is not a valid type for iterparse"):
         read_xml(
-            filename,
+            xml_books,
             parser=parser,
             iterparse=["category", "title", "year", "author", "price"],
         )
 
 
-def test_wrong_dict_value(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_wrong_dict_value(xml_books, parser):
     with pytest.raises(
         TypeError, match="<class 'str'> is not a valid type for value in iterparse"
     ):
-        read_xml(filename, parser=parser, iterparse={"book": "category"})
+        read_xml(xml_books, parser=parser, iterparse={"book": "category"})
 
 
 def test_bad_xml(parser):
@@ -1688,23 +1621,21 @@ def test_processing_instruction(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_no_result(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_no_result(xml_books, parser):
     with pytest.raises(
         ParserError, match="No result from selected items in iterparse."
     ):
         read_xml(
-            filename,
+            xml_books,
             parser=parser,
             iterparse={"node": ["attr1", "elem1", "elem2", "elem3"]},
         )
 
 
-def test_empty_data(datapath, parser):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_empty_data(xml_books, parser):
     with pytest.raises(EmptyDataError, match="No columns to parse from file"):
         read_xml(
-            filename,
+            xml_books,
             parser=parser,
             iterparse={"book": ["attr1", "elem1", "elem2", "elem3"]},
         )
