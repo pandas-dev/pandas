@@ -5,23 +5,24 @@ from typing import (
     Literal,
 )
 
-import matplotlib.axes
 import numpy as np
-
-from pandas import Series
 
 from pandas.core.dtypes.common import (
     is_integer,
-    is_list_like, is_numeric_dtype,
+    is_list_like,
+    is_numeric_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCIndex, ABCSeries,
+    ABCIndex,
+    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     isna,
     remove_na_arraylike,
 )
+
+from pandas import Series
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
@@ -296,20 +297,14 @@ def _grouped_plot(
     # the default value of dropna in grouby() is True
     grouped = data.groupby(by)
 
-    # It shows all the column(s) listed in column except `by` if column contains `by`
     if column is not None:
         grouped = grouped[column]
 
     column_names = get_column_names(grouped.first())
 
-    # What if Series?
-    # Assume that numeric_only and ABCDataFrame always hold
     if numeric_only and isinstance(grouped.obj, ABCDataFrame):
-        # numeric_columns = grouped.obj[column_names].select_dtypes(include=np.number)
-        # column_names = get_column_names(numeric_columns)
-        dtypes = grouped.obj[column_names].dtypes
-        is_numeric = dtypes.map(is_numeric_dtype)
-        column_names = column_names[is_numeric]
+        numeric_columns = grouped.obj[column_names].select_dtypes(include=np.number)
+        column_names = get_column_names(numeric_columns)
 
     non_duplicated = [not dup for dup in column_names.duplicated()]
     column_names = column_names[non_duplicated]
@@ -346,7 +341,7 @@ def _grouped_hist(
     yrot=None,
     legend: bool = False,
     alpha: float = 0.5,
-    edgecolor: str = 'black',
+    edgecolor: str = "black",
     linewidth: float = 1.2,
     numeric_only: bool = True,
     **kwargs,
@@ -384,6 +379,7 @@ def _grouped_hist(
         #     kwargs["label"] = column
 
     bins_copy = bins
+
     def plot_group(grouped, ax, column_name, numeric_only) -> None:
         def get_column_data(obj, column_name):
             if isinstance(obj, ABCSeries):
@@ -391,21 +387,28 @@ def _grouped_hist(
             return obj[column_name]
 
         ax.set_ylabel("Count")
-        ax.set_title(pprint_thing(column_name))
+        ax.set_xlabel(pprint_thing(column_name))
 
         nonlocal bins, bins_copy
         raw_column = get_column_data(grouped.obj, column_name)
         if bins_copy is None and (numeric_only or is_numeric_dtype(raw_column)):
-            # numeric means grouped.obj[column_name] is a numeric df.
-            # precomputed reused bins
-            bins = np.histogram_bin_edges(raw_column, bins='auto')
+            # precompute reused bins
+            bins = np.histogram_bin_edges(raw_column, bins="auto")
 
         for key, group in grouped:
             column_data = get_column_data(group, column_name)
             if isinstance(column_data, ABCDataFrame):
                 column_data = column_data.stack().reset_index(drop=True)
 
-            ax.hist(column_data, alpha=alpha, label=key, bins=bins, edgecolor=edgecolor, linewidth=linewidth, **kwargs)
+            ax.hist(
+                column_data,
+                alpha=alpha,
+                label=key,
+                bins=bins,
+                edgecolor=edgecolor,
+                linewidth=linewidth,
+                **kwargs,
+            )
         if legend:
             ax.legend()
 
@@ -435,6 +438,7 @@ def _grouped_hist(
     maybe_adjust_figure(
         fig, bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
     )
+
     return axes
 
 
@@ -529,7 +533,7 @@ def hist_frame(
     bins: int = 10,
     legend: bool = False,
     alpha: float = 0.5,
-    edgecolor: str = 'black',
+    edgecolor: str = "black",
     linewidth: float = 1.2,
     numeric_only: bool = True,
     **kwds,
@@ -594,8 +598,14 @@ def hist_frame(
         ax = _axes[i]
         if legend and can_set_label:
             kwds["label"] = col
-        ax.hist(data[col].dropna().values, bins=bins, alpha=alpha, edgecolor=edgecolor, linewidth=linewidth, **kwds)
-        ax.set_title(col)
+        ax.hist(
+            data[col].dropna().values,
+            bins=bins,
+            alpha=alpha,
+            edgecolor=edgecolor,
+            linewidth=linewidth,
+            **kwds,
+        )
         ax.set_xlabel(col)
         ax.set_ylabel("Count")
         ax.grid(grid)
