@@ -490,6 +490,8 @@ def json_normalize(
     meta_keys = [sep.join(val) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
+        if data is None:
+            return
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:

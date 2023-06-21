@@ -582,6 +582,29 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_column_with_none(self):
+        # 53719
+        data = {
+            "root": [
+                {
+                    "id": 1,
+                    "nested_field": [{"nested_field_id": 1}],
+                },
+                {"id": 2, "nested_field": None},
+            ]
+        }
+        result = json_normalize(
+            data,
+            record_path=["root", "nested_field"],
+        )
+        expected = DataFrame(
+            {
+                "nested_field_id": [1],
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
