@@ -46,8 +46,7 @@ cdef class PeriodDtypeBase:
         abbrev = _reverse_period_code_map[freq_group.value].split("-")[0]
         if abbrev == "B":
             return Resolution.RESO_DAY
-        for key, value in PERIOD_TO_OFFSET_FREQSTR.items():
-            abbrev = abbrev.replace(key, value)
+        abbrev = PERIOD_TO_OFFSET_FREQSTR.get(abbrev, abbrev)
         attrname = _abbrev_to_attrnames[abbrev]
         return Resolution.from_attrname(attrname)
 
