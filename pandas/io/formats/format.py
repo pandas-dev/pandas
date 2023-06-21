@@ -1916,11 +1916,17 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     """
     real_part, imag_part = [], []
     for x in str_complexes:
+        # Complex numbers are represented as "(-)xxx(+/-)xxxj"
+        # The split will give [maybe "-", "xxx", "+/-", "xxx", "j", ""]
+        # Therefore, the imaginary part is the 4th and 3rd last elements,
+        # and the real part is everything before the imaginary part
         trimmed = re.split(r"([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 
-    # pad strings to the length of the longest trimmed string for alignment
+    # We want to align the lengths of the real and imaginary parts of each complex
+    # number, as well as the lengths the real (resp. complex) parts of all numbers
+    # in the array
     n = len(str_complexes)
     padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
     padded = [
