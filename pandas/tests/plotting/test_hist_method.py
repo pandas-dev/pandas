@@ -3,7 +3,6 @@ import re
 
 import numpy as np
 import pytest
-from pandas.core.dtypes.common import is_numeric_dtype
 
 import pandas.util._test_decorators as td
 
@@ -154,9 +153,11 @@ class TestSeriesPlots:
 
     @pytest.mark.parametrize(
         "by, expected_axes_num, expected_layout, expected_legend_labels",
-        [(None, 1, (1, 1), ["a"]), ("b", 1, (1, 1), ["1", "2"])]
+        [(None, 1, (1, 1), ["a"]), ("b", 1, (1, 1), ["1", "2"])],
     )
-    def test_hist_with_legend(self, by, expected_axes_num, expected_layout, expected_legend_labels):
+    def test_hist_with_legend(
+        self, by, expected_axes_num, expected_layout, expected_legend_labels
+    ):
         # GH 6279 - Series histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
         s = Series(np.random.randn(30), index=index, name="a")
@@ -442,7 +443,7 @@ class TestDataFramePlots:
             column=column,
             layout=(1, 3),
         )
-        result = [axes[0, i].get_title() for i in range(3)]
+        result = [axes[0, i].get_xlabel() for i in range(3)]
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -466,7 +467,7 @@ class TestDataFramePlots:
         # GH 6279 - DataFrame histogram can have a legend
         expected_axes_num = 1 if column is not None else 2
         expected_layout = (1, expected_axes_num)
-        expected_labels = column or ["a", "b"] if by is None else ['1', '2']
+        expected_labels = column or ["a", "b"] if by is None else ["1", "2"]
         if by is not None:
             expected_labels = [expected_labels] * 2
 
@@ -641,9 +642,7 @@ class TestDataFrameGroupByPlots:
         rects = [x for x in axes.get_children() if isinstance(x, Rectangle)]
         height = rects[-1].get_height()
         tm.assert_almost_equal(height, 1.0)
-        _check_ticks_props(
-            axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot
-        )
+        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
         tm.close()
         axes = _grouped_hist(df.A, by=df.C, log=True)
@@ -700,6 +699,9 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=len(column), layout=(4, 1))
 
         axes = df.hist(column=column, by=df.category, layout=(-1, 1))
+        _check_axes_shape(axes, axes_num=len(column), layout=(2, 1))
+
+        axes = df.hist(column=column, by=df.category, layout=(4, 2), figsize=(12, 8))
         _check_axes_shape(axes, axes_num=len(column), layout=(4, 2), figsize=(12, 8))
         tm.close()
 
@@ -712,7 +714,7 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
         # without column
-        expected_axes_number = df.dtypes.map(is_numeric_dtype).value_counts()[True]
+        expected_axes_number = len(df.select_dtypes(include=np.number).columns)
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.hist, by="classroom")
         _check_axes_shape(axes, axes_num=expected_axes_number, layout=(2, 2))
@@ -769,7 +771,9 @@ class TestDataFrameGroupByPlots:
 
     def test_axis_share_xy(self, hist_df):
         df = hist_df
-        ax1, ax2 = df.hist(column=["height", "weight"], by=df.gender, sharex=True, sharey=True)
+        ax1, ax2 = df.hist(
+            column=["height", "weight"], by=df.gender, sharex=True, sharey=True
+        )
 
         # share both x and y
         assert get_x_axis(ax1).joined(ax1, ax2)
@@ -792,3 +796,17 @@ class TestDataFrameGroupByPlots:
         df = DataFrame(np.random.randint(1, 10, size=(100, 2)), columns=["a", "b"])
         ax = df.hist(by="a", histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
+
+    @pytest.mark.parametrize("numeric_only, expected_axes_sum", [(True, 1), (False, 2)])
+    def test_numeric_only(self, numeric_only, expected_axes_sum):
+        df = DataFrame(
+            {
+                "a": np.random.normal(size=100),
+                "b": np.random.choice(["A", "B"], size=100),
+                "c": np.random.choice(["C", "D"], size=100),
+            }
+        )
+        returned = df.hist(by="c", numeric_only=numeric_only)
+        _check_axes_shape(
+            returned, axes_num=expected_axes_sum, layout=(1, expected_axes_sum)
+        )
