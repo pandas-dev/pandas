@@ -523,10 +523,16 @@ class SeriesGroupBy(GroupBy[Series]):
 
         return obj._constructor(result, index=self.obj.index, name=obj.name)
 
-    def _transform_general(self, func: Callable, *args, **kwargs) -> Series:
+    def _transform_general(
+        self, func: Callable, engine, engine_kwargs, *args, **kwargs
+    ) -> Series:
         """
         Transform with a callable `func`.
         """
+        if maybe_use_numba(engine):
+            return self._transform_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
         assert callable(func)
         klass = type(self.obj)
 
@@ -622,6 +628,22 @@ class SeriesGroupBy(GroupBy[Series]):
         -------
         Series
             Number of unique values within each group.
+
+        Examples
+        --------
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).nunique()
+        a    2
+        b    1
+        dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 
@@ -807,7 +829,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
             right = [diff.cumsum() - 1, codes[-1]]
 
-            _, idx = get_join_indexers(left, right, sort=False, how="left")
+            # error: Argument 1 to "get_join_indexers" has incompatible type
+            # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]
+            _, idx = get_join_indexers(
+                left, right, sort=False, how="left"  # type: ignore[arg-type]
+            )
             out = np.where(idx != -1, out[idx], 0)
 
             if sort:
@@ -892,6 +919,27 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         ffill : Forward fill values within a group.
         bfill : Backward fill values within a group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['cat', 'cat', 'cat', 'mouse', 'mouse']
+        >>> ser = pd.Series([1, None, None, 2, None], index=lst)
+        >>> ser
+        cat    1.0
+        cat    NaN
+        cat    NaN
+        mouse  2.0
+        mouse  NaN
+        dtype: float64
+        >>> ser.groupby(level=0).fillna(0, limit=1)
+        cat    1.0
+        cat    0.0
+        cat    NaN
+        mouse  2.0
+        mouse  0.0
+        dtype: float64
         """
         result = self._op_via_apply(
             "fillna",
@@ -1638,7 +1686,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_df = self._maybe_transpose_result(res_df)
         return res_df
 
-    def _transform_general(self, func, *args, **kwargs):
+    def _transform_general(self, func, engine, engine_kwargs, *args, **kwargs):
+        if maybe_use_numba(engine):
+            return self._transform_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
         from pandas.core.reshape.concat import concat
 
         applied = []

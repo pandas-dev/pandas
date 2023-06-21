@@ -1927,7 +1927,8 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency.
+            The desired frequency. If passing a `str`, it needs to be a
+            valid :ref:`period alias <timeseries.period_aliases>`.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.
 
@@ -2667,7 +2668,7 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or str, default None
+    value : Period, str, datetime, date or pandas.Timestamp, default None
         The time period represented (e.g., '4Q2005'). This represents neither
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None

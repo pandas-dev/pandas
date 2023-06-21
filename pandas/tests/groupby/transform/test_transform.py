@@ -408,11 +408,24 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A"))
+    msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
+    groupby_msg = (
+        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    )
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
+            result = test_op(df.groupby("A"))
+    else:
+        result = test_op(df.groupby("A"))
+
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
-    expected = concat([mock_op(g) for g in groups]).sort_index()
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = concat([mock_op(g) for g in groups]).sort_index()
+    else:
+        expected = concat([mock_op(g) for g in groups]).sort_index()
     # sort_index does not preserve the freq
     expected = expected.set_axis(df.index)
 
@@ -973,9 +986,14 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(
-        periods=periods, fill_method=fill_method, limit=limit, freq=freq
+    msg = (
+        "The 'fill_method' and 'limit' keywords in "
+        f"{type(gb).__name__}.pct_change are deprecated"
     )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq
+        )
     tm.assert_equal(result, expected)
 
 
@@ -1412,7 +1430,12 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    result = gb.transform(transformation_func, *args)
+    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    if transformation_func == "pct_change" and not dropna:
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.transform("pct_change", *args)
+    else:
+        result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 

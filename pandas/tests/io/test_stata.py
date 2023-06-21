@@ -19,7 +19,6 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -1964,13 +1963,13 @@ def test_statareader_warns_when_used_without_context(datapath):
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
-def test_compression(compression, version, use_dict, infer):
+def test_compression(compression, version, use_dict, infer, compression_to_extension):
     file_name = "dta_inferred_compression.dta"
     if compression:
         if use_dict:
             file_ext = compression
         else:
-            file_ext = _compression_to_extension[compression]
+            file_ext = compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -2134,10 +2133,12 @@ def test_compression_roundtrip(compression):
 
 @pytest.mark.parametrize("to_infer", [True, False])
 @pytest.mark.parametrize("read_infer", [True, False])
-def test_stata_compression(compression_only, read_infer, to_infer):
+def test_stata_compression(
+    compression_only, read_infer, to_infer, compression_to_extension
+):
     compression = compression_only
 
-    ext = _compression_to_extension[compression]
+    ext = compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(

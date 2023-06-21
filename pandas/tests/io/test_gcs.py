@@ -16,7 +16,6 @@ from pandas import (
     read_parquet,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 from pandas.util import _test_decorators as td
 
 
@@ -45,6 +44,8 @@ def gcs_buffer():
 
 
 @td.skip_if_no("gcsfs")
+# Patches pyarrow; other processes should not pick up change
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
 def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
     """
@@ -132,7 +133,9 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
 
 @td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
-def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding):
+def test_to_csv_compression_encoding_gcs(
+    gcs_buffer, compression_only, encoding, compression_to_extension
+):
     """
     Compression and encoding should with GCS.
 
@@ -161,7 +164,7 @@ def test_to_csv_compression_encoding_gcs(gcs_buffer, compression_only, encoding)
     tm.assert_frame_equal(df, read_df)
 
     # write compressed file with implicit compression
-    file_ext = _compression_to_extension[compression_only]
+    file_ext = compression_to_extension[compression_only]
     compression["method"] = "infer"
     path_gcs += f".{file_ext}"
     df.to_csv(path_gcs, compression=compression, encoding=encoding)

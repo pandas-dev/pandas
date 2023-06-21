@@ -1507,6 +1507,8 @@ class DatetimeIndexResampler(Resampler):
             result = obj.copy()
             result.index = res_index
         else:
+            if method == "asfreq":
+                method = None
             result = obj.reindex(
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
@@ -1625,6 +1627,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
+        if method == "asfreq":
+            method = None
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
         new_obj = _take_new_index(
             obj,
@@ -1902,7 +1906,9 @@ class TimeGrouper(Grouper):
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
@@ -2033,8 +2039,10 @@ class TimeGrouper(Grouper):
 
         freq = self.freq
 
-        if not len(ax):
-            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
+        if len(ax) == 0:
+            binner = labels = PeriodIndex(
+                data=[], freq=freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)

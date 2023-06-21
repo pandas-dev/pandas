@@ -13,7 +13,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -543,13 +542,15 @@ z
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
-    def test_to_csv_compression(self, compression_only, read_infer, to_infer):
+    def test_to_csv_compression(
+        self, compression_only, read_infer, to_infer, compression_to_extension
+    ):
         # see gh-15008
         compression = compression_only
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += _compression_to_extension[compression]
+        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 

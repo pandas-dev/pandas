@@ -105,32 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.as_unit \
-        pandas.Timestamp.ctime \
-        pandas.Timestamp.date \
-        pandas.Timestamp.dst \
-        pandas.Timestamp.isocalendar \
-        pandas.Timestamp.isoweekday \
-        pandas.Timestamp.strptime \
-        pandas.Timestamp.time \
-        pandas.Timestamp.timetuple \
-        pandas.Timestamp.timetz \
-        pandas.Timestamp.to_datetime64 \
-        pandas.Timestamp.toordinal \
-        pandas.Timestamp.tzname \
-        pandas.Timestamp.utcoffset \
-        pandas.Timestamp.utctimetuple \
-        pandas.Timestamp.weekday \
-        pandas.arrays.DatetimeArray \
-        pandas.Timedelta.view \
-        pandas.Timedelta.as_unit \
-        pandas.Timedelta.ceil \
-        pandas.Timedelta.floor \
-        pandas.Timedelta.round \
-        pandas.Timedelta.to_pytimedelta \
-        pandas.Timedelta.to_timedelta64 \
-        pandas.Timedelta.to_numpy \
-        pandas.Timedelta.total_seconds \
         pandas.arrays.TimedeltaArray \
         pandas.Period.asfreq \
         pandas.Period.now \
@@ -263,41 +237,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.DataFrameGroupBy.diff \
-        pandas.core.groupby.DataFrameGroupBy.ffill \
-        pandas.core.groupby.DataFrameGroupBy.max \
-        pandas.core.groupby.DataFrameGroupBy.median \
-        pandas.core.groupby.DataFrameGroupBy.min \
-        pandas.core.groupby.DataFrameGroupBy.ohlc \
-        pandas.core.groupby.DataFrameGroupBy.pct_change \
-        pandas.core.groupby.DataFrameGroupBy.prod \
-        pandas.core.groupby.DataFrameGroupBy.sem \
-        pandas.core.groupby.DataFrameGroupBy.shift \
-        pandas.core.groupby.DataFrameGroupBy.size \
-        pandas.core.groupby.DataFrameGroupBy.skew \
-        pandas.core.groupby.DataFrameGroupBy.std \
-        pandas.core.groupby.DataFrameGroupBy.sum \
-        pandas.core.groupby.DataFrameGroupBy.var \
-        pandas.core.groupby.SeriesGroupBy.diff \
-        pandas.core.groupby.SeriesGroupBy.fillna \
-        pandas.core.groupby.SeriesGroupBy.ffill \
-        pandas.core.groupby.SeriesGroupBy.max \
-        pandas.core.groupby.SeriesGroupBy.median \
-        pandas.core.groupby.SeriesGroupBy.min \
-        pandas.core.groupby.SeriesGroupBy.nunique \
-        pandas.core.groupby.SeriesGroupBy.ohlc \
-        pandas.core.groupby.SeriesGroupBy.pct_change \
-        pandas.core.groupby.SeriesGroupBy.prod \
-        pandas.core.groupby.SeriesGroupBy.sem \
-        pandas.core.groupby.SeriesGroupBy.shift \
-        pandas.core.groupby.SeriesGroupBy.size \
-        pandas.core.groupby.SeriesGroupBy.skew \
-        pandas.core.groupby.SeriesGroupBy.std \
-        pandas.core.groupby.SeriesGroupBy.sum \
-        pandas.core.groupby.SeriesGroupBy.var \
-        pandas.core.groupby.SeriesGroupBy.hist \
-        pandas.core.groupby.DataFrameGroupBy.plot \
-        pandas.core.groupby.SeriesGroupBy.plot \
         pandas.io.formats.style.Styler \
         pandas.io.formats.style.Styler.from_custom_template \
         pandas.io.formats.style.Styler.set_caption \
