@@ -2156,8 +2156,16 @@ class _AsOfMerge(_OrderedMerge):
                 lbv = ensure_object(lbv)
                 rbv = ensure_object(rbv)
 
-            right_by_values = rbv
-            left_by_values = lbv
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
+            # variable has type "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]")
+            right_by_values = rbv  # type: ignore[assignment]
+            # error: Incompatible types in assignment (expression has type
+            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
+            # variable has type "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]")
+            left_by_values = lbv  # type: ignore[assignment]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
