@@ -12,149 +12,162 @@ import pandas._testing as tm
 # this default. Those overrides are defined as a dict with (keyword, val) as
 # dictionary key. In case of multiple items, the last override takes precedence.
 
-test_cases = [
-    (
-        # data
-        [1, 2, 3],
-        # original dtype
-        np.dtype("int32"),
-        # default expected dtype
-        "Int32",
-        # exceptions on expected dtype
-        {("convert_integer", False): np.dtype("int32")},
-    ),
-    (
-        [1, 2, 3],
-        np.dtype("int64"),
-        "Int64",
-        {("convert_integer", False): np.dtype("int64")},
-    ),
-    (
-        ["x", "y", "z"],
-        np.dtype("O"),
-        pd.StringDtype(),
-        {("convert_string", False): np.dtype("O")},
-    ),
-    (
-        [True, False, np.nan],
-        np.dtype("O"),
-        pd.BooleanDtype(),
-        {("convert_boolean", False): np.dtype("O")},
-    ),
-    (
-        ["h", "i", np.nan],
-        np.dtype("O"),
-        pd.StringDtype(),
-        {("convert_string", False): np.dtype("O")},
-    ),
-    (  # GH32117
-        ["h", "i", 1],
-        np.dtype("O"),
-        np.dtype("O"),
-        {},
-    ),
-    (
-        [10, np.nan, 20],
-        np.dtype("float"),
-        "Int64",
-        {
-            ("convert_integer", False, "convert_floating", True): "Float64",
-            ("convert_integer", False, "convert_floating", False): np.dtype("float"),
-        },
-    ),
-    (
-        [np.nan, 100.5, 200],
-        np.dtype("float"),
-        "Float64",
-        {("convert_floating", False): np.dtype("float")},
-    ),
-    (
-        [3, 4, 5],
-        "Int8",
-        "Int8",
-        {},
-    ),
-    (
-        [[1, 2], [3, 4], [5]],
-        None,
-        np.dtype("O"),
-        {},
-    ),
-    (
-        [4, 5, 6],
-        np.dtype("uint32"),
-        "UInt32",
-        {("convert_integer", False): np.dtype("uint32")},
-    ),
-    (
-        [-10, 12, 13],
-        np.dtype("i1"),
-        "Int8",
-        {("convert_integer", False): np.dtype("i1")},
-    ),
-    (
-        [1.2, 1.3],
-        np.dtype("float32"),
-        "Float32",
-        {("convert_floating", False): np.dtype("float32")},
-    ),
-    (
-        [1, 2.0],
-        object,
-        "Int64",
-        {
-            ("convert_integer", False): "Float64",
-            ("convert_integer", False, "convert_floating", False): np.dtype("float"),
-            ("infer_objects", False): np.dtype("object"),
-        },
-    ),
-    (
-        [1, 2.5],
-        object,
-        "Float64",
-        {
-            ("convert_floating", False): np.dtype("float"),
-            ("infer_objects", False): np.dtype("object"),
-        },
-    ),
-    (["a", "b"], pd.CategoricalDtype(), pd.CategoricalDtype(), {}),
-    (
-        pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
-        pd.DatetimeTZDtype(tz="UTC"),
-        pd.DatetimeTZDtype(tz="UTC"),
-        {},
-    ),
-    (
-        pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
-        "datetime64[ns]",
-        np.dtype("datetime64[ns]"),
-        {},
-    ),
-    (
-        pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
-        object,
-        np.dtype("datetime64[ns]"),
-        {("infer_objects", False): np.dtype("object")},
-    ),
-    (pd.period_range("1/1/2011", freq="M", periods=3), None, pd.PeriodDtype("M"), {}),
-    (
-        pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
-        None,
-        pd.IntervalDtype("int64", "right"),
-        {},
-    ),
-]
+
+@pytest.fixture(
+    params=[
+        (
+            # data
+            [1, 2, 3],
+            # original dtype
+            np.dtype("int32"),
+            # default expected dtype
+            "Int32",
+            # exceptions on expected dtype
+            {("convert_integer", False): np.dtype("int32")},
+        ),
+        (
+            [1, 2, 3],
+            np.dtype("int64"),
+            "Int64",
+            {("convert_integer", False): np.dtype("int64")},
+        ),
+        (
+            ["x", "y", "z"],
+            np.dtype("O"),
+            pd.StringDtype(),
+            {("convert_string", False): np.dtype("O")},
+        ),
+        (
+            [True, False, np.nan],
+            np.dtype("O"),
+            pd.BooleanDtype(),
+            {("convert_boolean", False): np.dtype("O")},
+        ),
+        (
+            ["h", "i", np.nan],
+            np.dtype("O"),
+            pd.StringDtype(),
+            {("convert_string", False): np.dtype("O")},
+        ),
+        (  # GH32117
+            ["h", "i", 1],
+            np.dtype("O"),
+            np.dtype("O"),
+            {},
+        ),
+        (
+            [10, np.nan, 20],
+            np.dtype("float"),
+            "Int64",
+            {
+                ("convert_integer", False, "convert_floating", True): "Float64",
+                ("convert_integer", False, "convert_floating", False): np.dtype(
+                    "float"
+                ),
+            },
+        ),
+        (
+            [np.nan, 100.5, 200],
+            np.dtype("float"),
+            "Float64",
+            {("convert_floating", False): np.dtype("float")},
+        ),
+        (
+            [3, 4, 5],
+            "Int8",
+            "Int8",
+            {},
+        ),
+        (
+            [[1, 2], [3, 4], [5]],
+            None,
+            np.dtype("O"),
+            {},
+        ),
+        (
+            [4, 5, 6],
+            np.dtype("uint32"),
+            "UInt32",
+            {("convert_integer", False): np.dtype("uint32")},
+        ),
+        (
+            [-10, 12, 13],
+            np.dtype("i1"),
+            "Int8",
+            {("convert_integer", False): np.dtype("i1")},
+        ),
+        (
+            [1.2, 1.3],
+            np.dtype("float32"),
+            "Float32",
+            {("convert_floating", False): np.dtype("float32")},
+        ),
+        (
+            [1, 2.0],
+            object,
+            "Int64",
+            {
+                ("convert_integer", False): "Float64",
+                ("convert_integer", False, "convert_floating", False): np.dtype(
+                    "float"
+                ),
+                ("infer_objects", False): np.dtype("object"),
+            },
+        ),
+        (
+            [1, 2.5],
+            object,
+            "Float64",
+            {
+                ("convert_floating", False): np.dtype("float"),
+                ("infer_objects", False): np.dtype("object"),
+            },
+        ),
+        (["a", "b"], pd.CategoricalDtype(), pd.CategoricalDtype(), {}),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.DatetimeTZDtype(tz="UTC"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            {},
+        ),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            "datetime64[ns]",
+            np.dtype("datetime64[ns]"),
+            {},
+        ),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            object,
+            np.dtype("datetime64[ns]"),
+            {("infer_objects", False): np.dtype("object")},
+        ),
+        (
+            pd.period_range("1/1/2011", freq="M", periods=3),
+            None,
+            pd.PeriodDtype("M"),
+            {},
+        ),
+        (
+            pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)]),
+            None,
+            pd.IntervalDtype("int64", "right"),
+            {},
+        ),
+    ]
+)
+def test_cases(request):
+    return request.param
 
 
 class TestSeriesConvertDtypes:
-    @pytest.mark.parametrize(
-        "data, maindtype, expected_default, expected_other",
-        test_cases,
-    )
     @pytest.mark.parametrize("params", product(*[(True, False)] * 5))
     def test_convert_dtypes(
-        self, data, maindtype, params, expected_default, expected_other
+        self,
+        test_cases,
+        params,
     ):
+        data, maindtype, expected_default, expected_other = test_cases
         if (
             hasattr(data, "dtype")
             and data.dtype == "M8[ns]"

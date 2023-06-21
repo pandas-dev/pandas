@@ -11,7 +11,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -33,9 +32,6 @@ from pandas.tests.tseries.offsets.common import (
 
 from pandas.tseries import offsets
 from pandas.tseries.holiday import USFederalHolidayCalendar
-
-if TYPE_CHECKING:
-    from pandas.tests.tseries.offsets.test_offsets import _ApplyCases
 
 
 @pytest.fixture
@@ -132,7 +128,7 @@ class TestCustomBusinessMonthBegin:
         offset, dt, expected = case
         assert_is_on_offset(offset, dt, expected)
 
-    apply_cases: _ApplyCases = [
+    apply_cases = [
         (
             CBMonthBegin(),
             {
@@ -330,7 +326,7 @@ class TestCustomBusinessMonthEnd:
         offset, dt, expected = case
         assert_is_on_offset(offset, dt, expected)
 
-    apply_cases: _ApplyCases = [
+    apply_cases = [
         (
             CBMonthEnd(),
             {

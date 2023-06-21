@@ -1,5 +1,4 @@
 from datetime import datetime
-import re
 
 import numpy as np
 import pytest
@@ -41,9 +40,6 @@ def dtype_fill_out_dtype(request):
 
 
 class TestTake:
-    # Standard incompatible fill error.
-    fill_error = re.compile("Incompatible type for fill_value")
-
     def test_1d_fill_nonna(self, dtype_fill_out_dtype):
         dtype, fill_value, out_dtype = dtype_fill_out_dtype
         data = np.random.randint(0, 2, 4).astype(dtype)
