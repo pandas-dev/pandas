@@ -2463,7 +2463,7 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
-        """
+        """        
         # same as super().weekday(), but that breaks because of how
         #  we have overridden year, see note in create_timestamp_from_ts
         return ccalendar.dayofweek(self.year, self.month, self.day)

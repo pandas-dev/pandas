@@ -223,6 +223,13 @@ class TestTimestampProperties:
         assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
         assert dt.as_unit("s").resolution == Timedelta(seconds=1)
 
+    @pytest.mark.parametrize("date_string,expected", [("0000-2-29", 1), ("0000-3-1", 2), ("1582-10-14", 3), ("1582-10-15", 4)])
+    def test_dow_historic(self, date_string, expected):
+        # GH 53738
+        dt = Timestamp(date_string)
+        dow = dt.weekday()        
+        assert dow == expected
+        
 
 class TestTimestamp:
     def test_default_to_stdlib_utc(self):
