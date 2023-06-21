@@ -49,6 +49,7 @@ How do I create plots in pandas?
 I want a quick visual check of the data.
 
 .. ipython:: python
+   :okwarning:
 
     @savefig 04_airqual_quick.png
     air_quality.plot()
