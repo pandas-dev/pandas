@@ -1431,8 +1431,8 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
 @pytest.mark.parametrize(
     "func",
     [
-        lambda ser: ser.where(ser < 0, 10),
-        lambda ser: ser.mask(ser >= 0, 10),
+        lambda ser: ser.where(ser > 0, 10),
+        lambda ser: ser.mask(ser <= 0, 10),
     ],
 )
 def test_where_mask_noop(using_copy_on_write, dtype, func):
