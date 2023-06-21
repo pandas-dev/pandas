@@ -22,6 +22,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`DataFrame.convert_dtype` and :func:`Series.convert_dtype` when trying to convert :class:`ArrowDtype` with ``dtype_backend="nullable_numpy"`` (:issue:`53648`)
 - Bug in :func:`RangeIndex.union` when using ``sort=True`` with another :class:`RangeIndex` (:issue:`53490`)
 - Bug in :func:`Series.reindex` when expanding a non-nanosecond datetime or timedelta :class:`Series` would not fill with ``NaT`` correctly (:issue:`53497`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
