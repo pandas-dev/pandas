@@ -914,10 +914,12 @@ class TestPandasContainer:
             }
         )
 
-        json = df.to_json(date_format="iso", date_unit=unit)
+        buf = StringIO()
+        df.to_json(buf, date_format="iso", date_unit=unit)
+        buf.seek(0)
         # read_json always reads datetimes in nanosecond resolution
         tm.assert_frame_equal(
-            read_json(json), df, check_index_type=False, check_dtype=False
+            read_json(buf), df, check_index_type=False, check_dtype=False
         )
 
     def test_weird_nested_json(self):
