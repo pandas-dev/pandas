@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -49,11 +50,12 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        # TODO(CoW): This should raise a chained assignment error
-        df[0].fillna(-1, inplace=True)
         if using_copy_on_write:
+            with tm.assert_produces_warning(ChainedAssignmentError):
+                df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
+            df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
@@ -105,13 +107,17 @@ class TestFillNA:
             result = mf.fillna(method="pad")
         _check_mixed_float(result, dtype={"C": None})
 
-    def test_fillna_empty(self):
+    def test_fillna_empty(self, using_copy_on_write):
         # empty frame (GH#2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
             msg = "Series.fillna with 'method' is deprecated"
             with tm.assert_produces_warning(FutureWarning, match=msg):
-                df.x.fillna(method=m, inplace=True)
+                if using_copy_on_write:
+                    with tm.assert_produces_warning(ChainedAssignmentError):
+                        df.x.fillna(method=m, inplace=True)
+                else:
+                    df.x.fillna(method=m, inplace=True)
                 df.x.fillna(method=m)
 
     def test_fillna_different_dtype(self):
