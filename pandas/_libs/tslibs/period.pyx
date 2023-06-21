@@ -38,7 +38,10 @@ from libc.time cimport (
     tm,
 )
 
-from pandas._libs.tslibs.dtypes cimport c_OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes cimport (
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
 
 # import datetime C API
 import_datetime()
@@ -93,6 +96,9 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
     freq_group_code_to_npy_unit,
 )
+
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
@@ -1539,10 +1545,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         raise TypeError("extract_ordinals values must be object-dtype")
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
-    if freq.n == 1:
-        freqstr = f"{c_OFFSET_TO_PERIOD_FREQSTR.get(freq.name, freq.name)}"
-    else:
-        freqstr = f"{freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(freq.name, freq.name)}"
+    freqstr = freq_to_period_freqstr(freq.n, freq.name)
 
     for i in range(n):
         # Analogous to: p = values[i]
@@ -1715,12 +1718,7 @@ cdef class PeriodMixin:
             condition = self.freq != other_freq
 
         if condition:
-            if self.freq.n == 1:
-                freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
-                            self.freq.name, self.freq.name)}"""
-            else:
-                freqstr = f"""{self.freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
-                            self.freq.name, self.freq.name)}"""
+            freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
@@ -2484,12 +2482,7 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        if self.freq.n == 1:
-            freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
-                        self.freq.name, self.freq.name)}"""
-        else:
-            freqstr = f"""{self.freq.n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
-                        self.freq.name, self.freq.name)}"""
+        freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
         return freqstr
 
     def __repr__(self) -> str:

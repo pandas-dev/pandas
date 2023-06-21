@@ -30,7 +30,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import NullFrequencyError
 from pandas.util._decorators import (
@@ -110,12 +110,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if self._data.freqstr is not None and isinstance(
             self._data, (PeriodArray, PeriodIndex)
         ):
-            if self._data.freq.n == 1:
-                freq = f"""{OFFSET_TO_PERIOD_FREQSTR.get(
-                        self._data.freq.name, self._data.freq.name)}"""
-            else:
-                freq = f"""{self._data.freq.n}{OFFSET_TO_PERIOD_FREQSTR.get(
-                        self._data.freq.name, self._data.freq.name)}"""
+            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
             return freq
         else:
             return self._data.freqstr  # type: ignore[return-value]

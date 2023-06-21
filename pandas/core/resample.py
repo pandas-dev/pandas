@@ -25,7 +25,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -2399,10 +2399,7 @@ def asfreq(
         if how is None:
             how = "E"
 
-        if obj.index.freq.n == 1:
-            freq = f"{OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)}"
-        else:
-            freq = f"{obj.index.freq.n}{OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)}"
+        freq = freq_to_period_freqstr(obj.index.freq.n, freq)
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
