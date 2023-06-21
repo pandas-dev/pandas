@@ -1924,6 +1924,12 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         resampled : Period
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> period.asfreq('H')
+        Period('2023-01-01 23:00', 'H')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
