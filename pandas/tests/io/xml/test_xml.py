@@ -1353,7 +1353,7 @@ def test_string_error(parser):
 
 
 def test_file_like_iterparse(xml_books, parser, mode):
-    with open(xml_books, encoding="utf-8" if mode == "r" else None) as f:
+    with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "r" and parser == "lxml":
             with pytest.raises(
                 TypeError, match=("reading file objects must return bytes objects")
