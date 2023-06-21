@@ -238,7 +238,7 @@ def test_complibs(tmp_path, lvl, lib):
         pytest.skip("bzip2 not available")
 
     tmpfile = tmp_path / f"{lvl}_{lib}.h5"
-    gname = "foo"
+    gname = f"{lvl}_{lib}"
 
     # Write and read file to see if data is consistent
     df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
