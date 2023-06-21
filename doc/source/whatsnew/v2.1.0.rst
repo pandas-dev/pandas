@@ -19,6 +19,7 @@ Enhancements
 Copy-on-Write improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- :meth:`Series.transform` not respecting Copy-on-Write when ``func`` modifies :class:`Series` inplace (:issue:`53747`)
 - Calling :meth:`Index.values` will now return a read-only NumPy array (:issue:`53704`)
 - Setting a :class:`Series` into a :class:`DataFrame` now creates a lazy instead of a deep copy (:issue:`53142`)
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
