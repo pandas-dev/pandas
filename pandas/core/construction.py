@@ -14,6 +14,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -31,6 +32,7 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -185,9 +187,8 @@ def array(
     Length: 2, dtype: str32
 
     Finally, Pandas has arrays that mostly overlap with NumPy
-
-      * :class:`arrays.DatetimeArray`
-      * :class:`arrays.TimedeltaArray`
+        * :class:`arrays.DatetimeArray`
+        * :class:`arrays.TimedeltaArray`
 
     When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
     passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
@@ -378,6 +379,16 @@ def array(
         and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
     ):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"dt/td64 dtypes with 'm' and 'h' resolutions are deprecated."
+            r"Supported resolutions are 's', 'ms','us', and 'ns'. "
+            r"In future releases, 'm' and 'h' resolutions will be cast to the closest "
+            r"supported unit.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
