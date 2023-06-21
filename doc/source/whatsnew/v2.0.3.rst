@@ -36,7 +36,6 @@ Bug fixes
 
 Other
 ~~~~~
-- Added ``floordiv`` in :class:`pandas.DataFrame.div` docstring to match operation names with operators
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.contributors:
