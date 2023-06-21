@@ -79,6 +79,7 @@ I want to plot only the columns of the data table with the data from Paris.
     plt.clf()
 
 .. ipython:: python
+   :okwarning:
 
     @savefig 04_airqual_paris.png
     air_quality["station_paris"].plot()
@@ -102,6 +103,7 @@ method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
 I want to visually compare the :math:`NO_2` values measured in London versus Paris.
 
 .. ipython:: python
+   :okwarning:
 
     @savefig 04_airqual_scatter.png
     air_quality.plot.scatter(x="station_london", y="station_paris", alpha=0.5)
@@ -134,6 +136,7 @@ One of the options is :meth:`DataFrame.plot.box`, which refers to a
 method is applicable on the air quality example data:
 
 .. ipython:: python
+   :okwarning:
 
     @savefig 04_airqual_boxplot.png
     air_quality.plot.box()
@@ -158,6 +161,7 @@ For an introduction to plots other than the default line plot, see the user guid
 I want each of the columns in a separate subplot.
 
 .. ipython:: python
+   :okwarning:
 
     @savefig 04_airqual_area_subplot.png
     axs = air_quality.plot.area(figsize=(12, 4), subplots=True)
@@ -191,6 +195,7 @@ Some more formatting options are explained in the user guide section on :ref:`pl
 I want to further customize, extend or save the resulting plot.
 
 .. ipython:: python
+   :okwarning:
 
     fig, axs = plt.subplots(figsize=(12, 4))
     air_quality.plot.area(ax=axs)
@@ -201,6 +206,7 @@ I want to further customize, extend or save the resulting plot.
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    import os
 
