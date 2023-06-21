@@ -398,7 +398,7 @@ class BaseBlockManager(DataManager):
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
                     blk_loc = [blk_loc]
-                elif len(blk_loc.shape) == 0:
+                if isinstance(blk_loc, np.ndarray) and len(blk_loc.shape) == 0:
                     return self.copy(deep=False)
 
                 values = self.blocks[0].values
