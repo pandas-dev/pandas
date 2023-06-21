@@ -27,6 +27,7 @@ from pandas.errors import (
     _chained_assignment_msg,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -869,7 +870,19 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
-            key = com.apply_if_callable(key, self.obj)
+            maybe_callable = com.apply_if_callable(key, self.obj)
+            if (
+                self.name == "iloc"
+                and callable(key)
+                and isinstance(maybe_callable, tuple)
+            ):
+                warnings.warn(
+                    "Returning a tuple from a callable in iLocation indexing "
+                    "is deprecated and will be removed in a future version",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            key = maybe_callable
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
@@ -1130,6 +1143,17 @@ class _LocationIndexer(NDFrameIndexerBase):
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
+            if (
+                self.name == "iloc"
+                and callable(key)
+                and isinstance(maybe_callable, tuple)
+            ):
+                warnings.warn(
+                    "Returning a tuple from a callable in iLocation indexing "
+                    "is deprecated and will be removed in a future version",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
