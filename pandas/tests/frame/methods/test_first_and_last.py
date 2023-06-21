@@ -11,6 +11,7 @@ from pandas import (
 import pandas._testing as tm
 
 deprecated_msg = "first is deprecated"
+last_deprecated_msg = "last is deprecated"
 
 
 class TestFirst:
@@ -55,29 +56,38 @@ class TestFirst:
             obj.first("1D")
 
         msg = "'last' only supports a DatetimeIndex index"
-        with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
+        with tm.assert_produces_warning(
+            FutureWarning, match=last_deprecated_msg
+        ), pytest.raises(
+            TypeError, match=msg
+        ):  # index is not a DatetimeIndex
             obj.last("1D")
 
     def test_last_subset(self, frame_or_series):
         ts = tm.makeTimeDataFrame(freq="12h")
         ts = tm.get_obj(ts, frame_or_series)
-        result = ts.last("10d")
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = ts.last("10d")
         assert len(result) == 20
 
         ts = tm.makeTimeDataFrame(nper=30, freq="D")
         ts = tm.get_obj(ts, frame_or_series)
-        result = ts.last("10d")
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = ts.last("10d")
         assert len(result) == 10
 
-        result = ts.last("21D")
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = ts.last("21D")
         expected = ts["2000-01-10":]
         tm.assert_equal(result, expected)
 
-        result = ts.last("21D")
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = ts.last("21D")
         expected = ts[-21:]
         tm.assert_equal(result, expected)
 
-        result = ts[:0].last("3M")
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = ts[:0].last("3M")
         tm.assert_equal(result, ts[:0])
 
     @pytest.mark.parametrize("start, periods", [("2010-03-31", 1), ("2010-03-30", 2)])
@@ -104,7 +114,8 @@ class TestFirst:
     def test_empty_not_input(self):
         # GH#51032
         df = DataFrame(index=pd.DatetimeIndex([]))
-        result = df.last(offset=1)
+        with tm.assert_produces_warning(FutureWarning, match=last_deprecated_msg):
+            result = df.last(offset=1)
 
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = df.first(offset=1)

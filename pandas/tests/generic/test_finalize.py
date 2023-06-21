@@ -395,7 +395,8 @@ def ndframe_method(request):
 
 
 @pytest.mark.filterwarnings(
-    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning"
+    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
+    "ignore:last is deprecated:FutureWarning",
 )
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
@@ -420,6 +421,23 @@ def test_finalize_first(data):
     data.attrs = {"a": 1}
     with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
         result = data.first("3D")
+        assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series(1, pd.date_range("2000", periods=4)),
+        pd.DataFrame({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
+    ],
+)
+def test_finalize_last(data):
+    # GH 53710
+    deprecated_msg = "last is deprecated"
+
+    data.attrs = {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
+        result = data.last("3D")
         assert result.attrs == {"a": 1}
 
 
