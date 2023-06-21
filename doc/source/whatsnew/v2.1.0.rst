@@ -288,6 +288,7 @@ Deprecations
 - Deprecated :func:`value_counts`, use ``pd.Series(obj).value_counts()`` instead (:issue:`47862`)
 - Deprecated :meth:`Series.first` and :meth:`DataFrame.first` (please create a mask and filter using ``.loc`` instead) (:issue:`45908`)
 - Deprecated :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`53631`)
+- Deprecated :meth:`Series.last` and :meth:`DataFrame.last` (please create a mask and filter using ``.loc`` instead) (:issue:`53692`)
 - Deprecated allowing ``downcast`` keyword other than ``None``, ``False``, "infer", or a dict with these as values in :meth:`Series.fillna`, :meth:`DataFrame.fillna` (:issue:`40988`)
 - Deprecated allowing arbitrary ``fill_value`` in :class:`SparseDtype`, in a future version the ``fill_value`` will need to be compatible with the ``dtype.subtype``, either a scalar that can be held by that subtype or ``NaN`` for integer or bool subtypes (:issue:`23124`)
 - Deprecated behavior of :func:`assert_series_equal` and :func:`assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)

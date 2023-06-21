@@ -9321,6 +9321,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         at_time : Select values at a particular time of the day.
         between_time : Select values between particular times of the day.
 
+        Notes
+        -----
+        .. deprecated:: 2.1.0
+            Please create a mask and filter using `.loc` instead
+
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
@@ -9334,7 +9339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the last 3 days:
 
-        >>> ts.last('3D')
+        >>> ts.last('3D') # doctest: +SKIP
                     A
         2018-04-13  3
         2018-04-15  4
@@ -9343,6 +9348,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
         """
+        warnings.warn(
+            "last is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
