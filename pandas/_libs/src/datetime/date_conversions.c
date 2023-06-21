@@ -41,11 +41,14 @@ int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit) {
 }
 
 /* Converts the int64_t representation of a datetime to ISO; mutates len */
-char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len) {
+char *int64ToIso(int64_t value,
+                 NPY_DATETIMEUNIT valueUnit,
+                 NPY_DATETIMEUNIT base,
+                 size_t *len) {
     npy_datetimestruct dts;
     int ret_code;
 
-    pandas_datetime_to_datetimestruct(value, NPY_FR_ns, &dts);
+    pandas_datetime_to_datetimestruct(value, valueUnit, &dts);
 
     *len = (size_t)get_datetime_iso_8601_strlen(0, base);
     char *result = PyObject_Malloc(*len);

@@ -131,6 +131,7 @@ typedef struct __PyObjectEncoder {
 
     int datetimeIso;
     NPY_DATETIMEUNIT datetimeUnit;
+    NPY_DATETIMEUNIT valueUnit;
 
     // output format style for pandas data types
     int outputFormat;
@@ -350,7 +351,8 @@ static char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
 static char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
                                       JSONTypeContext *tc, size_t *len) {
     NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-    GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, base, len);
+    NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
+    GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, valueUnit, base, len);
     return GET_TC(tc)->cStr;
 }
 
@@ -502,6 +504,12 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
         GET_TC(tc)->itemValue = obj;
         Py_INCREF(obj);
         ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
+        // Also write the resolution (unit) of the ndarray
+        PyArray_Descr *dtype = PyArray_DESCR(npyarr->array);
+        // copied from
+        // https://github.com/numpy/numpy/blob/c8fe278a754a271af57eaf6c7ffb2382e5a954f9/numpy/core/src/multiarray/datetime.c#L692-L701
+        ((PyObjectEncoder *)tc->encoder)->valueUnit =
+            ((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta.base;
         ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
         ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
     } else {
@@ -1255,6 +1263,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     char **ret;
     char *dataptr, *cLabel;
     int type_num;
+    PyArray_Descr *dtype;
     NPY_DATETIMEUNIT base = enc->datetimeUnit;
 
     if (!labels) {
@@ -1283,6 +1292,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
     stride = PyArray_STRIDE(labels, 0);
     dataptr = PyArray_DATA(labels);
     type_num = PyArray_TYPE(labels);
+    dtype = PyArray_DESCR(labels);
 
     for (i = 0; i < num; i++) {
         item = PyArray_GETITEM(labels, dataptr);
@@ -1293,7 +1303,8 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         }
 
         int is_datetimelike = 0;
-        npy_int64 nanosecVal;
+        npy_int64 i8date;
+        NPY_DATETIMEUNIT dateUnit = NPY_FR_ns;
         if (PyTypeNum_ISDATETIME(type_num)) {
             is_datetimelike = 1;
             PyArray_VectorUnaryFunc *castfunc =
@@ -1303,35 +1314,39 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              "Cannot cast numpy dtype %d to long",
                              enc->npyType);
             }
-            castfunc(dataptr, &nanosecVal, 1, NULL, NULL);
+            castfunc(dataptr, &i8date, 1, NULL, NULL);
+            // copied from
+            // https://github.com/numpy/numpy/blob/c8fe278a754a271af57eaf6c7ffb2382e5a954f9/numpy/core/src/multiarray/datetime.c#L692-L701
+            dateUnit = ((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta.base;
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
             if (PyObject_HasAttrString(item, "_value")) {
                 // see test_date_index_and_values for case with non-nano
-                nanosecVal = get_long_attr(item, "_value");
+                i8date = get_long_attr(item, "_value");
             } else {
                 if (PyDelta_Check(item)) {
-                    nanosecVal = total_seconds(item) *
+                    i8date = total_seconds(item) *
                                  1000000000LL;  // nanoseconds per second
                 } else {
                     // datetime.* objects don't follow above rules
-                    nanosecVal = PyDateTimeToEpoch(item, NPY_FR_ns);
+                    i8date = PyDateTimeToEpoch(item, NPY_FR_ns);
                 }
             }
         }
 
         if (is_datetimelike) {
-            if (nanosecVal == get_nat()) {
+            if (i8date == get_nat()) {
                 len = 4;
                 cLabel = PyObject_Malloc(len + 1);
                 strncpy(cLabel, "null", len + 1);
             } else {
                 if (enc->datetimeIso) {
                     if ((type_num == NPY_TIMEDELTA) || (PyDelta_Check(item))) {
-                        cLabel = int64ToIsoDuration(nanosecVal, &len);
+                        // TODO(username): non-nano timedelta support?
+                        cLabel = int64ToIsoDuration(i8date, &len);
                     } else {
                         if (type_num == NPY_DATETIME) {
-                            cLabel = int64ToIso(nanosecVal, base, &len);
+                            cLabel = int64ToIso(i8date, dateUnit, base, &len);
                         } else {
                             cLabel = PyDateTimeToIso(item, base, &len);
                         }
@@ -1346,7 +1361,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                     int size_of_cLabel = 21;  // 21 chars for int 64
                     cLabel = PyObject_Malloc(size_of_cLabel);
                     snprintf(cLabel, size_of_cLabel, "%" NPY_DATETIME_FMT,
-                            NpyDateTimeToEpoch(nanosecVal, base));
+                            NpyDateTimeToEpoch(i8date, base));
                     len = strlen(cLabel);
                 }
             }
