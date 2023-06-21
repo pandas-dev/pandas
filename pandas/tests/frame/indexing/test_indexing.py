@@ -1000,6 +1000,14 @@ class TestDataFrameIndexing:
         result = df.loc[[0], "b"]
         tm.assert_series_equal(result, expected)
 
+    def test_iloc_callable_tuple_return_value(self):
+        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+        msg = "callable in iLocation indexing is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)]
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.iloc[lambda _: (0,)] = 1
+
     def test_iloc_row(self):
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
 
