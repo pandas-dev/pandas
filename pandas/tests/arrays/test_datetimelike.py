@@ -751,8 +751,7 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
-        for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
-            freqstr = freqstr.replace(key, value)
+        freqstr = OFFSET_TO_PERIOD_FREQSTR.get(freqstr, freqstr)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)

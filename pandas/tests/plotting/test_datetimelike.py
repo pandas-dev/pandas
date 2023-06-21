@@ -1498,8 +1498,7 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
                 assert ax.freq == dfreq
 
         if freq is not None:
-            for key, value in PERIOD_TO_OFFSET_FREQSTR.items():
-                ax.freq = ax.freq.replace(key, value)
+            ax.freq = PERIOD_TO_OFFSET_FREQSTR.get(ax.freq, ax.freq)
         if freq is not None and orig_axfreq is None:
             assert ax.freq == freq
 
