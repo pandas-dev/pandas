@@ -54,7 +54,6 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1611,8 +1610,8 @@ class _MergeOperation:
 
 
 def get_join_indexers(
-    left_keys,
-    right_keys,
+    left_keys: list[AnyArrayLike],
+    right_keys: list[AnyArrayLike],
     sort: bool = False,
     how: MergeHow | Literal["asof"] = "inner",
     **kwargs,
@@ -1621,8 +1620,8 @@ def get_join_indexers(
 
     Parameters
     ----------
-    left_keys : ndarray, Index, Series
-    right_keys : ndarray, Index, Series
+    left_keys : list[ndarray, ExtensionArray, Index, Series]
+    right_keys : list[ndarray, ExtensionArray, Index, Series]
     sort : bool, default False
     how : {'inner', 'outer', 'left', 'right'}, default 'inner'
 
@@ -2062,11 +2061,11 @@ class _AsOfMerge(_OrderedMerge):
     def _get_join_indexers(self) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         """return the join indexers"""
 
-        def flip(xs) -> np.ndarray:
+        def flip(xs: list[AnyArrayLike]) -> np.ndarray:
             """unlike np.transpose, this returns an array of tuples"""
 
-            def injection(obj):
-                if not is_extension_array_dtype(obj):
+            def injection(obj: AnyArrayLike):
+                if not isinstance(obj.dtype, ExtensionDtype):
                     # ndarray
                     return obj
                 obj = extract_array(obj)
@@ -2213,7 +2212,7 @@ class _AsOfMerge(_OrderedMerge):
 
 
 def _get_multiindex_indexer(
-    join_keys, index: MultiIndex, sort: bool
+    join_keys: list[AnyArrayLike], index: MultiIndex, sort: bool
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     # left & right join labels and num. of levels at each location
     mapped = (
@@ -2250,7 +2249,7 @@ def _get_multiindex_indexer(
 
 
 def _get_single_indexer(
-    join_key, index: Index, sort: bool = False
+    join_key: AnyArrayLike, index: Index, sort: bool = False
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     left_key, right_key, count = _factorize_keys(join_key, index._values, sort=sort)
 
@@ -2295,7 +2294,7 @@ def _get_no_sort_one_missing_indexer(
 
 
 def _left_join_on_index(
-    left_ax: Index, right_ax: Index, join_keys, sort: bool = False
+    left_ax: Index, right_ax: Index, join_keys: list[AnyArrayLike], sort: bool = False
 ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if isinstance(right_ax, MultiIndex):
         left_indexer, right_indexer = _get_multiindex_indexer(
@@ -2316,8 +2315,8 @@ def _left_join_on_index(
 
 
 def _factorize_keys(
-    lk: ArrayLike,
-    rk: ArrayLike,
+    lk: AnyArrayLike,
+    rk: AnyArrayLike,
     sort: bool = True,
     how: MergeHow | Literal["asof"] = "inner",
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
@@ -2328,9 +2327,9 @@ def _factorize_keys(
 
     Parameters
     ----------
-    lk : array-like
+    lk : ndarray, ExtensionArray, Index, or Series
         Left key.
-    rk : array-like
+    rk : ndarray, ExtensionArray, Index, or Series
         Right key.
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the

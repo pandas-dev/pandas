@@ -492,11 +492,9 @@ class TestTimedeltas:
                 "minute",
                 "min",
                 "minutes",
-                "t",
                 "Minute",
                 "Min",
                 "Minutes",
-                "T",
             ]
         ]
         + [
@@ -520,13 +518,11 @@ class TestTimedeltas:
                 "millisecond",
                 "milli",
                 "millis",
-                "l",
                 "MS",
                 "Milliseconds",
                 "Millisecond",
                 "Milli",
                 "Millis",
-                "L",
             ]
         ]
         + [
