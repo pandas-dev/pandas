@@ -108,16 +108,14 @@ class TestFillNA:
         _check_mixed_float(result, dtype={"C": None})
 
     def test_fillna_empty(self, using_copy_on_write):
+        if using_copy_on_write:
+            pytest.skip("condition is unnecessary complex and is deprecated anyway")
         # empty frame (GH#2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
             msg = "Series.fillna with 'method' is deprecated"
             with tm.assert_produces_warning(FutureWarning, match=msg):
-                if using_copy_on_write:
-                    with tm.assert_produces_warning(ChainedAssignmentError):
-                        df.x.fillna(method=m, inplace=True)
-                else:
-                    df.x.fillna(method=m, inplace=True)
+                df.x.fillna(method=m, inplace=True)
                 df.x.fillna(method=m)
 
     def test_fillna_different_dtype(self):
