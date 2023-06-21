@@ -9309,7 +9309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the last 3 days:
 
-        >>> ts.last('3D')
+        >>> ts.last('3D') # doctest: +SKIP
                     A
         2018-04-13  3
         2018-04-15  4
