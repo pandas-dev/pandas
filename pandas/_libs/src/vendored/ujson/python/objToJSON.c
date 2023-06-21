@@ -506,10 +506,8 @@ int NpyArr_iterNextItem(JSOBJ obj, JSONTypeContext *tc) {
         ((PyObjectEncoder *)tc->encoder)->npyType = PyArray_TYPE(npyarr->array);
         // Also write the resolution (unit) of the ndarray
         PyArray_Descr *dtype = PyArray_DESCR(npyarr->array);
-        // copied from
-        // https://github.com/numpy/numpy/blob/c8fe278a754a271af57eaf6c7ffb2382e5a954f9/numpy/core/src/multiarray/datetime.c#L692-L701
         ((PyObjectEncoder *)tc->encoder)->valueUnit =
-            ((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta.base;
+            get_datetime_metadata_from_dtype(dtype).base;
         ((PyObjectEncoder *)tc->encoder)->npyValue = npyarr->dataptr;
         ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = npyarr;
     } else {
@@ -1315,9 +1313,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
                              enc->npyType);
             }
             castfunc(dataptr, &i8date, 1, NULL, NULL);
-            // copied from
-            // https://github.com/numpy/numpy/blob/c8fe278a754a271af57eaf6c7ffb2382e5a954f9/numpy/core/src/multiarray/datetime.c#L692-L701
-            dateUnit = ((PyArray_DatetimeDTypeMetaData *)dtype->c_metadata)->meta.base;
+            dateUnit = get_datetime_metadata_from_dtype(dtype).base;
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
             if (PyObject_HasAttrString(item, "_value")) {
