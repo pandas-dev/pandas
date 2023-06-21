@@ -116,7 +116,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -7211,6 +7210,8 @@ def _unpack_nested_dtype(other: Index) -> Index:
     -------
     Index
     """
+    from pandas.core.arrays.arrow import ArrowDtype
+
     dtype = other.dtype
     if isinstance(dtype, CategoricalDtype):
         # If there is ever a SparseIndex, this could get dispatched
