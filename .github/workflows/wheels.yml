@@ -110,9 +110,12 @@ jobs:
           path: ./dist
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.0
-        with:
-          package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
+        uses: pypa/cibuildwheel@v2.13.1
+        # TODO: Build wheels from sdist again
+        # There's some sort of weird race condition?
+        # within Github that makes the sdist be missing files
+        #with:
+        #  package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
@@ -137,7 +140,7 @@ jobs:
         shell: pwsh
         run: |
           $TST_CMD = @"
-          python -m pip install pytz six numpy python-dateutil tzdata>=2022.1 hypothesis>=6.46.1 pytest>=7.0.0 pytest-xdist>=2.2.0 pytest-asyncio>=0.17;
+          python -m pip install pytz six numpy python-dateutil tzdata>=2022.1 hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17;
           python -m pip install --find-links=pandas\wheelhouse --no-index pandas;
           python -c `'import pandas as pd; pd.test()`';
           "@
