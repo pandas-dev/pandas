@@ -30,6 +30,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from pathlib import Path
 from typing import (
     Callable,
     Hashable,
@@ -1165,6 +1166,16 @@ def strict_data_files(pytestconfig):
     Returns the configuration for the test setting `--strict-data-files`.
     """
     return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def tests_path() -> Path:
+    return Path(__file__).parent / "tests"
+
+
+@pytest.fixture
+def tests_io_data_path(tests_path) -> Path:
+    return tests_path / "io" / "data"
 
 
 @pytest.fixture
