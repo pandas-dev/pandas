@@ -7,15 +7,15 @@ from hypothesis import (
 import numpy as np
 import pytest
 
-import pandas._testing as tm
-
-from pandas.io.sas._byteswap import (
+from pandas._libs.byteswap import (
     read_double_with_byteswap,
     read_float_with_byteswap,
     read_uint16_with_byteswap,
     read_uint32_with_byteswap,
     read_uint64_with_byteswap,
 )
+
+import pandas._testing as tm
 
 
 @given(read_offset=st.integers(0, 11), number=st.integers(min_value=0))
@@ -29,6 +29,7 @@ def test_int_byteswap(read_offset, number, int_type, should_byteswap):
     _test(number, int_type, read_offset, should_byteswap)
 
 
+@pytest.mark.filterwarnings("ignore:overflow encountered:RuntimeWarning")
 @given(read_offset=st.integers(0, 11), number=st.floats())
 @pytest.mark.parametrize("float_type", [np.float32, np.float64])
 @pytest.mark.parametrize("should_byteswap", [True, False])

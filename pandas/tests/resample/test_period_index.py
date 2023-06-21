@@ -535,7 +535,7 @@ class TestPeriodIndex:
             np.random.randn(21),
             index=date_range(start="1/1/2012 9:30", freq="1min", periods=21),
         )
-        s[0] = np.nan
+        s.iloc[0] = np.nan
 
         result = s.resample("10min", closed="left", label="right").mean()
         exp = s[1:].resample("10min", closed="left", label="right").mean()
@@ -657,7 +657,7 @@ class TestPeriodIndex:
         s = Series(np.random.randn(len(index)), index=index)
 
         result = s.resample("A").mean()
-        tm.assert_almost_equal(result[0], s.mean())
+        tm.assert_almost_equal(result.iloc[0], s.mean())
 
     def test_evenly_divisible_with_no_extra_bins(self):
         # 4076
@@ -826,12 +826,12 @@ class TestPeriodIndex:
     )
     def test_resample_with_offset(self, start, end, start_freq, end_freq, offset):
         # GH 23882 & 31809
-        s = Series(0, index=period_range(start, end, freq=start_freq))
-        s = s + np.arange(len(s))
-        result = s.resample(end_freq, offset=offset).mean()
+        pi = period_range(start, end, freq=start_freq)
+        ser = Series(np.arange(len(pi)), index=pi)
+        result = ser.resample(end_freq, offset=offset).mean()
         result = result.to_timestamp(end_freq)
 
-        expected = s.to_timestamp().resample(end_freq, offset=offset).mean()
+        expected = ser.to_timestamp().resample(end_freq, offset=offset).mean()
         if end_freq == "M":
             # TODO: is non-tick the relevant characteristic? (GH 33815)
             expected.index = expected.index._with_freq(None)

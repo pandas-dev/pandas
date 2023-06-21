@@ -8,13 +8,11 @@ import operator
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
-from pandas.errors import PerformanceWarning
-
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
     CategoricalIndex,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     RangeIndex,
@@ -23,8 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import (
-    is_bool_dtype,
-    is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
 )
@@ -33,18 +29,8 @@ from pandas.api.types import (
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = index.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = index.sort_values()
+    idx1 = index.sort_values()
+    idx2 = index.sort_values()
     assert idx1.union(idx2).dtype == idx1.dtype
 
 
@@ -103,18 +89,8 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx1.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx1 = idx1.sort_values()
-    with tm.maybe_produces_warning(
-        PerformanceWarning,
-        pa_version_under7p0 and getattr(idx2.dtype, "storage", "") == "pyarrow",
-        check_stacklevel=False,
-    ):
-        idx2 = idx2.sort_values()
+    idx1 = idx1.sort_values()
+    idx2 = idx2.sort_values()
 
     with tm.assert_produces_warning(warn, match="'<' not supported between"):
         res1 = idx1.union(idx2)
@@ -216,7 +192,7 @@ class TestSetOps:
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -243,7 +219,7 @@ class TestSetOps:
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -265,7 +241,7 @@ class TestSetOps:
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if is_bool_dtype(index):
+        if index.inferred_type == "boolean":
             # i think (TODO: be sure) there assumptions baked in about
             #  the index fixture that don't hold here?
             answer = set(first).difference(set(second))
@@ -381,18 +357,8 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            union = first.union(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index.set_names(expected_name).sort_values()
+        union = first.union(second).sort_values()
+        expected = index.set_names(expected_name).sort_values()
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
@@ -458,18 +424,8 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            intersect = first.intersection(second).sort_values()
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            pa_version_under7p0 and getattr(index.dtype, "storage", "") == "pyarrow",
-            check_stacklevel=False,
-        ):
-            expected = index[1:].set_names(expected_name).sort_values()
+        intersect = first.intersection(second).sort_values()
+        expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
     def test_intersection_name_retention_with_nameless(self, index):
@@ -618,6 +574,43 @@ def test_union_nan_in_both(dup):
     b = Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_rangeindex_sort_true():
+    # GH 53490
+    idx1 = RangeIndex(1, 100, 6)
+    idx2 = RangeIndex(1, 50, 3)
+    result = idx1.union(idx2, sort=True)
+    expected = Index(
+        [
+            1,
+            4,
+            7,
+            10,
+            13,
+            16,
+            19,
+            22,
+            25,
+            28,
+            31,
+            34,
+            37,
+            40,
+            43,
+            46,
+            49,
+            55,
+            61,
+            67,
+            73,
+            79,
+            85,
+            91,
+            97,
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 

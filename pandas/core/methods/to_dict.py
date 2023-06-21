@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import warnings
+
+import numpy as np
 
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_box_native
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 
-from pandas import DataFrame
 from pandas.core import common as com
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def to_dict(
@@ -94,7 +98,7 @@ def to_dict(
     box_native_indices = [
         i
         for i, col_dtype in enumerate(df.dtypes.values)
-        if is_object_dtype(col_dtype) or is_extension_array_dtype(col_dtype)
+        if col_dtype == np.dtype(object) or isinstance(col_dtype, ExtensionDtype)
     ]
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 

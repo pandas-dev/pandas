@@ -46,7 +46,6 @@ from dateutil.parser import (
     DEFAULTPARSER,
     parse as du_parse,
 )
-from dateutil.relativedelta import relativedelta
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -69,9 +68,12 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    import_pandas_datetime,
     npy_datetimestruct,
     string_to_dts,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime import array_strptime
 
@@ -81,10 +83,10 @@ from pandas._libs.tslibs.util cimport (
 )
 
 
-cdef extern from "../src/headers/portable.h":
+cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
-cdef extern from "../src/parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                    int skip_trailing, int *error, int *maybe_int)
 
@@ -689,7 +691,11 @@ cdef datetime dateutil_parse(
         ) from err
 
     if res.weekday is not None and not res.day:
-        ret = ret + relativedelta.relativedelta(weekday=res.weekday)
+        # GH#52659
+        raise ValueError(
+            "Parsing datetimes with weekday but no day information is "
+            "not supported"
+        )
     if not ignoretz:
         if res.tzname and res.tzname in time.tzname:
             # GH#50791
@@ -722,6 +728,18 @@ cdef datetime dateutil_parse(
                     f'Parsed string "{timestr}" gives an invalid tzoffset, '
                     "which must be between -timedelta(hours=24) and timedelta(hours=24)"
                 )
+        elif res.tzname is not None:
+            # e.g. "1994 Jan 15 05:16 FOO" where FOO is not recognized
+            # GH#18702
+            warnings.warn(
+                f'Parsed string "{timestr}" included an un-recognized timezone '
+                f'"{res.tzname}". Dropping unrecognized timezones is deprecated; '
+                "in a future version this will raise. Instead pass the string "
+                "without the timezone, then use .tz_localize to convert to a "
+                "recognized timezone.",
+                FutureWarning,
+                stacklevel=find_stack_level()
+            )
 
     out_bestunit[0] = attrname_to_npy_unit[reso]
     return ret
@@ -865,6 +883,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
     """
+    cdef:
+        NPY_DATETIMEUNIT out_bestunit
     day_attribute_and_format = (("day",), "%d", 2)
 
     # attr name, format, padding (if any)
@@ -895,8 +915,17 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
         datetime_attrs_to_format.remove(day_attribute_and_format)
         datetime_attrs_to_format.insert(0, day_attribute_and_format)
 
+    # same default used by dateutil
+    default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     try:
-        parsed_datetime = du_parse(dt_str, dayfirst=dayfirst)
+        parsed_datetime = dateutil_parse(
+            dt_str,
+            default=default,
+            dayfirst=dayfirst,
+            yearfirst=False,
+            ignoretz=False,
+            out_bestunit=&out_bestunit,
+        )
     except (ValueError, OverflowError, InvalidOperation):
         # In case the datetime can't be parsed, its format cannot be guessed
         return None
@@ -990,6 +1019,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
             output_format.append(tokens[i])
 
+    # if am/pm token present, replace 24-hour %H, with 12-hour %I
+    if "%p" in output_format and "%H" in output_format:
+        i = output_format.index("%H")
+        output_format[i] = "%I"
+
     guessed_format = "".join(output_format)
 
     try:
@@ -1023,7 +1057,7 @@ cdef str _fill_token(token: str, padding: int):
     return token_filled
 
 
-cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst):
+cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
     """Warn if guessed datetime format doesn't respect dayfirst argument."""
     cdef:
         int day_index = format.find("%d")

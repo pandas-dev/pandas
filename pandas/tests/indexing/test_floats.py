@@ -29,11 +29,10 @@ class TestFloatIndexers:
         """
         if isinstance(original, Series):
             expected = original.iloc[indexer]
+        elif getitem:
+            expected = original.iloc[:, indexer]
         else:
-            if getitem:
-                expected = original.iloc[:, indexer]
-            else:
-                expected = original.iloc[indexer]
+            expected = original.iloc[indexer]
 
         tm.assert_almost_equal(result, expected)
 
@@ -87,7 +86,10 @@ class TestFloatIndexers:
         # fallsback to position selection, series only
         i = index_func(5)
         s = Series(np.arange(len(i)), index=i)
-        s[3]
+
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s[3]
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
@@ -114,7 +116,9 @@ class TestFloatIndexers:
 
         if indexer_sl is not tm.loc:
             # __getitem__ falls back to positional
-            result = s3[1]
+            msg = "Series.__getitem__ treating keys as positions is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = s3[1]
             expected = 2
             assert result == expected
 

@@ -14,6 +14,7 @@ from pandas import (
     qcut,
 )
 import pandas._testing as tm
+from pandas.api.typing import SeriesGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -739,7 +740,7 @@ def test_categorical_series(series, data):
     # Group the given series by a series with categorical data type such that group A
     # takes indices 0 and 3 and group B indices 1 and 2, obtaining the values mapped in
     # the given data.
-    groupby = series.groupby(Series(list("ABBA"), dtype="category"))
+    groupby = series.groupby(Series(list("ABBA"), dtype="category"), observed=False)
     result = groupby.aggregate(list)
     expected = Series(data, index=CategoricalIndex(data.keys()))
     tm.assert_series_equal(result, expected)
@@ -767,7 +768,9 @@ def test_as_index():
 
     # function grouper
     f = lambda r: df.loc[r, "A"]
-    result = df.groupby(["cat", f], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", f], as_index=False, observed=True).sum()
     expected = DataFrame(
         {
             "cat": Categorical([1, 2], categories=df.cat.cat.categories),
@@ -780,7 +783,9 @@ def test_as_index():
 
     # another not in-axis grouper (conflicting names in index)
     s = Series(["a", "b", "b"], name="cat")
-    result = df.groupby(["cat", s], as_index=False, observed=True).sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(["cat", s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
 
     # is original index dropped?
@@ -1115,7 +1120,7 @@ def test_groupby_multiindex_categorical_datetime():
             "values": np.arange(9),
         }
     )
-    result = df.groupby(["key1", "key2"]).mean()
+    result = df.groupby(["key1", "key2"], observed=False).mean()
 
     idx = MultiIndex.from_product(
         [
@@ -1291,8 +1296,8 @@ def test_seriesgroupby_observed_apply_dict(df_cat, observed, index, data):
 
 def test_groupby_categorical_series_dataframe_consistent(df_cat):
     # GH 20416
-    expected = df_cat.groupby(["A", "B"])["C"].mean()
-    result = df_cat.groupby(["A", "B"]).mean()["C"]
+    expected = df_cat.groupby(["A", "B"], observed=False)["C"].mean()
+    result = df_cat.groupby(["A", "B"], observed=False).mean()["C"]
     tm.assert_series_equal(result, expected)
 
 
@@ -1301,8 +1306,14 @@ def test_groupby_categorical_axis_1(code):
     # GH 13420
     df = DataFrame({"a": [1, 2, 3, 4], "b": [-1, -2, -3, -4], "c": [5, 6, 7, 8]})
     cat = Categorical.from_codes(code, categories=list("abc"))
-    result = df.groupby(cat, axis=1).mean()
-    expected = df.T.groupby(cat, axis=0).mean().T
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby(cat, axis=1, observed=False)
+    result = gb.mean()
+    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = df.T.groupby(cat, axis=0, observed=False)
+    expected = gb2.mean().T
     tm.assert_frame_equal(result, expected)
 
 
@@ -1334,16 +1345,10 @@ def test_get_nonexistent_category():
         )
 
 
-def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, request):
+def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
     # GH 17605
     if reduction_func == "ngroup":
         pytest.skip("ngroup is not truly a reduction")
-
-    if reduction_func == "corrwith":  # GH 32293
-        mark = pytest.mark.xfail(
-            reason="TODO: implemented SeriesGroupBy.corrwith. See GH 32293"
-        )
-        request.node.add_marker(mark)
 
     df = DataFrame(
         {
@@ -1357,6 +1362,12 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed, r
     expected_length = 4 if observed else 16
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=observed)["value"]
+
+    if reduction_func == "corrwith":
+        # TODO: implemented SeriesGroupBy.corrwith. See GH 32293
+        assert not hasattr(series_groupby, reduction_func)
+        return
+
     agg = getattr(series_groupby, reduction_func)
     result = agg(*args)
 
@@ -1472,7 +1483,7 @@ def test_series_groupby_categorical_aggregation_getitem():
     df = DataFrame(d)
     cat = pd.cut(df["foo"], np.linspace(0, 20, 5))
     df["range"] = cat
-    groups = df.groupby(["range", "baz"], as_index=True, sort=True)
+    groups = df.groupby(["range", "baz"], as_index=True, sort=True, observed=False)
     result = groups["foo"].agg("mean")
     expected = groups.agg("mean")["foo"]
     tm.assert_series_equal(result, expected)
@@ -1533,7 +1544,7 @@ def test_read_only_category_no_sort():
         {"a": [1, 3, 5, 7], "b": Categorical([1, 1, 2, 2], categories=Index(cats))}
     )
     expected = DataFrame(data={"a": [2.0, 6.0]}, index=CategoricalIndex(cats, name="b"))
-    result = df.groupby("b", sort=False).mean()
+    result = df.groupby("b", sort=False, observed=False).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -1577,7 +1588,7 @@ def test_sorted_missing_category_values():
         dtype="category",
     )
 
-    result = df.groupby(["bar", "foo"]).size().unstack()
+    result = df.groupby(["bar", "foo"], observed=False).size().unstack()
 
     tm.assert_frame_equal(result, expected)
 
@@ -1742,7 +1753,7 @@ def test_groupby_categorical_indices_unused_categories():
             "col": range(3),
         }
     )
-    grouped = df.groupby("key", sort=False)
+    grouped = df.groupby("key", sort=False, observed=False)
     result = grouped.indices
     expected = {
         "b": np.array([0, 1], dtype="intp"),
@@ -2007,3 +2018,59 @@ def test_many_categories(as_index, sort, index_kind, ordered):
         expected = DataFrame({"a": Series(index), "b": data})
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("cat_columns", ["a", "b", ["a", "b"]])
+@pytest.mark.parametrize("keys", ["a", "b", ["a", "b"]])
+def test_groupby_default_depr(cat_columns, keys):
+    # GH#43999
+    df = DataFrame({"a": [1, 1, 2, 3], "b": [4, 5, 6, 7]})
+    df[cat_columns] = df[cat_columns].astype("category")
+    msg = "The default of observed=False is deprecated"
+    klass = FutureWarning if set(cat_columns) & set(keys) else None
+    with tm.assert_produces_warning(klass, match=msg):
+        df.groupby(keys)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("keys", [["a1"], ["a1", "a2"]])
+def test_agg_list(request, as_index, observed, reduction_func, test_series, keys):
+    # GH#52760
+    if test_series and reduction_func == "corrwith":
+        assert not hasattr(SeriesGroupBy, "corrwith")
+        pytest.skip("corrwith not implemented for SeriesGroupBy")
+    elif reduction_func == "corrwith":
+        msg = "GH#32293: attempts to call SeriesGroupBy.corrwith"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+    elif (
+        reduction_func == "nunique"
+        and not test_series
+        and len(keys) != 1
+        and not observed
+        and not as_index
+    ):
+        msg = "GH#52848 - raises a ValueError"
+        request.node.add_marker(pytest.mark.xfail(reason=msg))
+
+    df = DataFrame({"a1": [0, 0, 1], "a2": [2, 3, 3], "b": [4, 5, 6]})
+    df = df.astype({"a1": "category", "a2": "category"})
+    if "a2" not in keys:
+        df = df.drop(columns="a2")
+    gb = df.groupby(by=keys, as_index=as_index, observed=observed)
+    if test_series:
+        gb = gb["b"]
+    args = get_groupby_method_args(reduction_func, df)
+
+    result = gb.agg([reduction_func], *args)
+    expected = getattr(gb, reduction_func)(*args)
+
+    if as_index and (test_series or reduction_func == "size"):
+        expected = expected.to_frame(reduction_func)
+    if not test_series:
+        expected.columns = MultiIndex.from_tuples(
+            [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
+        )
+    elif not as_index:
+        expected.columns = keys + [reduction_func]
+
+    tm.assert_equal(result, expected)

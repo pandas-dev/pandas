@@ -115,7 +115,9 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
@@ -152,7 +154,9 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        result = ser.dt.to_pydatetime()
+        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.dt.to_pydatetime()
         assert isinstance(result, np.ndarray)
         assert result.dtype == object
 
@@ -239,7 +243,7 @@ class TestSeriesDatetimeValues:
         exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([ser[0]] * 3, index=index, name="xxx")
+        exp = Series([ser.iloc[0]] * 3, index=index, name="xxx")
         tm.assert_series_equal(ser.dt.normalize(), exp)
 
     def test_dt_accessor_limited_display_api(self):
@@ -380,6 +384,19 @@ class TestSeriesDatetimeValues:
 
         with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
+
+    @pytest.mark.parametrize("freq", ["ns", "U", "1000U"])
+    def test_dt_round_nonnano_higher_resolution_no_op(self, freq):
+        # GH 52761
+        ser = Series(
+            ["2020-05-31 08:00:00", "2000-12-31 04:00:05", "1800-03-14 07:30:20"],
+            dtype="datetime64[ms]",
+        )
+        expected = ser.copy()
+        result = ser.dt.round(freq)
+        tm.assert_series_equal(result, expected)
+
+        assert not np.shares_memory(ser.array._ndarray, result.array._ndarray)
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -647,7 +664,7 @@ class TestSeriesDatetimeValues:
             [
                 date(2013, 1, 1),
                 date(2013, 1, 2),
-                np.nan,
+                pd.NaT,
                 date(2013, 1, 4),
                 date(2013, 1, 5),
             ],
@@ -656,7 +673,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         result = ser.dt.time
-        expected = Series([time(0), time(0), np.nan, time(0), time(0)], dtype="object")
+        expected = Series([time(0), time(0), pd.NaT, time(0), time(0)], dtype="object")
         tm.assert_series_equal(result, expected)
 
     def test_dt_accessor_api(self):
@@ -791,4 +808,24 @@ def test_normalize_pre_epoch_dates():
     ser = pd.to_datetime(Series(["1969-01-01 09:00:00", "2016-01-01 09:00:00"]))
     result = ser.dt.normalize()
     expected = pd.to_datetime(Series(["1969-01-01", "2016-01-01"]))
+    tm.assert_series_equal(result, expected)
+
+
+def test_day_attribute_non_nano_beyond_int32():
+    # GH 52386
+    data = np.array(
+        [
+            136457654736252,
+            134736784364431,
+            245345345545332,
+            223432411,
+            2343241,
+            3634548734,
+            23234,
+        ],
+        dtype="timedelta64[s]",
+    )
+    ser = Series(data)
+    result = ser.dt.days
+    expected = Series([1579371003, 1559453522, 2839645203, 2586, 27, 42066, 0])
     tm.assert_series_equal(result, expected)

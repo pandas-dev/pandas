@@ -36,7 +36,7 @@ ERROR_MESSAGE = (
 
 
 def get_warnings_and_exceptions_from_api_path() -> set[str]:
-    with open(API_PATH) as f:
+    with open(API_PATH, encoding="utf-8") as f:
         doc_errors = {
             line.split(".")[1].strip() for line in f.readlines() if "errors" in line
         }
@@ -51,11 +51,7 @@ class Visitor(ast.NodeVisitor):
 
     def visit_ClassDef(self, node) -> None:
         def is_an_exception_subclass(base_id: str) -> bool:
-            return (
-                base_id == "Exception"
-                or base_id.endswith("Warning")
-                or base_id.endswith("Error")
-            )
+            return base_id == "Exception" or base_id.endswith(("Warning", "Error"))
 
         exception_classes = []
 

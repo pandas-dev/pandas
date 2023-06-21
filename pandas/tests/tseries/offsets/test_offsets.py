@@ -7,11 +7,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
 
 import numpy as np
 import pytest
@@ -42,7 +37,6 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
-    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -60,8 +54,6 @@ from pandas.tseries.offsets import (
     Week,
     WeekOfMonth,
 )
-
-_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 _ARITHMETIC_DATE_OFFSET = [
     "years",
@@ -522,18 +514,21 @@ class TestCommon:
             # We don't have an optimized apply_index
             warn = PerformanceWarning
 
-        with tm.assert_produces_warning(warn):
+        # stacklevel checking is slow, and we have ~800 of variants of this
+        #  test, so let's only check the stacklevel in a subset of them
+        check_stacklevel = tz_naive_fixture is None
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn):
+        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 

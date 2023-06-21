@@ -489,7 +489,7 @@ class TestDataFrameToRecords:
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
         dtype_mappings = {
-            "column_dtypes": DictLike(**{"A": np.int8, "B": np.float32}),
+            "column_dtypes": DictLike(A=np.int8, B=np.float32),
             "index_dtypes": f"{tm.ENDIAN}U2",
         }
 

@@ -14,6 +14,7 @@ from pandas import (
     Index,
     MultiIndex,
     RangeIndex,
+    Series,
     Timestamp,
 )
 import pandas._testing as tm
@@ -74,6 +75,14 @@ def test_sortlevel_deterministic():
 
     sorted_idx, _ = index.sortlevel(1, ascending=False)
     assert sorted_idx.equals(expected[::-1])
+
+
+def test_sortlevel_na_position():
+    # GH#51612
+    midx = MultiIndex.from_tuples([(1, np.nan), (1, 1)])
+    result = midx.sortlevel(level=[0, 1], na_position="last")[0]
+    expected = MultiIndex.from_tuples([(1, 1), (1, np.nan)])
+    tm.assert_index_equal(result, expected)
 
 
 def test_numpy_argsort(idx):
@@ -303,3 +312,27 @@ def test_sort_values_incomparable():
     match = "'<' not supported between instances of 'Timestamp' and 'int'"
     with pytest.raises(TypeError, match=match):
         mi.sort_values()
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+@pytest.mark.parametrize("dtype", ["float64", "Int64", "Float64"])
+def test_sort_values_with_na_na_position(dtype, na_position):
+    # 51612
+    arrays = [
+        Series([1, 1, 2], dtype=dtype),
+        Series([1, None, 3], dtype=dtype),
+    ]
+    index = MultiIndex.from_arrays(arrays)
+    result = index.sort_values(na_position=na_position)
+    if na_position == "first":
+        arrays = [
+            Series([1, 1, 2], dtype=dtype),
+            Series([None, 1, 3], dtype=dtype),
+        ]
+    else:
+        arrays = [
+            Series([1, 1, 2], dtype=dtype),
+            Series([1, None, 3], dtype=dtype),
+        ]
+    expected = MultiIndex.from_arrays(arrays)
+    tm.assert_index_equal(result, expected)

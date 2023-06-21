@@ -160,8 +160,8 @@ def _set_option(*args, **kwargs) -> None:
             o.validator(v)
 
         # walk the nested dict
-        root, k = _get_root(key)
-        root[k] = v
+        root, k_root = _get_root(key)
+        root[k_root] = v
 
         if o.cb:
             if silent:
@@ -438,7 +438,7 @@ class option_context(ContextDecorator):
         self.ops = list(zip(args[::2], args[1::2]))
 
     def __enter__(self) -> None:
-        self.undo = [(pat, _get_option(pat, silent=True)) for pat, val in self.ops]
+        self.undo = [(pat, _get_option(pat)) for pat, val in self.ops]
 
         for pat, val in self.ops:
             _set_option(pat, val, silent=True)
@@ -739,7 +739,7 @@ def pp_options_list(keys: Iterable[str], width: int = 80, _print: bool = False):
 
 
 @contextmanager
-def config_prefix(prefix) -> Generator[None, None, None]:
+def config_prefix(prefix: str) -> Generator[None, None, None]:
     """
     contextmanager for multiple invocations of API with a common prefix
 

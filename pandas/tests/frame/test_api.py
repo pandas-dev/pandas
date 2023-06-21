@@ -7,7 +7,6 @@ import pytest
 
 from pandas._config.config import option_context
 
-import pandas.util._test_decorators as td
 from pandas.util._test_decorators import (
     async_mark,
     skip_if_no,
@@ -293,7 +292,6 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
-    @td.check_file_leaks
     async def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -379,5 +377,8 @@ class TestDataFrameMisc:
     def test_inspect_getmembers(self):
         # GH38740
         df = DataFrame()
-        with tm.assert_produces_warning(None):
+        msg = "DataFrame._data is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
             inspect.getmembers(df)

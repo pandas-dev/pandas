@@ -563,7 +563,7 @@ class TestChaining:
         assert "Hello Friend" in df["A"].index
         assert "Hello Friend" in df["B"].index
 
-    def test_cache_updating2(self):
+    def test_cache_updating2(self, using_copy_on_write):
         # 10264
         df = DataFrame(
             np.zeros((5, 5), dtype="int64"),
@@ -571,7 +571,13 @@ class TestChaining:
             index=range(5),
         )
         df["f"] = 0
-        # TODO(CoW) protect underlying values of being written to?
+        df_orig = df.copy()
+        if using_copy_on_write:
+            with pytest.raises(ValueError, match="read-only"):
+                df.f.values[3] = 1
+            tm.assert_frame_equal(df, df_orig)
+            return
+
         df.f.values[3] = 1
 
         df.f.values[3] = 2

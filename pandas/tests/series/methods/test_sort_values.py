@@ -189,7 +189,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(result_ser, expected)
         tm.assert_series_equal(ser, Series(original_list))
 
-    def test_mergesort_decending_stability(self):
+    def test_mergesort_descending_stability(self):
         # GH 28697
         s = Series([1, 2, 1, 3], ["first", "b", "second", "c"])
         result = s.sort_values(ascending=False, kind="mergesort")

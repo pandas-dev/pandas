@@ -71,6 +71,10 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__getitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
     ):
@@ -113,6 +117,10 @@ class TestFancy:
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__setitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
@@ -429,6 +437,7 @@ class TestFancy:
 
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
+        # set float64 to avoid upcast when setting nan
         df = DataFrame(
             {
                 "FC": ["a", "b", "a", "b", "a", "b"],
@@ -436,7 +445,7 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype({"col2": "float64"})
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
@@ -849,7 +858,7 @@ class TestDatetimelikeCoercion:
         tz = tz_naive_fixture
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -877,7 +886,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -897,7 +906,7 @@ class TestDatetimelikeCoercion:
     def test_setitem_td64_scalar(self, indexer_sli, scalar):
         # dispatching _can_hold_element to underling TimedeltaArray
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
         values._validate_setitem_value(scalar)
@@ -915,7 +924,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
 

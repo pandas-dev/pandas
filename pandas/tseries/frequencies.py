@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.algos import unique_deltas
 from pandas._libs.tslibs import (
     Timestamp,
@@ -26,14 +29,12 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
-from pandas._typing import npt
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_numeric_dtype,
-    is_period_dtype,
-    is_timedelta64_dtype,
+from pandas.core.dtypes.common import is_numeric_dtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
+    PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -42,6 +43,15 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.algorithms import unique
 
+if TYPE_CHECKING:
+    from pandas._typing import npt
+
+    from pandas import (
+        DatetimeIndex,
+        Series,
+        TimedeltaIndex,
+    )
+    from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # ---------------------------------------------------------------------
 # Offset names ("time rules") and related functions
 
@@ -57,7 +67,6 @@ _offset_to_period_map = {
     "BAS": "A",
     "MS": "M",
     "D": "D",
-    "C": "C",
     "B": "B",
     "T": "T",
     "S": "S",
@@ -102,13 +111,15 @@ def get_period_alias(offset_str: str) -> str | None:
 # Period codes
 
 
-def infer_freq(index) -> str | None:
+def infer_freq(
+    index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
+) -> str | None:
     """
     Infer the most likely frequency given the input index.
 
     Parameters
     ----------
-    index : DatetimeIndex or TimedeltaIndex
+    index : DatetimeIndex, TimedeltaIndex, Series or array-like
       If passed a Series will use the values of the series (NOT THE INDEX).
 
     Returns
@@ -129,16 +140,13 @@ def infer_freq(index) -> str | None:
     >>> pd.infer_freq(idx)
     'D'
     """
-    from pandas.core.api import (
-        DatetimeIndex,
-        Index,
-    )
+    from pandas.core.api import DatetimeIndex
 
     if isinstance(index, ABCSeries):
         values = index._values
         if not (
-            is_datetime64_dtype(values)
-            or is_timedelta64_dtype(values)
+            lib.is_np_dtype(values.dtype, "mM")
+            or isinstance(values.dtype, DatetimeTZDtype)
             or values.dtype == object
         ):
             raise TypeError(
@@ -151,22 +159,20 @@ def infer_freq(index) -> str | None:
 
     if not hasattr(index, "dtype"):
         pass
-    elif is_period_dtype(index.dtype):
+    elif isinstance(index.dtype, PeriodDtype):
         raise TypeError(
             "PeriodIndex given. Check the `freq` attribute "
             "instead of using infer_freq."
         )
-    elif is_timedelta64_dtype(index.dtype):
+    elif lib.is_np_dtype(index.dtype, "m"):
         # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index)
         return inferer.get_freq()
 
-    if isinstance(index, Index) and not isinstance(index, DatetimeIndex):
-        if is_numeric_dtype(index):
-            raise TypeError(
-                f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
-            )
-        index = index._values
+    elif is_numeric_dtype(index.dtype):
+        raise TypeError(
+            f"cannot infer freq from a non-convertible index of dtype {index.dtype}"
+        )
 
     if not isinstance(index, DatetimeIndex):
         index = DatetimeIndex(index)
@@ -596,7 +602,7 @@ def _is_annual(rule: str) -> bool:
 
 def _is_quarterly(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "Q" or rule.startswith("Q-") or rule.startswith("BQ")
+    return rule == "Q" or rule.startswith(("Q-", "BQ"))
 
 
 def _is_monthly(rule: str) -> bool:

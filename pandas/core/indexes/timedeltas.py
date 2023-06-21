@@ -1,6 +1,9 @@
 """ implement the TimedeltaIndex """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+import warnings
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -10,13 +13,13 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._typing import DtypeObj
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_scalar,
-    is_timedelta64_dtype,
+    pandas_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -27,6 +30,9 @@ from pandas.core.indexes.base import (
 )
 from pandas.core.indexes.datetimelike import DatetimeTimedeltaMixin
 from pandas.core.indexes.extension import inherit_names
+
+if TYPE_CHECKING:
+    from pandas._typing import DtypeObj
 
 
 @inherit_names(
@@ -62,6 +68,9 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         One of pandas date offset strings or corresponding objects. The string
         'infer' can be passed in order to set the frequency of the index as the
         inferred frequency upon creation.
+    dtype : numpy.dtype or str, default None
+        Valid NumPy dtypes are timedelta64[ns]’, timedelta64[us]’,
+        timedelta64[ms]’, and timedelta64[s]’.
     copy  : bool
         Make a copy of input ndarray.
     name : object
@@ -127,11 +136,20 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         data=None,
         unit=None,
         freq=lib.no_default,
-        closed=None,
+        closed=lib.no_default,
         dtype=None,
         copy: bool = False,
         name=None,
     ):
+        if closed is not lib.no_default:
+            # GH#52628
+            warnings.warn(
+                f"The 'closed' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
@@ -142,11 +160,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
                 "represent unambiguous timedelta values durations."
             )
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
 
         if (
             isinstance(data, TimedeltaArray)
             and freq is lib.no_default
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+            and (dtype is None or dtype == data.dtype)
         ):
             if copy:
                 data = data.copy()
@@ -156,7 +176,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             isinstance(data, TimedeltaIndex)
             and freq is lib.no_default
             and name is None
-            and (dtype is None or is_dtype_equal(dtype, data.dtype))
+            and (dtype is None or dtype == data.dtype)
         ):
             if copy:
                 return data.copy()
@@ -168,7 +188,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         tdarr = TimedeltaArray._from_sequence_not_strict(
             data, freq=freq, unit=unit, dtype=dtype, copy=copy
         )
-        return cls._simple_new(tdarr, name=name)
+        refs = None
+        if not copy and isinstance(data, (ABCSeries, Index)):
+            refs = data._references
+
+        return cls._simple_new(tdarr, name=name, refs=refs)
 
     # -------------------------------------------------------------------
 
@@ -176,7 +200,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
-        return is_timedelta64_dtype(dtype)  # aka self._data._is_recognized_dtype
+        return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
     # Indexing Methods
@@ -237,7 +261,7 @@ def timedelta_range(
         Right bound for generating timedeltas.
     periods : int, default None
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'.
     name : str, default None
         Name of the resulting TimedeltaIndex.

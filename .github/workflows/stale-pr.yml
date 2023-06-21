@@ -11,9 +11,10 @@ jobs:
   stale:
     permissions:
       pull-requests: write
+    if: github.repository_owner == 'pandas-dev'
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/stale@v4
+    - uses: actions/stale@v8
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-pr-message: "This pull request is stale because it has been open for thirty days with no activity. Please [update](https://pandas.pydata.org/pandas-docs/stable/development/contributing.html#updating-your-pull-request) and respond to this comment if you're still interested in working on this."

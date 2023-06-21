@@ -3,6 +3,7 @@ import datetime
 from decimal import Decimal
 from io import BytesIO
 import os
+import pathlib
 
 import numpy as np
 import pytest
@@ -24,25 +25,19 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-# Examples of dataframes with dtypes for which conversion to ORC
-# hasn't been implemented yet, that is, Category, unsigned integers,
-# interval, period and sparse.
-orc_writer_dtypes_not_supported = [
-    pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
-    pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
-    pd.DataFrame(
-        {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
-    ),
-    pd.DataFrame(
-        {
-            "unimpl": [
-                pd.Period("2022-01-03", freq="D"),
-                pd.Period("2022-01-04", freq="D"),
-            ]
-        }
-    ),
-    pd.DataFrame({"unimpl": [np.nan] * 50}).astype(pd.SparseDtype("float", np.nan)),
-]
+@pytest.fixture(
+    params=[
+        np.array([1, 20], dtype="uint64"),
+        pd.Series(["a", "b", "a"], dtype="category"),
+        [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)],
+        [pd.Period("2022-01-03", freq="D"), pd.Period("2022-01-04", freq="D")],
+    ]
+)
+def orc_writer_dtypes_not_supported(request):
+    # Examples of dataframes with dtypes for which conversion to ORC
+    # hasn't been implemented yet, that is, Category, unsigned integers,
+    # interval, period and sparse.
+    return pd.DataFrame({"unimpl": request.param})
 
 
 def test_orc_reader_empty(dirpath):
@@ -296,17 +291,16 @@ def test_orc_roundtrip_bytesio():
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-@pytest.mark.parametrize("df_not_supported", orc_writer_dtypes_not_supported)
-def test_orc_writer_dtypes_not_supported(df_not_supported):
+def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
     msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
-        df_not_supported.to_orc()
+        orc_writer_dtypes_not_supported.to_orc()
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_pyarrow_backend():
+def test_orc_dtype_backend_pyarrow():
     df = pd.DataFrame(
         {
             "string": list("abc"),
@@ -328,8 +322,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
     )
 
     bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.dtype_backend", "pyarrow"):
-        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+    result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
 
     expected = pd.DataFrame(
         {
@@ -342,7 +335,7 @@ def test_orc_use_nullable_dtypes_pyarrow_backend():
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_pandas_backend():
+def test_orc_dtype_backend_numpy_nullable():
     # GH#50503
     df = pd.DataFrame(
         {
@@ -360,8 +353,7 @@ def test_orc_use_nullable_dtypes_pandas_backend():
     )
 
     bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.dtype_backend", "pandas"):
-        result = read_orc(BytesIO(bytes_data), use_nullable_dtypes=True)
+    result = read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
 
     expected = pd.DataFrame(
         {
@@ -385,14 +377,40 @@ def test_orc_use_nullable_dtypes_pandas_backend():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("pyarrow", min_version="7.0.0")
-def test_orc_use_nullable_dtypes_option():
-    # GH#50748
-    df = pd.DataFrame({"int": list(range(1, 4))})
-
-    bytes_data = df.copy().to_orc()
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_orc(BytesIO(bytes_data))
-
-    expected = pd.DataFrame({"int": pd.Series([1, 2, 3], dtype="Int64")})
+def test_orc_uri_path():
+    expected = pd.DataFrame({"int": list(range(1, 4))})
+    with tm.ensure_clean("tmp.orc") as path:
+        expected.to_orc(path)
+        uri = pathlib.Path(path).as_uri()
+        result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.RangeIndex(start=2, stop=5, step=1),
+        pd.RangeIndex(start=0, stop=3, step=1, name="non-default"),
+        pd.Index([1, 2, 3]),
+    ],
+)
+def test_to_orc_non_default_index(index):
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+    msg = (
+        "orc does not support serializing a non-default index|"
+        "orc does not serialize index meta-data"
+    )
+    with pytest.raises(ValueError, match=msg):
+        df.to_orc()
+
+
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    df = pd.DataFrame({"int": list(range(1, 4))})
+    with tm.ensure_clean("tmp.orc") as path:
+        df.to_orc(path)
+        with pytest.raises(ValueError, match=msg):
+            read_orc(path, dtype_backend="numpy")

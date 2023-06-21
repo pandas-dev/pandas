@@ -195,7 +195,7 @@ def deprecate_kwarg(
                 else:
                     new_arg_value = old_arg_value
                     msg = (
-                        f"the {repr(old_arg_name)}' keyword is deprecated, "
+                        f"the {repr(old_arg_name)} keyword is deprecated, "
                         f"use {repr(new_arg_name)} instead."
                     )
 
@@ -339,8 +339,8 @@ def deprecate_nonkeyword_arguments(
 
 def doc(*docstrings: None | str | Callable, **params) -> Callable[[F], F]:
     """
-    A decorator take docstring templates, concatenate them and perform string
-    substitution on it.
+    A decorator to take docstring templates, concatenate them and perform string
+    substitution on them.
 
     This decorator will add a variable "_docstring_components" to the wrapped
     callable to keep track the original docstring template for potential usage.

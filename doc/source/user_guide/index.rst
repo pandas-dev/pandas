@@ -67,6 +67,7 @@ Guides
     pyarrow
     indexing
     advanced
+    copy_on_write
     merging
     reshaping
     text

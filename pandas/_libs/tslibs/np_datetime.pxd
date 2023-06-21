@@ -54,7 +54,8 @@ cdef extern from "numpy/ndarraytypes.h":
 
     int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
 
-cdef extern from "src/datetime/np_datetime.h":
+
+cdef extern from "pandas/datetime/pd_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
@@ -71,6 +72,17 @@ cdef extern from "src/datetime/np_datetime.h":
                                              pandas_timedeltastruct *result
                                              ) nogil
 
+    void PandasDateTime_IMPORT()
+
+    ctypedef enum FormatRequirement:
+        PARTIAL_MATCH
+        EXACT_MATCH
+        INFER_FORMAT
+
+# You must call this before using the PandasDateTime CAPI functions
+cdef inline void import_pandas_datetime() noexcept:
+    PandasDateTime_IMPORT
+
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
@@ -78,15 +90,15 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
 )
-cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts)
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
 )
-cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts)
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
-cdef npy_datetime get_datetime64_value(object obj) nogil
-cdef npy_timedelta get_timedelta64_value(object obj) nogil
-cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
+cdef npy_datetime get_datetime64_value(object obj) noexcept nogil
+cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
 
 cdef int string_to_dts(
     str val,
@@ -124,9 +136,3 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
-
-cdef extern from "src/datetime/np_datetime_strings.h":
-    ctypedef enum FormatRequirement:
-        PARTIAL_MATCH
-        EXACT_MATCH
-        INFER_FORMAT

@@ -43,11 +43,14 @@ from pandas._libs.tslibs.nattype cimport NPY_NAT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
     pandas_timedelta_to_timedeltastruct,
     pandas_timedeltastruct,
 )
+
+import_pandas_datetime()
 
 
 @cython.wraparound(False)
@@ -147,12 +150,13 @@ def get_date_name_field(
     name based on requested field (e.g. day_name)
     """
     cdef:
-        Py_ssize_t i, count = dtindex.shape[0]
+        Py_ssize_t i
+        cnp.npy_intp count = dtindex.shape[0]
         ndarray[object] out, names
         npy_datetimestruct dts
         int dow
 
-    out = np.empty(count, dtype=object)
+    out = cnp.PyArray_EMPTY(1, &count, cnp.NPY_OBJECT, 0)
 
     if field == "day_name":
         if locale is None:
@@ -189,7 +193,7 @@ def get_date_name_field(
     return out
 
 
-cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
+cdef bint _is_on_month(int month, int compare_month, int modby) noexcept nogil:
     """
     Analogous to DateOffset.is_on_offset checking for the month part of a date.
     """
@@ -508,18 +512,7 @@ def get_timedelta_field(
 
     out = np.empty(count, dtype="i4")
 
-    if field == "days":
-        with nogil:
-            for i in range(count):
-                if tdindex[i] == NPY_NAT:
-                    out[i] = -1
-                    continue
-
-                pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
-                out[i] = tds.days
-        return out
-
-    elif field == "seconds":
+    if field == "seconds":
         with nogil:
             for i in range(count):
                 if tdindex[i] == NPY_NAT:
@@ -553,6 +546,34 @@ def get_timedelta_field(
         return out
 
     raise ValueError(f"Field {field} not supported")
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_timedelta_days(
+    const int64_t[:] tdindex,
+    NPY_DATETIMEUNIT reso=NPY_FR_ns,
+):
+    """
+    Given a int64-based timedelta index, extract the days,
+    field and return an array of these values.
+    """
+    cdef:
+        Py_ssize_t i, count = len(tdindex)
+        ndarray[int64_t] out
+        pandas_timedeltastruct tds
+
+    out = np.empty(count, dtype="i8")
+
+    with nogil:
+        for i in range(count):
+            if tdindex[i] == NPY_NAT:
+                out[i] = -1
+                continue
+
+            pandas_timedelta_to_timedeltastruct(tdindex[i], reso, &tds)
+            out[i] = tds.days
+    return out
 
 
 cpdef isleapyear_arr(ndarray years):
@@ -704,7 +725,7 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[int64_t] result = np.empty(n, dtype="i8")
-        int64_t res, value
+        int64_t res, value, remainder
 
     with cython.overflowcheck(True):
         for i in range(n):
@@ -730,6 +751,34 @@ cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
 
 cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):
     return _floor_int64(values + unit // 2, unit)
+
+
+cdef ndarray[int64_t] _round_nearest_int64(const int64_t[:] values, int64_t unit):
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value, half, remainder, quotient
+
+    half = unit // 2
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                quotient, remainder = divmod(value, unit)
+                if remainder > half:
+                    res = value + (unit - remainder)
+                elif remainder == half and quotient % 2:
+                    res = value + (unit - remainder)
+                else:
+                    res = value - remainder
+
+            result[i] = res
+
+    return result
 
 
 def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
@@ -762,13 +811,7 @@ def round_nsint64(values: np.ndarray, mode: RoundTo, nanos: int) -> np.ndarray:
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
-        quotient, remainder = np.divmod(values, unit)
-        mask = np.logical_or(
-            remainder > (unit // 2),
-            np.logical_and(remainder == (unit // 2), quotient % 2)
-        )
-        quotient[mask] += 1
-        return quotient * unit
+        return _round_nearest_int64(values, unit)
 
     # if/elif above should catch all rounding modes defined in enum 'RoundTo':
     # if flow of control arrives here, it is a bug

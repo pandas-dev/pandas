@@ -6,9 +6,9 @@ from functools import partial
 from io import BytesIO
 import os
 from textwrap import fill
-from types import TracebackType
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -23,21 +23,10 @@ from typing import (
 )
 import zipfile
 
-from pandas._config import (
-    config,
-    using_nullable_dtypes,
-)
+from pandas._config import config
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
-from pandas._typing import (
-    DtypeArg,
-    FilePath,
-    IntStrT,
-    ReadBuffer,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
@@ -47,6 +36,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -75,6 +65,18 @@ from pandas.io.excel._util import (
 from pandas.io.parsers import TextParser
 from pandas.io.parsers.readers import validate_integer
 
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        DtypeArg,
+        DtypeBackend,
+        FilePath,
+        IntStrT,
+        ReadBuffer,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 _read_excel_doc = (
     """
 Read an Excel file into a pandas DataFrame.
@@ -117,7 +119,7 @@ header : int, list of int, default 0
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None.
-index_col : int, list of int, default None
+index_col : int, str, list of int, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
@@ -140,12 +142,6 @@ usecols : str, list-like, or callable, default None
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
-squeeze : bool, default False
-    If the parsed data only contains one column then return a Series.
-
-    .. deprecated:: 1.4.0
-       Append ``.squeeze("columns")`` to the call to ``read_excel`` to squeeze
-       the data.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
     Use `object` to preserve data as stored in Excel and not interpret dtype.
@@ -251,15 +247,15 @@ date_parser : function, optional
     more strings (corresponding to the columns defined by `parse_dates`) as
     arguments.
 
-  .. deprecated:: 2.0.0
-   Use ``date_format`` instead, or read in as ``object`` and then apply
-   :func:`to_datetime` as-needed.
+    .. deprecated:: 2.0.0
+       Use ``date_format`` instead, or read in as ``object`` and then apply
+       :func:`to_datetime` as-needed.
 date_format : str or dict of column -> format, default ``None``
    If used in conjunction with ``parse_dates``, will parse dates according to this
    format. For anything more complex,
    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
-    .. versionadded:: 2.0.0
+   .. versionadded:: 2.0.0
 thousands : str, default None
     Thousands separator for parsing string columns to numeric.  Note that
     this parameter is only necessary for columns stored as TEXT in Excel,
@@ -283,20 +279,18 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-use_nullable_dtypes : bool, default False
-    Whether or not to use nullable dtypes as default when reading data. If
-    set to True, nullable dtypes are used for all dtypes that have a nullable
-    implementation, even if no nulls are present. Dtype takes precedence if given.
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+    arrays, nullable dtypes are used for all dtypes that have a nullable
+    implementation when "numpy_nullable" is set, pyarrow is used for all
+    dtypes if "pyarrow" is set.
 
-    .. note::
-
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+    The dtype_backends are still experimential.
 
     .. versionadded:: 2.0
+
+engine_kwargs : dict, optional
+    Arbitrary keyword arguments passed to excel engine.
 
 Returns
 -------
@@ -310,6 +304,11 @@ DataFrame.to_excel : Write DataFrame to an Excel file.
 DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+Notes
+-----
+For specific information on the methods used for each Excel engine, refer to the pandas
+:ref:`user guide <io.excel_reader>`
 
 Examples
 --------
@@ -383,7 +382,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = ...,
-    squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
@@ -403,7 +401,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> DataFrame:
     ...
 
@@ -423,7 +421,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = ...,
-    squeeze: bool | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
@@ -443,7 +440,7 @@ def read_excel(
     comment: str | None = ...,
     skipfooter: int = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool | lib.NoDefault = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
 ) -> dict[IntStrT, DataFrame]:
     ...
 
@@ -463,7 +460,6 @@ def read_excel(
     | Sequence[str]
     | Callable[[str], bool]
     | None = None,
-    squeeze: bool | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
@@ -483,23 +479,27 @@ def read_excel(
     comment: str | None = None,
     skipfooter: int = 0,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    engine_kwargs: dict | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
+    check_dtype_backend(dtype_backend)
     should_close = False
+    if engine_kwargs is None:
+        engine_kwargs = {}
+
     if not isinstance(io, ExcelFile):
         should_close = True
-        io = ExcelFile(io, storage_options=storage_options, engine=engine)
+        io = ExcelFile(
+            io,
+            storage_options=storage_options,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
             "an ExcelFile - ExcelFile already has the engine set"
         )
-
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
 
     try:
         data = io.parse(
@@ -508,7 +508,6 @@ def read_excel(
             names=names,
             index_col=index_col,
             usecols=usecols,
-            squeeze=squeeze,
             dtype=dtype,
             converters=converters,
             true_values=true_values,
@@ -526,7 +525,7 @@ def read_excel(
             decimal=decimal,
             comment=comment,
             skipfooter=skipfooter,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
     finally:
         # make sure to close opened file handles
@@ -537,8 +536,14 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
-        self, filepath_or_buffer, storage_options: StorageOptions = None
+        self,
+        filepath_or_buffer,
+        storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
@@ -557,7 +562,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
             try:
-                self.book = self.load_workbook(self.handles.handle)
+                self.book = self.load_workbook(self.handles.handle, engine_kwargs)
             except Exception:
                 self.close()
                 raise
@@ -572,7 +577,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs):
         pass
 
     def close(self) -> None:
@@ -716,7 +721,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         names=None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
-        squeeze: bool | None = None,
         dtype: DtypeArg | None = None,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
@@ -731,7 +735,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ):
         validate_header_arg(header)
@@ -875,7 +879,6 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     header=header,
                     index_col=index_col,
                     has_index_names=has_index_names,
-                    squeeze=squeeze,
                     dtype=dtype,
                     true_values=true_values,
                     false_values=false_values,
@@ -891,17 +894,16 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
                     comment=comment,
                     skipfooter=skipfooter,
                     usecols=usecols,
-                    use_nullable_dtypes=use_nullable_dtypes,
+                    dtype_backend=dtype_backend,
                     **kwds,
                 )
 
                 output[asheetname] = parser.read(nrows=nrows)
 
-                if not squeeze or isinstance(output[asheetname], DataFrame):
-                    if header_names:
-                        output[asheetname].columns = output[
-                            asheetname
-                        ].columns.set_names(header_names)
+                if header_names:
+                    output[asheetname].columns = output[asheetname].columns.set_names(
+                        header_names
+                    )
 
             except EmptyDataError:
                 # No Data, return an empty DataFrame
@@ -962,8 +964,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-        * overlay: Write contents to the existing sheet without removing the old
-          contents.
+        * overlay: Write contents to the existing sheet without first removing,
+          but possibly over top of, the existing contents.
 
         .. versionadded:: 1.3.0
 
@@ -1223,6 +1225,17 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         # the excel backend first read the existing file and then write any data to it
         mode = mode.replace("a", "r+")
 
+        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
+            raise ValueError(
+                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
+                "Valid options are 'error', 'new', 'replace' and 'overlay'."
+            )
+        if if_sheet_exists and "r+" not in mode:
+            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
+        if if_sheet_exists is None:
+            if_sheet_exists = "error"
+        self._if_sheet_exists = if_sheet_exists
+
         # cast ExcelWriter to avoid adding 'if self._handles is not None'
         self._handles = IOHandles(
             cast(IO[bytes], path), compression={"compression": None}
@@ -1243,17 +1256,6 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             self._datetime_format = datetime_format
 
         self._mode = mode
-
-        if if_sheet_exists not in (None, "error", "new", "replace", "overlay"):
-            raise ValueError(
-                f"'{if_sheet_exists}' is not valid for if_sheet_exists. "
-                "Valid options are 'error', 'new', 'replace' and 'overlay'."
-            )
-        if if_sheet_exists and "r+" not in mode:
-            raise ValueError("if_sheet_exists is only valid in append mode (mode='a')")
-        if if_sheet_exists is None:
-            if_sheet_exists = "error"
-        self._if_sheet_exists = if_sheet_exists
 
     @property
     def date_format(self) -> str:
@@ -1470,6 +1472,8 @@ class ExcelFile:
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.
+    engine_kwargs : dict, optional
+        Arbitrary keyword arguments passed to excel engine.
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1489,7 +1493,11 @@ class ExcelFile:
         path_or_buffer,
         engine: str | None = None,
         storage_options: StorageOptions = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
@@ -1533,7 +1541,11 @@ class ExcelFile:
         self.engine = engine
         self.storage_options = storage_options
 
-        self._reader = self._engines[engine](self._io, storage_options=storage_options)
+        self._reader = self._engines[engine](
+            self._io,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     def __fspath__(self):
         return self._io
@@ -1545,7 +1557,6 @@ class ExcelFile:
         names=None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
-        squeeze: bool | None = None,
         converters=None,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
@@ -1558,7 +1569,7 @@ class ExcelFile:
         thousands: str | None = None,
         comment: str | None = None,
         skipfooter: int = 0,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         **kwds,
     ) -> DataFrame | dict[str, DataFrame] | dict[int, DataFrame]:
         """
@@ -1578,7 +1589,6 @@ class ExcelFile:
             names=names,
             index_col=index_col,
             usecols=usecols,
-            squeeze=squeeze,
             converters=converters,
             true_values=true_values,
             false_values=false_values,
@@ -1591,7 +1601,7 @@ class ExcelFile:
             thousands=thousands,
             comment=comment,
             skipfooter=skipfooter,
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
             **kwds,
         )
 
@@ -1617,11 +1627,3 @@ class ExcelFile:
         traceback: TracebackType | None,
     ) -> None:
         self.close()
-
-    def __del__(self) -> None:
-        # Ensure we don't leak file descriptors, but put in try/except in case
-        # attributes are already deleted
-        try:
-            self.close()
-        except AttributeError:
-            pass

@@ -24,7 +24,7 @@ skip_if_no_pyarrow = pytest.mark.skipif(
 def test_eq_all_na():
     a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
     result = a == a
-    expected = pd.array([pd.NA, pd.NA], dtype="boolean")
+    expected = pd.array([pd.NA, pd.NA], dtype="boolean[pyarrow]")
     tm.assert_extension_array_equal(result, expected)
 
 

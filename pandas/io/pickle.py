@@ -2,22 +2,27 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadPickleBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadPickleBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @doc(
@@ -41,9 +46,7 @@ def to_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL has to be of S3 or GCS.
+        Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -127,9 +130,7 @@ def read_pickle(
     filepath_or_buffer : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``readlines()`` function.
-
-        .. versionchanged:: 1.0.0
-           Accept URL. URL is not limited to S3 and GCS.
+        Also accepts URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
 

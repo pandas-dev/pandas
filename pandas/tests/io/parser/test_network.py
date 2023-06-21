@@ -16,7 +16,6 @@ import pandas.util._test_decorators as td
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.feather_format import read_feather
 from pandas.io.parsers import read_csv
@@ -32,10 +31,12 @@ from pandas.io.parsers import read_csv
 )
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
-def test_compressed_urls(salaries_table, mode, engine, compression_only):
+def test_compressed_urls(
+    salaries_table, mode, engine, compression_only, compression_to_extension
+):
     # test reading compressed urls with various engines and
     # extension inference
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     base_url = (
         "https://github.com/pandas-dev/pandas/raw/main/"
         "pandas/tests/io/parser/data/salaries.csv"
@@ -66,7 +67,7 @@ def test_url_encoding_csv():
     """
     path = (
         "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        + "pandas/tests/io/parser/data/unicode_series.csv"
+        "pandas/tests/io/parser/data/unicode_series.csv"
     )
     df = read_csv(path, encoding="latin-1", header=None)
     assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"
@@ -277,9 +278,7 @@ class TestS3:
     @pytest.mark.single_cpu
     @pytest.mark.skipif(
         is_ci_environment(),
-        reason="This test can hang in our CI min_versions build "
-        "and leads to '##[error]The runner has "
-        "received a shutdown signal...' in GHA. GH: 45651",
+        reason="GH: 45651: This test can hang in our CI min_versions build",
     )
     def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
