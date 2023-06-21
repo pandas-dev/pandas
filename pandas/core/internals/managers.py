@@ -397,7 +397,7 @@ class BaseBlockManager(DataManager):
                     blk_loc = np.squeeze(blk_loc)
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
-                    blk_loc = [blk_loc]
+                    blk_loc = [blk_loc]  # type: ignore[assignment]
                 if isinstance(blk_loc, np.ndarray) and len(blk_loc.shape) == 0:
                     return self.copy(deep=False)
 
