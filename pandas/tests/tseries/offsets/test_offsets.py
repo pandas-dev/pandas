@@ -7,11 +7,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
 
 import numpy as np
 import pytest
@@ -43,7 +38,6 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
-    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -61,8 +55,6 @@ from pandas.tseries.offsets import (
     Week,
     WeekOfMonth,
 )
-
-_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 _ARITHMETIC_DATE_OFFSET = [
     "years",

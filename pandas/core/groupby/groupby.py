@@ -925,6 +925,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             it is None, the object groupby was called on will
             be used.
 
+            .. deprecated:: 2.1.0
+                The obj is deprecated and will be removed in a future version.
+                Do ``df.iloc[gb.indices.get(name)]``
+                instead of ``gb.get_group(name, obj=df)``.
+
         Returns
         -------
         same type as obj
@@ -961,14 +966,21 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         """
-        if obj is None:
-            obj = self._selected_obj
-
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take_with_is_copy(inds, axis=self.axis)
+        if obj is None:
+            return self._selected_obj.iloc[inds]
+        else:
+            warnings.warn(
+                "obj is deprecated and will be removed in a future version. "
+                "Do ``df.iloc[gb.indices.get(name)]`` "
+                "instead of ``gb.get_group(name, obj=df)``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
@@ -1711,7 +1723,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
-        self, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1737,7 +1749,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # We do not get here with UDFs, so we know that our dtype
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
-        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        try:
+            res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        except Exception as err:
+            msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
         if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
@@ -1779,8 +1796,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: shouldn't min_count matter?
                 if how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+            else:
+                return result
 
+            result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
