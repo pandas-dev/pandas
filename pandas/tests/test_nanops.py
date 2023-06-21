@@ -1271,11 +1271,14 @@ def test_nanmean_overflow(disable_bottleneck, val):
         np.int64,
         np.float32,
         np.float64,
-        np.float128,
+        getattr(np, "float128", None),
     ],
 )
 @pytest.mark.parametrize("method", ["mean", "std", "var", "skew", "kurt", "min", "max"])
 def test_returned_dtype(disable_bottleneck, dtype, method):
+    if dtype is None:
+        pytest.skip("np.float128 not available")
+
     ser = Series(range(10), dtype=dtype)
     result = getattr(ser, method)()
     if is_integer_dtype(dtype) and method not in ["min", "max"]:
