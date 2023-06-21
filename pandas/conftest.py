@@ -685,7 +685,7 @@ def index_with_missing(request):
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values
+    vals = ind.values.copy()
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()

@@ -31,7 +31,7 @@ import pandas._testing as tm
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, index_flat):
+    def test_to_frame(self, name, index_flat, using_copy_on_write):
         # see GH#15230, GH#22580
         idx = index_flat
 
@@ -45,7 +45,8 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        assert df[idx_name].values is not idx.values
+        if not using_copy_on_write:
+            assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx

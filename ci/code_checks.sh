@@ -105,20 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.date \
-        pandas.Timestamp.dst \
-        pandas.Timestamp.isocalendar \
-        pandas.Timestamp.isoweekday \
-        pandas.Timestamp.strptime \
-        pandas.Timestamp.time \
-        pandas.Timestamp.timetuple \
-        pandas.Timestamp.timetz \
-        pandas.Timestamp.to_datetime64 \
-        pandas.Timestamp.toordinal \
-        pandas.Timestamp.tzname \
-        pandas.Timestamp.utcoffset \
-        pandas.Timestamp.utctimetuple \
-        pandas.Timestamp.weekday \
         pandas.arrays.TimedeltaArray \
         pandas.Period.asfreq \
         pandas.Period.now \
