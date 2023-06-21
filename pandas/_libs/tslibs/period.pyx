@@ -1917,7 +1917,8 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency.
+            The desired frequency. If passing a `str`, it needs to be a
+            valid :ref:`period alias <timeseries.period_aliases>`.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.
 
