@@ -1764,6 +1764,32 @@ def test_transpose_ea_single_column(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_transform_frame(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    df.transform(func)
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_transform_series(using_copy_on_write):
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    ser.transform(func)
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+
+
 def test_count_read_only_array():
     df = DataFrame({"a": [1, 2], "b": 3})
     result = df.count()
