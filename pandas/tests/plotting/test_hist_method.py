@@ -638,7 +638,6 @@ class TestDataFrameGroupByPlots:
             density=True,
         )
         # height of last bin (index 5) must be 1.0
-        # for ax in axes.ravel():
         rects = [x for x in axes.get_children() if isinstance(x, Rectangle)]
         height = rects[-1].get_height()
         tm.assert_almost_equal(height, 1.0)

@@ -371,12 +371,6 @@ def _grouped_hist(
     """
     if legend:
         assert "label" not in kwargs
-        # if data.ndim == 1:
-        #     kwargs["label"] = data.name
-        # elif column is None:
-        #     kwargs["label"] = data.columns
-        # else:
-        #     kwargs["label"] = column
 
     bins_copy = bins
 
@@ -538,7 +532,6 @@ def hist_frame(
     numeric_only: bool = True,
     **kwds,
 ):
-    # in matplotlib, legend is not contradict to label
     if legend and "label" in kwds:
         raise ValueError("Cannot use both legend and label")
     if by is not None:
