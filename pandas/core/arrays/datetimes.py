@@ -1209,9 +1209,8 @@ default 'raise'
                 res = freq
 
             freq = res
-
-            for key, value in OFFSET_TO_PERIOD_FREQSTR.items():
-                freq = freq.replace(key, value)
+            
+            freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     # -----------------------------------------------------------------
