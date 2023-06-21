@@ -461,7 +461,7 @@ def test_get_labels_groupby_for_Int64(writable):
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
@@ -484,7 +484,7 @@ def test_tracemalloc_for_empty_StringHashTable():
 
 @pytest.mark.parametrize("N", range(1, 110))
 def test_no_reallocation_StringHashTable(N):
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
     n_buckets_start = preallocated_table.get_state()["n_buckets"]
     preallocated_table.map_locations(keys)
