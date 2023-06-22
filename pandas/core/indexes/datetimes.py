@@ -401,7 +401,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # error: Argument 1 to "is_dates_only" has incompatible type
         # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
         # DatetimeArray, Index, DatetimeIndex]"
-        if self.freq and self.freq.delta and self.freq.delta < Timedelta(days=1):
+        if hasattr(self.freq, 'delta') and self.freq.delta < Timedelta(days=1):
             return False
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
