@@ -114,9 +114,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_installed(package: str):
+def skip_if_installed(package: str) -> pytest.MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -124,15 +122,19 @@ def skip_if_installed(package: str):
     ----------
     package : str
         The name of the package.
+
+    Returns
+    -------
+    pytest.MarkDecorator
+        a pytest.mark.skipif to use as either a test decorator or a
+        parametrization mark.
     """
     return pytest.mark.skipif(
         safe_import(package), reason=f"Skipping because {package} is installed."
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_no(package: str, min_version: str | None = None):
+def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -158,7 +160,7 @@ def skip_if_no(package: str, min_version: str | None = None):
 
     Returns
     -------
-    _pytest.mark.structures.MarkDecorator
+    pytest.MarkDecorator
         a pytest.mark.skipif to use as either a test decorator or a
         parametrization mark.
     """
@@ -189,9 +191,9 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
+def skip_if_np_lt(
+    ver_str: str, *args, reason: str | None = None
+) -> pytest.MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
