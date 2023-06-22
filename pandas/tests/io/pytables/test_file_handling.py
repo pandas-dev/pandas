@@ -229,6 +229,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 
 @pytest.mark.parametrize("lvl", range(10))
 @pytest.mark.parametrize("lib", tables.filters.all_complibs)
+@pytest.mark.filterwarnings("ignore:object name is not a valid")
 @pytest.mark.xfail(
     not PY311 and is_ci_environment() and is_platform_linux(),
     reason="producing invalid start bytes",
