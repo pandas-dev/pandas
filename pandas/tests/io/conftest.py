@@ -128,12 +128,12 @@ def s3_resource(s3_base):
     import boto3
 
     with contextlib.closing(boto3.client("s3", endpoint_url=s3_base)) as cli:
-        with contextlib.closing(cli.resource("s3", endpoint_url=s3_base)) as s3:
-            yield s3
-            for bucket_info in cli.list_buckets()["Buckets"]:
-                bucket = s3.Bucket(bucket_info["Name"])
-                bucket.objects.delete()
-                bucket.delete()
+        s3 = cli.resource("s3", endpoint_url=s3_base)
+        yield s3
+        for bucket_info in cli.list_buckets()["Buckets"]:
+            bucket = s3.Bucket(bucket_info["Name"])
+            bucket.objects.delete()
+            bucket.delete()
 
 
 @pytest.fixture
