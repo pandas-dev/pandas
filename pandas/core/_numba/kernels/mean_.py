@@ -60,10 +60,11 @@ def remove_mean(
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_mean(
     values: np.ndarray,
+    result_dtype: np.dtype,
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
     sum_x = 0.0
@@ -75,7 +76,7 @@ def sliding_mean(
         start
     ) and is_monotonic_increasing(end)
 
-    output = np.empty(N, dtype=np.float64)
+    output = np.empty(N, dtype=result_dtype)
 
     for i in range(N):
         s = start[i]
@@ -100,7 +101,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
         else:
             for j in range(start[i - 1], s):
@@ -125,7 +126,7 @@ def sliding_mean(
                     neg_ct,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
 
         if nobs >= min_periods and nobs > 0:
@@ -147,4 +148,8 @@ def sliding_mean(
             neg_ct = 0
             compensation_remove = 0.0
 
-    return output
+    # na_position is empty list since float64 can already hold nans
+    # Do list comprehension, since numba cannot figure out that na_pos is
+    # empty list of ints on its own
+    na_pos = [0 for i in range(0)]
+    return output, na_pos

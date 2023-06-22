@@ -732,7 +732,9 @@ class TestDataFrameSubclassing:
     def test_replace_list_method(self):
         # https://github.com/pandas-dev/pandas/pull/46018
         df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        result = df.replace([1, 2], method="ffill")
+        msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.replace([1, 2], method="ffill")
         expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)

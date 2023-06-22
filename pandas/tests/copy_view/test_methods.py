@@ -367,6 +367,36 @@ def test_reindex_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize(
+    "index",
+    [
+        lambda idx: idx,
+        lambda idx: idx.view(),
+        lambda idx: idx.copy(),
+        lambda idx: list(idx),
+    ],
+    ids=["identical", "view", "copy", "values"],
+)
+def test_reindex_rows(index, using_copy_on_write):
+    # Case: reindexing the rows with an index that matches the current index
+    # can use a shallow copy
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.reindex(index=index(df.index))
+
+    if using_copy_on_write:
+        # still shares memory (df2 is a shallow copy)
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_drop_on_column(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
@@ -1732,6 +1762,32 @@ def test_transpose_ea_single_column(using_copy_on_write):
     result = df.T
 
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
+
+
+def test_transform_frame(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    df.transform(func)
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_transform_series(using_copy_on_write):
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    ser.transform(func)
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
 
 
 def test_count_read_only_array():
