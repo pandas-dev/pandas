@@ -8344,7 +8344,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        if other.empty:
+        if len(other) == 0:
             combined = self.reindex(
                 self.columns.append(other.columns.difference(self.columns)), axis=1
             )
