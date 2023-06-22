@@ -104,9 +104,9 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
+- :meth:`DataFrame.hist` and :meth:`Series.hist` use the column names as xlabels and :meth:`DataFrame.hist` supports multiple histograms in a single plot (:issue:`53281`)
 - :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
-- :meth:`DataFrame.hist` and :meth: `Series.hist` use the column names as xlabels and :meth:`DataFrame.hist` supports multiple histograms in a single plot (:issue: `53281`)
 - :meth:`DataFrameGroupby.agg` and :meth:`DataFrameGroupby.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine="numba"`` (:issue:`53486`)
 - :meth:`Series.explode` now supports pyarrow-backed list types (:issue:`53602`)
 - :meth:`Series.str.join` now supports ``ArrowDtype(pa.string())`` (:issue:`53646`)

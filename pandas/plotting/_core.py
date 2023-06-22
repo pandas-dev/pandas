@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
     from matplotlib.axes import Axes
     import numpy as np
+    from numpy._typing import NDArray
 
     from pandas._typing import IndexLabel
 
@@ -140,7 +141,7 @@ def hist_frame(
     sharey: bool = False,
     figsize: tuple[int, int] | None = None,
     layout: tuple[int, int] | None = None,
-    bins: int | Sequence[int] = None,
+    bins: int | Sequence[int] | NDArray | None = None,
     backend: str | None = None,
     legend: bool = False,
     **kwargs,

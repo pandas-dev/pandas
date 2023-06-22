@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Literal,
+    Literal, Sequence,
 )
 
 import numpy as np
+from numpy._typing import NDArray
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -328,7 +329,7 @@ def _grouped_hist(
     column=None,
     by=None,
     ax=None,
-    bins: int = 50,
+    bins: int | Sequence[int] | NDArray | None = None,
     figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
@@ -387,7 +388,7 @@ def _grouped_hist(
         raw_column = get_column_data(grouped.obj, column_name)
         if bins_copy is None and (numeric_only or is_numeric_dtype(raw_column)):
             # precompute reused bins
-            bins = np.histogram_bin_edges(raw_column, bins="auto")
+            bins_copy = np.histogram_bin_edges(raw_column, bins="auto")
 
         for key, group in grouped:
             column_data = get_column_data(group, column_name)
@@ -398,7 +399,7 @@ def _grouped_hist(
                 column_data,
                 alpha=alpha,
                 label=key,
-                bins=bins,
+                bins=bins_copy,
                 edgecolor=edgecolor,
                 linewidth=linewidth,
                 **kwargs,
@@ -406,7 +407,7 @@ def _grouped_hist(
         if legend:
             ax.legend()
 
-        bins = bins_copy
+        bins_copy = bins
 
     if xrot is None:
         xrot = rot
@@ -446,7 +447,7 @@ def hist_series(
     ylabelsize: int | None = None,
     yrot=None,
     figsize: tuple[float, float] | None = None,
-    bins: int = 10,
+    bins: int | Sequence[int] | NDArray | None = None,
     legend: bool = False,
     **kwds,
 ):
@@ -524,7 +525,7 @@ def hist_frame(
     sharey: bool = False,
     figsize: tuple[float, float] | None = None,
     layout=None,
-    bins: int = 10,
+    bins: int | Sequence[int] | NDArray | None = None,
     legend: bool = False,
     alpha: float = 0.5,
     edgecolor: str = "black",
