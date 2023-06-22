@@ -128,7 +128,7 @@ def s3_resource(s3_base):
     import boto3
 
     with contextlib.closing(boto3.client("s3", endpoint_url=s3_base)) as cli:
-        s3 = cli.resource("s3", endpoint_url=s3_base)
+        s3 = boto3.resource("s3", endpoint_url=s3_base)
         yield s3
         for bucket_info in cli.list_buckets()["Buckets"]:
             bucket = s3.Bucket(bucket_info["Name"])
