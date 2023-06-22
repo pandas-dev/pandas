@@ -29,7 +29,6 @@ from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
-    AxisInt,
     DtypeObj,
     IndexLabel,
     JoinHow,
@@ -647,8 +646,6 @@ class _MergeOperation:
     right_on: Sequence[Hashable | AnyArrayLike]
     left_index: bool
     right_index: bool
-    axis: AxisInt
-    bm_axis: AxisInt
     sort: bool
     suffixes: Suffixes
     copy: bool
@@ -666,7 +663,6 @@ class _MergeOperation:
         on: IndexLabel | None = None,
         left_on: IndexLabel | None = None,
         right_on: IndexLabel | None = None,
-        axis: AxisInt = 1,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
@@ -679,11 +675,6 @@ class _MergeOperation:
         self.left = self.orig_left = _left
         self.right = self.orig_right = _right
         self.how = how
-
-        # bm_axis -> the axis on the BlockManager
-        self.bm_axis = axis
-        # axis --> the axis on the Series/DataFrame
-        self.axis = 1 - axis if self.left.ndim == 2 else 0
 
         self.on = com.maybe_make_list(on)
 
@@ -1045,8 +1036,8 @@ class _MergeOperation:
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # make mypy happy
         assert self.how != "cross"
-        left_ax = self.left.axes[self.axis]
-        right_ax = self.right.axes[self.axis]
+        left_ax = self.left.index
+        right_ax = self.right.index
 
         if self.left_index and self.right_index and self.how != "asof":
             join_index, left_indexer, right_indexer = left_ax.join(
@@ -1068,32 +1059,32 @@ class _MergeOperation:
             if self.right_index:
                 if len(self.left) > 0:
                     join_index = self._create_join_index(
-                        self.left.index,
-                        self.right.index,
+                        left_ax,
+                        right_ax,
                         left_indexer,
                         how="right",
                     )
                 else:
-                    join_index = self.right.index.take(right_indexer)
+                    join_index = right_ax.take(right_indexer)
             elif self.left_index:
                 if self.how == "asof":
                     # GH#33463 asof should always behave like a left merge
                     join_index = self._create_join_index(
-                        self.left.index,
-                        self.right.index,
+                        left_ax,
+                        right_ax,
                         left_indexer,
                         how="left",
                     )
 
                 elif len(self.right) > 0:
                     join_index = self._create_join_index(
-                        self.right.index,
-                        self.left.index,
+                        right_ax,
+                        left_ax,
                         right_indexer,
                         how="left",
                     )
                 else:
-                    join_index = self.left.index.take(left_indexer)
+                    join_index = left_ax.take(left_indexer)
             else:
                 join_index = default_index(len(left_indexer))
 
@@ -1798,7 +1789,6 @@ class _OrderedMerge(_MergeOperation):
         right_on: IndexLabel | None = None,
         left_index: bool = False,
         right_index: bool = False,
-        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
         fill_method: str | None = None,
         how: JoinHow | Literal["asof"] = "outer",
@@ -1813,7 +1803,6 @@ class _OrderedMerge(_MergeOperation):
             left_index=left_index,
             right_index=right_index,
             right_on=right_on,
-            axis=axis,
             how=how,
             suffixes=suffixes,
             sort=True,  # factorize sorts
@@ -1886,10 +1875,7 @@ class _AsOfMerge(_OrderedMerge):
         by=None,
         left_by=None,
         right_by=None,
-        axis: AxisInt = 1,
         suffixes: Suffixes = ("_x", "_y"),
-        copy: bool = True,
-        fill_method: str | None = None,
         how: Literal["asof"] = "asof",
         tolerance=None,
         allow_exact_matches: bool = True,
@@ -1911,10 +1897,9 @@ class _AsOfMerge(_OrderedMerge):
             right_on=right_on,
             left_index=left_index,
             right_index=right_index,
-            axis=axis,
             how=how,
             suffixes=suffixes,
-            fill_method=fill_method,
+            fill_method=None,
         )
 
     def _validate_left_right_on(self, left_on, right_on):
