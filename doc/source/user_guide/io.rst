@@ -2652,6 +2652,7 @@ Links can be extracted from cells along with the text using ``extract_links="all
 
 .. ipython:: python
 
+    from io import StringIO
     html_table = """
     <table>
       <tr>
@@ -2664,7 +2665,7 @@ Links can be extracted from cells along with the text using ``extract_links="all
     """
 
     df = pd.read_html(
-        html_table,
+        StringIO(html_table),
         extract_links="all"
     )[0]
     df
