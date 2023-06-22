@@ -2722,10 +2722,13 @@ def test_groupby_none_column_name():
     tm.assert_frame_equal(result, expected)
 
 
-def test_single_element_list_grouping():
-    # GH 42795
+@pytest.mark.parametrize("selection", [None, "a", ["a"]])
+def test_single_element_list_grouping(selection):
+    # GH#42795, GH#53500
     df = DataFrame({"a": [1, 2], "b": [np.nan, 5], "c": [np.nan, 2]}, index=["x", "y"])
-    result = [key for key, _ in df.groupby(["a"])]
+    grouped = df.groupby(["a"]) if selection is None else df.groupby(["a"])[selection]
+    result = [key for key, _ in grouped]
+
     expected = [(1,), (2,)]
     assert result == expected
 

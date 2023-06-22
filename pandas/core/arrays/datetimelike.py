@@ -106,6 +106,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    missing,
     nanops,
 )
 from pandas.core.algorithms import (
@@ -142,6 +143,7 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -861,9 +863,20 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
+
+        For TimedeltaIndex:
+
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days', '10 days', '20 days'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.inferred_freq
+        '10D'
         """
         if self.ndim != 1:
             return None
@@ -1535,6 +1548,15 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         Notes
         -----
         mean is only defined for Datetime and Timedelta dtypes, not for Period.
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.mean()
+        Timedelta('2 days 00:00:00')
         """
         if isinstance(self.dtype, PeriodDtype):
             # See discussion in GH#24757
@@ -2207,6 +2229,46 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
         return new_obj
+
+    def interpolate(
+        self,
+        *,
+        method,
+        axis: int,
+        index: Index | None,
+        limit,
+        limit_direction,
+        limit_area,
+        fill_value,
+        inplace: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if inplace=True
+        if method != "linear":
+            raise NotImplementedError
+
+        if inplace:
+            out_data = self._ndarray
+        else:
+            out_data = self._ndarray.copy()
+
+        missing.interpolate_array_2d(
+            out_data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            **kwargs,
+        )
+        if inplace:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
 
 
 # -------------------------------------------------------------------
