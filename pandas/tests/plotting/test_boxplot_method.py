@@ -51,7 +51,20 @@ class TestDataFramePlots:
         )
 
     @pytest.mark.slow
-    def test_boxplot_legacy1(self):
+    @pytest.mark.parametrize(
+        "kwargs, warn",
+        [
+            [{"return_type": "dict"}, None],
+            [{"column": ["one", "two"]}, None],
+            [{"column": ["one", "two"], "by": "indic"}, UserWarning],
+            [{"column": ["one"], "by": ["indic", "indic2"]}, None],
+            [{"by": "indic"}, UserWarning],
+            [{"by": ["indic", "indic2"]}, UserWarning],
+            [{"notch": 1}, None],
+            [{"by": "indic", "notch": 1}, UserWarning],
+        ],
+    )
+    def test_boxplot_legacy1(self, kwargs, warn):
         df = DataFrame(
             np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
@@ -60,20 +73,13 @@ class TestDataFramePlots:
         df["indic"] = ["foo", "bar"] * 3
         df["indic2"] = ["foo", "bar", "foo"] * 2
 
-        _check_plot_works(df.boxplot, return_type="dict")
-        _check_plot_works(df.boxplot, column=["one", "two"], return_type="dict")
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, column=["one", "two"], by="indic")
-        _check_plot_works(df.boxplot, column="one", by=["indic", "indic2"])
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by="indic")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by=["indic", "indic2"])
-        _check_plot_works(plotting._core.boxplot, data=df["one"], return_type="dict")
-        _check_plot_works(df.boxplot, notch=1, return_type="dict")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by="indic", notch=1)
+        # _check_plot_works can add an ax so catch warning. see GH #13188
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            _check_plot_works(df.boxplot, **kwargs)
+
+    def test_boxplot_legacy1_series(self):
+        ser = Series(np.random.randn(6))
+        _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
 
     def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
