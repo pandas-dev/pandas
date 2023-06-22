@@ -1001,6 +1001,7 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
     def test_iloc_callable_tuple_return_value(self):
+        # GH53769
         df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
         msg = "callable in iLocation indexing is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
