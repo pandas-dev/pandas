@@ -134,7 +134,9 @@ class TestReadHtml:
             .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
-        res = self.read_html(StringIO(out), attrs={"class": "dataframe"}, index_col=0)[0]
+        res = self.read_html(StringIO(out), attrs={"class": "dataframe"}, index_col=0)[
+            0
+        ]
         tm.assert_frame_equal(res, df)
 
     def test_dtype_backend(self, string_storage, dtype_backend):
@@ -500,7 +502,8 @@ class TestReadHtml:
         # GH-20690
         # Read all tbody tags within a single table.
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -520,7 +523,8 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
-        ))[0]
+            )
+        )[0]
 
         expected = DataFrame(data=[[1, 2], [3, 4]], columns=["A", "B"])
 
@@ -532,7 +536,8 @@ class TestReadHtml:
         as described in issue #9178
         """
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
                 <thead>
                     <tr>
                         <th>Header</th>
@@ -544,7 +549,8 @@ class TestReadHtml:
                     </tr>
                 </tbody>
             </table>"""
-        ))[0]
+            )
+        )[0]
 
         expected = DataFrame(data={"Header": "first"}, index=[0])
 
@@ -555,7 +561,8 @@ class TestReadHtml:
         Ensure parser adds <tr> within <thead> on malformed HTML.
         """
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
             <thead>
                 <tr>
                     <th>Country</th>
@@ -571,7 +578,8 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
-        ))[0]
+            )
+        )[0]
 
         expected = DataFrame(
             data=[["Ukraine", "Odessa", 1944]],
@@ -622,7 +630,8 @@ class TestReadHtml:
         # GH5048: if header is specified explicitly, an int column should be
         # parsed as int while its header is parsed as str
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <td>S</td>
@@ -633,7 +642,8 @@ class TestReadHtml:
                     <td>1944</td>
                 </tr>
             </table>
-        """),
+        """
+            ),
             header=0,
         )[0]
 
@@ -703,7 +713,8 @@ class TestReadHtml:
 
     def test_different_number_of_cols(self):
         expected = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
                         <thead>
                             <tr style="text-align: right;">
                             <th></th>
@@ -732,12 +743,14 @@ class TestReadHtml:
                             <td> 0.222</td>
                             </tr>
                         </tbody>
-                    </table>"""),
+                    </table>"""
+            ),
             index_col=0,
         )[0]
 
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
                     <thead>
                         <tr style="text-align: right;">
                         <th></th>
@@ -763,7 +776,8 @@ class TestReadHtml:
                         <td> 0.222</td>
                         </tr>
                     </tbody>
-                 </table>"""),
+                 </table>"""
+            ),
             index_col=0,
         )[0]
 
@@ -772,7 +786,8 @@ class TestReadHtml:
     def test_colspan_rowspan_1(self):
         # GH17054
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -786,7 +801,8 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-        ))[0]
+            )
+        )[0]
 
         expected = DataFrame([["a", "b", "c"]], columns=["A", "B", "C"])
 
@@ -801,7 +817,8 @@ class TestReadHtml:
         # A B b z C
 
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <td colspan="2">X</td>
@@ -815,7 +832,8 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """),
+        """
+            ),
             header=0,
         )[0]
 
@@ -834,7 +852,8 @@ class TestReadHtml:
         # a b b b D
 
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <td rowspan="2">A</td>
@@ -845,7 +864,8 @@ class TestReadHtml:
                     <td>D</td>
                 </tr>
             </table>
-        """),
+        """
+            ),
             header=0,
         )[0]
 
@@ -864,7 +884,8 @@ class TestReadHtml:
         # C b
 
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <td>A</td>
@@ -874,7 +895,8 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """),
+        """
+            ),
             header=0,
         )[0]
 
@@ -886,14 +908,16 @@ class TestReadHtml:
         # GH17054
 
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <td rowspan="3">A</td>
                     <td rowspan="3">B</td>
                 </tr>
             </table>
-        """),
+        """
+            ),
             header=0,
         )[0]
 
@@ -904,7 +928,8 @@ class TestReadHtml:
     def test_header_inferred_from_rows_with_only_th(self):
         # GH17054
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -919,7 +944,8 @@ class TestReadHtml:
                     <td>2</td>
                 </tr>
             </table>
-        """)
+        """
+            )
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
@@ -969,7 +995,8 @@ class TestReadHtml:
 
     def test_parser_error_on_empty_header_row(self):
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
                 <table>
                     <thead>
                         <tr><th></th><th></tr>
@@ -979,7 +1006,8 @@ class TestReadHtml:
                         <tr><td>a</td><td>b</td></tr>
                     </tbody>
                 </table>
-            """),
+            """
+            ),
             header=[0, 1],
         )
         expected = DataFrame(
@@ -993,7 +1021,8 @@ class TestReadHtml:
     def test_decimal_rows(self):
         # GH 12907
         result = self.read_html(
-            StringIO("""<html>
+            StringIO(
+                """<html>
             <body>
              <table>
                 <thead>
@@ -1008,7 +1037,8 @@ class TestReadHtml:
                 </tbody>
             </table>
             </body>
-        </html>"""),
+        </html>"""
+            ),
             decimal="#",
         )[0]
 
@@ -1031,7 +1061,8 @@ class TestReadHtml:
     def test_converters(self):
         # GH 13461
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1045,7 +1076,8 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>"""),
+               </table>"""
+            ),
             converters={"a": str},
         )[0]
 
@@ -1056,7 +1088,8 @@ class TestReadHtml:
     def test_na_values(self):
         # GH 13461
         result = self.read_html(
-            StringIO("""<table>
+            StringIO(
+                """<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1070,7 +1103,8 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>"""),
+               </table>"""
+            ),
             na_values=[0.244],
         )[0]
 
@@ -1105,7 +1139,8 @@ class TestReadHtml:
 
     def test_preserve_empty_rows(self):
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -1121,7 +1156,8 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-                     ))[0]
+            )
+        )[0]
 
         expected = DataFrame(data=[["a", "b"], [np.nan, np.nan]], columns=["A", "B"])
 
@@ -1129,7 +1165,8 @@ class TestReadHtml:
 
     def test_ignore_empty_rows_when_inferring_header(self):
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <thead>
                     <tr><th></th><th></tr>
@@ -1141,7 +1178,8 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-                     ))[0]
+            )
+        )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
@@ -1227,7 +1265,6 @@ class TestReadHtml:
             </table>
           </body>
         </html>"""
-
 
         dfs = self.read_html(StringIO(data), displayed_only=displayed_only)
         tm.assert_frame_equal(dfs[0], exp0)
@@ -1381,7 +1418,8 @@ class TestReadHtml:
     def test_parse_br_as_space(self):
         # GH 29528: pd.read_html() convert <br> to space
         result = self.read_html(
-            StringIO("""
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -1391,7 +1429,8 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-                     ))[0]
+            )
+        )[0]
 
         expected = DataFrame(data=[["word1 word2"]], columns=["A"])
 

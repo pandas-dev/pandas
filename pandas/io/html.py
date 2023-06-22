@@ -6,8 +6,6 @@ HTML IO.
 
 from __future__ import annotations
 
-import os.path
-import warnings
 from collections import abc
 import numbers
 import re
@@ -19,6 +17,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
