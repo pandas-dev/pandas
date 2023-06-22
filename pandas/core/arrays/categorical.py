@@ -827,6 +827,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         ndarray[int]
             A non-writable view of the `codes` array.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.codes
+        array([0, 1], dtype=int8)
         """
         v = self._codes.view()
         v.flags.writeable = False
@@ -1524,6 +1530,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
+
+        Examples
+        --------
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+
+        The following calls cat.__array__
+
+        >>> np.asarray(cat)
+        array(['a', 'b'], dtype=object)
         """
         ret = take_nd(self.categories._values, self._codes)
         if dtype and np.dtype(dtype) != self.categories.dtype:
