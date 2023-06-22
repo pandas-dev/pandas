@@ -828,6 +828,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._id = object()
 
+    @final
+    def _cleanup(self) -> None:
+        self._engine.clear_mapping()
+
     @cache_readonly
     def _engine(
         self,

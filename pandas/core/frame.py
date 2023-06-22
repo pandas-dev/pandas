@@ -5774,7 +5774,7 @@ class DataFrame(NDFrame, OpsMixin):
             del frame[c]
 
         # clear up memory usage
-        index._engine.clear_mapping()
+        index._cleanup()
 
         frame.index = index
 
