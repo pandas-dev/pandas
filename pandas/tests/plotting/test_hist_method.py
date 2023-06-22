@@ -88,33 +88,6 @@ class TestSeriesPlots:
     )
     def test_hist_layout_with_by(self, hist_df, by, layout, axes_num, res_layout):
         df = hist_df
-
-        # _check_plot_works adds an `ax` kwarg to the method call
-        # so we get a warning about an axis being cleared, even
-        # though we don't explicing pass one, see GH #13188
-# <<<<<<< HEAD
-#         axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-#
-#         axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
-#         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
-# =======
-#         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
         axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
         _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
 
