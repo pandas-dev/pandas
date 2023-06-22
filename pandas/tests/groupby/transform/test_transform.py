@@ -698,31 +698,14 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
 
 
 @pytest.fixture
-def floating():
-    return Series(np.random.randn(10))
+def frame():
+    floating = Series(np.random.randn(10))
+    floating_missing = floating.copy()
+    floating_missing.iloc[2:7] = np.nan
+    strings = list("abcde") * 2
+    strings_missing = strings[:]
+    strings_missing[5] = np.nan
 
-
-@pytest.fixture
-def floating_missing(floating):
-    floating_miss = floating.copy()
-    floating_miss.iloc[2:7] = np.nan
-    return floating_miss
-
-
-@pytest.fixture
-def strings():
-    return list("abcde") * 2
-
-
-@pytest.fixture
-def strings_missing(strings):
-    strings_miss = strings[:]
-    strings_miss[5] = np.nan
-    return strings_miss
-
-
-@pytest.fixture
-def frame(floating, floating_missing, strings, strings_missing):
     df = DataFrame(
         {
             "float": floating,
