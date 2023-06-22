@@ -939,8 +939,7 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
-        assert isinstance(indexer, np.ndarray), type(indexer)
-        assert indexer.dtype == np.intp, indexer.dtype
+        # Caller is responsible for ensuring indexer annotation is accurate
 
         n = self.shape[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)

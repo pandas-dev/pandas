@@ -311,8 +311,6 @@ def interpolate_array_2d(
     limit_direction: str = "forward",
     limit_area: str | None = None,
     fill_value: Any | None = None,
-    coerce: bool = False,
-    downcast: str | None = None,
     **kwargs,
 ) -> None:
     """
