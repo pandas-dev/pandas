@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Literal, Sequence,
+    Literal,
+    Sequence,
 )
 
 import numpy as np
-from numpy._typing import NDArray
 
 from pandas.core.dtypes.common import (
     is_integer,
@@ -44,6 +44,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from numpy._typing import NDArray
 
     from pandas._typing import PlottingOrientation
 
