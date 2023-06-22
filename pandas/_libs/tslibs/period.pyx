@@ -1544,7 +1544,6 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = Period._maybe_convert_freq(freq).freqstr
     freqstr = freq_to_period_freqstr(freq.n, freq.name)
 
     for i in range(n):

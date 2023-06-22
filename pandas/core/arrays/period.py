@@ -37,6 +37,7 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import (
     OFFSET_TO_PERIOD_FREQSTR,
     FreqGroup,
+    freq_to_period_freqstr,
 )
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs.offsets import (
@@ -412,10 +413,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        if self.freqstr == "ME":
-            period_type = ArrowPeriodType("M")
-        else:
-            period_type = ArrowPeriodType(self.freqstr)
+        period_type = ArrowPeriodType(freq_to_period_freqstr(1, self.freqstr))
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 

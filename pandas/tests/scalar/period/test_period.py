@@ -1590,3 +1590,9 @@ def test_invalid_frequency_error_message():
     msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
+
+
+def test_invalid_frequency_period_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="ME")
