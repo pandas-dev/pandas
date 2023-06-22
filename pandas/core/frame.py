@@ -673,9 +673,9 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
 
         # GH47215
-        if index is not None and isinstance(index, set):
+        if isinstance(index, set):
             raise ValueError("index cannot be a set")
-        if columns is not None and isinstance(columns, set):
+        if isinstance(columns, set):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
@@ -8344,7 +8344,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        if len(other) == 0:
+            combined = self.reindex(
+                self.columns.append(other.columns.difference(self.columns)), axis=1
+            )
+            combined = combined.astype(other.dtypes)
+        else:
+            combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
