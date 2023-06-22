@@ -1149,3 +1149,9 @@ def test_negative_dates():
     func = "^isocalendar"
     with pytest.raises(NotImplementedError, match=func + msg):
         ts.isocalendar()
+    func = "^timetuple"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.timetuple()
+    func = "^toordinal"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.toordinal()
