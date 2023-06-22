@@ -1426,10 +1426,12 @@ class Block(PandasObject):
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
 
+    @final
     def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
         # only reached with ndim == 2
-        new_values = algos.diff(self.values, n, axis=1)
+        # TODO(EA2D): transpose will be unnecessary with 2D EAs
+        new_values = algos.diff(self.values.T, n, axis=0).T
         return [self.make_block(values=new_values)]
 
     def shift(
@@ -2067,12 +2069,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def diff(self, n: int) -> list[Block]:
-        # only reached with ndim == 2
-        # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
-        new_values = algos.diff(self.values, n, axis=0)
-        return [self.make_block(values=new_values)]
-
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
     ) -> list[Block]:
@@ -2190,30 +2186,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def diff(self, n: int) -> list[Block]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-
-        Returns
-        -------
-        A list with a new Block.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        # only reached with ndim == 2
-        values = self.values
-
-        new_values = values - values.shift(n, axis=1)
-        return [self.make_block(new_values)]
 
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
