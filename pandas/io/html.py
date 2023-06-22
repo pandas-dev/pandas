@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -24,6 +25,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -1023,6 +1025,9 @@ def read_html(
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
 
+        .. deprecated:: 2.1.0
+            Passing html literal strings is deprecated.
+
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
         returned. Unless the HTML is extremely simple you will probably need to
@@ -1177,6 +1182,15 @@ def read_html(
     check_dtype_backend(dtype_backend)
 
     io = stringify_path(io)
+
+    if isinstance(io, str) and "\n" in io:
+        warnings.warn(
+            "Passing literal html to 'read_html' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return _parse(
         flavor=flavor,
