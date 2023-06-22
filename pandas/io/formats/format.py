@@ -1506,14 +1506,16 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
-            if self.justify == "left":
-                na_rep = " " + self.na_rep
-            else:
-                na_rep = self.na_rep
+            na_rep = " " + self.na_rep if self.justify == "left" else self.na_rep
 
-            # separate the wheat from the chaff
+            # different formatting strategies for complex and non-complex data
+            # need to distinguish complex and float NaNs (GH #53762)
             values = self.values
             is_complex = is_complex_dtype(values)
+            if is_complex:
+                na_rep = f"{na_rep}+{0:.{self.digits}f}j"
+
+            # separate the wheat from the chaff
             values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
@@ -1912,22 +1914,26 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    trimmed = [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
-        for x in str_complexes
-    ]
+    real_part, imag_part = [], []
+    for x in str_complexes:
+        # Complex numbers are represented as "(-)xxx(+/-)xxxj"
+        # The split will give [maybe "-", "xxx", "+/-", "xxx", "j", ""]
+        # Therefore, the imaginary part is the 4th and 3rd last elements,
+        # and the real part is everything before the imaginary part
+        trimmed = re.split(r"([j+-])", x)
+        real_part.append("".join(trimmed[:-4]))
+        imag_part.append("".join(trimmed[-4:-2]))
 
-    # pad strings to the length of the longest trimmed string for alignment
-    lengths = [len(s) for s in trimmed]
-    max_length = max(lengths)
+    # We want to align the lengths of the real and imaginary parts of each complex
+    # number, as well as the lengths the real (resp. complex) parts of all numbers
+    # in the array
+    n = len(str_complexes)
+    padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
     padded = [
-        s[: -((k - 1) // 2 + 1)]  # real part
-        + (max_length - k) // 2 * "0"
-        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
-        + s[-((k - 1) // 2) : -1]  # imaginary part
-        + (max_length - k) // 2 * "0"
-        + s[-1]
-        for s, k in zip(trimmed, lengths)
+        padded_parts[i]  # real part (including - or space, possibly "NaN")
+        + padded_parts[i + n]  # imaginary part (including + or -)
+        + "j"
+        for i in range(n)
     ]
     return padded
 
