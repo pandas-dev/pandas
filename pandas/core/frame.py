@@ -2981,6 +2981,7 @@ class DataFrame(NDFrame, OpsMixin):
         1     2     3
 
         If you want to get a buffer to the orc content you can write it to io.BytesIO
+
         >>> import io
         >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
         >>> b.seek(0)  # doctest: +SKIP
@@ -8343,7 +8344,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        if len(other) == 0:
+            combined = self.reindex(
+                self.columns.append(other.columns.difference(self.columns)), axis=1
+            )
+            combined = combined.astype(other.dtypes)
+        else:
+            combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
