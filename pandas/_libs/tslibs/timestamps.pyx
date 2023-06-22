@@ -1204,7 +1204,16 @@ cdef class _Timestamp(ABCTimestamp):
 
     cpdef to_datetime64(self):
         """
-        Return a numpy.datetime64 object with 'ns' precision.
+        Return a numpy.datetime64 object with same precision.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(year=2023, month=1, day=1,
+        ...                   hour=10, second=15)
+        >>> ts
+        Timestamp('2023-01-01 10:00:15')
+        >>> ts.to_datetime64()
+        numpy.datetime64('2023-01-01T10:00:15.000000')
         """
         # TODO: find a way to construct dt64 directly from _reso
         abbrev = npy_unit_to_abbrev(self._creso)
@@ -1591,6 +1600,124 @@ class Timestamp(_Timestamp):
             ) from err
         return _dt.isocalendar()
 
+    def tzname(self):
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        return super().tzname()
+
+    def utcoffset(self):
+        """
+        Return utc offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        return super().utcoffset()
+
+    def utctimetuple(self):
+        """
+        Return UTC time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utctimetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1, tm_hour=9,
+        tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=0)
+        """
+        return super().utctimetuple()
+
+    def time(self):
+        """
+        Return time object with same time but with tzinfo=None.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.time()
+        datetime.time(10, 0)
+        """
+        return super().time()
+
+    def timetuple(self):
+        """
+        Return time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.timetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1,
+        tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "timetuple not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.timetuple()
+
+    def timetz(self):
+        """
+        Return time object with same time and tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.timetz()
+        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        """
+        return super().timetz()
+
+    def toordinal(self):
+        """
+        Return proleptic Gregorian ordinal. January 1 of year 1 is day 1.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:50')
+        >>> ts
+        Timestamp('2023-01-01 10:00:50')
+        >>> ts.toordinal()
+        738521
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "toordinal not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.toordinal()
+
     # Issue 25016.
     @classmethod
     def strptime(cls, date_string, format):
@@ -1598,6 +1725,12 @@ class Timestamp(_Timestamp):
         Timestamp.strptime(string, format)
 
         Function is not implemented. Use pd.to_datetime().
+
+        Examples
+        --------
+        >>> pd.Timestamp.strptime("2023-01-01", "%d/%m/%y")
+        Traceback (most recent call last):
+        NotImplementedError
         """
         raise NotImplementedError(
             "Timestamp.strptime() is not implemented. "
@@ -2463,6 +2596,14 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01')
+        >>> ts
+        Timestamp('2023-01-01  00:00:00')
+        >>> ts.weekday()
+        6
         """
         # same as super().weekday(), but that breaks because of how
         #  we have overridden year, see note in create_timestamp_from_ts
