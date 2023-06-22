@@ -134,7 +134,7 @@ class TestReadHtml:
             .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
-        res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
+        res = self.read_html(StringIO(out), attrs={"class": "dataframe"}, index_col=0)[0]
         tm.assert_frame_equal(res, df)
 
     def test_dtype_backend(self, string_storage, dtype_backend):
@@ -163,7 +163,7 @@ class TestReadHtml:
 
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
-            result = self.read_html(out, dtype_backend=dtype_backend)[0]
+            result = self.read_html(StringIO(out), dtype_backend=dtype_backend)[0]
 
         expected = DataFrame(
             {
@@ -351,8 +351,8 @@ class TestReadHtml:
         with open(spam_data, encoding="UTF-8") as f:
             data = f.read()
 
-        df1 = self.read_html(data, match=".*Water.*")
-        df2 = self.read_html(data, match="Unit")
+        df1 = self.read_html(StringIO(data), match=".*Water.*")
+        df2 = self.read_html(StringIO(data), match="Unit")
 
         assert_framelist_equal(df1, df2)
 
@@ -493,14 +493,14 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        result = self.read_html(html)
+        result = self.read_html(StringIO(html))
         assert len(result) == 1
 
     def test_multiple_tbody(self):
         # GH-20690
         # Read all tbody tags within a single table.
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -520,7 +520,7 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
-        )[0]
+        ))[0]
 
         expected = DataFrame(data=[[1, 2], [3, 4]], columns=["A", "B"])
 
@@ -532,7 +532,7 @@ class TestReadHtml:
         as described in issue #9178
         """
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
                 <thead>
                     <tr>
                         <th>Header</th>
@@ -544,7 +544,7 @@ class TestReadHtml:
                     </tr>
                 </tbody>
             </table>"""
-        )[0]
+        ))[0]
 
         expected = DataFrame(data={"Header": "first"}, index=[0])
 
@@ -555,7 +555,7 @@ class TestReadHtml:
         Ensure parser adds <tr> within <thead> on malformed HTML.
         """
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
             <thead>
                 <tr>
                     <th>Country</th>
@@ -571,7 +571,7 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
-        )[0]
+        ))[0]
 
         expected = DataFrame(
             data=[["Ukraine", "Odessa", 1944]],
@@ -612,8 +612,8 @@ class TestReadHtml:
         data1 = data_template.format(footer="")
         data2 = data_template.format(footer="<tr><td>footA</td><th>footB</th></tr>")
 
-        result1 = self.read_html(data1)[0]
-        result2 = self.read_html(data2)[0]
+        result1 = self.read_html(StringIO(data1))[0]
+        result2 = self.read_html(StringIO(data2))[0]
 
         tm.assert_frame_equal(result1, expected1)
         tm.assert_frame_equal(result2, expected2)
@@ -622,7 +622,7 @@ class TestReadHtml:
         # GH5048: if header is specified explicitly, an int column should be
         # parsed as int while its header is parsed as str
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <td>S</td>
@@ -633,7 +633,7 @@ class TestReadHtml:
                     <td>1944</td>
                 </tr>
             </table>
-        """,
+        """),
             header=0,
         )[0]
 
@@ -703,7 +703,7 @@ class TestReadHtml:
 
     def test_different_number_of_cols(self):
         expected = self.read_html(
-            """<table>
+            StringIO("""<table>
                         <thead>
                             <tr style="text-align: right;">
                             <th></th>
@@ -732,12 +732,12 @@ class TestReadHtml:
                             <td> 0.222</td>
                             </tr>
                         </tbody>
-                    </table>""",
+                    </table>"""),
             index_col=0,
         )[0]
 
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
                     <thead>
                         <tr style="text-align: right;">
                         <th></th>
@@ -763,7 +763,7 @@ class TestReadHtml:
                         <td> 0.222</td>
                         </tr>
                     </tbody>
-                 </table>""",
+                 </table>"""),
             index_col=0,
         )[0]
 
@@ -772,7 +772,7 @@ class TestReadHtml:
     def test_colspan_rowspan_1(self):
         # GH17054
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <th>A</th>
@@ -786,7 +786,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-        )[0]
+        ))[0]
 
         expected = DataFrame([["a", "b", "c"]], columns=["A", "B", "C"])
 
@@ -801,7 +801,7 @@ class TestReadHtml:
         # A B b z C
 
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <td colspan="2">X</td>
@@ -815,7 +815,7 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """,
+        """),
             header=0,
         )[0]
 
@@ -834,7 +834,7 @@ class TestReadHtml:
         # a b b b D
 
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <td rowspan="2">A</td>
@@ -845,7 +845,7 @@ class TestReadHtml:
                     <td>D</td>
                 </tr>
             </table>
-        """,
+        """),
             header=0,
         )[0]
 
@@ -864,7 +864,7 @@ class TestReadHtml:
         # C b
 
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <td>A</td>
@@ -874,7 +874,7 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """,
+        """),
             header=0,
         )[0]
 
@@ -886,14 +886,14 @@ class TestReadHtml:
         # GH17054
 
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <td rowspan="3">A</td>
                     <td rowspan="3">B</td>
                 </tr>
             </table>
-        """,
+        """),
             header=0,
         )[0]
 
@@ -904,7 +904,7 @@ class TestReadHtml:
     def test_header_inferred_from_rows_with_only_th(self):
         # GH17054
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <th>A</th>
@@ -919,7 +919,7 @@ class TestReadHtml:
                     <td>2</td>
                 </tr>
             </table>
-        """
+        """)
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
@@ -930,9 +930,9 @@ class TestReadHtml:
     def test_parse_dates_list(self):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
         expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[1], index_col=0)
+        res = self.read_html(StringIO(expected), parse_dates=[1], index_col=0)
         tm.assert_frame_equal(df, res[0])
-        res = self.read_html(expected, parse_dates=["date"], index_col=0)
+        res = self.read_html(StringIO(expected), parse_dates=["date"], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
     def test_parse_dates_combine(self):
@@ -944,7 +944,7 @@ class TestReadHtml:
             }
         )
         res = self.read_html(
-            df.to_html(), parse_dates={"datetime": [1, 2]}, index_col=1
+            StringIO(df.to_html()), parse_dates={"datetime": [1, 2]}, index_col=1
         )
         newdf = DataFrame({"datetime": raw_dates})
         tm.assert_frame_equal(newdf, res[0])
@@ -969,7 +969,7 @@ class TestReadHtml:
 
     def test_parser_error_on_empty_header_row(self):
         result = self.read_html(
-            """
+            StringIO("""
                 <table>
                     <thead>
                         <tr><th></th><th></tr>
@@ -979,7 +979,7 @@ class TestReadHtml:
                         <tr><td>a</td><td>b</td></tr>
                     </tbody>
                 </table>
-            """,
+            """),
             header=[0, 1],
         )
         expected = DataFrame(
@@ -993,7 +993,7 @@ class TestReadHtml:
     def test_decimal_rows(self):
         # GH 12907
         result = self.read_html(
-            """<html>
+            StringIO("""<html>
             <body>
              <table>
                 <thead>
@@ -1008,7 +1008,7 @@ class TestReadHtml:
                 </tbody>
             </table>
             </body>
-        </html>""",
+        </html>"""),
             decimal="#",
         )[0]
 
@@ -1031,7 +1031,7 @@ class TestReadHtml:
     def test_converters(self):
         # GH 13461
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1045,7 +1045,7 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>""",
+               </table>"""),
             converters={"a": str},
         )[0]
 
@@ -1056,7 +1056,7 @@ class TestReadHtml:
     def test_na_values(self):
         # GH 13461
         result = self.read_html(
-            """<table>
+            StringIO("""<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1070,7 +1070,7 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>""",
+               </table>"""),
             na_values=[0.244],
         )[0]
 
@@ -1096,16 +1096,16 @@ class TestReadHtml:
                     </table>"""
 
         expected_df = DataFrame({"a": ["N/A", "NA"]})
-        html_df = self.read_html(html_data, keep_default_na=False)[0]
+        html_df = self.read_html(StringIO(html_data), keep_default_na=False)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
         expected_df = DataFrame({"a": [np.nan, np.nan]})
-        html_df = self.read_html(html_data, keep_default_na=True)[0]
+        html_df = self.read_html(StringIO(html_data), keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_preserve_empty_rows(self):
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <th>A</th>
@@ -1121,7 +1121,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-        )[0]
+                     ))[0]
 
         expected = DataFrame(data=[["a", "b"], [np.nan, np.nan]], columns=["A", "B"])
 
@@ -1129,7 +1129,7 @@ class TestReadHtml:
 
     def test_ignore_empty_rows_when_inferring_header(self):
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <thead>
                     <tr><th></th><th></tr>
@@ -1141,7 +1141,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        )[0]
+                     ))[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
         expected = DataFrame(data=[[1, 2]], columns=columns)
@@ -1158,7 +1158,7 @@ class TestReadHtml:
             ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
         ]
         html = expected_df.to_html(index=False)
-        html_df = self.read_html(html)[0]
+        html_df = self.read_html(StringIO(html))[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_works_on_valid_markup(self, datapath):
@@ -1208,8 +1208,7 @@ class TestReadHtml:
     )
     def test_displayed_only(self, displayed_only, exp0, exp1):
         # GH 20027
-        data = StringIO(
-            """<html>
+        data = """<html>
           <body>
             <table>
               <tr>
@@ -1228,9 +1227,9 @@ class TestReadHtml:
             </table>
           </body>
         </html>"""
-        )
 
-        dfs = self.read_html(data, displayed_only=displayed_only)
+
+        dfs = self.read_html(StringIO(data), displayed_only=displayed_only)
         tm.assert_frame_equal(dfs[0], exp0)
 
         if exp1 is not None:
@@ -1256,7 +1255,7 @@ class TestReadHtml:
             </tr>
         </table>
         """
-        result = read_html(html_table, displayed_only=displayed_only)[0]
+        result = read_html(StringIO(html_table), displayed_only=displayed_only)[0]
         expected = DataFrame({"A": [1, 4], "B": [2, 5]})
         tm.assert_frame_equal(result, expected)
 
@@ -1382,7 +1381,7 @@ class TestReadHtml:
     def test_parse_br_as_space(self):
         # GH 29528: pd.read_html() convert <br> to space
         result = self.read_html(
-            """
+            StringIO("""
             <table>
                 <tr>
                     <th>A</th>
@@ -1392,7 +1391,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
-        )[0]
+                     ))[0]
 
         expected = DataFrame(data=[["word1 word2"]], columns=["A"])
 
@@ -1462,7 +1461,7 @@ class TestReadHtml:
         elif arg == "header":
             head_exp = gh_13141_expected["head_extract"]
 
-        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        result = self.read_html(StringIO(gh_13141_data), extract_links=arg)[0]
         expected = DataFrame([data_exp, foot_exp], columns=head_exp)
         expected = expected.fillna(np.nan, downcast=False)
         tm.assert_frame_equal(result, expected)
@@ -1486,7 +1485,7 @@ class TestReadHtml:
           </tr>
         </table>
         """
-        result = self.read_html(data, extract_links="all")[0]
+        result = self.read_html(StringIO(data), extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
         tm.assert_frame_equal(result, expected)
 
@@ -1519,6 +1518,6 @@ class TestReadHtml:
             </tr>
         </table>
         """
-        result = self.read_html(data)[0]
+        result = self.read_html(StringIO(data))[0]
         expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)
