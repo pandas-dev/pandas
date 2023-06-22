@@ -13,6 +13,20 @@ import pandas._testing as tm
 
 
 class TestDataFrameInterpolate:
+    def test_interpolate_complex(self):
+        # GH#53635
+        ser = Series([complex("1+1j"), float("nan"), complex("2+2j")])
+        assert ser.dtype.kind == "c"
+
+        res = ser.interpolate()
+        expected = Series([ser[0], ser[0] * 1.5, ser[2]])
+        tm.assert_series_equal(res, expected)
+
+        df = ser.to_frame()
+        res = df.interpolate()
+        expected = expected.to_frame()
+        tm.assert_frame_equal(res, expected)
+
     def test_interpolate_datetimelike_values(self, frame_or_series):
         # GH#11312, GH#51005
         orig = Series(date_range("2012-01-01", periods=5))
@@ -69,7 +83,9 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        result = df.interpolate()
+        msg = "DataFrame.interpolate with object dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
         # check we didn't operate inplace GH#45791
@@ -82,7 +98,8 @@ class TestDataFrameInterpolate:
             assert not np.shares_memory(cvalues, result["C"]._values)
             assert not np.shares_memory(dvalues, result["D"]._values)
 
-        res = df.interpolate(inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.interpolate(inplace=True)
         assert res is None
         tm.assert_frame_equal(df, expected)
 
@@ -100,7 +117,9 @@ class TestDataFrameInterpolate:
             }
         )
 
-        result = df.set_index("C").interpolate()
+        msg = "DataFrame.interpolate with object dtype"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.set_index("C").interpolate()
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
         expected.loc[5, "B"] = 9
@@ -120,7 +139,6 @@ class TestDataFrameInterpolate:
                 "A": [1, 2, np.nan, 4],
                 "B": [1, 4, 9, np.nan],
                 "C": [1, 2, 3, 5],
-                "D": list("abcd"),
             }
         )
         msg = (

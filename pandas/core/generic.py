@@ -47,6 +47,7 @@ from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
     ArrayLike,
+    Axes,
     Axis,
     AxisInt,
     CompressionOptions,
@@ -271,7 +272,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _init_mgr(
         cls,
         mgr: Manager,
-        axes,
+        axes: dict[Literal["index", "columns"], Axes | None],
         dtype: DtypeObj | None = None,
         copy: bool_t = False,
     ) -> Manager:
@@ -2900,6 +2901,36 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...    conn.execute(text("SELECT * FROM users")).fetchall()
         [(0, 'User 6'), (1, 'User 7')]
 
+        Use ``method`` to define a callable insertion method to do nothing
+        if there's a primary key conflict on a table in a PostgreSQL database.
+
+        >>> from sqlalchemy.dialects.postgresql import insert
+        >>> def insert_on_conflict_nothing(table, conn, keys, data_iter):
+        ...     # "a" is the primary key in "conflict_table"
+        ...     data = [dict(zip(keys, row)) for row in data_iter]
+        ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
+        ...     result = conn.execute(stmt)
+        ...     return result.rowcount
+        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        0
+
+        For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
+        on a primary key.
+
+        >>> from sqlalchemy.dialects.mysql import insert
+        >>> def insert_on_conflict_update(table, conn, keys, data_iter):
+        ...     # update columns "b" and "c" on primary key conflict
+        ...     data = [dict(zip(keys, row)) for row in data_iter]
+        ...     stmt = (
+        ...         insert(table.table)
+        ...         .values(data)
+        ...     )
+        ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
+        ...     result = conn.execute(stmt)
+        ...     return result.rowcount
+        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        2
+
         Specify the dtype (especially useful for integers with missing values).
         Notice that while pandas is forced to store the data as floating point,
         the database supports nullable integers. When fetching the data with
@@ -3965,7 +3996,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ):
                 return self.copy(deep=None)
         elif self.ndim == 1:
-            # TODO: be consistent here for DataFrame vs Series
             raise TypeError(
                 f"{type(self).__name__}.take requires a sequence of integers, "
                 "not slice."
@@ -7470,6 +7500,39 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         regex: bool_t = False,
         method: Literal["pad", "ffill", "bfill"] | lib.NoDefault = lib.no_default,
     ) -> Self | None:
+        if method is not lib.no_default:
+            warnings.warn(
+                # GH#33302
+                f"The 'method' keyword in {type(self).__name__}.replace is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif limit is not None:
+            warnings.warn(
+                # GH#33302
+                f"The 'limit' keyword in {type(self).__name__}.replace is "
+                "deprecated and will be removed in a future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if (
+            value is lib.no_default
+            and method is lib.no_default
+            and not is_dict_like(to_replace)
+            and regex is False
+        ):
+            # case that goes through _replace_single and defaults to method="pad"
+            warnings.warn(
+                # GH#33302
+                f"{type(self).__name__}.replace without 'value' and with "
+                "non-dict-like 'to_replace' is deprecated "
+                "and will raise in a future version. "
+                "Explicitly specify the new values instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if not (
             is_scalar(to_replace)
             or is_re_compilable(to_replace)
@@ -7882,6 +7945,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        elif np.any(obj.dtypes == object):
+            # GH#53631
+            if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
+                # don't warn in cases that already raise
+                warnings.warn(
+                    f"{type(self).__name__}.interpolate with object dtype is "
+                    "deprecated and will raise in a future version. Call "
+                    "obj.infer_objects(copy=False) before interpolating instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         if method not in fillna_methods:
             axis = self._info_axis_number
 
@@ -9246,6 +9321,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         at_time : Select values at a particular time of the day.
         between_time : Select values between particular times of the day.
 
+        Notes
+        -----
+        .. deprecated:: 2.1.0
+            Please create a mask and filter using `.loc` instead
+
         Examples
         --------
         >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
@@ -9259,7 +9339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the last 3 days:
 
-        >>> ts.last('3D')
+        >>> ts.last('3D') # doctest: +SKIP
                     A
         2018-04-13  3
         2018-04-15  4
@@ -9268,6 +9348,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
         """
+        warnings.warn(
+            "last is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 

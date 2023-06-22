@@ -433,8 +433,12 @@ class TestBasic(Base):
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
 
-    def test_write_index(self, engine):
+    def test_write_index(self, engine, using_copy_on_write, request):
         check_names = engine != "fastparquet"
+        if using_copy_on_write and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet write into index")
+            )
 
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine)
@@ -1213,12 +1217,14 @@ class TestParquetFastParquet(Base):
                 partition_cols=partition_cols,
             )
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_empty_dataframe(self, fp):
         # GH #27339
         df = pd.DataFrame()
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]
 
@@ -1328,6 +1334,7 @@ class TestParquetFastParquet(Base):
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_empty_columns(self, fp):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
