@@ -391,6 +391,11 @@ def test_file_buffered_reader_string(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         xml_obj = f.read()
 
+    if mode == "rb":
+        xml_obj = StringIO(xml_obj.decode())
+    elif mode == "r":
+        xml_obj = StringIO(xml_obj)
+
     df_str = read_xml(xml_obj, parser=parser)
 
     df_expected = DataFrame(
@@ -410,6 +415,11 @@ def test_file_buffered_reader_no_xml_declaration(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         next(f)
         xml_obj = f.read()
+
+    if mode == "rb":
+        xml_obj = StringIO(xml_obj.decode())
+    elif mode == "r":
+        xml_obj = StringIO(xml_obj)
 
     df_str = read_xml(xml_obj, parser=parser)
 
@@ -580,7 +590,7 @@ def test_bad_xpath_lxml(xml_books):
 
 def test_default_namespace(parser):
     df_nmsp = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//ns:row",
         namespaces={"ns": "http://example.com"},
         parser=parser,
@@ -606,7 +616,7 @@ def test_default_namespace(parser):
 
 def test_prefix_namespace(parser):
     df_nmsp = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser=parser,
@@ -630,14 +640,14 @@ def test_prefix_namespace(parser):
 @td.skip_if_no("lxml")
 def test_consistency_default_namespace():
     df_lxml = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//ns:row",
         namespaces={"ns": "http://example.com"},
         parser="lxml",
     )
 
     df_etree = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="etree",
@@ -649,14 +659,14 @@ def test_consistency_default_namespace():
 @td.skip_if_no("lxml")
 def test_consistency_prefix_namespace():
     df_lxml = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="lxml",
     )
 
     df_etree = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="etree",
@@ -693,7 +703,7 @@ def test_none_namespace_prefix(key):
         TypeError, match=("empty namespace prefix is not supported in XPath")
     ):
         read_xml(
-            xml_default_nmsp,
+            StringIO(xml_default_nmsp),
             xpath=".//kml:Placemark",
             namespaces={key: "http://www.opengis.net/kml/2.2"},
             parser="lxml",
@@ -782,7 +792,7 @@ def test_empty_attrs_only(parser):
         ValueError,
         match=("xpath does not return any nodes or attributes"),
     ):
-        read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
+        read_xml(StringIO(xml), xpath="./row", attrs_only=True, parser=parser)
 
 
 def test_empty_elems_only(parser):
@@ -797,7 +807,7 @@ def test_empty_elems_only(parser):
         ValueError,
         match=("xpath does not return any nodes or attributes"),
     ):
-        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
+        read_xml(StringIO(xml), xpath="./row", elems_only=True, parser=parser)
 
 
 @td.skip_if_no("lxml")
@@ -822,8 +832,8 @@ def test_attribute_centric_xml():
       </Stations>
 </TrainSchedule>"""
 
-    df_lxml = read_xml(xml, xpath=".//station")
-    df_etree = read_xml(xml, xpath=".//station", parser="etree")
+    df_lxml = read_xml(StringIO(xml), xpath=".//station")
+    df_etree = read_xml(StringIO(xml), xpath=".//station", parser="etree")
 
     df_iter_lx = read_xml_iterparse(xml, iterparse={"station": ["Name", "coords"]})
     df_iter_et = read_xml_iterparse(
@@ -875,7 +885,10 @@ def test_repeat_names(parser):
   </shape>
 </shapes>"""
     df_xpath = read_xml(
-        xml, xpath=".//shape", parser=parser, names=["type_dim", "shape", "type_edge"]
+        StringIO(xml),
+        xpath=".//shape",
+        parser=parser,
+        names=["type_dim", "shape", "type_edge"],
     )
 
     df_iter = read_xml_iterparse(
@@ -917,7 +930,9 @@ def test_repeat_values_new_names(parser):
     <family>ellipse</family>
   </shape>
 </shapes>"""
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser, names=["name", "group"])
+    df_xpath = read_xml(
+        StringIO(xml), xpath=".//shape", parser=parser, names=["name", "group"]
+    )
 
     df_iter = read_xml_iterparse(
         xml,
@@ -960,7 +975,7 @@ def test_repeat_elements(parser):
   </shape>
 </shapes>"""
     df_xpath = read_xml(
-        xml,
+        StringIO(xml),
         xpath=".//shape",
         parser=parser,
         names=["name", "family", "degrees", "sides"],
@@ -1532,7 +1547,7 @@ def test_comment(parser):
 </shapes>
 <!-- comment after root -->"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1568,7 +1583,7 @@ def test_dtd(parser):
   </shape>
 </shapes>"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1604,7 +1619,7 @@ def test_processing_instruction(parser):
   </shape>
 </shapes>"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1808,7 +1823,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
     with pd.option_context("mode.string_storage", string_storage):
-        result = read_xml(data, parser=parser, dtype_backend=dtype_backend)
+        result = read_xml(StringIO(data), parser=parser, dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {

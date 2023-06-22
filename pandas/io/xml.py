@@ -12,6 +12,7 @@ from typing import (
     Callable,
     Sequence,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,6 +21,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -894,6 +896,9 @@ def read_xml(
         string or a path. The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
+        .. deprecated:: 2.1.0
+            Passing html literal strings is deprecated.
+
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
         XPath should return a collection of elements and not a single
@@ -1068,7 +1073,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml)
+    >>> df = pd.read_xml(SringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1082,7 +1087,7 @@ def read_xml(
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml, xpath=".//row")
+    >>> df = pd.read_xml(StringIO(xml), xpath=".//row")
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1108,7 +1113,7 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(xml,
+    >>> df = pd.read_xml(StringIO(xml),
     ...                  xpath="//doc:row",
     ...                  namespaces={{"doc": "https://example.com"}})
     >>> df
@@ -1118,6 +1123,15 @@ def read_xml(
     2  triangle      180    3.0
     """
     check_dtype_backend(dtype_backend)
+
+    if isinstance(path_or_buffer, str) and "\n" in path_or_buffer:
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return _parse(
         path_or_buffer=path_or_buffer,
