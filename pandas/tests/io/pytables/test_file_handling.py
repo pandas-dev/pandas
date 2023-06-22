@@ -3,7 +3,12 @@ import os
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_little_endian
+from pandas.compat import (
+    PY311,
+    is_ci_environment,
+    is_platform_linux,
+    is_platform_little_endian,
+)
 from pandas.errors import (
     ClosedFileError,
     PossibleDataLossError,
@@ -222,39 +227,44 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
             assert node.filters.complib == "blosc"
 
 
-def test_complibs(tmp_path, setup_path):
+@pytest.mark.parametrize("lvl", range(10))
+@pytest.mark.parametrize("lib", tables.filters.all_complibs)
+@pytest.mark.filterwarnings("ignore:object name is not a valid")
+@pytest.mark.xfail(
+    not PY311 and is_ci_environment() and is_platform_linux(),
+    reason="producing invalid start bytes",
+    raises=UnicodeDecodeError,
+    strict=False,
+)
+def test_complibs(tmp_path, lvl, lib):
     # GH14478
-    df = tm.makeDataFrame()
+    df = DataFrame(
+        np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
+    )
 
-    # Building list of all complibs and complevels tuples
-    all_complibs = tables.filters.all_complibs
     # Remove lzo if its not available on this platform
     if not tables.which_lib_version("lzo"):
-        all_complibs.remove("lzo")
+        pytest.skip("lzo not available")
     # Remove bzip2 if its not available on this platform
     if not tables.which_lib_version("bzip2"):
-        all_complibs.remove("bzip2")
+        pytest.skip("bzip2 not available")
 
-    all_levels = range(0, 10)
-    all_tests = [(lib, lvl) for lib in all_complibs for lvl in all_levels]
+    tmpfile = tmp_path / f"{lvl}_{lib}.h5"
+    gname = f"{lvl}_{lib}"
 
-    for lib, lvl in all_tests:
-        tmpfile = tmp_path / setup_path
-        gname = "foo"
+    # Write and read file to see if data is consistent
+    df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
+    result = read_hdf(tmpfile, gname)
+    tm.assert_frame_equal(result, df)
 
-        # Write and read file to see if data is consistent
-        df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
-        result = read_hdf(tmpfile, gname)
-        tm.assert_frame_equal(result, df)
-
-        # Open file and check metadata for correct amount of compression
-        with tables.open_file(tmpfile, mode="r") as h5table:
-            for node in h5table.walk_nodes(where="/" + gname, classname="Leaf"):
-                assert node.filters.complevel == lvl
-                if lvl == 0:
-                    assert node.filters.complib is None
-                else:
-                    assert node.filters.complib == lib
+    # Open file and check metadata for correct amount of compression
+    with tables.open_file(tmpfile, mode="r") as h5table:
+        for node in h5table.walk_nodes(where="/" + gname, classname="Leaf"):
+            assert node.filters.complevel == lvl
+            if lvl == 0:
+                assert node.filters.complib is None
+            else:
+                assert node.filters.complib == lib
 
 
 @pytest.mark.skipif(
