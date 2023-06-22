@@ -1,6 +1,7 @@
 import string
 
 import numpy as np
+import pytest
 
 import pandas._config.config as cf
 
@@ -207,3 +208,27 @@ def test_multiindex_long_element():
         "cccccccccccccccccccccc',)],\n           )"
     )
     assert str(data) == expected
+
+
+@pytest.mark.parametrize(
+    "data,output",
+    [
+        ([2, complex("nan"), 1], [" 2.0+0.0j", " NaN+0.0j", " 1.0+0.0j"]),
+        ([2, complex("nan"), -1], [" 2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-2, complex("nan"), -1], ["-2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-1.23j, complex("nan"), -1], ["-0.00-1.23j", "  NaN+0.00j", "-1.00+0.00j"]),
+        ([1.23j, complex("nan"), 1.23], [" 0.00+1.23j", "  NaN+0.00j", " 1.23+0.00j"]),
+    ],
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_ser_df_with_complex_nans(data, output, as_frame):
+    # GH#53762
+    obj = pd.Series(data)
+    if as_frame:
+        obj = obj.to_frame(name="val")
+        reprs = [f"{i} {val}" for i, val in enumerate(output)]
+        expected = f"{'val': >{len(reprs[0])}}\n" + "\n".join(reprs)
+    else:
+        reprs = [f"{i}   {val}" for i, val in enumerate(output)]
+        expected = "\n".join(reprs) + "\ndtype: complex128"
+    assert str(obj) == expected
