@@ -11,7 +11,6 @@ from pandas.compat import (
     IS64,
     PYPY,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     CategoricalIndex,
@@ -504,9 +503,10 @@ def test_memory_usage_empty_no_warning():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_no("numba")
+@pytest.mark.single_cpu
 def test_info_compute_numba():
     # GH#51922
+    pytest.importorskip("numba")
     df = DataFrame([[1, 2], [3, 4]])
 
     with option_context("compute.use_numba", True):

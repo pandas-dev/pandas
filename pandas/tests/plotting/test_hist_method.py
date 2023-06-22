@@ -77,39 +77,30 @@ class TestSeriesPlots:
             df.height.hist(layout=[1, 1])
 
     @pytest.mark.slow
-    def test_hist_layout_with_by(self, hist_df):
+    @pytest.mark.parametrize(
+        "by, layout, axes_num, res_layout",
+        [
+            ["gender", (2, 1), 2, (2, 1)],
+            ["gender", (3, -1), 2, (3, 1)],
+            ["category", (4, 1), 4, (4, 1)],
+            ["category", (2, -1), 4, (2, 2)],
+            ["category", (3, -1), 4, (3, 2)],
+            ["category", (-1, 4), 4, (1, 4)],
+            ["classroom", (2, 2), 3, (2, 2)],
+        ],
+    )
+    def test_hist_layout_with_by(self, hist_df, by, layout, axes_num, res_layout):
         df = hist_df
 
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
         # though we don't explicing pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(2, 1))
-        _check_axes_shape(axes, axes_num=2, layout=(2, 1))
+            axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
+        _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.gender, layout=(3, -1))
-        _check_axes_shape(axes, axes_num=2, layout=(3, 1))
-
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(4, 1))
-        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
-
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(2, -1))
-        _check_axes_shape(axes, axes_num=4, layout=(2, 2))
-
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(3, -1))
-        _check_axes_shape(axes, axes_num=4, layout=(3, 2))
-
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.category, layout=(-1, 4))
-        _check_axes_shape(axes, axes_num=4, layout=(1, 4))
-
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=df.classroom, layout=(2, 2))
-        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
+    def test_hist_layout_with_by_shape(self, hist_df):
+        df = hist_df
 
         axes = df.height.hist(by=df.category, layout=(4, 2), figsize=(12, 7))
         _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 7))
@@ -241,18 +232,18 @@ class TestSeriesPlots:
 class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy(self, hist_df):
-        from matplotlib.patches import Rectangle
-
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(hist_df.hist)
 
+    @pytest.mark.slow
+    def test_hist_df_legacy_layout(self):
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 2))
+        df = DataFrame(np.random.randn(10, 2))
         df[2] = to_datetime(
             np.random.randint(
                 812419200000000000,
                 819331200000000000,
-                size=100,
+                size=10,
                 dtype=np.int64,
             )
         )
@@ -262,16 +253,21 @@ class TestDataFramePlots:
         assert not axes[1, 1].get_visible()
 
         _check_plot_works(df[[2]].hist)
-        df = DataFrame(np.random.randn(100, 1))
+
+    @pytest.mark.slow
+    def test_hist_df_legacy_layout2(self):
+        df = DataFrame(np.random.randn(10, 1))
         _check_plot_works(df.hist)
 
+    @pytest.mark.slow
+    def test_hist_df_legacy_layout3(self):
         # make sure layout is handled
-        df = DataFrame(np.random.randn(100, 5))
+        df = DataFrame(np.random.randn(10, 5))
         df[5] = to_datetime(
             np.random.randint(
                 812419200000000000,
                 819331200000000000,
-                size=100,
+                size=10,
                 dtype=np.int64,
             )
         )
@@ -279,44 +275,55 @@ class TestDataFramePlots:
             axes = _check_plot_works(df.hist, layout=(4, 2))
         _check_axes_shape(axes, axes_num=6, layout=(4, 2))
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "kwargs", [{"sharex": True, "sharey": True}, {"figsize": (8, 10)}, {"bins": 5}]
+    )
+    def test_hist_df_legacy_layout_kwargs(self, kwargs):
+        df = DataFrame(np.random.randn(10, 5))
+        df[5] = to_datetime(
+            np.random.randint(
+                812419200000000000,
+                819331200000000000,
+                size=10,
+                dtype=np.int64,
+            )
+        )
         # make sure sharex, sharey is handled
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.hist, sharex=True, sharey=True)
-
         # handle figsize arg
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.hist, figsize=(8, 10))
-
         # check bins argument
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.hist, bins=5)
+            _check_plot_works(df.hist, **kwargs)
 
+    @pytest.mark.slow
+    def test_hist_df_legacy_layout_labelsize_rot(self, frame_or_series):
         # make sure xlabelsize and xrot are handled
-        ser = df[0]
+        obj = frame_or_series(range(10))
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = ser.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
+        axes = obj.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
         _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
 
-        xf, yf = 20, 18
-        xrot, yrot = 30, 40
-        axes = df.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
+    @pytest.mark.slow
+    def test_hist_df_legacy_rectangles(self):
+        from matplotlib.patches import Rectangle
 
-        tm.close()
-
+        ser = Series(range(10))
         ax = ser.hist(cumulative=True, bins=4, density=True)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
 
-        tm.close()
+    @pytest.mark.slow
+    def test_hist_df_legacy_scale(self):
+        ser = Series(range(10))
         ax = ser.hist(log=True)
         # scale of y must be 'log'
         _check_ax_scales(ax, yaxis="log")
 
-        tm.close()
-
+    @pytest.mark.slow
+    def test_hist_df_legacy_external_error(self):
+        ser = Series(range(10))
         # propagate attr exception from matplotlib.Axes.hist
         with tm.external_error_raised(AttributeError):
             ser.hist(foo="bar")
