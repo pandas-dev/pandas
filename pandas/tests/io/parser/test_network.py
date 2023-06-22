@@ -268,7 +268,7 @@ class TestS3:
 
         s3_object = s3_public_bucket_with_data.Object("tips.csv")
 
-        with BytesIO(s3_object["Body"].read()) as buffer:
+        with BytesIO(s3_object.get()["Body"].read()) as buffer:
             result = read_csv(buffer, encoding="utf8")
         assert isinstance(result, DataFrame)
         assert not result.empty
