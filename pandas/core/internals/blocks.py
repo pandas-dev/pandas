@@ -1393,10 +1393,10 @@ class Block(PandasObject):
             )
 
         refs = None
-        arr_inplace = inplace
+        copy = not inplace
         if inplace:
             if using_cow and self.refs.has_reference():
-                arr_inplace = False
+                copy = True
             else:
                 refs = self.refs
 
@@ -1411,7 +1411,7 @@ class Block(PandasObject):
             limit_direction=limit_direction,
             limit_area=limit_area,
             fill_value=fill_value,
-            inplace=arr_inplace,
+            copy=copy,
             **kwargs,
         )
         data = extract_array(new_values, extract_numpy=True)

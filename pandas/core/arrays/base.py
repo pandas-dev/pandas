@@ -768,13 +768,13 @@ class ExtensionArray:
         limit_direction,
         limit_area,
         fill_value,
-        inplace: bool,
+        copy: bool,
         **kwargs,
     ) -> Self:
         """
         See DataFrame.interpolate.__doc__.
         """
-        # NB: we return type(self) even if inplace=True
+        # NB: we return type(self) even if copy=False
         raise NotImplementedError(
             f"{type(self).__name__} does not implement interpolate"
         )

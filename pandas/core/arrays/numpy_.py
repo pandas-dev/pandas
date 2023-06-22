@@ -235,14 +235,14 @@ class PandasArray(  # type: ignore[misc]
         limit_direction,
         limit_area,
         fill_value,
-        inplace: bool,
+        copy: bool,
         **kwargs,
     ) -> Self:
         """
         See NDFrame.interpolate.__doc__.
         """
-        # NB: we return type(self) even if inplace=True
-        if inplace:
+        # NB: we return type(self) even if copy=False
+        if not copy:
             out_data = self._ndarray
         else:
             out_data = self._ndarray.copy()
@@ -258,7 +258,7 @@ class PandasArray(  # type: ignore[misc]
             fill_value=fill_value,
             **kwargs,
         )
-        if inplace:
+        if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
 
