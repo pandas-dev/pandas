@@ -4,8 +4,10 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
+    Any,
     Hashable,
     Sequence,
+    TypeVar,
     cast,
     final,
 )
@@ -87,6 +89,7 @@ if TYPE_CHECKING:
         Series,
     )
 
+T = TypeVar("T")
 # "null slice"
 _NS = slice(None, None)
 _one_ellipsis_message = "indexer may only contain one '...' entry"
@@ -164,7 +167,12 @@ class IndexingMixin:
           DataFrame) and that returns valid output for indexing (one of the above).
           This is useful in method chains, when you don't have a reference to the
           calling object, but would like to base your selection on
-          some value. Note that returning a tuple from a callable is deprecated.
+          some value.
+
+          .. deprecated:: 2.1.0
+
+             Returning a tuple from a callable is deprecated.
+
         - A tuple of row and column indexes. The tuple elements consist of one of the
           above inputs, e.g. ``(0, 1)``.
 
@@ -872,18 +880,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
             maybe_callable = com.apply_if_callable(key, self.obj)
-            if (
-                self.name == "iloc"
-                and callable(key)
-                and isinstance(maybe_callable, tuple)
-            ):
-                warnings.warn(
-                    "Returning a tuple from a callable in iLocation indexing "
-                    "is deprecated and will be removed in a future version",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-            key = maybe_callable
+            key = self._check_deprecated_callable_usage(key, maybe_callable)
         indexer = self._get_setitem_indexer(key)
         self._has_valid_setitem_indexer(key)
 
@@ -1130,6 +1127,17 @@ class _LocationIndexer(NDFrameIndexerBase):
     def _convert_to_indexer(self, key, axis: AxisInt):
         raise AbstractMethodError(self)
 
+    def _check_deprecated_callable_usage(self, key: Any, maybe_callable: T) -> T:
+        # GH53533
+        if self.name == "iloc" and callable(key) and isinstance(maybe_callable, tuple):
+            warnings.warn(
+                "Returning a tuple from a callable in iLocation indexing "
+                "is deprecated and will be removed in a future version",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return maybe_callable
+
     @final
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -1144,17 +1152,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
-            if (
-                self.name == "iloc"
-                and callable(key)
-                and isinstance(maybe_callable, tuple)
-            ):
-                warnings.warn(
-                    "Returning a tuple from a callable in iLocation indexing "
-                    "is deprecated and will be removed in a future version",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            maybe_callable = self._check_deprecated_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key: tuple):
