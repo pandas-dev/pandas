@@ -1267,7 +1267,7 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_resource, s3so):
+    def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
         # GH17200
 
         result = read_json(
@@ -1843,16 +1843,14 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.single_cpu
-    def test_to_s3(self, s3_resource, s3so):
+    def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
         mock_bucket_name, target_file = "pandas-test", "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
-            if target_file in (
-                obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
-            ):
+            if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
                 break
             time.sleep(0.1)
             timeout -= 0.1

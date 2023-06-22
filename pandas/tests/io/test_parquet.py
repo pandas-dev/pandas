@@ -780,7 +780,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_public_bucket, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
@@ -793,7 +793,7 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
         check_round_trip(
@@ -814,7 +814,7 @@ class TestParquetPyArrow(Base):
         ],
     )
     def test_s3_roundtrip_for_dir(
-        self, df_compat, s3_resource, pa, partition_col, s3so
+        self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
         # GH #26388
         expected_df = df_compat.copy()
@@ -1140,7 +1140,7 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, fp, s3so):
         # GH #19134
         check_round_trip(
             df_compat,

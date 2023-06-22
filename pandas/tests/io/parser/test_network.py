@@ -80,7 +80,8 @@ def tips_df(datapath):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.usefixtures("s3_resource")
+@pytest.mark.usefixtures("s3_public_bucket_with_data")
+@pytest.mark.usefixtures("s3_private_bucket_with_data")
 @pytest.mark.xfail(
     reason="CI race condition GH 45433, GH 44584",
     raises=FileNotFoundError,
@@ -215,7 +216,7 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_read_s3_fails(self, s3so):
+    def test_read_s3_fails(self, s3_private_bucket, s3so):
         msg = "The specified bucket does not exist"
         with pytest.raises(OSError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
@@ -260,12 +261,12 @@ class TestS3:
             )
 
     @pytest.mark.single_cpu
-    def test_read_csv_handles_boto_s3_object(self, s3_resource, tips_file):
+    def test_read_csv_handles_boto_s3_object(
+        self, s3_public_bucket_with_data, tips_file
+    ):
         # see gh-16135
 
-        s3_object = s3_resource.meta.client.get_object(
-            Bucket="pandas-test", Key="tips.csv"
-        )
+        s3_object = s3_public_bucket_with_data.Object("tips.csv")
 
         with BytesIO(s3_object["Body"].read()) as buffer:
             result = read_csv(buffer, encoding="utf8")
@@ -280,7 +281,7 @@ class TestS3:
         is_ci_environment(),
         reason="GH: 45651: This test can hang in our CI min_versions build",
     )
-    def test_read_csv_chunked_download(self, s3_resource, caplog, s3so):
+    def test_read_csv_chunked_download(self, s3_public_bucket, caplog, s3so):
         # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
@@ -291,7 +292,7 @@ class TestS3:
 
         buf = BytesIO(str_buf.getvalue().encode("utf-8"))
 
-        s3_resource.Bucket("pandas-test").put_object(Key="large-file.csv", Body=buf)
+        s3_public_bucket.put_object(Key="large-file.csv", Body=buf)
 
         # Possibly some state leaking in between tests.
         # If we don't clear this cache, we saw `GetObject operation: Forbidden`.
