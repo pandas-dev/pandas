@@ -481,6 +481,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat
+        ['a', 'b']
+        Categories (2, object): ['a' < 'b']
+        >>> cat.dtype
+        CategoricalDtype(categories=['a', 'b'], ordered=True,
+        categories_dtype=object)
         """
         return self._dtype
 
@@ -751,6 +761,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+
+        For Series:
+
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.categories
         Index(['a', 'b', 'c'], dtype='object')
@@ -759,6 +772,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='object')
+
+        For Categories:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.categories
+        Index(['a', 'b'], dtype='object')
         """
         return self.dtype.categories
 
@@ -769,6 +788,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+
+        For Series:
+
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.ordered
         False
@@ -777,6 +799,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.ordered
         True
+
+        For Categories:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.ordered
+        True
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=False)
+        >>> cat.ordered
+        False
         """
         return self.dtype.ordered
 

@@ -2465,6 +2465,11 @@ cdef class _Period(PeriodMixin):
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        Examples
+        --------
+        >>> pd.Period.now('H')  # doctest: +SKIP
+        Period('2023-06-12 11:00', 'H')
         """
         return Period(datetime.now(), freq=freq)
 
