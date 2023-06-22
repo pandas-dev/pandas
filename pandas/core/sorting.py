@@ -749,7 +749,7 @@ def compress_group_index(
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
     if len(group_index) and np.all(group_index[1:] >= group_index[:-1]):
-        # GH #####: fast path for sorted group_index
+        # GH 53806: fast path for sorted group_index
         unique_mask = np.concatenate(
             [group_index[:1] > -1, group_index[1:] != group_index[:-1]]
         )
