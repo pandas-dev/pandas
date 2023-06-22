@@ -29,3 +29,8 @@ def kml_cta_rail_lines(xml_data_path):
 @pytest.fixture
 def xsl_flatten_doc(xml_data_path):
     return xml_data_path / "flatten_doc.xsl"
+
+
+@pytest.fixture
+def xsl_row_field_output(xml_data_path):
+    return xml_data_path / "row_field_output.xsl"
