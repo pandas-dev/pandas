@@ -1426,10 +1426,10 @@ class Block(PandasObject):
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
+    def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
-        # only reached with ndim == 2 and axis == 1
-        new_values = algos.diff(self.values, n, axis=axis)
+        # only reached with ndim == 2
+        new_values = algos.diff(self.values, n, axis=1)
         return [self.make_block(values=new_values)]
 
     def shift(
@@ -2067,8 +2067,8 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
-        # only reached with ndim == 2 and axis == 1
+    def diff(self, n: int) -> list[Block]:
+        # only reached with ndim == 2
         # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
         new_values = algos.diff(self.values, n, axis=0)
         return [self.make_block(values=new_values)]
@@ -2191,7 +2191,7 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def diff(self, n: int, axis: AxisInt = 0) -> list[Block]:
+    def diff(self, n: int) -> list[Block]:
         """
         1st discrete difference.
 
@@ -2199,8 +2199,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         ----------
         n : int
             Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
 
         Returns
         -------
@@ -2211,10 +2209,10 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         The arguments here are mimicking shift so they are called correctly
         by apply.
         """
-        # only reached with ndim == 2 and axis == 1
+        # only reached with ndim == 2
         values = self.values
 
-        new_values = values - values.shift(n, axis=axis)
+        new_values = values - values.shift(n, axis=1)
         return [self.make_block(new_values)]
 
     def shift(
