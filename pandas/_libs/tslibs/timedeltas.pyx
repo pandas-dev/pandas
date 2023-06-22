@@ -974,7 +974,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
             "Only resolutions 's', 'ms', 'us', 'ns' are supported."
         )
 
-    td_base._value= value
+    td_base._value = value
     td_base._is_populated = 0
     td_base._creso = reso
     return td_base

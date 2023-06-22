@@ -233,7 +233,7 @@ class Block(PandasObject):
         values,
         placement: BlockPlacement | None = None,
         refs: BlockValuesRefs | None = None,
-    ) -> Block:
+    ) -> Self:
         """Wrap given values in a block of same type as self."""
         # Pre-2.0 we called ensure_wrapped_if_datetimelike because fastparquet
         #  relied on it, as of 2.0 the caller is responsible for this.
@@ -503,6 +503,7 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Array-Like Methods
 
+    @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
@@ -559,7 +560,7 @@ class Block(PandasObject):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Block:
+    def copy(self, deep: bool = True) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -1499,7 +1500,8 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
-    def round(self, decimals: int, using_cow: bool = False) -> Block:
+    @final
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
@@ -1765,9 +1767,7 @@ class EABackedBlock(Block):
 
         if using_cow and self.refs.has_reference():
             values = values.copy()
-            self = self.make_block_same_class(  # type: ignore[assignment]
-                values.T if values.ndim == 2 else values
-            )
+            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
 
         try:
             # Caller is responsible for ensuring matching lengths

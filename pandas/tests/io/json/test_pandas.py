@@ -433,13 +433,13 @@ class TestPandasContainer:
         assert not df._is_mixed_type
 
         data = StringIO(df.to_json())
-        tm.assert_frame_equal(
-            read_json(data, dtype=dict(df.dtypes)),
-            df,
-            check_index_type=False,
-        )
+        result = read_json(data, dtype=dict(df.dtypes))
+        tm.assert_frame_equal(result, df, check_index_type=False)
+
+    def test_frame_empty_to_json(self):
         # GH 7445
-        result = DataFrame({"test": []}, index=[]).to_json(orient="columns")
+        df = DataFrame({"test": []}, index=[])
+        result = df.to_json(orient="columns")
         expected = '{"test":{}}'
         assert result == expected
 

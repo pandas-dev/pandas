@@ -1665,17 +1665,6 @@ class SparseDtype(ExtensionDtype):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-        elif isinstance(self.subtype, CategoricalDtype):
-            # TODO: is this even supported?  It is reached in
-            #  test_dtype_sparse_with_fill_value_not_present_in_data
-            if self.subtype.categories is None or val not in self.subtype.categories:
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
         else:
             dummy = np.empty(0, dtype=self.subtype)
             dummy = ensure_wrapped_if_datetimelike(dummy)

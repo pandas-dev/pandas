@@ -20,6 +20,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
@@ -3366,7 +3367,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: list, sep: str):
+def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 

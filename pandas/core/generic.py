@@ -47,6 +47,7 @@ from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
     ArrayLike,
+    Axes,
     Axis,
     AxisInt,
     CompressionOptions,
@@ -271,7 +272,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def _init_mgr(
         cls,
         mgr: Manager,
-        axes,
+        axes: dict[Literal["index", "columns"], Axes | None],
         dtype: DtypeObj | None = None,
         copy: bool_t = False,
     ) -> Manager:
@@ -3995,7 +3996,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ):
                 return self.copy(deep=None)
         elif self.ndim == 1:
-            # TODO: be consistent here for DataFrame vs Series
             raise TypeError(
                 f"{type(self).__name__}.take requires a sequence of integers, "
                 "not slice."

@@ -42,7 +42,6 @@ from pandas.core.dtypes.cast import (
     maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
     is_integer,
     is_list_like,
@@ -428,19 +427,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
             data = np.array([], dtype=dtype)  # type: ignore[arg-type]
 
-        if not is_array_like(data):
-            try:
-                # probably shared code in sanitize_series
-
-                data = sanitize_array(data, index=None)
-            except ValueError:
-                # NumPy may raise a ValueError on data like [1, []]
-                # we retry with object dtype here.
-                if dtype is None:
-                    dtype = np.dtype(object)
-                    data = np.atleast_1d(np.asarray(data, dtype=dtype))
-                else:
-                    raise
+        try:
+            data = sanitize_array(data, index=None)
+        except ValueError:
+            # NumPy may raise a ValueError on data like [1, []]
+            # we retry with object dtype here.
+            if dtype is None:
+                dtype = np.dtype(object)
+                data = np.atleast_1d(np.asarray(data, dtype=dtype))
+            else:
+                raise
 
         if copy:
             # TODO: avoid double copy when dtype forces cast.

@@ -80,11 +80,11 @@ def test_asfreq_fill_value(series, create_index):
 
 @all_ts
 def test_resample_interpolate(frame):
-    # # 12925
+    # GH#12925
     df = frame
-    tm.assert_frame_equal(
-        df.resample("1T").asfreq().interpolate(), df.resample("1T").interpolate()
-    )
+    result = df.resample("1T").asfreq().interpolate()
+    expected = df.resample("1T").interpolate()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_raises_on_non_datetimelike_index():
@@ -95,7 +95,7 @@ def test_raises_on_non_datetimelike_index():
         "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
-        xp.resample("A").mean()
+        xp.resample("A")
 
 
 @all_ts
@@ -132,12 +132,16 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_nat_index_series(request, freq, series, resample_method):
+@pytest.mark.parametrize(
+    "freq",
+    [
+        pytest.param("M", marks=pytest.mark.xfail(reason="Don't know why this fails")),
+        "D",
+        "H",
+    ],
+)
+def test_resample_nat_index_series(freq, series, resample_method):
     # GH39227
-
-    if freq == "M":
-        request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
 
     ser = series.copy()
     ser.index = PeriodIndex([NaT] * len(ser), freq=freq)

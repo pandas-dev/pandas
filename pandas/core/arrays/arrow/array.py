@@ -1131,13 +1131,7 @@ class ArrowExtensionArray(
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
         """
-        # TODO: Remove once we got rid of the (indices < 0) check
-        if not is_array_like(indices):
-            indices_array = np.asanyarray(indices)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Sequence[int]", variable has type "ndarray")
-            indices_array = indices  # type: ignore[assignment]
+        indices_array = np.asanyarray(indices)
 
         if len(self._pa_array) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
