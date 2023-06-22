@@ -38,39 +38,6 @@ from pandas.io.common import file_path_to_url
 import pandas.io.html
 
 
-def test_literal_html_deprecation():
-    # GH 53785
-    msg = (
-        "Passing literal html to 'read_html' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_html(
-            """<table>
-            <thead>
-                <tr>
-                    <th>A</th>
-                    <th>B</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>2</td>
-                </tr>
-            </tbody>
-            <tbody>
-                <tr>
-                    <td>3</td>
-                    <td>4</td>
-                </tr>
-            </tbody>
-        </table>"""
-        )
-
-
 @pytest.fixture(
     params=[
         "chinese_utf-16.html",
@@ -141,6 +108,38 @@ def test_same_ordering(datapath):
     ],
 )
 class TestReadHtml:
+    def test_literal_html_deprecation(self):
+        # GH 53785
+        msg = (
+            "Passing literal html to 'read_html' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            self.read_html(
+                """<table>
+                <thead>
+                    <tr>
+                        <th>A</th>
+                        <th>B</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2</td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>3</td>
+                        <td>4</td>
+                    </tr>
+                </tbody>
+            </table>"""
+            )
+
     @pytest.fixture
     def spam_data(self, datapath):
         return datapath("io", "data", "html", "spam.html")
