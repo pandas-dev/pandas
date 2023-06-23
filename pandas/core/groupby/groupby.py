@@ -3248,7 +3248,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if obj.ndim == 1:
                 result = described
             else:
-                result = described.unstack(sort=False)
+                result = described.unstack()
             return result.to_frame().T.iloc[:0]
 
         with com.temp_setattr(self, "as_index", True):

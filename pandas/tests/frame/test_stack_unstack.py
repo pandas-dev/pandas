@@ -47,12 +47,9 @@ class TestDataFrameReshape:
 
         # flat columns:
         df = DataFrame(1, index=levels[0], columns=levels[1])
-        with pytest.raises(
-            TypeError, match="'<' not supported between instances of 'int' and 'str'"
-        ):
-            result = df.stack()
-        # expected = Series(1, index=MultiIndex.from_product(levels[:2]))
-        # tm.assert_series_equal(result, expected)
+        result = df.stack()
+        expected = Series(1, index=MultiIndex.from_product(levels[:2]))
+        tm.assert_series_equal(result, expected)
 
         # MultiIndex columns:
         df = DataFrame(1, index=levels[0], columns=MultiIndex.from_product(levels[1:]))
@@ -1091,8 +1088,9 @@ class TestDataFrameReshape:
 
         # `MultiIndex.from_product` preserves categorical dtype -
         # it's tested elsewhere.
-        midx = MultiIndex.from_product([df.index, cidx.sort_values()])
-        expected = Series([11, 10, 12], index=midx)
+        midx = MultiIndex.from_product([df.index, cidx])
+        expected = Series([10, 11, 12], index=midx)
+
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
@@ -1540,8 +1538,7 @@ class TestStackUnstackMultiLevel:
         # columns unsorted
         unstacked = ymd.unstack()
         restacked = unstacked.stack()
-        expected = ymd.sort_index(axis=1, ascending=False)
-        tm.assert_frame_equal(restacked, expected)
+        tm.assert_frame_equal(restacked, ymd)
 
         # more than 2 levels in the columns
         unstacked = ymd.unstack(1).unstack(1)
@@ -2030,12 +2027,12 @@ Thu,Lunch,Yes,51.51,17"""
         result = df.stack(stack_lev, sort=True)
         expected_index = MultiIndex(
             levels=[[0, 1, 2, 3], [0, 1]],
-            codes=[[1, 1, 0, 0, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]],
+            codes=[[1, 1, 0, 0, 2, 2, 3, 3], [1, 0, 1, 0, 1, 0, 1, 0]],
         )
         expected = DataFrame(
             {
-                0: [1, 0, 1, 0, 1, 0, 1, 0],
-                1: [3, 2, 3, 2, 3, 2, 3, 2],
+                0: [0, 1, 0, 1, 0, 1, 0, 1],
+                1: [2, 3, 2, 3, 2, 3, 2, 3],
             },
             index=expected_index,
         )
