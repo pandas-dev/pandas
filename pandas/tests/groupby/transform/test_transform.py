@@ -697,6 +697,36 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
+@pytest.fixture
+def frame():
+    floating = Series(np.random.randn(10))
+    floating_missing = floating.copy()
+    floating_missing.iloc[2:7] = np.nan
+    strings = list("abcde") * 2
+    strings_missing = strings[:]
+    strings_missing[5] = np.nan
+
+    df = DataFrame(
+        {
+            "float": floating,
+            "float_missing": floating_missing,
+            "int": [1, 1, 1, 1, 2] * 2,
+            "datetime": date_range("1990-1-1", periods=10),
+            "timedelta": pd.timedelta_range(1, freq="s", periods=10),
+            "string": strings,
+            "string_missing": strings_missing,
+            "cat": Categorical(strings),
+        },
+    )
+    return df
+
+
+@pytest.fixture
+def frame_mi(frame):
+    frame.index = MultiIndex.from_product([range(5), range(2)])
+    return frame
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
@@ -707,100 +737,110 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
         ("shift", (1,), lambda x: x.shift()),
     ],
 )
-def test_cython_transform_frame(op, args, targop):
-    s = Series(np.random.randn(1000))
-    s_missing = s.copy()
-    s_missing.iloc[2:10] = np.nan
-    labels = np.random.randint(0, 50, size=1000).astype(float)
-    strings = list("qwertyuiopasdfghjklz")
-    strings_missing = strings[:]
-    strings_missing[5] = np.nan
-    df = DataFrame(
-        {
-            "float": s,
-            "float_missing": s_missing,
-            "int": [1, 1, 1, 1, 2] * 200,
-            "datetime": date_range("1990-1-1", periods=1000),
-            "timedelta": pd.timedelta_range(1, freq="s", periods=1000),
-            "string": strings * 50,
-            "string_missing": strings_missing * 50,
-        },
-        columns=[
-            "float",
-            "float_missing",
-            "int",
-            "datetime",
-            "timedelta",
-            "string",
-            "string_missing",
-        ],
-    )
-    df["cat"] = df["string"].astype("category")
+@pytest.mark.parametrize("df_fix", ["frame", "frame_mi"])
+@pytest.mark.parametrize(
+    "gb_target",
+    [
+        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"level": 0},
+        {"by": "string"},
+        # {"by": 'string_missing'}]:
+        # {"by": ['int','string']}]:
+        # TODO: remove or enable commented-out code
+    ],
+)
+def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
+    df = request.getfixturevalue(df_fix)
+    gb = df.groupby(group_keys=False, **gb_target)
 
-    df2 = df.copy()
-    df2.index = MultiIndex.from_product([range(100), range(10)])
+    if op != "shift" and "int" not in gb_target:
+        # numeric apply fastpath promotes dtype so have
+        # to apply separately and concat
+        i = gb[["int"]].apply(targop)
+        f = gb[["float", "float_missing"]].apply(targop)
+        expected = concat([f, i], axis=1)
+    else:
+        expected = gb.apply(targop)
 
-    # DataFrame - Single and MultiIndex,
-    # group by values, index level, columns
-    for df in [df, df2]:
-        for gb_target in [
-            {"by": labels},
-            {"level": 0},
-            {"by": "string"},
-        ]:  # {"by": 'string_missing'}]:
-            # {"by": ['int','string']}]:
-            # TODO: remove or enable commented-out code
+    expected = expected.sort_index(axis=1)
+    if op == "shift":
+        expected["string_missing"] = expected["string_missing"].fillna(
+            np.nan, downcast=False
+        )
+        expected["string"] = expected["string"].fillna(np.nan, downcast=False)
 
-            gb = df.groupby(group_keys=False, **gb_target)
+    result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
+    tm.assert_frame_equal(result, expected)
+    result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
+    tm.assert_frame_equal(result, expected)
 
-            if op != "shift" and "int" not in gb_target:
-                # numeric apply fastpath promotes dtype so have
-                # to apply separately and concat
-                i = gb[["int"]].apply(targop)
-                f = gb[["float", "float_missing"]].apply(targop)
-                expected = concat([f, i], axis=1)
-            else:
-                expected = gb.apply(targop)
 
-            expected = expected.sort_index(axis=1)
-            if op == "shift":
-                expected["string_missing"] = expected["string_missing"].fillna(
-                    np.nan, downcast=False
-                )
-                expected["string"] = expected["string"].fillna(np.nan, downcast=False)
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "op, args, targop",
+    [
+        ("cumprod", (), lambda x: x.cumprod()),
+        ("cumsum", (), lambda x: x.cumsum()),
+        ("shift", (-1,), lambda x: x.shift(-1)),
+        ("shift", (1,), lambda x: x.shift()),
+    ],
+)
+@pytest.mark.parametrize("df_fix", ["frame", "frame_mi"])
+@pytest.mark.parametrize(
+    "gb_target",
+    [
+        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"level": 0},
+        {"by": "string"},
+        # {"by": 'string_missing'}]:
+        # {"by": ['int','string']}]:
+        # TODO: remove or enable commented-out code
+    ],
+)
+@pytest.mark.parametrize(
+    "column",
+    [
+        "float",
+        "float_missing",
+        "int",
+        "datetime",
+        "timedelta",
+        "string",
+        "string_missing",
+    ],
+)
+def test_cython_transform_frame_column(
+    request, op, args, targop, df_fix, gb_target, column
+):
+    df = request.getfixturevalue(df_fix)
+    gb = df.groupby(group_keys=False, **gb_target)
+    c = column
+    if (
+        c not in ["float", "int", "float_missing"]
+        and op != "shift"
+        and not (c == "timedelta" and op == "cumsum")
+    ):
+        msg = "|".join(
+            [
+                "does not support .* operations",
+                ".* is not supported for object dtype",
+                "is not implemented for this dtype",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            gb[c].transform(op)
+        with pytest.raises(TypeError, match=msg):
+            getattr(gb[c], op)()
+    else:
+        expected = gb[c].apply(targop)
+        expected.name = c
+        if c in ["string_missing", "string"]:
+            expected = expected.fillna(np.nan, downcast=False)
 
-            result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
-            result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
-            # individual columns
-            for c in df:
-                if (
-                    c not in ["float", "int", "float_missing"]
-                    and op != "shift"
-                    and not (c == "timedelta" and op == "cumsum")
-                ):
-                    msg = "|".join(
-                        [
-                            "does not support .* operations",
-                            ".* is not supported for object dtype",
-                            "is not implemented for this dtype",
-                        ]
-                    )
-                    with pytest.raises(TypeError, match=msg):
-                        gb[c].transform(op)
-                    with pytest.raises(TypeError, match=msg):
-                        getattr(gb[c], op)()
-                else:
-                    expected = gb[c].apply(targop)
-                    expected.name = c
-                    if c in ["string_missing", "string"]:
-                        expected = expected.fillna(np.nan, downcast=False)
-
-                    res = gb[c].transform(op, *args)
-                    tm.assert_series_equal(expected, res)
-                    res2 = getattr(gb[c], op)(*args)
-                    tm.assert_series_equal(expected, res2)
+        res = gb[c].transform(op, *args)
+        tm.assert_series_equal(expected, res)
+        res2 = getattr(gb[c], op)(*args)
+        tm.assert_series_equal(expected, res2)
 
 
 def test_transform_with_non_scalar_group():

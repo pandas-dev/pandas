@@ -51,7 +51,20 @@ class TestDataFramePlots:
         )
 
     @pytest.mark.slow
-    def test_boxplot_legacy1(self):
+    @pytest.mark.parametrize(
+        "kwargs, warn",
+        [
+            [{"return_type": "dict"}, None],
+            [{"column": ["one", "two"]}, None],
+            [{"column": ["one", "two"], "by": "indic"}, UserWarning],
+            [{"column": ["one"], "by": ["indic", "indic2"]}, None],
+            [{"by": "indic"}, UserWarning],
+            [{"by": ["indic", "indic2"]}, UserWarning],
+            [{"notch": 1}, None],
+            [{"by": "indic", "notch": 1}, UserWarning],
+        ],
+    )
+    def test_boxplot_legacy1(self, kwargs, warn):
         df = DataFrame(
             np.random.randn(6, 4),
             index=list(string.ascii_letters[:6]),
@@ -60,20 +73,13 @@ class TestDataFramePlots:
         df["indic"] = ["foo", "bar"] * 3
         df["indic2"] = ["foo", "bar", "foo"] * 2
 
-        _check_plot_works(df.boxplot, return_type="dict")
-        _check_plot_works(df.boxplot, column=["one", "two"], return_type="dict")
-        # _check_plot_works adds an ax so catch warning. see GH #13188
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, column=["one", "two"], by="indic")
-        _check_plot_works(df.boxplot, column="one", by=["indic", "indic2"])
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by="indic")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by=["indic", "indic2"])
-        _check_plot_works(plotting._core.boxplot, data=df["one"], return_type="dict")
-        _check_plot_works(df.boxplot, notch=1, return_type="dict")
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            _check_plot_works(df.boxplot, by="indic", notch=1)
+        # _check_plot_works can add an ax so catch warning. see GH #13188
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            _check_plot_works(df.boxplot, **kwargs)
+
+    def test_boxplot_legacy1_series(self):
+        ser = Series(np.random.randn(6))
+        _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
 
     def test_boxplot_legacy2(self):
         df = DataFrame(np.random.rand(10, 2), columns=["Col1", "Col2"])
@@ -347,17 +353,21 @@ class TestDataFrameGroupByPlots:
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
         _check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
-    def test_boxplot_legacy3(self):
+    @pytest.mark.parametrize(
+        "subplots, warn, axes_num, layout",
+        [[True, UserWarning, 3, (2, 2)], [False, None, 1, (1, 1)]],
+    )
+    def test_boxplot_legacy3(self, subplots, warn, axes_num, layout):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(np.random.rand(10, 3), index=MultiIndex.from_tuples(tuples))
         msg = "DataFrame.groupby with axis=1 is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             grouped = df.unstack(level=1).groupby(level=0, axis=1)
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(grouped.boxplot, return_type="axes")
-        _check_axes_shape(list(axes.values), axes_num=3, layout=(2, 2))
-        axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
-        _check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        with tm.assert_produces_warning(warn, check_stacklevel=False):
+            axes = _check_plot_works(
+                grouped.boxplot, subplots=subplots, return_type="axes"
+            )
+        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     def test_grouped_plot_fignums(self):
         n = 10

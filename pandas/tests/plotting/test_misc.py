@@ -23,6 +23,7 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+cm = pytest.importorskip("matplotlib.cm")
 
 
 @td.skip_if_mpl
@@ -138,9 +139,7 @@ class TestDataFramePlots:
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
     @pytest.mark.slow
-    def test_andrews_curves(self, iris):
-        from matplotlib import cm
-
+    def test_andrews_curves_no_warning(self, iris):
         from pandas.plotting import andrews_curves
 
         df = iris
@@ -148,58 +147,74 @@ class TestDataFramePlots:
         with tm.assert_produces_warning(None):
             _check_plot_works(andrews_curves, frame=df, class_column="Name")
 
-        rgba = ("#556270", "#4ECDC4", "#C7F464")
-        ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=rgba
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "linecolors",
+        [
+            ("#556270", "#4ECDC4", "#C7F464"),
+            ["dodgerblue", "aquamarine", "seagreen"],
+        ],
+    )
+    @pytest.mark.parametrize(
+        "df",
+        [
+            "iris",
+            DataFrame(
+                {
+                    "A": np.random.rand(10),
+                    "B": np.random.rand(10),
+                    "C": np.random.rand(10),
+                    "Name": ["A"] * 10,
+                }
+            ),
+        ],
+    )
+    def test_andrews_curves_linecolors(self, request, df, linecolors):
+        from pandas.plotting import andrews_curves
 
-        cnames = ["dodgerblue", "aquamarine", "seagreen"]
+        if isinstance(df, str):
+            df = request.getfixturevalue(df)
         ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=cnames
+            andrews_curves, frame=df, class_column="Name", color=linecolors
         )
-        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
+        _check_colors(
+            ax.get_lines()[:10], linecolors=linecolors, mapping=df["Name"][:10]
+        )
 
-        ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", colormap=cm.jet
-        )
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "df",
+        [
+            "iris",
+            DataFrame(
+                {
+                    "A": np.random.rand(10),
+                    "B": np.random.rand(10),
+                    "C": np.random.rand(10),
+                    "Name": ["A"] * 10,
+                }
+            ),
+        ],
+    )
+    def test_andrews_curves_cmap(self, request, df):
+        from pandas.plotting import andrews_curves
+
+        if isinstance(df, str):
+            df = request.getfixturevalue(df)
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
+        ax = _check_plot_works(
+            andrews_curves, frame=df, class_column="Name", color=cmaps
+        )
         _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
 
-        length = 10
-        df = DataFrame(
-            {
-                "A": np.random.rand(length),
-                "B": np.random.rand(length),
-                "C": np.random.rand(length),
-                "Name": ["A"] * length,
-            }
-        )
-
-        _check_plot_works(andrews_curves, frame=df, class_column="Name")
-
-        rgba = ("#556270", "#4ECDC4", "#C7F464")
-        ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=rgba
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
-
-        cnames = ["dodgerblue", "aquamarine", "seagreen"]
-        ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", color=cnames
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
-
-        ax = _check_plot_works(
-            andrews_curves, frame=df, class_column="Name", colormap=cm.jet
-        )
-        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
+    @pytest.mark.slow
+    def test_andrews_curves_handle(self):
+        from pandas.plotting import andrews_curves
 
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
         ax = andrews_curves(df, "Name", color=colors)
-        handles, labels = ax.get_legend_handles_labels()
+        handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
     @pytest.mark.slow
