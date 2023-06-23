@@ -116,6 +116,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -4191,7 +4192,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind == "f":
+        if lib.is_np_dtype(self.dtype, "f"):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             return self.slice_indexer(start, stop, step)
@@ -6046,7 +6047,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
-        if keyarr.dtype.kind in "mM":
+        if lib.is_np_dtype(keyarr.dtype, "mM") or isinstance(
+            keyarr.dtype, DatetimeTZDtype
+        ):
             # DTI/TDI.take can infer a freq in some cases when we dont want one
             if isinstance(key, list) or (
                 isinstance(key, type(self))
@@ -7547,6 +7550,12 @@ def _unpack_nested_dtype(other: Index) -> Index:
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
         return dtype.categories
+    elif isinstance(dtype, ArrowDtype):
+        # GH 53617
+        import pyarrow as pa
+
+        if pa.types.is_dictionary(dtype.pyarrow_dtype):
+            other = other.astype(ArrowDtype(dtype.pyarrow_dtype.value_type))
     return other
 
 

@@ -1892,7 +1892,9 @@ class TimeGrouper(Grouper):
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
@@ -2023,8 +2025,10 @@ class TimeGrouper(Grouper):
 
         freq = self.freq
 
-        if not len(ax):
-            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
+        if len(ax) == 0:
+            binner = labels = PeriodIndex(
+                data=[], freq=freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
