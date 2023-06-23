@@ -19,6 +19,11 @@ tslibs_sources = {
     'vectorized': {'sources': ['vectorized.pyx']},
 }
 
+cython_args = ['--include-dir', meson.current_build_dir()]
+if get_option('buildtype') == 'debug'
+    cython_args += ['--gdb']
+endif
+
 foreach ext_name, ext_dict : tslibs_sources
     py.extension_module(
         ext_name,

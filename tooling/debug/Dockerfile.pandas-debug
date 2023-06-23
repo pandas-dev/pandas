@@ -1,0 +1,35 @@
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -y build-essential git valgrind
+
+# cpython dev install
+RUN git clone -b 3.10 --depth 1 https://github.com/python/cpython.git /clones/cpython
+RUN apt-get install -y libbz2-dev libffi-dev libssl-dev zlib1g-dev liblzma-dev libsqlite3-dev libreadline-dev
+RUN cd /clones/cpython && ./configure --with-pydebug && CFLAGS="-g3" make -s -j$(nproc) && make install
+
+# gdb installation
+RUN apt-get install -y wget libgmp-dev
+RUN cd /tmp && wget http://mirrors.kernel.org/sourceware/gdb/releases/gdb-12.1.tar.gz && tar -zxf gdb-12.1.tar.gz
+RUN cd /tmp/gdb-12.1 && ./configure --with-python=python3 && make -j$(nproc) && make install
+RUN rm -r /tmp/gdb-12.1
+
+# pandas dependencies
+RUN python3 -m pip install \
+    cython \
+    hypothesis \
+    ninja \
+    numpy \
+    meson \
+    meson-python \
+    pytest \
+    pytest-asyncio \
+    python-dateutil \
+    pytz \
+    versioneer[toml]
+
+# At the time this docker image was built, there was a bug/limitation
+# with meson where only having a python3 executable and not python
+# would cause the build to fail. This symlink could be removed if
+# users stick to always calling python3 within the container
+RUN ln -s /usr/local/bin/python3 /usr/local/bin/python
