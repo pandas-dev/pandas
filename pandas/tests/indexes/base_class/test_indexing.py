@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
+
 import pandas as pd
 from pandas import (
     Index,
@@ -40,14 +42,15 @@ class TestGetIndexerNonUnique:
 
 class TestGetLoc:
     @pytest.mark.slow  # to_flat_index takes a while
-    def test_get_loc_tuple_monotonic_above_size_cutoff(self):
+    def test_get_loc_tuple_monotonic_above_size_cutoff(self, monkeypatch):
         # Go through the libindex path for which using
         # _bin_search vs ndarray.searchsorted makes a difference
 
-        lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        dti = pd.date_range("2016-01-01", periods=100)
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+        lev = list("ABCD")
+        dti = pd.date_range("2016-01-01", periods=10)
 
-        mi = pd.MultiIndex.from_product([lev, range(10**3), dti])
+        mi = pd.MultiIndex.from_product([lev, range(5), dti])
         oidx = mi.to_flat_index()
 
         loc = len(oidx) // 2

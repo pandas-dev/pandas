@@ -682,59 +682,74 @@ class TestDataFrameGroupByPlots:
         tm.close()
 
     @pytest.mark.slow
-    def test_grouped_hist_layout(self, hist_df):
+    @pytest.mark.parametrize(
+        "msg, plot_col, by_col, layout",
+        [
+            [
+                "Layout of 1x1 must be larger than required size 2",
+                "weight",
+                "gender",
+                (1, 1),
+            ],
+            [
+                "Layout of 1x3 must be larger than required size 4",
+                "height",
+                "category",
+                (1, 3),
+            ],
+            [
+                "At least one dimension of layout must be positive",
+                "height",
+                "category",
+                (-1, -1),
+            ],
+        ],
+    )
+    def test_grouped_hist_layout_error(self, hist_df, msg, plot_col, by_col, layout):
         df = hist_df
-        msg = "Layout of 1x1 must be larger than required size 2"
         with pytest.raises(ValueError, match=msg):
-            df.hist(column="weight", by=df.gender, layout=(1, 1))
+            df.hist(column=plot_col, by=getattr(df, by_col), layout=layout)
 
-        msg = "Layout of 1x3 must be larger than required size 4"
-        with pytest.raises(ValueError, match=msg):
-            df.hist(column="height", by=df.category, layout=(1, 3))
-
-        msg = "At least one dimension of layout must be positive"
-        with pytest.raises(ValueError, match=msg):
-            df.hist(column="height", by=df.category, layout=(-1, -1))
-
+    @pytest.mark.slow
+    def test_grouped_hist_layout_warning(self, hist_df):
+        df = hist_df
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(
                 df.hist, column="height", by=df.gender, layout=(2, 1)
             )
         _check_axes_shape(axes, axes_num=2, layout=(2, 1))
 
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(
-                df.hist, column="height", by=df.gender, layout=(2, -1)
-            )
-        _check_axes_shape(axes, axes_num=2, layout=(2, 1))
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "layout, check_layout, figsize",
+        [[(4, 1), (4, 1), None], [(-1, 1), (4, 1), None], [(4, 2), (4, 2), (12, 8)]],
+    )
+    def test_grouped_hist_layout_figsize(self, hist_df, layout, check_layout, figsize):
+        df = hist_df
+        axes = df.hist(column="height", by=df.category, layout=layout, figsize=figsize)
+        _check_axes_shape(axes, axes_num=4, layout=check_layout, figsize=figsize)
 
-        axes = df.hist(column="height", by=df.category, layout=(4, 1))
-        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
-
-        axes = df.hist(column="height", by=df.category, layout=(-1, 1))
-        _check_axes_shape(axes, axes_num=4, layout=(4, 1))
-
-        axes = df.hist(column="height", by=df.category, layout=(4, 2), figsize=(12, 8))
-        _check_axes_shape(axes, axes_num=4, layout=(4, 2), figsize=(12, 8))
-        tm.close()
-
+    @pytest.mark.slow
+    @pytest.mark.parametrize("kwargs", [{}, {"column": "height", "layout": (2, 2)}])
+    def test_grouped_hist_layout_by_warning(self, hist_df, kwargs):
+        df = hist_df
         # GH 6769
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(
-                df.hist, column="height", by="classroom", layout=(2, 2)
-            )
+            axes = _check_plot_works(df.hist, by="classroom", **kwargs)
         _check_axes_shape(axes, axes_num=3, layout=(2, 2))
 
-        # without column
-        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.hist, by="classroom")
-        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
-
-        axes = df.hist(by="gender", layout=(3, 5))
-        _check_axes_shape(axes, axes_num=2, layout=(3, 5))
-
-        axes = df.hist(column=["height", "weight", "category"])
-        _check_axes_shape(axes, axes_num=3, layout=(2, 2))
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "kwargs, axes_num, layout",
+        [
+            [{"by": "gender", "layout": (3, 5)}, 2, (3, 5)],
+            [{"column": ["height", "weight", "category"]}, 3, (2, 2)],
+        ],
+    )
+    def test_grouped_hist_layout_axes(self, hist_df, kwargs, axes_num, layout):
+        df = hist_df
+        axes = df.hist(**kwargs)
+        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     def test_grouped_hist_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
