@@ -1441,8 +1441,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
         arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if not isinstance(dtype, np.dtype):
-        # i.e ExtensionDtype
+    if not isinstance(arr, np.ndarray):
+        # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
             if axis != 0:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
