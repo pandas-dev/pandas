@@ -1111,8 +1111,10 @@ class TestDataFrameReshape:
         df = DataFrame([sorted(data)], columns=midx)
         result = df.stack([0, 1])
 
-        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
-        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
+        s_cidx = pd.CategoricalIndex(labels, ordered=ordered)
+        expected = Series(
+            sorted(data), index=MultiIndex.from_product([[0], s_cidx, cidx2])
+        )
 
         tm.assert_series_equal(result, expected)
 
@@ -2186,14 +2188,14 @@ Thu,Lunch,Yes,51.51,17"""
         )
         result = df.stack(2)
         expected = DataFrame(
-            [[np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0], [0.0, np.nan, np.nan]],
+            [[0.0, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0]],
             index=MultiIndex(
-                levels=[[0], [0.0, 1.0, np.nan]],
-                codes=[[0, 0, 0], [0, 1, 2]],
+                levels=[[0], [0.0, 1.0]],
+                codes=[[0, 0, 0], [-1, 0, 1]],
             ),
             columns=MultiIndex(
-                levels=[[0], [np.nan, 2.0, 3.0]],
-                codes=[[0, 0, 0], [0, 1, 2]],
+                levels=[[0], [2, 3]],
+                codes=[[0, 0, 0], [-1, 0, 1]],
             ),
         )
         tm.assert_frame_equal(result, expected)
@@ -2212,20 +2214,20 @@ Thu,Lunch,Yes,51.51,17"""
         expected = DataFrame(
             [
                 [0, np.nan],
-                [np.nan, 2],
                 [1, np.nan],
+                [np.nan, 2],
                 [np.nan, 3],
                 [4, np.nan],
-                [np.nan, 6],
                 [5, np.nan],
+                [np.nan, 6],
                 [np.nan, 7],
             ],
             columns=["A", "B"],
             index=MultiIndex.from_arrays(
                 [
                     [0] * 4 + [1] * 4,
-                    pd.Categorical(list("aabbaabb")),
-                    pd.Categorical(list("cdcdcdcd")),
+                    pd.Categorical(list("abababab")),
+                    pd.Categorical(list("ccddccdd")),
                 ]
             ),
         )
@@ -2241,18 +2243,17 @@ Thu,Lunch,Yes,51.51,17"""
             index=Index([0, 1], name="Num"),
             dtype=np.float64,
         )
-        with pytest.raises(
-            TypeError, match="'<' not supported between instances of 'float' and 'str'"
-        ):
-            df_nan.stack()
-        # expected = DataFrame(
-        #     [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
-        #     columns=Index(["A", "B"], name="Upper"),
-        #     index=MultiIndex.from_tuples(
-        #         [(0, np.nan), (0, "b"), (1, np.nan), (1, "b")], names=["Num", "Lower"]
-        #     ),
-        # )
-        # tm.assert_frame_equal(result, expected)
+        result = df_nan.stack()
+        expected = DataFrame(
+            [[0.0, np.nan], [np.nan, 1], [2.0, np.nan], [np.nan, 3.0]],
+            columns=Index(["A", "B"], name="Upper"),
+            index=MultiIndex(
+                levels=[[0, 1], [np.nan, "b"]],
+                codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                names=["Num", "Lower"],
+            ),
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_unstack_categorical_columns(self):
         # GH 14018

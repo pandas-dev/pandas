@@ -972,10 +972,7 @@ def stack_v2(frame, level: list[int], dropna: bool = True, sort: bool = True):
     # sort result, but faster than calling sort_index since we know the order we need
     len_df = len(frame)
     n_uniques = len(ordered_stack_cols_unique)
-    if sort:
-        indexer = np.argsort(stack_cols_unique.to_numpy(), kind="stable")
-    else:
-        indexer = np.arange(n_uniques)
+    indexer = np.arange(n_uniques)
     idxs = np.tile(len_df * indexer, len_df) + np.repeat(np.arange(len_df), n_uniques)
     result = result.take(idxs)
 
