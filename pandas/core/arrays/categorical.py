@@ -481,6 +481,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat
+        ['a', 'b']
+        Categories (2, object): ['a' < 'b']
+        >>> cat.dtype
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         """
         return self._dtype
 
@@ -751,6 +760,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+
+        For Series:
+
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.categories
         Index(['a', 'b', 'c'], dtype='object')
@@ -759,6 +771,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='object')
+
+        For Categorical:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.categories
+        Index(['a', 'b'], dtype='object')
         """
         return self.dtype.categories
 
@@ -769,6 +787,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+
+        For Series:
+
         >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
         >>> ser.cat.ordered
         False
@@ -777,6 +798,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.ordered
         True
+
+        For Categorical:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.ordered
+        True
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=False)
+        >>> cat.ordered
+        False
         """
         return self.dtype.ordered
 
@@ -795,6 +826,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         ndarray[int]
             A non-writable view of the `codes` array.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.codes
+        array([0, 1], dtype=int8)
         """
         v = self._codes.view()
         v.flags.writeable = False
@@ -1492,6 +1529,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
+
+        Examples
+        --------
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+
+        The following calls ``cat.__array__``
+
+        >>> np.asarray(cat)
+        array(['a', 'b'], dtype=object)
         """
         ret = take_nd(self.categories._values, self._codes)
         if dtype and np.dtype(dtype) != self.categories.dtype:
