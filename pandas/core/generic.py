@@ -3808,7 +3808,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             pair to a single ling. To prevent downstream reading issues
             this char will be removed from the df.attrs if present.
             Complement of pd.read_csv's 'comment' param.
-            
+
         Returns
         -------
         None or str
