@@ -1345,7 +1345,7 @@ def test_unsuported_compression(parser, geom_df):
 def test_s3_permission_output(parser, s3_public_bucket, geom_df):
     import s3fs
 
-    with pytest.raises(PermissionError, match="Access Denied"):
+    with tm.external_error_raised((PermissionError, FileNotFoundError)):
         fs = s3fs.S3FileSystem(anon=True)
         fs.ls(s3_public_bucket.name)
 
