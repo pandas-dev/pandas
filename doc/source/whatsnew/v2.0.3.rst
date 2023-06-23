@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
+- For external ExtensionArray implementations, restored the default use of ``_values_for_factorize`` for hashing arrays (:issue:`53475`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -21,10 +22,14 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :func:`DataFrame.convert_dtype` and :func:`Series.convert_dtype` when trying to convert :class:`ArrowDtype` with ``dtype_backend="nullable_numpy"`` (:issue:`53648`)
 - Bug in :func:`RangeIndex.union` when using ``sort=True`` with another :class:`RangeIndex` (:issue:`53490`)
+- Bug in :func:`Series.reindex` when expanding a non-nanosecond datetime or timedelta :class:`Series` would not fill with ``NaT`` correctly (:issue:`53497`)
 - Bug in :func:`read_csv` when defining ``dtype`` with ``bool[pyarrow]`` for the ``"c"`` and ``"python"`` engines (:issue:`53390`)
 - Bug in :meth:`Series.str.split` and :meth:`Series.str.rsplit` with ``expand=True`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`53532`)
--
+- Bug in indexing methods (e.g. :meth:`DataFrame.__getitem__`) where taking the entire :class:`DataFrame`/:class:`Series` would raise an ``OverflowError`` when Copy on Write was enabled and the length of the array was over the maximum size a 32-bit integer can hold (:issue:`53616`)
+- Bug when constructing a :class:`DataFrame` with columns of an :class:`ArrowDtype` with a ``pyarrow.dictionary`` type that reindexes the data (:issue:`53617`)
+- Bug when indexing a :class:`DataFrame` or :class:`Series` with an :class:`Index` with a timestamp :class:`ArrowDtype` would raise an ``AttributeError`` (:issue:`53644`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.other:
