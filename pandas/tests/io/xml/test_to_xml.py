@@ -1343,11 +1343,12 @@ def test_unsuported_compression(parser, geom_df):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
 def test_s3_permission_output(parser, s3_public_bucket, geom_df):
-    # s3_public_bucket hosts pandas-test
     import s3fs
 
     with pytest.raises(PermissionError, match="Access Denied"):
         fs = s3fs.S3FileSystem(anon=True)
-        fs.ls("pandas-test")
+        fs.ls(s3_public_bucket.name)
 
-        geom_df.to_xml("s3://pandas-test/geom.xml", compression="zip", parser=parser)
+        geom_df.to_xml(
+            f"s3://{s3_public_bucket.name}/geom.xml", compression="zip", parser=parser
+        )

@@ -1271,7 +1271,9 @@ class TestPandasContainer:
         # GH17200
 
         result = read_json(
-            "s3n://pandas-test/items.jsonl", lines=True, storage_options=s3so
+            f"s3n://{s3_public_bucket_with_data.name}/items.jsonl",
+            lines=True,
+            storage_options=s3so,
         )
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
@@ -1845,7 +1847,7 @@ class TestPandasContainer:
     @pytest.mark.single_cpu
     def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
-        mock_bucket_name, target_file = "pandas-test", "test.json"
+        mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5

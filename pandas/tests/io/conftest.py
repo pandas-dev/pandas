@@ -1,7 +1,7 @@
-import contextlib
 import shlex
 import subprocess
 import time
+import uuid
 
 import pytest
 
@@ -127,20 +127,17 @@ def s3_base(worker_id, monkeysession):
 def s3_resource(s3_base):
     import boto3
 
-    with contextlib.closing(boto3.client("s3", endpoint_url=s3_base)) as cli:
-        s3 = boto3.resource("s3", endpoint_url=s3_base)
-        yield s3
-        for bucket_info in cli.list_buckets()["Buckets"]:
-            bucket = s3.Bucket(bucket_info["Name"])
-            bucket.objects.delete()
-            bucket.delete()
+    s3 = boto3.resource("s3", endpoint_url=s3_base)
+    return s3
 
 
 @pytest.fixture
 def s3_public_bucket(s3_resource):
-    bucket = s3_resource.Bucket("pandas-test")
+    bucket = s3_resource.Bucket(f"pandas-test-{uuid.uuid4()}")
     bucket.create()
-    return bucket
+    yield bucket
+    bucket.objects.delete()
+    bucket.delete()
 
 
 @pytest.fixture
@@ -170,9 +167,11 @@ def s3_public_bucket_with_data(s3_public_bucket, tips_file, jsonl_file, feather_
 
 @pytest.fixture
 def s3_private_bucket(s3_resource):
-    bucket = s3_resource.Bucket("cant_get_it")
+    bucket = s3_resource.Bucket(f"cant_get_it-{uuid.uuid4()}")
     bucket.create(ACL="private")
-    return bucket
+    yield bucket
+    bucket.objects.delete()
+    bucket.delete()
 
 
 @pytest.fixture

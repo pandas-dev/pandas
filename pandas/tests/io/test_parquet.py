@@ -787,7 +787,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(
             df_compat,
             pa,
-            path="pandas-test/pyarrow.parquet",
+            path=f"{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=kw,
             write_kwargs=kw,
         )
@@ -799,7 +799,7 @@ class TestParquetPyArrow(Base):
         check_round_trip(
             df_compat,
             pa,
-            path="s3://pandas-test/pyarrow.parquet",
+            path=f"s3://{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=s3so,
             write_kwargs=s3so,
         )
@@ -832,7 +832,7 @@ class TestParquetPyArrow(Base):
             df_compat,
             pa,
             expected=expected_df,
-            path="s3://pandas-test/parquet_dir",
+            path=f"s3://{s3_public_bucket.name}/parquet_dir",
             read_kwargs={"storage_options": s3so},
             write_kwargs={
                 "partition_cols": partition_col,
@@ -1145,7 +1145,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(
             df_compat,
             fp,
-            path="s3://pandas-test/fastparquet.parquet",
+            path=f"s3://{s3_public_bucket.name}/fastparquet.parquet",
             read_kwargs={"storage_options": s3so},
             write_kwargs={"compression": None, "storage_options": s3so},
         )

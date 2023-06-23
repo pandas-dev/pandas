@@ -80,8 +80,7 @@ def tips_df(datapath):
 
 
 @pytest.mark.single_cpu
-@pytest.mark.usefixtures("s3_public_bucket_with_data")
-@pytest.mark.usefixtures("s3_private_bucket_with_data")
+@pytest.mark.usefixtures("s3_resource")
 @pytest.mark.xfail(
     reason="CI race condition GH 45433, GH 44584",
     raises=FileNotFoundError,
@@ -90,12 +89,12 @@ def tips_df(datapath):
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")
-    def test_parse_public_s3_bucket(self, tips_df, s3so):
+    def test_parse_public_s3_bucket(self, s3_public_bucket_with_data, tips_df, s3so):
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             df = read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 compression=comp,
                 storage_options=s3so,
             )
@@ -103,30 +102,44 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(df, tips_df)
 
+    @td.skip_if_no("s3fs")
+    def test_parse_private_s3_bucket(self, s3_private_bucket_with_data, tips_df, s3so):
         # Read public file from bucket with not-public contents
-        df = read_csv("s3://cant_get_it/tips.csv", storage_options=s3so)
+        df = read_csv(
+            f"s3://{s3_private_bucket_with_data.name}/tips.csv", storage_options=s3so
+        )
         assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(df, tips_df)
 
-    def test_parse_public_s3n_bucket(self, tips_df, s3so):
+    def test_parse_public_s3n_bucket(self, s3_public_bucket_with_data, tips_df, s3so):
         # Read from AWS s3 as "s3n" URL
-        df = read_csv("s3n://pandas-test/tips.csv", nrows=10, storage_options=s3so)
+        df = read_csv(
+            f"s3n://{s3_public_bucket_with_data.name}/tips.csv",
+            nrows=10,
+            storage_options=s3so,
+        )
         assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_parse_public_s3a_bucket(self, tips_df, s3so):
+    def test_parse_public_s3a_bucket(self, s3_public_bucket_with_data, tips_df, s3so):
         # Read from AWS s3 as "s3a" URL
-        df = read_csv("s3a://pandas-test/tips.csv", nrows=10, storage_options=s3so)
+        df = read_csv(
+            f"s3a://{s3_public_bucket_with_data.name}/tips.csv",
+            nrows=10,
+            storage_options=s3so,
+        )
         assert isinstance(df, DataFrame)
         assert not df.empty
         tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_parse_public_s3_bucket_nrows(self, tips_df, s3so):
+    def test_parse_public_s3_bucket_nrows(
+        self, s3_public_bucket_with_data, tips_df, s3so
+    ):
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             df = read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 nrows=10,
                 compression=comp,
                 storage_options=s3so,
@@ -135,12 +148,14 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_parse_public_s3_bucket_chunked(self, tips_df, s3so):
+    def test_parse_public_s3_bucket_chunked(
+        self, s3_public_bucket_with_data, tips_df, s3so
+    ):
         # Read with a chunksize
         chunksize = 5
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             with read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 chunksize=chunksize,
                 compression=comp,
                 storage_options=s3so,
@@ -157,12 +172,14 @@ class TestS3:
                     ]
                     tm.assert_frame_equal(true_df, df)
 
-    def test_parse_public_s3_bucket_chunked_python(self, tips_df, s3so):
+    def test_parse_public_s3_bucket_chunked_python(
+        self, s3_public_bucket_with_data, tips_df, s3so
+    ):
         # Read with a chunksize using the Python parser
         chunksize = 5
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             with read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 chunksize=chunksize,
                 compression=comp,
                 engine="python",
@@ -179,10 +196,12 @@ class TestS3:
                     ]
                     tm.assert_frame_equal(true_df, df)
 
-    def test_parse_public_s3_bucket_python(self, tips_df, s3so):
+    def test_parse_public_s3_bucket_python(
+        self, s3_public_bucket_with_data, tips_df, s3so
+    ):
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             df = read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 engine="python",
                 compression=comp,
                 storage_options=s3so,
@@ -191,10 +210,10 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(df, tips_df)
 
-    def test_infer_s3_compression(self, tips_df, s3so):
+    def test_infer_s3_compression(self, s3_public_bucket_with_data, tips_df, s3so):
         for ext in ["", ".gz", ".bz2"]:
             df = read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 engine="python",
                 compression="infer",
                 storage_options=s3so,
@@ -203,10 +222,12 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(df, tips_df)
 
-    def test_parse_public_s3_bucket_nrows_python(self, tips_df, s3so):
+    def test_parse_public_s3_bucket_nrows_python(
+        self, s3_public_bucket_with_data, tips_df, s3so
+    ):
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             df = read_csv(
-                "s3://pandas-test/tips.csv" + ext,
+                f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
                 engine="python",
                 nrows=10,
                 compression=comp,
@@ -216,15 +237,17 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(tips_df.iloc[:10], df)
 
-    def test_read_s3_fails(self, s3_private_bucket, s3so):
+    def test_read_s3_fails(self, s3so):
         msg = "The specified bucket does not exist"
         with pytest.raises(OSError, match=msg):
             read_csv("s3://nyqpug/asdf.csv", storage_options=s3so)
 
+    def test_read_s3_fails_private(self, s3_private_bucket, s3so):
+        msg = "The specified bucket does not exist"
         # Receive a permission error when trying to read a private bucket.
         # It's irrelevant here that this isn't actually a table.
         with pytest.raises(OSError, match=msg):
-            read_csv("s3://cant_get_it/file.csv")
+            read_csv(f"s3://{s3_private_bucket.name}/file.csv")
 
     @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
     def test_write_s3_csv_fails(self, tips_df, s3so):
@@ -297,24 +320,33 @@ class TestS3:
         # Possibly some state leaking in between tests.
         # If we don't clear this cache, we saw `GetObject operation: Forbidden`.
         # Presumably the s3fs instance is being cached, with the directory listing
-        # from *before* we add the large-file.csv in the pandas-test bucket.
+        # from *before* we add the large-file.csv in the s3_public_bucket_with_data.
         s3fs.S3FileSystem.clear_instance_cache()
 
         with caplog.at_level(logging.DEBUG, logger="s3fs"):
-            read_csv("s3://pandas-test/large-file.csv", nrows=5, storage_options=s3so)
+            read_csv(
+                f"s3://{s3_public_bucket.name}/large-file.csv",
+                nrows=5,
+                storage_options=s3so,
+            )
             # log of fetch_range (start, stop)
             assert (0, 5505024) in (x.args[-2:] for x in caplog.records)
 
-    def test_read_s3_with_hash_in_key(self, tips_df, s3so):
+    def test_read_s3_with_hash_in_key(self, s3_public_bucket_with_data, tips_df, s3so):
         # GH 25945
-        result = read_csv("s3://pandas-test/tips#1.csv", storage_options=s3so)
+        result = read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips#1.csv", storage_options=s3so
+        )
         tm.assert_frame_equal(tips_df, result)
 
     @td.skip_if_no("pyarrow")
-    def test_read_feather_s3_file_path(self, feather_file, s3so):
+    def test_read_feather_s3_file_path(
+        self, s3_public_bucket_with_data, feather_file, s3so
+    ):
         # GH 29055
         expected = read_feather(feather_file)
         res = read_feather(
-            "s3://pandas-test/simple_dataset.feather", storage_options=s3so
+            f"s3://{s3_public_bucket_with_data.name}/simple_dataset.feather",
+            storage_options=s3so,
         )
         tm.assert_frame_equal(expected, res)

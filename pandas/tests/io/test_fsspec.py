@@ -191,15 +191,22 @@ def test_fastparquet_options(fsspectest):
 @td.skip_if_no("s3fs")
 def test_from_s3_csv(s3_public_bucket_with_data, tips_file, s3so):
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv", storage_options=s3so), read_csv(tips_file)
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv", storage_options=s3so
+        ),
+        read_csv(tips_file),
     )
     # the following are decompressed by pandas, not fsspec
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.gz", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.gz", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.bz2", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.bz2", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
 
@@ -209,7 +216,10 @@ def test_from_s3_csv(s3_public_bucket_with_data, tips_file, s3so):
 @td.skip_if_no("s3fs")
 def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
+        read_csv(
+            f"{protocol}://{s3_public_bucket_with_data.name}/tips.csv",
+            storage_options=s3so,
+        ),
         read_csv(tips_file),
     )
 
@@ -219,7 +229,7 @@ def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
 def test_s3_parquet(s3_public_bucket, s3so, df1):
-    fn = "s3://pandas-test/test.parquet"
+    fn = f"s3://{s3_public_bucket.name}/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
     )
