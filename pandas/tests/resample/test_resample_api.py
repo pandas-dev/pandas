@@ -16,38 +16,43 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
-dti = date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 
-test_series = Series(np.random.rand(len(dti)), dti)
-_test_frame = DataFrame({"A": test_series, "B": test_series, "C": np.arange(len(dti))})
+@pytest.fixture
+def dti():
+    return date_range(start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="Min")
 
 
 @pytest.fixture
-def test_frame():
-    return _test_frame.copy()
+def _test_series(dti):
+    return Series(np.random.rand(len(dti)), dti)
 
 
-def test_str():
-    r = test_series.resample("H")
+@pytest.fixture
+def test_frame(dti, _test_series):
+    return DataFrame({"A": _test_series, "B": _test_series, "C": np.arange(len(dti))})
+
+
+def test_str(_test_series):
+    r = _test_series.resample("H")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
-    r = test_series.resample("H", origin="2000-01-01")
+    r = _test_series.resample("H", origin="2000-01-01")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
     )
 
 
-def test_api():
-    r = test_series.resample("H")
+def test_api(_test_series):
+    r = _test_series.resample("H")
     result = r.mean()
     assert isinstance(result, Series)
     assert len(result) == 217
 
-    r = test_series.to_frame().resample("H")
+    r = _test_series.to_frame().resample("H")
     result = r.mean()
     assert isinstance(result, DataFrame)
     assert len(result) == 217
@@ -116,11 +121,11 @@ def test_resample_group_keys():
     tm.assert_frame_equal(result, expected)
 
 
-def test_pipe(test_frame):
+def test_pipe(test_frame, _test_series):
     # GH17905
 
     # series
-    r = test_series.resample("H")
+    r = _test_series.resample("H")
     expected = r.max() - r.mean()
     result = r.pipe(lambda x: x.max() - x.mean())
     tm.assert_series_equal(result, expected)
@@ -261,9 +266,9 @@ def test_combined_up_downsampling_of_irregular():
     tm.assert_series_equal(result, expected)
 
 
-def test_transform_series():
-    r = test_series.resample("20min")
-    expected = test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
+def test_transform_series(_test_series):
+    r = _test_series.resample("20min")
+    expected = _test_series.groupby(pd.Grouper(freq="20min")).transform("mean")
     result = r.transform("mean")
     tm.assert_series_equal(result, expected)
 
@@ -319,17 +324,17 @@ def test_fillna():
     ],
     ids=["resample", "groupby"],
 )
-def test_apply_without_aggregation(func):
+def test_apply_without_aggregation(func, _test_series):
     # both resample and groupby should work w/o aggregation
-    t = func(test_series)
+    t = func(_test_series)
     result = t.apply(lambda x: x)
-    tm.assert_series_equal(result, test_series)
+    tm.assert_series_equal(result, _test_series)
 
 
-def test_apply_without_aggregation2():
-    grouped = test_series.to_frame(name="foo").resample("20min", group_keys=False)
+def test_apply_without_aggregation2(_test_series):
+    grouped = _test_series.to_frame(name="foo").resample("20min", group_keys=False)
     result = grouped["foo"].apply(lambda x: x)
-    tm.assert_series_equal(result, test_series.rename("foo"))
+    tm.assert_series_equal(result, _test_series.rename("foo"))
 
 
 def test_agg_consistency():
@@ -1010,13 +1015,13 @@ def test_df_axis_param_depr():
         df.resample("M", axis=0)
 
 
-def test_series_axis_param_depr():
+def test_series_axis_param_depr(_test_series):
     warning_msg = (
         "The 'axis' keyword in Series.resample is "
         "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        test_series.resample("H", axis=0)
+        _test_series.resample("H", axis=0)
 
 
 def test_resample_empty():
