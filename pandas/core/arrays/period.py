@@ -163,6 +163,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
+
+    Examples
+    --------
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
+    ...                                       '2023-01-02'], freq='D'))
+    <PeriodArray>
+    ['2023-01-01', '2023-01-02']
+    Length: 2, dtype: period[D]
     """
 
     # array priority higher than numpy scalars

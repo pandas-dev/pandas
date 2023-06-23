@@ -105,17 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.arrays.TimedeltaArray \
-        pandas.Period.asfreq \
-        pandas.Period.now \
-        pandas.arrays.PeriodArray \
-        pandas.CategoricalDtype.categories \
-        pandas.CategoricalDtype.ordered \
-        pandas.Categorical.dtype \
-        pandas.Categorical.categories \
-        pandas.Categorical.ordered \
-        pandas.Categorical.codes \
-        pandas.Categorical.__array__ \
         pandas.SparseDtype \
         pandas.DatetimeTZDtype.unit \
         pandas.DatetimeTZDtype.tz \
