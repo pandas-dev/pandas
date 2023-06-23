@@ -694,7 +694,13 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
     # Remove duplicate tuples in the MultiIndex.
     tuples = zip(*levs)
     seen = set()
-    unique_tuples = (key for key in tuples if not (key in seen or seen.add(key)))
+    # mypy doesn't like our trickery to get `set.add` to work in a comprehension
+    # error: "add" of "set" does not return a value
+    unique_tuples = (
+        key
+        for key in tuples
+        if not (key in seen or seen.add(key))  # type: ignore[func-returns-value]
+    )
     new_levs = zip(*unique_tuples)
 
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
@@ -740,7 +746,6 @@ def _stack_multi_columns(
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = mi_cols = roll_columns
 
-    mi_cols = cast(MultiIndex, mi_cols)
     new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values
