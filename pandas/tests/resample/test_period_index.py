@@ -891,3 +891,8 @@ class TestPeriodIndex:
             [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
         )
         tm.assert_series_equal(result, expected)
+
+def test_period_index_frequency_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        PeriodIndex([Period("2013-01", "ME"), Period("2013-12", "ME")])

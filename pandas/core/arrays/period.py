@@ -313,7 +313,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray[freq]
         """
-        freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
+        if hasattr(freq, 'name'):
+            freq = freq_to_period_freqstr(1, freq.name)
+        if freq is not None and not hasattr(freq, 'name'):
+            freq = freq_to_period_freqstr(1, freq)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)
@@ -413,7 +416,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        period_type = ArrowPeriodType(freq_to_period_freqstr(1, self.freqstr))
+        period_type = ArrowPeriodType(
+            freq_to_period_freqstr(1, self.freqstr)
+        )  # type: ignore[arg-type]
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 
@@ -712,8 +717,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         '2015-01'], dtype='period[M]')
         """
         how = libperiod.validate_end_alias(how)
-        if not isinstance(freq, int):
-            freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
 
         freq = Period._maybe_convert_freq(freq)
 
