@@ -313,9 +313,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray[freq]
         """
-        if hasattr(freq, 'name'):
+        if hasattr(freq, "name"):
             freq = freq_to_period_freqstr(1, freq.name)
-        if freq is not None and not hasattr(freq, 'name'):
+        if freq is not None and not hasattr(freq, "name"):
             freq = freq_to_period_freqstr(1, freq)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
@@ -384,6 +384,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         return self.dtype.freq
 
+    @property
+    def freqstr(self) -> str:
+        return freq_to_period_freqstr(self.freq.n, self.freq.name)
+
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
         if dtype == "i8":
             return self.asi8
@@ -416,9 +420,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                     f"Not supported to convert PeriodArray to '{type}' type"
                 )
 
-        period_type = ArrowPeriodType(
-            freq_to_period_freqstr(1, self.freqstr)
-        )  # type: ignore[arg-type]
+        period_type = ArrowPeriodType(self.freqstr)
         storage_array = pyarrow.array(self._ndarray, mask=self.isna(), type="int64")
         return pyarrow.ExtensionArray.from_storage(period_type, storage_array)
 

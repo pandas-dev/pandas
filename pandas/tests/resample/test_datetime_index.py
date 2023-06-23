@@ -1984,3 +1984,9 @@ def test_resample_empty_series_with_tz():
     )
     expected = Series([], index=expected_idx, name="values", dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_period_range_frequency_ME_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        period_range("Jan-2000", "Dec-2000", freq="ME")

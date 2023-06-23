@@ -892,7 +892,16 @@ class TestPeriodIndex:
         )
         tm.assert_series_equal(result, expected)
 
-def test_period_index_frequency_error_message():
+
+def test_period_index_frequency_ME_error_message():
     msg = "Invalid frequency: ME"
     with pytest.raises(ValueError, match=msg):
         PeriodIndex([Period("2013-01", "ME"), Period("2013-12", "ME")])
+
+
+def test_resample_frequency_ME_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        rng = period_range("1/1/2000", periods=5, freq="A")
+        ts = Series(np.random.randn(len(rng)), rng)
+        ts.resample("ME")
