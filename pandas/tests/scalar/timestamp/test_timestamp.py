@@ -14,7 +14,10 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
-from hypothesis import given
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -37,7 +40,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas._testing._hypothesis import DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ
 
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
@@ -243,11 +245,11 @@ class TestTimestampProperties:
         assert dow == expected_true
         assert not dow == expected_false
 
-    @given(DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ)
+    @given(st.datetimes())
     def test_dow_sanity(self, dt):
         # GH 53738
-        expected = dt.weekday()
-        result = datetime(dt.year, dt.month, dt.day).weekday()
+        result = Timestamp(dt).weekday()
+        expected = datetime(dt.year, dt.month, dt.day).weekday()
         assert result == expected
 
 
