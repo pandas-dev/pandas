@@ -32,7 +32,7 @@ transparency.
 
 Here is a list of the current Contributors to the main pandas repository:
 
-[https://github.com/pandas-dev/pandas/graphs/contributors](https://github.com/copandas-dev/pandas/graphs/contributors)
+[https://github.com/pandas-dev/pandas/graphs/contributors](https://github.com/pandas-dev/pandas/graphs/contributors)
 
 There are also many other Contributors listed in the logs of other repositories of
 the pandas project.
