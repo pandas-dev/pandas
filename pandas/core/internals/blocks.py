@@ -235,7 +235,7 @@ class Block(PandasObject):
         values,
         placement: BlockPlacement | None = None,
         refs: BlockValuesRefs | None = None,
-    ) -> Block:
+    ) -> Self:
         """Wrap given values in a block of same type as self."""
         # Pre-2.0 we called ensure_wrapped_if_datetimelike because fastparquet
         #  relied on it, as of 2.0 the caller is responsible for this.
@@ -519,6 +519,7 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Array-Like Methods
 
+    @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
@@ -575,7 +576,7 @@ class Block(PandasObject):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Block:
+    def copy(self, deep: bool = True) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -1368,7 +1369,7 @@ class Block(PandasObject):
         index: Index | None = None,
         inplace: bool = False,
         limit: int | None = None,
-        limit_direction: str = "forward",
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: str | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
@@ -1387,7 +1388,13 @@ class Block(PandasObject):
             m = missing.clean_fill_method(method)
         except ValueError:
             m = None
-        if m is None and self.dtype.kind != "f":
+            # error: Non-overlapping equality check (left operand type:
+            # "Literal['backfill', 'bfill', 'ffill', 'pad']", right
+            # operand type: "Literal['asfreq']")
+            if method == "asfreq":  # type: ignore[comparison-overlap]
+                # clean_fill_method used to allow this
+                raise
+        if m is None and self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
@@ -1412,18 +1419,16 @@ class Block(PandasObject):
             )
 
         refs = None
+        arr_inplace = inplace
         if inplace:
             if using_cow and self.refs.has_reference():
-                data = self.values.copy()
+                arr_inplace = False
             else:
-                data = self.values
                 refs = self.refs
-        else:
-            data = self.values.copy()
-        data = cast(np.ndarray, data)  # bc overridden by ExtensionBlock
 
-        missing.interpolate_array_2d(
-            data,
+        # Dispatch to the PandasArray method.
+        # We know self.array_values is a PandasArray bc EABlock overrides
+        new_values = cast(PandasArray, self.array_values).interpolate(
             method=method,
             axis=axis,
             index=index,
@@ -1431,8 +1436,10 @@ class Block(PandasObject):
             limit_direction=limit_direction,
             limit_area=limit_area,
             fill_value=fill_value,
+            inplace=arr_inplace,
             **kwargs,
         )
+        data = new_values._ndarray
 
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
@@ -1511,7 +1518,8 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
-    def round(self, decimals: int, using_cow: bool = False) -> Block:
+    @final
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
@@ -1777,9 +1785,7 @@ class EABackedBlock(Block):
 
         if using_cow and self.refs.has_reference():
             values = values.copy()
-            self = self.make_block_same_class(  # type: ignore[assignment]
-                values.T if values.ndim == 2 else values
-            )
+            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -2280,18 +2286,22 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
         if method == "linear":  # type: ignore[comparison-overlap]
             # TODO: GH#50950 implement for arbitrary EAs
             refs = None
+            arr_inplace = inplace
             if using_cow:
                 if inplace and not self.refs.has_reference():
-                    data_out = values._ndarray
                     refs = self.refs
                 else:
-                    data_out = values._ndarray.copy()
-            else:
-                data_out = values._ndarray if inplace else values._ndarray.copy()
-            missing.interpolate_array_2d(
-                data_out, method=method, limit=limit, index=index, axis=axis
+                    arr_inplace = False
+
+            new_values = self.values.interpolate(
+                method=method,
+                index=index,
+                axis=axis,
+                inplace=arr_inplace,
+                limit=limit,
+                fill_value=fill_value,
+                **kwargs,
             )
-            new_values = type(values)._simple_new(data_out, dtype=values.dtype)
             return self.make_block_same_class(new_values, refs=refs)
 
         elif values.ndim == 2 and axis == 0:

@@ -461,7 +461,7 @@ def test_get_labels_groupby_for_Int64(writable):
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
@@ -484,7 +484,7 @@ def test_tracemalloc_for_empty_StringHashTable():
 
 @pytest.mark.parametrize("N", range(1, 110))
 def test_no_reallocation_StringHashTable(N):
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
     n_buckets_start = preallocated_table.get_state()["n_buckets"]
     preallocated_table.map_locations(keys)
@@ -721,7 +721,10 @@ def test_ismember_tuple_with_nans():
     # GH-41836
     values = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
-    result = isin(values, comps)
+
+    msg = "isin with argument that is not not a Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -729,6 +732,6 @@ def test_ismember_tuple_with_nans():
 def test_float_complex_int_are_equal_as_objects():
     values = ["a", 5, 5.0, 5.0 + 0j]
     comps = list(range(129))
-    result = isin(values, comps)
+    result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)

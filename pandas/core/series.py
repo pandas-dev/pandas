@@ -72,7 +72,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -1713,6 +1716,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         str or None
             String representation of Series if ``buf=None``, otherwise None.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3]).to_string()
+        >>> ser
+        '0    1\\n1    2\\n2    3'
         """
         formatter = fmt.SeriesFormatter(
             self,
@@ -4261,11 +4270,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self.dtype):
+        if isinstance(self.dtype, ArrowDtype) and self.dtype.type == list:
+            values, counts = self._values._explode()
+        elif len(self) and is_object_dtype(self.dtype):
+            values, counts = reshape.explode(np.asarray(self._values))
+        else:
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
-
-        values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
             index = default_index(len(values))
@@ -4274,7 +4285,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._constructor(values, index=index, name=self.name, copy=False)
 
-    def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
+    def unstack(
+        self, level: IndexLabel = -1, fill_value: Hashable = None, sort: bool = True
+    ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4284,6 +4297,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -4318,7 +4333,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        return unstack(self, level, fill_value, sort)
 
     # ----------------------------------------------------------------------
     # function application
@@ -4484,7 +4499,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
+        ser = self.copy(deep=False) if using_copy_on_write() else self
+        result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4492,6 +4508,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         func: AggFuncType,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
+        *,
+        by_row: bool = True,
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4519,6 +4537,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
+        by_row : bool, default True
+            If False, the func will be passed the whole Series at once.
+            If True, will func will be passed each element of the Series, like
+            Series.map (backward compatible).
+
+            .. versionadded:: 2.1.0
         **kwargs
             Additional keyword arguments passed to func.
 
@@ -4607,7 +4631,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         return SeriesApply(
-            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+            self,
+            func,
+            convert_dtype=convert_dtype,
+            by_row=by_row,
+            args=args,
+            kwargs=kwargs,
         ).apply()
 
     def _reindex_indexer(
