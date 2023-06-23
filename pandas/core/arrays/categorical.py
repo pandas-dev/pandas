@@ -489,8 +489,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ['a', 'b']
         Categories (2, object): ['a' < 'b']
         >>> cat.dtype
-        CategoricalDtype(categories=['a', 'b'], ordered=True,
-        categories_dtype=object)
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         """
         return self._dtype
 
