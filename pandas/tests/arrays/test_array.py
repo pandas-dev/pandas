@@ -1,5 +1,6 @@
 import datetime
 import decimal
+import re
 
 import numpy as np
 import pytest
@@ -26,6 +27,22 @@ from pandas.tests.extension.decimal import (
     DecimalDtype,
     to_decimal,
 )
+
+
+def test_dt64_array():
+    # PR 53439
+    dtype_unit_lst = ["M8[h]", "M8[m]", "m8[h]", "M8[m]"]
+
+    for unit in dtype_unit_lst:
+        dtype_var = np.dtype(unit)
+        msg = (
+            r"dt/td64 dtypes with 'm' and 'h' resolutions are deprecated."
+            r"Supported resolutions are 's', 'ms','us', and 'ns'. "
+            r"In future releases, 'm' and 'h' resolutions will be cast to the "
+            r"closest supported unit."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+            pd.array([], dtype=dtype_var)
 
 
 @pytest.mark.parametrize(
