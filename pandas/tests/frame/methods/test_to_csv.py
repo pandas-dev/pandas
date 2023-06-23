@@ -1307,3 +1307,65 @@ class TestDataFrameToCSV:
         expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def prepate_string_rep_of_comment_output(
+        self, delim: str, comments_attrs, data_for_comments_raw, frame_for_comments
+    ) -> str:
+        comment = "#"
+
+        data_for_comments_raw = data_for_comments_raw.replace(",", delim)
+        # Create string representation of data with attrs written at start
+        output_data_rows = []
+        for k, v in comments_attrs.items():
+            # Make sure delims being used are sanitized from comment lines
+            k = k.replace(delim, "")
+            v = v.replace(delim, "")
+            output_data_rows.append(f"{comment}{k}:{v}\n")
+        output_data = "".join(output_data_rows)
+        output_data = output_data + data_for_comments_raw
+        return output_data
+
+    def test_comment_writer_csv(
+        self, comments_attrs, data_for_comments_raw, frame_for_comments
+    ):
+        comment = "#"
+        delim = ","
+        output_data = self.prepate_string_rep_of_comment_output(
+            delim, comments_attrs, data_for_comments_raw, frame_for_comments
+        )
+        read_output = read_csv(StringIO(output_data), comment=comment)
+
+        # Check output data can be read correctly
+        tm.assert_frame_equal(
+            read_output, frame_for_comments
+        ), "Frame read from test data did not match expected results."
+
+        # Check saved output is as expected
+        with tm.ensure_clean() as path:
+            frame_for_comments.to_csv(path, comment=comment, index=False)
+            with open(path, encoding="utf-8") as fp:
+                lines = fp.read()
+                assert (
+                    lines == output_data
+                ), "csv output with comment lines not as expected"
+
+    def test_comment_writer_tabs(
+        self, comments_attrs, data_for_comments_raw, frame_for_comments
+    ):
+        comment = "#"
+        delim = "\t"
+        output_data = self.prepate_string_rep_of_comment_output(
+            delim, comments_attrs, data_for_comments_raw, frame_for_comments
+        )
+        read_output = read_csv(StringIO(output_data), comment=comment, sep="\t")
+
+        tm.assert_frame_equal(
+            read_output, frame_for_comments
+        ), "Read tab outputs are not as expected"
+        with tm.ensure_clean() as path:
+            frame_for_comments.to_csv(path, comment=comment, index=False, sep="\t")
+            with open(path, encoding="utf-8") as fp:
+                lines = fp.read()
+                assert (
+                    lines == output_data
+                ), "tsv output with comment lines not as expected"
