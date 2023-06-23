@@ -828,6 +828,11 @@ def _stack_multi_columns(
 
     result = frame._constructor(new_data, index=new_index, columns=new_columns)
 
+    if frame.columns.nlevels > 1:
+        desired_columns = frame.columns._drop_level_numbers([level_num]).unique()
+        if not result.columns.equals(desired_columns):
+            result = result[desired_columns]
+
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...
     if dropna:
