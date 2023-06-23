@@ -135,7 +135,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.DatetimeArray(pd.TimedeltaIndex(['1H', '2H']))
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1H', '2H']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]

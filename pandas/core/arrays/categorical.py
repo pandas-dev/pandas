@@ -773,7 +773,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='object')
 
-        For Categories:
+        For Categorical:
 
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
         >>> cat.categories
@@ -800,7 +800,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser.cat.ordered
         True
 
-        For Categories:
+        For Categorical:
 
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
         >>> cat.ordered
@@ -1536,7 +1536,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
 
-        The following calls cat.__array__
+        The following calls ``cat.__array__``
 
         >>> np.asarray(cat)
         array(['a', 'b'], dtype=object)
