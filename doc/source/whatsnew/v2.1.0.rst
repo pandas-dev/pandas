@@ -361,6 +361,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
+- Bug in :class:`DateOffset` which had inconsistent behavior when multiplying a :class:`DateOffset` object by a constant (:issue:`47953`)
 - Bug in :func:`date_range` when ``freq`` was a :class:`DateOffset` with ``nanoseconds`` (:issue:`46877`)
 - Bug in :meth:`Timestamp.date`, :meth:`Timestamp.isocalendar`, :meth:`Timestamp.timetuple`, and :meth:`Timestamp.toordinal` were returning incorrect results for inputs outside those supported by the Python standard library's datetime module (:issue:`53668`)
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
