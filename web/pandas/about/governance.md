@@ -32,7 +32,7 @@ transparency.
 
 Here is a list of the current Contributors to the main pandas repository:
 
-[https://github.com/pandas-dev/pandas/graphs/contributors](https://github.com/pandas-dev/pandas/graphs/contributors)
+[https://github.com/pandas-dev/pandas/graphs/contributors](https://github.com/copandas-dev/pandas/graphs/contributors)
 
 There are also many other Contributors listed in the logs of other repositories of
 the pandas project.
@@ -228,7 +228,7 @@ interactions with NumFOCUS.
   Team.
 - This Subcommittee shall NOT make decisions about the direction, scope or
   technical direction of the Project.
-- This Subcommittee will have at least 5 members. No more than 2 Subcommitee
+- This Subcommittee will have at least 5 members. No more than 2 Subcommittee
   Members can report to one person (either directly or indirectly) through
   employment or contracting work (including the reportee, i.e. the reportee + 1
   is the max). This avoids effective majorities resting on one person.
