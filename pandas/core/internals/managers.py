@@ -416,6 +416,14 @@ class BaseBlockManager(DataManager):
         axis = self._normalize_axis(axis)
         return self.apply("diff", n=n, axis=axis)
 
+    def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
+        return self.apply(
+            "pad_or_backfill",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+        )
+
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply(
             "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
