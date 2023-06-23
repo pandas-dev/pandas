@@ -247,6 +247,44 @@ df_kml = DataFrame(
 )
 
 
+def test_literal_xml_deprecation():
+    # GH 53785
+    msg = (
+        "Passing literal xml to 'read_xml' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        read_xml(
+            """<?xml version='1.0' encoding='utf-8'?>
+        <data xmlns="http://example.com">
+        <row>
+          <a>x</a>
+          <b>1</b>
+          <c>4.0</c>
+          <d>x</d>
+          <e>2</e>
+          <f>4.0</f>
+          <g></g>
+          <h>True</h>
+          <i>False</i>
+        </row>
+        <row>
+          <a>y</a>
+          <b>2</b>
+          <c>5.0</c>
+          <d></d>
+          <e></e>
+          <f></f>
+          <g></g>
+          <h>False</h>
+          <i></i>
+        </row>
+        </data>"""
+        )
+
+
 @pytest.fixture(params=["rb", "r"])
 def mode(request):
     return request.param
@@ -1361,7 +1399,7 @@ def test_string_error(parser):
         ParserError, match=("iterparse is designed for large XML files")
     ):
         read_xml(
-            xml_default_nmsp,
+            StringIO(xml_default_nmsp),
             parser=parser,
             iterparse={"row": ["shape", "degrees", "sides", "date"]},
         )
