@@ -3696,7 +3696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
-        comment: str | None = ...,
+        comment: str | None = None,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
