@@ -14,6 +14,7 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
+from hypothesis import given
 import numpy as np
 import pytest
 import pytz
@@ -36,6 +37,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas._testing._hypothesis import DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ
 
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
@@ -224,14 +226,29 @@ class TestTimestampProperties:
         assert dt.as_unit("s").resolution == Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
-        "date_string,expected",
-        [("0000-2-29", 1), ("0000-3-1", 2), ("1582-10-14", 3), ("1582-10-15", 4)],
+        "date_string, expected_true, expected_false",
+        [
+            ("0000-2-29", 1, 2),
+            ("0000-3-1", 2, 3),
+            ("1582-10-14", 3, 4),
+            ("1582-10-15", 4, 5),
+            ("1752-01-01", 5, 6),
+            ("2023-06-18", 6, 0),
+        ],
     )
-    def test_dow_historic(self, date_string, expected):
+    def test_dow_historic(self, date_string, expected_true, expected_false):
         # GH 53738
         dt = Timestamp(date_string)
         dow = dt.weekday()
-        assert dow == expected
+        assert dow == expected_true
+        assert not dow == expected_false
+
+    @given(DATETIME_IN_PD_TIMESTAMP_RANGE_NO_TZ)
+    def test_dow_sanity(self, dt):
+        # GH 53738
+        expected = dt.weekday()
+        result = datetime(dt.year, dt.month, dt.day).weekday()
+        assert result == expected
 
 
 class TestTimestamp:
