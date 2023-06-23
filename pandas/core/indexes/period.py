@@ -478,7 +478,7 @@ def period_range(
     ----------
     start : str, datetime, date, pandas.Timestamp, or period-like, default None
         Left bound for generating periods.
-    end : str or period-like, default None
+    end : str, datetime, date, pandas.Timestamp, or period-like, default None
         Right bound for generating periods.
     periods : int, default None
         Number of periods to generate.
