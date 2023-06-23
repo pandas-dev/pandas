@@ -67,6 +67,7 @@ class CSVFormatter:
         doublequote: bool = True,
         escapechar: str | None = None,
         storage_options: StorageOptions = None,
+        comment: str | None = None,
     ) -> None:
         self.fmt = formatter
 
@@ -89,6 +90,7 @@ class CSVFormatter:
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
         self.chunksize = self._initialize_chunksize(chunksize)
+        self.comment = comment
 
     @property
     def na_rep(self) -> str:
@@ -260,6 +262,8 @@ class CSVFormatter:
             self._save()
 
     def _save(self) -> None:
+        if self.comment:
+            self._save_df_attrs()
         if self._need_to_save_header:
             self._save_header()
         self._save_body()
@@ -318,3 +322,10 @@ class CSVFormatter:
             self.cols,
             self.writer,
         )
+
+    def _save_df_attrs(self) -> None:
+        for key, value in self.fmt.frame.attrs.items():
+            # remove the delimiter from the attr string values
+            key = str(key).replace(self.writer.dialect.delimiter, "")
+            value = str(value).replace(self.writer.dialect.delimiter, "")
+            self.writer.writerow([f"{self.comment}{key}:{value}"])

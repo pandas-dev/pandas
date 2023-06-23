@@ -3636,6 +3636,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        comment: str | None = ...,
     ) -> str:
         ...
 
@@ -3663,6 +3664,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        comment: str | None = ...,
     ) -> None:
         ...
 
@@ -3694,6 +3696,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions = None,
+        comment: str | None = ...,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3799,6 +3802,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.2.0
 
+        comment : str, default None
+            If set the key and values of df.attrs will be written to the
+            beginning of the csv file, prefixed by this value, each key/value
+            pair to a single ling. To prevent downstream reading issues
+            this char will be removed from the df.attrs if present.
+            Complement of pd.read_csv's 'comment' param.
         Returns
         -------
         None or str
@@ -3865,6 +3874,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             doublequote=doublequote,
             escapechar=escapechar,
             storage_options=storage_options,
+            comment=comment,
         )
 
     # ----------------------------------------------------------------------

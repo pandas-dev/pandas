@@ -1117,6 +1117,7 @@ class DataFrameRenderer:
         escapechar: str | None = None,
         errors: str = "strict",
         storage_options: StorageOptions = None,
+        comment: str | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -1147,6 +1148,7 @@ class DataFrameRenderer:
             escapechar=escapechar,
             storage_options=storage_options,
             formatter=self.fmt,
+            comment=comment,
         )
         csv_formatter.save()
 
