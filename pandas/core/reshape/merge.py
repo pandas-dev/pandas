@@ -744,11 +744,13 @@ class _MergeOperation:
         if validate is not None:
             self._validate_validate_kwd(validate)
 
-    def _maybe_require_matching_dtypes(self, left_join_keys, right_join_keys) -> None:
+    def _maybe_require_matching_dtypes(
+        self, left_join_keys: list[ArrayLike], right_join_keys: list[ArrayLike]
+    ) -> None:
         # Overridden by AsOfMerge
         pass
 
-    def _validate_tolerance(self, left_join_keys):
+    def _validate_tolerance(self, left_join_keys: list[ArrayLike]) -> None:
         # Overridden by AsOfMerge
         pass
 
@@ -1994,7 +1996,9 @@ class _AsOfMerge(_OrderedMerge):
 
         return left_on, right_on
 
-    def _maybe_require_matching_dtypes(self, left_join_keys, right_join_keys) -> None:
+    def _maybe_require_matching_dtypes(
+        self, left_join_keys: list[ArrayLike], right_join_keys: list[ArrayLike]
+    ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
         # validate index types are the same
@@ -2022,7 +2026,7 @@ class _AsOfMerge(_OrderedMerge):
                     )
                 raise MergeError(msg)
 
-    def _validate_tolerance(self, left_join_keys) -> None:
+    def _validate_tolerance(self, left_join_keys: list[ArrayLike]) -> None:
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
         if self.tolerance is not None:
             if self.left_index:
