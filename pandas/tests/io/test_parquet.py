@@ -780,26 +780,26 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_public_bucket, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
             df_compat,
             pa,
-            path="pandas-test/pyarrow.parquet",
+            path=f"{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=kw,
             write_kwargs=kw,
         )
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
             pa,
-            path="s3://pandas-test/pyarrow.parquet",
+            path=f"s3://{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=s3so,
             write_kwargs=s3so,
         )
@@ -814,7 +814,7 @@ class TestParquetPyArrow(Base):
         ],
     )
     def test_s3_roundtrip_for_dir(
-        self, df_compat, s3_resource, pa, partition_col, s3so
+        self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
         # GH #26388
         expected_df = df_compat.copy()
@@ -832,7 +832,7 @@ class TestParquetPyArrow(Base):
             df_compat,
             pa,
             expected=expected_df,
-            path="s3://pandas-test/parquet_dir",
+            path=f"s3://{s3_public_bucket.name}/parquet_dir",
             read_kwargs={"storage_options": s3so},
             write_kwargs={
                 "partition_cols": partition_col,
@@ -1140,12 +1140,12 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, fp, s3so):
         # GH #19134
         check_round_trip(
             df_compat,
             fp,
-            path="s3://pandas-test/fastparquet.parquet",
+            path=f"s3://{s3_public_bucket.name}/fastparquet.parquet",
             read_kwargs={"storage_options": s3so},
             write_kwargs={"compression": None, "storage_options": s3so},
         )
