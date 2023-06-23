@@ -1,6 +1,7 @@
 import shlex
 import subprocess
 import time
+import uuid
 
 import pytest
 
@@ -54,13 +55,13 @@ def s3so(worker_id):
     return {"client_kwargs": {"endpoint_url": url}}
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function" if is_ci_environment() else "session")
 def monkeysession():
     with pytest.MonkeyPatch.context() as mp:
         yield mp
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function" if is_ci_environment() else "session")
 def s3_base(worker_id, monkeysession):
     """
     Fixture for mocking S3 interaction.
@@ -123,24 +124,33 @@ def s3_base(worker_id, monkeysession):
 
 
 @pytest.fixture
-def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
-    """
-    Sets up S3 bucket with contents
+def s3_resource(s3_base):
+    import boto3
 
-    The primary bucket name is "pandas-test". The following datasets
+    s3 = boto3.resource("s3", endpoint_url=s3_base)
+    return s3
+
+
+@pytest.fixture
+def s3_public_bucket(s3_resource):
+    bucket = s3_resource.Bucket(f"pandas-test-{uuid.uuid4()}")
+    bucket.create()
+    yield bucket
+    bucket.objects.delete()
+    bucket.delete()
+
+
+@pytest.fixture
+def s3_public_bucket_with_data(s3_public_bucket, tips_file, jsonl_file, feather_file):
+    """
+    The following datasets
     are loaded.
 
     - tips.csv
     - tips.csv.gz
     - tips.csv.bz2
     - items.jsonl
-
-    A private bucket "cant_get_it" is also created. The boto3 s3 resource
-    is yielded by the fixture.
     """
-    import boto3
-    import s3fs
-
     test_s3_files = [
         ("tips#1.csv", tips_file),
         ("tips.csv", tips_file),
@@ -149,50 +159,44 @@ def s3_resource(s3_base, tips_file, jsonl_file, feather_file):
         ("items.jsonl", jsonl_file),
         ("simple_dataset.feather", feather_file),
     ]
+    for s3_key, file_name in test_s3_files:
+        with open(file_name, "rb") as f:
+            s3_public_bucket.put_object(Key=s3_key, Body=f)
+    return s3_public_bucket
 
-    def add_tips_files(bucket_name):
-        for s3_key, file_name in test_s3_files:
-            with open(file_name, "rb") as f:
-                cli.put_object(Bucket=bucket_name, Key=s3_key, Body=f)
 
-    bucket = "pandas-test"
-    conn = boto3.resource("s3", endpoint_url=s3_base)
-    cli = boto3.client("s3", endpoint_url=s3_base)
+@pytest.fixture
+def s3_private_bucket(s3_resource):
+    bucket = s3_resource.Bucket(f"cant_get_it-{uuid.uuid4()}")
+    bucket.create(ACL="private")
+    yield bucket
+    bucket.objects.delete()
+    bucket.delete()
 
-    try:
-        cli.create_bucket(Bucket=bucket)
-    except Exception:
-        # OK is bucket already exists
-        pass
-    try:
-        cli.create_bucket(Bucket="cant_get_it", ACL="private")
-    except Exception:
-        # OK is bucket already exists
-        pass
-    timeout = 2
-    while not cli.list_buckets()["Buckets"] and timeout > 0:
-        time.sleep(0.1)
-        timeout -= 0.1
 
-    add_tips_files(bucket)
-    add_tips_files("cant_get_it")
-    s3fs.S3FileSystem.clear_instance_cache()
-    yield conn
+@pytest.fixture
+def s3_private_bucket_with_data(s3_private_bucket, tips_file, jsonl_file, feather_file):
+    """
+    The following datasets
+    are loaded.
 
-    s3 = s3fs.S3FileSystem(client_kwargs={"endpoint_url": s3_base})
-
-    try:
-        s3.rm(bucket, recursive=True)
-    except Exception:
-        pass
-    try:
-        s3.rm("cant_get_it", recursive=True)
-    except Exception:
-        pass
-    timeout = 2
-    while cli.list_buckets()["Buckets"] and timeout > 0:
-        time.sleep(0.1)
-        timeout -= 0.1
+    - tips.csv
+    - tips.csv.gz
+    - tips.csv.bz2
+    - items.jsonl
+    """
+    test_s3_files = [
+        ("tips#1.csv", tips_file),
+        ("tips.csv", tips_file),
+        ("tips.csv.gz", tips_file + ".gz"),
+        ("tips.csv.bz2", tips_file + ".bz2"),
+        ("items.jsonl", jsonl_file),
+        ("simple_dataset.feather", feather_file),
+    ]
+    for s3_key, file_name in test_s3_files:
+        with open(file_name, "rb") as f:
+            s3_private_bucket.put_object(Key=s3_key, Body=f)
+    return s3_private_bucket
 
 
 _compression_formats_params = [
