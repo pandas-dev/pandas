@@ -673,9 +673,9 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
 
         # GH47215
-        if index is not None and isinstance(index, set):
+        if isinstance(index, set):
             raise ValueError("index cannot be a set")
-        if columns is not None and isinstance(columns, set):
+        if isinstance(columns, set):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
@@ -2981,6 +2981,7 @@ class DataFrame(NDFrame, OpsMixin):
         1     2     3
 
         If you want to get a buffer to the orc content you can write it to io.BytesIO
+
         >>> import io
         >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
         >>> b.seek(0)  # doctest: +SKIP
@@ -8343,7 +8344,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        if len(other) == 0:
+            combined = self.reindex(
+                self.columns.append(other.columns.difference(self.columns)), axis=1
+            )
+            combined = combined.astype(other.dtypes)
+        else:
+            combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
@@ -9472,7 +9479,7 @@ class DataFrame(NDFrame, OpsMixin):
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 
-        new_data = self._mgr.diff(n=periods, axis=axis)
+        new_data = self._mgr.diff(n=periods)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
