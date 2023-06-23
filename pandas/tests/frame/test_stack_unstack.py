@@ -1091,7 +1091,7 @@ class TestDataFrameReshape:
         midx = MultiIndex.from_product([df.index, cidx])
         expected = Series([10, 11, 12], index=midx)
 
-        tm.assert_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ordered", [False, True])
     @pytest.mark.parametrize(
