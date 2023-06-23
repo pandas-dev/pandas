@@ -248,7 +248,9 @@ def test_fillna_inplace_reference(using_copy_on_write):
 
 
 def test_fillna_interval_inplace_reference(using_copy_on_write):
-    ser = Series(interval_range(start=0, end=5), name="a")
+    ser = Series(
+        interval_range(start=0, end=5), name="a", dtype="interval[float64, right]"
+    )
     ser.iloc[1] = np.nan
 
     ser_orig = ser.copy()
