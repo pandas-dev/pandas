@@ -248,7 +248,7 @@ df_kml = DataFrame(
 
 
 def test_literal_xml_deprecation():
-    # GH 53785
+    # GH 53809
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -1392,19 +1392,6 @@ def test_empty_stylesheet(val):
 
 
 # ITERPARSE
-
-
-def test_string_error(parser):
-    with pytest.raises(
-        ParserError, match=("iterparse is designed for large XML files")
-    ):
-        read_xml(
-            StringIO(xml_default_nmsp),
-            parser=parser,
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
-
-
 def test_file_like_iterparse(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "r" and parser == "lxml":
