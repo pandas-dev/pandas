@@ -2675,6 +2675,7 @@ class Period(_Period):
         One of pandas period strings or corresponding objects. Accepted
         strings are listed in the
         :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        If value is datetime, freq is required.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
