@@ -62,7 +62,7 @@ test:
     - python -c "import pandas; pandas.test(extra_args={{ extra_args }})"  # [python_impl == "cpython"]
   requires:
     - pip
-    - pytest >=7.0.0
+    - pytest >=7.3.2
     - pytest-asyncio >=0.17.0
     - pytest-xdist >=2.2.0
     - pytest-cov

@@ -1,6 +1,7 @@
 from datetime import datetime
 from io import StringIO
 import itertools
+import re
 
 import numpy as np
 import pytest
@@ -1536,7 +1537,6 @@ class TestStackUnstackMultiLevel:
 
         # columns unsorted
         unstacked = ymd.unstack()
-        unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
         expected = ymd.sort_index(axis=1, ascending=False)
         tm.assert_frame_equal(restacked, expected)
@@ -1885,7 +1885,8 @@ Thu,Lunch,Yes,51.51,17"""
         multi = df.set_index(["DATE", "ID"])
         multi.columns.name = "Params"
         unst = multi.unstack("ID")
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = re.escape("agg function failed [how->mean,dtype->object]")
+        with pytest.raises(TypeError, match=msg):
             unst.resample("W-THU").mean()
         down = unst.resample("W-THU").mean(numeric_only=True)
         rs = down.stack("ID")

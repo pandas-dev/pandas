@@ -88,7 +88,10 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
 )
-from pandas.core.arrays.categorical import factorize_from_iterables
+from pandas.core.arrays.categorical import (
+    factorize_from_iterables,
+    recode_for_categories,
+)
 import pandas.core.common as com
 from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
@@ -2145,14 +2148,28 @@ class MultiIndex(Index):
         if all(
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
-            arrays, names = [], []
+            codes = []
+            levels = []
+            names = []
             for i in range(self.nlevels):
-                label = self._get_level_values(i)
-                appended = [o._get_level_values(i) for o in other]
-                arrays.append(label.append(appended))
-                single_label_name = all(label.name == x.name for x in appended)
-                names.append(label.name if single_label_name else None)
-            return MultiIndex.from_arrays(arrays, names=names)
+                level_values = self.levels[i]
+                for mi in other:
+                    level_values = level_values.union(mi.levels[i])
+                level_codes = [
+                    recode_for_categories(
+                        mi.codes[i], mi.levels[i], level_values, copy=False
+                    )
+                    for mi in ([self, *other])
+                ]
+                level_name = self.names[i]
+                if any(mi.names[i] != level_name for mi in other):
+                    level_name = None
+                codes.append(np.concatenate(level_codes))
+                levels.append(level_values)
+                names.append(level_name)
+            return MultiIndex(
+                codes=codes, levels=levels, names=names, verify_integrity=False
+            )
 
         to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
