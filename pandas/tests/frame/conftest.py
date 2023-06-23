@@ -1,3 +1,5 @@
+from io import StringIO
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ from pandas import (
     DataFrame,
     NaT,
     date_range,
+    read_csv,
 )
 import pandas._testing as tm
 
@@ -258,4 +261,27 @@ def frame_of_index_cols():
             ("tuple", "as", "label"): np.random.randn(5),
         }
     )
+    return df
+
+
+@pytest.fixture
+def comments_attrs():
+    return {
+        "one": "Hello",
+        "two": "Hello World",
+        "three": "Hello, World!",
+        "four,": "comma in keym",
+    }
+
+
+@pytest.fixture
+def data_for_comments_raw():
+    data = "col1,col2,col3\n0,0,0\n1,1,1\n2,2,2\n"
+    return data
+
+
+@pytest.fixture
+def frame_for_comments(data_for_comments_raw, comments_attrs):
+    df = read_csv(StringIO(data_for_comments_raw))
+    df.attrs = comments_attrs
     return df
