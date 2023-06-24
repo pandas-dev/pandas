@@ -5484,6 +5484,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
             raise ValueError(
                 "Cannot pass both 'freq' and 'fill_value' to "
                 f"{type(self).__name__}.shift"
