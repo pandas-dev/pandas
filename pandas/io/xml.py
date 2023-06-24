@@ -1054,6 +1054,7 @@ def read_xml(
 
     Examples
     --------
+    >>> import io
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
     ... <data xmlns="http://example.com">
     ...  <row>
