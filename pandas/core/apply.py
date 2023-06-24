@@ -700,6 +700,23 @@ class NDFrameApply(Apply):
 class FrameApply(NDFrameApply):
     obj: DataFrame
 
+    def __init__(
+        self,
+        obj: AggObjType,
+        func: AggFuncType,
+        raw: bool,
+        result_type: str | None,
+        *,
+        by_row: Literal[False, "compat"] = False,
+        args,
+        kwargs,
+    ) -> None:
+        if by_row is not False or by_row != "compat":
+            raise NotImplementedError(f"by_row={by_row} not implemented")
+        super().__init__(
+            obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
+        )
+
     # ---------------------------------------------------------------
     # Abstract Methods
 

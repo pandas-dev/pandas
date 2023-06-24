@@ -695,6 +695,22 @@ def test_dictlike_lambda(ops, by_row, expected):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"a": lambda x: x + 1},
+        {"a": lambda x: x.sum()},
+        {"a": ["sum", np.sum, lambda x: x.sum()]},
+        {"a": lambda x: 1},
+    ],
+)
+def test_dictlike_lambda_raises(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(NotImplementedError, match="by_row=True not implemented"):
+        df.apply(ops, by_row=True)
+
+
 def test_with_dictlike_columns():
     # GH 17602
     df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
@@ -748,10 +764,8 @@ def test_with_dictlike_columns_with_infer():
     "ops, by_row, expected",
     [
         ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
-        ([lambda x: x + 1], True, DataFrame({("a", "<lambda>"): [2, 3]})),
         ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
         ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
-        ([lambda x: x.sum()], True, DataFrame({"a": [3]}, index=["<lambda>"])),
         ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
         (
             ["sum", np.sum, lambda x: x.sum()],
@@ -780,6 +794,21 @@ def test_listlike_lambda(ops, by_row, expected):
     df = DataFrame({"a": [1, 2]})
     result = df.apply(ops, by_row=by_row)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [lambda x: x + 1],
+        [lambda x: x.sum()],
+        ["sum", np.sum, lambda x: x.sum()][lambda x: x + 1, lambda x: 3],
+    ],
+)
+def test_listlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(NotImplementedError, match="by_row=True not implemented"):
+        df.apply(ops, by_row=True)
 
 
 def test_with_listlike_columns():

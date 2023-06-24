@@ -9660,16 +9660,17 @@ class DataFrame(NDFrame, OpsMixin):
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
-        by_row : bool or "compat", default "compat"
+        by_row : False or "compat", default "compat"
             If "compat", will if possible first translate the func into pandas
             methods (e.g. ``Series().apply(np.sum)`` will be translated to
             ``Series().sum()``). If that doesn't work, will try call to apply again with
             ``by_row=True`` and if that fails, will call apply again with
             ``by_row=False``
-            If True, gives the same results as for "compat".
             If False, the funcs will be passed the whole Series at once.
             ``by_row`` only has effect when ``func`` is a listlike or dictlike of funcs
             and the func isn't a string.
+            ``by_row=True`` has not been implemented, and will raise an
+            ``NotImplenentedError``.
 
             .. versionadded:: 2.1.0
         **kwargs
