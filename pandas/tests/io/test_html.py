@@ -194,7 +194,7 @@ class TestReadHtml:
     @pytest.mark.network
     @pytest.mark.single_cpu
     def test_banklist_url(self, httpserver, banklist_data):
-        with open(banklist_data) as f:
+        with open(banklist_data, encoding="utf-8") as f:
             httpserver.serve_content(content=f.read())
             df1 = self.read_html(
                 # lxml cannot find attrs leave out for now
@@ -212,7 +212,7 @@ class TestReadHtml:
     @pytest.mark.network
     @pytest.mark.single_cpu
     def test_spam_url(self, httpserver, spam_data):
-        with open(spam_data) as f:
+        with open(spam_data, encoding="utf-8") as f:
             httpserver.serve_content(content=f.read())
             df1 = self.read_html(httpserver.url, match=".*Water.*")
             df2 = self.read_html(httpserver.url, match="Unit")

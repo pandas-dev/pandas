@@ -34,7 +34,7 @@ def test_url(all_parsers, csv_dir_path, httpserver):
     kwargs = {"sep": "\t"}
 
     local_path = os.path.join(csv_dir_path, "salaries.csv")
-    with open(local_path) as f:
+    with open(local_path, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
 
     url_result = parser.read_csv(httpserver.url, **kwargs)

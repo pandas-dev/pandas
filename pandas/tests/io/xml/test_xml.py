@@ -1390,7 +1390,7 @@ def test_file_io_iterparse(xml_books, parser, mode):
 @pytest.mark.network
 @pytest.mark.single_cpu
 def test_url_path_error(parser, httpserver, xml_file):
-    with open(xml_file) as f:
+    with open(xml_file, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
         with pytest.raises(
             ParserError, match=("iterparse is designed for large XML files")
