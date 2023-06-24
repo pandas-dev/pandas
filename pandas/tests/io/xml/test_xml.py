@@ -246,9 +246,8 @@ df_kml = DataFrame(
     }
 )
 
-td.skip_if_no("lxml")
 
-
+@td.skip_if_no("lxml")
 def test_literal_xml_deprecation():
     # GH 53809
     msg = (
@@ -258,7 +257,7 @@ def test_literal_xml_deprecation():
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_xml(xml_default_nmsp)
+        read_xml(xml_default_nmsp, parser="etree")
 
 
 @pytest.fixture(params=["rb", "r"])
