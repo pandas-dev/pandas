@@ -1448,7 +1448,7 @@ class TestReaders:
 
 class TestExcelFileRead:
     def test_deprecate_bytes_input(self, engine, read_ext):
-        # GH
+        # GH 53830
         msg = (
             "Passing bytes to 'read_excel' is deprecated and "
             "will be removed in a future version. To read from a "
