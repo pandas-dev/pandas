@@ -18,6 +18,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import (
     NaT,
     Timedelta,
@@ -451,7 +453,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
-        return self._data._ndarray
+        data = self._data._ndarray
+        if using_copy_on_write():
+            data = data.view()
+            data.flags.writeable = False
+        return data
 
     @doc(DatetimeIndexOpsMixin.shift)
     def shift(self, periods: int = 1, freq=None) -> Self:

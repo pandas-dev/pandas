@@ -562,6 +562,8 @@ _shared_docs[
     {inplace}
     limit : int, default None
         Maximum size gap to forward or backward fill.
+
+        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
         expressions. If this is ``True`` then `to_replace` *must* be a
@@ -571,6 +573,8 @@ _shared_docs[
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
+
+        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -765,6 +769,9 @@ _shared_docs[
     3     b
     4     b
     dtype: object
+
+        .. deprecated:: 2.1.0
+            The 'method' parameter and padding behavior are deprecated.
 
     On the other hand, if ``None`` is explicitly passed for ``value``, it will
     be respected:
