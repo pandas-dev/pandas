@@ -482,6 +482,7 @@ def test_wrong_file_path_etree():
 
 
 @pytest.mark.network
+@pytest.mark.single_cpu
 @td.skip_if_no("lxml")
 def test_url(httpserver, xml_file):
     with open(xml_file) as f:
