@@ -335,14 +335,10 @@ def test_fillna_inplace_ea_noop_shares_memory(
         # MaskedArray can actually respect inplace=True
         assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
 
+    assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     if using_copy_on_write:
-        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
-    else:
-        # arrow is immutable, so no-ops do not need to copy underlying array
-        # MaskedArray can actually respect inplace=True
-        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
 
     df.iloc[0, 1] = 100
     if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
