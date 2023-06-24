@@ -47,10 +47,10 @@ class TestSeriesArgsort:
 
     def test_argsort_stable(self):
         s = Series(np.random.randint(0, 100, size=10000))
-        mindexer = s.argsort(kind="mergesort")
+        mindexer = s.argsort(kind="stable")
         qindexer = s.argsort()
 
-        mexpected = np.argsort(s.values, kind="mergesort")
+        mexpected = np.argsort(s.values, kind="stable")
         qexpected = np.argsort(s.values, kind="quicksort")
 
         tm.assert_series_equal(mindexer.astype(np.intp), Series(mexpected))

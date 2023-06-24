@@ -29,7 +29,7 @@ class TestCategoricalSort:
         tm.assert_numpy_array_equal(np.argsort(c), expected, check_dtype=False)
 
         tm.assert_numpy_array_equal(
-            np.argsort(c, kind="mergesort"), expected, check_dtype=False
+            np.argsort(c, kind="stable"), expected, check_dtype=False
         )
 
         msg = "the 'axis' parameter is not supported"

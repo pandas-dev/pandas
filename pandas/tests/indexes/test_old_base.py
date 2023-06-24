@@ -331,8 +331,8 @@ class TestBase:
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
 
-        result = np.argsort(index, kind="mergesort")
-        expected = index.argsort(kind="mergesort")
+        result = np.argsort(index, kind="stable")
+        expected = index.argsort(kind="stable")
         tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform

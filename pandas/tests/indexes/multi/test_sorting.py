@@ -104,7 +104,7 @@ def test_numpy_argsort(idx):
 
         msg = "the 'kind' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.argsort(idx, kind="mergesort")
+            np.argsort(idx, kind="stable")
 
         msg = "the 'order' parameter is not supported"
         with pytest.raises(ValueError, match=msg):

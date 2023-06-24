@@ -2118,7 +2118,7 @@ def test_groupsort_indexer():
     # need to use a stable sort
     # np.argsort returns int, groupsort_indexer
     # always returns intp
-    expected = np.argsort(a, kind="mergesort")
+    expected = np.argsort(a, kind="stable")
     expected = expected.astype(np.intp)
 
     tm.assert_numpy_array_equal(result, expected)

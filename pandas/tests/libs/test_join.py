@@ -52,8 +52,8 @@ class TestIndexer:
 
         ls, rs = left_outer_join(left, right, max_group)
 
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
+        exp_ls = left.argsort(kind="stable")
+        exp_rs = right.argsort(kind="stable")
 
         exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 10])
         exp_ri = np.array(
@@ -76,8 +76,8 @@ class TestIndexer:
 
         rs, ls = left_outer_join(right, left, max_group)
 
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
+        exp_ls = left.argsort(kind="stable")
+        exp_rs = right.argsort(kind="stable")
 
         #            0        1        1        1
         exp_li = np.array(
@@ -122,8 +122,8 @@ class TestIndexer:
 
         ls, rs = inner_join(left, right, max_group)
 
-        exp_ls = left.argsort(kind="mergesort")
-        exp_rs = right.argsort(kind="mergesort")
+        exp_ls = left.argsort(kind="stable")
+        exp_rs = right.argsort(kind="stable")
 
         exp_li = np.array([0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 8])
         exp_ri = np.array([0, 0, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 4, 5, 4, 5])
