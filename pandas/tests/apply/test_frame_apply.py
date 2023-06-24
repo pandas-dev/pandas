@@ -704,7 +704,7 @@ def test_dictlike_lambda(ops, by_row, expected):
         {"a": lambda x: 1},
     ],
 )
-def test_dictlike_lambda_raises(ops, by_row, expected):
+def test_dictlike_lambda_raises(ops):
     # GH53601
     df = DataFrame({"a": [1, 2]})
     with pytest.raises(NotImplementedError, match="by_row=True not implemented"):
@@ -801,7 +801,8 @@ def test_listlike_lambda(ops, by_row, expected):
     [
         [lambda x: x + 1],
         [lambda x: x.sum()],
-        ["sum", np.sum, lambda x: x.sum()][lambda x: x + 1, lambda x: 3],
+        ["sum", np.sum, lambda x: x.sum()],
+        [lambda x: x + 1, lambda x: 3],
     ],
 )
 def test_listlike_lambda_raises(ops):
