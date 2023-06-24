@@ -1925,6 +1925,12 @@ cdef class _Period(PeriodMixin):
         Returns
         -------
         resampled : Period
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> period.asfreq('H')
+        Period('2023-01-01 23:00', 'H')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2460,6 +2466,11 @@ cdef class _Period(PeriodMixin):
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        Examples
+        --------
+        >>> pd.Period.now('H')  # doctest: +SKIP
+        Period('2023-06-12 11:00', 'H')
         """
         return Period(datetime.now(), freq=freq)
 
@@ -2664,6 +2675,7 @@ class Period(_Period):
         One of pandas period strings or corresponding objects. Accepted
         strings are listed in the
         :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        If value is datetime, freq is required.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
