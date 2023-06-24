@@ -835,7 +835,7 @@ class TestSetOpsUnsorted:
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b, sort=True)
 
-        msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+        msg = "'<' not supported between instances of 'int' and 'Timestamp'"
         with pytest.raises(TypeError, match=msg):
             op(a)
 
