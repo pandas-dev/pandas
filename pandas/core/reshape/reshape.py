@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -694,7 +693,14 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
     # Remove duplicate tuples in the MultiIndex.
     tuples = zip(*levs)
-    unique_tuples = (key for key, _ in itertools.groupby(tuples))
+    seen = set()
+    # mypy doesn't like our trickery to get `set.add` to work in a comprehension
+    # error: "add" of "set" does not return a value
+    unique_tuples = (
+        key
+        for key in tuples
+        if not (key in seen or seen.add(key))  # type: ignore[func-returns-value]
+    )
     new_levs = zip(*unique_tuples)
 
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
@@ -740,23 +746,12 @@ def _stack_multi_columns(
             roll_columns = roll_columns.swaplevel(lev1, lev2)
         this.columns = mi_cols = roll_columns
 
-    # if not mi_cols._is_lexsorted() and sort:
-    #     # Workaround the edge case where 0 is one of the column names,
-    #     # which interferes with trying to sort based on the first
-    #     # level
-    #     level_to_sort = _convert_level_number(0, mi_cols)
-    #     this = this.sort_index(level=level_to_sort, axis=1)
-    #     mi_cols = this.columns
-
-    mi_cols = cast(MultiIndex, mi_cols)
     new_columns = _stack_multi_column_index(mi_cols)
 
     # time to ravel the values
     new_data = {}
     level_vals = mi_cols.levels[-1]
     level_codes = unique(mi_cols.codes[-1])
-    # if sort:
-    #     level_codes = np.sort(level_codes)
     level_vals_nan = level_vals.insert(len(level_vals), None)
 
     level_vals_used = np.take(level_vals_nan, level_codes)
@@ -776,9 +771,12 @@ def _stack_multi_columns(
         # but if unsorted can get a boolean
         # indexer
         if not isinstance(loc, slice):
-            slice_len = len(loc)
+            slice_len = loc.sum()
         else:
             slice_len = loc.stop - loc.start
+            if loc.step is not None:
+                # Integer division using ceiling instead of floor
+                slice_len = -(slice_len // -loc.step)
 
         if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
@@ -786,8 +784,6 @@ def _stack_multi_columns(
             value_slice = chunk.reindex(columns=level_vals_used).values
         else:
             subset = this.iloc[:, loc]
-            subset = this.loc[:, this.columns[loc]]
-            subset.columns = level_vals_nan.take(subset.columns.codes[-1])
             dtype = find_common_type(subset.dtypes.tolist())
             if isinstance(dtype, ExtensionDtype):
                 # TODO(EA2D): won't need special case, can go through .values
@@ -799,7 +795,7 @@ def _stack_multi_columns(
                 idx = np.arange(N * K).reshape(K, N).T.ravel()
                 value_slice = value_slice.take(idx)
             else:
-                value_slice = subset.reindex(columns=level_vals_used).values
+                value_slice = subset.values
 
         if value_slice.ndim > 1:
             # i.e. not extension

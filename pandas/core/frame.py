@@ -9120,15 +9120,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_multi_level_cols2.stack(0)
                      kg    m
-        cat height  NaN  2.0
-            weight  1.0  NaN
-        dog height  NaN  4.0
-            weight  3.0  NaN
+        cat weight  1.0  NaN
+            height  NaN  2.0
+        dog weight  3.0  NaN
+            height  NaN  4.0
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  height  m     2.0
-             weight  kg    1.0
-        dog  height  m     4.0
-             weight  kg    3.0
+        cat  weight  kg    1.0
+             height  m     2.0
+        dog  weight  kg    3.0
+             height  m     4.0
         dtype: float64
 
         **Dropping missing values**
@@ -9479,7 +9479,7 @@ class DataFrame(NDFrame, OpsMixin):
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 
-        new_data = self._mgr.diff(n=periods, axis=axis)
+        new_data = self._mgr.diff(n=periods)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
