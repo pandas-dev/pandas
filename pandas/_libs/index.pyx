@@ -360,6 +360,8 @@ cdef class IndexEngine:
         values = self.values
         stargets = set(targets)
 
+        na_in_stargets = any(checknull(t) for t in stargets)
+
         n = len(values)
         n_t = len(targets)
         if n > 10_000:
@@ -374,7 +376,7 @@ cdef class IndexEngine:
         if (
                 stargets and
                 len(stargets) < 5 and
-                not any([checknull(t) for t in stargets]) and
+                not na_in_stargets and
                 self.is_monotonic_increasing
         ):
             # if there are few enough stargets and the index is monotonically
@@ -396,7 +398,7 @@ cdef class IndexEngine:
             # otherwise, map by iterating through all items in the index
 
             # short-circuit na check
-            if values.dtype == object:
+            if na_in_stargets:
                 check_na_values = True
                 # keep track of nas in values
                 found_nas = set()
