@@ -485,7 +485,7 @@ def test_wrong_file_path_etree():
 @pytest.mark.single_cpu
 @td.skip_if_no("lxml")
 def test_url(httpserver, xml_file):
-    with open(xml_file) as f:
+    with open(xml_file, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
         df_url = read_xml(httpserver.url, xpath=".//book[count(*)=4]")
 
