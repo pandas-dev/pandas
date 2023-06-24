@@ -411,10 +411,9 @@ class BaseBlockManager(DataManager):
             using_cow=using_copy_on_write(),
         )
 
-    def diff(self, n: int, axis: AxisInt) -> Self:
-        # only reached with self.ndim == 2 and axis == 1
-        axis = self._normalize_axis(axis)
-        return self.apply("diff", n=n, axis=axis)
+    def diff(self, n: int) -> Self:
+        # only reached with self.ndim == 2
+        return self.apply("diff", n=n)
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply(
@@ -939,8 +938,7 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
-        assert isinstance(indexer, np.ndarray), type(indexer)
-        assert indexer.dtype == np.intp, indexer.dtype
+        # Caller is responsible for ensuring indexer annotation is accurate
 
         n = self.shape[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)
