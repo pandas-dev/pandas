@@ -673,9 +673,9 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
 
         # GH47215
-        if index is not None and isinstance(index, set):
+        if isinstance(index, set):
             raise ValueError("index cannot be a set")
-        if columns is not None and isinstance(columns, set):
+        if isinstance(columns, set):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
@@ -8344,7 +8344,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        if len(other) == 0:
+            combined = self.reindex(
+                self.columns.append(other.columns.difference(self.columns)), axis=1
+            )
+            combined = combined.astype(other.dtypes)
+        else:
+            combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
@@ -9102,11 +9108,11 @@ class DataFrame(NDFrame, OpsMixin):
         cat    1.0    2.0
         dog    3.0    4.0
         >>> df_multi_level_cols2.stack()
-                height  weight
-        cat kg     NaN     1.0
-            m      2.0     NaN
-        dog kg     NaN     3.0
-            m      4.0     NaN
+                weight  height
+        cat kg     1.0     NaN
+            m      NaN     2.0
+        dog kg     3.0     NaN
+            m      NaN     4.0
 
         **Prescribing the level(s) to be stacked**
 
@@ -9141,16 +9147,16 @@ class DataFrame(NDFrame, OpsMixin):
         cat    NaN    1.0
         dog    2.0    3.0
         >>> df_multi_level_cols3.stack(dropna=False)
-                height  weight
+                weight  height
         cat kg     NaN     NaN
-            m      1.0     NaN
-        dog kg     NaN     2.0
-            m      3.0     NaN
+            m      NaN     1.0
+        dog kg     2.0     NaN
+            m      NaN     3.0
         >>> df_multi_level_cols3.stack(dropna=True)
-                height  weight
-        cat m      1.0     NaN
-        dog kg     NaN     2.0
-            m      3.0     NaN
+                weight  height
+        cat m      NaN     1.0
+        dog kg     2.0     NaN
+            m      NaN     3.0
         """
         from pandas.core.reshape.reshape import (
             stack,
@@ -9473,7 +9479,7 @@ class DataFrame(NDFrame, OpsMixin):
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 
-        new_data = self._mgr.diff(n=periods, axis=axis)
+        new_data = self._mgr.diff(n=periods)
         return self._constructor(new_data).__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
