@@ -81,7 +81,7 @@ def frame_apply(
     axis: Axis = 0,
     raw: bool = False,
     result_type: str | None = None,
-    by_row: Literal[False,  "compat"] = "compat",
+    by_row: Literal[False, "compat"] = "compat",
     args=None,
     kwargs=None,
 ) -> FrameApply:
