@@ -257,7 +257,7 @@ def test_literal_xml_deprecation():
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_xml(xml_default_nmsp, parser="etree")
+        read_xml(xml_default_nmsp)
 
 
 @pytest.fixture(params=["rb", "r"])

@@ -1073,7 +1073,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(StringIO(xml))
+    >>> df = pd.read_xml(io.StringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1087,7 +1087,7 @@ def read_xml(
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
     ... </data>'''
 
-    >>> df = pd.read_xml(StringIO(xml), xpath=".//row")
+    >>> df = pd.read_xml(io.StringIO(xml), xpath=".//row")
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1113,7 +1113,7 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(StringIO(xml),
+    >>> df = pd.read_xml(io.StringIO(xml),
     ...                  xpath="//doc:row",
     ...                  namespaces={{"doc": "https://example.com"}})
     >>> df
