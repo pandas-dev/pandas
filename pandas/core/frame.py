@@ -9464,22 +9464,12 @@ class DataFrame(NDFrame, OpsMixin):
 
         axis = self._get_axis_number(axis)
 
-        def is_columns_bool_dtypes(self) -> bool:
-            """
-            check whether dataframe's all column dtypes are bool
-            """
-            temp = self.dtypes
-            for i in temp:
-                if i != bool:
-                    return False
-            return True
-
         if axis == 1:
             if periods != 0:
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
-                if is_columns_bool_dtypes(self):
+                if (self.dtypes == np.bool_).all():
                     result = self ^ self.shift(periods=periods, axis=axis)
                     result.iloc[:, :periods] = np.nan
                     return result
