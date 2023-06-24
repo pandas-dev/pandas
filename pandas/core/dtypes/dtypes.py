@@ -775,7 +775,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.DatetimeTZDtype(tz='dateutil/US/Central')
+        >>> dtype = pd.DatetimeTZDtype(tz='America/Los_Angeles')
         >>> dtype.unit
         'ns'
         """
@@ -788,9 +788,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.DatetimeTZDtype(tz='dateutil/US/Central')
+        >>> dtype = pd.DatetimeTZDtype(tz='America/Los_Angeles')
         >>> dtype.tz
-        tzfile('/usr/share/zoneinfo/US/Central')
+        <DstTzInfo 'America/Los_Angeles' LMT-1 day, 16:07:00 STD>
         """
         return self._tz
 
