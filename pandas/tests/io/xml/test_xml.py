@@ -246,6 +246,8 @@ df_kml = DataFrame(
     }
 )
 
+td.skip_if_no("lxml")
+
 
 def test_literal_xml_deprecation():
     # GH 53809
@@ -256,33 +258,7 @@ def test_literal_xml_deprecation():
     )
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        read_xml(
-            """<?xml version='1.0' encoding='utf-8'?>
-        <data xmlns="http://example.com">
-        <row>
-          <a>x</a>
-          <b>1</b>
-          <c>4.0</c>
-          <d>x</d>
-          <e>2</e>
-          <f>4.0</f>
-          <g></g>
-          <h>True</h>
-          <i>False</i>
-        </row>
-        <row>
-          <a>y</a>
-          <b>2</b>
-          <c>5.0</c>
-          <d></d>
-          <e></e>
-          <f></f>
-          <g></g>
-          <h>False</h>
-          <i></i>
-        </row>
-        </data>"""
-        )
+        read_xml(xml_default_nmsp)
 
 
 @pytest.fixture(params=["rb", "r"])

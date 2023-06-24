@@ -1073,7 +1073,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(SringIO(xml))
+    >>> df = pd.read_xml(StringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
