@@ -26,10 +26,10 @@ def read_clipboard(
     **kwargs,
 ):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to :func:`pandas.read_csv`.
+    Read text from clipboard and pass to :func:`~pandas.read_csv`.
 
     Parses clipboard contents similar to how CSV files are parsed
-    using :func:`pandas.read_csv`.
+    using :func:`~pandas.read_csv`.
 
     Parameters
     ----------
@@ -48,12 +48,12 @@ def read_clipboard(
         .. versionadded:: 2.0
 
     **kwargs
-        See :func:`pandas.read_csv` for the full argument list.
+        See :func:`~pandas.read_csv` for the full argument list.
 
     Returns
     -------
     DataFrame
-        A parsed :class:`pandas.DataFrame` object.
+        A parsed :class:`~pandas.DataFrame` object.
 
     See Also
     --------
