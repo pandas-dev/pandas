@@ -6,11 +6,11 @@
                 <section class="h-30 p-5 bg-light border rounded-3 text-center mb-4">
                     <h1>pandas</h1>
                     <p>
-                        <strong>pandas</strong> is a fast, powerful, flexible and easy to use open source data analysis and manipulation tool,<br/>
-                        built on top of the <a href="https://www.python.org">Python</a> programming language.
+                        <strong>pandas</strong> is a fast, powerful, flexible and easy to use open source data analysis and manipulation tool which is<br/>
+                        built on top of <a href="https://www.python.org">Python</a>, a popular and easy programming language.
                     </p>
                     <p>
-                        <a class="btn btn-primary" href="{{ base_url }}getting_started.html">Install pandas now!</a>
+                        <a class="btn btn-primary" href="{{ base_url }}getting_started.html">Install pandas now on your system!</a>
                     </p>
                 </section>
 
@@ -20,29 +20,29 @@
                         <ul>
                             <!-- <li><a href="{{ base_url }}/try.html">Try pandas online</a></li> -->
                             <li><a href="{{ base_url }}getting_started.html">Install pandas</a></li>
-                            <li><a href="{{ base_url }}docs/getting_started/index.html">Getting started</a></li>
+                            <li><a href="{{ base_url }}docs/getting_started/index.html">Getting Started</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <h5>Documentation</h5>
                         <ul>
-                            <li><a href="{{ base_url }}docs/user_guide/index.html">User guide</a></li>
-                            <li><a href="{{ base_url }}docs/reference/index.html">API reference</a></li>
+                            <li><a href="{{ base_url }}docs/user_guide/index.html">User Guide</a></li>
+                            <li><a href="{{ base_url }}docs/reference/index.html">API Reference</a></li>
                             <li><a href="{{ base_url }}docs/development/index.html">Contributing to pandas</a></li>
-                            <li><a href="{{ base_url }}docs/whatsnew/index.html">Release notes</a></li>
+                            <li><a href="{{ base_url }}docs/whatsnew/index.html">Release Notes</a></li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <h5>Community</h5>
                         <ul>
                             <li><a href="{{ base_url }}about/index.html">About pandas</a></li>
-                            <li><a href="https://stackoverflow.com/questions/tagged/pandas">Ask a question</a></li>
-                            <li><a href="{{ base_url }}community/ecosystem.html">Ecosystem</a></li>
+                            <li><a href="https://stackoverflow.com/questions/tagged/pandas">Any Questions? Ask Here</a></li>
+                            <li><a href="{{ base_url }}community/ecosystem.html">Our Ecosystem</a></li>
                         </ul>
                     </div>
                 </div>
                 <section>
-                    <h5>With the support of:</h5>
+                    <h5>All Possible, With the Support of:</h5>
                     {% for row in sponsors.active | batch(6, "") %}
                         <div class="row mx-auto h-100">
                             {% for company in row %}
@@ -56,20 +56,20 @@
                             {% endfor %}
                         </div>
                     {% endfor %}
-                    <p class="mt-4">The full list of companies supporting <i>pandas</i> is available in the <a href="{{ base_url }}about/sponsors.html">sponsors page</a>.
+                    <p class="mt-4">dCompanies around the world love us in making their lives easier. Here is a full list of all the companies who support <i>pandas</i>. The list is available in the <a href="{{ base_url }}about/sponsors.html">sponsors page</a>.
                 </section>
             </div>
             <div class="col-md-3">
                 {% if releases %}
-                    <h4>Latest version: {{ releases[0].name }}</h4>
+                    <h4>The Latest version: {{ releases[0].name }}</h4>
                     <ul>
                         <li><a href="{{ base_url }}docs/whatsnew/v{{ releases[0].name }}.html">What's new in {{ releases[0].name }}</a></li>
                         <li>Release date:<br/>{{ releases[0].published.strftime("%b %d, %Y") }}</li>
                         <li><a href="{{ base_url}}docs/">Documentation (web)</a></li>
-                        <li><a href="{{ releases[0].url }}">Download source code</a></li>
+                        <li><a href="{{ releases[0].url }}">Download Source Code</a></li>
                     </ul>
                 {% endif %}
-                <h4>Follow us</h4>
+                <h4>Follow us at</h4>
                 <div class="text-center">
                     <ul class="list-inline social-buttons">
                         <li class="list-inline-item">
