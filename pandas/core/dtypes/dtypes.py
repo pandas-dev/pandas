@@ -610,6 +610,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def categories(self) -> Index:
         """
         An ``Index`` containing the unique categories allowed.
+
+        Examples
+        --------
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type.categories
+        Index(['a', 'b'], dtype='object')
         """
         return self._categories
 
@@ -617,6 +623,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        Examples
+        --------
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type.ordered
+        True
+
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=False)
+        >>> cat_type.ordered
+        False
         """
         return self._ordered
 
@@ -1658,17 +1674,6 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        elif isinstance(self.subtype, CategoricalDtype):
-            # TODO: is this even supported?  It is reached in
-            #  test_dtype_sparse_with_fill_value_not_present_in_data
-            if self.subtype.categories is None or val not in self.subtype.categories:
                 warnings.warn(
                     "Allowing arbitrary scalar fill_value in SparseDtype is "
                     "deprecated. In a future version, the fill_value must be "

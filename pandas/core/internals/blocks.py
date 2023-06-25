@@ -233,7 +233,7 @@ class Block(PandasObject):
         values,
         placement: BlockPlacement | None = None,
         refs: BlockValuesRefs | None = None,
-    ) -> Block:
+    ) -> Self:
         """Wrap given values in a block of same type as self."""
         # Pre-2.0 we called ensure_wrapped_if_datetimelike because fastparquet
         #  relied on it, as of 2.0 the caller is responsible for this.
@@ -503,6 +503,7 @@ class Block(PandasObject):
     # ---------------------------------------------------------------------
     # Array-Like Methods
 
+    @final
     @cache_readonly
     def dtype(self) -> DtypeObj:
         return self.values.dtype
@@ -559,7 +560,7 @@ class Block(PandasObject):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Block:
+    def copy(self, deep: bool = True) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -1425,10 +1426,12 @@ class Block(PandasObject):
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
+    @final
+    def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
-        # only reached with ndim == 2 and axis == 1
-        new_values = algos.diff(self.values, n, axis=axis)
+        # only reached with ndim == 2
+        # TODO(EA2D): transpose will be unnecessary with 2D EAs
+        new_values = algos.diff(self.values.T, n, axis=0).T
         return [self.make_block(values=new_values)]
 
     def shift(
@@ -1499,7 +1502,8 @@ class Block(PandasObject):
         result = ensure_block_shape(result, ndim=2)
         return new_block_2d(result, placement=self._mgr_locs)
 
-    def round(self, decimals: int, using_cow: bool = False) -> Block:
+    @final
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
@@ -1765,9 +1769,7 @@ class EABackedBlock(Block):
 
         if using_cow and self.refs.has_reference():
             values = values.copy()
-            self = self.make_block_same_class(  # type: ignore[assignment]
-                values.T if values.ndim == 2 else values
-            )
+            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -2067,12 +2069,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
-        # only reached with ndim == 2 and axis == 1
-        # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
-        new_values = algos.diff(self.values, n, axis=0)
-        return [self.make_block(values=new_values)]
-
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
     ) -> list[Block]:
@@ -2190,32 +2186,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def diff(self, n: int, axis: AxisInt = 0) -> list[Block]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new Block.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        # only reached with ndim == 2 and axis == 1
-        values = self.values
-
-        new_values = values - values.shift(n, axis=axis)
-        return [self.make_block(new_values)]
 
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
