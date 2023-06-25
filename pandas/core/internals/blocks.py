@@ -1343,6 +1343,35 @@ class Block(PandasObject):
             ]
         )
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        axis: AxisInt = 0,
+        index: Index | None = None,
+        inplace: bool = False,
+        limit: int | None = None,
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
+        limit_area: str | None = None,
+        fill_value: Any | None = None,
+        downcast: Literal["infer"] | None = None,
+        using_cow: bool = False,
+        **kwargs,
+    ) -> list[Block]:
+        return self.interpolate(
+            method=method,
+            axis=axis,
+            index=index,
+            inplace=inplace,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            downcast=downcast,
+            using_cow=using_cow,
+            **kwargs,
+        )
+
     def interpolate(
         self,
         *,

@@ -6912,7 +6912,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             return result
 
-        new_mgr = self._mgr.interpolate(
+        new_mgr = self._mgr.pad_or_backfill(
             method=method,
             axis=axis,
             limit=limit,
@@ -7989,9 +7989,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     stacklevel=find_stack_level(),
                 )
 
-        if method not in fillna_methods:
-            axis = self._info_axis_number
-
         if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
@@ -8008,17 +8005,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         index = missing.get_interp_index(method, obj.index)
 
-        new_data = obj._mgr.interpolate(
-            method=method,
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            inplace=inplace,
-            downcast=downcast,
-            **kwargs,
-        )
+        if method.lower() in fillna_methods:
+            # TODO(3.0): remove this case
+            new_data = obj._mgr.pad_or_backfill(
+                method=method,
+                axis=axis,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                inplace=inplace,
+                downcast=downcast,
+                **kwargs,
+            )
+        else:
+            axis = self._info_axis_number
+            new_data = obj._mgr.interpolate(
+                method=method,
+                axis=axis,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                inplace=inplace,
+                downcast=downcast,
+                **kwargs,
+            )
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if should_transpose:
