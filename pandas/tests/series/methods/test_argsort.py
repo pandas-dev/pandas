@@ -10,10 +10,11 @@ import pandas._testing as tm
 
 
 class TestSeriesArgsort:
-    def _check_accum_op(self, name, ser, check_dtype=True):
-        func = getattr(np, name)
+    def test_argsort_numpy(self, datetime_series):
+        ser = datetime_series
+        func = np.argsort
         tm.assert_numpy_array_equal(
-            func(ser).values, func(np.array(ser)), check_dtype=check_dtype
+            func(ser).values, func(np.array(ser)), check_dtype=False
         )
 
         # with missing values
@@ -26,7 +27,6 @@ class TestSeriesArgsort:
         tm.assert_numpy_array_equal(result.values, expected, check_dtype=False)
 
     def test_argsort(self, datetime_series):
-        self._check_accum_op("argsort", datetime_series, check_dtype=False)
         argsorted = datetime_series.argsort()
         assert issubclass(argsorted.dtype.type, np.integer)
 
