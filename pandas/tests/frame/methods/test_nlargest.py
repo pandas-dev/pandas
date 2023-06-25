@@ -160,11 +160,11 @@ class TestNLargestNSmallest:
 
         df = df_duplicates
         result = df.nsmallest(n, order)
-        expected = df.sort_values(order).head(n)
+        expected = df.sort_values(order, kind="stable").head(n)
         tm.assert_frame_equal(result, expected)
 
         result = df.nlargest(n, order)
-        expected = df.sort_values(order, ascending=False).head(n)
+        expected = df.sort_values(order, ascending=False, kind="stable").head(n)
         tm.assert_frame_equal(result, expected)
 
     def test_nlargest_duplicate_keep_all_ties(self):
