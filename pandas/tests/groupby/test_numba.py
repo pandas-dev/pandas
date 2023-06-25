@@ -67,3 +67,14 @@ class TestEngine:
         gb = df.groupby("a", axis=1)
         with pytest.raises(NotImplementedError, match="axis=1"):
             getattr(gb, func)(engine="numba", **kwargs)
+
+    def test_cython_vs_numba_apply_basic(self):
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
+        gb = df.groupby("a", group_keys=False)
+        result = gb.apply(
+            lambda values, index: (values.sum(axis=1), index), engine="numba"
+        )
+        expected = gb.apply(lambda group: group.sum(axis=1))
+        tm.assert_series_equal(result, expected)
+
+    # def test

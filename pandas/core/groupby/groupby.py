@@ -86,6 +86,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1605,6 +1606,42 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             res.index = default_index(len(res))
         return res
 
+    @final
+    def _apply_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
+        data = self._selected_obj
+        df = data if data.ndim == 2 else data.to_frame()
+
+        numba_.validate_udf(func)
+        numba_apply_func = numba_.generate_numba_apply_func(
+            func, **get_jit_arguments(engine_kwargs, kwargs)
+        )
+        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
+        if sorted_data.dtype.kind == "O":
+            raise ValueError(
+                "Cannot do apply with engine='numba' on data that is either "
+                "object dtype or that has no common numeric dtype"
+            )
+
+        # TODO: Split this in to two steps and add error checking to make sure
+        # a tuple is returned to prevent accidents
+        result_values, result_indices = numba_apply_func(
+            sorted_data,
+            sorted_index,
+            starts,
+            ends,
+            *args,
+        )
+
+        result_values = concat_compat(result_values)
+        result_index = concat_compat(result_indices)
+
+        if result_values.ndim == 1:
+            result = Series(result_values, index=result_index)
+        else:
+            result = DataFrame(result_values, index=result_index)
+
+        return result
+
     # -----------------------------------------------------------------
     # apply/agg/transform
 
@@ -1613,7 +1650,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs) -> NDFrameT:
+    def apply(self, func, engine=None, engine_kwargs=None, *args, **kwargs) -> NDFrameT:
         func = com.is_builtin_func(func)
 
         if isinstance(func, str):
@@ -1630,7 +1667,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         elif args or kwargs:
             if callable(func):
-
+                # TODO: Does this work for numba?
                 @wraps(func)
                 def f(g):
                     return func(g, *args, **kwargs)
@@ -1641,6 +1678,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
         else:
             f = func
+
+        if maybe_use_numba(engine):
+            return self._apply_with_numba(
+                func, *args, engine_kwargs=engine_kwargs, **kwargs
+            )
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
