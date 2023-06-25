@@ -52,14 +52,9 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.3.0
-cpplint
 flake8==6.0.0
-isort>=5.2.1
 mypy==1.2
 pre-commit>=2.15.0
-pyupgrade
-ruff==0.0.215
 gitpython
 gitdb
 natsort
@@ -69,6 +64,7 @@ pytest-cython
 sphinx
 sphinx-design
 sphinx-copybutton
+sphinx-toggleprompt
 types-python-dateutil
 types-PyMySQL
 types-pytz
@@ -87,6 +83,5 @@ feedparser
 pyyaml
 requests
 pygments
-sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1

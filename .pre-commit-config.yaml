@@ -74,7 +74,7 @@ repos:
             --linelength=88,
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
--   repo: https://github.com/pycqa/pylint
+-   repo: https://github.com/pylint-dev/pylint
     rev: v3.0.0a6
     hooks:
     -   id: pylint
@@ -92,11 +92,6 @@ repos:
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
-    -   id: pylint
-        alias: unspecified-encoding
-        name: Using open without explicitly specifying an encoding
-        args: [--disable=all, --enable=unspecified-encoding]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
