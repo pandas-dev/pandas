@@ -745,3 +745,11 @@ class TestDatetimeArray:
         right2 = dta.astype(object)[2]
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
+
+    def test_date_range_frequency_M_deprecated(self):
+        depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+
+        expected = pd.date_range("1/1/2000", periods=4, freq="ME")
+        with tm.assert_produces_warning(UserWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq="M")
+        tm.assert_index_equal(result, expected)

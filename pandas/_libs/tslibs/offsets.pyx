@@ -43,6 +43,8 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
     weekday_to_int,
 )
+from pandas.util._exceptions import find_stack_level
+
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -4417,9 +4419,10 @@ cpdef to_offset(freq, bint is_period=False):
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name == "M":
                     warnings.warn(
-                        r"\'M\' will be deprecated, please use \'ME\' "
+                        "\'M\' will be deprecated, please use \'ME\' "
                         "for \'month end\'",
                         UserWarning,
+                        stacklevel=find_stack_level(),
                     )
                     name = "ME"
                 if is_period is True and name == "ME":

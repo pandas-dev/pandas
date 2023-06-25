@@ -1990,3 +1990,13 @@ def test_period_range_frequency_ME_error_message():
     msg = "Invalid frequency: ME"
     with pytest.raises(ValueError, match=msg):
         period_range("Jan-2000", "Dec-2000", freq="ME")
+
+
+def test_resample_frequency_M_deprecated():
+    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+
+    ts = Series(range(9), index=date_range("1/1/2000", periods=9, freq="ME"))
+    expected = ts.resample("3ME").sum()
+    with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        result = ts.resample("3M").sum()
+    tm.assert_almost_equal(result, expected)

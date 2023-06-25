@@ -887,7 +887,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution | None:
-        freqstr = self.freq.freqstr
+        # error: Item "None" of "Optional[BaseOffset]" has no attribute "freqstr"
+        freqstr = self.freq.freqstr  # type: ignore[union-attr]
         if freqstr is None:
             return None
         try:
