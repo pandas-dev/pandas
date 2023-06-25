@@ -857,11 +857,13 @@ class TestSortValuesLevelAsStr:
 
         # Compute expected by sorting on columns and the setting index
         expected = df_none.sort_values(
-            by=sort_names, ascending=ascending, axis=0
+            by=sort_names, ascending=ascending, axis=0, kind="stable"
         ).set_index(levels)
 
         # Compute result sorting on mix on columns and index levels
-        result = df_idx.sort_values(by=sort_names, ascending=ascending, axis=0)
+        result = df_idx.sort_values(
+            by=sort_names, ascending=ascending, axis=0, kind="stable"
+        )
 
         tm.assert_frame_equal(result, expected)
 
@@ -877,13 +879,17 @@ class TestSortValuesLevelAsStr:
         # transposing. For some cases this will result in a frame with
         # multiple column levels
         expected = (
-            df_none.sort_values(by=sort_names, ascending=ascending, axis=0)
+            df_none.sort_values(
+                by=sort_names, ascending=ascending, axis=0, kind="stable"
+            )
             .set_index(levels)
             .T
         )
 
         # Compute result by transposing and sorting on axis=1.
-        result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
+        result = df_idx.T.sort_values(
+            by=sort_names, ascending=ascending, axis=1, kind="stable"
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_validate_ascending_for_value_error(self):
