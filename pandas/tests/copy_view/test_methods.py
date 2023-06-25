@@ -1428,11 +1428,18 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_where_noop(using_copy_on_write, dtype):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda ser: ser.where(ser > 0, 10),
+        lambda ser: ser.mask(ser <= 0, 10),
+    ],
+)
+def test_where_mask_noop(using_copy_on_write, dtype, func):
     ser = Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
-    result = ser.where(ser > 0, 10)
+    result = func(ser)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(ser), get_array(result))
@@ -1446,22 +1453,36 @@ def test_where_noop(using_copy_on_write, dtype):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_where(using_copy_on_write, dtype):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda ser: ser.where(ser < 0, 10),
+        lambda ser: ser.mask(ser >= 0, 10),
+    ],
+)
+def test_where_mask(using_copy_on_write, dtype, func):
     ser = Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
-    result = ser.where(ser < 0, 10)
+    result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
     tm.assert_series_equal(ser, ser_orig)
 
 
 @pytest.mark.parametrize("dtype, val", [("int64", 10.5), ("Int64", 10)])
-def test_where_noop_on_single_column(using_copy_on_write, dtype, val):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda df, val: df.where(df < 0, val),
+        lambda df, val: df.mask(df >= 0, val),
+    ],
+)
+def test_where_mask_noop_on_single_column(using_copy_on_write, dtype, val, func):
     df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
     df_orig = df.copy()
 
-    result = df.where(df < 0, val)
+    result = func(df, val)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(result, "b"))
