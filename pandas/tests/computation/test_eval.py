@@ -561,11 +561,7 @@ class TestEval:
         # TODO: 2022-01-29: result return list with numexpr 2.7.3 in CI
         # but cannot reproduce locally
         result = np.array(
-            pd.eval(
-                "[-True, True, ~True, +True,"
-                "-False, False, ~False, +False,"
-                "-37, 37, ~37, +37]"
-            ),
+            pd.eval("[-True, True, +True, -False, False, +False, -37, 37, ~37, +37]"),
             dtype=np.object_,
         )
         expected = np.array(
