@@ -415,6 +415,14 @@ class BaseBlockManager(DataManager):
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
 
+    def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
+        return self.apply(
+            "pad_or_backfill",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+        )
+
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply(
             "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
