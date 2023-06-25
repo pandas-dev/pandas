@@ -2624,9 +2624,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if sort:
             # Sort the values and then resort by the main grouping
             index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            ).sort_index(level=index_level, sort_remaining=False, kind="stable")
 
         result: Series | DataFrame
         if self.as_index:
