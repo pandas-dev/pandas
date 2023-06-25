@@ -101,7 +101,8 @@ filepath_or_buffer : str, path object or file-like object
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
 sep : str, default {_default_sep}
-    Delimiter to use. If ``sep=None``, the C engine cannot automatically detect
+    Character or regex pattern to treat as the delimiter. If ``sep=None``, the
+    C engine cannot automatically detect
     the separator, but the Python parsing engine can, meaning the latter will
     be used and automatically detect the separator from only the first valid
     row of the file by Python's builtin sniffer tool, ``csv.Sniffer``.
@@ -112,8 +113,8 @@ sep : str, default {_default_sep}
 delimiter : str, optional
     Alias for ``sep``.
 header : int, Sequence of int, 'infer' or None, default 'infer'
-    Row number(s) to use as the column names, and the start of the
-    data.  Default behavior is to infer the column names: if no ``names``
+    Row number(s) containing column labels and marking the start of the
+    data (zero-indexed). Default behavior is to infer the column names: if no ``names``
     are passed the behavior is identical to ``header=0`` and column
     names are inferred from the first line of the file, if column
     names are passed explicitly to ``names`` then the behavior is identical to
@@ -126,19 +127,20 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
 names : Sequence of Hashable, optional
-    List of column names to use. If the file contains a header row,
+    Sequence of column labels to apply. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
     Duplicates in this list are not allowed.
 index_col : Hashable, Sequence of Hashable or False, optional
-  Column(s) to use as the row labels of the :class:`~pandas.DataFrame`, either given as
-  string name or column index. If a sequence of ``int`` / ``str`` is given, a
-  :class:`~pandas.MultiIndex` is used.
+  Column(s) to use as row label(s), denoted either by column labels or column
+  indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
+  will be formed for the row labels.
 
   Note: ``index_col=False`` can be used to force ``pandas`` to *not* use the first
-  column as the index, e.g. when you have a malformed file with delimiters at
+  column as the index, e.g., when you have a malformed file with delimiters at
   the end of each line.
 usecols : list of Hashable or Callable, optional
-    Return a subset of the columns. If list-like, all elements must either
+    Subset of columns to select, denoted either by column labels or column indices.
+    If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in ``names`` or
     inferred from the document header row(s). If ``names`` are given, the document
@@ -157,8 +159,8 @@ usecols : list of Hashable or Callable, optional
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
 dtype : dtype or dict of {{Hashable : dtype}}, optional
-    Data type for data or columns. E.g., ``{{'a': np.float64, 'b': np.int32,
-    'c': 'Int64'}}``
+    Data type(s) to apply to either the whole dataset or individual columns.
+    E.g., ``{{'a': np.float64, 'b': np.int32, 'c': 'Int64'}}``
     Use ``str`` or ``object`` together with suitable ``na_values`` settings
     to preserve and not interpret ``dtype``.
     If ``converters`` are specified, they will be applied INSTEAD
@@ -179,8 +181,8 @@ engine : {{'c', 'python', 'pyarrow'}}, optional
         The 'pyarrow' engine was added as an *experimental* engine, and some features
         are unsupported, or may not work correctly, with this engine.
 converters : dict of {{Hashable : Callable}}, optional
-    ``dict`` of functions for converting values in certain columns. Keys can either
-    be integers or column labels.
+    Functions for converting values in specified columns. Keys can either
+    be column labels or column indices.
 true_values : list, optional
     Values to consider as ``True`` in addition to case-insensitive variants of 'True'.
 false_values : list, optional
@@ -274,9 +276,9 @@ date_parser : Callable, optional
        Use ``date_format`` instead, or read in as ``object`` and then apply
        :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
-   If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex,
-   please read in as ``object`` and then apply :func:`~pandas.to_datetime` as-needed.
+   Format to use for parsing dates when used in conjunction with ``parse_dates``.
+   For anything more complex, please read in as ``object`` and then apply
+   :func:`~pandas.to_datetime` as-needed.
 
    .. versionadded:: 2.0.0
 dayfirst : bool, default False
@@ -307,26 +309,29 @@ chunksize : int, optional
     .. versionchanged:: 1.4.0 Zstandard support.
 
 thousands : str (length 1), optional
-    Thousands separator.
+    Character acting as the thousands separator in numerical values.
 decimal : str (length 1), default '.'
-    Character to recognize as decimal point (e.g. use ',' for European data).
+    Character to recognize as decimal point (e.g., use ',' for European data).
 lineterminator : str (length 1), optional
-    Character to break file into lines. Only valid with C parser.
+    Character used to denote a line break. Only valid with C parser.
 quotechar : str (length 1), optional
-    The character used to denote the start and end of a quoted item. Quoted
+    Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
-quoting : int or csv.QUOTE_* instance, default 0 (i.e., csv.QUOTE_MINIMAL)
-    Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
-    ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
-    ``QUOTE_NONE`` (3).
+quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, \
+3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
+    ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
+    characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
+    or ``lineterminator``.
 doublequote : bool, default True
    When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
    whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
    field as a single ``quotechar`` element.
 escapechar : str (length 1), optional
-    One-character string used to escape other characters.
+    Character used to escape other characters.
 comment : str (length 1), optional
-    Indicates remainder of line should not be parsed. If found at the beginning
+    Character indicating that the remainder of line should not be parsed.
+    If found at the beginning
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
     fully commented lines are ignored by the parameter ``header`` but not by
@@ -350,7 +355,6 @@ encoding : str, optional, default 'utf-8'
        influence on how encoding errors are handled.
 
 encoding_errors : str, optional, default 'strict'
-    # TODO: figure out what None means
     How encoding errors are treated. `List of possible values
     <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
@@ -363,7 +367,6 @@ dialect : str or csv.Dialect, optional
     override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
     documentation for more details.
 on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
-    # TODO: confirm that callable should be added to type hint
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
@@ -385,7 +388,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
 
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
-    used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
+    used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
     is set to ``True``, nothing should be passed in for the ``delimiter``
     parameter.
 low_memory : bool, default True
@@ -400,7 +403,6 @@ memory_map : bool, default False
     directly onto memory and access the data directly from there. Using this
     option can improve performance because there is no longer any I/O overhead.
 float_precision : {{'high', 'legacy', 'round_trip'}}, optional
-    # TODO: figure out why type hint is missing 'round_trip'
     Specifies which converter the C engine should use for floating-point
     values. The options are ``None`` or ``'high'`` for the ordinary converter,
     ``'legacy'`` for the original lower precision ``pandas`` converter, and
@@ -413,13 +415,13 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
     .. versionadded:: 1.2
 
 dtype_backend : {{'numpy_nullable', 'pyarrow'}}, defaults to NumPy backed DataFrame
-    # TODO: confirm that default can be 'numpy_nullable'
-    Which ``dtype_backend`` to use, e.g. whether a :class:`~pandas.DataFrame` should
-    have NumPy arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a
+    Back-end data type to use for the :class:`~pandas.DataFrame`. For
+    ``'numpy_nullable'``, have NumPy arrays, nullable ``dtypes`` are used for all
+    ``dtypes`` that have a
     nullable implementation when ``'numpy_nullable'`` is set, pyarrow is used for all
     dtypes if ``'pyarrow'`` is set.
 
-    The ``dtype_backends`` are still experimential.
+    The ``dtype_backends`` are still experimental.
 
     .. versionadded:: 2.0
 
