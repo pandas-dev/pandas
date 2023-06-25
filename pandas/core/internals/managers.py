@@ -420,12 +420,11 @@ class BaseBlockManager(DataManager):
             "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
         )
 
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
-        axis = self._normalize_axis(axis)
+    def shift(self, periods: int, fill_value) -> Self:
         if fill_value is lib.no_default:
             fill_value = None
 
-        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
+        return self.apply("shift", periods=periods, fill_value=fill_value)
 
     def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:

@@ -360,17 +360,11 @@ class BaseArrayManager(DataManager):
     def interpolate(self, **kwargs) -> Self:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
 
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
+    def shift(self, periods: int, fill_value) -> Self:
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 1 and self.ndim == 2:
-            # TODO column-wise shift
-            raise NotImplementedError
-
-        return self.apply_with_block(
-            "shift", periods=periods, axis=axis, fill_value=fill_value
-        )
+        return self.apply_with_block("shift", periods=periods, fill_value=fill_value)
 
     def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
