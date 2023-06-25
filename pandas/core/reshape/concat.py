@@ -681,8 +681,8 @@ class _Concatenator:
             if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
-            cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
+            return out.__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:
