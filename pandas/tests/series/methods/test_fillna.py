@@ -168,7 +168,8 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        ser2[1] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser2[1] = "foo"
         tm.assert_series_equal(ser2, expected)
 
     def test_fillna_downcast(self):
