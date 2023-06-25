@@ -200,8 +200,7 @@ skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
     Number of rows of file to read. Useful for reading pieces of large files.
-na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable of \
-Hashable}}, optional
+na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
     ``NaN``: '"""
@@ -230,7 +229,7 @@ verbose : bool, default False
     Indicate number of ``NA`` values placed in non-numeric columns.
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool or list of int or names or list of lists or dict, \
+parse_dates : bool, list of Hashable, list of lists or dict of {{Hashable : list}}, \
 default False
     The behavior is as follows:
 
