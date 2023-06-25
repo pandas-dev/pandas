@@ -574,6 +574,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _constructor(self) -> Callable[..., Series]:
         return Series
 
+    def _constructor_from_mgr(self, mgr, axes):
+        if self._constructor is Series:
+            # we are pandas.Series (or a subclass that doesn't override _constructor)
+            return self._from_mgr(mgr, axes=axes)
+        else:
+            assert axes is mgr.axes
+            return self._constructor(mgr)
+
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
@@ -583,6 +591,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         from pandas.core.frame import DataFrame
 
         return DataFrame
+
+    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #  with self._constructor_expanddim._constructor_from_mgr(...)
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
+        return self._constructor_expanddim._from_mgr(  # type: ignore[attr-defined]
+            mgr, axes=mgr.axes
+        )
+
+    def _constructor_expanddim_from_mgr(self, mgr, axes):
+        if self._constructor is Series:
+            return self._expanddim_from_mgr(mgr, axes)
+        assert axes is mgr.axes
+        return self._constructor_expanddim(mgr)
 
     # types
     @property
@@ -1083,7 +1108,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.get_rows_with_mask(indexer)
-        return self._constructor(new_mgr, fastpath=True).__finalize__(self)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1955,7 +1980,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(
