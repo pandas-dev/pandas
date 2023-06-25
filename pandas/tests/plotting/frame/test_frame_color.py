@@ -10,14 +10,16 @@ import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
-    TestPlotBase,
+    _check_colors,
     _check_plot_works,
+    _unpack_cycler,
 )
 from pandas.util.version import Version
 
+mpl = pytest.importorskip("matplotlib")
 
-@td.skip_if_no_mpl
-class TestDataFrameColor(TestPlotBase):
+
+class TestDataFrameColor:
     @pytest.mark.parametrize(
         "color", ["C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"]
     )
@@ -84,16 +86,16 @@ class TestDataFrameColor(TestPlotBase):
     def test_bar_colors(self):
         import matplotlib.pyplot as plt
 
-        default_colors = self._unpack_cycler(plt.rcParams)
+        default_colors = _unpack_cycler(plt.rcParams)
 
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot.bar()
-        self._check_colors(ax.patches[::5], facecolors=default_colors[:5])
+        _check_colors(ax.patches[::5], facecolors=default_colors[:5])
         tm.close()
 
         custom_colors = "rgcby"
         ax = df.plot.bar(color=custom_colors)
-        self._check_colors(ax.patches[::5], facecolors=custom_colors)
+        _check_colors(ax.patches[::5], facecolors=custom_colors)
         tm.close()
 
         from matplotlib import cm
@@ -101,21 +103,21 @@ class TestDataFrameColor(TestPlotBase):
         # Test str -> colormap functionality
         ax = df.plot.bar(colormap="jet")
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
-        self._check_colors(ax.patches[::5], facecolors=rgba_colors)
+        _check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
         # Test colormap functionality
         ax = df.plot.bar(colormap=cm.jet)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
-        self._check_colors(ax.patches[::5], facecolors=rgba_colors)
+        _check_colors(ax.patches[::5], facecolors=rgba_colors)
         tm.close()
 
         ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
-        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
+        _check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
         tm.close()
 
         ax = df.plot(kind="bar", color="green")
-        self._check_colors(ax.patches[::5], facecolors=["green"] * 5)
+        _check_colors(ax.patches[::5], facecolors=["green"] * 5)
         tm.close()
 
     def test_bar_user_colors(self):
@@ -206,12 +208,12 @@ class TestDataFrameColor(TestPlotBase):
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
-        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         ax = df.plot.scatter(x="a", y="b", c="c")
         tm.assert_numpy_array_equal(
             ax.collections[0].get_facecolor()[0],
-            np.array(self.colorconverter.to_rgba(default_colors[0])),
+            np.array(mpl.colors.ColorConverter.to_rgba(default_colors[0])),
         )
 
         ax = df.plot.scatter(x="a", y="b", color="white")
@@ -241,7 +243,7 @@ class TestDataFrameColor(TestPlotBase):
         df = DataFrame(np.random.randn(5, 5))
 
         ax = df.plot(color=custom_colors)
-        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        _check_colors(ax.get_lines(), linecolors=custom_colors)
 
         tm.close()
 
@@ -255,27 +257,27 @@ class TestDataFrameColor(TestPlotBase):
 
         ax = df.plot(colormap="jet")
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        _check_colors(ax.get_lines(), linecolors=rgba_colors)
         tm.close()
 
         ax = df.plot(colormap=cm.jet)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        _check_colors(ax.get_lines(), linecolors=rgba_colors)
         tm.close()
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
         ax = df.loc[:, [0]].plot(color="DodgerBlue")
-        self._check_colors(ax.lines, linecolors=["DodgerBlue"])
+        _check_colors(ax.lines, linecolors=["DodgerBlue"])
 
         ax = df.plot(color="red")
-        self._check_colors(ax.get_lines(), linecolors=["red"] * 5)
+        _check_colors(ax.get_lines(), linecolors=["red"] * 5)
         tm.close()
 
         # GH 10299
         custom_colors = ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
         ax = df.plot(color=custom_colors)
-        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        _check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
     def test_dont_modify_colors(self):
@@ -287,68 +289,68 @@ class TestDataFrameColor(TestPlotBase):
         # GH 9894
         from matplotlib import cm
 
-        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         df = DataFrame(np.random.randn(5, 5))
 
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         # single color char
         axes = df.plot(subplots=True, color="k")
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["k"])
+            _check_colors(ax.get_lines(), linecolors=["k"])
         tm.close()
 
         # single color str
         axes = df.plot(subplots=True, color="green")
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["green"])
+            _check_colors(ax.get_lines(), linecolors=["green"])
         tm.close()
 
         custom_colors = "rgcby"
         axes = df.plot(color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         axes = df.plot(color=list(custom_colors), subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         # GH 10299
         custom_colors = ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
         axes = df.plot(color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         for cmap in ["jet", cm.jet]:
             axes = df.plot(colormap=cmap, subplots=True)
             for ax, c in zip(axes, rgba_colors):
-                self._check_colors(ax.get_lines(), linecolors=[c])
+                _check_colors(ax.get_lines(), linecolors=[c])
             tm.close()
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
         axes = df.loc[:, [0]].plot(color="DodgerBlue", subplots=True)
-        self._check_colors(axes[0].lines, linecolors=["DodgerBlue"])
+        _check_colors(axes[0].lines, linecolors=["DodgerBlue"])
 
         # single character style
         axes = df.plot(style="r", subplots=True)
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["r"])
+            _check_colors(ax.get_lines(), linecolors=["r"])
         tm.close()
 
         # list of styles
         styles = list("rgcby")
         axes = df.plot(style=styles, subplots=True)
         for ax, c in zip(axes, styles):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
     def test_area_colors(self):
@@ -359,12 +361,12 @@ class TestDataFrameColor(TestPlotBase):
         df = DataFrame(np.random.rand(5, 5))
 
         ax = df.plot.area(color=custom_colors)
-        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        _check_colors(ax.get_lines(), linecolors=custom_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
-        self._check_colors(poly, facecolors=custom_colors)
+        _check_colors(poly, facecolors=custom_colors)
 
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, facecolors=custom_colors)
+        _check_colors(handles, facecolors=custom_colors)
 
         for h in handles:
             assert h.get_alpha() is None
@@ -372,40 +374,40 @@ class TestDataFrameColor(TestPlotBase):
 
         ax = df.plot.area(colormap="jet")
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
-        self._check_colors(ax.get_lines(), linecolors=jet_colors)
+        _check_colors(ax.get_lines(), linecolors=jet_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
-        self._check_colors(poly, facecolors=jet_colors)
+        _check_colors(poly, facecolors=jet_colors)
 
         handles, labels = ax.get_legend_handles_labels()
-        self._check_colors(handles, facecolors=jet_colors)
+        _check_colors(handles, facecolors=jet_colors)
         for h in handles:
             assert h.get_alpha() is None
         tm.close()
 
         # When stacked=False, alpha is set to 0.5
         ax = df.plot.area(colormap=cm.jet, stacked=False)
-        self._check_colors(ax.get_lines(), linecolors=jet_colors)
+        _check_colors(ax.get_lines(), linecolors=jet_colors)
         poly = [o for o in ax.get_children() if isinstance(o, PolyCollection)]
         jet_with_alpha = [(c[0], c[1], c[2], 0.5) for c in jet_colors]
-        self._check_colors(poly, facecolors=jet_with_alpha)
+        _check_colors(poly, facecolors=jet_with_alpha)
 
         handles, labels = ax.get_legend_handles_labels()
         linecolors = jet_with_alpha
-        self._check_colors(handles[: len(jet_colors)], linecolors=linecolors)
+        _check_colors(handles[: len(jet_colors)], linecolors=linecolors)
         for h in handles:
             assert h.get_alpha() == 0.5
 
     def test_hist_colors(self):
-        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot.hist()
-        self._check_colors(ax.patches[::10], facecolors=default_colors[:5])
+        _check_colors(ax.patches[::10], facecolors=default_colors[:5])
         tm.close()
 
         custom_colors = "rgcby"
         ax = df.plot.hist(color=custom_colors)
-        self._check_colors(ax.patches[::10], facecolors=custom_colors)
+        _check_colors(ax.patches[::10], facecolors=custom_colors)
         tm.close()
 
         from matplotlib import cm
@@ -413,20 +415,20 @@ class TestDataFrameColor(TestPlotBase):
         # Test str -> colormap functionality
         ax = df.plot.hist(colormap="jet")
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
-        self._check_colors(ax.patches[::10], facecolors=rgba_colors)
+        _check_colors(ax.patches[::10], facecolors=rgba_colors)
         tm.close()
 
         # Test colormap functionality
         ax = df.plot.hist(colormap=cm.jet)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
-        self._check_colors(ax.patches[::10], facecolors=rgba_colors)
+        _check_colors(ax.patches[::10], facecolors=rgba_colors)
         tm.close()
 
         ax = df.loc[:, [0]].plot.hist(color="DodgerBlue")
-        self._check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
+        _check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
 
         ax = df.plot(kind="hist", color="green")
-        self._check_colors(ax.patches[::10], facecolors=["green"] * 5)
+        _check_colors(ax.patches[::10], facecolors=["green"] * 5)
         tm.close()
 
     @td.skip_if_no_scipy
@@ -437,94 +439,92 @@ class TestDataFrameColor(TestPlotBase):
         df = DataFrame(np.random.rand(5, 5))
 
         ax = df.plot.kde(color=custom_colors)
-        self._check_colors(ax.get_lines(), linecolors=custom_colors)
+        _check_colors(ax.get_lines(), linecolors=custom_colors)
         tm.close()
 
         ax = df.plot.kde(colormap="jet")
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        _check_colors(ax.get_lines(), linecolors=rgba_colors)
         tm.close()
 
         ax = df.plot.kde(colormap=cm.jet)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
-        self._check_colors(ax.get_lines(), linecolors=rgba_colors)
+        _check_colors(ax.get_lines(), linecolors=rgba_colors)
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
         from matplotlib import cm
 
-        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         df = DataFrame(np.random.randn(5, 5))
 
         axes = df.plot(kind="kde", subplots=True)
         for ax, c in zip(axes, list(default_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         # single color char
         axes = df.plot(kind="kde", color="k", subplots=True)
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["k"])
+            _check_colors(ax.get_lines(), linecolors=["k"])
         tm.close()
 
         # single color str
         axes = df.plot(kind="kde", color="red", subplots=True)
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["red"])
+            _check_colors(ax.get_lines(), linecolors=["red"])
         tm.close()
 
         custom_colors = "rgcby"
         axes = df.plot(kind="kde", color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         for cmap in ["jet", cm.jet]:
             axes = df.plot(kind="kde", colormap=cmap, subplots=True)
             for ax, c in zip(axes, rgba_colors):
-                self._check_colors(ax.get_lines(), linecolors=[c])
+                _check_colors(ax.get_lines(), linecolors=[c])
             tm.close()
 
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
         axes = df.loc[:, [0]].plot(kind="kde", color="DodgerBlue", subplots=True)
-        self._check_colors(axes[0].lines, linecolors=["DodgerBlue"])
+        _check_colors(axes[0].lines, linecolors=["DodgerBlue"])
 
         # single character style
         axes = df.plot(kind="kde", style="r", subplots=True)
         for ax in axes:
-            self._check_colors(ax.get_lines(), linecolors=["r"])
+            _check_colors(ax.get_lines(), linecolors=["r"])
         tm.close()
 
         # list of styles
         styles = list("rgcby")
         axes = df.plot(kind="kde", style=styles, subplots=True)
         for ax, c in zip(axes, styles):
-            self._check_colors(ax.get_lines(), linecolors=[c])
+            _check_colors(ax.get_lines(), linecolors=[c])
         tm.close()
 
     def test_boxplot_colors(self):
-        def _check_colors(bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=None):
+        def _check_colors_box(
+            bp, box_c, whiskers_c, medians_c, caps_c="k", fliers_c=None
+        ):
             # TODO: outside this func?
             if fliers_c is None:
                 fliers_c = "k"
-            self._check_colors(bp["boxes"], linecolors=[box_c] * len(bp["boxes"]))
-            self._check_colors(
-                bp["whiskers"], linecolors=[whiskers_c] * len(bp["whiskers"])
-            )
-            self._check_colors(
-                bp["medians"], linecolors=[medians_c] * len(bp["medians"])
-            )
-            self._check_colors(bp["fliers"], linecolors=[fliers_c] * len(bp["fliers"]))
-            self._check_colors(bp["caps"], linecolors=[caps_c] * len(bp["caps"]))
+            _check_colors(bp["boxes"], linecolors=[box_c] * len(bp["boxes"]))
+            _check_colors(bp["whiskers"], linecolors=[whiskers_c] * len(bp["whiskers"]))
+            _check_colors(bp["medians"], linecolors=[medians_c] * len(bp["medians"]))
+            _check_colors(bp["fliers"], linecolors=[fliers_c] * len(bp["fliers"]))
+            _check_colors(bp["caps"], linecolors=[caps_c] * len(bp["caps"]))
 
-        default_colors = self._unpack_cycler(self.plt.rcParams)
+        default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         df = DataFrame(np.random.randn(5, 5))
         bp = df.plot.box(return_type="dict")
-        _check_colors(
+        _check_colors_box(
             bp,
             default_colors[0],
             default_colors[0],
@@ -540,7 +540,7 @@ class TestDataFrameColor(TestPlotBase):
             "caps": "#123456",
         }
         bp = df.plot.box(color=dict_colors, sym="r+", return_type="dict")
-        _check_colors(
+        _check_colors_box(
             bp,
             dict_colors["boxes"],
             dict_colors["whiskers"],
@@ -553,7 +553,7 @@ class TestDataFrameColor(TestPlotBase):
         # partial colors
         dict_colors = {"whiskers": "c", "medians": "m"}
         bp = df.plot.box(color=dict_colors, return_type="dict")
-        _check_colors(bp, default_colors[0], "c", "m", default_colors[0])
+        _check_colors_box(bp, default_colors[0], "c", "m", default_colors[0])
         tm.close()
 
         from matplotlib import cm
@@ -561,21 +561,25 @@ class TestDataFrameColor(TestPlotBase):
         # Test str -> colormap functionality
         bp = df.plot.box(colormap="jet", return_type="dict")
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, 3)]
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
+        _check_colors_box(
+            bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0]
+        )
         tm.close()
 
         # Test colormap functionality
         bp = df.plot.box(colormap=cm.jet, return_type="dict")
-        _check_colors(bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0])
+        _check_colors_box(
+            bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0]
+        )
         tm.close()
 
         # string color is applied to all artists except fliers
         bp = df.plot.box(color="DodgerBlue", return_type="dict")
-        _check_colors(bp, "DodgerBlue", "DodgerBlue", "DodgerBlue", "DodgerBlue")
+        _check_colors_box(bp, "DodgerBlue", "DodgerBlue", "DodgerBlue", "DodgerBlue")
 
         # tuple is also applied to all artists except fliers
         bp = df.plot.box(color=(0, 1, 0), sym="#123456", return_type="dict")
-        _check_colors(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), "#123456")
+        _check_colors_box(bp, (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), "#123456")
 
         msg = re.escape(
             "color dict contains invalid key 'xxxx'. The key must be either "
@@ -595,8 +599,8 @@ class TestDataFrameColor(TestPlotBase):
         df = DataFrame(np.random.randn(5, 3))
         ax = df.plot()
 
-        expected = self._unpack_cycler(plt.rcParams)[:3]
-        self._check_colors(ax.get_lines(), linecolors=expected)
+        expected = _unpack_cycler(plt.rcParams)[:3]
+        _check_colors(ax.get_lines(), linecolors=expected)
 
     def test_no_color_bar(self):
         df = DataFrame(
@@ -664,5 +668,5 @@ class TestDataFrameColor(TestPlotBase):
         # GH51953
         df = DataFrame([[1, 2, 3]])
         ax = df.plot(color=None)
-        expected = self._unpack_cycler(self.plt.rcParams)[:3]
-        self._check_colors(ax.get_lines(), linecolors=expected)
+        expected = _unpack_cycler(mpl.pyplot.rcParams)[:3]
+        _check_colors(ax.get_lines(), linecolors=expected)

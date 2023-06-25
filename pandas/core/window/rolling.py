@@ -28,7 +28,10 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
+)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -621,7 +624,7 @@ class BaseWindow(SelectionMixin):
         self,
         func: Callable[..., Any],
         engine_kwargs: dict[str, bool] | None = None,
-        *func_args,
+        **func_kwargs,
     ):
         window_indexer = self._get_window_indexer()
         min_periods = (
@@ -643,10 +646,15 @@ class BaseWindow(SelectionMixin):
             step=self.step,
         )
         self._check_window_bounds(start, end, len(values))
+        # For now, map everything to float to match the Cython impl
+        # even though it is wrong
+        # TODO: Could preserve correct dtypes in future
+        # xref #53214
+        dtype_mapping = executor.float_dtype_mapping
         aggregator = executor.generate_shared_aggregator(
-            func, **get_jit_arguments(engine_kwargs)
+            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
         )
-        result = aggregator(values, start, end, min_periods, *func_args)
+        result = aggregator(values.T, start, end, min_periods, **func_kwargs).T
         result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
@@ -1137,7 +1145,7 @@ class Window(BaseWindow):
         if not isinstance(self.win_type, str):
             raise ValueError(f"Invalid win_type {self.win_type}")
         signal = import_optional_dependency(
-            "scipy.signal", extra="Scipy is required to generate window weight."
+            "scipy.signal.windows", extra="Scipy is required to generate window weight."
         )
         self._scipy_weight_generator = getattr(signal, self.win_type, None)
         if self._scipy_weight_generator is None:
@@ -1463,7 +1471,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(sliding_min_max, engine_kwargs, True)
+                return self._numba_apply(sliding_min_max, engine_kwargs, is_max=True)
         window_func = window_aggregations.roll_max
         return self._apply(window_func, name="max", numeric_only=numeric_only)
 
@@ -1485,7 +1493,7 @@ class RollingAndExpandingMixin(BaseWindow):
             else:
                 from pandas.core._numba.kernels import sliding_min_max
 
-                return self._numba_apply(sliding_min_max, engine_kwargs, False)
+                return self._numba_apply(sliding_min_max, engine_kwargs, is_max=False)
         window_func = window_aggregations.roll_min
         return self._apply(window_func, name="min", numeric_only=numeric_only)
 
@@ -1544,7 +1552,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 raise NotImplementedError("std not supported with method='table'")
             from pandas.core._numba.kernels import sliding_var
 
-            return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof))
+            return zsqrt(self._numba_apply(sliding_var, engine_kwargs, ddof=ddof))
         window_func = window_aggregations.roll_var
 
         def zsqrt_func(values, begin, end, min_periods):
@@ -1568,7 +1576,7 @@ class RollingAndExpandingMixin(BaseWindow):
                 raise NotImplementedError("var not supported with method='table'")
             from pandas.core._numba.kernels import sliding_var
 
-            return self._numba_apply(sliding_var, engine_kwargs, ddof)
+            return self._numba_apply(sliding_var, engine_kwargs, ddof=ddof)
         window_func = partial(window_aggregations.roll_var, ddof=ddof)
         return self._apply(
             window_func,
@@ -1601,18 +1609,18 @@ class RollingAndExpandingMixin(BaseWindow):
 
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
-        if quantile == 1.0:
+        if q == 1.0:
             window_func = window_aggregations.roll_max
-        elif quantile == 0.0:
+        elif q == 0.0:
             window_func = window_aggregations.roll_min
         else:
             window_func = partial(
                 window_aggregations.roll_quantile,
-                quantile=quantile,
+                quantile=q,
                 interpolation=interpolation,
             )
 
@@ -2384,6 +2392,9 @@ class Rolling(RollingAndExpandingMixin):
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
+
+            .. deprecated:: 2.1.0
+                This will be renamed to 'q' in a future version.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -2424,14 +2435,15 @@ class Rolling(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
         return super().quantile(
-            quantile=quantile,
+            q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )

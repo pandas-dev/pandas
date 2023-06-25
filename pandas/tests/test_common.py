@@ -1,6 +1,8 @@
 import collections
 from functools import partial
 import string
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -229,3 +231,17 @@ def test_temp_setattr(with_exception):
                 raise ValueError("Inside exception raised")
         raise ValueError("Outside exception raised")
     assert ser.name == "first"
+
+
+def test_str_size():
+    # GH#21758
+    a = "a"
+    expected = sys.getsizeof(a)
+    pyexe = sys.executable.replace("\\", "/")
+    call = [
+        pyexe,
+        "-c",
+        "a='a';import sys;sys.getsizeof(a);import pandas;print(sys.getsizeof(a));",
+    ]
+    result = subprocess.check_output(call).decode()[-4:-1].strip("\n")
+    assert int(result) == int(expected)

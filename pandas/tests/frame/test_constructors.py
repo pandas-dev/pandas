@@ -97,6 +97,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
         dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
+        dt = dt.as_unit("ns")
 
         df = DataFrame({"dt": dt}, index=[0])
         expected = DataFrame({"dt": [dt]})
@@ -926,7 +927,7 @@ class TestDataFrameConstructors:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )
@@ -1323,7 +1324,7 @@ class TestDataFrameConstructors:
             [[Timestamp("2021-01-01")]],
             [{"x": Timestamp("2021-01-01")}],
             {"x": [Timestamp("2021-01-01")]},
-            {"x": Timestamp("2021-01-01")},
+            {"x": Timestamp("2021-01-01").as_unit("ns")},
         ],
     )
     def test_constructor_one_element_data_list(self, data):
@@ -1814,7 +1815,6 @@ class TestDataFrameConstructors:
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
-        datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
 
         # single item
@@ -1832,7 +1832,7 @@ class TestDataFrameConstructors:
         expected = Series(
             [np.dtype("int64")]
             + [np.dtype(objectname)] * 2
-            + [np.dtype(datetime64name)] * 2,
+            + [np.dtype("M8[s]"), np.dtype("M8[us]")],
             index=list("ABCDE"),
         )
         tm.assert_series_equal(result, expected)
@@ -1912,7 +1912,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"End Date": dt}, index=[0])
         assert df.iat[0, 0] == dt
         tm.assert_series_equal(
-            df.dtypes, Series({"End Date": "datetime64[ns, US/Eastern]"})
+            df.dtypes, Series({"End Date": "datetime64[us, US/Eastern]"})
         )
 
         df = DataFrame([{"End Date": dt}])
@@ -2714,6 +2714,24 @@ class TestDataFrameConstructorIndexInference:
         with pytest.raises(TypeError, match=msg):
             DataFrame({"D": ser1, "A": ser2, "B": ser3})
 
+    @pytest.mark.parametrize(
+        "key_val, col_vals, col_type",
+        [
+            ["3", ["3", "4"], "utf8"],
+            [3, [3, 4], "int8"],
+        ],
+    )
+    def test_dict_data_arrow_column_expansion(self, key_val, col_vals, col_type):
+        # GH 53617
+        pa = pytest.importorskip("pyarrow")
+        cols = pd.arrays.ArrowExtensionArray(
+            pa.array(col_vals, type=pa.dictionary(pa.int8(), getattr(pa, col_type)()))
+        )
+        result = DataFrame({key_val: [1, 2]}, columns=cols)
+        expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
+        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameConstructorWithDtypeCoercion:
     def test_floating_values_integer_dtype(self):
@@ -3047,15 +3065,22 @@ class TestFromScalar:
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
-    @pytest.mark.xfail(
-        reason="Timestamp constructor has been updated to cast dt64 to non-nano, "
-        "but DatetimeArray._from_sequence has not"
-    )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
+    def test_from_out_of_bounds_ns_datetime(
+        self, constructor, cls, request, box, frame_or_series
+    ):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
+        if box is list or (frame_or_series is Series and box is dict):
+            mark = pytest.mark.xfail(
+                reason="Timestamp constructor has been updated to cast dt64 to "
+                "non-nano, but DatetimeArray._from_sequence has not",
+                strict=True,
+            )
+            request.node.add_marker(mark)
+
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
+
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3076,13 +3101,19 @@ class TestFromScalar:
         dtype = tm.get_dtype(result)
         assert dtype == object
 
-    @pytest.mark.xfail(
-        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
-        "but TimedeltaArray._from_sequence has not"
-    )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
-    def test_from_out_of_bounds_ns_timedelta(self, constructor, cls):
+    def test_from_out_of_bounds_ns_timedelta(
+        self, constructor, cls, request, box, frame_or_series
+    ):
         # scalar that won't fit in nanosecond td64, but will fit in microsecond
+        if box is list or (frame_or_series is Series and box is dict):
+            mark = pytest.mark.xfail(
+                reason="TimedeltaArray constructor has been updated to cast td64 "
+                "to non-nano, but TimedeltaArray._from_sequence has not",
+                strict=True,
+            )
+            request.node.add_marker(mark)
+
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:

@@ -61,8 +61,10 @@ from pandas.core.dtypes.missing import isna
 
 from pandas import (
     ArrowDtype,
+    DataFrame,
     DatetimeIndex,
     StringDtype,
+    concat,
 )
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -73,6 +75,7 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
 )
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -91,8 +94,6 @@ if TYPE_CHECKING:
         DtypeObj,
         Scalar,
     )
-
-    from pandas import DataFrame
 
 
 class ParserBase:
@@ -557,11 +558,7 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
-                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
-                    mask = algorithms.isin(
-                        values, list(na_values)  # type: ignore[arg-type]
-                    ).view(np.uint8)
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(
@@ -809,7 +806,7 @@ class ParserBase:
         elif isinstance(cast_type, ExtensionDtype):
             array_type = cast_type.construct_array_type()
             try:
-                if is_bool_dtype(cast_type):
+                if isinstance(cast_type, BooleanDtype):
                     # error: Unexpected keyword argument "true_values" for
                     # "_from_sequence_of_strings" of "ExtensionArray"
                     return array_type._from_sequence_of_strings(  # type: ignore[call-arg]  # noqa: E501
@@ -1137,6 +1134,9 @@ def _make_date_converter(
         return arg
 
     def converter(*date_cols, col: Hashable):
+        if len(date_cols) == 1 and date_cols[0].dtype.kind in "Mm":
+            return date_cols[0]
+
         if date_parser is lib.no_default:
             strs = parsing.concat_date_cols(date_cols)
             date_fmt = (
@@ -1304,7 +1304,10 @@ def _process_date_conversion(
             new_cols.append(new_name)
             date_cols.update(old_names)
 
-    data_dict.update(new_data)
+    if isinstance(data_dict, DataFrame):
+        data_dict = concat([DataFrame(new_data), data_dict], axis=1, copy=False)
+    else:
+        data_dict.update(new_data)
     new_cols.extend(columns)
 
     if not keep_date_col:

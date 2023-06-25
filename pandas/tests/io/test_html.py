@@ -1347,6 +1347,7 @@ class TestReadHtml:
         assert self.read_html(bad)
 
     @pytest.mark.slow
+    @pytest.mark.single_cpu
     def test_importcheck_thread_safety(self, datapath):
         # see gh-16928
 
@@ -1463,6 +1464,7 @@ class TestReadHtml:
 
         result = self.read_html(gh_13141_data, extract_links=arg)[0]
         expected = DataFrame([data_exp, foot_exp], columns=head_exp)
+        expected = expected.fillna(np.nan, downcast=False)
         tm.assert_frame_equal(result, expected)
 
     def test_extract_links_bad(self, spam_data):

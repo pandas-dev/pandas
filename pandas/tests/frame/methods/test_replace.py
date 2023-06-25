@@ -614,8 +614,8 @@ class TestDataFrameReplace:
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype("float64")
         m = df.mean()
-        expected.iloc[0, 0] = m[0]
-        expected.iloc[1, 1] = m[1]
+        expected.iloc[0, 0] = m.iloc[0]
+        expected.iloc[1, 1] = m.iloc[1]
         tm.assert_frame_equal(result, expected)
 
     def test_replace_nullable_int_with_string_doesnt_cast(self):
@@ -726,8 +726,11 @@ class TestDataFrameReplace:
         b = tsframe["B"]
         b[b == -1e8] = np.nan
         tsframe["B"] = b
-        result = tsframe.fillna(method="bfill")
-        tm.assert_frame_equal(result, tsframe.fillna(method="bfill"))
+        msg = "DataFrame.fillna with 'method' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # TODO: what is this even testing?
+            result = tsframe.fillna(method="bfill")
+            tm.assert_frame_equal(result, tsframe.fillna(method="bfill"))
 
     @pytest.mark.parametrize(
         "frame, to_replace, value, expected",
@@ -1072,7 +1075,7 @@ class TestDataFrameReplace:
         assert set(df.fname.values) == set(d["fname"].keys())
 
         expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
-        assert expected.dtypes[0] == "Period[M]"
+        assert expected.dtypes.iloc[0] == "Period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
@@ -1233,7 +1236,9 @@ class TestDataFrameReplace:
         # GH 19632
         df = DataFrame({"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]})
 
-        result = df.replace(to_replace=to_replace, value=None, method=method)
+        msg = "The 'method' keyword in DataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.replace(to_replace=to_replace, value=None, method=method)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1324,8 +1329,13 @@ class TestDataFrameReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
+        msg2 = (
+            "DataFrame.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
-            df.replace(lambda x: x.strip())
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                df.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])

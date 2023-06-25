@@ -777,7 +777,7 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts2[[0, 2, 6]].index
+   ts2.iloc[[0, 2, 6]].index
 
 .. _timeseries.components:
 
@@ -1298,6 +1298,31 @@ frequencies. We will refer to these aliases as *offset aliases*.
    ``start_date`` and ``end_date``. If these are not valid timestamps for the
    given frequency it will roll to the next value for ``start_date``
    (respectively previous for the ``end_date``)
+
+.. _timeseries.period_aliases:
+
+Period aliases
+~~~~~~~~~~~~~~
+
+A number of string aliases are given to useful common time series
+frequencies. We will refer to these aliases as *period aliases*.
+
+.. csv-table::
+    :header: "Alias", "Description"
+    :widths: 15, 100
+
+    "B", "business day frequency"
+    "D", "calendar day frequency"
+    "W", "weekly frequency"
+    "M", "monthly frequency"
+    "Q", "quarterly frequency"
+    "A, Y", "yearly frequency"
+    "H", "hourly frequency"
+    "T, min", "minutely frequency"
+    "S", "secondly frequency"
+    "L, ms", "milliseconds"
+    "U, us", "microseconds"
+    "N", "nanoseconds"
 
 
 Combining aliases
@@ -2083,7 +2108,7 @@ Period dtypes
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
-``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.period_aliases>`.
 
 .. ipython:: python
 

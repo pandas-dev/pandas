@@ -93,7 +93,7 @@ cdef extern from "numpy/arrayobject.h":
 cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
 
@@ -147,6 +147,16 @@ cdef:
 # python-visible
 i8max = <int64_t>INT64_MAX
 u8max = <uint64_t>UINT64_MAX
+
+
+cdef bint PYARROW_INSTALLED = False
+
+try:
+    import pyarrow as pa
+
+    PYARROW_INSTALLED = True
+except ImportError:
+    pa = None
 
 
 @cython.wraparound(False)
@@ -658,7 +668,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, int n) -> bool:
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -1177,6 +1187,19 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     )
 
 
+def is_pyarrow_array(obj):
+    """
+    Return True if given object is a pyarrow Array or ChunkedArray.
+
+    Returns
+    -------
+    bool
+    """
+    if PYARROW_INSTALLED:
+        return isinstance(obj, (pa.Array, pa.ChunkedArray))
+    return False
+
+
 _TYPE_MAP = {
     "categorical": "categorical",
     "category": "categorical",
@@ -1192,9 +1215,12 @@ _TYPE_MAP = {
     "u": "integer",
     "float32": "floating",
     "float64": "floating",
+    "float128": "floating",
+    "float256": "floating",
     "f": "floating",
     "complex64": "complex",
     "complex128": "complex",
+    "complex256": "complex",
     "c": "complex",
     "string": "string",
     str: "string",
@@ -1215,23 +1241,6 @@ _TYPE_MAP = {
     Decimal: "decimal",
     bytes: "bytes",
 }
-
-# types only exist on certain platform
-try:
-    np.float128
-    _TYPE_MAP["float128"] = "floating"
-except AttributeError:
-    pass
-try:
-    np.complex256
-    _TYPE_MAP["complex256"] = "complex"
-except AttributeError:
-    pass
-try:
-    np.float16
-    _TYPE_MAP["float16"] = "floating"
-except AttributeError:
-    pass
 
 
 @cython.internal
@@ -2476,7 +2485,14 @@ def maybe_convert_objects(ndarray[object] objects,
         elif util.is_nan(val):
             seen.nan_ = True
             mask[i] = True
-            floats[i] = complexes[i] = val
+            if util.is_complex_object(val):
+                floats[i] = fnan
+                complexes[i] = val
+                seen.complex_ = True
+                if not convert_numeric:
+                    break
+            else:
+                floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
             seen.bool_ = True
             bools[i] = val
