@@ -3658,6 +3658,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: None = ...,
         sep: str = ...,
         na_rep: str = ...,
+        engine: str = "python",
         float_format: str | Callable | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool_t | list[str] = ...,
@@ -3685,6 +3686,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
         sep: str = ...,
         na_rep: str = ...,
+        engine: str = "python",
         float_format: str | Callable | None = ...,
         columns: Sequence[Hashable] | None = ...,
         header: bool_t | list[str] = ...,
@@ -3716,6 +3718,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ",",
         na_rep: str = "",
+        engine: str = "python",
         float_format: str | Callable | None = None,
         columns: Sequence[Hashable] | None = None,
         header: bool_t | list[str] = True,
@@ -3755,6 +3758,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
             Missing data representation.
+        engine : str, default 'python'
+            The engine to use. Available options are "pyarrow" or "python".
+            The pyarrow engine requires the pyarrow library to be installed
+            and is generally faster than the python engine.
+
+            However, the python engine may be more feature complete than the
+            pyarrow engine.
         float_format : str, Callable, default None
             Format string for floating point numbers. If a Callable is given, it takes
             precedence over other numeric formatting parameters, like decimal.
@@ -3890,6 +3900,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,

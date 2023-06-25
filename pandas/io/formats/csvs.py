@@ -20,6 +20,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -57,6 +58,7 @@ class CSVFormatter:
         self,
         formatter: DataFrameFormatter,
         path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] = "",
+        engine: str = "python",
         sep: str = ",",
         cols: Sequence[Hashable] | None = None,
         index_label: IndexLabel | None = None,
@@ -78,6 +80,7 @@ class CSVFormatter:
         self.obj = self.fmt.frame
 
         self.filepath_or_buffer = path_or_buf
+        self.engine = engine
         self.encoding = encoding
         self.compression: CompressionOptions = compression
         self.mode = mode
@@ -252,8 +255,48 @@ class CSVFormatter:
             storage_options=self.storage_options,
         ) as handles:
             # Note: self.encoding is irrelevant here
+            self._save(handles.handle)
+
+    def _save_pyarrow(self, handle) -> None:
+        pa = import_optional_dependency("pyarrow")
+        pa_csv = import_optional_dependency("pyarrow.csv")
+        # Convert index to column and rename name to empty string
+        # since we serialize the index as basically a column with no name
+        # TODO: this won't work for multi-indexes
+        obj = self.obj.reset_index(names=[""])
+
+        table = pa.Table.from_pandas(obj)
+
+        # Map quoting arg to pyarrow equivalents
+        pa_quoting = None
+        if self.quoting == csvlib.QUOTE_MINIMAL:
+            pa_quoting = "needed"
+        elif self.quoting == csvlib.QUOTE_ALL:
+            # TODO: Is this a 1-1 mapping?
+            # This doesn't quote nulls, check if Python does this
+            pa_quoting = "all_valid"
+        elif self.quoting == csvlib.QUOTE_NONE:
+            pa_quoting = "none"
+        else:
+            raise ValueError(
+                f"Quoting option {self.quoting} is not supported with engine='pyarrow'"
+            )
+
+        write_options = pa_csv.WriteOptions(
+            include_header=self._need_to_save_header,
+            batch_size=self.chunksize,
+            delimiter=self.sep,
+            quoting_style=pa_quoting,
+        )
+        # pa_csv.write_csv(table, handle, write_options)
+        pa_csv.write_csv(table, self.filepath_or_buffer, write_options)
+
+    def _save(self, handle) -> None:
+        if self.engine == "pyarrow":
+            self._save_pyarrow(handle)
+        else:
             self.writer = csvlib.writer(
-                handles.handle,
+                handle,
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
                 quoting=self.quoting,
@@ -261,13 +304,9 @@ class CSVFormatter:
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
             )
-
-            self._save()
-
-    def _save(self) -> None:
-        if self._need_to_save_header:
-            self._save_header()
-        self._save_body()
+            if self._need_to_save_header:
+                self._save_header()
+            self._save_body()
 
     def _save_header(self) -> None:
         if not self.has_mi_columns or self._has_aliases:

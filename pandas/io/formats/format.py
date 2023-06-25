@@ -1103,6 +1103,7 @@ class DataFrameRenderer:
     def to_csv(
         self,
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        engine: str = "python",
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1132,6 +1133,7 @@ class DataFrameRenderer:
 
         csv_formatter = CSVFormatter(
             path_or_buf=path_or_buf,
+            engine=engine,
             lineterminator=lineterminator,
             sep=sep,
             encoding=encoding,
