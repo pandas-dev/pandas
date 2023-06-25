@@ -28,6 +28,9 @@ def read_clipboard(
     r"""
     Read text from clipboard and pass to :func:`pandas.read_csv`.
 
+    Parses clipboard contents similar to how CSV files are parsed
+    using :func:`pandas.read_csv`.
+
     Parameters
     ----------
     sep : str, default '\\s+'
@@ -51,6 +54,16 @@ def read_clipboard(
     -------
     DataFrame
         A parsed :class:`pandas.DataFrame` object.
+
+    See Also
+    --------
+    DataFrame.to_clipboard : Copy object to the system clipboard.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Examples
+    --------
+    >>> pd.read_clipboard()  # doctest: +SKIP
     """
     encoding = kwargs.pop("encoding", "utf-8")
 
