@@ -313,10 +313,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray[freq]
         """
-        if hasattr(freq, "name"):
-            freq = freq_to_period_freqstr(1, freq.name)
-        if freq is not None and not hasattr(freq, "name"):
-            freq = freq_to_period_freqstr(1, freq)
+        if isinstance(freq, BaseOffset):
+            freq = freq_to_period_freqstr(freq.n, freq.name)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
         return cls(data, dtype=dtype)

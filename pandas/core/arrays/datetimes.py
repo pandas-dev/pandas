@@ -42,8 +42,8 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import (
-    OFFSET_TO_PERIOD_FREQSTR,
     abbrev_to_npy_unit,
+    freq_to_period_freqstr,
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -1218,7 +1218,7 @@ default 'raise'
 
             freq = res
 
-            freq = OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
+            freq = freq_to_period_freqstr(1, freq)
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     # -----------------------------------------------------------------

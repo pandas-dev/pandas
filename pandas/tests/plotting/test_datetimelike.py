@@ -14,6 +14,8 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
+
+# from pandas._libs.tslibs.dtypes import PERIOD_TO_OFFSET_FREQSTR
 from pandas._libs.tslibs.dtypes import PERIOD_TO_OFFSET_FREQSTR
 import pandas.util._test_decorators as td
 
@@ -226,7 +228,7 @@ class TestTSPlot:
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
-        freq = df.index.to_period(df.index.freq.rule_code).freq
+        freq = df.index.freq.name
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
