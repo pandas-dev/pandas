@@ -1352,7 +1352,7 @@ class Block(PandasObject):
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
