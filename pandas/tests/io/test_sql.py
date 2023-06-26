@@ -275,7 +275,7 @@ def check_iris_frame(frame: DataFrame):
 
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
-    adbc = import_optional_dependency("adbc_driver_manager")
+    adbc = import_optional_dependency("adbc_driver_manager", errors="ignore")
     if isinstance(conn, sqlite3.Connection):
         cur = conn.cursor()
         return cur.execute(stmt).fetchone()[0]
