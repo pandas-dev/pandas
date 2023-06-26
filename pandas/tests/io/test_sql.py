@@ -467,6 +467,8 @@ def postgresql_adbc_conn():
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
     with dbapi.connect(uri) as conn:
         yield conn
+        with conn.cursor() as cur:
+            cur.execute("DROP TABLE IF EXISTS test_frame")
 
 
 @pytest.fixture

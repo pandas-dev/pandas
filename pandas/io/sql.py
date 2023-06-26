@@ -2235,6 +2235,8 @@ class ADBCDatabase(PandasSQL):
             elif if_exists == "replace":
                 with self.con.cursor() as cur:
                     cur.execute(f"DROP TABLE {table_name}")
+            elif if_exists == "append":
+                mode = "append"
 
         import pyarrow as pa
 

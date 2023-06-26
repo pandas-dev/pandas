@@ -118,6 +118,7 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
+      - adbc_driver_postgresql
       - sphinx-toggleprompt
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1
