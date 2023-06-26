@@ -117,14 +117,14 @@ class Apply(metaclass=abc.ABCMeta):
         raw: bool,
         result_type: str | None,
         *,
-        by_row: bool | Literal["compat"] = True,
+        by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
         self.obj = obj
         self.raw = raw
 
-        assert isinstance(by_row, bool) or by_row == "compat"
+        assert by_row is False or by_row in ["compat", "_compat"]
         self.by_row = by_row
 
         self.args = args or ()
@@ -315,7 +315,7 @@ class Apply(metaclass=abc.ABCMeta):
                 by_row = self.by_row
 
             elif isinstance(self, SeriesApply):
-                by_row = "compat" if self.by_row else False
+                by_row = "_compat" if self.by_row else False
             else:
                 by_row = False
             kwargs = {**kwargs, "by_row": by_row}
@@ -413,12 +413,7 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(AggFuncTypeDict, self.func)
         kwargs = {}
         if op_name == "apply":
-            if isinstance(self, FrameApply):
-                by_row = self.by_row
-            elif isinstance(self, SeriesApply) and self.by_row:
-                by_row = "compat"
-            else:
-                by_row = False
+            by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
 
         if getattr(obj, "axis", 0) == 1:
@@ -1106,7 +1101,7 @@ class FrameColumnApply(FrameApply):
 class SeriesApply(NDFrameApply):
     obj: Series
     axis: AxisInt = 0
-    by_row: bool | Literal["compat"]  # only relevant for apply()
+    by_row: Literal[False, "compat", "_compat"]  # only relevant for apply()
 
     def __init__(
         self,
@@ -1114,7 +1109,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
-        by_row: bool | Literal["compat"] = True,
+        by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
@@ -1154,7 +1149,7 @@ class SeriesApply(NDFrameApply):
             # if we are a string, try to dispatch
             return self.apply_str()
 
-        if self.by_row == "compat":
+        if self.by_row == "_compat":
             return self.apply_compat()
 
         # self.func is Callable
@@ -1208,7 +1203,7 @@ class SeriesApply(NDFrameApply):
                 return obj.apply(func, by_row=False)
 
         try:
-            result = obj.apply(func, by_row=True)
+            result = obj.apply(func, by_row="compat")
         except (ValueError, AttributeError, TypeError):
             result = obj.apply(func, by_row=False)
         return result

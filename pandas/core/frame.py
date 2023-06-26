@@ -9631,7 +9631,7 @@ class DataFrame(NDFrame, OpsMixin):
         raw: bool = False,
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
-        by_row: Literal["compat", False] = "compat",
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ):
         """
