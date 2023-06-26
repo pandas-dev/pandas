@@ -10477,7 +10477,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods: int = 1,
         freq=None,
         axis: Axis = 0,
-        fill_value: Hashable = None,
+        fill_value: Hashable = lib.no_default,
     ) -> Self:
         """
         Shift index by desired number of periods with an optional time `freq`.
@@ -10575,6 +10575,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-07    30    33    37
         2020-01-08    45    48    52
         """
+        axis = self._get_axis_number(axis)
+
+        if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
+            raise ValueError(
+                "Cannot pass both 'freq' and 'fill_value' to "
+                f"{type(self).__name__}.shift"
+            )
+
         if periods == 0:
             return self.copy(deep=None)
 
@@ -10588,6 +10597,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_data, axes=new_data.axes
             ).__finalize__(self, method="shift")
 
+        return self._shift_with_freq(periods, axis, freq)
+
+    @final
+    def _shift_with_freq(self, periods: int, axis: int, freq) -> Self:
+        # see shift.__doc__
         # when freq is given, index is shifted, data is not
         index = self._get_axis(axis)
 
