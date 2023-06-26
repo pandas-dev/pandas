@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
-    is_dtype_equal,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -574,17 +574,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
         else:
-            try:
-                if np.any(np.asarray(left_value != right_value)):
+            with warnings.catch_warnings():
+                # suppress numpy's "elementwise comparison failed"
+                warnings.simplefilter("ignore", DeprecationWarning)
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
+                except ValueError:
+                    # numpy can raise a ValueError if left and right cannot be
+                    # compared (e.g. nested arrays)
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
-                raise
-            except ValueError:
-                # numpy can raise a ValueError if left and right cannot be
-                # compared (e.g. nested arrays)
-                return False
     return True
 
 
@@ -592,7 +595,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
     """
     ExtensionArray-compatible implementation of array_equivalent.
     """
-    if not is_dtype_equal(left.dtype, right.dtype):
+    if left.dtype != right.dtype:
         return False
     elif isinstance(left, ABCExtensionArray):
         return left.equals(right)

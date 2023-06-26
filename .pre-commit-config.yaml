@@ -26,9 +26,9 @@ repos:
         language: python
         require_serial: true
         types_or: [python, pyi]
-        additional_dependencies: [black==23.1.0]
+        additional_dependencies: [black==23.3.0]
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.259
+    rev: v0.0.270
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -40,13 +40,13 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.2.4
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.12.5
+    rev: v0.15.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -65,11 +65,7 @@ repos:
     rev: 1.6.1
     hooks:
     -   id: cpplint
-        # We don't lint all C files because we don't want to lint any that are built
-        # from Cython files nor do we want to lint C files that we didn't modify for
-        # this particular codebase (e.g. src/headers, src/klib). However,
-        # we can lint all header files since they aren't "generated" like C files are.
-        exclude: ^pandas/_libs/src/(klib|headers)/
+        exclude: ^pandas/_libs/include/pandas/vendored/klib
         args: [
             --quiet,
             '--extensions=c,h',
@@ -79,13 +75,11 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
+    rev: v3.0.0a6
     hooks:
     -   id: pylint
         stages: [manual]
--   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
-    hooks:
+        args: [--load-plugins=pylint.extensions.redefined_loop_name]
     -   id: pylint
         alias: redefined-outer-name
         name: Redefining name from outer scope
@@ -99,12 +93,17 @@ repos:
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
+    -   id: pylint
+        alias: unspecified-encoding
+        name: Using open without explicitly specifying an encoding
+        args: [--disable=all, --enable=unspecified-encoding]
+        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.4.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]

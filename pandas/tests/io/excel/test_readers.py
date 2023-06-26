@@ -843,7 +843,13 @@ class TestReaders:
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
-        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        match = "|".join(
+            [
+                "(No such file or directory",
+                "没有那个文件或目录",
+                "File o directory non esistente)",
+            ]
+        )
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
@@ -888,29 +894,29 @@ class TestReaders:
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_resource, s3so):
-        # Bucket "pandas-test" created in tests/io/conftest.py
+    def test_read_from_s3_url(self, read_ext, s3_public_bucket, s3so):
+        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
+            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
 
-        url = "s3://pandas-test/test1" + read_ext
+        url = f"s3://{s3_public_bucket.name}/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_resource, s3so):
+    def test_read_from_s3_object(self, read_ext, s3_public_bucket, s3so):
         # GH 38788
-        # Bucket "pandas-test" created in tests/io/conftest.py
+        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
+            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
 
         import s3fs
 
         s3 = s3fs.S3FileSystem(**s3so)
 
-        with s3.open("s3://pandas-test/test1" + read_ext) as f:
+        with s3.open(f"s3://{s3_public_bucket.name}/test1" + read_ext) as f:
             url_table = pd.read_excel(f)
 
         local_table = pd.read_excel("test1" + read_ext)
@@ -1143,13 +1149,14 @@ class TestReaders:
         # now be interpreted as rows that include null data.
         data = np.array(
             [
-                [None, None, None, None, None],
+                [np.nan, np.nan, np.nan, np.nan, np.nan],
                 ["R0C0", "R0C1", "R0C2", "R0C3", "R0C4"],
                 ["R1C0", "R1C1", "R1C2", "R1C3", "R1C4"],
                 ["R2C0", "R2C1", "R2C2", "R2C3", "R2C4"],
                 ["R3C0", "R3C1", "R3C2", "R3C3", "R3C4"],
                 ["R4C0", "R4C1", "R4C2", "R4C3", "R4C4"],
-            ]
+            ],
+            dtype=object,
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
         mi = MultiIndex(
@@ -1702,7 +1709,7 @@ class TestExcelFileRead:
             errors = (BadZipFile, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt")
+            Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
                     pd.ExcelFile(file, engine=engine)

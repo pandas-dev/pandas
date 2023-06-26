@@ -16,47 +16,31 @@ from pandas.core.interchange.dataframe_protocol import (
 )
 from pandas.core.interchange.from_dataframe import from_dataframe
 
-test_data_categorical = {
-    "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
-    "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
-}
 
-NCOLS, NROWS = 100, 200
-
-
-def _make_data(make_one):
+@pytest.fixture
+def data_categorical():
     return {
-        f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [make_one() for _ in range(NROWS)]
-        for i in range(NCOLS)
+        "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
+        "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
     }
 
 
-int_data = _make_data(lambda: random.randint(-100, 100))
-uint_data = _make_data(lambda: random.randint(1, 100))
-bool_data = _make_data(lambda: random.choice([True, False]))
-float_data = _make_data(lambda: random.random())
-datetime_data = _make_data(
-    lambda: datetime(
-        year=random.randint(1900, 2100),
-        month=random.randint(1, 12),
-        day=random.randint(1, 20),
-    )
-)
-
-string_data = {
-    "separator data": [
-        "abC|DeF,Hik",
-        "234,3245.67",
-        "gSaf,qWer|Gre",
-        "asd3,4sad|",
-        np.NaN,
-    ]
-}
+@pytest.fixture
+def string_data():
+    return {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.NaN,
+        ]
+    }
 
 
 @pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data):
-    df = pd.DataFrame({"A": (test_data_categorical[data[0]])})
+def test_categorical_dtype(data, data_categorical):
+    df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
     assert col.dtype[0] == DtypeKind.CATEGORICAL
@@ -86,6 +70,18 @@ def test_categorical_pyarrow():
         arr, categories=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     )
     expected = pd.DataFrame({"weekday": weekday})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_empty_categorical_pyarrow():
+    # https://github.com/pandas-dev/pandas/issues/53077
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+
+    arr = [None]
+    table = pa.table({"arr": pa.array(arr, "float64").dictionary_encode()})
+    exchange_df = table.__dataframe__()
+    result = pd.api.interchange.from_dataframe(exchange_df)
+    expected = pd.DataFrame({"arr": pd.Categorical([np.nan])})
     tm.assert_frame_equal(result, expected)
 
 
@@ -131,9 +127,25 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
 
 
 @pytest.mark.parametrize(
-    "data", [int_data, uint_data, float_data, bool_data, datetime_data]
+    "data",
+    [
+        lambda: random.randint(-100, 100),
+        lambda: random.randint(1, 100),
+        lambda: random.random(),
+        lambda: random.choice([True, False]),
+        lambda: datetime(
+            year=random.randint(1900, 2100),
+            month=random.randint(1, 12),
+            day=random.randint(1, 20),
+        ),
+    ],
 )
 def test_dataframe(data):
+    NCOLS, NROWS = 10, 20
+    data = {
+        f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [data() for _ in range(NROWS)]
+        for i in range(NCOLS)
+    }
     df = pd.DataFrame(data)
 
     df2 = df.__dataframe__()
@@ -157,9 +169,9 @@ def test_dataframe(data):
 def test_missing_from_masked():
     df = pd.DataFrame(
         {
-            "x": np.array([1, 2, 3, 4, 0]),
+            "x": np.array([1.0, 2.0, 3.0, 4.0, 0.0]),
             "y": np.array([1.5, 2.5, 3.5, 4.5, 0]),
-            "z": np.array([True, False, True, True, True]),
+            "z": np.array([1.0, 0.0, 1.0, 1.0, 1.0]),
         }
     )
 
@@ -215,7 +227,7 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string():
+def test_string(string_data):
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -260,3 +272,15 @@ def test_categorical_to_numpy_dlpack():
     result = np.from_dlpack(col.get_buffers()["data"][0])
     expected = np.array([0, 1, 0], dtype="int8")
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", [{}, {"a": []}])
+def test_empty_pyarrow(data):
+    # GH 53155
+    pytest.importorskip("pyarrow", "11.0.0")
+    from pyarrow.interchange import from_dataframe as pa_from_dataframe
+
+    expected = pd.DataFrame(data)
+    arrow_df = pa_from_dataframe(expected)
+    result = from_dataframe(arrow_df)
+    tm.assert_frame_equal(result, expected)

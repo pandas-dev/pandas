@@ -29,7 +29,7 @@ def iterparse(request):
 
 def read_xml_iterparse(data, **kwargs):
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(data)
         return read_xml(path, **kwargs)
 
@@ -194,12 +194,13 @@ def test_dtype_float(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_wrong_dtype(datapath, parser, iterparse):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_wrong_dtype(xml_books, parser, iterparse):
     with pytest.raises(
         ValueError, match=('Unable to parse string "Everyday Italian" at position 0')
     ):
-        read_xml(filename, dtype={"title": "Int64"}, parser=parser, iterparse=iterparse)
+        read_xml(
+            xml_books, dtype={"title": "Int64"}, parser=parser, iterparse=iterparse
+        )
 
 
 def test_both_dtype_converters(parser):
@@ -279,25 +280,24 @@ def test_converters_date(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_wrong_converters_type(datapath, parser, iterparse):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_wrong_converters_type(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("Type converters must be a dict or subclass")):
-        read_xml(filename, converters={"year", str}, parser=parser, iterparse=iterparse)
-
-
-def test_callable_func_converters(datapath, parser, iterparse):
-    filename = datapath("io", "data", "xml", "books.xml")
-    with pytest.raises(TypeError, match=("'float' object is not callable")):
         read_xml(
-            filename, converters={"year": float()}, parser=parser, iterparse=iterparse
+            xml_books, converters={"year", str}, parser=parser, iterparse=iterparse
         )
 
 
-def test_callable_str_converters(datapath, parser, iterparse):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_callable_func_converters(xml_books, parser, iterparse):
+    with pytest.raises(TypeError, match=("'float' object is not callable")):
+        read_xml(
+            xml_books, converters={"year": float()}, parser=parser, iterparse=iterparse
+        )
+
+
+def test_callable_str_converters(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("'str' object is not callable")):
         read_xml(
-            filename, converters={"year": "float"}, parser=parser, iterparse=iterparse
+            xml_books, converters={"year": "float"}, parser=parser, iterparse=iterparse
         )
 
 
@@ -471,9 +471,8 @@ def test_day_first_parse_dates(parser):
         tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_wrong_parse_dates_type(datapath, parser, iterparse):
-    filename = datapath("io", "data", "xml", "books.xml")
+def test_wrong_parse_dates_type(xml_books, parser, iterparse):
     with pytest.raises(
         TypeError, match=("Only booleans, lists, and dictionaries are accepted")
     ):
-        read_xml(filename, parse_dates={"date"}, parser=parser, iterparse=iterparse)
+        read_xml(xml_books, parse_dates={"date"}, parser=parser, iterparse=iterparse)

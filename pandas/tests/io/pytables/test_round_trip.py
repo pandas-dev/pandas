@@ -26,9 +26,6 @@ from pandas.tests.io.pytables.common import (
 )
 from pandas.util import _test_decorators as td
 
-_default_compressor = "blosc"
-
-
 pytestmark = pytest.mark.single_cpu
 
 
@@ -217,7 +214,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
         df1 = DataFrame(np.array([[1], [2], [3]], dtype="f4"), columns=["A"])
         store.append("df_f4", df1)
         tm.assert_series_equal(df1.dtypes, store["df_f4"].dtypes)
-        assert df1.dtypes[0] == "float32"
+        assert df1.dtypes.iloc[0] == "float32"
 
         # check with mixed dtypes
         df1 = DataFrame(
@@ -479,7 +476,7 @@ def test_store_mixed(compression, setup_path):
 def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
     options = {}
     if compression:
-        options["complib"] = _default_compressor
+        options["complib"] = "blosc"
 
     with ensure_clean_store(path, "w", **options) as store:
         store["obj"] = obj
@@ -490,7 +487,7 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
 def _check_roundtrip_table(obj, comparator, path, compression=False):
     options = {}
     if compression:
-        options["complib"] = _default_compressor
+        options["complib"] = "blosc"
 
     with ensure_clean_store(path, "w", **options) as store:
         store.put("obj", obj, format="table")

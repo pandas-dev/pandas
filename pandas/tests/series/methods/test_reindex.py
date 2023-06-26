@@ -12,6 +12,7 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -131,6 +132,8 @@ def test_reindex_pad():
     expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
+
+def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
@@ -147,6 +150,8 @@ def test_reindex_pad():
     result = s.reindex(new_index, method="ffill")
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
@@ -154,9 +159,11 @@ def test_reindex_pad():
     expected = Series([True, True, False], index=list(new_index))
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
-    result = s.shift(1).fillna(method="bfill")
+    result = s.shift(1).bfill()
     expected = Series(False, index=range(0, 5))
     tm.assert_series_equal(result, expected)
 
@@ -314,7 +321,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([None, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -422,3 +429,14 @@ def test_reindexing_with_float64_NA_log():
         result_log = np.log(s_reindex)
         expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
+
+
+@pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
+def test_reindex_expand_nonnano_nat(dtype):
+    # GH 53497
+    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(RangeIndex(2))
+    expected = Series(
+        np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
+    )
+    tm.assert_series_equal(result, expected)

@@ -12,7 +12,6 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -91,11 +90,18 @@ def test_zip_error_invalid_zip(parser_and_data):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(request, parser_and_data, compression_only, buffer, filename):
+def test_compression(
+    request,
+    parser_and_data,
+    compression_only,
+    buffer,
+    filename,
+    compression_to_extension,
+):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
-    ext = _compression_to_extension[compress_type]
+    ext = compression_to_extension[compress_type]
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
@@ -129,7 +135,7 @@ def test_infer_compression(all_parsers, csv1, buffer, ext):
     kwargs["compression"] = "infer"
 
     if buffer:
-        with open(csv1) as f:
+        with open(csv1, encoding="utf-8") as f:
             result = parser.read_csv(f, **kwargs)
     else:
         ext = "." + ext if ext else ""
@@ -183,7 +189,9 @@ def test_ignore_compression_extension(all_parsers):
         with tm.ensure_clean("test.csv.zip") as path_zip:
             # make sure to create un-compressed file with zip extension
             df.to_csv(path_csv, index=False)
-            Path(path_zip).write_text(Path(path_csv).read_text())
+            Path(path_zip).write_text(
+                Path(path_csv).read_text(encoding="utf-8"), encoding="utf-8"
+            )
 
             tm.assert_frame_equal(parser.read_csv(path_zip, compression=None), df)
 
