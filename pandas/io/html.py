@@ -38,6 +38,7 @@ from pandas.core.series import Series
 from pandas.io.common import (
     file_exists,
     get_handle,
+    is_file_like,
     is_url,
     stringify_path,
     urlopen,
@@ -1027,6 +1028,7 @@ def read_html(
 
         .. deprecated:: 2.1.0
             Passing html literal strings is deprecated.
+            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1183,7 +1185,7 @@ def read_html(
 
     io = stringify_path(io)
 
-    if isinstance(io, str) and "\n" in io:
+    if isinstance(io, str) and not is_file_like(io) and "\n" in io:
         warnings.warn(
             "Passing literal html to 'read_html' is deprecated and "
             "will be removed in a future version. To read from a "
