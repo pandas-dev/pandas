@@ -57,7 +57,10 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import get_lzma_file
+from pandas.compat import (
+    get_bz2_file,
+    get_lzma_file,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -71,11 +74,6 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
-
-try:
-    from pandas.compat.compressors import BZ2File as _BZ2File
-except ImportError:
-    _BZ2File = None
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard("")
@@ -770,11 +768,7 @@ def get_handle(
         elif compression == "bz2":
             # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            if _BZ2File is None:
-                raise ImportError(
-                    "bz2 compression requires the bz2 module to be installed"
-                )
-            handle = _BZ2File(  # type: ignore[call-overload]
+            handle = get_bz2_file()(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
