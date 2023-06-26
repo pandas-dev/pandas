@@ -4945,7 +4945,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _series(self):
         return {
             item: Series(
-                self._mgr.iget(idx).blocks[0].values,
+                self._mgr.iget(idx).arrays[0],
                 index=self.index,
                 name=item,
             )
