@@ -788,6 +788,8 @@ class ExtensionArray:
             the original should be modified and no new memory should be allocated.
             For ExtensionArray subclasses that cannot do this, it is at the
             author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword in pad/backfill
+            cases.
 
         Returns
         -------
@@ -809,8 +811,6 @@ class ExtensionArray:
                 npvalues = self.astype(object)
                 func(npvalues, limit=limit, mask=mask)
                 new_values = self._from_sequence(npvalues, dtype=self.dtype)
-                if not copy:
-                    self[:] = new_values
             else:
                 # fill with value
                 if not copy:
