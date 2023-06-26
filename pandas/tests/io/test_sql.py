@@ -34,6 +34,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -274,9 +275,14 @@ def check_iris_frame(frame: DataFrame):
 
 def count_rows(conn, table_name: str):
     stmt = f"SELECT count(*) AS count_1 FROM {table_name}"
+    adbc = import_optional_dependency("adbc_driver_manager")
     if isinstance(conn, sqlite3.Connection):
         cur = conn.cursor()
         return cur.execute(stmt).fetchone()[0]
+    elif adbc and isinstance(conn, adbc.dbapi.Connection):
+        with conn.cursor() as cur:
+            cur.execute(stmt)
+            return cur.fetchone()[0]
     else:
         from sqlalchemy import create_engine
         from sqlalchemy.engine import Engine
@@ -454,6 +460,16 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
+def postgresql_adbc_conn():
+    pytest.importorskip("adbc_driver_postgresql")
+    from adbc_driver_postgresql import dbapi
+
+    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
+    with dbapi.connect(uri) as conn:
+        yield conn
+
+
+@pytest.fixture
 def sqlite_str():
     pytest.importorskip("sqlalchemy")
     with tm.ensure_clean() as name:
@@ -533,11 +549,13 @@ sqlite_iris_connectable = [
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
 
+adbc_connectable = ["postgresql_adbc_conn"]
+
 sqlalchemy_connectable_iris = (
     mysql_connectable + postgresql_connectable + sqlite_iris_connectable
 )
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
+all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
 
 all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 
@@ -553,6 +571,9 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes(conn, request):
+    if conn == "postgresql_adbc_conn":
+        pytest.skip("int8/datetime not implemented yet in adbc driver")
+
     # GH 52046
     pytest.importorskip("pyarrow")
     df = DataFrame(
@@ -566,6 +587,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         }
     )
     conn = request.getfixturevalue(conn)
+
     with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
         df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
@@ -573,6 +595,9 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    if conn == "postgresql_adbc_conn":
+        pytest.skip("int8/datetime not implemented yet in adbc driver")
+
     # GH 52046
     pytest.importorskip("pyarrow")
     df = DataFrame(
