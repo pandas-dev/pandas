@@ -32,6 +32,7 @@ from pandas.io.common import (
     file_exists,
     get_handle,
     infer_compression,
+    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -898,6 +899,7 @@ def read_xml(
 
         .. deprecated:: 2.1.0
             Passing html literal strings is deprecated.
+            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
@@ -1125,7 +1127,13 @@ def read_xml(
     """
     check_dtype_backend(dtype_backend)
 
-    if isinstance(path_or_buffer, str) and "\n" in path_or_buffer:
+    if (
+        isinstance(path_or_buffer, str)
+        and not is_file_like(path_or_buffer)
+        and "\n" in path_or_buffer
+    ):
+        with open("/home/richard/Desktop/file.txt", "a+") as fil:
+            fil.write(f"{path_or_buffer}\n\n\n")
         warnings.warn(
             "Passing literal xml to 'read_xml' is deprecated and "
             "will be removed in a future version. To read from a "
