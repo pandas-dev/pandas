@@ -1495,7 +1495,8 @@ class FloatArrayFormatter(GenericArrayFormatter):
         def format_complex_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
         ):
-            real_values, imag_values = np.real(values).ravel(), np.imag(values).ravel()
+            real_values = np.real(values).ravel()  # type: ignore[arg-type]
+            imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
             real_mask, imag_mask = isna(real_values), isna(imag_values)
             formatted_lst = []
             for val, real_val, imag_val, re_isna, im_isna in zip(
