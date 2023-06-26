@@ -503,6 +503,8 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` sorting columns lexicographically (:issue:`53786`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+- Bug in :func:`merge_asof` with ``left_index=True`` or ``right_index=True`` with mismatched index dtypes giving incorrect results in some cases instead of raising ``MergeError`` (:issue:`??`)
+-
 
 Sparse
 ^^^^^^
