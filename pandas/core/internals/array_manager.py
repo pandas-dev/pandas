@@ -353,9 +353,12 @@ class BaseArrayManager(DataManager):
             new=new,
         )
 
-    def diff(self, n: int, axis: AxisInt) -> Self:
-        assert self.ndim == 2 and axis == 0  # caller ensures
-        return self.apply(algos.diff, n=n, axis=axis)
+    def diff(self, n: int) -> Self:
+        assert self.ndim == 2  # caller ensures
+        return self.apply(algos.diff, n=n)
+
+    def pad_or_backfill(self, **kwargs) -> Self:
+        return self.apply_with_block("pad_or_backfill", swap_axis=False, **kwargs)
 
     def interpolate(self, **kwargs) -> Self:
         return self.apply_with_block("interpolate", swap_axis=False, **kwargs)
