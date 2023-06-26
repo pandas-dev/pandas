@@ -978,7 +978,7 @@ class SQLTable(PandasObject):
 
                     if pa.types.is_date(ser.dtype.pyarrow_dtype):
                         # GH#53854 to_pydatetime not supported for pyarrow date dtypes
-                        d = ser._values.astype(object)
+                        d = ser._values.to_numpy(dtype=object)
                     else:
                         with warnings.catch_warnings():
                             warnings.filterwarnings("ignore", category=FutureWarning)
