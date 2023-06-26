@@ -7,12 +7,22 @@ import sys
 import numpy as np
 import pytest
 
+sys.modules.pop("bz2", None)  # Remove 'bz2' from available modules for testing
+from pandas.compat import get_bz2_file
+
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
 from pandas.core import ops
 import pandas.core.common as com
 from pandas.util.version import Version
+
+
+def test_bz2_nonimport():
+    assert "bz2" not in sys.modules
+    msg = "bz2 module not available."
+    with pytest.raises(RuntimeError, match=msg):
+        get_bz2_file()
 
 
 def test_get_callable_name():
