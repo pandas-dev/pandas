@@ -1381,7 +1381,7 @@ class Block(PandasObject):
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
@@ -1439,17 +1439,32 @@ class Block(PandasObject):
 
         # Dispatch to the PandasArray method.
         # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).interpolate(
-            method=method,
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            inplace=arr_inplace,
-            **kwargs,
-        )
+        if m is not None:
+            if fill_value is not None:
+                # similar to validate_fillna_kwargs
+                raise ValueError("Cannot pass both fill_value and method")
+
+            # TODO: warn about ignored kwargs, limit_direction, index...?
+            new_values = cast(PandasArray, self.array_values).pad_or_backfill(
+                method=method,
+                axis=axis,
+                limit=limit,
+                limit_area=limit_area,
+                copy=not arr_inplace,
+            )
+        else:
+            assert index is not None  # for mypy
+            new_values = cast(PandasArray, self.array_values).interpolate(
+                method=method,
+                axis=axis,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                inplace=arr_inplace,
+                **kwargs,
+            )
         data = new_values._ndarray
 
         nb = self.make_block_same_class(data, refs=refs)
