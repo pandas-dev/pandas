@@ -89,7 +89,6 @@ dependencies:
   - sphinx
   - sphinx-design
   - sphinx-copybutton
-  - sphinx-toggleprompt
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
@@ -114,5 +113,6 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
+      - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1
