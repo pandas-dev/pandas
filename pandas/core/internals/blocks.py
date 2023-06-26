@@ -1344,6 +1344,35 @@ class Block(PandasObject):
             ]
         )
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        axis: AxisInt = 0,
+        index: Index | None = None,
+        inplace: bool = False,
+        limit: int | None = None,
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
+        limit_area: Literal["inside", "outside"] | None = None,
+        fill_value: Any | None = None,
+        downcast: Literal["infer"] | None = None,
+        using_cow: bool = False,
+        **kwargs,
+    ) -> list[Block]:
+        return self.interpolate(
+            method=method,
+            axis=axis,
+            index=index,
+            inplace=inplace,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            downcast=downcast,
+            using_cow=using_cow,
+            **kwargs,
+        )
+
     def interpolate(
         self,
         *,
@@ -1353,7 +1382,7 @@ class Block(PandasObject):
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
@@ -1400,20 +1429,34 @@ class Block(PandasObject):
             else:
                 refs = self.refs
 
-        # Dispatch to the EA method.
-        new_values = self.array_values.interpolate(
-            # error: Argument "method" to "interpolate" of "ExtensionArray" has
-            # incompatible type [...]
-            method=method,  # type: ignore[arg-type]
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            copy=copy,
-            **kwargs,
-        )
+        # Dispatch to the PandasArray method.
+        # We know self.array_values is a PandasArray bc EABlock overrides
+        if _interp_method_is_pad_or_backfill(method):
+            if fill_value is not None:
+                # similar to validate_fillna_kwargs
+                raise ValueError("Cannot pass both fill_value and method")
+
+            # TODO: warn about ignored kwargs, limit_direction, index...?
+            new_values = cast(PandasArray, self.array_values).pad_or_backfill(
+                method=cast(FillnaOptions, method),
+                axis=axis,
+                limit=limit,
+                limit_area=limit_area,
+                copy=copy,
+            )
+        else:
+            assert index is not None  # for mypy
+            new_values = cast(PandasArray, self.array_values).interpolate(
+                method=cast(InterpolateOptions, method),
+                axis=axis,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                copy=copy,
+                **kwargs,
+            )
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
@@ -1848,9 +1891,9 @@ class EABackedBlock(Block):
         values = self.values
 
         if not _interp_method_is_pad_or_backfill(method):
-            method = cast(InterpolateOptions, method)
+            imeth = cast(InterpolateOptions, method)
             return super().interpolate(
-                method=method,
+                method=imeth,
                 index=index,
                 axis=axis,
                 inplace=inplace,
@@ -1860,14 +1903,14 @@ class EABackedBlock(Block):
                 **kwargs,
             )
         else:
-            method = cast(FillnaOptions, method)
+            meth = cast(FillnaOptions, method)
             if values.ndim == 2 and axis == 0:
                 # NDArrayBackedExtensionArray.fillna assumes axis=1
                 new_values = values.T.fillna(
-                    value=fill_value, method=method, limit=limit
+                    value=fill_value, method=meth, limit=limit
                 ).T
             else:
-                new_values = values.fillna(value=fill_value, method=method, limit=limit)
+                new_values = values.fillna(value=fill_value, method=meth, limit=limit)
         return self.make_block_same_class(new_values)
 
 

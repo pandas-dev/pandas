@@ -763,7 +763,7 @@ class ExtensionArray:
         *,
         method: InterpolateOptions,
         axis: int,
-        index: Index | None,
+        index: Index,
         limit,
         limit_direction,
         limit_area,

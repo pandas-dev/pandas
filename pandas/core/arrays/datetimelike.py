@@ -2236,7 +2236,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         *,
         method: InterpolateOptions,
         axis: int,
-        index: Index | None,
+        index: Index,
         limit,
         limit_direction,
         limit_area,
@@ -2256,7 +2256,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         else:
             out_data = self._ndarray.copy()
 
-        missing.interpolate_array_2d(
+        missing.interpolate_2d_inplace(
             out_data,
             method=method,
             axis=axis,
