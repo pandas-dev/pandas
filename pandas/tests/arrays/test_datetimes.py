@@ -749,7 +749,7 @@ class TestDatetimeArray:
     def test_date_range_frequency_M_deprecated(self):
         depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
 
-        expected = pd.date_range("1/1/2000", periods=4, freq="ME")
+        expected = pd.date_range("1/1/2000", periods=4, freq="2ME")
         with tm.assert_produces_warning(UserWarning, match=depr_msg):
-            result = pd.date_range("1/1/2000", periods=4, freq="M")
+            result = pd.date_range("1/1/2000", periods=4, freq="2M")
         tm.assert_index_equal(result, expected)

@@ -894,27 +894,29 @@ class TestPeriodIndex:
 
 
 def test_period_index_frequency_ME_error_message():
-    msg = "Invalid frequency: ME"
-    with pytest.raises(ValueError, match=msg):
-        PeriodIndex([Period("2013-01", "ME"), Period("2013-12", "ME")])
-
-
-def test_resample_frequency_ME_error_message():
-    msg = "Invalid frequency: ME"
+    freq = "2ME"
+    msg = f"Invalid frequency: {freq}"
 
     with pytest.raises(ValueError, match=msg):
-        rng = period_range("1/1/2000", periods=5, freq="A")
-        ts = Series(np.random.randn(len(rng)), rng)
-        ts.resample("ME")
+        PeriodIndex([Period("2013-01", freq), Period("2013-12", freq)])
 
 
-def test_asfreq_frequency_M_deprecated(series_and_frame):
+def test_resample_frequency_ME_error_message(series_and_frame):
+    freq = "2ME"
+    msg = f"Invalid frequency: {freq}"
+
+    obj = series_and_frame
+    with pytest.raises(ValueError, match=msg):
+        obj.resample(freq)
+
+
+def test_asfreq_resample_frequency_M_deprecated(series_and_frame):
     depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
 
     obj = series_and_frame
-    expected = obj.to_timestamp().resample("ME").asfreq()
+    expected = obj.to_timestamp().resample("2ME").asfreq()
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = obj.to_timestamp().resample("M").asfreq()
+        result = obj.to_timestamp().resample("2M").asfreq()
     tm.assert_almost_equal(result, expected)
 
 
@@ -922,7 +924,18 @@ def test_resample_frequency_M_deprecated():
     depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample("ME", kind="period").mean()
+    expected = s.resample("2ME").mean()
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = s.resample("M", kind="period").mean()
+        result = s.resample("2M").mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_asfreq_frequency_M_deprecated():
+    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+
+    index = date_range("1/1/2000", periods=4, freq="ME")
+    df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+    expected = df.asfreq(freq="5ME")
+    with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        result = df.asfreq(freq="5M")
+        tm.assert_frame_equal(result, expected)

@@ -1987,9 +1987,10 @@ def test_resample_empty_series_with_tz():
 
 
 def test_period_range_frequency_ME_error_message():
-    msg = "Invalid frequency: ME"
+    freq = "2ME"
+    msg = f"Invalid frequency: {freq}"
     with pytest.raises(ValueError, match=msg):
-        period_range("Jan-2000", "Dec-2000", freq="ME")
+        period_range("Jan-2000", "Dec-2000", freq=freq)
 
 
 def test_resample_frequency_M_deprecated():
