@@ -1354,7 +1354,7 @@ class Block(PandasObject):
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
@@ -1918,6 +1918,10 @@ class EABackedBlock(Block):
                 )
             except TypeError:
                 # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = values.fillna(value=fill_value, method=method, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
                 warnings.warn(
                     # GH#53278
                     "ExtensionArray.fillna added a 'copy' keyword in pandas "
@@ -1928,8 +1932,6 @@ class EABackedBlock(Block):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                refs = None
-                new_values = values.fillna(value=fill_value, method=method, limit=limit)
 
         return self.make_block_same_class(new_values, refs=refs)
 
@@ -1987,6 +1989,10 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                 )
             except TypeError:
                 # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = self.values.fillna(value=value, method=None, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
                 warnings.warn(
                     # GH#53278
                     "ExtensionArray.fillna added a 'copy' keyword in pandas "
@@ -1997,8 +2003,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                refs = None
-                new_values = self.values.fillna(value=value, method=None, limit=limit)
+
         nb = self.make_block_same_class(new_values, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 

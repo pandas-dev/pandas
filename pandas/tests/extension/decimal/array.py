@@ -278,7 +278,8 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     # Simulate a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
-    def fillna(
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
         self,
         value=None,
         method=None,
