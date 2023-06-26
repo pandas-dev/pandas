@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     datetime,
     timedelta,
     timezone,
@@ -197,7 +198,7 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         ts = Timestamp(now).as_unit("ns")
         result = ts + other
         valdiff = result._value - ts._value

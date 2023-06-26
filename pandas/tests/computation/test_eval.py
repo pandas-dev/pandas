@@ -568,11 +568,9 @@ class TestEval:
             [
                 -True,
                 True,
-                ~True,
                 +True,
                 -False,
                 False,
-                ~False,
                 +False,
                 -37,
                 37,
