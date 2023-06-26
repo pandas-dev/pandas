@@ -2,7 +2,6 @@
 from datetime import datetime
 from itertools import chain
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -33,6 +32,7 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 @pytest.fixture
