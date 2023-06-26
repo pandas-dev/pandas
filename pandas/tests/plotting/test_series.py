@@ -32,6 +32,7 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 @pytest.fixture
@@ -51,22 +52,34 @@ def iseries():
 
 class TestSeriesPlots:
     @pytest.mark.slow
-    def test_plot(self, ts):
-        _check_plot_works(ts.plot, label="foo")
-        _check_plot_works(ts.plot, use_index=False)
+    @pytest.mark.parametrize("kwargs", [{"label": "foo"}, {"use_index": False}])
+    def test_plot(self, ts, kwargs):
+        _check_plot_works(ts.plot, **kwargs)
+
+    @pytest.mark.slow
+    def test_plot_tick_props(self, ts):
         axes = _check_plot_works(ts.plot, rot=0)
         _check_ticks_props(axes, xrot=0)
 
-        ax = _check_plot_works(ts.plot, style=".", logy=True)
-        _check_ax_scales(ax, yaxis="log")
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "scale, exp_scale",
+        [
+            [{"logy": True}, {"yaxis": "log"}],
+            [{"logx": True}, {"xaxis": "log"}],
+            [{"loglog": True}, {"xaxis": "log", "yaxis": "log"}],
+        ],
+    )
+    def test_plot_scales(self, ts, scale, exp_scale):
+        ax = _check_plot_works(ts.plot, style=".", **scale)
+        _check_ax_scales(ax, **exp_scale)
 
-        ax = _check_plot_works(ts.plot, style=".", logx=True)
-        _check_ax_scales(ax, xaxis="log")
-
-        ax = _check_plot_works(ts.plot, style=".", loglog=True)
-        _check_ax_scales(ax, xaxis="log", yaxis="log")
-
+    @pytest.mark.slow
+    def test_plot_ts_bar(self, ts):
         _check_plot_works(ts[:10].plot.bar)
+
+    @pytest.mark.slow
+    def test_plot_ts_area_stacked(self, ts):
         _check_plot_works(ts.plot.area, stacked=False)
 
     def test_plot_iseries(self, iseries):
@@ -93,14 +106,10 @@ class TestSeriesPlots:
         ax = _check_plot_works(Series(np.random.randn(10)).plot.bar, color="black")
         _check_colors([ax.patches[0]], facecolors=["black"])
 
-    def test_plot_6951(self, ts):
+    @pytest.mark.parametrize("kwargs", [{}, {"layout": (-1, 1)}, {"layout": (1, -1)}])
+    def test_plot_6951(self, ts, kwargs):
         # GH 6951
-        ax = _check_plot_works(ts.plot, subplots=True)
-        _check_axes_shape(ax, axes_num=1, layout=(1, 1))
-
-        ax = _check_plot_works(ts.plot, subplots=True, layout=(-1, 1))
-        _check_axes_shape(ax, axes_num=1, layout=(1, 1))
-        ax = _check_plot_works(ts.plot, subplots=True, layout=(1, -1))
+        ax = _check_plot_works(ts.plot, subplots=True, **kwargs)
         _check_axes_shape(ax, axes_num=1, layout=(1, 1))
 
     def test_plot_figsize_and_title(self, series):
@@ -118,20 +127,15 @@ class TestSeriesPlots:
         Series([1, 2, 3]).plot(ax=ax)
         assert colors == mpl.pyplot.rcParams[key]
 
-    def test_ts_line_lim(self, ts):
-        fig, ax = mpl.pyplot.subplots()
-        ax = ts.plot(ax=ax)
+    @pytest.mark.parametrize("kwargs", [{}, {"secondary_y": True}])
+    def test_ts_line_lim(self, ts, kwargs):
+        _, ax = mpl.pyplot.subplots()
+        ax = ts.plot(ax=ax, **kwargs)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
         tm.close()
-
-        ax = ts.plot(secondary_y=True, ax=ax)
-        xmin, xmax = ax.get_xlim()
-        lines = ax.get_lines()
-        assert xmin <= lines[0].get_data(orig=False)[0][0]
-        assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
@@ -143,6 +147,7 @@ class TestSeriesPlots:
         _check_ticks_props(ax, xrot=0)
         tm.close()
 
+    def test_ts_area_lim_xcompat(self, ts):
         # GH 7471
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.area(stacked=False, x_compat=True, ax=ax)
@@ -153,6 +158,7 @@ class TestSeriesPlots:
         _check_ticks_props(ax, xrot=30)
         tm.close()
 
+    def test_ts_tz_area_lim_xcompat(self, ts):
         tz_ts = ts.copy()
         tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
@@ -164,6 +170,9 @@ class TestSeriesPlots:
         _check_ticks_props(ax, xrot=0)
         tm.close()
 
+    def test_ts_tz_area_lim_xcompat_secondary_y(self, ts):
+        tz_ts = ts.copy()
+        tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
         ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
@@ -171,6 +180,7 @@ class TestSeriesPlots:
         assert xmin <= line[0]
         assert xmax >= line[-1]
         _check_ticks_props(ax, xrot=0)
+        tm.close()
 
     def test_area_sharey_dont_overwrite(self, ts):
         # GH37942
@@ -181,34 +191,46 @@ class TestSeriesPlots:
 
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
+        plt.close(fig)
 
     def test_label(self):
         s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(label="LABEL", legend=True, ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
-        mpl.pyplot.close()
+        mpl.pyplot.close("all")
+
+    def test_label_none(self):
+        s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=[""])
-        mpl.pyplot.close()
-        # get name from index
-        s.name = "NAME"
+        mpl.pyplot.close("all")
+
+    def test_label_ser_name(self):
+        s = Series([1, 2], name="NAME")
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, ax=ax)
         _check_legend_labels(ax, labels=["NAME"])
-        mpl.pyplot.close()
+        mpl.pyplot.close("all")
+
+    def test_label_ser_name_override(self):
+        s = Series([1, 2], name="NAME")
         # override the default
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=True, label="LABEL", ax=ax)
         _check_legend_labels(ax, labels=["LABEL"])
-        mpl.pyplot.close()
+        mpl.pyplot.close("all")
+
+    def test_label_ser_name_override_dont_draw(self):
+        s = Series([1, 2], name="NAME")
         # Add lebel info, but don't draw
         _, ax = mpl.pyplot.subplots()
         ax = s.plot(legend=False, label="LABEL", ax=ax)
         assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         _check_legend_labels(ax, labels=["LABEL"])
+        mpl.pyplot.close("all")
 
     def test_boolean(self):
         # GH 23719
@@ -245,6 +267,10 @@ class TestSeriesPlots:
         ax = s.plot(use_index=False, ax=ax)
         label = ax.get_xlabel()
         assert label == ""
+
+    def test_line_use_index_false_diff_var(self):
+        s = Series([1, 2, 3], index=["a", "b", "c"])
+        s.index.name = "The Index"
         _, ax = mpl.pyplot.subplots()
         ax2 = s.plot.bar(use_index=False, ax=ax)
         label2 = ax2.get_xlabel()
@@ -255,38 +281,37 @@ class TestSeriesPlots:
         reason="Weird rounding problems",
         strict=False,
     )
-    def test_bar_log(self):
+    @pytest.mark.parametrize("axis, meth", [("yaxis", "bar"), ("xaxis", "barh")])
+    def test_bar_log(self, axis, meth):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
         _, ax = mpl.pyplot.subplots()
-        ax = Series([200, 500]).plot.bar(log=True, ax=ax)
-        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
+        ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
+        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
         tm.close()
 
-        _, ax = mpl.pyplot.subplots()
-        ax = Series([200, 500]).plot.barh(log=True, ax=ax)
-        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
-        tm.close()
-
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
+    @pytest.mark.parametrize(
+        "axis, kind, res_meth",
+        [["yaxis", "bar", "get_ylim"], ["xaxis", "barh", "get_xlim"]],
+    )
+    def test_bar_log_kind_bar(self, axis, kind, res_meth):
         # GH 9905
         expected = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
 
         _, ax = mpl.pyplot.subplots()
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind="bar", ax=ax)
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind=kind, ax=ax)
         ymin = 0.0007943282347242822
         ymax = 0.12589254117941673
-        res = ax.get_ylim()
+        res = getattr(ax, res_meth)()
         tm.assert_almost_equal(res[0], ymin)
         tm.assert_almost_equal(res[1], ymax)
-        tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
+        tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
         tm.close()
-
-        _, ax = mpl.pyplot.subplots()
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind="barh", ax=ax)
-        res = ax.get_xlim()
-        tm.assert_almost_equal(res[0], ymin)
-        tm.assert_almost_equal(res[1], ymax)
-        tm.assert_numpy_array_equal(ax.xaxis.get_ticklocs(), expected)
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
@@ -306,13 +331,15 @@ class TestSeriesPlots:
         ]
         assert result == expected
 
-    def test_rotation(self):
+    def test_rotation_default(self):
         df = DataFrame(np.random.randn(5, 5))
         # Default rot 0
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(ax=ax)
         _check_ticks_props(axes, xrot=0)
 
+    def test_rotation_30(self):
+        df = DataFrame(np.random.randn(5, 5))
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(rot=30, ax=ax)
         _check_ticks_props(axes, xrot=30)
@@ -352,17 +379,27 @@ class TestSeriesPlots:
         _check_text_labels(ax.texts, series.index)
         assert ax.get_ylabel() == "YLABEL"
 
-        # without wedge labels
+    def test_pie_series_no_label(self):
+        series = Series(
+            np.random.randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL"
+        )
         ax = _check_plot_works(series.plot.pie, labels=None)
         _check_text_labels(ax.texts, [""] * 5)
 
-        # with less colors than elements
+    def test_pie_series_less_colors_than_elements(self):
+        series = Series(
+            np.random.randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL"
+        )
         color_args = ["r", "g", "b"]
         ax = _check_plot_works(series.plot.pie, colors=color_args)
 
         color_expected = ["r", "g", "b", "r", "g"]
         _check_colors(ax.patches, facecolors=color_expected)
 
+    def test_pie_series_labels_and_colors(self):
+        series = Series(
+            np.random.randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL"
+        )
         # with labels and colors
         labels = ["A", "B", "C", "D", "E"]
         color_args = ["r", "g", "b", "c", "m"]
@@ -370,7 +407,11 @@ class TestSeriesPlots:
         _check_text_labels(ax.texts, labels)
         _check_colors(ax.patches, facecolors=color_args)
 
-        # with autopct and fontsize
+    def test_pie_series_autopct_and_fontsize(self):
+        series = Series(
+            np.random.randint(1, 5), index=["a", "b", "c", "d", "e"], name="YLABEL"
+        )
+        color_args = ["r", "g", "b", "c", "m"]
         ax = _check_plot_works(
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
@@ -380,11 +421,13 @@ class TestSeriesPlots:
         for t in ax.texts:
             assert t.get_fontsize() == 7
 
+    def test_pie_series_negative_raises(self):
         # includes negative value
         series = Series([1, 2, 0, 4, -1], index=["a", "b", "c", "d", "e"])
         with pytest.raises(ValueError, match="pie plot doesn't allow negative values"):
             series.plot.pie()
 
+    def test_pie_series_nan(self):
         # includes nan
         series = Series([1, 2, np.nan, 4], index=["a", "b", "c", "d"], name="YLABEL")
         ax = _check_plot_works(series.plot.pie)
@@ -414,6 +457,10 @@ class TestSeriesPlots:
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
+    def test_df_series_secondary_legend_with_axes(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
+        s = Series(np.random.randn(30), name="x")
         # primary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(ax=ax)
@@ -425,6 +472,10 @@ class TestSeriesPlots:
         assert ax.right_ax.get_yaxis().get_visible()
         tm.close()
 
+    def test_df_series_secondary_legend_both(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
+        s = Series(np.random.randn(30), name="x")
         # secondary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -437,6 +488,10 @@ class TestSeriesPlots:
         assert ax.get_yaxis().get_visible()
         tm.close()
 
+    def test_df_series_secondary_legend_both_with_axis(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
+        s = Series(np.random.randn(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -449,6 +504,10 @@ class TestSeriesPlots:
         assert ax.get_yaxis().get_visible()
         tm.close()
 
+    def test_df_series_secondary_legend_both_with_axis_2(self):
+        # GH 9779
+        df = DataFrame(np.random.randn(30, 3), columns=list("abc"))
+        s = Series(np.random.randn(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
@@ -488,14 +547,27 @@ class TestSeriesPlots:
             x.plot(style="k--", color="k", ax=ax)
 
     @td.skip_if_no_scipy
-    def test_kde_kwargs(self, ts):
+    @pytest.mark.parametrize(
+        "bw_method, ind",
+        [
+            ["scott", 20],
+            [None, 20],
+            [None, np.int_(20)],
+            [0.5, np.linspace(-100, 100, 20)],
+        ],
+    )
+    def test_kde_kwargs(self, ts, bw_method, ind):
+        _check_plot_works(ts.plot.kde, bw_method=bw_method, ind=ind)
+
+    @td.skip_if_no_scipy
+    def test_density_kwargs(self, ts):
         sample_points = np.linspace(-100, 100, 20)
-        _check_plot_works(ts.plot.kde, bw_method="scott", ind=20)
-        _check_plot_works(ts.plot.kde, bw_method=None, ind=20)
-        _check_plot_works(ts.plot.kde, bw_method=None, ind=np.int_(20))
-        _check_plot_works(ts.plot.kde, bw_method=0.5, ind=sample_points)
         _check_plot_works(ts.plot.density, bw_method=0.5, ind=sample_points)
+
+    @td.skip_if_no_scipy
+    def test_kde_kwargs_check_axes(self, ts):
         _, ax = mpl.pyplot.subplots()
+        sample_points = np.linspace(-100, 100, 20)
         ax = ts.plot.kde(logy=True, bw_method=0.5, ind=sample_points, ax=ax)
         _check_ax_scales(ax, yaxis="log")
         _check_text_labels(ax.yaxis.get_label(), "Density")
@@ -524,11 +596,19 @@ class TestSeriesPlots:
         "kind",
         plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
     )
-    def test_kind_both_ways(self, kind):
+    def test_kind_kwarg(self, kind):
         s = Series(range(3))
         _, ax = mpl.pyplot.subplots()
         s.plot(kind=kind, ax=ax)
         mpl.pyplot.close()
+
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize(
+        "kind",
+        plotting.PlotAccessor._common_kinds + plotting.PlotAccessor._series_kinds,
+    )
+    def test_kind_attr(self, kind):
+        s = Series(range(3))
         _, ax = mpl.pyplot.subplots()
         getattr(s.plot, kind)()
         mpl.pyplot.close()
@@ -589,51 +669,65 @@ class TestSeriesPlots:
         tm.close()
 
     @pytest.mark.slow
-    def test_errorbar_plot(self):
+    @pytest.mark.parametrize("kind", ["line", "bar"])
+    @pytest.mark.parametrize(
+        "yerr",
+        [
+            Series(np.abs(np.random.randn(10))),
+            np.abs(np.random.randn(10)),
+            list(np.abs(np.random.randn(10))),
+            DataFrame(np.abs(np.random.randn(10, 2)), columns=["x", "y"]),
+        ],
+    )
+    def test_errorbar_plot(self, kind, yerr):
+        s = Series(np.arange(10), name="x")
+        ax = _check_plot_works(s.plot, yerr=yerr, kind=kind)
+        _check_has_errorbars(ax, xerr=0, yerr=1)
+
+    @pytest.mark.slow
+    def test_errorbar_plot_yerr_0(self):
         s = Series(np.arange(10), name="x")
         s_err = np.abs(np.random.randn(10))
-        d_err = DataFrame(
-            np.abs(np.random.randn(10, 2)), index=s.index, columns=["x", "y"]
-        )
-        # test line and bar plots
-        kinds = ["line", "bar"]
-        for kind in kinds:
-            ax = _check_plot_works(s.plot, yerr=Series(s_err), kind=kind)
-            _check_has_errorbars(ax, xerr=0, yerr=1)
-            ax = _check_plot_works(s.plot, yerr=s_err, kind=kind)
-            _check_has_errorbars(ax, xerr=0, yerr=1)
-            ax = _check_plot_works(s.plot, yerr=s_err.tolist(), kind=kind)
-            _check_has_errorbars(ax, xerr=0, yerr=1)
-            ax = _check_plot_works(s.plot, yerr=d_err, kind=kind)
-            _check_has_errorbars(ax, xerr=0, yerr=1)
-            ax = _check_plot_works(s.plot, xerr=0.2, yerr=0.2, kind=kind)
-            _check_has_errorbars(ax, xerr=1, yerr=1)
-
         ax = _check_plot_works(s.plot, xerr=s_err)
         _check_has_errorbars(ax, xerr=1, yerr=0)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "yerr",
+        [
+            Series(np.abs(np.random.randn(12))),
+            DataFrame(np.abs(np.random.randn(12, 2)), columns=["x", "y"]),
+        ],
+    )
+    def test_errorbar_plot_ts(self, yerr):
         # test time series plotting
         ix = date_range("1/1/2000", "1/1/2001", freq="M")
         ts = Series(np.arange(12), index=ix, name="x")
-        ts_err = Series(np.abs(np.random.randn(12)), index=ix)
-        td_err = DataFrame(np.abs(np.random.randn(12, 2)), index=ix, columns=["x", "y"])
+        yerr.index = ix
 
-        ax = _check_plot_works(ts.plot, yerr=ts_err)
-        _check_has_errorbars(ax, xerr=0, yerr=1)
-        ax = _check_plot_works(ts.plot, yerr=td_err)
+        ax = _check_plot_works(ts.plot, yerr=yerr)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
+    @pytest.mark.slow
+    def test_errorbar_plot_invalid_yerr_shape(self):
+        s = Series(np.arange(10), name="x")
         # check incorrect lengths and types
         with tm.external_error_raised(ValueError):
             s.plot(yerr=np.arange(11))
 
+    @pytest.mark.slow
+    def test_errorbar_plot_invalid_yerr(self):
+        s = Series(np.arange(10), name="x")
         s_err = ["zzz"] * 10
         with tm.external_error_raised(TypeError):
             s.plot(yerr=s_err)
 
     @pytest.mark.slow
-    def test_table(self, series):
+    def test_table_true(self, series):
         _check_plot_works(series.plot, table=True)
+
+    @pytest.mark.slow
+    def test_table_self(self, series):
         _check_plot_works(series.plot, table=series)
 
     @pytest.mark.slow
