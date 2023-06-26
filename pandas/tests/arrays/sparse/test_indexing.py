@@ -2,24 +2,29 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import SparseDtype
 import pandas._testing as tm
-from pandas.core.arrays.sparse import (
-    SparseArray,
-    SparseDtype,
-)
+from pandas.core.arrays.sparse import SparseArray
 
-arr_data = np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
-arr = SparseArray(arr_data)
+
+@pytest.fixture
+def arr_data():
+    return np.array([np.nan, np.nan, 1, 2, 3, np.nan, 4, 5, np.nan, 6])
+
+
+@pytest.fixture
+def arr(arr_data):
+    return SparseArray(arr_data)
 
 
 class TestGetitem:
-    def test_getitem(self):
+    def test_getitem(self, arr):
         dense = arr.to_dense()
         for i, value in enumerate(arr):
             tm.assert_almost_equal(value, dense[i])
             tm.assert_almost_equal(arr[-i], dense[-i])
 
-    def test_getitem_arraylike_mask(self):
+    def test_getitem_arraylike_mask(self, arr):
         arr = SparseArray([0, 1, 2])
         result = arr[[True, False, True]]
         expected = SparseArray([0, 2])
@@ -83,7 +88,7 @@ class TestGetitem:
         res = arr[[False, False, False]]
         assert res.dtype == arr.dtype
 
-    def test_getitem_bool_sparse_array(self):
+    def test_getitem_bool_sparse_array(self, arr):
         # GH 23122
         spar_bool = SparseArray([False, True] * 5, dtype=np.bool_, fill_value=True)
         exp = SparseArray([np.nan, 2, np.nan, 5, 6])
@@ -108,7 +113,7 @@ class TestGetitem:
         exp = SparseArray([3.0, 4.0], fill_value=np.nan)
         tm.assert_sp_array_equal(res, exp)
 
-    def test_get_item(self):
+    def test_get_item(self, arr):
         zarr = SparseArray([0, 0, 1, 2, 3, 0, 4, 5, 0, 6], fill_value=0)
 
         assert np.isnan(arr[1])
@@ -131,7 +136,7 @@ class TestGetitem:
 
 
 class TestSetitem:
-    def test_set_item(self):
+    def test_set_item(self, arr_data):
         arr = SparseArray(arr_data).copy()
 
         def setitem():
@@ -148,12 +153,12 @@ class TestSetitem:
 
 
 class TestTake:
-    def test_take_scalar_raises(self):
+    def test_take_scalar_raises(self, arr):
         msg = "'indices' must be an array, not a scalar '2'."
         with pytest.raises(ValueError, match=msg):
             arr.take(2)
 
-    def test_take(self):
+    def test_take(self, arr_data, arr):
         exp = SparseArray(np.take(arr_data, [2, 3]))
         tm.assert_sp_array_equal(arr.take([2, 3]), exp)
 
@@ -175,14 +180,14 @@ class TestTake:
         exp = SparseArray(np.take(data, [1, 3, 4]), fill_value=0)
         tm.assert_sp_array_equal(sparse.take([1, 3, 4]), exp)
 
-    def test_take_negative(self):
+    def test_take_negative(self, arr_data, arr):
         exp = SparseArray(np.take(arr_data, [-1]))
         tm.assert_sp_array_equal(arr.take([-1]), exp)
 
         exp = SparseArray(np.take(arr_data, [-4, -3, -2]))
         tm.assert_sp_array_equal(arr.take([-4, -3, -2]), exp)
 
-    def test_bad_take(self):
+    def test_bad_take(self, arr):
         with pytest.raises(IndexError, match="bounds"):
             arr.take([11])
 

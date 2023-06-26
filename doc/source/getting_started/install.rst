@@ -201,9 +201,9 @@ Installing a nightly build is the quickest way to:
 * Try a new feature that will be shipped in the next release (that is, a feature from a pull-request that was recently merged to the main branch).
 * Check whether a bug you encountered has been fixed since the last release.
 
-You can install the nightly build of pandas using the scipy-wheels-nightly index from the PyPI registry of anaconda.org with the following command::
+You can install the nightly build of pandas using the scientific-python-nightly-wheels index from the PyPI registry of anaconda.org with the following command::
 
-    pip install --pre --extra-index https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas
+    pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
 Note that first uninstalling pandas might be required to be able to install nightly builds::
 
@@ -216,7 +216,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 7.0 and `Hypothesis
+<https://docs.pytest.org/en/latest/>`__ >= 7.3.2 and `Hypothesis
 <https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.34.2, then run:
 
 ::
@@ -295,7 +295,7 @@ Installable with ``pip install "pandas[performance]"``
 ===================================================== ================== ================== ===================================================================================================================================================================================
 Dependency                                            Minimum Version    pip extra          Notes
 ===================================================== ================== ================== ===================================================================================================================================================================================
-`numexpr <https://github.com/pydata/numexpr>`__       2.8.0              performance        Accelerates certain numerical operations by using uses multiple cores as well as smart chunking and caching to achieve large speedups
+`numexpr <https://github.com/pydata/numexpr>`__       2.8.0              performance        Accelerates certain numerical operations by using multiple cores as well as smart chunking and caching to achieve large speedups
 `bottleneck <https://github.com/pydata/bottleneck>`__ 1.3.4              performance        Accelerates certain types of ``nan`` by using specialized cython routines to achieve large speedup.
 `numba <https://github.com/numba/numba>`__            0.55.2             performance        Alternative execution engine for operations that accept ``engine="numba"`` using a JIT compiler that translates Python functions to optimized machine code using the LLVM compiler.
 ===================================================== ================== ================== ===================================================================================================================================================================================

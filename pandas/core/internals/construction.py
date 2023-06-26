@@ -460,13 +460,19 @@ def dict_to_mgr(
         keys = list(data.keys())
         columns = Index(keys) if keys else default_index(0)
         arrays = [com.maybe_iterable_to_list(data[k]) for k in keys]
-        arrays = [arr if not isinstance(arr, Index) else arr._data for arr in arrays]
 
     if copy:
         if typ == "block":
             # We only need to copy arrays that will not get consolidated, i.e.
             #  only EA arrays
-            arrays = [x.copy() if isinstance(x, ExtensionArray) else x for x in arrays]
+            arrays = [
+                x.copy()
+                if isinstance(x, ExtensionArray)
+                else x.copy(deep=True)
+                if isinstance(x, Index)
+                else x
+                for x in arrays
+            ]
         else:
             # dtype check to exclude e.g. range objects, scalars
             arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
@@ -573,10 +579,10 @@ def _homogenize(
     refs: list[Any] = []
 
     for val in data:
-        if isinstance(val, ABCSeries):
+        if isinstance(val, (ABCSeries, Index)):
             if dtype is not None:
                 val = val.astype(dtype, copy=False)
-            if val.index is not index:
+            if isinstance(val, ABCSeries) and val.index is not index:
                 # Forces alignment. No need to copy data since we
                 # are putting it into an ndarray later
                 val = val.reindex(index, copy=False)
@@ -675,8 +681,7 @@ def reorder_arrays(
     if columns is not None:
         if not columns.equals(arr_columns):
             # if they are equal, there is nothing to do
-            new_arrays: list[ArrayLike | None]
-            new_arrays = [None] * len(columns)
+            new_arrays: list[ArrayLike] = []
             indexer = arr_columns.get_indexer(columns)
             for i, k in enumerate(indexer):
                 if k == -1:
@@ -685,12 +690,9 @@ def reorder_arrays(
                     arr.fill(np.nan)
                 else:
                     arr = arrays[k]
-                new_arrays[i] = arr
+                new_arrays.append(arr)
 
-            # Incompatible types in assignment (expression has type
-            # "List[Union[ExtensionArray, ndarray[Any, Any], None]]", variable
-            # has type "List[Union[ExtensionArray, ndarray[Any, Any]]]")
-            arrays = new_arrays  # type: ignore[assignment]
+            arrays = new_arrays
             arr_columns = columns
 
     return arrays, arr_columns
