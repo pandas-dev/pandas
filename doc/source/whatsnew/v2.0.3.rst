@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
+- Fixed regression when :meth:`DataFrame.to_string` creates extra space for string dtypes (:issue:`52690`)
 -
 
 .. ---------------------------------------------------------------------------
