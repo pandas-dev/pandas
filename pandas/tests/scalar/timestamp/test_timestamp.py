@@ -228,28 +228,26 @@ class TestTimestampProperties:
         assert dt.as_unit("s").resolution == Timedelta(seconds=1)
 
     @pytest.mark.parametrize(
-        "date_string, expected_true, expected_false",
+        "date_string, expected",
         [
-            ("0000-2-29", 1, 2),
-            ("0000-3-1", 2, 3),
-            ("1582-10-14", 3, 4),
-            ("1582-10-15", 4, 5),
-            ("1752-01-01", 5, 6),
-            ("2023-06-18", 6, 0),
+            ("0000-2-29", 1),
+            ("0000-3-1", 2),
+            ("1582-10-14", 3),
+            ("-0040-1-1", 4),
+            ("2023-06-18", 6),
         ],
     )
-    def test_dow_historic(self, date_string, expected_true, expected_false):
+    def test_dow_historic(self, date_string, expected):
         # GH 53738
-        dt = Timestamp(date_string)
-        dow = dt.weekday()
-        assert dow == expected_true
-        assert not dow == expected_false
+        ts = Timestamp(date_string)
+        dow = ts.weekday()
+        assert dow == expected
 
     @given(st.datetimes())
-    def test_dow_sanity(self, dt):
+    def test_dow_parametric(self, ts):
         # GH 53738
-        result = Timestamp(dt).weekday()
-        expected = datetime(dt.year, dt.month, dt.day).weekday()
+        result = Timestamp(ts).weekday()
+        expected = ts.weekday()
         assert result == expected
 
 
