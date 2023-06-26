@@ -404,7 +404,7 @@ class TestDataFramePlotsSubplots:
         tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
         tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
-    def test_boxplot_subplots_return_type(self, hist_df):
+    def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df
 
         # normal style: return_type=None
@@ -414,14 +414,16 @@ class TestDataFramePlotsSubplots:
             result, None, expected_keys=["height", "weight", "category"]
         )
 
-        for t in ["dict", "axes", "both"]:
-            returned = df.plot.box(return_type=t, subplots=True)
-            _check_box_return_type(
-                returned,
-                t,
-                expected_keys=["height", "weight", "category"],
-                check_ax_title=False,
-            )
+    @pytest.mark.parametrize("rt", ["dict", "axes", "both"])
+    def test_boxplot_subplots_return_type(self, hist_df, rt):
+        df = hist_df
+        returned = df.plot.box(return_type=rt, subplots=True)
+        _check_box_return_type(
+            returned,
+            rt,
+            expected_keys=["height", "weight", "category"],
+            check_ax_title=False,
+        )
 
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657

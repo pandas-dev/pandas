@@ -104,21 +104,24 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
-    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array, monkeypatch):
         # GH#36377, GH#35700
         box = box_with_array
         xbox = box if box is not Index else np.ndarray
 
-        obj = Series(np.random.randn(10**5))
+        obj = Series(np.random.randn(51))
         obj = tm.box_expected(obj, box, transpose=False)
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj == "a"
 
-        result = obj == "a"
-
-        expected = Series(np.zeros(10**5, dtype=bool))
+        expected = Series(np.zeros(51, dtype=bool))
         expected = tm.box_expected(expected, xbox, transpose=False)
         tm.assert_equal(result, expected)
 
-        result = obj != "a"
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj != "a"
         tm.assert_equal(result, ~expected)
 
         msg = "Invalid comparison between dtype=float64 and str"

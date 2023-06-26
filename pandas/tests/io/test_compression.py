@@ -177,7 +177,7 @@ def test_gzip_reproducibility_file_name():
     with tm.ensure_clean() as path:
         path = Path(path)
         df.to_csv(path, compression=compression_options)
-        time.sleep(2)
+        time.sleep(0.1)
         output = path.read_bytes()
         df.to_csv(path, compression=compression_options)
         assert output == path.read_bytes()
@@ -196,7 +196,7 @@ def test_gzip_reproducibility_file_object():
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     output = buffer.getvalue()
-    time.sleep(2)
+    time.sleep(0.1)
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     assert output == buffer.getvalue()
