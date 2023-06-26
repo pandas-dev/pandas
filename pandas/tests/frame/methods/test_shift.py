@@ -17,6 +17,35 @@ import pandas._testing as tm
 
 
 class TestDataFrameShift:
+    def test_shift_axis1_with_valid_fill_value_one_array(self):
+        # Case with axis=1 that does not go through the "len(arrays)>1" path
+        #  in DataFrame.shift
+        data = np.random.randn(5, 3)
+        df = DataFrame(data)
+        res = df.shift(axis=1, periods=1, fill_value=12345)
+        expected = df.T.shift(periods=1, fill_value=12345).T
+        tm.assert_frame_equal(res, expected)
+
+        # same but with an 1D ExtensionArray backing it
+        df2 = df[[0]].astype("Float64")
+        res2 = df2.shift(axis=1, periods=1, fill_value=12345)
+        expected2 = DataFrame([12345] * 5, dtype="Float64")
+        tm.assert_frame_equal(res2, expected2)
+
+    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
+        # Can't pass both!
+        obj = frame_or_series(
+            np.random.randn(5), index=date_range("1/1/2000", periods=5, freq="H")
+        )
+
+        msg = "Cannot pass both 'freq' and 'fill_value' to (Series|DataFrame).shift"
+        with pytest.raises(ValueError, match=msg):
+            obj.shift(1, fill_value=1, freq="H")
+
+        if frame_or_series is DataFrame:
+            with pytest.raises(ValueError, match=msg):
+                obj.shift(1, axis=1, fill_value=1, freq="H")
+
     @pytest.mark.parametrize(
         "input_data, output_data",
         [(np.empty(shape=(0,)), []), (np.ones(shape=(2,)), [np.nan, 1.0])],
