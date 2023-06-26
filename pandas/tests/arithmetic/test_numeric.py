@@ -106,20 +106,22 @@ class TestNumericComparisons:
 
     def test_numeric_cmp_string_numexpr_path(self, box_with_array, monkeypatch):
         # GH#36377, GH#35700
-        monkeypatch.setattr(expr, "_MIN_ELEMENTS", 50)
         box = box_with_array
         xbox = box if box is not Index else np.ndarray
 
         obj = Series(np.random.randn(51))
         obj = tm.box_expected(obj, box, transpose=False)
-
-        result = obj == "a"
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj == "a"
 
         expected = Series(np.zeros(51, dtype=bool))
         expected = tm.box_expected(expected, xbox, transpose=False)
         tm.assert_equal(result, expected)
 
-        result = obj != "a"
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj != "a"
         tm.assert_equal(result, ~expected)
 
         msg = "Invalid comparison between dtype=float64 and str"

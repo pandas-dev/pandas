@@ -237,14 +237,15 @@ def test_duplicated(idx_dup, keep, expected):
 @pytest.mark.arm_slow
 def test_duplicated_hashtable_impl(keep, monkeypatch):
     # GH 9125
-    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 50)
     n, k = 6, 10
     levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
     codes = [np.random.choice(n, k * n) for _ in levels]
-    mi = MultiIndex(levels=levels, codes=codes)
+    with monkeypatch.context() as m:
+        m.setattr(libindex, "_SIZE_CUTOFF", 50)
+        mi = MultiIndex(levels=levels, codes=codes)
 
-    result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated(mi.values, keep=keep)
+        result = mi.duplicated(keep=keep)
+        expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
