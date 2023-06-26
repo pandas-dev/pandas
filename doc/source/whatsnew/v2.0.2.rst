@@ -48,7 +48,6 @@ Other
 ~~~~~
 - Raised a better error message when calling :func:`Series.dt.to_pydatetime` with :class:`ArrowDtype` with ``pyarrow.date32`` or ``pyarrow.date64`` type (:issue:`52812`)
 
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_202.contributors:
 
