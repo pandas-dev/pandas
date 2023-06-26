@@ -1056,6 +1056,14 @@ def is_float(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_float(1.0)
+    True
+
+    >>> pd.api.types.is_float(1)
+    False
     """
     return util.is_float_object(obj)
 
@@ -1067,6 +1075,14 @@ def is_integer(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_integer(1)
+    True
+
+    >>> pd.api.types.is_integer(1.0)
+    False
     """
     return util.is_integer_object(obj)
 
@@ -1089,6 +1105,14 @@ def is_bool(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_bool(True)
+    True
+
+    >>> pd.api.types.is_bool(1)
+    False
     """
     return util.is_bool_object(obj)
 
@@ -1100,6 +1124,14 @@ def is_complex(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_complex(1 + 1j)
+    True
+
+    >>> pd.api.types.is_complex(1)
+    False
     """
     return util.is_complex_object(obj)
 
