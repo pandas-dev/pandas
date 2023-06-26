@@ -153,6 +153,10 @@ class IndexingMixin:
         """
         Purely integer-location based indexing for selection by position.
 
+        .. deprecated:: 2.1.0
+
+           Returning a tuple from a callable is deprecated.
+
         ``.iloc[]`` is primarily integer position based (from ``0`` to
         ``length-1`` of the axis), but may also be used with a boolean
         array.
@@ -168,11 +172,6 @@ class IndexingMixin:
           This is useful in method chains, when you don't have a reference to the
           calling object, but would like to base your selection on
           some value.
-
-          .. deprecated:: 2.1.0
-
-             Returning a tuple from a callable is deprecated.
-
         - A tuple of row and column indexes. The tuple elements consist of one of the
           above inputs, e.g. ``(0, 1)``.
 
@@ -193,7 +192,7 @@ class IndexingMixin:
         --------
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
-        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000}]
         >>> df = pd.DataFrame(mydict)
         >>> df
               a     b     c     d
