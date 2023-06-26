@@ -423,44 +423,60 @@ class TestDataFramePlots:
         df2 = df.set_index(df.index + 1)
         _check_plot_works(df2.plot, kind=kind, logx=True, stacked=True)
 
-    def test_line_area_nan_df(self):
+    @pytest.mark.parametrize(
+        "idx", [range(4), date_range("2023-01-1", freq="D", periods=4)]
+    )
+    def test_line_area_nan_df(self, idx):
         values1 = [1, 2, np.nan, 3]
         values2 = [3, np.nan, 2, 1]
-        df = DataFrame({"a": values1, "b": values2})
-        tdf = DataFrame({"a": values1, "b": values2}, index=tm.makeDateIndex(k=4))
+        df = DataFrame({"a": values1, "b": values2}, index=idx)
 
-        for d in [df, tdf]:
-            ax = _check_plot_works(d.plot)
-            masked1 = ax.lines[0].get_ydata()
-            masked2 = ax.lines[1].get_ydata()
-            # remove nan for comparison purpose
+        ax = _check_plot_works(df.plot)
+        masked1 = ax.lines[0].get_ydata()
+        masked2 = ax.lines[1].get_ydata()
+        # remove nan for comparison purpose
 
-            exp = np.array([1, 2, 3], dtype=np.float64)
-            tm.assert_numpy_array_equal(np.delete(masked1.data, 2), exp)
+        exp = np.array([1, 2, 3], dtype=np.float64)
+        tm.assert_numpy_array_equal(np.delete(masked1.data, 2), exp)
 
-            exp = np.array([3, 2, 1], dtype=np.float64)
-            tm.assert_numpy_array_equal(np.delete(masked2.data, 1), exp)
-            tm.assert_numpy_array_equal(
-                masked1.mask, np.array([False, False, True, False])
-            )
-            tm.assert_numpy_array_equal(
-                masked2.mask, np.array([False, True, False, False])
-            )
+        exp = np.array([3, 2, 1], dtype=np.float64)
+        tm.assert_numpy_array_equal(np.delete(masked2.data, 1), exp)
+        tm.assert_numpy_array_equal(masked1.mask, np.array([False, False, True, False]))
+        tm.assert_numpy_array_equal(masked2.mask, np.array([False, True, False, False]))
 
-            expected1 = np.array([1, 2, 0, 3], dtype=np.float64)
-            expected2 = np.array([3, 0, 2, 1], dtype=np.float64)
+    @pytest.mark.parametrize(
+        "idx", [range(4), date_range("2023-01-1", freq="D", periods=4)]
+    )
+    def test_line_area_nan_df_stacked(self, idx):
+        values1 = [1, 2, np.nan, 3]
+        values2 = [3, np.nan, 2, 1]
+        df = DataFrame({"a": values1, "b": values2}, index=idx)
 
-            ax = _check_plot_works(d.plot, stacked=True)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
-            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
+        expected1 = np.array([1, 2, 0, 3], dtype=np.float64)
+        expected2 = np.array([3, 0, 2, 1], dtype=np.float64)
 
-            ax = _check_plot_works(d.plot.area)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
-            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
+        ax = _check_plot_works(df.plot, stacked=True)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+        tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
 
-            ax = _check_plot_works(d.plot.area, stacked=False)
-            tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+    @pytest.mark.parametrize(
+        "idx", [range(4), date_range("2023-01-1", freq="D", periods=4)]
+    )
+    @pytest.mark.parametrize("kwargs", [{}, {"stacked": False}])
+    def test_line_area_nan_df_stacked_area(self, idx, kwargs):
+        values1 = [1, 2, np.nan, 3]
+        values2 = [3, np.nan, 2, 1]
+        df = DataFrame({"a": values1, "b": values2}, index=idx)
+
+        expected1 = np.array([1, 2, 0, 3], dtype=np.float64)
+        expected2 = np.array([3, 0, 2, 1], dtype=np.float64)
+
+        ax = _check_plot_works(df.plot.area, **kwargs)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected1)
+        if kwargs:
             tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected2)
+        else:
+            tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), expected1 + expected2)
 
     def test_line_lim(self):
         df = DataFrame(np.random.rand(6, 3), columns=["x", "y", "z"])
@@ -1537,27 +1553,31 @@ class TestDataFramePlots:
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.slow
-    def test_errorbar_with_partial_columns(self):
+    @pytest.mark.parametrize("kind", ["line", "bar"])
+    def test_errorbar_with_partial_columns_kind(self, kind):
         df = DataFrame(np.abs(np.random.randn(10, 3)))
         df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
-        kinds = ["line", "bar"]
-        for kind in kinds:
-            ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
-            _check_has_errorbars(ax, xerr=0, yerr=2)
+        ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
+        _check_has_errorbars(ax, xerr=0, yerr=2)
 
+    @pytest.mark.slow
+    def test_errorbar_with_partial_columns_dti(self):
+        df = DataFrame(np.abs(np.random.randn(10, 3)))
+        df_err = DataFrame(np.abs(np.random.randn(10, 2)), columns=[0, 2])
         ix = date_range("1/1/2000", periods=10, freq="M")
         df.set_index(ix, inplace=True)
         df_err.set_index(ix, inplace=True)
         ax = _check_plot_works(df.plot, yerr=df_err, kind="line")
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
+    @pytest.mark.slow
+    @pytest.mark.parametrize("err_box", [lambda x: x, DataFrame])
+    def test_errorbar_with_partial_columns_box(self, err_box):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
-        d_err = {"x": np.ones(12) * 0.2, "z": np.ones(12) * 0.4}
-        df_err = DataFrame(d_err)
-        for err in [d_err, df_err]:
-            ax = _check_plot_works(df.plot, yerr=err)
-            _check_has_errorbars(ax, xerr=0, yerr=1)
+        err = err_box({"x": np.ones(12) * 0.2, "z": np.ones(12) * 0.4})
+        ax = _check_plot_works(df.plot, yerr=err)
+        _check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.parametrize("kind", ["line", "bar", "barh"])
     def test_errorbar_timeseries(self, kind):

@@ -45,6 +45,9 @@ if TYPE_CHECKING:
     from pandas.io.formats.format import DataFrameFormatter
 
 
+_DEFAULT_CHUNKSIZE_CELLS = 100_000
+
+
 class CSVFormatter:
     cols: np.ndarray
 
@@ -163,7 +166,7 @@ class CSVFormatter:
 
     def _initialize_chunksize(self, chunksize: int | None) -> int:
         if chunksize is None:
-            return (100000 // (len(self.cols) or 1)) or 1
+            return (_DEFAULT_CHUNKSIZE_CELLS // (len(self.cols) or 1)) or 1
         return int(chunksize)
 
     @property
