@@ -612,13 +612,14 @@ deleted when the context block is exited.
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
-lack of ownership of the server that is being connected to. If network connectivity is absolutely required, mock
-the network connection using the ``httpserver`` fixture from the
-`pytest-localserver plugin. <https://github.com/pytest-dev/pytest-localserver>`_
+A unit test should not access a public data set over the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. To mock this interaction, use the ``httpserver`` fixture from the
+`pytest-localserver plugin. <https://github.com/pytest-dev/pytest-localserver>`_ with synthetic data.
 
 .. code-block:: python
 
+    @pytest.mark.network
+    @pytest.mark.single_cpu
     def test_network(httpserver):
         httpserver.serve_content(content="content")
         result = pd.read_html(httpserver.url)
