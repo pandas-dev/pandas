@@ -439,6 +439,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 values = arr
 
         if dtype.categories is None:
+            if not isinstance(values, ABCIndex):
+                # in particular RangeIndex xref test_index_equal_range_categories
+                values = sanitize_array(values, None)
             try:
                 codes, categories = factorize(values, sort=True)
             except TypeError as err:
@@ -478,6 +481,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def dtype(self) -> CategoricalDtype:
         """
         The :class:`~pandas.api.types.CategoricalDtype` for this instance.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat
+        ['a', 'b']
+        Categories (2, object): ['a' < 'b']
+        >>> cat.dtype
+        CategoricalDtype(categories=['a', 'b'], ordered=True, categories_dtype=object)
         """
         return self._dtype
 
@@ -745,6 +757,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+
+        For Series:
+
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.categories
+        Index(['a', 'b', 'c'], dtype='object')
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.categories
+        Index(['b', 'c', 'd'], dtype='object')
+
+        For Categorical:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.categories
+        Index(['a', 'b'], dtype='object')
         """
         return self.dtype.categories
 
@@ -752,6 +784,30 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        Examples
+        --------
+
+        For Series:
+
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.ordered
+        False
+
+        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], ordered=True)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.ordered
+        True
+
+        For Categorical:
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.ordered
+        True
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=False)
+        >>> cat.ordered
+        False
         """
         return self.dtype.ordered
 
@@ -770,6 +826,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         ndarray[int]
             A non-writable view of the `codes` array.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+        >>> cat.codes
+        array([0, 1], dtype=int8)
         """
         v = self._codes.view()
         v.flags.writeable = False
@@ -850,6 +912,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Ordered Categorical.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser.cat.ordered
+        False
+        >>> ser = ser.cat.as_ordered()
+        >>> ser.cat.ordered
+        True
         """
         return self.set_ordered(True)
 
@@ -861,6 +932,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         -------
         Categorical
             Unordered Categorical.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c"],
+        ...                           categories=["a", "b", "c"], ordered=True)
+        >>> ser = pd.Series(raw_cate)
+        >>> ser = ser.cat.as_unordered()
+        >>> ser.cat.ordered
+        False
         """
         return self.set_ordered(False)
 
@@ -911,6 +991,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         add_categories : Add new categories.
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "A"],
+        ...                           categories=["a", "b", "c"], ordered=True)
+        >>> ser = pd.Series(raw_cate)
+        >>> ser
+        0   a
+        1   b
+        2   c
+        3   NaN
+        dtype: category
+        Categories (3, object): ['a' < 'b' < 'c']
+        >>> ser.cat.set_categories(["A", "B", "C"], rename=True)
+        0   A
+        1   B
+        2   C
+        3   NaN
+        dtype: category
+        Categories (3, object): ['A' < 'B' < 'C']
         """
 
         if ordered is None:
@@ -1037,6 +1137,26 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         remove_categories : Remove the specified categories.
         remove_unused_categories : Remove categories which are not used.
         set_categories : Set the categories to the specified ones.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser = ser.cat.reorder_categories(['c', 'b', 'a'], ordered=True)
+        >>> ser
+        0   a
+        1   b
+        2   c
+        3   a
+        dtype: category
+        Categories (3, object): ['c' < 'b' < 'a']
+        >>> ser = ser.sort_values()
+        >>> ser
+        2   c
+        1   b
+        0   a
+        3   a
+        dtype: category
+        Categories (3, object): ['c' < 'b' < 'a']
         """
         if (
             len(self.categories) != len(new_categories)
@@ -1409,6 +1529,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             A numpy array of either the specified dtype or,
             if dtype==None (default), the same dtype as
             categorical.categories.dtype.
+
+        Examples
+        --------
+
+        >>> cat = pd.Categorical(['a', 'b'], ordered=True)
+
+        The following calls ``cat.__array__``
+
+        >>> np.asarray(cat)
+        array(['a', 'b'], dtype=object)
         """
         ret = take_nd(self.categories._values, self._codes)
         if dtype and np.dtype(dtype) != self.categories.dtype:
@@ -2638,6 +2768,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def codes(self) -> Series:
         """
         Return Series of codes as well as the index.
+
+        Examples
+        --------
+        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
+        >>> ser = pd.Series(raw_cate)
+        >>> ser.cat.codes
+        0   0
+        1   1
+        2  -1
+        3   0
+        dtype: int8
         """
         from pandas import Series
 

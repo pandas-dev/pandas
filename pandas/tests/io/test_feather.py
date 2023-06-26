@@ -15,7 +15,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:FutureWarning"
 )
 
-pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
+pyarrow = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu

@@ -1729,9 +1729,9 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(
-            float_frame._mgr, index=index, columns=columns, _allow_mgr=True
-        )
+        msg = "Passing a BlockManager to DataFrame"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 
@@ -2715,6 +2715,24 @@ class TestDataFrameConstructorIndexInference:
             DataFrame({"A": ser2, "B": ser3, "D": ser1})
         with pytest.raises(TypeError, match=msg):
             DataFrame({"D": ser1, "A": ser2, "B": ser3})
+
+    @pytest.mark.parametrize(
+        "key_val, col_vals, col_type",
+        [
+            ["3", ["3", "4"], "utf8"],
+            [3, [3, 4], "int8"],
+        ],
+    )
+    def test_dict_data_arrow_column_expansion(self, key_val, col_vals, col_type):
+        # GH 53617
+        pa = pytest.importorskip("pyarrow")
+        cols = pd.arrays.ArrowExtensionArray(
+            pa.array(col_vals, type=pa.dictionary(pa.int8(), getattr(pa, col_type)()))
+        )
+        result = DataFrame({key_val: [1, 2]}, columns=cols)
+        expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
+        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorWithDtypeCoercion:

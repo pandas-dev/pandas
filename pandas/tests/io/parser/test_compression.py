@@ -12,7 +12,6 @@ import pytest
 
 from pandas import DataFrame
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:FutureWarning"
@@ -95,11 +94,18 @@ def test_zip_error_invalid_zip(parser_and_data):
 
 @skip_pyarrow
 @pytest.mark.parametrize("filename", [None, "test.{ext}"])
-def test_compression(request, parser_and_data, compression_only, buffer, filename):
+def test_compression(
+    request,
+    parser_and_data,
+    compression_only,
+    buffer,
+    filename,
+    compression_to_extension,
+):
     parser, data, expected = parser_and_data
     compress_type = compression_only
 
-    ext = _compression_to_extension[compress_type]
+    ext = compression_to_extension[compress_type]
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:

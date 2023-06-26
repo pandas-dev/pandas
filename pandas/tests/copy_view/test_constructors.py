@@ -157,7 +157,9 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
 def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
-    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx, _allow_mgr=True)
+    msg = "Passing a SingleBlockManager to Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
@@ -172,19 +174,29 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
 
 def test_series_from_block_manager_different_dtype(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="int64")
-    ser2 = Series(ser._mgr, dtype="int32", _allow_mgr=True)
+    msg = "Passing a SingleBlockManager to Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert ser2._mgr._has_no_reference(0)
 
 
-@pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
+@pytest.mark.parametrize("use_mgr", [True, False])
 @pytest.mark.parametrize("columns", [None, ["a"]])
-def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, func):
+def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, use_mgr):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
-    new_df = DataFrame(func(df), _allow_mgr=True)
+    if use_mgr:
+        data = df._mgr
+        warn = FutureWarning
+    else:
+        data = df
+        warn = None
+    msg = "Passing a BlockManager to DataFrame"
+    with tm.assert_produces_warning(warn, match=msg):
+        new_df = DataFrame(data)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
     new_df.iloc[0] = 100
@@ -340,3 +352,15 @@ def test_dataframe_from_records_with_dataframe(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
     else:
         tm.assert_frame_equal(df, df2)
+
+
+def test_frame_from_dict_of_index(using_copy_on_write):
+    idx = Index([1, 2, 3])
+    expected = idx.copy(deep=True)
+    df = DataFrame({"a": idx}, copy=False)
+    assert np.shares_memory(get_array(df, "a"), idx._values)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
+
+        df.iloc[0, 0] = 100
+        tm.assert_index_equal(idx, expected)
