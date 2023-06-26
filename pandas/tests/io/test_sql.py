@@ -493,6 +493,19 @@ def sqlite_conn(sqlite_engine):
 
 
 @pytest.fixture
+def sqlite_adbc_conn():
+    pytest.importorskip("adbc_driver_sqlite")
+    from adbc_driver_sqlite import dbapi
+
+    with tm.ensure_clean() as name:
+        uri = f"file:{name}"
+        with dbapi.connect(uri) as conn:
+            yield conn
+            with conn.cursor() as cur:
+                cur.execute("DROP TABLE IF EXISTS test_frame")
+
+
+@pytest.fixture
 def sqlite_iris_str(sqlite_str, iris_path):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine(sqlite_str)
@@ -551,7 +564,7 @@ sqlite_iris_connectable = [
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
 
-adbc_connectable = ["postgresql_adbc_conn"]
+adbc_connectable = ["postgresql_adbc_conn", "sqlite_adbc_conn"]
 
 sqlalchemy_connectable_iris = (
     mysql_connectable + postgresql_connectable + sqlite_iris_connectable
@@ -566,6 +579,13 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
+    if conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="syntax error with CREATE TABLE",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     test_frame1.to_sql("test", conn, if_exists="append", index=False)
 
@@ -574,7 +594,19 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes(conn, request):
     if conn == "postgresql_adbc_conn":
-        pytest.skip("int8/datetime not implemented yet in adbc driver")
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="int8/datetime not implemented yet in pg adbc driver",
+                strict=True,
+            )
+        )
+    elif conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="timestamp not implemented yet in sqlite adbc driver",
+                strict=True,
+            )
+        )
 
     # GH 52046
     pytest.importorskip("pyarrow")
@@ -588,6 +620,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }
     )
+
     conn = request.getfixturevalue(conn)
 
     with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
@@ -598,7 +631,16 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
     if conn == "postgresql_adbc_conn":
-        pytest.skip("int8/datetime not implemented yet in adbc driver")
+        request.node.add_marker(
+            pytest.skip("int8/datetime not implemented yet in adbc driver")
+        )
+    elif conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="timestamp not implemented yet in sqlite adbc driver",
+                strict=True,
+            )
+        )
 
     # GH 52046
     pytest.importorskip("pyarrow")
@@ -617,6 +659,10 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
+    if conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
@@ -628,6 +674,10 @@ def test_to_sql(conn, method, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
+    if conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
@@ -639,6 +689,10 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
+    if conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
