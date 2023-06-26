@@ -1603,6 +1603,11 @@ def pandas_dtype(dtype) -> DtypeObj:
     Raises
     ------
     TypeError if not a dtype
+
+    Examples
+    --------
+    >>> pd.api.types.pandas_dtype(int)
+    dtype('int64')
     """
     # short-circuit
     if isinstance(dtype, np.ndarray):
