@@ -697,16 +697,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     Raises
     ------
-    pytz.UnknownTimeZoneError
+    ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
     Examples
     --------
-    >>> pd.DatetimeTZDtype(tz='UTC')
+    >>> from zoneinfo import ZoneInfo
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('UTC'))
     datetime64[ns, UTC]
 
-    >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
-    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('Europe/Paris'))
+    datetime64[ns, Europe/Paris]
     """
 
     type: type[Timestamp] = Timestamp
@@ -775,7 +776,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.DatetimeTZDtype(tz='America/Los_Angeles')
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
         >>> dtype.unit
         'ns'
         """
@@ -788,9 +790,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
         Examples
         --------
-        >>> dtype = pd.DatetimeTZDtype(tz='America/Los_Angeles')
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
         >>> dtype.tz
-        <DstTzInfo 'America/Los_Angeles' LMT-1 day, 16:07:00 STD>
+        zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
         return self._tz
 
