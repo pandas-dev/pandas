@@ -1132,8 +1132,6 @@ def read_xml(
         and not is_file_like(path_or_buffer)
         and "\n" in path_or_buffer
     ):
-        with open("/home/richard/Desktop/file.txt", "a+") as fil:
-            fil.write(f"{path_or_buffer}\n\n\n")
         warnings.warn(
             "Passing literal xml to 'read_xml' is deprecated and "
             "will be removed in a future version. To read from a "
