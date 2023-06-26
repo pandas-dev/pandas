@@ -218,9 +218,36 @@ class TestDataFramePlots:
         _check_colors(handles, linecolors=colors)
 
     @pytest.mark.slow
-    def test_parallel_coordinates(self, iris):
+    @pytest.mark.parametrize(
+        "color",
+        [("#556270", "#4ECDC4", "#C7F464"), ["dodgerblue", "aquamarine", "seagreen"]],
+    )
+    def test_parallel_coordinates_colors(self, iris, color):
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
+
+        ax = _check_plot_works(
+            parallel_coordinates, frame=df, class_column="Name", color=color
+        )
+        _check_colors(ax.get_lines()[:10], linecolors=color, mapping=df["Name"][:10])
+
+    @pytest.mark.slow
+    def test_parallel_coordinates_cmap(self, iris):
         from matplotlib import cm
 
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
+
+        ax = _check_plot_works(
+            parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
+        )
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
+        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
+
+    @pytest.mark.slow
+    def test_parallel_coordinates_line_diff(self, iris):
         from pandas.plotting import parallel_coordinates
 
         df = iris
@@ -229,33 +256,20 @@ class TestDataFramePlots:
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
-        rgba = ("#556270", "#4ECDC4", "#C7F464")
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=rgba
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
-
-        cnames = ["dodgerblue", "aquamarine", "seagreen"]
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=cnames
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
-
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
-        )
-        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
-
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", axvlines=False
         )
         assert len(ax.get_lines()) == (nlines - nxticks)
 
+    @pytest.mark.slow
+    def test_parallel_coordinates_handles(self, iris):
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
         ax = parallel_coordinates(df, "Name", color=colors)
-        handles, labels = ax.get_legend_handles_labels()
+        handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
     # not sure if this is indicative of a problem

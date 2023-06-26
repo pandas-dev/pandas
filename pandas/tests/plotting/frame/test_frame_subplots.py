@@ -245,15 +245,11 @@ class TestDataFramePlotsSubplots:
         assert axes.shape == expected_shape
 
     @pytest.mark.slow
-    def test_subplots_warnings(self):
+    @pytest.mark.parametrize("idx", [range(5), date_range("1/1/2000", periods=5)])
+    def test_subplots_warnings(self, idx):
         # GH 9464
         with tm.assert_produces_warning(None):
-            df = DataFrame(np.random.randn(100, 4))
-            df.plot(subplots=True, layout=(3, 2))
-
-            df = DataFrame(
-                np.random.randn(100, 4), index=date_range("1/1/2000", periods=100)
-            )
+            df = DataFrame(np.random.randn(5, 4), index=idx)
             df.plot(subplots=True, layout=(3, 2))
 
     def test_subplots_multiple_axes(self):
