@@ -293,7 +293,8 @@ iterator : bool, default False
 
        ``TextFileReader`` is a context manager.
 chunksize : int, optional
-    Return ``TextFileReader`` object for iteration.
+    Number of lines to read from the file per chunk. Passing a value will cause the
+    function to return a ``TextFileReader`` object for iteration.
     See the `IO Tools docs
     <https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking>`_
     for more information on ``iterator`` and ``chunksize``.
@@ -427,7 +428,7 @@ DataFrame or TextFileReader
 See Also
 --------
 DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
-read_csv : Read a comma-separated values (csv) file into DataFrame.
+{see_also_func_name} : {see_also_func_summary}
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
 Examples
@@ -839,6 +840,8 @@ def read_csv(
     _doc_read_csv_and_table.format(
         func_name="read_csv",
         summary="Read a comma-separated values (csv) file into DataFrame.",
+        see_also_func_name="read_table",
+        see_also_func_summary="Read general delimited file into DataFrame.",
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
@@ -1168,6 +1171,10 @@ def read_table(
     _doc_read_csv_and_table.format(
         func_name="read_table",
         summary="Read general delimited file into DataFrame.",
+        see_also_func_name="read_csv",
+        see_also_func_summary=(
+            "Read a comma-separated values (csv) file into DataFrame."
+        ),
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
