@@ -826,3 +826,14 @@ def test_concat_mismatched_keys_length():
         concat((x for x in sers), keys=(y for y in keys), axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=0)
+
+
+def test_concat_none_with_datetime():
+    # GH 52093
+    df1 = DataFrame([{"A": None}], dtype="datetime64[ns, UTC]")
+    df2 = DataFrame([{"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}])
+    result = concat([df1, df2])
+    expected = DataFrame(
+        [{"A": None}, {"A": pd.to_datetime("1990-12-20 00:00:00+00:00")}], index=[0, 0]
+    )
+    tm.assert_frame_equal(result, expected)
