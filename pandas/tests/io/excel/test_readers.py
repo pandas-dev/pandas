@@ -3,6 +3,7 @@ from datetime import (
     time,
 )
 from functools import partial
+from io import BytesIO
 import os
 from pathlib import Path
 import platform
@@ -873,7 +874,7 @@ class TestReaders:
             error = BadZipFile
             msg = "File is not a zip file"
         with pytest.raises(error, match=msg):
-            pd.read_excel(bad_stream)
+            pd.read_excel(BytesIO(bad_stream))
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -1438,6 +1439,18 @@ class TestReaders:
 
 
 class TestExcelFileRead:
+    def test_deprecate_bytes_input(self, engine, read_ext):
+        # GH 53830
+        msg = (
+            "Passing bytes to 'read_excel' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "byte string, wrap it in a `BytesIO` object."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with open("test1" + read_ext, "rb") as f:
+                pd.read_excel(f.read(), engine=engine)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -1621,7 +1634,7 @@ class TestExcelFileRead:
         with open("test1" + read_ext, "rb") as f:
             data = f.read()
 
-        actual = pd.read_excel(data, engine=engine)
+        actual = pd.read_excel(BytesIO(data), engine=engine)
         tm.assert_frame_equal(expected, actual)
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
