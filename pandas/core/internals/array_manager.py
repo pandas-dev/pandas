@@ -324,17 +324,11 @@ class BaseArrayManager(DataManager):
         assert self.ndim == 2  # caller ensures
         return self.apply(algos.diff, n=n)
 
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
+    def shift(self, periods: int, fill_value) -> Self:
         if fill_value is lib.no_default:
             fill_value = None
 
-        if axis == 1 and self.ndim == 2:
-            # TODO column-wise shift
-            raise NotImplementedError
-
-        return self.apply_with_block(
-            "shift", periods=periods, axis=axis, fill_value=fill_value
-        )
+        return self.apply_with_block("shift", periods=periods, fill_value=fill_value)
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:

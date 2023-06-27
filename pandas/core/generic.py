@@ -10595,9 +10595,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if freq is None:
             # when freq is None, data is shifted, index is not
             axis = self._get_axis_number(axis)
-            new_data = self._mgr.shift(
-                periods=periods, axis=axis, fill_value=fill_value
-            )
+            assert axis == 0  # axis == 1 cases handled in DataFrame.shift
+            new_data = self._mgr.shift(periods=periods, fill_value=fill_value)
             return self._constructor_from_mgr(
                 new_data, axes=new_data.axes
             ).__finalize__(self, method="shift")
