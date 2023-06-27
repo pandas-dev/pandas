@@ -1343,6 +1343,35 @@ class Block(PandasObject):
             ]
         )
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions = "pad",
+        axis: AxisInt = 0,
+        index: Index | None = None,
+        inplace: bool = False,
+        limit: int | None = None,
+        limit_direction: Literal["forward", "backward", "both"] = "forward",
+        limit_area: Literal["inside", "outside"] | None = None,
+        fill_value: Any | None = None,
+        downcast: Literal["infer"] | None = None,
+        using_cow: bool = False,
+        **kwargs,
+    ) -> list[Block]:
+        return self.interpolate(
+            method=method,
+            axis=axis,
+            index=index,
+            inplace=inplace,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            fill_value=fill_value,
+            downcast=downcast,
+            using_cow=using_cow,
+            **kwargs,
+        )
+
     def interpolate(
         self,
         *,
@@ -1352,7 +1381,7 @@ class Block(PandasObject):
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
@@ -1410,26 +1439,43 @@ class Block(PandasObject):
 
         # Dispatch to the PandasArray method.
         # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).interpolate(
-            method=method,
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            inplace=arr_inplace,
-            **kwargs,
-        )
+        if m is not None:
+            if fill_value is not None:
+                # similar to validate_fillna_kwargs
+                raise ValueError("Cannot pass both fill_value and method")
+
+            # TODO: warn about ignored kwargs, limit_direction, index...?
+            new_values = cast(PandasArray, self.array_values).pad_or_backfill(
+                method=method,
+                axis=axis,
+                limit=limit,
+                limit_area=limit_area,
+                copy=not arr_inplace,
+            )
+        else:
+            assert index is not None  # for mypy
+            new_values = cast(PandasArray, self.array_values).interpolate(
+                method=method,
+                axis=axis,
+                index=index,
+                limit=limit,
+                limit_direction=limit_direction,
+                limit_area=limit_area,
+                fill_value=fill_value,
+                inplace=arr_inplace,
+                **kwargs,
+            )
         data = new_values._ndarray
 
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
+    @final
+    def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
-        # only reached with ndim == 2 and axis == 1
-        new_values = algos.diff(self.values, n, axis=axis)
+        # only reached with ndim == 2
+        # TODO(EA2D): transpose will be unnecessary with 2D EAs
+        new_values = algos.diff(self.values.T, n, axis=0).T
         return [self.make_block(values=new_values)]
 
     def shift(
@@ -2067,12 +2113,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
-        # only reached with ndim == 2 and axis == 1
-        # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
-        new_values = algos.diff(self.values, n, axis=0)
-        return [self.make_block(values=new_values)]
-
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
     ) -> list[Block]:
@@ -2190,32 +2230,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def diff(self, n: int, axis: AxisInt = 0) -> list[Block]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new Block.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        # only reached with ndim == 2 and axis == 1
-        values = self.values
-
-        new_values = values - values.shift(n, axis=axis)
-        return [self.make_block(new_values)]
 
     def shift(
         self, periods: int, axis: AxisInt = 0, fill_value: Any = None
