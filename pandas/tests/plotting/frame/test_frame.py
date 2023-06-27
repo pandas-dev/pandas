@@ -1560,7 +1560,6 @@ class TestDataFramePlots:
         ax = _check_plot_works(df.plot, yerr=df_err, kind=kind)
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
-
     @pytest.mark.slow
     def test_errorbar_with_partial_columns_dti(self):
         df = DataFrame(np.abs(np.random.randn(10, 3)))

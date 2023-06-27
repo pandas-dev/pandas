@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-
 from pandas._libs.tslibs.dtypes import freq_to_offset_freqstr
 import pandas.util._test_decorators as td
 
