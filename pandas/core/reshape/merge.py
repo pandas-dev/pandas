@@ -1992,11 +1992,10 @@ class _AsOfMerge(_OrderedMerge):
     ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
-        # validate index types are the same
-        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            if lk.dtype != rk.dtype:
-                if isinstance(lk.dtype, CategoricalDtype) and isinstance(
-                    rk.dtype, CategoricalDtype
+        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+            if left.dtype != right.dtype:
+                if isinstance(left.dtype, CategoricalDtype) and isinstance(
+                    right.dtype, CategoricalDtype
                 ):
                     # The generic error message is confusing for categoricals.
                     #
@@ -2007,15 +2006,31 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                        f"{repr(right.dtype)}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, must be the same type"
+                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                        f"{repr(right.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
+
+        # validate index types are the same
+        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
+            _check_dtype_match(lk, rk, i)
+
+        if self.left_index:
+            lt = self.left.index._values
+        else:
+            lt = left_join_keys[-1]
+
+        if self.right_index:
+            rt = self.right.index._values
+        else:
+            rt = right_join_keys[-1]
+
+        _check_dtype_match(lt, rt, 0)
 
     def _validate_tolerance(self, left_join_keys: list[ArrayLike]) -> None:
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
@@ -2090,6 +2105,10 @@ class _AsOfMerge(_OrderedMerge):
         right_values = (
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
+
+        # _maybe_require_matching_dtypes already checked for dtype matching
+        assert left_values.dtype == right_values.dtype
+
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
