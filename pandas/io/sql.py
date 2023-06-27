@@ -636,7 +636,7 @@ def read_sql(
 
     >>> from adbc_driver_postgresql import dbapi
     >>> with dbapi.connect('postgres:///db_name') as conn:
-    ...     pd.read_sql('SELECT int_column,
+    ...     pd.read_sql('SELECT int_column FROM test_data',
     ...                 conn,
     ...                 parse_dates={"date_column": {"format": "%d/%m/%y"}})
        int_column
