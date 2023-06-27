@@ -491,7 +491,7 @@ _shared_docs[
 
 _shared_docs[
     "dtype_backend_options"
-] = """dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default NumPy-backed DataFrame
+] = """dtype_backend : {'numpy_nullable', 'pyarrow'}, default NumPy-backed DataFrame
     Back-end data type to use. ``'numpy_nullable'`` denotes NumPy-backed arrays where
     nullable dtypes are used for all data types that have a nullable implementation.
     ``'pyarrow'`` specifies using PyArrow for all data types.
