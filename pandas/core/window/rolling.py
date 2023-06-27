@@ -37,9 +37,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
     is_integer,
-    is_list_like,
     is_numeric_dtype,
-    is_scalar,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.generic import (
@@ -302,14 +300,7 @@ class BaseWindow(SelectionMixin):
         # with the same groupby
         kwargs = {attr: getattr(self, attr) for attr in self._attributes}
 
-        selection = None
-        if subset.ndim == 2 and (
-            (is_scalar(key) and key in subset) or is_list_like(key)
-        ):
-            selection = key
-        elif subset.ndim == 1 and is_scalar(key) and key == subset.name:
-            selection = key
-
+        selection = self._infer_selection(key, subset)
         new_win = type(self)(subset, selection=selection, **kwargs)
         return new_win
 
