@@ -6893,7 +6893,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
     @final
-    def _fillna_with_method(
+    def _pad_or_backfill(
         self,
         method: Literal["ffill", "bfill", "pad", "backfill"],
         *,
@@ -6910,7 +6910,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not self._mgr.is_single_block and axis == 1:
             if inplace:
                 raise NotImplementedError()
-            result = self.T._fillna_with_method(method=method, limit=limit).T
+            result = self.T._pad_or_backfill(method=method, limit=limit).T
 
             return result
 
@@ -7107,8 +7107,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         if value is None:
-            return self._fillna_with_method(
-                # error: Argument 1 to "_fillna_with_method" of "NDFrame" has
+            return self._pad_or_backfill(
+                # error: Argument 1 to "_pad_or_backfill" of "NDFrame" has
                 # incompatible type "Optional[Literal['backfill', 'bfill', 'ffill',
                 # 'pad']]"; expected "Literal['ffill', 'bfill', 'pad', 'backfill']"
                 method,  # type: ignore[arg-type]
@@ -7313,7 +7313,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         self._deprecate_downcast(downcast)
 
-        return self._fillna_with_method(
+        return self._pad_or_backfill(
             "ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
@@ -7445,7 +7445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   4.0    7
         """
         self._deprecate_downcast(downcast)
-        return self._fillna_with_method(
+        return self._pad_or_backfill(
             "bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
         )
 
@@ -8005,22 +8005,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "column to a numeric dtype."
             )
 
-        index = missing.get_interp_index(method, obj.index)
+        if "fill_value" in kwargs:
+            raise ValueError(
+                "'fill_value' is not a valid keyword for "
+                f"{type(self).__name__}.interpolate"
+            )
 
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
+            # TODO: warn/raise on limit_direction or kwargs which are ignored?
+            #  as of 2023-06-26 no tests get here with either
+
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
                 axis=axis,
-                index=index,
                 limit=limit,
-                limit_direction=limit_direction,
                 limit_area=limit_area,
                 inplace=inplace,
                 downcast=downcast,
-                **kwargs,
             )
         else:
+            index = missing.get_interp_index(method, obj.index)
             axis = self._info_axis_number
             new_data = obj._mgr.interpolate(
                 method=method,
@@ -9982,8 +9987,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
         if method is not None:
-            left = left._fillna_with_method(method, axis=fill_axis, limit=limit)
-            right = right._fillna_with_method(method, axis=fill_axis, limit=limit)
+            left = left._pad_or_backfill(method, axis=fill_axis, limit=limit)
+            right = right._pad_or_backfill(method, axis=fill_axis, limit=limit)
 
         return left, right, join_index
 
@@ -10059,8 +10064,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if fill_na:
             fill_value, method = validate_fillna_kwargs(fill_value, method)
             if method is not None:
-                left = left._fillna_with_method(method, limit=limit, axis=fill_axis)
-                right = right._fillna_with_method(method, limit=limit)
+                left = left._pad_or_backfill(method, limit=limit, axis=fill_axis)
+                right = right._pad_or_backfill(method, limit=limit)
             else:
                 left = left.fillna(fill_value, limit=limit, axis=fill_axis)
                 right = right.fillna(fill_value, limit=limit)
@@ -10479,7 +10484,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         periods: int = 1,
         freq=None,
         axis: Axis = 0,
-        fill_value: Hashable = None,
+        fill_value: Hashable = lib.no_default,
     ) -> Self:
         """
         Shift index by desired number of periods with an optional time `freq`.
@@ -10577,6 +10582,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-07    30    33    37
         2020-01-08    45    48    52
         """
+        axis = self._get_axis_number(axis)
+
+        if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
+            raise ValueError(
+                "Cannot pass both 'freq' and 'fill_value' to "
+                f"{type(self).__name__}.shift"
+            )
+
         if periods == 0:
             return self.copy(deep=None)
 
@@ -10590,6 +10604,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 new_data, axes=new_data.axes
             ).__finalize__(self, method="shift")
 
+        return self._shift_with_freq(periods, axis, freq)
+
+    @final
+    def _shift_with_freq(self, periods: int, axis: int, freq) -> Self:
+        # see shift.__doc__
         # when freq is given, index is shifted, data is not
         index = self._get_axis(axis)
 
@@ -11462,7 +11481,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if fill_method is None:
             data = self
         else:
-            data = self._fillna_with_method(fill_method, axis=axis, limit=limit)
+            data = self._pad_or_backfill(fill_method, axis=axis, limit=limit)
 
         shifted = data.shift(periods=periods, freq=freq, axis=axis, **kwargs)
         # Unsupported left operand type for / ("Self")

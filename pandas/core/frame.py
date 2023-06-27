@@ -47,11 +47,7 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import (
-    NoDefault,
-    is_range_indexer,
-    no_default,
-)
+from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
@@ -639,8 +635,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _constructor_from_mgr(self, mgr, axes):
         df = self._from_mgr(mgr, axes=axes)
-        if self._constructor is DataFrame:
-            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
             return df
         else:
             assert axes is mgr.axes
@@ -652,10 +648,12 @@ class DataFrame(NDFrame, OpsMixin):
         return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
-        ser = self._sliced_from_mgr(mgr, axes)
-        ser._name = None  # caller is responsible for pinning "real" name
-        if self._constructor_sliced is Series:
+        ser = self._sliced_from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
             return ser
+        assert axes is mgr.axes
         return self._constructor_sliced(ser, copy=False)
 
     # ----------------------------------------------------------------------
@@ -3141,6 +3139,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         to_string : Convert DataFrame to a string.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> df.to_html()  # doctest: +SKIP
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -5517,45 +5520,41 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
+        if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
+            raise ValueError(
+                "Cannot pass both 'freq' and 'fill_value' to "
+                f"{type(self).__name__}.shift"
+            )
+
         ncols = len(self.columns)
-        if (
-            axis == 1
-            and periods != 0
-            and freq is None
-            and fill_value is lib.no_default
-            and ncols > 0
-        ):
-            # We will infer fill_value to match the closest column
+        arrays = self._mgr.arrays
+        if axis == 1 and periods != 0 and ncols > 0 and freq is None:
+            if fill_value is lib.no_default:
+                # We will infer fill_value to match the closest column
 
-            # Use a column that we know is valid for our column's dtype GH#38434
-            label = self.columns[0]
+                # Use a column that we know is valid for our column's dtype GH#38434
+                label = self.columns[0]
 
-            if periods > 0:
-                result = self.iloc[:, :-periods]
-                for col in range(min(ncols, abs(periods))):
-                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, 0].shift(len(self))
-                    result.insert(0, label, filler, allow_duplicates=True)
-            else:
-                result = self.iloc[:, -periods:]
-                for col in range(min(ncols, abs(periods))):
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, -1].shift(len(self))
-                    result.insert(
-                        len(result.columns), label, filler, allow_duplicates=True
-                    )
+                if periods > 0:
+                    result = self.iloc[:, :-periods]
+                    for col in range(min(ncols, abs(periods))):
+                        # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
+                        # Define filler inside loop so we get a copy
+                        filler = self.iloc[:, 0].shift(len(self))
+                        result.insert(0, label, filler, allow_duplicates=True)
+                else:
+                    result = self.iloc[:, -periods:]
+                    for col in range(min(ncols, abs(periods))):
+                        # Define filler inside loop so we get a copy
+                        filler = self.iloc[:, -1].shift(len(self))
+                        result.insert(
+                            len(result.columns), label, filler, allow_duplicates=True
+                        )
 
-            result.columns = self.columns.copy()
-            return result
-        elif (
-            axis == 1
-            and periods != 0
-            and fill_value is not lib.no_default
-            and ncols > 0
-        ):
-            arrays = self._mgr.arrays
-            if len(arrays) > 1 or (
+                result.columns = self.columns.copy()
+                return result
+            elif len(arrays) > 1 or (
                 # If we only have one block and we know that we can't
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
@@ -5583,6 +5582,8 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 res_df = self._constructor_from_mgr(mgr, axes=mgr.axes)
                 return res_df.__finalize__(self, method="shift")
+            else:
+                return self.T.shift(periods=periods, fill_value=fill_value).T
 
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -6136,8 +6137,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
@@ -6149,8 +6150,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
         ignore_index: bool = ...,
@@ -6161,8 +6162,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        how: AnyAll | NoDefault = no_default,
-        thresh: int | NoDefault = no_default,
+        how: AnyAll | lib.NoDefault = lib.no_default,
+        thresh: int | lib.NoDefault = lib.no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
         ignore_index: bool = False,
@@ -6182,7 +6183,6 @@ class DataFrame(NDFrame, OpsMixin):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            Pass tuple or list to drop on multiple axes.
             Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
@@ -6265,12 +6265,12 @@ class DataFrame(NDFrame, OpsMixin):
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
         """
-        if (how is not no_default) and (thresh is not no_default):
+        if (how is not lib.no_default) and (thresh is not lib.no_default):
             raise TypeError(
                 "You cannot set both the how and thresh arguments at the same time."
             )
 
-        if how is no_default:
+        if how is lib.no_default:
             how = "any"
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -6293,7 +6293,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        if thresh is not no_default:
+        if thresh is not lib.no_default:
             count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
@@ -8663,7 +8663,7 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = no_default,
+        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -8846,7 +8846,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
+    def pivot(
+        self, *, columns, index=lib.no_default, values=lib.no_default
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
