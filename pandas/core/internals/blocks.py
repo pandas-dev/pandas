@@ -575,27 +575,9 @@ class Block(PandasObject):
     # Replace
 
     def _maybe_copy(self, using_cow: bool, inplace: bool) -> Self:
-        if using_cow and (self.refs.has_reference() or not inplace):
-            blk = self.copy()
-        elif using_cow:
-            blk = self.copy(deep=False)
-        else:
-            blk = self if inplace else self.copy()
-        return blk
-
-    def _maybe_copy2(self, using_cow: bool, inplace: bool) -> Self:
-        if using_cow:
-            if inplace:
-                blk = self.copy(deep=self.refs.has_reference())
-            else:
-                blk = self.copy()
-        else:
-            blk = self if inplace else self.copy()
-        return blk
-
-    def _maybe_copy3(self, using_cow: bool, inplace: bool) -> Self:
         if using_cow and inplace:
-            blk = self.copy(deep=self.refs.has_reference())
+            deep = self.refs.has_reference()
+            blk = self.copy(deep=deep)
         else:
             blk = self if inplace else self.copy()
         return blk
@@ -684,7 +666,7 @@ class Block(PandasObject):
         elif self._can_hold_element(value):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
-            blk = self._maybe_copy2(using_cow, inplace)
+            blk = self._maybe_copy(using_cow, inplace)
             putmask_inplace(blk.values, mask, value)
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
@@ -784,7 +766,7 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            blk = self._maybe_copy3(using_cow, inplace)
+            blk = self._maybe_copy(using_cow, inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
