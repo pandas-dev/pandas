@@ -850,8 +850,8 @@ def pandasSQL_builder(
     if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
         return SQLDatabase(con, schema, need_transaction)
 
-    adbc = import_optional_dependency("adbc_driver_manager", errors="ignore")
-    if adbc and isinstance(con, adbc.dbapi.Connection):
+    adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+    if adbc and isinstance(con, adbc.Connection):
         return ADBCDatabase(con)
 
     warnings.warn(
