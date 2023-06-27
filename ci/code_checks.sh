@@ -105,9 +105,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.read_clipboard \
-        pandas.ExcelFile \
-        pandas.ExcelFile.parse \
         pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
         pandas.HDFStore.put \

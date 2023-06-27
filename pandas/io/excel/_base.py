@@ -1474,6 +1474,10 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    Examples
+    --------
+    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1582,6 +1586,13 @@ class ExcelFile:
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
+        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
             sheet_name=sheet_name,
