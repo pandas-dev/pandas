@@ -876,19 +876,11 @@ class TestReaders:
             pd.read_excel(bad_stream)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1.xlsx"
-        ),
-        check_before_test=True,
-    )
-    def test_read_from_http_url(self, read_ext):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1" + read_ext
-        )
-        url_table = pd.read_excel(url)
+    @pytest.mark.single_cpu
+    def test_read_from_http_url(self, httpserver, read_ext):
+        with open("test1" + read_ext, "rb") as f:
+            httpserver.serve_content(content=f.read())
+        url_table = pd.read_excel(httpserver.url)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 

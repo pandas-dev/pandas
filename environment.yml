@@ -17,6 +17,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-asyncio>=0.17.0
+  - pytest-localserver>=0.7.1
   - coverage
 
   # required dependencies

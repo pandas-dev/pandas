@@ -483,6 +483,7 @@ filterwarnings = [
   "ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
   "ignore:tostring:DeprecationWarning:tables",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
