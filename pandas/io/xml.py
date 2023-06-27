@@ -1128,9 +1128,10 @@ def read_xml(
     check_dtype_backend(dtype_backend)
 
     if (
-        isinstance(path_or_buffer, str)
-        and not is_file_like(path_or_buffer)
-        and "\n" in path_or_buffer
+        not is_file_like(path_or_buffer)
+        and not file_exists(path_or_buffer)
+        and not is_url(path_or_buffer)
+        and not is_fsspec_url(path_or_buffer)
     ):
         warnings.warn(
             "Passing literal xml to 'read_xml' is deprecated and "
