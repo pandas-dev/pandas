@@ -1204,6 +1204,8 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
+            if isinstance(freq, BaseOffset):
+                freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
 
             if freq is None:
                 raise ValueError(
@@ -1217,8 +1219,6 @@ default 'raise'
                 res = freq
 
             freq = res
-
-            freq = freq_to_period_freqstr(1, freq)
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     # -----------------------------------------------------------------

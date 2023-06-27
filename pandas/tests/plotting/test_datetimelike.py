@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_offset_freqstr
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -1499,9 +1498,9 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
                 assert ax.freq == dfreq
 
         if freq is not None:
-            ax.freq = freq_to_offset_freqstr(1, ax.freq)
+            ax_freq = to_offset(ax.freq, is_period=True)
         if freq is not None and orig_axfreq is None:
-            assert ax.freq == freq
+            assert ax_freq == freq
 
         ax = fig.add_subplot(212)
         kwargs["ax"] = ax

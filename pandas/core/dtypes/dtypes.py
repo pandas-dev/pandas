@@ -42,7 +42,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
-    freq_to_period_freqstr,
 )
 from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
@@ -1037,7 +1036,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     @property
     def name(self) -> str_type:
-        return "".join(["period[", freq_to_period_freqstr(1, self._freqstr), "]"])
+        return f"period[{self._freqstr}]"
 
     @property
     def na_value(self) -> NaTType:
