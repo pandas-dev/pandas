@@ -7994,6 +7994,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
+        limit_direction = missing.infer_limit_direction(limit_direction, method)
+
         if obj.ndim == 2 and np.all(obj.dtypes == np.dtype("object")):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
@@ -8021,7 +8023,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            limit_direction = missing.infer_limit_direction(limit_direction, method)
             index = missing.get_interp_index(method, obj.index)
             axis = self._info_axis_number
             new_data = obj._mgr.interpolate(
