@@ -561,6 +561,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
             "datetime": pd.array(
                 [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
             ),
+            "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
             "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }

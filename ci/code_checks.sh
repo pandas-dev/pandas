@@ -105,28 +105,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.SparseDtype \
-        pandas.DatetimeTZDtype.unit \
-        pandas.DatetimeTZDtype.tz \
-        pandas.PeriodDtype.freq \
-        pandas.IntervalDtype.subtype \
-        pandas_dtype \
-        pandas.api.types.is_bool \
-        pandas.api.types.is_complex \
-        pandas.api.types.is_float \
-        pandas.api.types.is_integer \
-        pandas.api.types.pandas_dtype \
         pandas.read_clipboard \
         pandas.ExcelFile \
         pandas.ExcelFile.parse \
-        pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.put \
-        pandas.HDFStore.append \
-        pandas.HDFStore.get \
-        pandas.HDFStore.select \
-        pandas.HDFStore.info \
-        pandas.HDFStore.keys \
         pandas.HDFStore.groups \
         pandas.HDFStore.walk \
         pandas.read_feather \
