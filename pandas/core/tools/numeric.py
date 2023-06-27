@@ -8,6 +8,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -30,6 +31,7 @@ from pandas.core.dtypes.generic import (
 
 from pandas.core.arrays import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.shared_docs import _shared_docs
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -38,7 +40,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
@@ -88,13 +90,7 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

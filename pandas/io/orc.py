@@ -12,6 +12,7 @@ from typing import (
 from pandas._libs import lib
 from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
@@ -23,6 +24,7 @@ from pandas.core.dtypes.dtypes import (
 
 import pandas as pd
 from pandas.core.indexes.api import default_index
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     get_handle,
@@ -40,6 +42,7 @@ if TYPE_CHECKING:
     from pandas.core.frame import DataFrame
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
@@ -63,13 +66,7 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

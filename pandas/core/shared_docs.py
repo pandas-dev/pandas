@@ -490,6 +490,15 @@ _shared_docs[
         Added support for `.tar` files."""
 
 _shared_docs[
+    "dtype_backend_options"
+] = """dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default NumPy-backed DataFrame
+    Back-end data type to use. ``'numpy_nullable'`` denotes NumPy-backed arrays where
+    nullable dtypes are used for all data types that have a nullable implementation.
+    ``'pyarrow'`` specifies using PyArrow for all data types.
+
+    These back-ends are still experimental."""
+
+_shared_docs[
     "replace"
 ] = """
     Replace values given in `to_replace` with `value`.

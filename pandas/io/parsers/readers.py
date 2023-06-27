@@ -414,14 +414,7 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
     .. versionadded:: 1.2
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, defaults to NumPy backed DataFrame
-    Back-end data type to use for the :class:`~pandas.DataFrame`. For
-    ``'numpy_nullable'``, have NumPy arrays, nullable ``dtypes`` are used for all
-    ``dtypes`` that have a
-    nullable implementation when ``'numpy_nullable'`` is set, pyarrow is used for all
-    dtypes if ``'pyarrow'`` is set.
-
-    The ``dtype_backends`` are still experimental.
+{dtype_backend_options}
 
     .. versionadded:: 2.0
 
@@ -849,6 +842,7 @@ def read_csv(
         see_also_func_name="read_table",
         see_also_func_summary="Read general delimited file into DataFrame.",
         _default_sep="','",
+        dtype_backend_options=_shared_docs["dtype_backend_options"],
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
@@ -1182,6 +1176,7 @@ def read_table(
             "Read a comma-separated values (csv) file into DataFrame."
         ),
         _default_sep=r"'\\t' (tab-stop)",
+        dtype_backend_options=_shared_docs["dtype_backend_options"],
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
@@ -1317,13 +1312,7 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

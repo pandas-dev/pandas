@@ -7,9 +7,11 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.inference import is_list_like
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import stringify_path
 
@@ -21,6 +23,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_spss(
     path: str | Path,
     usecols: Sequence[str] | None = None,
@@ -38,13 +41,7 @@ def read_spss(
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True
         Convert categorical columns into pd.Categorical.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

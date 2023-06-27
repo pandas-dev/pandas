@@ -40,6 +40,7 @@ from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
 )
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -59,6 +60,7 @@ from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.internals.construction import convert_object_array
+from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
@@ -256,6 +258,7 @@ def read_sql_table(
     ...
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_sql_table(
     table_name: str,
     con,
@@ -302,13 +305,7 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 
@@ -387,6 +384,7 @@ def read_sql_query(
     ...
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_sql_query(
     sql,
     con,
@@ -440,13 +438,7 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 
@@ -515,6 +507,7 @@ def read_sql(
     ...
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_sql(
     sql,
     con,
@@ -573,13 +566,7 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -1586,6 +1573,7 @@ class SQLDatabase(PandasSQL):
             return self.con.exec_driver_sql(sql, *args)
         return self.con.execute(sql, *args)
 
+    @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
     def read_table(
         self,
         table_name: str,
@@ -1628,13 +1616,7 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
-            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable dtypes are used for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
-
-            The dtype_backends are still experimential.
+        {dtype_backend_options}
 
             .. versionadded:: 2.0
 

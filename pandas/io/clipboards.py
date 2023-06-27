@@ -6,10 +6,12 @@ from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs import lib
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
+from pandas.core.shared_docs import _shared_docs
 
 from pandas import (
     get_option,
@@ -19,7 +21,7 @@ from pandas import (
 if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
 
-
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_clipboard(
     sep: str = r"\s+",
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -37,13 +39,7 @@ def read_clipboard(
         A string or regex delimiter. The default of ``'\\s+'`` denotes
         one or more whitespace characters.
 
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g., whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when ``'numpy_nullable'`` is set, pyarrow is used for all
-        dtypes if ``'pyarrow'`` is set.
-
-        The dtype_backends are still experimental.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

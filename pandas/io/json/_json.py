@@ -496,6 +496,7 @@ def read_json(
 
 
 @doc(
+    dtype_backend_options=_shared_docs["dtype_backend_options"],
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
 )
@@ -660,13 +661,7 @@ def read_json(
 
         .. versionadded:: 1.2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

@@ -24,6 +24,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
+from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -32,6 +33,7 @@ from pandas import isna
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     file_exists,
@@ -990,7 +992,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
             continue
     return ret
 
-
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
@@ -1110,13 +1112,7 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
-
-        The dtype_backends are still experimential.
+    {dtype_backend_options}
 
         .. versionadded:: 2.0
 

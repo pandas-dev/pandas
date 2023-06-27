@@ -279,13 +279,7 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable dtypes are used for all dtypes that have a nullable
-    implementation when "numpy_nullable" is set, pyarrow is used for all
-    dtypes if "pyarrow" is set.
-
-    The dtype_backends are still experimential.
+{dtype_backend_options}
 
     .. versionadded:: 2.0
 
@@ -445,7 +439,10 @@ def read_excel(
     ...
 
 
-@doc(storage_options=_shared_docs["storage_options"])
+@doc(
+    storage_options=_shared_docs["storage_options"],
+    dtype_backend_options=_shared_docs["dtype_backend_options"],
+)
 @Appender(_read_excel_doc)
 def read_excel(
     io,
