@@ -575,12 +575,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return Series
 
     def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is Series:
-            # we are pandas.Series (or a subclass that doesn't override _constructor)
-            return self._from_mgr(mgr, axes=axes)
+        ser = self._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is Series:
+            # fastpath avoiding constructor call
+            return ser
         else:
             assert axes is mgr.axes
-            return self._constructor(mgr)
+            return self._constructor(ser, copy=False)
 
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
@@ -599,15 +601,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  once downstream packages (geopandas) have had a chance to implement
         #  their own overrides.
         # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
-        return self._constructor_expanddim._from_mgr(  # type: ignore[attr-defined]
-            mgr, axes=mgr.axes
-        )
+        from pandas import DataFrame
+
+        return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        if self._constructor is Series:
-            return self._expanddim_from_mgr(mgr, axes)
+        df = self._expanddim_from_mgr(mgr, axes)
+        if type(self) is Series:
+            # fastpath avoiding constructor
+            return df
         assert axes is mgr.axes
-        return self._constructor_expanddim(mgr)
+        return self._constructor_expanddim(df, copy=False)
 
     # types
     @property

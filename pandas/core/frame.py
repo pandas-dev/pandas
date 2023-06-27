@@ -634,12 +634,14 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is DataFrame:
-            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return self._from_mgr(mgr, axes=axes)
+        df = self._from_mgr(mgr, axes=axes)
+
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
+            return df
         else:
             assert axes is mgr.axes
-            return self._constructor(mgr)
+            return self._constructor(df, copy=False)
 
     _constructor_sliced: Callable[..., Series] = Series
 
@@ -647,10 +649,13 @@ class DataFrame(NDFrame, OpsMixin):
         return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
-        if self._constructor_sliced is Series:
-            return self._sliced_from_mgr(mgr, axes)
+        ser = self._sliced_from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
+            return ser
         assert axes is mgr.axes
-        return self._constructor_sliced(mgr)
+        return self._constructor_sliced(ser, copy=False)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -11765,12 +11770,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 return result.reshape(x.shape)
 
-            res_values = self._mgr.apply(isin_)
-            result = self._constructor(
-                res_values,
-                self.index,
-                self.columns,
-                copy=False,
+            res_mgr = self._mgr.apply(isin_)
+            result = self._constructor_from_mgr(
+                res_mgr,
+                axes=res_mgr.axes,
             )
         return result.__finalize__(self, method="isin")
 

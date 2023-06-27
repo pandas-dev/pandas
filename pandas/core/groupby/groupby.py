@@ -1519,11 +1519,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         aggregator = executor.generate_shared_aggregator(
             func, dtype_mapping, **get_jit_arguments(engine_kwargs)
         )
-        result = sorted_df._mgr.apply(
+        res_mgr = sorted_df._mgr.apply(
             aggregator, start=starts, end=ends, **aggregator_kwargs
         )
-        result.axes[1] = self.grouper.result_index
-        result = df._constructor(result)
+        res_mgr.axes[1] = self.grouper.result_index
+        result = df._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
 
         if data.ndim == 1:
             result = result.squeeze("columns")
