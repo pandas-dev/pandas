@@ -378,12 +378,6 @@ class BaseBlockManager(DataManager):
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
 
-    def shift(self, periods: int, fill_value) -> Self:
-        if fill_value is lib.no_default:
-            fill_value = None
-
-        return self.apply("shift", periods=periods, fill_value=fill_value)
-
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
             if using_copy_on_write():
