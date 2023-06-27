@@ -1892,7 +1892,9 @@ class TimeGrouper(Grouper):
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
@@ -2023,8 +2025,10 @@ class TimeGrouper(Grouper):
 
         freq = self.freq
 
-        if not len(ax):
-            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
+        if len(ax) == 0:
+            binner = labels = PeriodIndex(
+                data=[], freq=freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
@@ -2125,9 +2129,7 @@ def _take_new_index(
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
-        # error: Incompatible return value type
-        # (got "DataFrame", expected "NDFrameT")
-        return obj._constructor(new_mgr)  # type: ignore[return-value]
+        return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
 

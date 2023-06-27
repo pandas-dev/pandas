@@ -147,7 +147,9 @@ class NamedAgg(NamedTuple):
 
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        return self.obj._constructor(mgr, name=self.obj.name)
+        out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self.obj.name
+        return out
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
@@ -829,7 +831,12 @@ class SeriesGroupBy(GroupBy[Series]):
 
             right = [diff.cumsum() - 1, codes[-1]]
 
-            _, idx = get_join_indexers(left, right, sort=False, how="left")
+            # error: Argument 1 to "get_join_indexers" has incompatible type
+            # "List[ndarray[Any, Any]]"; expected "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]
+            _, idx = get_join_indexers(
+                left, right, sort=False, how="left"  # type: ignore[arg-type]
+            )
             out = np.where(idx != -1, out[idx], 0)
 
             if sort:
@@ -914,6 +921,27 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         ffill : Forward fill values within a group.
         bfill : Backward fill values within a group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['cat', 'cat', 'cat', 'mouse', 'mouse']
+        >>> ser = pd.Series([1, None, None, 2, None], index=lst)
+        >>> ser
+        cat    1.0
+        cat    NaN
+        cat    NaN
+        mouse  2.0
+        mouse  NaN
+        dtype: float64
+        >>> ser.groupby(level=0).fillna(0, limit=1)
+        cat    1.0
+        cat    0.0
+        cat    NaN
+        mouse  2.0
+        mouse  0.0
+        dtype: float64
         """
         result = self._op_via_apply(
             "fillna",
@@ -1656,7 +1684,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func)
         res_mgr.set_axis(1, mgr.axes[1])
 
-        res_df = self.obj._constructor(res_mgr)
+        res_df = self.obj._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
         res_df = self._maybe_transpose_result(res_df)
         return res_df
 
@@ -1967,7 +1995,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
-        return self.obj._constructor(mgr)
+        return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
     def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
