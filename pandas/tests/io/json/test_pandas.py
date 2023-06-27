@@ -998,10 +998,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
-    @tm.network(
-        url="https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5",
-        check_before_test=True,
-    )
+    @pytest.mark.single_cpu
     @pytest.mark.parametrize(
         "field,dtype",
         [
@@ -1010,9 +1007,10 @@ class TestPandasContainer:
             ["updated_at", pd.DatetimeTZDtype(tz="UTC")],
         ],
     )
-    def test_url(self, field, dtype):
-        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"
-        result = read_json(url, convert_dates=True)
+    def test_url(self, field, dtype, httpserver):
+        data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
+        httpserver.serve_content(content=data)
+        result = read_json(httpserver.url, convert_dates=True)
         assert result[field].dtype == dtype
 
     def test_timedelta(self):
