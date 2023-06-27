@@ -1478,6 +1478,8 @@ class ExcelFile:
     Examples
     --------
     >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
+    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
     from pandas.io.excel._odfreader import ODFReader
