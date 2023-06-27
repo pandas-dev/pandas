@@ -147,7 +147,9 @@ class NamedAgg(NamedTuple):
 
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        return self.obj._constructor(mgr, name=self.obj.name)
+        out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self.obj.name
+        return out
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
@@ -1682,7 +1684,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func)
         res_mgr.set_axis(1, mgr.axes[1])
 
-        res_df = self.obj._constructor(res_mgr)
+        res_df = self.obj._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
         res_df = self._maybe_transpose_result(res_df)
         return res_df
 
@@ -1993,7 +1995,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
-        return self.obj._constructor(mgr)
+        return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
     def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat

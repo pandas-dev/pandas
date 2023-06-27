@@ -29,7 +29,6 @@ from pandas._libs.lib import is_range_indexer
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
-    DtypeObj,
     IndexLabel,
     JoinHow,
     MergeHow,
@@ -48,7 +47,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
-    ensure_float64,
     ensure_int64,
     ensure_object,
     is_bool,
@@ -145,10 +143,79 @@ def merge(
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
-    op = _MergeOperation(
+    if how == "cross":
+        return _cross_merge(
+            left,
+            right,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            indicator=indicator,
+            validate=validate,
+            copy=copy,
+        )
+    else:
+        op = _MergeOperation(
+            left,
+            right,
+            how=how,
+            on=on,
+            left_on=left_on,
+            right_on=right_on,
+            left_index=left_index,
+            right_index=right_index,
+            sort=sort,
+            suffixes=suffixes,
+            indicator=indicator,
+            validate=validate,
+        )
+        return op.get_result(copy=copy)
+
+
+def _cross_merge(
+    left: DataFrame | Series,
+    right: DataFrame | Series,
+    on: IndexLabel | None = None,
+    left_on: IndexLabel | None = None,
+    right_on: IndexLabel | None = None,
+    left_index: bool = False,
+    right_index: bool = False,
+    sort: bool = False,
+    suffixes: Suffixes = ("_x", "_y"),
+    copy: bool | None = None,
+    indicator: str | bool = False,
+    validate: str | None = None,
+) -> DataFrame:
+    """
+    See merge.__doc__ with how='cross'
+    """
+
+    if (
+        left_index
+        or right_index
+        or right_on is not None
+        or left_on is not None
+        or on is not None
+    ):
+        raise MergeError(
+            "Can not pass on, right_on, left_on or set right_index=True or "
+            "left_index=True"
+        )
+
+    cross_col = f"_cross_{uuid.uuid4()}"
+    left = left.assign(**{cross_col: 1})
+    right = right.assign(**{cross_col: 1})
+
+    left_on = right_on = [cross_col]
+
+    res = merge(
         left,
         right,
-        how=how,
+        how="inner",
         on=on,
         left_on=left_on,
         right_on=right_on,
@@ -158,8 +225,10 @@ def merge(
         suffixes=suffixes,
         indicator=indicator,
         validate=validate,
+        copy=copy,
     )
-    return op.get_result(copy=copy)
+    del res[cross_col]
+    return res
 
 
 def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
@@ -706,17 +775,6 @@ class _MergeOperation:
 
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
-        cross_col = None
-        if self.how == "cross":
-            (
-                self.left,
-                self.right,
-                self.how,
-                cross_col,
-            ) = self._create_cross_configuration(self.left, self.right)
-            self.left_on = self.right_on = [cross_col]
-        self._cross = cross_col
-
         (
             self.left_join_keys,
             self.right_join_keys,
@@ -786,7 +844,7 @@ class _MergeOperation:
                 allow_dups=True,
                 use_na_proxy=True,
             )
-            left = left._constructor(lmgr)
+            left = left._constructor_from_mgr(lmgr, axes=lmgr.axes)
         left.index = join_index
 
         if right_indexer is not None and not is_range_indexer(
@@ -801,7 +859,7 @@ class _MergeOperation:
                 allow_dups=True,
                 use_na_proxy=True,
             )
-            right = right._constructor(rmgr)
+            right = right._constructor_from_mgr(rmgr, axes=rmgr.axes)
         right.index = join_index
 
         from pandas import concat
@@ -829,16 +887,7 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        self._maybe_drop_cross_column(result, self._cross)
-
         return result.__finalize__(self, method="merge")
-
-    @final
-    def _maybe_drop_cross_column(
-        self, result: DataFrame, cross_col: str | None
-    ) -> None:
-        if cross_col is not None:
-            del result[cross_col]
 
     @final
     @cache_readonly
@@ -1448,53 +1497,12 @@ class _MergeOperation:
                 self.right = self.right.copy()
                 self.right[name] = self.right[name].astype(typ)
 
-    @final
-    def _create_cross_configuration(
-        self, left: DataFrame, right: DataFrame
-    ) -> tuple[DataFrame, DataFrame, JoinHow, str]:
-        """
-        Creates the configuration to dispatch the cross operation to inner join,
-        e.g. adding a join column and resetting parameters. Join column is added
-        to a new object, no inplace modification
-
-        Parameters
-        ----------
-        left : DataFrame
-        right : DataFrame
-
-        Returns
-        -------
-            a tuple (left, right, how, cross_col) representing the adjusted
-            DataFrames with cross_col, the merge operation set to inner and the column
-            to join over.
-        """
-        cross_col = f"_cross_{uuid.uuid4()}"
-        how: JoinHow = "inner"
-        return (
-            left.assign(**{cross_col: 1}),
-            right.assign(**{cross_col: 1}),
-            how,
-            cross_col,
-        )
-
     def _validate_left_right_on(self, left_on, right_on):
         left_on = com.maybe_make_list(left_on)
         right_on = com.maybe_make_list(right_on)
 
-        if self.how == "cross":
-            if (
-                self.left_index
-                or self.right_index
-                or right_on is not None
-                or left_on is not None
-                or self.on is not None
-            ):
-                raise MergeError(
-                    "Can not pass on, right_on, left_on or set right_index=True or "
-                    "left_index=True"
-                )
         # Hm, any way to make this logic less complicated??
-        elif self.on is None and left_on is None and right_on is None:
+        if self.on is None and left_on is None and right_on is None:
             if self.left_index and self.right_index:
                 left_on, right_on = (), ()
             elif self.left_index:
@@ -1562,7 +1570,7 @@ class _MergeOperation:
                         'of levels in the index of "left"'
                     )
                 left_on = [None] * n
-        if self.how != "cross" and len(right_on) != len(left_on):
+        if len(right_on) != len(left_on):
             raise ValueError("len(right_on) must equal len(left_on)")
 
         return left_on, right_on
@@ -1850,23 +1858,6 @@ def _asof_by_function(direction: str):
     return getattr(libjoin, name, None)
 
 
-_type_casters = {
-    "int64_t": ensure_int64,
-    "double": ensure_float64,
-    "object": ensure_object,
-}
-
-
-def _get_cython_type_upcast(dtype: DtypeObj) -> str:
-    """Upcast a dtype to 'int64_t', 'double', or 'object'"""
-    if is_integer_dtype(dtype):
-        return "int64_t"
-    elif is_float_dtype(dtype):
-        return "double"
-    else:
-        return "object"
-
-
 class _AsOfMerge(_OrderedMerge):
     _merge_type = "asof_merge"
 
@@ -2001,11 +1992,10 @@ class _AsOfMerge(_OrderedMerge):
     ) -> None:
         # TODO: why do we do this for AsOfMerge but not the others?
 
-        # validate index types are the same
-        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
-            if lk.dtype != rk.dtype:
-                if isinstance(lk.dtype, CategoricalDtype) and isinstance(
-                    rk.dtype, CategoricalDtype
+        def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int):
+            if left.dtype != right.dtype:
+                if isinstance(left.dtype, CategoricalDtype) and isinstance(
+                    right.dtype, CategoricalDtype
                 ):
                     # The generic error message is confusing for categoricals.
                     #
@@ -2016,15 +2006,31 @@ class _AsOfMerge(_OrderedMerge):
                     # later with a ValueError, so we don't *need* to check
                     # for them here.
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, both sides category, but not equal ones"
+                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                        f"{repr(right.dtype)}, both sides category, but not equal ones"
                     )
                 else:
                     msg = (
-                        f"incompatible merge keys [{i}] {repr(lk.dtype)} and "
-                        f"{repr(rk.dtype)}, must be the same type"
+                        f"incompatible merge keys [{i}] {repr(left.dtype)} and "
+                        f"{repr(right.dtype)}, must be the same type"
                     )
                 raise MergeError(msg)
+
+        # validate index types are the same
+        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
+            _check_dtype_match(lk, rk, i)
+
+        if self.left_index:
+            lt = self.left.index._values
+        else:
+            lt = left_join_keys[-1]
+
+        if self.right_index:
+            rt = self.right.index._values
+        else:
+            rt = right_join_keys[-1]
+
+        _check_dtype_match(lt, rt, 0)
 
     def _validate_tolerance(self, left_join_keys: list[ArrayLike]) -> None:
         # validate tolerance; datetime.timedelta or Timedelta if we have a DTI
@@ -2099,6 +2105,10 @@ class _AsOfMerge(_OrderedMerge):
         right_values = (
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
+
+        # _maybe_require_matching_dtypes already checked for dtype matching
+        assert left_values.dtype == right_values.dtype
+
         tolerance = self.tolerance
 
         # we require sortedness and non-null values in the join keys
@@ -2166,23 +2176,28 @@ class _AsOfMerge(_OrderedMerge):
             if len(left_by_values) == 1:
                 lbv = left_by_values[0]
                 rbv = right_by_values[0]
+
+                # TODO: conversions for EAs that can be no-copy.
+                lbv = np.asarray(lbv)
+                rbv = np.asarray(rbv)
             else:
                 # We get here with non-ndarrays in test_merge_by_col_tz_aware
                 #  and test_merge_groupby_multiple_column_with_categorical_column
                 lbv = flip(left_by_values)
                 rbv = flip(right_by_values)
+                lbv = ensure_object(lbv)
+                rbv = ensure_object(rbv)
 
-            # upcast 'by' parameter because HashTable is limited
-            by_type = _get_cython_type_upcast(lbv.dtype)
-            by_type_caster = _type_casters[by_type]
             # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[generic]]", variable has type
-            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
-            left_by_values = by_type_caster(lbv)  # type: ignore[assignment]
+            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
+            # variable has type "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]")
+            right_by_values = rbv  # type: ignore[assignment]
             # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[generic]]", variable has type
-            # "List[Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]]")
-            right_by_values = by_type_caster(rbv)  # type: ignore[assignment]
+            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
+            # variable has type "List[Union[Union[ExtensionArray,
+            # ndarray[Any, Any]], Index, Series]]")
+            left_by_values = lbv  # type: ignore[assignment]
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
