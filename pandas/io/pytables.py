@@ -669,9 +669,9 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
         >>> store.put('data', df)  # doctest: +SKIP
         >>> store.get('data')  # doctest: +SKIP
-        >>> store.close()  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
+        >>> store.close()  # doctest: +SKIP
         """
         if include == "pandas":
             return [n._v_pathname for n in self.groups()]
@@ -860,7 +860,6 @@ class HDFStore:
         >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
         >>> store.put('data', df)  # doctest: +SKIP
         >>> store.get('data')  # doctest: +SKIP
-        >>> store.close()  # doctest: +SKIP
         >>> print(store.keys())  # doctest: +SKIP
         ['/data1', '/data2']
         >>> store.select('/data1')  # doctest: +SKIP
