@@ -320,7 +320,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_mgr: Manager
         new_mgr = mgr_to_mgr(self._mgr, typ=typ, copy=copy)
         # fastpath of passing a manager doesn't check the option/manager class
-        return self._constructor(new_mgr).__finalize__(self)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     @classmethod
     def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
@@ -6920,7 +6920,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             inplace=inplace,
             downcast=downcast,
         )
-        result = self._constructor(new_mgr)
+        result = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -10576,9 +10576,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if freq is None:
             # when freq is None, data is shifted, index is not
             axis = self._get_axis_number(axis)
-            new_data = self._mgr.shift(
-                periods=periods, axis=axis, fill_value=fill_value
-            )
+            assert axis == 0  # axis == 1 cases handled in DataFrame.shift
+            new_data = self._mgr.shift(periods=periods, fill_value=fill_value)
             return self._constructor_from_mgr(
                 new_data, axes=new_data.axes
             ).__finalize__(self, method="shift")
