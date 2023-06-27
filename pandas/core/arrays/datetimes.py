@@ -1204,7 +1204,7 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
-            if isinstance(freq, BaseOffset):
+            if isinstance(self.freq, BaseOffset):
                 freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
 
             if freq is None:

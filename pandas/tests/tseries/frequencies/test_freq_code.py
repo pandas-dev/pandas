@@ -27,7 +27,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     [
         ("A", "year"),
         ("Q", "quarter"),
-        ("ME", "month"),
+        ("M", "month"),
         ("D", "day"),
         ("H", "hour"),
         ("T", "minute"),
