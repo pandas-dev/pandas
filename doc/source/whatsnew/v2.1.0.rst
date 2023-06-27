@@ -495,6 +495,7 @@ Reshaping
 - Bug in :func:`crosstab` when ``dropna=False`` would not keep ``np.nan`` in the result (:issue:`10772`)
 - Bug in :func:`merge_asof` raising ``KeyError`` for extension dtypes (:issue:`52904`)
 - Bug in :func:`merge_asof` raising ``ValueError`` for data backed by read-only ndarrays (:issue:`53513`)
+- Bug in :func:`merge_asof` with ``left_index=True`` or ``right_index=True`` with mismatched index dtypes giving incorrect results in some cases instead of raising ``MergeError`` (:issue:`53870`)
 - Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)
 - Bug in :meth:`DataFrame.combine_first` ignoring other's columns if ``other`` is empty (:issue:`53792`)
 - Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax`, where the axis dtype would be lost for empty frames (:issue:`53265`)
@@ -503,6 +504,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` sorting columns lexicographically (:issue:`53786`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+-
 
 Sparse
 ^^^^^^
