@@ -1509,6 +1509,7 @@ class ExcelFile:
 
         # First argument can also be bytes, so create a buffer
         if isinstance(path_or_buffer, bytes):
+            path_or_buffer = BytesIO(path_or_buffer)
             warnings.warn(
                 "Passing bytes to 'read_excel' is deprecated and "
                 "will be removed in a future version. To read from a "
