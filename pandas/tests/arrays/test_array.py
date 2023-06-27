@@ -30,7 +30,7 @@ from pandas.tests.extension.decimal import (
 
 
 def test_dt64_array():
-    # PR 53439
+    # PR 53817
     dtype_unit_lst = ["M8[h]", "M8[m]", "m8[h]", "M8[m]"]
 
     for unit in dtype_unit_lst:
