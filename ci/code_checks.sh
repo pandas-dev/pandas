@@ -108,14 +108,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_clipboard \
         pandas.ExcelFile \
         pandas.ExcelFile.parse \
-        pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.put \
-        pandas.HDFStore.append \
-        pandas.HDFStore.get \
-        pandas.HDFStore.select \
-        pandas.HDFStore.info \
-        pandas.HDFStore.keys \
         pandas.HDFStore.groups \
         pandas.HDFStore.walk \
         pandas.read_feather \
