@@ -47,11 +47,7 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import (
-    NoDefault,
-    is_range_indexer,
-    no_default,
-)
+from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
@@ -637,7 +633,29 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor(self) -> Callable[..., DataFrame]:
         return DataFrame
 
+    def _constructor_from_mgr(self, mgr, axes):
+        df = self._from_mgr(mgr, axes=axes)
+
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
+            return df
+        else:
+            assert axes is mgr.axes
+            return self._constructor(df, copy=False)
+
     _constructor_sliced: Callable[..., Series] = Series
+
+    def _sliced_from_mgr(self, mgr, axes) -> Series:
+        return Series._from_mgr(mgr, axes)
+
+    def _constructor_sliced_from_mgr(self, mgr, axes):
+        ser = self._sliced_from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is DataFrame:
+            # fastpath avoiding constructor call
+            return ser
+        assert axes is mgr.axes
+        return self._constructor_sliced(ser, copy=False)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -673,9 +691,9 @@ class DataFrame(NDFrame, OpsMixin):
         manager = get_option("mode.data_manager")
 
         # GH47215
-        if index is not None and isinstance(index, set):
+        if isinstance(index, set):
             raise ValueError("index cannot be a set")
-        if columns is not None and isinstance(columns, set):
+        if isinstance(columns, set):
             raise ValueError("columns cannot be a set")
 
         if copy is None:
@@ -2981,6 +2999,7 @@ class DataFrame(NDFrame, OpsMixin):
         1     2     3
 
         If you want to get a buffer to the orc content you can write it to io.BytesIO
+
         >>> import io
         >>> b = io.BytesIO(df.to_orc())  # doctest: +SKIP
         >>> b.seek(0)  # doctest: +SKIP
@@ -3109,6 +3128,11 @@ class DataFrame(NDFrame, OpsMixin):
         See Also
         --------
         to_string : Convert DataFrame to a string.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> df.to_html()  # doctest: +SKIP
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -3667,9 +3691,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # if we are a copy, mark as such
             copy = isinstance(new_mgr.array, np.ndarray) and new_mgr.array.base is None
-            result = self._constructor_sliced(new_mgr, name=self.index[i]).__finalize__(
-                self
-            )
+            result = self._constructor_sliced_from_mgr(new_mgr, axes=new_mgr.axes)
+            result._name = self.index[i]
+            result = result.__finalize__(self)
             result._set_is_copy(self, copy=copy)
             return result
 
@@ -3722,7 +3746,7 @@ class DataFrame(NDFrame, OpsMixin):
             copy=False,
             only_slice=True,
         )
-        return self._constructor(new_mgr)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
 
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
@@ -4258,9 +4282,10 @@ class DataFrame(NDFrame, OpsMixin):
         # Lookup in columns so that if e.g. a str datetime was passed
         #  we attach the Timestamp object as the name.
         name = self.columns[loc]
-        klass = self._constructor_sliced
         # We get index=self.index bc values is a SingleDataManager
-        return klass(values, name=name, fastpath=True).__finalize__(self)
+        obj = self._constructor_sliced_from_mgr(values, axes=values.axes)
+        obj._name = name
+        return obj.__finalize__(self)
 
     # ----------------------------------------------------------------------
     # Lookup Caching
@@ -4734,7 +4759,7 @@ class DataFrame(NDFrame, OpsMixin):
             return True
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=None)
-        return type(self)(mgr).__finalize__(self)
+        return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
     def insert(
         self,
@@ -5482,45 +5507,41 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
 
+        if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
+            raise ValueError(
+                "Cannot pass both 'freq' and 'fill_value' to "
+                f"{type(self).__name__}.shift"
+            )
+
         ncols = len(self.columns)
-        if (
-            axis == 1
-            and periods != 0
-            and freq is None
-            and fill_value is lib.no_default
-            and ncols > 0
-        ):
-            # We will infer fill_value to match the closest column
+        arrays = self._mgr.arrays
+        if axis == 1 and periods != 0 and ncols > 0 and freq is None:
+            if fill_value is lib.no_default:
+                # We will infer fill_value to match the closest column
 
-            # Use a column that we know is valid for our column's dtype GH#38434
-            label = self.columns[0]
+                # Use a column that we know is valid for our column's dtype GH#38434
+                label = self.columns[0]
 
-            if periods > 0:
-                result = self.iloc[:, :-periods]
-                for col in range(min(ncols, abs(periods))):
-                    # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, 0].shift(len(self))
-                    result.insert(0, label, filler, allow_duplicates=True)
-            else:
-                result = self.iloc[:, -periods:]
-                for col in range(min(ncols, abs(periods))):
-                    # Define filler inside loop so we get a copy
-                    filler = self.iloc[:, -1].shift(len(self))
-                    result.insert(
-                        len(result.columns), label, filler, allow_duplicates=True
-                    )
+                if periods > 0:
+                    result = self.iloc[:, :-periods]
+                    for col in range(min(ncols, abs(periods))):
+                        # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
+                        # Define filler inside loop so we get a copy
+                        filler = self.iloc[:, 0].shift(len(self))
+                        result.insert(0, label, filler, allow_duplicates=True)
+                else:
+                    result = self.iloc[:, -periods:]
+                    for col in range(min(ncols, abs(periods))):
+                        # Define filler inside loop so we get a copy
+                        filler = self.iloc[:, -1].shift(len(self))
+                        result.insert(
+                            len(result.columns), label, filler, allow_duplicates=True
+                        )
 
-            result.columns = self.columns.copy()
-            return result
-        elif (
-            axis == 1
-            and periods != 0
-            and fill_value is not lib.no_default
-            and ncols > 0
-        ):
-            arrays = self._mgr.arrays
-            if len(arrays) > 1 or (
+                result.columns = self.columns.copy()
+                return result
+            elif len(arrays) > 1 or (
                 # If we only have one block and we know that we can't
                 #  keep the same dtype (i.e. the _can_hold_element check)
                 #  then we can go through the reindex_indexer path
@@ -5546,8 +5567,10 @@ class DataFrame(NDFrame, OpsMixin):
                     fill_value=fill_value,
                     allow_dups=True,
                 )
-                res_df = self._constructor(mgr)
+                res_df = self._constructor_from_mgr(mgr, axes=mgr.axes)
                 return res_df.__finalize__(self, method="shift")
+            else:
+                return self.T.shift(periods=periods, fill_value=fill_value).T
 
         return super().shift(
             periods=periods, freq=freq, axis=axis, fill_value=fill_value
@@ -6074,7 +6097,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isna(self) -> DataFrame:
-        result = self._constructor(self._mgr.isna(func=isna))
+        res_mgr = self._mgr.isna(func=isna)
+        result = self._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
         return result.__finalize__(self, method="isna")
 
     @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
@@ -6100,8 +6124,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
@@ -6113,8 +6137,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
         ignore_index: bool = ...,
@@ -6125,8 +6149,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        how: AnyAll | NoDefault = no_default,
-        thresh: int | NoDefault = no_default,
+        how: AnyAll | lib.NoDefault = lib.no_default,
+        thresh: int | lib.NoDefault = lib.no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
         ignore_index: bool = False,
@@ -6146,7 +6170,6 @@ class DataFrame(NDFrame, OpsMixin):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            Pass tuple or list to drop on multiple axes.
             Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
@@ -6229,12 +6252,12 @@ class DataFrame(NDFrame, OpsMixin):
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
         """
-        if (how is not no_default) and (thresh is not no_default):
+        if (how is not lib.no_default) and (thresh is not lib.no_default):
             raise TypeError(
                 "You cannot set both the how and thresh arguments at the same time."
             )
 
-        if how is no_default:
+        if how is lib.no_default:
             how = "any"
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -6257,7 +6280,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        if thresh is not no_default:
+        if thresh is not lib.no_default:
             count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
@@ -6786,7 +6809,7 @@ class DataFrame(NDFrame, OpsMixin):
                 self._get_block_manager_axis(axis), default_index(len(indexer))
             )
 
-        result = self._constructor(new_data)
+        result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
             return self._update_inplace(result)
         else:
@@ -7480,7 +7503,7 @@ class DataFrame(NDFrame, OpsMixin):
         if not is_list_like(right):
             # i.e. scalar, faster than checking np.ndim(right) == 0
             bm = self._mgr.apply(array_op, right=right)
-            return self._constructor(bm)
+            return self._constructor_from_mgr(bm, axes=bm.axes)
 
         elif isinstance(right, DataFrame):
             assert self.index.equals(right.index)
@@ -7500,7 +7523,7 @@ class DataFrame(NDFrame, OpsMixin):
                 right._mgr,  # type: ignore[arg-type]
                 array_op,
             )
-            return self._constructor(bm)
+            return self._constructor_from_mgr(bm, axes=bm.axes)
 
         elif isinstance(right, Series) and axis == 1:
             # axis=1 means we want to operate row-by-row
@@ -8343,7 +8366,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             return expressions.where(mask, y_values, x_values)
 
-        combined = self.combine(other, combiner, overwrite=False)
+        if len(other) == 0:
+            combined = self.reindex(
+                self.columns.append(other.columns.difference(self.columns)), axis=1
+            )
+            combined = combined.astype(other.dtypes)
+        else:
+            combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
@@ -8621,7 +8650,7 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = no_default,
+        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -8804,7 +8833,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
+    def pivot(
+        self, *, columns, index=lib.no_default, values=lib.no_default
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
@@ -9101,11 +9132,11 @@ class DataFrame(NDFrame, OpsMixin):
         cat    1.0    2.0
         dog    3.0    4.0
         >>> df_multi_level_cols2.stack()
-                height  weight
-        cat kg     NaN     1.0
-            m      2.0     NaN
-        dog kg     NaN     3.0
-            m      4.0     NaN
+                weight  height
+        cat kg     1.0     NaN
+            m      NaN     2.0
+        dog kg     3.0     NaN
+            m      NaN     4.0
 
         **Prescribing the level(s) to be stacked**
 
@@ -9140,16 +9171,16 @@ class DataFrame(NDFrame, OpsMixin):
         cat    NaN    1.0
         dog    2.0    3.0
         >>> df_multi_level_cols3.stack(dropna=False)
-                height  weight
+                weight  height
         cat kg     NaN     NaN
-            m      1.0     NaN
-        dog kg     NaN     2.0
-            m      3.0     NaN
+            m      NaN     1.0
+        dog kg     2.0     NaN
+            m      NaN     3.0
         >>> df_multi_level_cols3.stack(dropna=True)
-                height  weight
-        cat m      1.0     NaN
-        dog kg     NaN     2.0
-            m      3.0     NaN
+                weight  height
+        cat m      NaN     1.0
+        dog kg     2.0     NaN
+            m      NaN     3.0
         """
         from pandas.core.reshape.reshape import (
             stack,
@@ -9472,8 +9503,9 @@ class DataFrame(NDFrame, OpsMixin):
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
 
-        new_data = self._mgr.diff(n=periods, axis=axis)
-        return self._constructor(new_data).__finalize__(self, "diff")
+        new_data = self._mgr.diff(n=periods)
+        res_df = self._constructor_from_mgr(new_data, axes=new_data.axes)
+        return res_df.__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
@@ -10329,12 +10361,13 @@ class DataFrame(NDFrame, OpsMixin):
             # Dispatch to Block.round
             # Argument "decimals" to "round" of "BaseBlockManager" has incompatible
             # type "Union[int, integer[Any]]"; expected "int"
-            return self._constructor(
-                self._mgr.round(
-                    decimals=decimals,  # type: ignore[arg-type]
-                    using_cow=using_copy_on_write(),
-                ),
-            ).__finalize__(self, method="round")
+            new_mgr = self._mgr.round(
+                decimals=decimals,  # type: ignore[arg-type]
+                using_cow=using_copy_on_write(),
+            )
+            return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
+                self, method="round"
+            )
         else:
             raise TypeError("decimals must be an integer, a dict-like or a Series")
 
@@ -10886,7 +10919,7 @@ class DataFrame(NDFrame, OpsMixin):
         # After possibly _get_data and transposing, we are now in the
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
-        out = df._constructor(res).iloc[0]
+        out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
         if out_dtype is not None:
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any():
@@ -11500,7 +11533,7 @@ class DataFrame(NDFrame, OpsMixin):
             res = data._mgr.take(indexer[q_idx], verify=False)
             res.axes[1] = q
 
-        result = self._constructor(res)
+        result = self._constructor_from_mgr(res, axes=res.axes)
         return result.__finalize__(self, method="quantile")
 
     def to_timestamp(
@@ -11737,12 +11770,10 @@ class DataFrame(NDFrame, OpsMixin):
                 )
                 return result.reshape(x.shape)
 
-            res_values = self._mgr.apply(isin_)
-            result = self._constructor(
-                res_values,
-                self.index,
-                self.columns,
-                copy=False,
+            res_mgr = self._mgr.apply(isin_)
+            result = self._constructor_from_mgr(
+                res_mgr,
+                axes=res_mgr.axes,
             )
         return result.__finalize__(self, method="isin")
 
@@ -11828,7 +11859,7 @@ class DataFrame(NDFrame, OpsMixin):
         mgr = mgr_to_mgr(mgr, "block")
         mgr = cast(BlockManager, mgr)
         return {
-            k: self._constructor(v).__finalize__(self)
+            k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
             for k, v, in mgr.to_dict(copy=copy).items()
         }
 

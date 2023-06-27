@@ -528,7 +528,7 @@ def _unstack_frame(
 
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
-        return obj._constructor(mgr)
+        return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
             obj._values, value_columns=obj.columns, fill_value=fill_value
@@ -827,6 +827,11 @@ def _stack_multi_columns(
     )
 
     result = frame._constructor(new_data, index=new_index, columns=new_columns)
+
+    if frame.columns.nlevels > 1:
+        desired_columns = frame.columns._drop_level_numbers([level_num]).unique()
+        if not result.columns.equals(desired_columns):
+            result = result[desired_columns]
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...
