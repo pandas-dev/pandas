@@ -302,60 +302,7 @@ def get_interp_index(method, index: Index) -> Index:
     return index
 
 
-def interpolate_array_2d(
-    data: np.ndarray,
-    method: str = "pad",
-    axis: AxisInt = 0,
-    index: Index | None = None,
-    limit: int | None = None,
-    limit_direction: str = "forward",
-    limit_area: str | None = None,
-    fill_value: Any | None = None,
-    **kwargs,
-) -> None:
-    """
-    Wrapper to dispatch to either interpolate_2d or _interpolate_2d_with_fill.
-
-    Notes
-    -----
-    Alters 'data' in-place.
-    """
-    try:
-        m = clean_fill_method(method)
-    except ValueError:
-        m = None
-
-    if m is not None:
-        if fill_value is not None:
-            # similar to validate_fillna_kwargs
-            raise ValueError("Cannot pass both fill_value and method")
-
-        interpolate_2d(
-            data,
-            method=m,
-            axis=axis,
-            limit=limit,
-            # error: Argument "limit_area" to "interpolate_2d" has incompatible
-            # type "Optional[str]"; expected "Optional[Literal['inside', 'outside']]"
-            limit_area=limit_area,  # type: ignore[arg-type]
-        )
-    else:
-        assert index is not None  # for mypy
-
-        _interpolate_2d_with_fill(
-            data=data,
-            index=index,
-            axis=axis,
-            method=method,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
-            fill_value=fill_value,
-            **kwargs,
-        )
-
-
-def _interpolate_2d_with_fill(
+def interpolate_2d_inplace(
     data: np.ndarray,  # floating dtype
     index: Index,
     axis: AxisInt,
@@ -845,7 +792,7 @@ def _interpolate_with_limit_area(
         if last is None:
             last = len(values)
 
-        interpolate_2d(
+        pad_or_backfill_inplace(
             values,
             method=method,
             limit=limit,
@@ -861,7 +808,7 @@ def _interpolate_with_limit_area(
         values[invalid] = np.nan
 
 
-def interpolate_2d(
+def pad_or_backfill_inplace(
     values: np.ndarray,
     method: Literal["pad", "backfill"] = "pad",
     axis: AxisInt = 0,

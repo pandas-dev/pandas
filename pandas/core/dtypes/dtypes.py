@@ -697,16 +697,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     Raises
     ------
-    pytz.UnknownTimeZoneError
+    ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
     Examples
     --------
-    >>> pd.DatetimeTZDtype(tz='UTC')
+    >>> from zoneinfo import ZoneInfo
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('UTC'))
     datetime64[ns, UTC]
 
-    >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
-    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('Europe/Paris'))
+    datetime64[ns, Europe/Paris]
     """
 
     type: type[Timestamp] = Timestamp
@@ -772,6 +773,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def unit(self) -> str_type:
         """
         The precision of the datetime data.
+
+        Examples
+        --------
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype.unit
+        'ns'
         """
         return self._unit
 
@@ -779,6 +787,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Examples
+        --------
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype.tz
+        zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
         return self._tz
 
@@ -967,6 +982,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def freq(self):
         """
         The frequency object of this PeriodDtype.
+
+        Examples
+        --------
+        >>> dtype = pd.PeriodDtype(freq='D')
+        >>> dtype.freq
+        <Day>
         """
         return self._freq
 
@@ -1217,6 +1238,12 @@ class IntervalDtype(PandasExtensionDtype):
     def subtype(self):
         """
         The dtype of the Interval bounds.
+
+        Examples
+        --------
+        >>> dtype = pd.IntervalDtype(subtype='int64', closed='both')
+        >>> dtype.subtype
+        dtype('int64')
         """
         return self._subtype
 
@@ -1565,6 +1592,17 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> ser = pd.Series([1, 0, 0], dtype=pd.SparseDtype(dtype=int, fill_value=0))
+    >>> ser
+    0    1
+    1    0
+    2    0
+    dtype: Sparse[int64, 0]
+    >>> ser.sparse.density
+    0.3333333333333333
     """
 
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
