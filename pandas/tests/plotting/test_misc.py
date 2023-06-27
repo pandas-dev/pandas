@@ -117,12 +117,21 @@ class TestDataFramePlots:
                 ax=ax,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
-
         # GH 5662
         expected = ["-2", "0", "2"]
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("pass_axis", [False, True])
+    def test_scatter_matrix_axis_smaller(self, pass_axis):
+        scatter_matrix = plotting.scatter_matrix
+
+        ax = None
+        if pass_axis:
+            _, ax = mpl.pyplot.subplots(3, 3)
+
+        df = DataFrame(np.random.RandomState(42).randn(100, 3))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -218,9 +227,36 @@ class TestDataFramePlots:
         _check_colors(handles, linecolors=colors)
 
     @pytest.mark.slow
-    def test_parallel_coordinates(self, iris):
+    @pytest.mark.parametrize(
+        "color",
+        [("#556270", "#4ECDC4", "#C7F464"), ["dodgerblue", "aquamarine", "seagreen"]],
+    )
+    def test_parallel_coordinates_colors(self, iris, color):
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
+
+        ax = _check_plot_works(
+            parallel_coordinates, frame=df, class_column="Name", color=color
+        )
+        _check_colors(ax.get_lines()[:10], linecolors=color, mapping=df["Name"][:10])
+
+    @pytest.mark.slow
+    def test_parallel_coordinates_cmap(self, iris):
         from matplotlib import cm
 
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
+
+        ax = _check_plot_works(
+            parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
+        )
+        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
+        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
+
+    @pytest.mark.slow
+    def test_parallel_coordinates_line_diff(self, iris):
         from pandas.plotting import parallel_coordinates
 
         df = iris
@@ -229,33 +265,20 @@ class TestDataFramePlots:
         nlines = len(ax.get_lines())
         nxticks = len(ax.xaxis.get_ticklabels())
 
-        rgba = ("#556270", "#4ECDC4", "#C7F464")
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=rgba
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=rgba, mapping=df["Name"][:10])
-
-        cnames = ["dodgerblue", "aquamarine", "seagreen"]
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=cnames
-        )
-        _check_colors(ax.get_lines()[:10], linecolors=cnames, mapping=df["Name"][:10])
-
-        ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", colormap=cm.jet
-        )
-        cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
-        _check_colors(ax.get_lines()[:10], linecolors=cmaps, mapping=df["Name"][:10])
-
         ax = _check_plot_works(
             parallel_coordinates, frame=df, class_column="Name", axvlines=False
         )
         assert len(ax.get_lines()) == (nlines - nxticks)
 
+    @pytest.mark.slow
+    def test_parallel_coordinates_handles(self, iris):
+        from pandas.plotting import parallel_coordinates
+
+        df = iris
         colors = ["b", "g", "r"]
         df = DataFrame({"A": [1, 2, 3], "B": [1, 2, 3], "C": [1, 2, 3], "Name": colors})
         ax = parallel_coordinates(df, "Name", color=colors)
-        handles, labels = ax.get_legend_handles_labels()
+        handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, linecolors=colors)
 
     # not sure if this is indicative of a problem
@@ -285,9 +308,7 @@ class TestDataFramePlots:
             # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
-    def test_radviz(self, iris):
-        from matplotlib import cm
-
+    def test_radviz_no_warning(self, iris):
         from pandas.plotting import radviz
 
         df = iris
@@ -295,28 +316,39 @@ class TestDataFramePlots:
         with tm.assert_produces_warning(None):
             _check_plot_works(radviz, frame=df, class_column="Name")
 
-        rgba = ("#556270", "#4ECDC4", "#C7F464")
-        ax = _check_plot_works(radviz, frame=df, class_column="Name", color=rgba)
+    @pytest.mark.parametrize(
+        "color",
+        [("#556270", "#4ECDC4", "#C7F464"), ["dodgerblue", "aquamarine", "seagreen"]],
+    )
+    def test_radviz_color(self, iris, color):
+        from pandas.plotting import radviz
+
+        df = iris
+        ax = _check_plot_works(radviz, frame=df, class_column="Name", color=color)
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
-        _check_colors(patches[:10], facecolors=rgba, mapping=df["Name"][:10])
+        _check_colors(patches[:10], facecolors=color, mapping=df["Name"][:10])
 
-        cnames = ["dodgerblue", "aquamarine", "seagreen"]
-        _check_plot_works(radviz, frame=df, class_column="Name", color=cnames)
-        patches = [p for p in ax.patches[:20] if p.get_label() != ""]
-        _check_colors(patches, facecolors=cnames, mapping=df["Name"][:10])
+    def test_radviz_color_cmap(self, iris):
+        from matplotlib import cm
 
-        _check_plot_works(radviz, frame=df, class_column="Name", colormap=cm.jet)
+        from pandas.plotting import radviz
+
+        df = iris
+        ax = _check_plot_works(radviz, frame=df, class_column="Name", colormap=cm.jet)
         cmaps = [cm.jet(n) for n in np.linspace(0, 1, df["Name"].nunique())]
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
         _check_colors(patches, facecolors=cmaps, mapping=df["Name"][:10])
+
+    def test_radviz_colors_handles(self):
+        from pandas.plotting import radviz
 
         colors = [[0.0, 0.0, 1.0, 1.0], [0.0, 0.5, 1.0, 1.0], [1.0, 0.0, 0.0, 1.0]]
         df = DataFrame(
             {"A": [1, 2, 3], "B": [2, 1, 3], "C": [3, 2, 1], "Name": ["b", "g", "r"]}
         )
         ax = radviz(df, "Name", color=colors)
-        handles, labels = ax.get_legend_handles_labels()
+        handles, _ = ax.get_legend_handles_labels()
         _check_colors(handles, facecolors=colors)
 
     def test_subplot_titles(self, iris):
@@ -328,6 +360,10 @@ class TestDataFramePlots:
         plot = df.plot(subplots=True, title=title)
         assert [p.get_title() for p in plot] == title
 
+    def test_subplot_titles_too_much(self, iris):
+        df = iris.drop("Name", axis=1).head()
+        # Use the column names as the subplot titles
+        title = list(df.columns)
         # Case len(title) > len(df)
         msg = (
             "The length of `title` must equal the number of columns if "
@@ -336,10 +372,22 @@ class TestDataFramePlots:
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, title=title + ["kittens > puppies"])
 
+    def test_subplot_titles_too_little(self, iris):
+        df = iris.drop("Name", axis=1).head()
+        # Use the column names as the subplot titles
+        title = list(df.columns)
+        msg = (
+            "The length of `title` must equal the number of columns if "
+            "using `title` of type `list` and `subplots=True`"
+        )
         # Case len(title) < len(df)
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=True, title=title[:2])
 
+    def test_subplot_titles_subplots_false(self, iris):
+        df = iris.drop("Name", axis=1).head()
+        # Use the column names as the subplot titles
+        title = list(df.columns)
         # Case subplots=False and title is of type list
         msg = (
             "Using `title` of type `list` is not supported unless "
@@ -348,6 +396,10 @@ class TestDataFramePlots:
         with pytest.raises(ValueError, match=msg):
             df.plot(subplots=False, title=title)
 
+    def test_subplot_titles_numeric_square_layout(self, iris):
+        df = iris.drop("Name", axis=1).head()
+        # Use the column names as the subplot titles
+        title = list(df.columns)
         # Case df with 3 numeric columns but layout of (2,2)
         plot = df.drop("SepalWidth", axis=1).plot(
             subplots=True, layout=(2, 2), title=title[:-1]
@@ -366,6 +418,8 @@ class TestDataFramePlots:
         rand2 = np.random.random()
         assert rand1 != rand2
 
+    def test_get_standard_colors_consistency(self):
+        # GH17525
         # Make sure it produces the same colors every time it's called
         from pandas.plotting._matplotlib.style import get_standard_colors
 
@@ -419,7 +473,8 @@ class TestDataFramePlots:
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
         assert p.patches[1].get_facecolor() == p.patches[17].get_facecolor()
 
-    def test_dictionary_color(self):
+    @pytest.mark.parametrize("kind", ["bar", "line"])
+    def test_dictionary_color(self, kind):
         # issue-8193
         # Test plot color dictionary format
         data_files = ["a", "b"]
@@ -429,14 +484,11 @@ class TestDataFramePlots:
         df1 = DataFrame(np.random.rand(2, 2), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
-        # Bar color test
-        ax = df1.plot(kind="bar", color=dic_color)
-        colors = [rect.get_facecolor()[0:-1] for rect in ax.get_children()[0:3:2]]
-        assert all(color == expected[index] for index, color in enumerate(colors))
-
-        # Line color test
-        ax = df1.plot(kind="line", color=dic_color)
-        colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
+        ax = df1.plot(kind=kind, color=dic_color)
+        if kind == "bar":
+            colors = [rect.get_facecolor()[0:-1] for rect in ax.get_children()[0:3:2]]
+        else:
+            colors = [rect.get_color() for rect in ax.get_lines()[0:2]]
         assert all(color == expected[index] for index, color in enumerate(colors))
 
     def test_bar_plot(self):
