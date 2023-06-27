@@ -572,8 +572,9 @@ class Block(PandasObject):
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim, refs=refs)
 
     # ---------------------------------------------------------------------
-    # Replace
+    # Copy-on-Write Helpers
 
+    @final
     def _maybe_copy(self, using_cow: bool, inplace: bool) -> Self:
         if using_cow and inplace:
             deep = self.refs.has_reference()
@@ -582,6 +583,7 @@ class Block(PandasObject):
             blk = self if inplace else self.copy()
         return blk
 
+    @final
     def _get_values_and_refs(self, using_cow, inplace):
         if using_cow:
             if inplace and not self.refs.has_reference():
@@ -595,6 +597,7 @@ class Block(PandasObject):
             new_values = self.values if inplace else self.values.copy()
         return new_values, refs
 
+    @final
     def _get_refs_and_copy(self, using_cow: bool, inplace: bool):
         refs = None
         arr_inplace = inplace
@@ -605,15 +608,8 @@ class Block(PandasObject):
                 refs = self.refs
         return arr_inplace, refs
 
-    def _get_refs_and_copy2(self, using_cow: bool, inplace: bool):
-        refs = None
-        arr_inplace = inplace
-        if using_cow:
-            if inplace and not self.refs.has_reference():
-                refs = self.refs
-            else:
-                arr_inplace = False
-        return arr_inplace, refs
+    # ---------------------------------------------------------------------
+    # Replace
 
     @final
     def replace(
@@ -893,18 +889,13 @@ class Block(PandasObject):
             if value is None:
                 # gh-45601, gh-45836, gh-46634
                 if mask.any():
-                    if self.dtype == _dtype_obj:
-                        nb = self
-                        if not inplace:
-                            nb = nb.copy()
-                        elif inplace and self.refs.has_reference():
-                            nb = nb.copy()
-                    else:
-                        nb = self.astype(
-                            np.dtype(object), copy=False, using_cow=using_cow
-                        )
-                        if using_cow and not inplace:
-                            nb = nb.copy()  # This looks like a double-copy
+                    has_ref = self.refs.has_reference()
+                    nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
+                    if (nb is self or using_cow) and not inplace:
+                        nb = nb.copy()
+                    elif inplace and has_ref and nb.refs.has_reference():
+                        # no copy in astype and we had refs before
+                        nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
@@ -2298,7 +2289,7 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
         # "Literal['linear']")  [comparison-overlap]
         if method == "linear":  # type: ignore[comparison-overlap]
             # TODO: GH#50950 implement for arbitrary EAs
-            arr_inplace, refs = self._get_refs_and_copy2(using_cow, inplace)
+            arr_inplace, refs = self._get_refs_and_copy(using_cow, inplace)
 
             new_values = self.values.interpolate(
                 method=method,
