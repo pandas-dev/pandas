@@ -79,7 +79,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a pandas DataFrame.
+Read an Excel file into a ``pandas`` ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -101,29 +101,29 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify None to get all worksheets.
+    Specify ``None`` to get all worksheets.
 
     Available cases:
 
-    * Defaults to ``0``: 1st sheet as a `DataFrame`
-    * ``1``: 2nd sheet as a `DataFrame`
+    * Defaults to ``0``: 1st sheet as a ``DataFrame``
+    * ``1``: 2nd sheet as a ``DataFrame``
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
-      as a dict of `DataFrame`
-    * None: All worksheets.
+      as a dict of ``DataFrame``
+    * ``None``: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
-    DataFrame. If a list of integers is passed those row positions will
-    be combined into a ``MultiIndex``. Use None if there is no header.
+    ``DataFrame``. If a list of integers is passed those row positions will
+    be combined into a ``MultiIndex``. Use ``None`` if there is no header.
 names : array-like, default None
     List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None.
+    then you should explicitly pass ``header=None``.
 index_col : int, str, list of int, default None
-    Column (0-indexed) to use as the row labels of the DataFrame.
+    Column (0-indexed) to use as the row labels of the ``DataFrame``.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
-    subset of data is selected with ``usecols``, index_col
+    subset of data is selected with ``usecols``, ``index_col``
     is based on the subset.
 
     Missing values will be forward filled to allow roundtripping with
@@ -131,31 +131,31 @@ index_col : int, str, list of int, default None
     missing values use ``set_index`` after reading the data instead of
     ``index_col``.
 usecols : str, list-like, or callable, default None
-    * If None, then parse all columns.
-    * If str, then indicates comma separated list of Excel column letters
+    * If ``None``, then parse all columns.
+    * If ``str``, then indicates comma separated list of Excel column letters
       and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
       both sides.
-    * If list of int, then indicates list of column numbers to be parsed
+    * If list of ``int``, then indicates list of column numbers to be parsed
       (0-indexed).
-    * If list of string, then indicates list of column names to be parsed.
+    * If list of ``str``, then indicates list of column names to be parsed.
     * If callable, then evaluate each column name against it and parse the
       column if the callable returns ``True``.
 
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
+    Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
-    of dtype conversion.
+    of ``dtype`` conversion.
 engine : str, default None
-    If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
+    If ``io`` is not a buffer or path, this must be set to identify ``io``.
+    Supported engines: ``"xlrd"``, ``"openpyxl"``, ``"odf"``, ``"pyxlsb"``.
     Engine compatibility :
 
-    - "xlrd" supports old-style Excel files (.xls).
-    - "openpyxl" supports newer Excel file formats.
-    - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
-    - "pyxlsb" supports Binary Excel files.
+    - ``"xlrd"`` supports old-style Excel files (.xls).
+    - ``"openpyxl"`` supports newer Excel file formats.
+    - ``"odf"`` supports OpenDocument file formats (.odf, .ods, .odt).
+    - ``"pyxlsb"`` supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
@@ -181,70 +181,70 @@ converters : dict, default None
     input argument, the Excel cell content, and return the transformed
     content.
 true_values : list, default None
-    Values to consider as True.
+    Values to consider as ``True``.
 false_values : list, default None
-    Values to consider as False.
+    Values to consider as ``False``.
 skiprows : list-like, int, or callable, optional
-    Line numbers to skip (0-indexed) or number of lines to skip (int) at the
+    Line numbers to skip (0-indexed) or number of lines to skip (``int``) at the
     start of the file. If callable, the callable function will be evaluated
-    against the row indices, returning True if the row should be skipped and
+    against the row indices, returning ``True`` if the row should be skipped and
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
     Number of rows to parse.
 na_values : scalar, str, list-like, or dict, default None
-    Additional strings to recognize as NA/NaN. If dict passed, specific
+    Additional strings to recognize as NA/NaN. If ``dict`` passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '"""
     + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """'.
 keep_default_na : bool, default True
-    Whether or not to include the default NaN values when parsing the data.
-    Depending on whether `na_values` is passed in, the behavior is as follows:
+    Whether or not to include the default ``NaN`` values when parsing the data.
+    Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
-      is appended to the default NaN values used for parsing.
-    * If `keep_default_na` is True, and `na_values` are not specified, only
-      the default NaN values are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are specified, only
-      the NaN values specified `na_values` are used for parsing.
-    * If `keep_default_na` is False, and `na_values` are not specified, no
-      strings will be parsed as NaN.
+    * If ``keep_default_na=True``, and ``na_values`` are specified, ``na_values``
+      is appended to the default ``NaN`` values used for parsing.
+    * If ``keep_default_na=True``, and ``na_values`` are not specified, only
+      the default ``NaN`` values are used for parsing.
+    * If ``keep_default_na=False``, and ``na_values`` are specified, only
+      the ``NaN`` values specified ``na_values`` are used for parsing.
+    * If ``keep_default_na=False``, and ``na_values`` are not specified, no
+      strings will be parsed as ``NaN``.
 
-    Note that if `na_filter` is passed in as False, the `keep_default_na` and
-    `na_values` parameters will be ignored.
+    Note that if ``na_filter=False``, the ``keep_default_na`` and
+    ``na_values`` parameters will be ignored.
 na_filter : bool, default True
-    Detect missing value markers (empty strings and the value of na_values). In
-    data without any NAs, passing na_filter=False can improve the performance
+    Detect missing value markers (empty strings and the value of ``na_values``). In
+    data without any NAs, ``passing na_filter=False`` can improve the performance
     of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
 parse_dates : bool, list-like, or dict, default False
     The behavior is as follows:
 
-    * bool. If True -> try parsing the index.
-    * list of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
+    * ``bool``. If True -> try parsing the index.
+    * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * list of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
+    * ``list`` of lists. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse as
       a single date column.
-    * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
-      result 'foo'
+    * ``dict``, e.g. ``{'foo' : [1, 3]}`` -> parse columns 1, 3 as date and call
+      result ``'foo'``
 
     If a column or index contains an unparsable date, the entire column or
     index will be returned unaltered as an object data type. If you don`t want to
-    parse some cells as date just change their type in Excel to "Text".
-    For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+    parse some cells as date, just change their type in Excel to "Text".
+    For non-standard ``datetime`` parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
     Function to use for converting a sequence of string columns to an array of
-    datetime instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. Pandas will try to call `date_parser` in three different ways,
+    ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
+    conversion. Pandas will try to call ``date_parser`` in three different ways,
     advancing to the next if an exception occurs: 1) Pass one or more arrays
-    (as defined by `parse_dates`) as arguments; 2) concatenate (row-wise) the
-    string values from the columns defined by `parse_dates` into a single array
-    and pass that; and 3) call `date_parser` once for each row using one or
-    more strings (corresponding to the columns defined by `parse_dates`) as
+    (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
+    string values from the columns defined by ``parse_dates`` into a single array
+    and pass that; and 3) call ``date_parser`` once for each row using one or
+    more strings (corresponding to the columns defined by ``parse_dates``) as
     arguments.
 
     .. deprecated:: 2.0.0
@@ -279,13 +279,13 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable dtypes are used for all dtypes that have a nullable
-    implementation when "numpy_nullable" is set, pyarrow is used for all
-    dtypes if "pyarrow" is set.
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to ``numpy`` backed ``DataFrames``
+    Which ``dtype_backend`` to use, e.g. whether a ``DataFrame`` should have ``numpy``
+    arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a nullable
+    implementation when ``"numpy_nullable"`` is set, ``pyarrow`` is used for all
+    dtypes if ``"pyarrow"`` is set.
 
-    The dtype_backends are still experimential.
+    The ``dtype_backends`` are still experimential.
 
     .. versionadded:: 2.0
 
@@ -295,15 +295,15 @@ engine_kwargs : dict, optional
 Returns
 -------
 DataFrame or dict of DataFrames
-    DataFrame from the passed in Excel file. See notes in sheet_name
-    argument for more information on when a dict of DataFrames is returned.
+    ``DataFrame`` from the passed in Excel file. See notes in ``sheet_name``
+    argument for more information on when a ``dict`` of ``DataFrames`` is returned.
 
 See Also
 --------
-DataFrame.to_excel : Write DataFrame to an Excel file.
-DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
-read_csv : Read a comma-separated values (csv) file into DataFrame.
-read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+DataFrame.to_excel : Write ``DataFrame`` to an Excel file.
+DataFrame.to_csv : Write ``DataFrame`` to a comma-separated values (csv) file.
+read_csv : Read a comma-separated values (csv) file into ``DataFrame``.
+read_fwf : Read a table of fixed-width formatted lines into ``DataFrame``.
 
 Notes
 -----
@@ -327,7 +327,7 @@ The file can be read using the file name as string or an open file object:
 1           1   string2      2
 2           2  #Comment      3
 
-Index and header can be specified via the `index_col` and `header` arguments
+Index and header can be specified via the ``index_col`` and ``header`` arguments
 
 >>> pd.read_excel('tmp.xlsx', index_col=None, header=None)  # doctest: +SKIP
      0         1      2
@@ -345,7 +345,7 @@ Column types are inferred but can be explicitly specified
 1   string2    2.0
 2  #Comment    3.0
 
-True, False, and NA values, and thousands separators have defaults,
+``True``, ``False``, ``NaN`` values, and thousands of separators have defaults,
 but can be explicitly specified, too. Supply the values you would like
 as strings or lists of strings!
 
@@ -356,7 +356,7 @@ as strings or lists of strings!
 1       NaN      2
 2  #Comment      3
 
-Comment lines in the excel input file can be skipped using the `comment` kwarg
+Comment lines in the excel input file can be skipped using the ``comment`` ``kwarg``
 
 >>> pd.read_excel('tmp.xlsx', index_col=0, comment='#')  # doctest: +SKIP
       Name  Value
