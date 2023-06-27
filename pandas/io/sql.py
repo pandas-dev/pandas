@@ -635,10 +635,8 @@ def read_sql(
        pandas now supports reading via ADBC drivers
 
     >>> from adbc_driver_postgresql import dbapi
-    >>> with dbapi.connect('postgres:///db_name') as conn:
-    ...     pd.read_sql('SELECT int_column FROM test_data',
-    ...                 conn,
-    ...                 parse_dates={"date_column": {"format": "%d/%m/%y"}})
+    >>> with dbapi.connect('postgres:///db_name') as conn:  # doctest:+SKIP
+    ...     pd.read_sql('SELECT int_column FROM test_data', conn)
        int_column
     0           0
     1           1
