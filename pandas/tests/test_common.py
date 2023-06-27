@@ -250,10 +250,11 @@ def test_str_size():
 def test_bz2_missing_import():
     # Check whether bz2 missing import is handled correctly (issue #53857)
     code = (
+        "import sys\n"
+        "assert 'bz2' in sys.modules\n"
+        "sys.modules['bz2'] = None\n"
         "import pytest\n"
-        "sys.modules.pop('bz2', None)\n"
-        "import pandas\n"
-        "assert 'bz2' not in sys.modules\n"
+        "import pandas as pd\n"
         "from pandas.compat import get_bz2_file\n"
         "msg = 'bz2 module not available.'\n"
         "with pytest.raises(RuntimeError, match=msg):\n"
