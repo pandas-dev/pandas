@@ -11502,7 +11502,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
         if method == "single":
-            res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
+            res = data._mgr.quantile(qs=q, interpolation=interpolation)
         elif method == "table":
             valid_interpolation = {"nearest", "lower", "higher"}
             if interpolation not in valid_interpolation:
