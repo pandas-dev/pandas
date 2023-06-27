@@ -920,7 +920,7 @@ def test_asfreq_resample_frequency_M_deprecated(series_and_frame):
     tm.assert_almost_equal(result, expected)
 
 
-def test_resample_frequency_M_deprecated():
+def test_resample_from_period_deprecated():
     depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
@@ -928,6 +928,15 @@ def test_resample_frequency_M_deprecated():
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
         result = s.resample("2M").mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_from_offset_deprecated():
+    freq = "2ME"
+    msg = f"Invalid frequency: {freq}"
+
+    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    with pytest.raises(ValueError, match=msg):
+        s.to_period().resample(freq)
 
 
 def test_asfreq_frequency_M_deprecated():

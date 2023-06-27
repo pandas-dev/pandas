@@ -46,7 +46,7 @@ cdef class PeriodDtypeBase:
         abbrev = _reverse_period_code_map[freq_group.value].split("-")[0]
         if abbrev == "B":
             return Resolution.RESO_DAY
-        abbrev = PERIOD_TO_OFFSET_FREQSTR.get(abbrev, abbrev)
+        abbrev = freq_to_offset_freqstr(1, abbrev)
         attrname = _abbrev_to_attrnames[abbrev]
         return Resolution.from_attrname(attrname)
 
@@ -199,6 +199,15 @@ cpdef freq_to_period_freqstr(freq_n, freq_name):
             freq_name, freq_name)}"""
     else:
         freqstr = f"""{freq_n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
+            freq_name, freq_name)}"""
+    return freqstr
+
+cpdef freq_to_offset_freqstr(freq_n, freq_name):
+    if freq_n == 1:
+        freqstr = f"""{c_PERIOD_TO_OFFSET_FREQSTR.get(
+            freq_name, freq_name)}"""
+    else:
+        freqstr = f"""{freq_n}{c_PERIOD_TO_OFFSET_FREQSTR.get(
             freq_name, freq_name)}"""
     return freqstr
 
