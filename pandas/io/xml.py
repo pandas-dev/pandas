@@ -1127,7 +1127,7 @@ def read_xml(
     """
     check_dtype_backend(dtype_backend)
 
-    if not any(
+    if isinstance(path_or_buffer, str) and not any(
         [
             is_file_like(path_or_buffer),
             file_exists(path_or_buffer),
