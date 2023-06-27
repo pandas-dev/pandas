@@ -63,6 +63,11 @@ def read_clipboard(
 
     Examples
     --------
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df.to_clipboard()
+         A  B  C
+    0    1  2  3
+    1    4  5  6
     >>> pd.read_clipboard()  # doctest: +SKIP
     """
     encoding = kwargs.pop("encoding", "utf-8")
