@@ -42,7 +42,10 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -1293,7 +1296,7 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject):
+class _GroupByMixin(PandasObject, SelectionMixin):
     """
     Provide the groupby facilities.
     """
@@ -1385,13 +1388,7 @@ class _GroupByMixin(PandasObject):
         except IndexError:
             groupby = self._groupby
 
-        selection = None
-        if subset.ndim == 2 and (
-            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
-        ):
-            selection = key
-        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
-            selection = key
+        selection = self._infer_selection(key, subset)
 
         new_rs = type(self)(
             groupby=groupby,
