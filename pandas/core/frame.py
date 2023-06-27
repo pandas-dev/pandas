@@ -47,11 +47,7 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.lib import (
-    NoDefault,
-    is_range_indexer,
-    no_default,
-)
+from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
@@ -6123,8 +6119,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
@@ -6136,8 +6132,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = ...,
-        how: AnyAll | NoDefault = ...,
-        thresh: int | NoDefault = ...,
+        how: AnyAll | lib.NoDefault = ...,
+        thresh: int | lib.NoDefault = ...,
         subset: IndexLabel = ...,
         inplace: Literal[True],
         ignore_index: bool = ...,
@@ -6148,8 +6144,8 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        how: AnyAll | NoDefault = no_default,
-        thresh: int | NoDefault = no_default,
+        how: AnyAll | lib.NoDefault = lib.no_default,
+        thresh: int | lib.NoDefault = lib.no_default,
         subset: IndexLabel = None,
         inplace: bool = False,
         ignore_index: bool = False,
@@ -6252,12 +6248,12 @@ class DataFrame(NDFrame, OpsMixin):
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
         """
-        if (how is not no_default) and (thresh is not no_default):
+        if (how is not lib.no_default) and (thresh is not lib.no_default):
             raise TypeError(
                 "You cannot set both the how and thresh arguments at the same time."
             )
 
-        if how is no_default:
+        if how is lib.no_default:
             how = "any"
 
         inplace = validate_bool_kwarg(inplace, "inplace")
@@ -6280,7 +6276,7 @@ class DataFrame(NDFrame, OpsMixin):
                 raise KeyError(np.array(subset)[check].tolist())
             agg_obj = self.take(indices, axis=agg_axis)
 
-        if thresh is not no_default:
+        if thresh is not lib.no_default:
             count = agg_obj.count(axis=agg_axis)
             mask = count >= thresh
         elif how == "any":
@@ -8650,7 +8646,7 @@ class DataFrame(NDFrame, OpsMixin):
     def groupby(
         self,
         by=None,
-        axis: Axis | lib.NoDefault = no_default,
+        axis: Axis | lib.NoDefault = lib.no_default,
         level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
@@ -8833,7 +8829,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     @Substitution("")
     @Appender(_shared_docs["pivot"])
-    def pivot(self, *, columns, index=lib.NoDefault, values=lib.NoDefault) -> DataFrame:
+    def pivot(
+        self, *, columns, index=lib.no_default, values=lib.no_default
+    ) -> DataFrame:
         from pandas.core.reshape.pivot import pivot
 
         return pivot(self, index=index, columns=columns, values=values)
