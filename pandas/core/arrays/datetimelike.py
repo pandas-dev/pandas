@@ -2239,7 +2239,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         limit,
         limit_direction,
         limit_area,
-        fill_value,
         inplace: bool,
         **kwargs,
     ) -> Self:
@@ -2263,7 +2262,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
         if inplace:
