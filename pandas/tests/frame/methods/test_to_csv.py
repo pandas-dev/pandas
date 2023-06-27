@@ -752,13 +752,16 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(rs, aa)
 
     @pytest.mark.slow
-    def test_to_csv_wide_frame_formatting(self):
+    def test_to_csv_wide_frame_formatting(self, monkeypatch):
         # Issue #8621
-        df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
+        chunksize = 100
+        df = DataFrame(np.random.randn(1, chunksize + 10), columns=None, index=None)
         with tm.ensure_clean() as filename:
-            df.to_csv(filename, header=False, index=False)
+            with monkeypatch.context() as m:
+                m.setattr("pandas.io.formats.csvs._DEFAULT_CHUNKSIZE_CELLS", chunksize)
+                df.to_csv(filename, header=False, index=False)
             rs = read_csv(filename, header=None)
-            tm.assert_frame_equal(rs, df)
+        tm.assert_frame_equal(rs, df)
 
     def test_to_csv_bug(self):
         f1 = StringIO("a,1.0\nb,2.0")
