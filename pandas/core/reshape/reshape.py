@@ -498,7 +498,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(dropna=False, sort=sort)
+            return obj.T.stack(dropna=False)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose
@@ -571,7 +571,7 @@ def _unstack_extension_series(
     return result
 
 
-def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
+def stack(frame: DataFrame, level=-1, dropna: bool = True):
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
     second level of the resulting hierarchical index
@@ -593,9 +593,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     level_num = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(
-            frame, level_num=level_num, dropna=dropna, sort=sort
-        )
+        return _stack_multi_columns(frame, level_num=level_num, dropna=dropna)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_codes = [lab.repeat(K) for lab in frame.index.codes]
@@ -648,13 +646,13 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     return frame._constructor_sliced(new_values, index=new_index)
 
 
-def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = True):
+def stack_multiple(frame: DataFrame, level, dropna: bool = True):
     # If all passed levels match up to column names, no
     # ambiguity about what to do
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            result = stack(result, lev, dropna=dropna)
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -667,7 +665,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            result = stack(result, lev, dropna=dropna)
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]
@@ -716,7 +714,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex:
 
 
 def _stack_multi_columns(
-    frame: DataFrame, level_num: int = -1, dropna: bool = True, sort: bool = True
+    frame: DataFrame, level_num: int = -1, dropna: bool = True
 ) -> DataFrame:
     def _convert_level_number(level_num: int, columns: Index):
         """
