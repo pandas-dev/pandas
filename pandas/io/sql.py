@@ -293,10 +293,10 @@ def read_sql_table(
         decimal.Decimal) to floating point. Can result in loss of Precision.
     parse_dates : list or dict, default None
         - List of column names to parse as dates.
-        - Dict of ``{column_name: format string}`` where format string is
+        - Dict of ``{{column_name: format string}}`` where format string is
           strftime compatible in case of parsing string times or is one of
           (D, s, ns, ms, us) in case of parsing integer timestamps.
-        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+        - Dict of ``{{column_name: arg dict}}``, where the arg dict corresponds
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
@@ -420,13 +420,13 @@ def read_sql_query(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        Eg. for psycopg2, uses %(name)s so use params={{'name' : 'value'}}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
-        - Dict of ``{column_name: format string}`` where format string is
+        - Dict of ``{{column_name: format string}}`` where format string is
           strftime compatible in case of parsing string times, or is one of
           (D, s, ns, ms, us) in case of parsing integer timestamps.
-        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+        - Dict of ``{{column_name: arg dict}}``, where the arg dict corresponds
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
@@ -435,7 +435,7 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {{‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}}.
 
         .. versionadded:: 1.3.0
     {dtype_backend_options}
@@ -550,13 +550,13 @@ def read_sql(
         to pass parameters is database driver dependent. Check your
         database driver documentation for which of the five syntax styles,
         described in PEP 249's paramstyle, is supported.
-        Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}.
+        Eg. for psycopg2, uses %(name)s so use params={{'name' : 'value'}}.
     parse_dates : list or dict, default: None
         - List of column names to parse as dates.
-        - Dict of ``{column_name: format string}`` where format string is
+        - Dict of ``{{column_name: format string}}`` where format string is
           strftime compatible in case of parsing string times, or is one of
           (D, s, ns, ms, us) in case of parsing integer timestamps.
-        - Dict of ``{column_name: arg dict}``, where the arg dict corresponds
+        - Dict of ``{{column_name: arg dict}}``, where the arg dict corresponds
           to the keyword arguments of :func:`pandas.to_datetime`
           Especially useful with databases without native Datetime support,
           such as SQLite.
@@ -571,7 +571,7 @@ def read_sql(
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {{‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}}.
         The argument is ignored if a table is passed instead of a query.
 
         .. versionadded:: 2.0.0
@@ -612,7 +612,7 @@ def read_sql(
 
     >>> pd.read_sql('SELECT int_column, date_column FROM test_data',
     ...             conn,
-    ...             parse_dates={"date_column": {"format": "%d/%m/%y"}})
+    ...             parse_dates={{"date_column": {{"format": "%d/%m/%y"}}}})
        int_column date_column
     0           0  2012-11-10
     1           1  2010-11-12
@@ -1600,10 +1600,10 @@ class SQLDatabase(PandasSQL):
             loss of precision.
         parse_dates : list or dict, default: None
             - List of column names to parse as dates.
-            - Dict of ``{column_name: format string}`` where format string is
+            - Dict of ``{{column_name: format string}}`` where format string is
               strftime compatible in case of parsing string times, or is one of
               (D, s, ns, ms, us) in case of parsing integer timestamps.
-            - Dict of ``{column_name: arg}``, where the arg corresponds
+            - Dict of ``{{column_name: arg}}``, where the arg corresponds
               to the keyword arguments of :func:`pandas.to_datetime`.
               Especially useful with databases without native Datetime support,
               such as SQLite.

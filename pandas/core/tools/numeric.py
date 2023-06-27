@@ -66,7 +66,7 @@ def to_numeric(
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
         Argument to be converted.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+    errors : {{'ignore', 'raise', 'coerce'}}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.

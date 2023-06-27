@@ -1058,13 +1058,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {'id': 'table'}
+            attrs = {{'id': 'table'}}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {'asdf': 'table'}
+            attrs = {{'asdf': 'table'}}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
@@ -1106,7 +1106,7 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_links : {None, "all", "header", "body", "footer"}
+    extract_links : {{None, "all", "header", "body", "footer"}}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
