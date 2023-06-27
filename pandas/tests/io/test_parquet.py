@@ -376,21 +376,13 @@ class Base:
                 to_parquet(df, path, engine, compression=None)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "main/pandas/tests/io/data/parquet/simple.parquet"
-        ),
-        check_before_test=True,
-    )
-    def test_parquet_read_from_url(self, df_compat, engine):
+    @pytest.mark.single_cpu
+    def test_parquet_read_from_url(self, httpserver, datapath, df_compat, engine):
         if engine != "auto":
             pytest.importorskip(engine)
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "main/pandas/tests/io/data/parquet/simple.parquet"
-        )
-        df = read_parquet(url)
+        with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
+            httpserver.serve_content(content=f.read())
+            df = read_parquet(httpserver.url)
         tm.assert_frame_equal(df, df_compat)
 
 

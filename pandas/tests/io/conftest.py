@@ -46,6 +46,11 @@ def feather_file(datapath):
 
 
 @pytest.fixture
+def xml_file(datapath):
+    return datapath("io", "data", "xml", "books.xml")
+
+
+@pytest.fixture
 def s3so(worker_id):
     if is_ci_environment():
         url = "http://localhost:5000/"
@@ -141,7 +146,9 @@ def s3_public_bucket(s3_resource):
 
 
 @pytest.fixture
-def s3_public_bucket_with_data(s3_public_bucket, tips_file, jsonl_file, feather_file):
+def s3_public_bucket_with_data(
+    s3_public_bucket, tips_file, jsonl_file, feather_file, xml_file
+):
     """
     The following datasets
     are loaded.
@@ -158,6 +165,7 @@ def s3_public_bucket_with_data(s3_public_bucket, tips_file, jsonl_file, feather_
         ("tips.csv.bz2", tips_file + ".bz2"),
         ("items.jsonl", jsonl_file),
         ("simple_dataset.feather", feather_file),
+        ("books.xml", xml_file),
     ]
     for s3_key, file_name in test_s3_files:
         with open(file_name, "rb") as f:
@@ -175,7 +183,9 @@ def s3_private_bucket(s3_resource):
 
 
 @pytest.fixture
-def s3_private_bucket_with_data(s3_private_bucket, tips_file, jsonl_file, feather_file):
+def s3_private_bucket_with_data(
+    s3_private_bucket, tips_file, jsonl_file, feather_file, xml_file
+):
     """
     The following datasets
     are loaded.
@@ -192,6 +202,7 @@ def s3_private_bucket_with_data(s3_private_bucket, tips_file, jsonl_file, feathe
         ("tips.csv.bz2", tips_file + ".bz2"),
         ("items.jsonl", jsonl_file),
         ("simple_dataset.feather", feather_file),
+        ("books.xml", xml_file),
     ]
     for s3_key, file_name in test_s3_files:
         with open(file_name, "rb") as f:

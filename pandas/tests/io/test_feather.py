@@ -142,21 +142,13 @@ class TestFeather:
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/feather/feather-0_3_1.feather"
-        ),
-        check_before_test=True,
-    )
-    def test_http_path(self, feather_file):
+    @pytest.mark.single_cpu
+    def test_http_path(self, feather_file, httpserver):
         # GH 29055
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/feather/feather-0_3_1.feather"
-        )
         expected = read_feather(feather_file)
-        res = read_feather(url)
+        with open(feather_file, "rb") as f:
+            httpserver.serve_content(content=f.read())
+            res = read_feather(httpserver.url)
         tm.assert_frame_equal(expected, res)
 
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):

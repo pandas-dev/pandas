@@ -51,7 +51,6 @@ from pandas import (
 )
 from pandas._testing._io import (
     close,
-    network,
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
@@ -1150,7 +1149,6 @@ __all__ = [
     "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
-    "network",
     "NP_NAT_OBJECTS",
     "NULL_OBJECTS",
     "OBJECT_DTYPES",

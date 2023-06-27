@@ -22,27 +22,28 @@ from pandas.io.parsers import read_csv
 
 
 @pytest.mark.network
-@tm.network(
-    url=(
-        "https://github.com/pandas-dev/pandas/raw/main/"
-        "pandas/tests/io/parser/data/salaries.csv"
-    ),
-    check_before_test=True,
-)
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("mode", ["explicit", "infer"])
 @pytest.mark.parametrize("engine", ["python", "c"])
 def test_compressed_urls(
-    salaries_table, mode, engine, compression_only, compression_to_extension
+    httpserver,
+    datapath,
+    salaries_table,
+    mode,
+    engine,
+    compression_only,
+    compression_to_extension,
 ):
     # test reading compressed urls with various engines and
     # extension inference
-    extension = compression_to_extension[compression_only]
-    base_url = (
-        "https://github.com/pandas-dev/pandas/raw/main/"
-        "pandas/tests/io/parser/data/salaries.csv"
-    )
+    if compression_only == "tar":
+        pytest.skip("TODO: Add tar salaraies.csv to pandas/io/parsers/data")
 
-    url = base_url + extension
+    extension = compression_to_extension[compression_only]
+    with open(datapath("io", "parser", "data", "salaries.csv" + extension), "rb") as f:
+        httpserver.serve_content(content=f.read())
+
+    url = httpserver.url + "/salaries.csv" + extension
 
     if mode != "explicit":
         compression_only = mode
@@ -52,24 +53,16 @@ def test_compressed_urls(
 
 
 @pytest.mark.network
-@tm.network(
-    url=(
-        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        "pandas/tests/io/parser/data/unicode_series.csv"
-    ),
-    check_before_test=True,
-)
-def test_url_encoding_csv():
+@pytest.mark.single_cpu
+def test_url_encoding_csv(httpserver, datapath):
     """
     read_csv should honor the requested encoding for URLs.
 
     GH 10424
     """
-    path = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        "pandas/tests/io/parser/data/unicode_series.csv"
-    )
-    df = read_csv(path, encoding="latin-1", header=None)
+    with open(datapath("io", "parser", "data", "unicode_series.csv"), "rb") as f:
+        httpserver.serve_content(content=f.read())
+        df = read_csv(httpserver.url, encoding="latin-1", header=None)
     assert df.loc[15, 1] == "Á köldum klaka (Cold Fever) (1994)"
 
 
