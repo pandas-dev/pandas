@@ -115,6 +115,8 @@ cdef int dayofweek(int y, int m, int d) noexcept nogil:
     [2] https://en.wikipedia.org/wiki/\
     Determination_of_the_day_of_the_week#Gauss's_algorithm
     """
+    # Note: this particular implementation comes from
+    # http://berndt-schwerdtfeger.de/wp-content/uploads/pdf/cal.pdf
     cdef:
         long c
         int g
@@ -125,7 +127,7 @@ cdef int dayofweek(int y, int m, int d) noexcept nogil:
         y -= 1
 
     c = quot(y, 100)
-    g = y - quot(y, 100) * 100
+    g = y - c * 100
     f = 5 * (c - quot(c, 4) * 4)
     e = em[m]
 

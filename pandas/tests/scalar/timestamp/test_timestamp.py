@@ -243,11 +243,21 @@ class TestTimestampProperties:
         dow = ts.weekday()
         assert dow == expected
 
-    @given(st.datetimes())
-    def test_dow_parametric(self, ts):
+    @given(
+        ts=st.datetimes(),
+        sign=st.sampled_from(["-", ""]),
+    )
+    def test_dow_parametric(self, ts, sign):
         # GH 53738
+        ts = (
+            f"{sign}{str(ts.year).zfill(4)}"
+            f"-{str(ts.month).zfill(2)}"
+            f"-{str(ts.day).zfill(2)}"
+        )
         result = Timestamp(ts).weekday()
-        expected = ts.weekday()
+        expected = (
+            (np.datetime64(ts) - np.datetime64("1970-01-01")).astype("int64") - 4
+        ) % 7
         assert result == expected
 
 
