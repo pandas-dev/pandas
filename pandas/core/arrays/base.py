@@ -851,6 +851,8 @@ class ExtensionArray:
         If ``periods > len(self)``, then an array of size
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
+
+        For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
