@@ -372,7 +372,7 @@ class BaseBlockManager(DataManager):
             if self.ndim == 2 and isinstance(indexer, tuple):
                 blk_loc = self.blklocs[indexer[1]]
                 if is_list_like(blk_loc) and blk_loc.ndim == 2:
-                    blk_loc = np.squeeze(blk_loc, axis=1)
+                    blk_loc = np.squeeze(blk_loc, axis=0)
                 elif not is_list_like(blk_loc):
                     # Keep dimension and copy data later
                     blk_loc = [blk_loc]  # type: ignore[assignment]
