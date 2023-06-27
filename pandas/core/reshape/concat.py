@@ -640,7 +640,8 @@ class _Concatenator:
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
 
-                result = cons(mgr, name=name, fastpath=True)
+                result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
+                result._name = name
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
