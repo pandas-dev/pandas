@@ -1348,12 +1348,9 @@ class Block(PandasObject):
         *,
         method: FillnaOptions = "pad",
         axis: AxisInt = 0,
-        index: Index | None = None,
         inplace: bool = False,
         limit: int | None = None,
-        limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: Literal["inside", "outside"] | None = None,
-        fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
@@ -1361,12 +1358,9 @@ class Block(PandasObject):
         return self.interpolate(
             method=method,
             axis=axis,
-            index=index,
             inplace=inplace,
             limit=limit,
-            limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             downcast=downcast,
             using_cow=using_cow,
             **kwargs,
@@ -1382,7 +1376,6 @@ class Block(PandasObject):
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area: Literal["inside", "outside"] | None = None,
-        fill_value: Any | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
@@ -1424,7 +1417,6 @@ class Block(PandasObject):
                 limit=limit,
                 limit_direction=limit_direction,
                 limit_area=limit_area,
-                fill_value=fill_value,
                 downcast=downcast,
                 **kwargs,
             )
@@ -1440,10 +1432,6 @@ class Block(PandasObject):
         # Dispatch to the PandasArray method.
         # We know self.array_values is a PandasArray bc EABlock overrides
         if m is not None:
-            if fill_value is not None:
-                # similar to validate_fillna_kwargs
-                raise ValueError("Cannot pass both fill_value and method")
-
             # TODO: warn about ignored kwargs, limit_direction, index...?
             new_values = cast(PandasArray, self.array_values).pad_or_backfill(
                 method=method,
@@ -1461,7 +1449,6 @@ class Block(PandasObject):
                 limit=limit,
                 limit_direction=limit_direction,
                 limit_area=limit_area,
-                fill_value=fill_value,
                 inplace=arr_inplace,
                 **kwargs,
             )

@@ -267,7 +267,6 @@ class PandasArray(  # type: ignore[misc]
         limit,
         limit_direction,
         limit_area,
-        fill_value,
         inplace: bool,
         **kwargs,
     ) -> Self:
@@ -289,7 +288,6 @@ class PandasArray(  # type: ignore[misc]
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
         if inplace:
