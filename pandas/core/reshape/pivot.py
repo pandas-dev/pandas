@@ -511,8 +511,8 @@ def pivot(
     data: DataFrame,
     *,
     columns: IndexLabel,
-    index: IndexLabel | lib.NoDefault = lib.NoDefault,
-    values: IndexLabel | lib.NoDefault = lib.NoDefault,
+    index: IndexLabel | lib.NoDefault = lib.no_default,
+    values: IndexLabel | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     columns_listlike = com.convert_to_list_like(columns)
 
@@ -522,24 +522,24 @@ def pivot(
     data = data.copy(deep=False)
     data.index = data.index.copy()
     data.index.names = [
-        name if name is not None else lib.NoDefault for name in data.index.names
+        name if name is not None else lib.no_default for name in data.index.names
     ]
 
     indexed: DataFrame | Series
-    if values is lib.NoDefault:
-        if index is not lib.NoDefault:
+    if values is lib.no_default:
+        if index is not lib.no_default:
             cols = com.convert_to_list_like(index)
         else:
             cols = []
 
-        append = index is lib.NoDefault
+        append = index is lib.no_default
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
-        if index is lib.NoDefault:
+        if index is lib.no_default:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
                 index_list = [
@@ -569,7 +569,7 @@ def pivot(
     # "Hashable"
     result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
     result.index.names = [
-        name if name is not lib.NoDefault else None for name in result.index.names
+        name if name is not lib.no_default else None for name in result.index.names
     ]
 
     return result
