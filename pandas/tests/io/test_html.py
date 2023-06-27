@@ -87,7 +87,7 @@ def test_invalid_flavor():
     msg = r"\{" + flavor + r"\} is not a valid set of flavors"
 
     with pytest.raises(ValueError, match=msg):
-        read_html(url, match="google", flavor=flavor)
+        read_html(StringIO(url), match="google", flavor=flavor)
 
 
 @td.skip_if_no("bs4")

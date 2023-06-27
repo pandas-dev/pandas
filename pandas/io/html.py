@@ -39,6 +39,7 @@ from pandas.io.common import (
     file_exists,
     get_handle,
     is_file_like,
+    is_fsspec_url,
     is_url,
     stringify_path,
     urlopen,
@@ -1185,7 +1186,14 @@ def read_html(
 
     io = stringify_path(io)
 
-    if isinstance(io, str) and not is_file_like(io) and "\n" in io:
+    if isinstance(io, str) and not any(
+        [
+            is_file_like(io),
+            file_exists(io),
+            is_url(io),
+            is_fsspec_url(io),
+        ]
+    ):
         warnings.warn(
             "Passing literal html to 'read_html' is deprecated and "
             "will be removed in a future version. To read from a "
