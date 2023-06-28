@@ -503,6 +503,54 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.fillna: Fill NA/NaN values using the specified method.
         DataFrame.fillna: Fill NA/NaN values using the specified method.
+
+        Examples
+        --------
+        Here we only create a ``Series``.
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+
+        Example for ``ffill`` with downsampling (we have fewer dates after resampling):
+
+        >>> ser.resample('M').ffill()
+        2023-01-31    2
+        2023-02-28    4
+        Freq: M, dtype: int64
+
+        Example for ``ffill`` with upsampling (fill the new dates with
+        the previous value):
+
+        >>> ser.resample('W').ffill()
+        2023-01-01    1
+        2023-01-08    1
+        2023-01-15    2
+        2023-01-22    2
+        2023-01-29    2
+        2023-02-05    3
+        2023-02-12    3
+        2023-02-19    4
+        Freq: W-SUN, dtype: int64
+
+        With upsampling and limiting (only fill the first new date with the
+        previous value):
+
+        >>> ser.resample('W').ffill(limit=1)
+        2023-01-01    1.0
+        2023-01-08    1.0
+        2023-01-15    2.0
+        2023-01-22    2.0
+        2023-01-29    NaN
+        2023-02-05    3.0
+        2023-02-12    NaN
+        2023-02-19    4.0
+        Freq: W-SUN, dtype: float64
         """
         return self._upsample("ffill", limit=limit)
 
