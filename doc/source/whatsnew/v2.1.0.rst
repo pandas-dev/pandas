@@ -109,6 +109,7 @@ Other enhancements
 - :meth:`DataFrameGroupby.agg` and :meth:`DataFrameGroupby.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine="numba"`` (:issue:`53486`)
 - :meth:`Series.explode` now supports pyarrow-backed list types (:issue:`53602`)
 - :meth:`Series.str.join` now supports ``ArrowDtype(pa.string())`` (:issue:`53646`)
+- :meth:`Series.where`, :meth:`Series.mask`, :meth:`DataFrame.where`, :meth:`DataFrame.mask` now support scalar ``cond`` (:issue:`53903`)
 - :meth:`SeriesGroupby.agg` and :meth:`DataFrameGroupby.agg` now support passing in multiple functions for ``engine="numba"`` (:issue:`53486`)
 - :meth:`SeriesGroupby.transform` and :meth:`DataFrameGroupby.transform` now support passing in a string as the function for ``engine="numba"`` (:issue:`53579`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
@@ -118,6 +119,7 @@ Other enhancements
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
