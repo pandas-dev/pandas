@@ -231,6 +231,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.factorize \
         pandas.api.extensions.ExtensionArray.fillna \
         pandas.api.extensions.ExtensionArray.insert \
+        pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
