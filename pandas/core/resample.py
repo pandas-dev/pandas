@@ -42,7 +42,10 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -86,7 +89,7 @@ if TYPE_CHECKING:
         AxisInt,
         Frequency,
         IndexLabel,
-        QuantileInterpolation,
+        InterpolateOptions,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -500,6 +503,54 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.fillna: Fill NA/NaN values using the specified method.
         DataFrame.fillna: Fill NA/NaN values using the specified method.
+
+        Examples
+        --------
+        Here we only create a ``Series``.
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+
+        Example for ``ffill`` with downsampling (we have fewer dates after resampling):
+
+        >>> ser.resample('M').ffill()
+        2023-01-31    2
+        2023-02-28    4
+        Freq: M, dtype: int64
+
+        Example for ``ffill`` with upsampling (fill the new dates with
+        the previous value):
+
+        >>> ser.resample('W').ffill()
+        2023-01-01    1
+        2023-01-08    1
+        2023-01-15    2
+        2023-01-22    2
+        2023-01-29    2
+        2023-02-05    3
+        2023-02-12    3
+        2023-02-19    4
+        Freq: W-SUN, dtype: int64
+
+        With upsampling and limiting (only fill the first new date with the
+        previous value):
+
+        >>> ser.resample('W').ffill(limit=1)
+        2023-01-01    1.0
+        2023-01-08    1.0
+        2023-01-15    2.0
+        2023-01-22    2.0
+        2023-01-29    NaN
+        2023-02-05    3.0
+        2023-02-12    NaN
+        2023-02-19    4.0
+        Freq: W-SUN, dtype: float64
         """
         return self._upsample("ffill", limit=limit)
 
@@ -834,7 +885,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def interpolate(
         self,
-        method: QuantileInterpolation = "linear",
+        method: InterpolateOptions = "linear",
         *,
         axis: Axis = 0,
         limit: int | None = None,
@@ -1293,7 +1344,7 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject):
+class _GroupByMixin(PandasObject, SelectionMixin):
     """
     Provide the groupby facilities.
     """
@@ -1385,13 +1436,7 @@ class _GroupByMixin(PandasObject):
         except IndexError:
             groupby = self._groupby
 
-        selection = None
-        if subset.ndim == 2 and (
-            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
-        ):
-            selection = key
-        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
-            selection = key
+        selection = self._infer_selection(key, subset)
 
         new_rs = type(self)(
             groupby=groupby,

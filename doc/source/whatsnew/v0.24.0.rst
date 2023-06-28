@@ -286,7 +286,7 @@ value. (:issue:`17054`)
 
 .. ipython:: python
 
-    result = pd.read_html("""
+    result = pd.read_html(StringIO("""
       <table>
         <thead>
           <tr>
@@ -298,7 +298,7 @@ value. (:issue:`17054`)
             <td colspan="2">1</td><td>2</td>
           </tr>
         </tbody>
-      </table>""")
+      </table>"""))
 
 *Previous behavior*:
 

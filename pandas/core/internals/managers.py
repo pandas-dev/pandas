@@ -378,13 +378,6 @@ class BaseBlockManager(DataManager):
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
 
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
-        axis = self._normalize_axis(axis)
-        if fill_value is lib.no_default:
-            fill_value = None
-
-        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
-
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
             if using_copy_on_write():
@@ -1464,7 +1457,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         *,
         qs: Index,  # with dtype float 64
-        axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
     ) -> Self:
         """
@@ -1474,9 +1466,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 
@@ -1488,14 +1477,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
-        assert axis == 1  # only ever called this way
 
         new_axes = list(self.axes)
         new_axes[1] = Index(qs, dtype=np.float64)
 
         blocks = [
-            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
-            for blk in self.blocks
+            blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks
         ]
 
         return type(self)(blocks, new_axes)
