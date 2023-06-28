@@ -2576,6 +2576,13 @@ class TestDataFrameConstructors:
             # TODO: we can check b[0] == 0 if we stop consolidating in
             #  setitem_with_indexer (except for datetimelike?)
 
+    def test_construct_from_dict_ea_series(self):
+        # GH#53744 - default of copy=True should also apply for Series with
+        # extension dtype
+        ser = Series([1, 2, 3], dtype="Int64")
+        df = DataFrame({"a": ser})
+        assert not np.shares_memory(ser.values._data, df["a"].values._data)
+
     def test_from_series_with_name_with_columns(self):
         # GH 7893
         result = DataFrame(Series(1, name="foo"), columns=["bar"])
