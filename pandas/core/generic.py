@@ -10108,7 +10108,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # does not hence we need to unpack scalar
                 cond = cond.item()
             elif cond.shape != self.shape:
-                raise ValueError("Array conditional must be same shape as self")
+                raise ValueError(
+                    "Array conditional must be same shape as self or scalar!"
+                )
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
         # make sure we are boolean
