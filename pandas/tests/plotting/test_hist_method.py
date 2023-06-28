@@ -648,47 +648,50 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
 
         axes = _grouped_hist(df.A, by=df.C)
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_axes_shape_no_col(self):
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
         axes = df.hist(by=df.C)
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_single_key(self):
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
         # group by a key with single value
         axes = df.hist(by="D", rot=30)
@@ -700,16 +703,17 @@ class TestDataFrameGroupByPlots:
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
@@ -735,16 +739,17 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy_grouped_hist(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
         axes = _grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
@@ -753,32 +758,34 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy_external_err(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
         # propagate attr exception from matplotlib.Axes.hist
         with tm.external_error_raised(AttributeError):
             _grouped_hist(df.A, by=df.C, foo="bar")
 
     def test_grouped_hist_legacy_figsize_err(self):
-        df = DataFrame(np.random.randn(10, 1), columns=["A"])
+        rs = np.random.RandomState(42)
+        df = DataFrame(rs.randn(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            np.random.randint(
+            rs.randint(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = np.random.randint(0, 4, 10)
+        df["C"] = rs.randint(0, 4, 10)
         df["D"] = ["X"] * 10
         msg = "Specify figure size by tuple instead"
         with pytest.raises(ValueError, match=msg):
