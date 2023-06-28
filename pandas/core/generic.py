@@ -10104,8 +10104,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 cond = np.asanyarray(cond)
             if cond.shape == ():
                 # Note: DataFrame(True, index=[1,2,3], columns=["a", "b", "c"]) works
-                # but DataFrame(np.array(True), index=[1,2,3], columns=["a", "b", "c"]) does not
-                # hence we need to unpack scalar
+                # but DataFrame(np.array(True), index=[1,2,3], columns=["a", "b", "c"])
+                # does not hence we need to unpack scalar
                 cond = cond.item()
             elif cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
