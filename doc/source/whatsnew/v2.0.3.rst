@@ -1,6 +1,6 @@
 .. _whatsnew_203:
 
-What's new in 2.0.3 (July XX, 2023)
+What's new in 2.0.3 (June 28, 2023)
 -----------------------------------
 
 These are the changes in pandas 2.0.3. See :ref:`release` for a full changelog
@@ -17,7 +17,6 @@ Fixed regressions
 - Fixed performance regression in merging on datetime-like columns (:issue:`53231`)
 - Fixed regression when :meth:`DataFrame.to_string` creates extra space for string dtypes (:issue:`52690`)
 - For external ExtensionArray implementations, restored the default use of ``_values_for_factorize`` for hashing arrays (:issue:`53475`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.bug_fixes:
@@ -38,7 +37,6 @@ Bug fixes
 
 Other
 ~~~~~
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_203.contributors:
