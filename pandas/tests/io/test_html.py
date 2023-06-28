@@ -35,7 +35,6 @@ from pandas.core.arrays import (
 )
 
 from pandas.io.common import file_path_to_url
-import pandas.io.html
 
 
 @pytest.fixture(
@@ -193,43 +192,30 @@ class TestReadHtml:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://www.fdic.gov/resources/resolutions/"
-            "bank-failures/failed-bank-list/index.html"
-        ),
-        check_before_test=True,
-    )
-    def test_banklist_url(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa: E501
-        df1 = self.read_html(
+    @pytest.mark.single_cpu
+    def test_banklist_url(self, httpserver, banklist_data):
+        with open(banklist_data, encoding="utf-8") as f:
+            httpserver.serve_content(content=f.read())
+            df1 = self.read_html(
+                # lxml cannot find attrs leave out for now
+                httpserver.url,
+                match="First Federal Bank of Florida",  # attrs={"class": "dataTable"}
+            )
             # lxml cannot find attrs leave out for now
-            url,
-            match="First Federal Bank of Florida",  # attrs={"class": "dataTable"}
-        )
-        # lxml cannot find attrs leave out for now
-        df2 = self.read_html(
-            url,
-            match="Metcalf Bank",
-        )  # attrs={"class": "dataTable"})
+            df2 = self.read_html(
+                httpserver.url,
+                match="Metcalf Bank",
+            )  # attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/html/spam.html"
-        ),
-        check_before_test=True,
-    )
-    def test_spam_url(self):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/html/spam.html"
-        )
-        df1 = self.read_html(url, match=".*Water.*")
-        df2 = self.read_html(url, match="Unit")
+    @pytest.mark.single_cpu
+    def test_spam_url(self, httpserver, spam_data):
+        with open(spam_data, encoding="utf-8") as f:
+            httpserver.serve_content(content=f.read())
+            df1 = self.read_html(httpserver.url, match=".*Water.*")
+            df2 = self.read_html(httpserver.url, match="Unit")
 
         assert_framelist_equal(df1, df2)
 
@@ -366,21 +352,19 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
-    def test_bad_url_protocol(self):
+    @pytest.mark.single_cpu
+    def test_bad_url_protocol(self, httpserver):
+        httpserver.serve_content("urlopen error unknown url type: git", code=404)
         with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
     @pytest.mark.slow
     @pytest.mark.network
-    @tm.network
-    def test_invalid_url(self):
-        msg = (
-            "Name or service not known|Temporary failure in name resolution|"
-            "No tables found"
-        )
-        with pytest.raises((URLError, ValueError), match=msg):
-            self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
+    @pytest.mark.single_cpu
+    def test_invalid_url(self, httpserver):
+        httpserver.serve_content("Name or service not known", code=404)
+        with pytest.raises((URLError, ValueError), match="HTTP Error 404: NOT FOUND"):
+            self.read_html(httpserver.url, match=".*Water.*")
 
     @pytest.mark.slow
     def test_file_url(self, banklist_data):
@@ -454,20 +438,69 @@ class TestReadHtml:
         with pytest.raises(ValueError, match=msg):
             self.read_html(spam_data, match="Water", skiprows=-1)
 
+    @pytest.fixture
+    def python_docs(self):
+        return """
+          <table class="contentstable" align="center"><tr>
+            <td width="50%">
+            <p class="biglink"><a class="biglink" href="whatsnew/2.7.html">What's new in Python 2.7?</a><br/>
+                <span class="linkdescr">or <a href="whatsnew/index.html">all "What's new" documents</a> since 2.0</span></p>
+            <p class="biglink"><a class="biglink" href="tutorial/index.html">Tutorial</a><br/>
+                <span class="linkdescr">start here</span></p>
+            <p class="biglink"><a class="biglink" href="library/index.html">Library Reference</a><br/>
+                <span class="linkdescr">keep this under your pillow</span></p>
+            <p class="biglink"><a class="biglink" href="reference/index.html">Language Reference</a><br/>
+                <span class="linkdescr">describes syntax and language elements</span></p>
+            <p class="biglink"><a class="biglink" href="using/index.html">Python Setup and Usage</a><br/>
+                <span class="linkdescr">how to use Python on different platforms</span></p>
+            <p class="biglink"><a class="biglink" href="howto/index.html">Python HOWTOs</a><br/>
+                <span class="linkdescr">in-depth documents on specific topics</span></p>
+            </td><td width="50%">
+            <p class="biglink"><a class="biglink" href="installing/index.html">Installing Python Modules</a><br/>
+                <span class="linkdescr">installing from the Python Package Index &amp; other sources</span></p>
+            <p class="biglink"><a class="biglink" href="distributing/index.html">Distributing Python Modules</a><br/>
+                <span class="linkdescr">publishing modules for installation by others</span></p>
+            <p class="biglink"><a class="biglink" href="extending/index.html">Extending and Embedding</a><br/>
+                <span class="linkdescr">tutorial for C/C++ programmers</span></p>
+            <p class="biglink"><a class="biglink" href="c-api/index.html">Python/C API</a><br/>
+                <span class="linkdescr">reference for C/C++ programmers</span></p>
+            <p class="biglink"><a class="biglink" href="faq/index.html">FAQs</a><br/>
+                <span class="linkdescr">frequently asked questions (with answers!)</span></p>
+            </td></tr>
+        </table>
+
+        <p><strong>Indices and tables:</strong></p>
+        <table class="contentstable" align="center"><tr>
+            <td width="50%">
+            <p class="biglink"><a class="biglink" href="py-modindex.html">Python Global Module Index</a><br/>
+                <span class="linkdescr">quick access to all modules</span></p>
+            <p class="biglink"><a class="biglink" href="genindex.html">General Index</a><br/>
+                <span class="linkdescr">all functions, classes, terms</span></p>
+            <p class="biglink"><a class="biglink" href="glossary.html">Glossary</a><br/>
+                <span class="linkdescr">the most important terms explained</span></p>
+            </td><td width="50%">
+            <p class="biglink"><a class="biglink" href="search.html">Search page</a><br/>
+                <span class="linkdescr">search this documentation</span></p>
+            <p class="biglink"><a class="biglink" href="contents.html">Complete Table of Contents</a><br/>
+                <span class="linkdescr">lists all sections and subsections</span></p>
+            </td></tr>
+        </table>
+        """  # noqa: E501
+
     @pytest.mark.network
-    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
-    def test_multiple_matches(self):
-        url = "https://docs.python.org/2/"
-        dfs = self.read_html(url, match="Python")
+    @pytest.mark.single_cpu
+    def test_multiple_matches(self, python_docs, httpserver):
+        httpserver.serve_content(content=python_docs)
+        dfs = self.read_html(httpserver.url, match="Python")
         assert len(dfs) > 1
 
     @pytest.mark.network
-    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
-    def test_python_docs_table(self):
-        url = "https://docs.python.org/2/"
-        dfs = self.read_html(url, match="Python")
+    @pytest.mark.single_cpu
+    def test_python_docs_table(self, python_docs, httpserver):
+        httpserver.serve_content(content=python_docs)
+        dfs = self.read_html(httpserver.url, match="Python")
         zz = [df.iloc[0, 0][0:4] for df in dfs]
-        assert sorted(zz) == sorted(["Repo", "What"])
+        assert sorted(zz) == ["Pyth", "What"]
 
     def test_empty_tables(self):
         """

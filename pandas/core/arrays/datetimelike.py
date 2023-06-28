@@ -2235,11 +2235,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         *,
         method,
         axis: int,
-        index: Index | None,
+        index: Index,
         limit,
         limit_direction,
         limit_area,
-        fill_value,
         inplace: bool,
         **kwargs,
     ) -> Self:
@@ -2255,7 +2254,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         else:
             out_data = self._ndarray.copy()
 
-        missing.interpolate_array_2d(
+        missing.interpolate_2d_inplace(
             out_data,
             method=method,
             axis=axis,
@@ -2263,7 +2262,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
         if inplace:
