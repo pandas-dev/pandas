@@ -611,7 +611,7 @@ class TestSeriesFillNA:
         res = ser.fillna(Period("2012-01", freq="M"))
         exp = Series([Period("2011-01", freq="M"), Period("2012-01", freq="M")])
         tm.assert_series_equal(res, exp)
-        assert res.dtype == "period[M]"
+        assert res.dtype == "Period[M]"
 
     def test_fillna_dt64_timestamp(self, frame_or_series):
         ser = Series(
