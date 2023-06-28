@@ -1083,6 +1083,10 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Compute min value of group.
 
+        Returns
+        -------
+        Series or DataFrame
+
         Examples
         --------
         >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
@@ -1112,6 +1116,10 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         """
         Compute max value of group.
+
+        Returns
+        -------
+        Series or DataFrame
 
         Examples
         --------
