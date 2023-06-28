@@ -353,6 +353,52 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
+def nodefault_not_used_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """Test case where pandas._libs.lib.NoDefault is not used for typing.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of unconcatenated string.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            child.parent = node
+
+    def child_of(node, types):
+        """Check if any ancestor of the node has the specified type.
+
+        Parameters
+        ----------
+        node : AST
+            A node in the AST.
+        types : tuple of classes
+            The types as in `ininstance(xxx, types)`.
+        """
+        curnode = getattr(node, "parent", None)
+        while curnode is not None:
+            if isinstance(curnode, types):
+                return True
+            curnode = getattr(curnode, "parent", None)
+        return False
+
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Name) and node.id == "NoDefault") or (
+            isinstance(node, ast.Attribute) and node.attr == "NoDefault"
+        ):
+            if not child_of(node, (ast.AnnAssign, ast.arg)):
+                yield (node.lineno, "NoDefault is not used for typing")
+
+
 def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
@@ -405,6 +451,7 @@ if __name__ == "__main__":
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
+        "nodefault_not_used_for_typing",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
