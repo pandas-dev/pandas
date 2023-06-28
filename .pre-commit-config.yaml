@@ -343,7 +343,7 @@ repos:
         name: Check for `pandas._libs.lib.NoDefault` not used for typing
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_not_used_for_typing"
-        types_or: [python]
+        types: [python]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python
