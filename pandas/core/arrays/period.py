@@ -35,7 +35,6 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import (
-    OFFSET_TO_PERIOD_FREQSTR,
     FreqGroup,
     freq_to_period_freqstr,
 )
@@ -965,11 +964,11 @@ def raise_on_incompatible(left, right):
         other_freq = None
     elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
         assert right.freqstr is not None  # help mypy
-        other_freq = OFFSET_TO_PERIOD_FREQSTR.get(right.freqstr, right.freqstr)
+        other_freq = freq_to_period_freqstr(right.n, right.name)
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
-    own_freq = OFFSET_TO_PERIOD_FREQSTR.get(left.freqstr, left.freqstr)
+    own_freq = freq_to_period_freqstr(left.freq.n, left.freq.name)
     msg = DIFFERENT_FREQ.format(
         cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
     )
