@@ -42,7 +42,10 @@ from pandas.core.dtypes.generic import (
 
 import pandas.core.algorithms as algos
 from pandas.core.apply import ResamplerWindowApply
-from pandas.core.base import PandasObject
+from pandas.core.base import (
+    PandasObject,
+    SelectionMixin,
+)
 import pandas.core.common as com
 from pandas.core.generic import (
     NDFrame,
@@ -1293,7 +1296,7 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("quantile", q=q, **kwargs)
 
 
-class _GroupByMixin(PandasObject):
+class _GroupByMixin(PandasObject, SelectionMixin):
     """
     Provide the groupby facilities.
     """
@@ -1385,13 +1388,7 @@ class _GroupByMixin(PandasObject):
         except IndexError:
             groupby = self._groupby
 
-        selection = None
-        if subset.ndim == 2 and (
-            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
-        ):
-            selection = key
-        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
-            selection = key
+        selection = self._infer_selection(key, subset)
 
         new_rs = type(self)(
             groupby=groupby,
@@ -1506,6 +1503,8 @@ class DatetimeIndexResampler(Resampler):
             result = obj.copy()
             result.index = res_index
         else:
+            if method == "asfreq":
+                method = None
             result = obj.reindex(
                 res_index, method=method, limit=limit, fill_value=fill_value
             )
@@ -1624,6 +1623,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         memb = ax.asfreq(self.freq, how=self.convention)
 
         # Get the fill indexer
+        if method == "asfreq":
+            method = None
         indexer = memb.get_indexer(new_index, method=method, limit=limit)
         new_obj = _take_new_index(
             obj,
@@ -1888,7 +1889,9 @@ class TimeGrouper(Grouper):
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            binner = labels = DatetimeIndex(
+                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         first, last = _get_timestamp_range_edges(
@@ -2019,8 +2022,10 @@ class TimeGrouper(Grouper):
 
         freq = self.freq
 
-        if not len(ax):
-            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
+        if len(ax) == 0:
+            binner = labels = PeriodIndex(
+                data=[], freq=freq, name=ax.name, dtype=ax.dtype
+            )
             return binner, [], labels
 
         labels = binner = period_range(start=ax[0], end=ax[-1], freq=freq, name=ax.name)
@@ -2121,9 +2126,7 @@ def _take_new_index(
         if axis == 1:
             raise NotImplementedError("axis 1 is not supported")
         new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
-        # error: Incompatible return value type
-        # (got "DataFrame", expected "NDFrameT")
-        return obj._constructor(new_mgr)  # type: ignore[return-value]
+        return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
 

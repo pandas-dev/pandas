@@ -105,65 +105,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.as_unit \
-        pandas.Timestamp.ctime \
-        pandas.Timestamp.date \
-        pandas.Timestamp.dst \
-        pandas.Timestamp.isocalendar \
-        pandas.Timestamp.isoweekday \
-        pandas.Timestamp.strptime \
-        pandas.Timestamp.time \
-        pandas.Timestamp.timetuple \
-        pandas.Timestamp.timetz \
-        pandas.Timestamp.to_datetime64 \
-        pandas.Timestamp.toordinal \
-        pandas.Timestamp.tzname \
-        pandas.Timestamp.utcoffset \
-        pandas.Timestamp.utctimetuple \
-        pandas.Timestamp.weekday \
-        pandas.arrays.DatetimeArray \
-        pandas.Timedelta.view \
-        pandas.Timedelta.as_unit \
-        pandas.Timedelta.ceil \
-        pandas.Timedelta.floor \
-        pandas.Timedelta.round \
-        pandas.Timedelta.to_pytimedelta \
-        pandas.Timedelta.to_timedelta64 \
-        pandas.Timedelta.to_numpy \
-        pandas.Timedelta.total_seconds \
-        pandas.arrays.TimedeltaArray \
-        pandas.Period.asfreq \
-        pandas.Period.now \
-        pandas.arrays.PeriodArray \
-        pandas.CategoricalDtype.categories \
-        pandas.CategoricalDtype.ordered \
-        pandas.Categorical.dtype \
-        pandas.Categorical.categories \
-        pandas.Categorical.ordered \
-        pandas.Categorical.codes \
-        pandas.Categorical.__array__ \
-        pandas.SparseDtype \
-        pandas.DatetimeTZDtype.unit \
-        pandas.DatetimeTZDtype.tz \
-        pandas.PeriodDtype.freq \
-        pandas.IntervalDtype.subtype \
-        pandas_dtype \
-        pandas.api.types.is_bool \
-        pandas.api.types.is_complex \
-        pandas.api.types.is_float \
-        pandas.api.types.is_integer \
-        pandas.api.types.pandas_dtype \
-        pandas.read_clipboard \
-        pandas.ExcelFile \
-        pandas.ExcelFile.parse \
-        pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.put \
-        pandas.HDFStore.append \
-        pandas.HDFStore.get \
-        pandas.HDFStore.select \
-        pandas.HDFStore.info \
-        pandas.HDFStore.keys \
         pandas.HDFStore.groups \
         pandas.HDFStore.walk \
         pandas.read_feather \
@@ -263,7 +205,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.core.groupby.SeriesGroupBy.fillna \
         pandas.io.formats.style.Styler \
         pandas.io.formats.style.Styler.from_custom_template \
         pandas.io.formats.style.Styler.set_caption \

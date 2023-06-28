@@ -851,6 +851,8 @@ class ExtensionArray:
         If ``periods > len(self)``, then an array of size
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
+
+        For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -993,7 +995,6 @@ class ExtensionArray:
         Returns
         -------
         values : ndarray
-
             An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
@@ -1002,6 +1003,12 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`. If needed, this can be
+        overridden in the ``self._hash_pandas_object()`` method.
         """
         return self.astype(object), np.nan
 
@@ -1449,7 +1456,7 @@ class ExtensionArray:
         """
         Hook for hash_pandas_object.
 
-        Default is likely non-performant.
+        Default is to use the values returned by _values_for_factorize.
 
         Parameters
         ----------
@@ -1463,7 +1470,7 @@ class ExtensionArray:
         """
         from pandas.core.util.hashing import hash_array
 
-        values = self.to_numpy(copy=False)
+        values, _ = self._values_for_factorize()
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
