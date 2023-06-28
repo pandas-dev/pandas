@@ -159,10 +159,15 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.where(err2, other1)
 
-        with pytest.raises(ValueError, match=msg):
-            df.mask(True)
-        with pytest.raises(ValueError, match=msg):
-            df.mask(0)
+    def test_where_scalar_cond(self):
+        df = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
+        result = df.where(True)
+        expected = df
+        tm.assert_frame_equal(result, expected)
+
+        result = df.where(False)
+        expected = DataFrame(np.nan, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result, expected)
 
     def test_where_set(self, where_frame, float_string_frame):
         # where inplace

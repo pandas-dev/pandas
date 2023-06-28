@@ -148,8 +148,6 @@ def test_where_error():
 
     msg = "Array conditional must be same shape as self"
     with pytest.raises(ValueError, match=msg):
-        s.where(1)
-    with pytest.raises(ValueError, match=msg):
         s.where(cond[:3].values, -s)
 
     # GH 2745
@@ -466,7 +464,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     tm.assert_frame_equal(res, pd.DataFrame(dr))
 
 
-def test_where_scalar_cond(self):
+def test_where_scalar_cond():
     # True
     ser = Series(pd.Categorical(["a", "b"]))
     result = ser.where(True)

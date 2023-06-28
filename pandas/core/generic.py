@@ -10102,7 +10102,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
-            if cond.shape != () and cond.shape != self.shape:
+            if cond.shape == ():
+                # Note: DataFrame(True, index=[1,2,3], columns=["a", "b", "c"]) works
+                # but DataFrame(np.array(True), index=[1,2,3], columns=["a", "b", "c"]) does not
+                # hence we need to unpack scalar
+                cond = cond.item()
+            elif cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
 
