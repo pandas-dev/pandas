@@ -584,20 +584,6 @@ class Block(PandasObject):
         return blk
 
     @final
-    def _get_values_and_refs(self, using_cow, inplace):
-        if using_cow:
-            if inplace and not self.refs.has_reference():
-                refs = self.refs
-                new_values = self.values
-            else:
-                refs = None
-                new_values = self.values.copy()
-        else:
-            refs = None
-            new_values = self.values if inplace else self.values.copy()
-        return new_values, refs
-
-    @final
     def _get_refs_and_copy(self, using_cow: bool, inplace: bool):
         refs = None
         arr_inplace = inplace
@@ -738,11 +724,10 @@ class Block(PandasObject):
 
         rx = re.compile(to_replace)
 
-        new_values, refs = self._get_values_and_refs(using_cow, inplace)
+        block = self._maybe_copy(using_cow, inplace)
 
-        replace_regex(new_values, rx, value, mask)
+        replace_regex(block.values, rx, value, mask)
 
-        block = self.make_block(new_values, refs=refs)
         return block.convert(copy=False, using_cow=using_cow)
 
     @final
