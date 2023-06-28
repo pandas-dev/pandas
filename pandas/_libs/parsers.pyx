@@ -1410,7 +1410,6 @@ STR_NA_VALUES = {
     "nan",
     "-nan",
     "",
-    "None",
 }
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
