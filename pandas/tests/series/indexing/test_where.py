@@ -464,3 +464,17 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+def test_where_scalar_cond(self):
+    # True
+    ser = Series(pd.Categorical(["a", "b"]))
+    result = ser.where(True)
+    expected = ser
+    tm.assert_series_equal(result, expected)
+
+    # False
+    ser = Series(pd.Categorical(["a", "b"]))
+    result = ser.where(False)
+    expected = Series(pd.Categorical([None, None], categories=["a", "b"]))
+    tm.assert_series_equal(result, expected)
