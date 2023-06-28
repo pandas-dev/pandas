@@ -78,6 +78,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
@@ -89,6 +90,8 @@ if TYPE_CHECKING:
         TakeIndexer,
         npt,
     )
+
+    from pandas import Index
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -118,6 +121,7 @@ class ExtensionArray:
     fillna
     equals
     insert
+    interpolate
     isin
     isna
     ravel
@@ -155,6 +159,7 @@ class ExtensionArray:
     * take
     * copy
     * _concat_same_type
+    * interpolate
 
     A default repr displaying the type, (truncated) data, length,
     and dtype is provided. It can be customized or replaced by
@@ -752,6 +757,27 @@ class ExtensionArray:
         if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmax")
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        fill_value,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See DataFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement interpolate"
+        )
 
     def fillna(
         self,

@@ -89,7 +89,7 @@ if TYPE_CHECKING:
         AxisInt,
         Frequency,
         IndexLabel,
-        QuantileInterpolation,
+        InterpolateOptions,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -885,7 +885,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def interpolate(
         self,
-        method: QuantileInterpolation = "linear",
+        method: InterpolateOptions = "linear",
         *,
         axis: Axis = 0,
         limit: int | None = None,
