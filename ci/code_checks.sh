@@ -106,8 +106,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.test \
         pandas.NaT \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.groups \
-        pandas.HDFStore.walk \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -120,11 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.__iter__ \
-        pandas.core.resample.Resampler.groups \
-        pandas.core.resample.Resampler.indices \
-        pandas.core.resample.Resampler.get_group \
-        pandas.core.resample.Resampler.ffill \
         pandas.core.resample.Resampler.asfreq \
         pandas.core.resample.Resampler.count \
         pandas.core.resample.Resampler.nunique \
