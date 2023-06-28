@@ -2658,7 +2658,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_construct_from_dict_ea_series(self):
-        # GH#53744
+        # GH#53744 -  default of copy=True should also apply for Series with extension dtype
         ser = Series([1, 2, 3], dtype="Int64")
         df = DataFrame({"a": ser})
         assert not np.shares_memory(ser.values._data, df["a"].values._data)
