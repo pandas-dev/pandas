@@ -9017,7 +9017,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9043,8 +9043,6 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
-        sort : bool, default True
-            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9144,15 +9142,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_multi_level_cols2.stack(0)
                      kg    m
-        cat height  NaN  2.0
-            weight  1.0  NaN
-        dog height  NaN  4.0
-            weight  3.0  NaN
+        cat weight  1.0  NaN
+            height  NaN  2.0
+        dog weight  3.0  NaN
+            height  NaN  4.0
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  height  m     2.0
-             weight  kg    1.0
-        dog  height  m     4.0
-             weight  kg    3.0
+        cat  weight  kg    1.0
+             height  m     2.0
+        dog  weight  kg    3.0
+             height  m     4.0
         dtype: float64
 
         **Dropping missing values**
@@ -9188,9 +9186,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            result = stack_multiple(self, level, dropna=dropna)
         else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+            result = stack(self, level, dropna=dropna)
 
         return result.__finalize__(self, method="stack")
 

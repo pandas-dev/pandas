@@ -1099,7 +1099,7 @@ class TestDataFrameReshape:
         "labels,data",
         [
             (list("xyz"), [10, 11, 12, 13, 14, 15]),
-            (list("zyx"), [14, 15, 12, 13, 10, 11]),
+            (list("zyx"), [10, 11, 12, 13, 14, 15]),
         ],
     )
     def test_stack_multi_preserve_categorical_dtype(self, ordered, labels, data):
@@ -1107,10 +1107,10 @@ class TestDataFrameReshape:
         cidx = pd.CategoricalIndex(labels, categories=sorted(labels), ordered=ordered)
         cidx2 = pd.CategoricalIndex(["u", "v"], ordered=ordered)
         midx = MultiIndex.from_product([cidx, cidx2])
-        df = DataFrame([sorted(data)], columns=midx)
+        df = DataFrame([data], columns=midx)
         result = df.stack([0, 1])
 
-        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
+        s_cidx = pd.CategoricalIndex(labels, ordered=ordered)
         expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
 
         tm.assert_series_equal(result, expected)
@@ -1400,8 +1400,8 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     tm.assert_frame_equal(res, expected)
 
 
-def test_stack_sort_false():
-    # GH 15105
+def test_stack_nosort():
+    # GH 15105, GH 53825
     data = [[1, 2, 3.0, 4.0], [2, 3, 4.0, 5.0], [3, 4, np.nan, np.nan]]
     df = DataFrame(
         data,
@@ -1409,7 +1409,7 @@ def test_stack_sort_false():
             levels=[["B", "A"], ["x", "y"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
         ),
     )
-    result = df.stack(level=0, sort=False)
+    result = df.stack(level=0)
     expected = DataFrame(
         {"x": [1.0, 3.0, 2.0, 4.0, 3.0], "y": [2.0, 4.0, 3.0, 5.0, 4.0]},
         index=MultiIndex.from_arrays([[0, 0, 1, 1, 2], ["B", "A", "B", "A", "B"]]),
@@ -1421,15 +1421,15 @@ def test_stack_sort_false():
         data,
         columns=MultiIndex.from_arrays([["B", "B", "A", "A"], ["x", "y", "x", "y"]]),
     )
-    result = df.stack(level=0, sort=False)
+    result = df.stack(level=0)
     tm.assert_frame_equal(result, expected)
 
 
-def test_stack_sort_false_multi_level():
-    # GH 15105
+def test_stack_nosort_multi_level():
+    # GH 15105, GH 53825
     idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
     df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=idx)
-    result = df.stack([0, 1], sort=False)
+    result = df.stack([0, 1])
     expected_index = MultiIndex.from_tuples(
         [
             ("cat", "weight", "kg"),
@@ -1999,13 +1999,12 @@ Thu,Lunch,Yes,51.51,17"""
         ),
     )
     @pytest.mark.parametrize("stack_lev", range(2))
-    @pytest.mark.parametrize("sort", [True, False])
-    def test_stack_order_with_unsorted_levels(self, levels, stack_lev, sort):
+    def test_stack_order_with_unsorted_levels(self, levels, stack_lev):
         # GH#16323
         # deep check for 1-row case
         columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(columns=columns, data=[range(4)])
-        df_stacked = df.stack(stack_lev, sort=sort)
+        df_stacked = df.stack(stack_lev)
         for row in df.index:
             for col in df.columns:
                 expected = df.loc[row, col]
@@ -2037,7 +2036,7 @@ Thu,Lunch,Yes,51.51,17"""
         stack_lev = 1
         columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(columns=columns, data=[range(4)], index=[1, 0, 2, 3])
-        result = df.stack(stack_lev, sort=True)
+        result = df.stack(stack_lev)
         expected_index = MultiIndex(
             levels=[[0, 1, 2, 3], [0, 1]],
             codes=[[1, 1, 0, 0, 2, 2, 3, 3], [1, 0, 1, 0, 1, 0, 1, 0]],
