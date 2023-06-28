@@ -65,7 +65,7 @@ class TestConcatAppendCommon:
             assert obj.dtype == typ
         elif isinstance(obj, Series):
             if typ.startswith("period"):
-                assert obj.dtype == "period[M]"
+                assert obj.dtype == "Period[M]"
             else:
                 assert obj.dtype == typ
 

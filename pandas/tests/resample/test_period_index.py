@@ -894,20 +894,18 @@ class TestPeriodIndex:
 
 
 def test_period_index_frequency_ME_error_message():
-    freq = "2ME"
-    msg = f"Invalid frequency: {freq}"
+    msg = "Invalid frequency: 2ME"
 
     with pytest.raises(ValueError, match=msg):
-        PeriodIndex([Period("2013-01", freq), Period("2013-12", freq)])
+        PeriodIndex([Period("2013-01", "2ME"), Period("2013-12", "2ME")])
 
 
 def test_resample_frequency_ME_error_message(series_and_frame):
-    freq = "2ME"
-    msg = f"Invalid frequency: {freq}"
+    msg = "Invalid frequency: 2ME"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
-        obj.resample(freq)
+        obj.resample("2ME")
 
 
 def test_asfreq_resample_frequency_M_deprecated(series_and_frame):
@@ -931,12 +929,11 @@ def test_resample_from_period_deprecated():
 
 
 def test_resample_from_offset_deprecated():
-    freq = "2ME"
-    msg = f"Invalid frequency: {freq}"
+    msg = "Invalid frequency: 2ME"
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     with pytest.raises(ValueError, match=msg):
-        s.to_period().resample(freq)
+        s.to_period().resample("2ME")
 
 
 def test_asfreq_frequency_M_deprecated():

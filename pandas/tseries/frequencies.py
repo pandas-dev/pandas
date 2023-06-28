@@ -104,8 +104,6 @@ def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
-    if offset_str == "ME":
-        return "M"
     return _offset_to_period_map.get(offset_str, None)
 
 

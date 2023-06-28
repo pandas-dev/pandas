@@ -572,8 +572,8 @@ class TestPeriodFrameArithmetic:
                 "B": [Period("2015-05", freq="M"), Period("2015-06", freq="M")],
             }
         )
-        assert df2["A"].dtype == "period[M]"
-        assert df2["B"].dtype == "period[M]"
+        assert df2["A"].dtype == "Period[M]"
+        assert df2["B"].dtype == "Period[M]"
 
         exp = pd.DataFrame(
             {
