@@ -7,8 +7,6 @@ import tokenize
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._config import using_copy_on_write
-
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -377,7 +375,7 @@ def eval(
                 try:
                     target = env.target
                     if isinstance(target, NDFrame):
-                        target = target.copy(deep=not using_copy_on_write())
+                        target = target.copy(deep=None)
                     else:
                         target = target.copy()
                 except AttributeError as err:
