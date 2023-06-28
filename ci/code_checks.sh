@@ -105,41 +105,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.arrays.TimedeltaArray \
-        pandas.Period.asfreq \
-        pandas.Period.now \
-        pandas.arrays.PeriodArray \
-        pandas.CategoricalDtype.categories \
-        pandas.CategoricalDtype.ordered \
-        pandas.Categorical.dtype \
-        pandas.Categorical.categories \
-        pandas.Categorical.ordered \
-        pandas.Categorical.codes \
-        pandas.Categorical.__array__ \
-        pandas.SparseDtype \
-        pandas.DatetimeTZDtype.unit \
-        pandas.DatetimeTZDtype.tz \
-        pandas.PeriodDtype.freq \
-        pandas.IntervalDtype.subtype \
-        pandas_dtype \
-        pandas.api.types.is_bool \
-        pandas.api.types.is_complex \
-        pandas.api.types.is_float \
-        pandas.api.types.is_integer \
-        pandas.api.types.pandas_dtype \
-        pandas.read_clipboard \
-        pandas.ExcelFile \
-        pandas.ExcelFile.parse \
-        pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.put \
-        pandas.HDFStore.append \
-        pandas.HDFStore.get \
-        pandas.HDFStore.select \
-        pandas.HDFStore.info \
-        pandas.HDFStore.keys \
-        pandas.HDFStore.groups \
-        pandas.HDFStore.walk \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -152,11 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.__iter__ \
-        pandas.core.resample.Resampler.groups \
-        pandas.core.resample.Resampler.indices \
-        pandas.core.resample.Resampler.get_group \
-        pandas.core.resample.Resampler.ffill \
         pandas.core.resample.Resampler.asfreq \
         pandas.core.resample.Resampler.count \
         pandas.core.resample.Resampler.nunique \
@@ -270,6 +231,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.factorize \
         pandas.api.extensions.ExtensionArray.fillna \
         pandas.api.extensions.ExtensionArray.insert \
+        pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
