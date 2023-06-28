@@ -8,6 +8,8 @@ import os
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -105,13 +107,16 @@ def test_categorical_dtype_missing(all_parsers):
 
 @xfail_pyarrow
 @pytest.mark.slow
-def test_categorical_dtype_high_cardinality_numeric(all_parsers):
+def test_categorical_dtype_high_cardinality_numeric(all_parsers, monkeypatch):
     # see gh-18186
+    # was an issue with C parser, due to DEFAULT_BUFFER_HEURISTIC
     parser = all_parsers
-    data = np.sort([str(i) for i in range(524289)])
+    heuristic = 2**5
+    data = np.sort([str(i) for i in range(heuristic + 1)])
     expected = DataFrame({"a": Categorical(data, ordered=True)})
-
-    actual = parser.read_csv(StringIO("a\n" + "\n".join(data)), dtype="category")
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        actual = parser.read_csv(StringIO("a\n" + "\n".join(data)), dtype="category")
     actual["a"] = actual["a"].cat.reorder_categories(
         np.sort(actual.a.cat.categories), ordered=True
     )
