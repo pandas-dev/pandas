@@ -4534,7 +4534,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
-        by_row: Literal[False, "compat", "_compat"] = "compat",
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4562,7 +4562,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        by_row : False, "compat" or "_compat", default "compat"
+        by_row : False or "compat", default "compat"
             If False, the func will be passed the whole Series at once.
             If ``"compat"`` and func is a callable, func will be passed each element of
             the Series, like ``Series.map``. If func is a list or dict of
@@ -4570,7 +4570,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             that doesn't work, will try call to apply again with ``by_row="compat"``
             and if that fails, will call apply again with ``by_row=False``
             (backward compatible).
-            ``"_compat"`` is used internally and should not be used directly.
 
             ``by_row`` has no effect when ``func`` is a string.
 
