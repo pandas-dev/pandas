@@ -364,39 +364,39 @@ def nodefault_not_used_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]
     Yields
     ------
     line_number : int
-        Line number of unconcatenated string.
+        Line number of misused lib.NoDefault.
     msg : str
         Explanation of the error.
     """
     contents = file_obj.read()
     tree = ast.parse(contents)
-    for node in ast.walk(tree):
-        for child in ast.iter_child_nodes(node):
-            child.parent = node
+    in_annotation = False
+    nodes: List[tuple[bool, ast.AST]] = [(in_annotation, tree)]
 
-    def child_of(node, types):
-        """Check if any ancestor of the node has the specified type.
-
-        Parameters
-        ----------
-        node : AST
-            A node in the AST.
-        types : tuple of classes
-            The types as in `ininstance(xxx, types)`.
-        """
-        curnode = getattr(node, "parent", None)
-        while curnode is not None:
-            if isinstance(curnode, types):
-                return True
-            curnode = getattr(curnode, "parent", None)
-        return False
-
-    for node in ast.walk(tree):
-        if (isinstance(node, ast.Name) and node.id == "NoDefault") or (
-            isinstance(node, ast.Attribute) and node.attr == "NoDefault"
+    while nodes:
+        in_annotation, node = nodes.pop()
+        if not in_annotation and (
+            isinstance(node, ast.Name)  # Case `NoDefault`
+            and node.id == "NoDefault"
+            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+            and node.attr == "NoDefault"
         ):
-            if not child_of(node, (ast.AnnAssign, ast.arg)):
-                yield (node.lineno, "NoDefault is not used for typing")
+            yield (node.lineno, "NoDefault is not used for typing")
+
+        # This part is adapted from
+        # https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+        for name in reversed(node._fields):
+            value = getattr(node, name)
+            if name in {"annotation", "returns"}:
+                next_in_annotation = True
+            else:
+                next_in_annotation = in_annotation
+            if isinstance(value, ast.AST):
+                nodes.append((next_in_annotation, value))
+            elif isinstance(value, list):
+                for value in reversed(value):
+                    if isinstance(value, ast.AST):
+                        nodes.append((next_in_annotation, value))
 
 
 def main(
@@ -460,7 +460,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}",
+        default="{source_path}:{line_number}: {msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(
