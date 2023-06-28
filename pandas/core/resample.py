@@ -1080,6 +1080,25 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute min value of group.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('M').min()
+        2023-01-31    1
+        2023-02-28    3
+        Freq: M, dtype: int64
+        """
+
         maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
         nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)

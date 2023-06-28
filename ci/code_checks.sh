@@ -125,7 +125,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.resample.Resampler.indices \
         pandas.core.resample.Resampler.get_group \
         pandas.core.resample.Resampler.ffill \
-        pandas.core.resample.Resampler.min \
         pandas.core.resample.Resampler.ohlc \
         pandas.core.resample.Resampler.prod \
         pandas.core.resample.Resampler.size \
