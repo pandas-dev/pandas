@@ -340,7 +340,7 @@ repos:
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
         types_or: [python, cython]
     -   id: unwanted-patterns-nodefault-not-used-for-typing
-        name: Check for pandas._libs.lib.NoDefault not used for typing
+        name: Check for `pandas._libs.lib.NoDefault` not used for typing
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_not_used_for_typing"
         types_or: [python]
