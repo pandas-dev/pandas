@@ -6692,6 +6692,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         return res.__finalize__(self, method="infer_objects")
 
+
+    @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
     @final
     def convert_dtypes(
         self,
@@ -6721,6 +6723,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
+
         {dtype_backend_options}
 
             .. versionadded:: 2.0
