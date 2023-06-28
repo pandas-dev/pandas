@@ -368,7 +368,8 @@ class BaseBlockManager(DataManager):
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
         if using_copy_on_write() and not self._has_no_reference(0):
-            # Split blocks to only copy the columns we want to modify, only 1 block
+            # this method is only called if there is a single block -> hardcoded 0
+            # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
                 blk_loc = self.blklocs[indexer[1]]
                 if is_list_like(blk_loc) and blk_loc.ndim == 2:
@@ -387,7 +388,7 @@ class BaseBlockManager(DataManager):
                         0, blk_loc, values
                     )
                     # first block equals values
-                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+                    self.blocks[0].setitem((indexer[0], slice(None)), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager

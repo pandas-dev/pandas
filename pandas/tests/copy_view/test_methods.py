@@ -1317,8 +1317,10 @@ def test_droplevel(using_copy_on_write):
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column / block
     df2.iloc[0, 0] = 0
