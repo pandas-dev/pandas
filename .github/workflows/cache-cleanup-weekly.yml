@@ -1,8 +1,8 @@
-name: Clean caches older than 1 week
+name: Purge caches once a week
 on:
   schedule:
-    # 4:10 UTC every day
-    - cron: "10 4 * * *"
+    # 4:10 UTC on Sunday
+    - cron: "10 4 * * 0"
 
 jobs:
   cleanup:
@@ -15,20 +15,14 @@ jobs:
           REPO=${{ github.repository }}
 
           echo "Fetching list of cache key"
-          oldCaches=$(gh api -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" /repos/pandas-dev/pandas/actions/caches --jq '.actions_caches' --paginate)
-          weekAgo=$(date --date="7 day ago" +%s)
+          allCaches=$(gh actions-cache list -R $REPO | cut -f 1 )
 
           ## Setting this to not fail the workflow while deleting cache keys.
           set +e
-          echo "Deleting old caches..."
-          for cacheData in $oldCaches
+          echo "Deleting caches..."
+          for cacheKey in $allCaches
           do
-              createdAt=$(date -d $(jq '.created_at' $cacheData) +%s)
-              if [[ createdAt < weekAgo ]] ;
-              then
-                cacheKey=$(jq '.key' $cacheData)
-                gh actions-cache delete $cacheKey -R $REPO --confirm
-              fi
+              gh actions-cache delete $cacheKey -R $REPO --confirm
           done
           echo "Done"
         env:
