@@ -584,20 +584,6 @@ class Block(PandasObject):
         return blk
 
     @final
-    def _get_values_and_refs(self, using_cow, inplace):
-        if using_cow:
-            if inplace and not self.refs.has_reference():
-                refs = self.refs
-                new_values = self.values
-            else:
-                refs = None
-                new_values = self.values.copy()
-        else:
-            refs = None
-            new_values = self.values if inplace else self.values.copy()
-        return new_values, refs
-
-    @final
     def _get_refs_and_copy(self, using_cow: bool, inplace: bool):
         refs = None
         arr_inplace = inplace
@@ -738,11 +724,10 @@ class Block(PandasObject):
 
         rx = re.compile(to_replace)
 
-        new_values, refs = self._get_values_and_refs(using_cow, inplace)
+        block = self._maybe_copy(using_cow, inplace)
 
-        replace_regex(new_values, rx, value, mask)
+        replace_regex(block.values, rx, value, mask)
 
-        block = self.make_block(new_values, refs=refs)
         return block.convert(copy=False, using_cow=using_cow)
 
     @final
@@ -1473,12 +1458,11 @@ class Block(PandasObject):
         new_values = algos.diff(self.values.T, n, axis=0).T
         return [self.make_block(values=new_values)]
 
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
+    def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
+        axis = self.ndim - 1
 
         # Note: periods is never 0 here, as that is handled at the top of
         #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
@@ -1500,19 +1484,18 @@ class Block(PandasObject):
             )
         except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
-            return nb.shift(periods, axis=axis, fill_value=fill_value)
+            return nb.shift(periods, fill_value=fill_value)
 
         else:
             values = cast(np.ndarray, self.values)
             new_values = shift(values, periods, axis, casted)
-            return [self.make_block(new_values)]
+            return [self.make_block_same_class(new_values)]
 
     @final
     def quantile(
         self,
         qs: Index,  # with dtype float64
         interpolation: QuantileInterpolation = "linear",
-        axis: AxisInt = 0,
     ) -> Block:
         """
         compute the quantiles of the
@@ -1523,8 +1506,6 @@ class Block(PandasObject):
             The quantiles to be computed in float64.
         interpolation : str, default 'linear'
             Type of interpolation.
-        axis : int, default 0
-            Axis to compute.
 
         Returns
         -------
@@ -1532,7 +1513,6 @@ class Block(PandasObject):
         """
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
-        assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
@@ -1655,6 +1635,18 @@ class EABackedBlock(Block):
     """
 
     values: ExtensionArray
+
+    def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        # Transpose since EA.shift is always along axis=0, while we want to shift
+        #  along rows.
+        new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
+        return [self.make_block_same_class(new_values)]
 
     def setitem(self, indexer, value, using_cow: bool = False):
         """
@@ -2108,18 +2100,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
-        """
-        Shift the block by `periods`.
-
-        Dispatches to underlying ExtensionArray and re-boxes in an
-        ExtensionBlock.
-        """
-        new_values = self.values.shift(periods=periods, fill_value=fill_value)
-        return [self.make_block_same_class(new_values)]
-
     def _unstack(
         self,
         unstacker,
@@ -2225,13 +2205,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
-        values = self.values
-        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        return [self.make_block_same_class(new_values)]
 
 
 def _catch_deprecated_value_error(err: Exception) -> None:
