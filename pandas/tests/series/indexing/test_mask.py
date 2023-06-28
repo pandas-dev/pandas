@@ -31,9 +31,11 @@ def test_mask():
     rs2 = s2.mask(cond[:3], -s2)
     tm.assert_series_equal(rs, rs2)
 
+    # test scalar
+    assert s.mask(True).isna().all()
+    tm.assert_series_equal(s.mask(False), s)
+
     msg = "Array conditional must be same shape as self"
-    with pytest.raises(ValueError, match=msg):
-        s.mask(1)
     with pytest.raises(ValueError, match=msg):
         s.mask(cond[:3].values, -s)
 

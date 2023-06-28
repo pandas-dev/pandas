@@ -10472,7 +10472,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         cond = common.apply_if_callable(cond, self)
 
         # see gh-21891
-        if not hasattr(cond, "__invert__"):
+        if not hasattr(cond, "shape") or not hasattr(cond, "__invert__"):
+            # testing __invert__ not enough, e.g. `~True` is `-2`.
             cond = np.array(cond)
 
         return self.where(
