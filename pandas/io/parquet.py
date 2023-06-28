@@ -104,10 +104,37 @@ def _get_path_or_handle(
                 f"not a {type(fs).__name__}"
             )
     if is_fsspec_url(path_or_handle) and fs is None:
+        err_types_to_retry_with_anon: list[Any] = []
+        try:
+            import_optional_dependency("botocore")
+            from botocore.exceptions import (
+                ClientError,
+                NoCredentialsError,
+            )
+
+            err_types_to_retry_with_anon = [
+                ClientError,
+                NoCredentialsError,
+                PermissionError,
+            ]
+        except ImportError:
+            pass
+
+        fsspec_mode = mode
+        try:
+            if fs is None:
+                fsspec = import_optional_dependency("fsspec")
+            file_obj = fsspec.open(
+                path_or_handle, mode=fsspec_mode, **(storage_options or {})
+            ).open()
+        # GH 34626 Reads from Public Buckets without Credentials needs anon=True
+        except tuple(err_types_to_retry_with_anon):
+            storage_options = {"anon": True}
+        
         if storage_options is None:
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
-
+            
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
             except (TypeError, pa.ArrowInvalid):
@@ -255,6 +282,7 @@ class PyArrowImpl(BaseImpl):
             storage_options=storage_options,
             mode="rb",
         )
+
         try:
             pa_table = self.api.parquet.read_table(
                 path_or_handle, columns=columns, filesystem=filesystem, **kwargs
