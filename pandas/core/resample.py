@@ -524,7 +524,8 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-28    4
         Freq: M, dtype: int64
 
-        Example for ``ffill`` with upsampling (we have more dates after resampling):
+        Example for ``ffill`` with upsampling (fill the new dates with
+        the previous value):
 
         >>> ser.resample('W').ffill()
         2023-01-01    1
@@ -537,8 +538,8 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-19    4
         Freq: W-SUN, dtype: int64
 
-        With upsampling and limiting (we have more dates after resampling but
-        we cannot fill them all because of the given limit):
+        With upsampling and limiting (only fill the first new date with the
+        previous value):
 
         >>> ser.resample('W').ffill(limit=1)
         2023-01-01    1.0
