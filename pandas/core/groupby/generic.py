@@ -868,7 +868,7 @@ class SeriesGroupBy(GroupBy[Series]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -911,6 +911,8 @@ class SeriesGroupBy(GroupBy[Series]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2390,7 +2392,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -2433,6 +2435,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------

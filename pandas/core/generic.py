@@ -6871,25 +6871,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
-    def _deprecate_downcast(self, downcast) -> None:
-        if isinstance(downcast, dict):
-            # GH#40988
-            for dc in downcast.values():
-                if dc is not None and dc is not False and dc != "infer":
-                    warnings.warn(
-                        "downcast entries other than None, False, and 'infer' "
-                        "are deprecated and will raise in a future version",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-        elif downcast is not None and downcast is not False and downcast != "infer":
-            # GH#40988
+    def _deprecate_downcast(self, downcast, method_name: str):
+        # GH#40988
+        if downcast is not lib.no_default:
             warnings.warn(
-                "downcast other than None, False, and 'infer' are deprecated "
-                "and will raise in a future version",
+                f"The 'downcast' keyword in {method_name} is deprecated and "
+                "will be removed in a future version. Use "
+                "res.infer_objects(copy=False) to infer non-object dtype, or "
+                "pd.to_numeric with the 'downcast' keyword to downcast numeric "
+                "results.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        else:
+            downcast = None
+        return downcast
 
     @final
     def _pad_or_backfill(
@@ -6978,7 +6974,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         inplace: bool_t = False,
         limit: int | None = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Fill NA/NaN values using the specified method.
@@ -7097,7 +7093,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
 
-        self._deprecate_downcast(downcast)
+        was_no_default = downcast is lib.no_default
+        downcast = self._deprecate_downcast(downcast, "fillna")
 
         # set the default here, so functions examining the signaure
         # can detect if something was set (e.g. in groupby) (GH9221)
@@ -7114,7 +7111,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 axis=axis,
                 limit=limit,
                 inplace=inplace,
-                downcast=downcast,
+                # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+                # has incompatible type "Union[Dict[Any, Any], None,
+                # Literal[_NoDefault.no_default]]"; expected
+                # "Optional[Dict[Any, Any]]"
+                downcast=downcast,  # type: ignore[arg-type]
             )
         else:
             if self.ndim == 1:
@@ -7158,13 +7159,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if k not in result:
                         continue
 
-                    # error: Item "None" of "Optional[Dict[Any, Any]]" has no
-                    # attribute "get"
-                    downcast_k = (
-                        downcast
-                        if not is_dict
-                        else downcast.get(k)  # type: ignore[union-attr]
-                    )
+                    if was_no_default:
+                        downcast_k = lib.no_default
+                    else:
+                        downcast_k = (
+                            # error: Incompatible types in assignment (expression
+                            # has type "Union[Dict[Any, Any], None,
+                            # Literal[_NoDefault.no_default], Any]", variable has
+                            # type "_NoDefault")
+                            downcast  # type: ignore[assignment]
+                            if not is_dict
+                            # error: Item "None" of "Optional[Dict[Any, Any]]" has
+                            # no attribute "get"
+                            else downcast.get(k)  # type: ignore[union-attr]
+                        )
 
                     res_k = result[k].fillna(v, limit=limit, downcast=downcast_k)
 
@@ -7237,7 +7245,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
 
@@ -7248,7 +7256,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -7259,7 +7267,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
 
@@ -7271,7 +7279,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
@@ -7310,10 +7318,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   3.0
         dtype: float64
         """
-        self._deprecate_downcast(downcast)
+        downcast = self._deprecate_downcast(downcast, "ffill")
 
         return self._pad_or_backfill(
-            "ffill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+            "ffill",
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+            # has incompatible type "Union[Dict[Any, Any], None,
+            # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
+            downcast=downcast,  # type: ignore[arg-type]
         )
 
     @final
@@ -7324,7 +7339,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
@@ -7353,7 +7368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[False] = ...,
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> Self:
         ...
 
@@ -7364,7 +7379,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: Literal[True],
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> None:
         ...
 
@@ -7375,7 +7390,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = ...,
         inplace: bool_t = ...,
         limit: None | int = ...,
-        downcast: dict | None = ...,
+        downcast: dict | None | lib.NoDefault = ...,
     ) -> Self | None:
         ...
 
@@ -7387,7 +7402,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
@@ -7408,12 +7423,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    2.0
         3    2.0
         dtype: float64
-        >>> s.bfill(downcast='infer')
-        0    1
-        1    2
-        2    2
-        3    2
-        dtype: int64
         >>> s.bfill(limit=1)
         0    1.0
         1    NaN
@@ -7436,16 +7445,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   4.0   5.0
         2   4.0   7.0
         3   4.0   7.0
-        >>> df.bfill(downcast='infer', limit=1)
-              A	   B
-        0   1.0    5
-        1   NaN    5
-        2   4.0    7
-        3   4.0    7
+        >>> df.bfill(limit=1)
+              A     B
+        0   1.0   5.0
+        1   NaN   5.0
+        2   4.0   7.0
+        3   4.0   7.0
         """
-        self._deprecate_downcast(downcast)
+        downcast = self._deprecate_downcast(downcast, "bfill")
         return self._pad_or_backfill(
-            "bfill", axis=axis, inplace=inplace, limit=limit, downcast=downcast
+            "bfill",
+            axis=axis,
+            inplace=inplace,
+            limit=limit,
+            # error: Argument "downcast" to "_fillna_with_method" of "NDFrame"
+            # has incompatible type "Union[Dict[Any, Any], None,
+            # Literal[_NoDefault.no_default]]"; expected "Optional[Dict[Any, Any]]"
+            downcast=downcast,  # type: ignore[arg-type]
         )
 
     @final
@@ -7456,7 +7472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: None | Axis = None,
         inplace: bool_t = False,
         limit: None | int = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
         Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
@@ -7761,7 +7777,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace: bool_t = False,
         limit_direction: Literal["forward", "backward", "both"] | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
-        downcast: Literal["infer"] | None = None,
+        downcast: Literal["infer"] | None | lib.NoDefault = lib.no_default,
         **kwargs,
     ) -> Self | None:
         """
@@ -7832,6 +7848,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
+
+            .. deprecated:: 2.1.0
+
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
 
@@ -7930,6 +7949,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3    16.0
         Name: d, dtype: float64
         """
+        if downcast is not lib.no_default:
+            # GH#40988
+            warnings.warn(
+                f"The 'downcast' keyword in {type(self).__name__}.interpolate "
+                "is deprecated and will be removed in a future version. "
+                "Call result.infer_objects(copy=False) on the result instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            downcast = None
         if downcast is not None and downcast != "infer":
             raise ValueError("downcast must be either None or 'infer'")
 

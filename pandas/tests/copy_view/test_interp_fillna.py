@@ -218,7 +218,9 @@ def test_fillna_inplace(using_copy_on_write, downcast):
     arr_a = get_array(df, "a")
     arr_b = get_array(df, "b")
 
-    df.fillna(5.5, inplace=True, downcast=downcast)
+    msg = "The 'downcast' keyword in fillna is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.fillna(5.5, inplace=True, downcast=downcast)
     assert np.shares_memory(get_array(df, "a"), arr_a)
     assert np.shares_memory(get_array(df, "b"), arr_b)
     if using_copy_on_write:

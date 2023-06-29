@@ -207,26 +207,30 @@ def __internal_pivot_table(
                 to_unstack.append(i)
             else:
                 to_unstack.append(name)
-        table = agged.unstack(to_unstack)
+        table = agged.unstack(to_unstack, fill_value=fill_value)
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
-            table = table.reindex(m, axis=0)
+            table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
-            table = table.reindex(m, axis=1)
+            table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if sort is True and isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table.fillna(fill_value)
+        if aggfunc is len and not observed and lib.is_integer(fill_value):
+            # TODO: can we avoid this?  this used to be handled by
+            #  downcast="infer" in fillna
+            table = table.astype(np.int64)
 
     if margins:
         if dropna:
