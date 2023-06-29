@@ -2201,7 +2201,13 @@ def _get_timestamp_range_edges(
         last = last.normalize()
 
         if closed == "left":
-            first = Timestamp(freq.rollback(first))
+            if isinstance(origin, Timestamp):
+                if first - freq >= origin:
+                    first = Timestamp(first - freq)
+                else:
+                    first = Timestamp(freq.rollback(first))
+            else:
+                first = Timestamp(freq.rollback(first))
         else:
             first = Timestamp(first - freq)
 
