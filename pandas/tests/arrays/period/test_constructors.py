@@ -56,6 +56,15 @@ def test_from_datetime64_freq_changes():
     tm.assert_period_array_equal(result, expected)
 
 
+def test_from_datetime64_freq_2M():
+    arr = np.array(
+        ["2020-01-01T00:00:00", "2020-01-02T00:00:00"], dtype="datetime64[ns]"
+    )
+    result = PeriodArray._from_datetime64(arr, "2M")
+    expected = period_array(["2020-01", "2020-01"], freq="2M")
+    tm.assert_period_array_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "data, freq, msg",
     [

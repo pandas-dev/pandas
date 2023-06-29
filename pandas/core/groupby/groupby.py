@@ -753,6 +753,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2  7  8  9
         >>> df.groupby(by=["a"]).groups
         {1: [0, 1], 7: [2]}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('M').groups
+        {Timestamp('2023-01-31 00:00:00'): 2, Timestamp('2023-02-28 00:00:00'): 4}
         """
         return self.grouper.groups
 
@@ -794,6 +807,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
         {1: array([0, 1]), 7: array([2])}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('M').indices
+        defaultdict(<class 'list'>, {Timestamp('2023-01-31 00:00:00'): [0, 1],
+        Timestamp('2023-02-28 00:00:00'): [2, 3]})
         """
         return self.grouper.indices
 
@@ -965,6 +992,21 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('M').get_group('2023-01-31')
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
         """
         inds = self._get_index(name)
         if not len(inds):
@@ -1032,6 +1074,27 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         (7,)
            a  b  c
         2  7  8  9
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> for x, y in ser.resample('M'):
+        ...     print(f'{x}\\n{y}\\n')
+        2023-01-31 00:00:00
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
+        2023-02-28 00:00:00
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
         """
         keys = self.keys
         level = self.level
