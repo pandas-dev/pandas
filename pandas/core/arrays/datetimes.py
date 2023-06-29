@@ -2131,10 +2131,10 @@ default 'raise'
 
         Examples
         --------
-        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
-        >>> tdelta_idx
-        TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
         >>> tdelta_idx.std()
         Timedelta('1 days 00:00:00')
         """
