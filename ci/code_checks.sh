@@ -152,9 +152,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.RangeIndex.stop \
         pandas.RangeIndex.step \
         pandas.RangeIndex.from_range \
-        pandas.IntervalIndex.values \
-        pandas.IntervalIndex.to_tuples \
-        pandas.MultiIndex.dtypes \
         pandas.MultiIndex.drop \
         pandas.DatetimeIndex.snap \
         pandas.DatetimeIndex.as_unit \

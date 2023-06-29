@@ -796,7 +796,22 @@ class MultiIndex(Index):
     @cache_readonly
     def dtypes(self) -> Series:
         """
-        Return the dtypes as a Series for the underlying MultiIndex.
+        Return the dtypes as a :class:`pandas.Series` for the underlying
+        :class:`pandas.MultiIndex`.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1), ("a", "b")])
+        >>> idx
+        MultiIndex([(0, 'a'),
+                    (0, 'b'),
+                    (1, 'a'),
+                    (1, 'b')],
+                   )
+        >>> idx.dtypes
+        level_0     int64
+        level_1    object
+        dtype: object
         """
         from pandas import Series
 
