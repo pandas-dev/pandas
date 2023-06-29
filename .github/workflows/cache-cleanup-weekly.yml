@@ -15,7 +15,7 @@ jobs:
           REPO=${{ github.repository }}
 
           echo "Fetching list of cache key"
-          allCaches=$(gh actions-cache list -R $REPO | cut -f 1 )
+          allCaches=$(gh actions-cache list -L 100 -R $REPO | cut -f 1 )
 
           ## Setting this to not fail the workflow while deleting cache keys.
           set +e
