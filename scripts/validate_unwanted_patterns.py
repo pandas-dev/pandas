@@ -353,7 +353,7 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
-def nodefault_not_used_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
     """Test case where pandas._libs.lib.NoDefault is not used for typing.
 
     Parameters
@@ -381,7 +381,7 @@ def nodefault_not_used_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]
             or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
             and node.attr == "NoDefault"
         ):
-            yield (node.lineno, "NoDefault is not used for typing")
+            yield (node.lineno, "NoDefault is used not only for typing")
 
         # This part is adapted from
         # https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
@@ -451,7 +451,7 @@ if __name__ == "__main__":
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
-        "nodefault_not_used_for_typing",
+        "nodefault_used_not_only_for_typing",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")

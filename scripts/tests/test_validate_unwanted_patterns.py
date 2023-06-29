@@ -377,7 +377,7 @@ class TestStringsWithWrongPlacedWhitespace:
         assert result == expected
 
 
-class TestNoDefaultNotUsedForTyping:
+class TestNoDefaultUsedNotOnlyForTyping:
     @pytest.mark.parametrize(
         "data",
         [
@@ -401,9 +401,9 @@ b: lib.NoDefault = lib.no_default
             ),
         ],
     )
-    def test_nodefault_not_used_for_typing(self, data):
+    def test_nodefault_used_not_only_for_typing(self, data):
         fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.nodefault_not_used_for_typing(fd))
+        result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == []
 
     @pytest.mark.parametrize(
@@ -440,7 +440,7 @@ if a is NoDefault:
             ),
         ],
     )
-    def test_nodefault_not_used_for_typing_raises(self, data, expected):
+    def test_nodefault_used_not_only_for_typing_raises(self, data, expected):
         fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.nodefault_not_used_for_typing(fd))
+        result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == expected
