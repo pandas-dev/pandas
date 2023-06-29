@@ -89,7 +89,7 @@ if TYPE_CHECKING:
         AxisInt,
         Frequency,
         IndexLabel,
-        QuantileInterpolation,
+        InterpolateOptions,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -503,6 +503,54 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.fillna: Fill NA/NaN values using the specified method.
         DataFrame.fillna: Fill NA/NaN values using the specified method.
+
+        Examples
+        --------
+        Here we only create a ``Series``.
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+
+        Example for ``ffill`` with downsampling (we have fewer dates after resampling):
+
+        >>> ser.resample('MS').ffill()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
+
+        Example for ``ffill`` with upsampling (fill the new dates with
+        the previous value):
+
+        >>> ser.resample('W').ffill()
+        2023-01-01    1
+        2023-01-08    1
+        2023-01-15    2
+        2023-01-22    2
+        2023-01-29    2
+        2023-02-05    3
+        2023-02-12    3
+        2023-02-19    4
+        Freq: W-SUN, dtype: int64
+
+        With upsampling and limiting (only fill the first new date with the
+        previous value):
+
+        >>> ser.resample('W').ffill(limit=1)
+        2023-01-01    1.0
+        2023-01-08    1.0
+        2023-01-15    2.0
+        2023-01-22    2.0
+        2023-01-29    NaN
+        2023-02-05    3.0
+        2023-02-12    NaN
+        2023-02-19    4.0
+        Freq: W-SUN, dtype: float64
         """
         return self._upsample("ffill", limit=limit)
 
@@ -837,14 +885,14 @@ class Resampler(BaseGroupBy, PandasObject):
 
     def interpolate(
         self,
-        method: QuantileInterpolation = "linear",
+        method: InterpolateOptions = "linear",
         *,
         axis: Axis = 0,
         limit: int | None = None,
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
-        downcast=None,
+        downcast=lib.no_default,
         **kwargs,
     ):
         """
@@ -917,6 +965,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
+
+            .. deprecated::2.1.0
+
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
 
@@ -1000,6 +1051,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Note that the series erroneously increases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
+        assert downcast is lib.no_default  # just checking coverage
         result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
@@ -1031,6 +1083,22 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.asfreq: Convert TimeSeries to specified frequency.
         DataFrame.asfreq: Convert TimeSeries to specified frequency.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-31', '2023-02-01', '2023-02-28']))
+        >>> ser
+        2023-01-01    1
+        2023-01-31    2
+        2023-02-01    3
+        2023-02-28    4
+        dtype: int64
+        >>> ser.resample('MS').asfreq()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -1064,6 +1132,29 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute min value of group.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').min()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
+        """
+
         maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
         nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
@@ -1075,6 +1166,28 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute max value of group.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').max()
+        2023-01-01    2
+        2023-02-01    4
+        Freq: MS, dtype: int64
+        """
         maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
         nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
@@ -1131,6 +1244,22 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Mean of values within each group.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').mean()
+        2023-01-01    1.5
+        2023-02-01    3.5
+        Freq: MS, dtype: float64
         """
         maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         nv.validate_resampler_func("mean", args, kwargs)
