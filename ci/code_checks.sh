@@ -145,8 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.asof_locs \
-        pandas.Index.get_slice_bound \
         pandas.RangeIndex \
         pandas.RangeIndex.start \
         pandas.RangeIndex.stop \

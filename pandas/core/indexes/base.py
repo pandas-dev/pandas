@@ -5694,12 +5694,16 @@ class Index(IndexOpsMixin, PandasObject):
             which correspond to the return values of :meth:`pandas.Index.asof`
             for every element in ``where``.
 
+        See Also
+        --------
+        Index.asof : Return the label from the index, or, if not present, the
+            previous one.
+
         Examples
         --------
-        >>> import numpy as np
-        >>> idx = pd.date_range("2023-06-01", periods=3, freq="D")
-        >>> where = pd.DatetimeIndex(["2023-05-30 00:12:00", "2023-06-01 00:00:00",
-        ...                           "2023-06-02 23:59:59"])
+        >>> idx = pd.date_range('2023-06-01', periods=3, freq='D')
+        >>> where = pd.DatetimeIndex(['2023-05-30 00:12:00', '2023-06-01 00:00:00',
+        ...                           '2023-06-02 23:59:59'])
         >>> mask = np.ones(3, dtype=bool)
         >>> idx.asof_locs(where, mask)
         array([-1,  0,  1], dtype=int64)
@@ -6643,6 +6647,26 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         int
             Index of label.
+
+        See Also
+        --------
+        Index.get_loc : Get integer location, slice or boolean mask for requested
+            label.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_slice_bound(3, 'left')
+        3
+        >>> idx.get_slice_bound(3, 'right')
+        4
+
+        If ``label`` is non-unique in the index, an error will be raised.
+
+        >>> idx_duplicate = pd.Index(['a', 'b', 'a', 'c', 'd'])
+        >>> idx_duplicate.get_slice_bound('a', 'left')
+        Traceback (most recent call last):
+        KeyError: Cannot get left slice bound for non-unique label: 'a'
         """
 
         if side not in ("left", "right"):
