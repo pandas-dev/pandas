@@ -2255,7 +2255,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ("green", "purple")],
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
                                              names=["number", "color"])
         >>> idx
         MultiIndex([(0,  'green'),
@@ -2265,7 +2265,7 @@ class MultiIndex(Index):
                     (2,  'green'),
                     (2, 'purple')],
                    names=['number', 'color'])
-        >>> idx.drop([(1, "green"), (2, "purple")])
+        >>> idx.drop([(1, 'green'), (2, 'purple')])
         MultiIndex([(0,  'green'),
                     (0, 'purple'),
                     (1, 'purple'),
@@ -2274,7 +2274,7 @@ class MultiIndex(Index):
 
         We can also drop from a specific level.
 
-        >>> idx.drop("green", level="color")
+        >>> idx.drop('green', level='color')
         MultiIndex([(0, 'purple'),
                     (1, 'purple'),
                     (2, 'purple')],
