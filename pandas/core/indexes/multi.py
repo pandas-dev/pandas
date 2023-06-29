@@ -796,13 +796,12 @@ class MultiIndex(Index):
     @cache_readonly
     def dtypes(self) -> Series:
         """
-        Return the dtypes as a :class:`pandas.Series` for the underlying
-        :class:`pandas.MultiIndex`.
+        Return the dtypes as a Series for the underlying MultiIndex.
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ("green", "purple")],
-                                             names=["number", "color"])
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=['number', 'color'])
         >>> idx
         MultiIndex([(0,  'green'),
                     (0, 'purple'),
@@ -2256,7 +2255,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
-                                             names=["number", "color"])
+        ...                                  names=["number", "color"])
         >>> idx
         MultiIndex([(0,  'green'),
                     (0, 'purple'),
