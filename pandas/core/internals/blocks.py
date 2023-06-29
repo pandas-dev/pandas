@@ -1393,6 +1393,9 @@ class Block(PandasObject):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if method == "asfreq":
+            # clean_fill_method used to allow this
+            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -2536,14 +2539,3 @@ def external_values(values: ArrayLike) -> ArrayLike:
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
 
     return values
-
-
-def _interp_method_is_pad_or_backfill(method: str) -> bool:
-    try:
-        m = missing.clean_fill_method(method)
-    except ValueError:
-        m = None
-        if method == "asfreq":
-            # clean_fill_method used to allow this
-            raise
-    return m is not None
