@@ -1110,7 +1110,7 @@ class Resampler(BaseGroupBy, PandasObject):
         **kwargs,
     ):
         """
-        Compute prod of group values.
+        Compute sum of group values.
 
         Parameters
         ----------
@@ -1128,7 +1128,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Returns
         -------
         Series or DataFrame
-            Computed prod of values within each group.
+            Computed sum of values within each group.
 
         Examples
         --------
