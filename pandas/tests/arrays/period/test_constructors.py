@@ -12,8 +12,6 @@ from pandas.core.arrays import (
     period_array,
 )
 
-from pandas.tseries.offsets import MonthEnd
-
 
 @pytest.mark.parametrize(
     "data, freq, expected",
