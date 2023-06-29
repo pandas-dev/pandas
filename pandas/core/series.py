@@ -4538,7 +4538,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
-        by_row: bool = True,
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4562,14 +4562,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             preserved for some extension array dtypes, such as Categorical.
 
             .. deprecated:: 2.1.0
-                The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
+                ``convert_dtype`` has been deprecated. Do ``ser.astype(object).apply()``
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        by_row : bool, default True
+        by_row : False or "compat", default "compat"
+            If ``"compat"`` and func is a callable, func will be passed each element of
+            the Series, like ``Series.map``. If func is a list or dict of
+            callables, will first try to translate each func into pandas methods. If
+            that doesn't work, will try call to apply again with ``by_row="compat"``
+            and if that fails, will call apply again with ``by_row=False``
+            (backward compatible).
             If False, the func will be passed the whole Series at once.
-            If True, will func will be passed each element of the Series, like
-            Series.map (backward compatible).
+
+            ``by_row`` has no effect when ``func`` is a string.
 
             .. versionadded:: 2.1.0
         **kwargs
