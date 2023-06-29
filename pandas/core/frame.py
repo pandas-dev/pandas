@@ -10888,7 +10888,7 @@ class DataFrame(NDFrame, OpsMixin):
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                    result = values._reduce(name, skipna=skipna, kwargs=kwds)
+                    result = values._reduce(name, skipna=skipna, **kwds)
                     return np.array([result])
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
