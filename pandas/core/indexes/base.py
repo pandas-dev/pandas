@@ -5706,13 +5706,13 @@ class Index(IndexOpsMixin, PandasObject):
         ...                           '2023-06-02 23:59:59'])
         >>> mask = np.ones(3, dtype=bool)
         >>> idx.asof_locs(where, mask)
-        array([-1,  0,  1], dtype=int64)
+        array([-1,  0,  1])
 
         We can use ``mask`` to ignore certain values in the index during calculation.
 
         >>> mask[1] = False
         >>> idx.asof_locs(where, mask)
-        array([-1,  0,  0], dtype=int64)
+        array([-1,  0,  0])
         """
         # error: No overload variant of "searchsorted" of "ndarray" matches argument
         # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
