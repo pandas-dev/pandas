@@ -707,7 +707,7 @@ class FrameApply(NDFrameApply):
         kwargs,
     ) -> None:
         if by_row is not False and by_row != "compat":
-            raise NotImplementedError(f"by_row={by_row} not implemented")
+            raise ValueError(f"by_row={by_row} not allowed")
         super().__init__(
             obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
         )
