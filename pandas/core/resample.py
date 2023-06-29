@@ -1091,10 +1091,10 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         2023-02-28    4
         dtype: int64
-        >>> ser.resample('M').asfreq()
-        2023-01-31    2
-        2023-02-28    4
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').asfreq()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -1145,10 +1145,10 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').min()
-        2023-01-31    1
-        2023-02-28    3
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').min()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
         """
 
         maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
@@ -1179,10 +1179,10 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').max()
-        2023-01-31    2
-        2023-02-28    4
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').max()
+        2023-01-01    2
+        2023-02-01    4
+        Freq: MS, dtype: int64
         """
         maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
         nv.validate_resampler_func("max", args, kwargs)
@@ -1252,10 +1252,10 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').mean()
-        2023-01-31    1.5
-        2023-02-28    3.5
-        Freq: M, dtype: float64
+        >>> ser.resample('MS').mean()
+        2023-01-01    1.5
+        2023-02-01    3.5
+        Freq: MS, dtype: float64
         """
         maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         nv.validate_resampler_func("mean", args, kwargs)

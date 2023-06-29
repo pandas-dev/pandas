@@ -658,10 +658,10 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-01    3
         2023-02-15    3
         dtype: int64
-        >>> ser.resample('M').nunique()
-        2023-01-31    2
-        2023-02-28    1
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 

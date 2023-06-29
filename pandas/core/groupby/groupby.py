@@ -2178,10 +2178,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').count()
-        2023-01-31    2
-        2023-02-28    2
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').count()
+        2023-01-01    2
+        2023-02-01    2
+        Freq: MS, dtype: int64
         """
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -2375,10 +2375,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                                         '2023-02-01',
         ...                                         '2023-02-10',
         ...                                         '2023-02-15']))
-        >>> ser.resample('M').median()
-        2023-01-31    2.0
-        2023-02-28    4.0
-        Freq: M, dtype: float64
+        >>> ser.resample('MS').median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
         """
         result = self._cython_agg_general(
             "median",
