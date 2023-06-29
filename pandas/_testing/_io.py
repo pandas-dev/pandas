@@ -3,6 +3,7 @@ from __future__ import annotations
 import bz2
 import gzip
 import io
+import pathlib
 import tarfile
 from typing import (
     TYPE_CHECKING,
@@ -77,9 +78,7 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    import pytest
-
-    Path = pytest.importorskip("pathlib").Path
+    Path = pathlib.Path
     if path is None:
         path = "___pathlib___"
     with ensure_clean(path) as path:
