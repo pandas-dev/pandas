@@ -275,13 +275,39 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
 
     def equals(self, other: object) -> bool:
         """
-        Determine if two CategoricalIndex objects contain the same elements.
+        Determine if two :class:`pandas.CategoricalIndex` objects contain the same
+        elements.
 
         Returns
         -------
         bool
-            If two CategoricalIndex objects have equal elements True,
-            otherwise False.
+            ``True`` if two :class:`pandas.CategoricalIndex` objects have equal
+            elements, ``False`` otherwise.
+
+        Examples
+        --------
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
+        >>> ci2 = pd.CategoricalIndex(pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c']))
+        >>> ci.equals(ci2)
+        True
+
+        The order of elements matters.
+
+        >>> ci3 = pd.CategoricalIndex(['c', 'b', 'a', 'a', 'b', 'c'])
+        >>> ci.equals(ci3)
+        False
+
+        The orderedness matters.
+
+        >>> ci4 = ci.as_ordered()
+        >>> ci.equals(ci4)
+        False
+
+        The categories also matter.
+
+        >>> ci5 = ci.set_categories(['b', 'c', 'a'])
+        >>> ci.equals(ci5)
+        False
         """
         if self.is_(other):
             return True
