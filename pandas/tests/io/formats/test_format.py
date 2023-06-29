@@ -24,11 +24,6 @@ import pytz
 
 from pandas._config import config
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -47,8 +42,6 @@ import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-
-use_32bit_repr = is_platform_windows() or not IS64
 
 
 def get_local_am_pm():
@@ -2211,6 +2204,17 @@ c  10  11  12  13  14\
             min_rows=min_rows,
         )
         result = formatter.max_rows_fitted
+        assert result == expected
+
+    def test_no_extra_space(self):
+        # GH 52690: Check that no extra space is given
+        col1 = "TEST"
+        col2 = "PANDAS"
+        col3 = "to_string"
+        expected = f"{col1:<6s} {col2:<7s} {col3:<10s}"
+        df = DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
+        d = {"col1": "{:<6s}".format, "col2": "{:<7s}".format, "col3": "{:<10s}".format}
+        result = df.to_string(index=False, header=False, formatters=d)
         assert result == expected
 
 

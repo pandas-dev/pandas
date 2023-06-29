@@ -1831,9 +1831,10 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning) as w:
+        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
             encoded = read_stata(path)
-            assert len(w) == 151
+            # with filter_level="always", produces 151 warnings which can be slow
+            assert len(w) == 1
             assert w[0].message.args[0] == msg
 
         expected = DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
