@@ -339,6 +339,11 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
         types_or: [python, cython]
+    -   id: unwanted-patterns-nodefault-used-not-only-for-typing
+        name: Check that `pandas._libs.lib.NoDefault` is used only for typing
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
+        types: [python]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python
