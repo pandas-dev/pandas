@@ -22,7 +22,7 @@ from pandas.util import _test_decorators as td
 @pytest.fixture
 def gcs_buffer():
     """Emulate GCS using a binary buffer."""
-    fsspec = pytest.importorskip("fsspec")
+    import fsspec
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
@@ -43,6 +43,7 @@ def gcs_buffer():
     return gcs_buffer
 
 
+@td.skip_if_no("gcsfs")
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
@@ -52,7 +53,6 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys):
 
     GH 33987
     """
-    pytest.importorskip("gcsfs")
 
     df1 = DataFrame(
         {
@@ -131,6 +131,7 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         assert result == expected
 
 
+@td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(
     gcs_buffer, compression_only, encoding, compression_to_extension
@@ -141,7 +142,6 @@ def test_to_csv_compression_encoding_gcs(
     GH 35677 (to_csv, compression), GH 26124 (to_csv, encoding), and
     GH 32392 (read_csv, encoding)
     """
-    pytest.importorskip("gcsfs")
     df = tm.makeDataFrame()
 
     # reference of compressed and encoded file
@@ -178,9 +178,9 @@ def test_to_csv_compression_encoding_gcs(
 
 
 @td.skip_if_no("fastparquet")
+@td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
-    pytest.importorskip("gcsfs")
     from fsspec import AbstractFileSystem
 
     df1 = DataFrame(
