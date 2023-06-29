@@ -81,6 +81,7 @@ def frame_apply(
     axis: Axis = 0,
     raw: bool = False,
     result_type: str | None = None,
+    by_row: Literal[False, "compat"] = "compat",
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -100,6 +101,7 @@ def frame_apply(
         func,
         raw=raw,
         result_type=result_type,
+        by_row=by_row,
         args=args,
         kwargs=kwargs,
     )
@@ -115,11 +117,16 @@ class Apply(metaclass=abc.ABCMeta):
         raw: bool,
         result_type: str | None,
         *,
+        by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
         self.obj = obj
         self.raw = raw
+
+        assert by_row is False or by_row in ["compat", "_compat"]
+        self.by_row = by_row
+
         self.args = args or ()
         self.kwargs = kwargs or {}
 
@@ -304,7 +311,14 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast(List[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
         if op_name == "apply":
-            kwargs = {**kwargs, "by_row": False}
+            if isinstance(self, FrameApply):
+                by_row = self.by_row
+
+            elif isinstance(self, SeriesApply):
+                by_row = "_compat" if self.by_row else False
+            else:
+                by_row = False
+            kwargs = {**kwargs, "by_row": by_row}
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -397,7 +411,10 @@ class Apply(metaclass=abc.ABCMeta):
 
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwargs = {"by_row": False} if op_name == "apply" else {}
+        kwargs = {}
+        if op_name == "apply":
+            by_row = "_compat" if self.by_row else False
+            kwargs.update({"by_row": by_row})
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -677,6 +694,23 @@ class NDFrameApply(Apply):
 
 class FrameApply(NDFrameApply):
     obj: DataFrame
+
+    def __init__(
+        self,
+        obj: AggObjType,
+        func: AggFuncType,
+        raw: bool,
+        result_type: str | None,
+        *,
+        by_row: Literal[False, "compat"] = False,
+        args,
+        kwargs,
+    ) -> None:
+        if by_row is not False and by_row != "compat":
+            raise ValueError(f"by_row={by_row} not allowed")
+        super().__init__(
+            obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
+        )
 
     # ---------------------------------------------------------------
     # Abstract Methods
@@ -1067,7 +1101,7 @@ class FrameColumnApply(FrameApply):
 class SeriesApply(NDFrameApply):
     obj: Series
     axis: AxisInt = 0
-    by_row: bool  # only relevant for apply()
+    by_row: Literal[False, "compat", "_compat"]  # only relevant for apply()
 
     def __init__(
         self,
@@ -1075,7 +1109,7 @@ class SeriesApply(NDFrameApply):
         func: AggFuncType,
         *,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
-        by_row: bool = True,
+        by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
@@ -1090,13 +1124,13 @@ class SeriesApply(NDFrameApply):
                 stacklevel=find_stack_level(),
             )
         self.convert_dtype = convert_dtype
-        self.by_row = by_row
 
         super().__init__(
             obj,
             func,
             raw=False,
             result_type=None,
+            by_row=by_row,
             args=args,
             kwargs=kwargs,
         )
@@ -1114,6 +1148,9 @@ class SeriesApply(NDFrameApply):
         if isinstance(self.func, str):
             # if we are a string, try to dispatch
             return self.apply_str()
+
+        if self.by_row == "_compat":
+            return self.apply_compat()
 
         # self.func is Callable
         return self.apply_standard()
@@ -1148,6 +1185,28 @@ class SeriesApply(NDFrameApply):
         return obj._constructor(dtype=obj.dtype, index=obj.index).__finalize__(
             obj, method="apply"
         )
+
+    def apply_compat(self):
+        """compat apply method for funcs in listlikes and dictlikes.
+
+         Used for each callable when giving listlikes and dictlikes of callables to
+         apply. Needed for compatibility with Pandas < v2.1.
+
+        .. versionadded:: 2.1.0
+        """
+        obj = self.obj
+        func = self.func
+
+        if callable(func):
+            f = com.get_cython_func(func)
+            if f and not self.args and not self.kwargs:
+                return obj.apply(func, by_row=False)
+
+        try:
+            result = obj.apply(func, by_row="compat")
+        except (ValueError, AttributeError, TypeError):
+            result = obj.apply(func, by_row=False)
+        return result
 
     def apply_standard(self) -> DataFrame | Series:
         # caller is responsible for ensuring that f is Callable
