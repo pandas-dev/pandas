@@ -764,8 +764,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').groups
-        {Timestamp('2023-01-31 00:00:00'): 2, Timestamp('2023-02-28 00:00:00'): 4}
+        >>> ser.resample('MS').groups
+        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
         return self.grouper.groups
 
@@ -818,9 +818,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').indices
-        defaultdict(<class 'list'>, {Timestamp('2023-01-31 00:00:00'): [0, 1],
-        Timestamp('2023-02-28 00:00:00'): [2, 3]})
+        >>> ser.resample('MS').indices
+        defaultdict(<class 'list'>, {Timestamp('2023-01-01 00:00:00'): [0, 1],
+        Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
         return self.grouper.indices
 
@@ -1003,7 +1003,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> ser.resample('M').get_group('2023-01-31')
+        >>> ser.resample('MS').get_group('2023-01-01')
         2023-01-01    1
         2023-01-15    2
         dtype: int64
@@ -1085,13 +1085,13 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-02-01    3
         2023-02-15    4
         dtype: int64
-        >>> for x, y in ser.resample('M'):
+        >>> for x, y in ser.resample('MS'):
         ...     print(f'{x}\\n{y}\\n')
-        2023-01-31 00:00:00
+        2023-01-01 00:00:00
         2023-01-01    1
         2023-01-15    2
         dtype: int64
-        2023-02-28 00:00:00
+        2023-02-01 00:00:00
         2023-02-01    3
         2023-02-15    4
         dtype: int64
