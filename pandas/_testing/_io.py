@@ -82,8 +82,8 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     if path is None:
         path = "___pathlib___"
     with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
+        writer(Path(path))  # type: ignore[arg-type]
+        obj = reader(Path(path))  # type: ignore[arg-type]
     return obj
 
 
