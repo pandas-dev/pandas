@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
     Hashable,
     Literal,
@@ -18,7 +17,6 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import (
-    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -29,7 +27,6 @@ from pandas._libs.internals import (
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -358,27 +355,8 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self, other, cond, align: bool) -> Self:
-        if align:
-            align_keys = ["other", "cond"]
-        else:
-            align_keys = ["cond"]
-            other = extract_array(other, extract_numpy=True)
-
-        return self.apply(
-            "where",
-            align_keys=align_keys,
-            other=other,
-            cond=cond,
-            using_cow=using_copy_on_write(),
-        )
-
-    def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply(
-            "round",
-            decimals=decimals,
-            using_cow=using_cow,
-        )
+    # Alias so we can share code with ArrayManager
+    apply_with_block = apply
 
     def setitem(self, indexer, value) -> Self:
         """
@@ -396,50 +374,9 @@ class BaseBlockManager(DataManager):
 
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True) -> Self:
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
-
-        return self.apply(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-            using_cow=using_copy_on_write(),
-        )
-
     def diff(self, n: int) -> Self:
         # only reached with self.ndim == 2
         return self.apply("diff", n=n)
-
-    def interpolate(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
-        )
-
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
-        axis = self._normalize_axis(axis)
-        if fill_value is lib.no_default:
-            fill_value = None
-
-        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
-
-    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
-        if limit is not None:
-            # Do this validation even if we go through one of the no-op paths
-            limit = libalgos.validate_limit(None, limit=limit)
-
-        return self.apply(
-            "fillna",
-            value=value,
-            limit=limit,
-            inplace=inplace,
-            downcast=downcast,
-            using_cow=using_copy_on_write(),
-        )
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
@@ -468,43 +405,6 @@ class BaseBlockManager(DataManager):
             copy = False
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
-
-    def replace(self, to_replace, value, inplace: bool) -> Self:
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        # NDFrame.replace ensures the not-is_list_likes here
-        assert not is_list_like(to_replace)
-        assert not is_list_like(value)
-        return self.apply(
-            "replace",
-            to_replace=to_replace,
-            value=value,
-            inplace=inplace,
-            using_cow=using_copy_on_write(),
-        )
-
-    def replace_regex(self, **kwargs) -> Self:
-        return self.apply("_replace_regex", **kwargs, using_cow=using_copy_on_write())
-
-    def replace_list(
-        self,
-        src_list: list[Any],
-        dest_list: list[Any],
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> Self:
-        """do a list replace"""
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        bm = self.apply(
-            "replace_list",
-            src_list=src_list,
-            dest_list=dest_list,
-            inplace=inplace,
-            regex=regex,
-            using_cow=using_copy_on_write(),
-        )
-        bm._consolidate_inplace()
-        return bm
 
     def to_native_types(self, **kwargs) -> Self:
         """
@@ -1557,7 +1457,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         *,
         qs: Index,  # with dtype float 64
-        axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
     ) -> Self:
         """
@@ -1567,9 +1466,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 
@@ -1581,14 +1477,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
-        assert axis == 1  # only ever called this way
 
         new_axes = list(self.axes)
         new_axes[1] = Index(qs, dtype=np.float64)
 
         blocks = [
-            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
-            for blk in self.blocks
+            blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks
         ]
 
         return type(self)(blocks, new_axes)
@@ -1713,11 +1607,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if na_value is not lib.no_default:
                 # We want to copy when na_value is provided to avoid
                 # mutating the original object
-                if (
-                    isinstance(blk.dtype, np.dtype)
-                    and blk.dtype.kind == "f"
-                    and passed_nan
-                ):
+                if lib.is_np_dtype(blk.dtype, "f") and passed_nan:
                     # We are already numpy-float and na_value=np.nan
                     pass
                 else:

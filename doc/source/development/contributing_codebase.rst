@@ -612,23 +612,17 @@ deleted when the context block is exited.
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
-lack of ownership of the server that is being connected to. If network connectivity is absolutely required, use the
-``tm.network`` decorator.
+A unit test should not access a public data set over the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. To mock this interaction, use the ``httpserver`` fixture from the
+`pytest-localserver plugin. <https://github.com/pytest-dev/pytest-localserver>`_ with synthetic data.
 
 .. code-block:: python
 
-    @tm.network   # noqa
-    def test_network():
-        result = package.call_to_internet()
-
-If the test requires data from a specific website, specify ``check_before_test=True`` and the site in the decorator.
-
-.. code-block:: python
-
-    @tm.network("https://www.somespecificsite.com", check_before_test=True)
-    def test_network():
-        result = pd.read_html("https://www.somespecificsite.com")
+    @pytest.mark.network
+    @pytest.mark.single_cpu
+    def test_network(httpserver):
+        httpserver.serve_content(content="content")
+        result = pd.read_html(httpserver.url)
 
 Example
 ^^^^^^^
@@ -867,7 +861,7 @@ performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://pandas.pydata.org/speed/pandas/>`__.
+test results can be found `here <https://asv-runner.github.io/asv-collection/pandas>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation

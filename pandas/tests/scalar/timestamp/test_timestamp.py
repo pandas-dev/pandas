@@ -14,6 +14,10 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -222,6 +226,39 @@ class TestTimestampProperties:
         assert dt.as_unit("us").resolution == Timedelta(microseconds=1)
         assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
         assert dt.as_unit("s").resolution == Timedelta(seconds=1)
+
+    @pytest.mark.parametrize(
+        "date_string, expected",
+        [
+            ("0000-2-29", 1),
+            ("0000-3-1", 2),
+            ("1582-10-14", 3),
+            ("-0040-1-1", 4),
+            ("2023-06-18", 6),
+        ],
+    )
+    def test_dow_historic(self, date_string, expected):
+        # GH 53738
+        ts = Timestamp(date_string)
+        dow = ts.weekday()
+        assert dow == expected
+
+    @given(
+        ts=st.datetimes(),
+        sign=st.sampled_from(["-", ""]),
+    )
+    def test_dow_parametric(self, ts, sign):
+        # GH 53738
+        ts = (
+            f"{sign}{str(ts.year).zfill(4)}"
+            f"-{str(ts.month).zfill(2)}"
+            f"-{str(ts.day).zfill(2)}"
+        )
+        result = Timestamp(ts).weekday()
+        expected = (
+            (np.datetime64(ts) - np.datetime64("1970-01-01")).astype("int64") - 4
+        ) % 7
+        assert result == expected
 
 
 class TestTimestamp:
