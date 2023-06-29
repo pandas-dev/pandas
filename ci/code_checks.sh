@@ -118,13 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.asfreq \
-        pandas.core.resample.Resampler.count \
-        pandas.core.resample.Resampler.nunique \
-        pandas.core.resample.Resampler.max \
-        pandas.core.resample.Resampler.mean \
-        pandas.core.resample.Resampler.median \
-        pandas.core.resample.Resampler.min \
         pandas.core.resample.Resampler.ohlc \
         pandas.core.resample.Resampler.prod \
         pandas.core.resample.Resampler.size \
