@@ -1325,7 +1325,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if isinstance(dtype, np.dtype) and dtype.kind in "iu":
+    if lib.is_np_dtype(dtype, "iu"):
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1502,7 +1502,7 @@ def construct_1d_arraylike_from_scalar(
         if length and dtype.kind in "iu" and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
-        elif isinstance(dtype, np.dtype) and dtype.kind in "US":
+        elif lib.is_np_dtype(dtype, "US"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
             dtype = np.dtype("object")
