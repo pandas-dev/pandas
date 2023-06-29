@@ -6658,6 +6658,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.RangeIndex(5)
         >>> idx.get_slice_bound(3, 'left')
         3
+
         >>> idx.get_slice_bound(3, 'right')
         4
 

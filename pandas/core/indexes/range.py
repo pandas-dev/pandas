@@ -95,6 +95,26 @@ class RangeIndex(Index):
     See Also
     --------
     Index : The base pandas Index type.
+
+    Examples
+    --------
+    >>> list(pd.RangeIndex(5))
+    [0, 1, 2, 3, 4]
+
+    >>> list(pd.RangeIndex(-2, 4))
+    [-2, -1, 0, 1, 2, 3]
+
+    >>> list(pd.RangeIndex(0, 10, 2))
+    [0, 2, 4, 6, 8]
+
+    >>> list(pd.RangeIndex(2, -10, -3))
+    [2, -1, -4, -7]
+
+    >>> list(pd.RangeIndex(0))
+    []
+
+    >>> list(pd.RangeIndex(1, 0))
+    []
     """
 
     _typ = "rangeindex"
