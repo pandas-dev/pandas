@@ -892,7 +892,7 @@ class Resampler(BaseGroupBy, PandasObject):
         inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
-        downcast=None,
+        downcast=lib.no_default,
         **kwargs,
     ):
         """
@@ -965,6 +965,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
+
+            .. deprecated::2.1.0
+
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
 
@@ -1048,6 +1051,7 @@ class Resampler(BaseGroupBy, PandasObject):
         Note that the series erroneously increases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
+        assert downcast is lib.no_default  # just checking coverage
         result = self._upsample("asfreq")
         return result.interpolate(
             method=method,
