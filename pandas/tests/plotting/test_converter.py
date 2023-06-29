@@ -222,17 +222,15 @@ class TestDateTimeConverter:
         rs = dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-    def test_conversion_outofbounds_datetime(self, dtc):
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [date(1677, 1, 1), date(1677, 1, 2)],
+            [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)],
+        ],
+    )
+    def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
-        values = [date(1677, 1, 1), date(1677, 1, 2)]
-        rs = dtc.convert(values, None, None)
-        xp = converter.mdates.date2num(values)
-        tm.assert_numpy_array_equal(rs, xp)
-        rs = dtc.convert(values[0], None, None)
-        xp = converter.mdates.date2num(values[0])
-        assert rs == xp
-
-        values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         rs = dtc.convert(values, None, None)
         xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
