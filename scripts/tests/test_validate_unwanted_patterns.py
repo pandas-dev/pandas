@@ -421,8 +421,8 @@ def f(
 """
                 ),
                 [
-                    (2, "NoDefault is not used for typing"),
-                    (4, "NoDefault is not used for typing"),
+                    (2, "NoDefault is used not only for typing"),
+                    (4, "NoDefault is used not only for typing"),
                 ],
             ),
             (
@@ -434,8 +434,8 @@ if a is NoDefault:
 """
                 ),
                 [
-                    (1, "NoDefault is not used for typing"),
-                    (2, "NoDefault is not used for typing"),
+                    (1, "NoDefault is used not only for typing"),
+                    (2, "NoDefault is used not only for typing"),
                 ],
             ),
         ],
