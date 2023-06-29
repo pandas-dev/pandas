@@ -962,9 +962,10 @@ def raise_on_incompatible(left, right):
     # GH#24283 error message format depends on whether right is scalar
     if isinstance(right, (np.ndarray, ABCTimedeltaArray)) or right is None:
         other_freq = None
-    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period, BaseOffset)):
-        assert right.freqstr is not None  # help mypy
+    elif isinstance(right, BaseOffset):
         other_freq = freq_to_period_freqstr(right.n, right.name)
+    elif isinstance(right, (ABCPeriodIndex, PeriodArray, Period)):
+        other_freq = right.freqstr
     else:
         other_freq = delta_to_tick(Timedelta(right)).freqstr
 
