@@ -145,10 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.RangeIndex \
-        pandas.RangeIndex.start \
-        pandas.RangeIndex.stop \
-        pandas.RangeIndex.step \
         pandas.RangeIndex.from_range \
         pandas.CategoricalIndex.codes \
         pandas.CategoricalIndex.categories \
