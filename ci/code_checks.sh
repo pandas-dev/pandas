@@ -118,13 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.asfreq \
-        pandas.core.resample.Resampler.count \
-        pandas.core.resample.Resampler.nunique \
-        pandas.core.resample.Resampler.max \
-        pandas.core.resample.Resampler.mean \
-        pandas.core.resample.Resampler.median \
-        pandas.core.resample.Resampler.min \
         pandas.core.resample.Resampler.ohlc \
         pandas.core.resample.Resampler.prod \
         pandas.core.resample.Resampler.size \
@@ -145,13 +138,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.asof_locs \
-        pandas.Index.get_slice_bound \
-        pandas.RangeIndex \
-        pandas.RangeIndex.start \
-        pandas.RangeIndex.stop \
-        pandas.RangeIndex.step \
-        pandas.RangeIndex.from_range \
         pandas.CategoricalIndex.codes \
         pandas.CategoricalIndex.categories \
         pandas.CategoricalIndex.ordered \

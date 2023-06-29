@@ -1348,32 +1348,44 @@ class Block(PandasObject):
     def pad_or_backfill(
         self,
         *,
-        method: FillnaOptions = "pad",
+        method: FillnaOptions,
         axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
-        **kwargs,
     ) -> list[Block]:
-        return self.interpolate(
+        if not self._can_hold_na:
+            # If there are no NAs, then interpolate is a no-op
+            if using_cow:
+                return [self.copy(deep=False)]
+            return [self] if inplace else [self.copy()]
+
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+        # Dispatch to the PandasArray method.
+        # We know self.array_values is a PandasArray bc EABlock overrides
+        new_values = cast(PandasArray, self.array_values).pad_or_backfill(
             method=method,
             axis=axis,
-            inplace=inplace,
             limit=limit,
             limit_area=limit_area,
-            downcast=downcast,
-            using_cow=using_cow,
-            **kwargs,
+            copy=copy,
         )
 
+        data = extract_array(new_values, extract_numpy=True)
+
+        nb = self.make_block_same_class(data, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow)
+
+    @final
     def interpolate(
         self,
         *,
-        method: FillnaOptions | InterpolateOptions = "pad",
-        axis: AxisInt = 0,
-        index: Index | None = None,
+        method: InterpolateOptions,
+        axis: AxisInt,
+        index: Index,
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
@@ -1383,6 +1395,10 @@ class Block(PandasObject):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        # error: Non-overlapping equality check [...]
+        if method == "asfreq":  # type: ignore[comparison-overlap]
+            # clean_fill_method used to allow this
+            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1391,7 +1407,7 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         # TODO(3.0): this case will not be reachable once GH#53638 is enforced
-        if not _interp_method_is_pad_or_backfill(method) and self.dtype == _dtype_obj:
+        if self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
@@ -1416,29 +1432,17 @@ class Block(PandasObject):
 
         copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
-        # Dispatch to the PandasArray method.
-        # We know self.array_values is a PandasArray bc EABlock overrides
-        if _interp_method_is_pad_or_backfill(method):
-            # TODO: warn about ignored kwargs, limit_direction, index...?
-            new_values = cast(PandasArray, self.array_values).pad_or_backfill(
-                method=cast(FillnaOptions, method),
-                axis=axis,
-                limit=limit,
-                limit_area=limit_area,
-                copy=copy,
-            )
-        else:
-            assert index is not None  # for mypy
-            new_values = cast(PandasArray, self.array_values).interpolate(
-                method=cast(InterpolateOptions, method),
-                axis=axis,
-                index=index,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                copy=copy,
-                **kwargs,
-            )
+        # Dispatch to the EA method.
+        new_values = self.array_values.interpolate(
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            copy=copy,
+            **kwargs,
+        )
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
@@ -1865,55 +1869,31 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
+    @final
+    def pad_or_backfill(
         self,
         *,
-        method: FillnaOptions | InterpolateOptions = "pad",
-        index: Index | None = None,
-        axis: int = 0,
+        method: FillnaOptions,
+        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
-        fill_value=None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
-        **kwargs,
-    ):
-        if not _interp_method_is_pad_or_backfill(method):
-            imeth = cast(InterpolateOptions, method)
-            return super().interpolate(
-                method=imeth,
-                index=index,
-                axis=axis,
-                inplace=inplace,
-                limit=limit,
-                fill_value=fill_value,
-                using_cow=using_cow,
-                **kwargs,
-            )
-
-        method = cast(FillnaOptions, method)
+    ) -> list[Block]:
         values = self.values
-        refs = None
-        copy = not inplace
-        if using_cow:
-            if inplace and not self.refs.has_reference():
-                refs = self.refs
-            else:
-                copy = True
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
         if values.ndim == 2 and axis == 0:
             # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(
-                value=fill_value, method=method, limit=limit, copy=copy
-            ).T
+            new_values = values.T.fillna(method=method, limit=limit, copy=copy).T
         else:
             try:
-                new_values = values.fillna(
-                    value=fill_value, method=method, limit=limit, copy=copy
-                )
+                new_values = values.fillna(method=method, limit=limit, copy=copy)
             except TypeError:
                 # 3rd party EA that has not implemented copy keyword yet
                 refs = None
-                new_values = values.fillna(value=fill_value, method=method, limit=limit)
+                new_values = values.fillna(method=method, limit=limit)
                 # issue the warning *after* retrying, in case the TypeError
                 #  was caused by an invalid fill_value
                 warnings.warn(
@@ -1927,7 +1907,7 @@ class EABackedBlock(Block):
                     stacklevel=find_stack_level(),
                 )
 
-        return self.make_block_same_class(new_values, refs=refs)
+        return [self.make_block_same_class(new_values, refs=refs)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -1969,13 +1949,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             refs = self.refs
             new_values = self.values
         else:
-            refs = None
-            copy = not inplace
-            if using_cow:
-                if inplace and not self.refs.has_reference():
-                    refs = self.refs
-                else:
-                    copy = True
+            copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
             try:
                 new_values = self.values.fillna(
@@ -2609,14 +2583,3 @@ def external_values(values: ArrayLike) -> ArrayLike:
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
 
     return values
-
-
-def _interp_method_is_pad_or_backfill(method: str) -> bool:
-    try:
-        m = missing.clean_fill_method(method)
-    except ValueError:
-        m = None
-        if method == "asfreq":
-            # clean_fill_method used to allow this
-            raise
-    return m is not None
