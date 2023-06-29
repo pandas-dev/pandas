@@ -1393,7 +1393,8 @@ class Block(PandasObject):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
-        if method == "asfreq":
+        # error: Non-overlapping equality check [...]
+        if method == "asfreq":  # type: ignore[comparison-overlap]
             # clean_fill_method used to allow this
             missing.clean_fill_method(method)
 
