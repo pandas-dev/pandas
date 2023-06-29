@@ -95,6 +95,26 @@ class RangeIndex(Index):
     See Also
     --------
     Index : The base pandas Index type.
+
+    Examples
+    --------
+    >>> list(pd.RangeIndex(5))
+    [0, 1, 2, 3, 4]
+
+    >>> list(pd.RangeIndex(-2, 4))
+    [-2, -1, 0, 1, 2, 3]
+
+    >>> list(pd.RangeIndex(0, 10, 2))
+    [0, 2, 4, 6, 8]
+
+    >>> list(pd.RangeIndex(2, -10, -3))
+    [2, -1, -4, -7]
+
+    >>> list(pd.RangeIndex(0))
+    []
+
+    >>> list(pd.RangeIndex(1, 0))
+    []
     """
 
     _typ = "rangeindex"
@@ -148,11 +168,19 @@ class RangeIndex(Index):
     @classmethod
     def from_range(cls, data: range, name=None, dtype: Dtype | None = None) -> Self:
         """
-        Create RangeIndex from a range object.
+        Create :class:`pandas.RangeIndex` from a ``range`` object.
 
         Returns
         -------
         RangeIndex
+
+        Examples
+        --------
+        >>> pd.RangeIndex.from_range(range(5))
+        RangeIndex(start=0, stop=5, step=1)
+
+        >>> pd.RangeIndex.from_range(range(2, -10, -3))
+        RangeIndex(start=2, stop=-10, step=-3)
         """
         if not isinstance(data, range):
             raise TypeError(
@@ -252,6 +280,16 @@ class RangeIndex(Index):
     def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.start
+        0
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.start
+        2
         """
         # GH 25710
         return self._range.start
@@ -260,6 +298,16 @@ class RangeIndex(Index):
     def stop(self) -> int:
         """
         The value of the `stop` parameter.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.stop
+        5
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.stop
+        -10
         """
         return self._range.stop
 
@@ -267,6 +315,23 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.step
+        1
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.step
+        -3
+
+        Even if :class:`pandas.RangeIndex` is empty, ``step`` is still ``1`` if
+        not supplied.
+
+        >>> idx = pd.RangeIndex(1, 0)
+        >>> idx.step
+        1
         """
         # GH 25710
         return self._range.step
