@@ -176,13 +176,10 @@ class RangeIndex(Index):
 
         Examples
         --------
-        ``pd.RangeIndex(range(start, stop[, step]))`` is equivalent to
-        ``pd.RangeIndex(start, stop[, step])``.
-
-        >>> pd.RangeIndex(range(5))
+        >>> pd.RangeIndex.from_range(range(5))
         RangeIndex(start=0, stop=5, step=1)
 
-        >>> pd.RangeIndex(range(2, -10, -3))
+        >>> pd.RangeIndex.from_range(range(2, -10, -3))
         RangeIndex(start=2, stop=-10, step=-3)
         """
         if not isinstance(data, range):
