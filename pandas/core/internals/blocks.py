@@ -1366,13 +1366,17 @@ class Block(PandasObject):
 
         # Dispatch to the PandasArray method.
         # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).pad_or_backfill(
+        vals = cast(PandasArray, self.array_values)
+        if axis == 1:
+            vals = vals.T
+        new_values = vals.pad_or_backfill(
             method=method,
-            axis=axis,
             limit=limit,
             limit_area=limit_area,
             copy=copy,
         )
+        if axis == 1:
+            new_values = new_values.T
 
         data = extract_array(new_values, extract_numpy=True)
 
