@@ -2131,11 +2131,13 @@ default 'raise'
 
         Examples
         --------
+        For :class:`pandas.DatetimeIndex`:
+
         >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
                       dtype='datetime64[ns]', freq='D')
-        >>> tdelta_idx.std()
+        >>> idx.std()
         Timedelta('1 days 00:00:00')
         """
         # Because std is translation-invariant, we can get self.std
