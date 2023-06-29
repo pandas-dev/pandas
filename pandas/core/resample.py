@@ -519,10 +519,10 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Example for ``ffill`` with downsampling (we have fewer dates after resampling):
 
-        >>> ser.resample('M').ffill()
-        2023-01-31    2
-        2023-02-28    4
-        Freq: M, dtype: int64
+        >>> ser.resample('MS').ffill()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
 
         Example for ``ffill`` with upsampling (fill the new dates with
         the previous value):
