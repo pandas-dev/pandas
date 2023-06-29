@@ -10105,8 +10105,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if cond.shape == ():
                 # Note: DataFrame(True, index=[1,2,3], columns=["a", "b", "c"]) works
                 # but DataFrame(np.array(True), index=[1,2,3], columns=["a", "b", "c"])
-                # does not hence we need to unpack scalar
-                cond = cond.item()
+                # does not, hence we need to unpack the scalar.
+                cond = lib.item_from_zerodim(cond)
             elif cond.shape != self.shape:
                 raise ValueError(
                     "Array conditional must be same shape as self or scalar!"
