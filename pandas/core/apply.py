@@ -1190,7 +1190,7 @@ class SeriesApply(NDFrameApply):
         """compat apply method for funcs in listlikes and dictlikes.
 
          Used for each callable when giving listlikes and dictlikes of callables to
-         apply. Needed for copatability with Pandas < v2.1.
+         apply. Needed for compatibility with Pandas < v2.1.
 
         .. versionadded:: 2.1.0
         """
