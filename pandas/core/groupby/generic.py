@@ -633,6 +633,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
+        For SeriesGroupby:
 
         >>> lst = ['a', 'a', 'b', 'b']
         >>> ser = pd.Series([1, 2, 3, 3], index=lst)
@@ -646,6 +647,21 @@ class SeriesGroupBy(GroupBy[Series]):
         a    2
         b    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample('MS').nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 

@@ -2167,6 +2167,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1   0   2
         7   1   1
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').count()
+        2023-01-01    2
+        2023-02-01    2
+        Freq: MS, dtype: int64
         """
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -2350,6 +2365,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                  a    b
         dog    3.0  4.0
         mouse  7.0  3.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3, 4, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
         """
         result = self._cython_agg_general(
             "median",
