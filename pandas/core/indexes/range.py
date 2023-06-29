@@ -168,11 +168,22 @@ class RangeIndex(Index):
     @classmethod
     def from_range(cls, data: range, name=None, dtype: Dtype | None = None) -> Self:
         """
-        Create RangeIndex from a range object.
+        Create :class:`pandas.RangeIndex` from a ``range`` object.
 
         Returns
         -------
         RangeIndex
+
+        Examples
+        --------
+        ``pd.RangeIndex(range(start, stop[, step]))`` is equivalent to
+        ``pd.RangeIndex(start, stop[, step])``.
+
+        >>> pd.RangeIndex(range(5))
+        RangeIndex(start=0, stop=5, step=1)
+
+        >>> pd.RangeIndex(range(2, -10, -3))
+        RangeIndex(start=2, stop=-10, step=-3)
         """
         if not isinstance(data, range):
             raise TypeError(
