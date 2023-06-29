@@ -1083,6 +1083,22 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.asfreq: Convert TimeSeries to specified frequency.
         DataFrame.asfreq: Convert TimeSeries to specified frequency.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-31', '2023-02-01', '2023-02-28']))
+        >>> ser
+        2023-01-01    1
+        2023-01-31    2
+        2023-02-01    3
+        2023-02-28    4
+        dtype: int64
+        >>> ser.resample('MS').asfreq()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
@@ -1116,6 +1132,29 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute min value of group.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').min()
+        2023-01-01    1
+        2023-02-01    3
+        Freq: MS, dtype: int64
+        """
+
         maybe_warn_args_and_kwargs(type(self), "min", args, kwargs)
         nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
@@ -1127,6 +1166,28 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute max value of group.
+
+        Returns
+        -------
+        Series or DataFrame
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').max()
+        2023-01-01    2
+        2023-02-01    4
+        Freq: MS, dtype: int64
+        """
         maybe_warn_args_and_kwargs(type(self), "max", args, kwargs)
         nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
@@ -1183,6 +1244,22 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Mean of values within each group.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').mean()
+        2023-01-01    1.5
+        2023-02-01    3.5
+        Freq: MS, dtype: float64
         """
         maybe_warn_args_and_kwargs(type(self), "mean", args, kwargs)
         nv.validate_resampler_func("mean", args, kwargs)
