@@ -538,3 +538,11 @@ def test_midx_losing_dtype():
     )
     expected = DataFrame({"a": [np.nan, 4, 3, 3]}, index=expected_midx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_empty_columns():
+    left = DataFrame(columns=["a", "b"])
+    right = DataFrame(columns=["a", "c"])
+    result = left.combine_first(right)
+    expected = DataFrame(columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
