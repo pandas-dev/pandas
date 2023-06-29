@@ -31,7 +31,7 @@ def mpl_cleanup():
 
 @pytest.fixture
 def hist_df():
-    n = 20
+    n = 50
     np_random = np.random.RandomState(42)
     gender = np_random.choice(["Male", "Female"], size=n)
     classroom = np_random.choice(["A", "B", "C"], size=n)
