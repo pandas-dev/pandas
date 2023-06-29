@@ -40,7 +40,6 @@ objects.
       api.extensions.ExtensionArray._from_sequence_of_strings
       api.extensions.ExtensionArray._hash_pandas_object
       api.extensions.ExtensionArray._reduce
-      api.extensions.ExtensionArray._reduce_and_wrap
       api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
       api.extensions.ExtensionArray.argsort

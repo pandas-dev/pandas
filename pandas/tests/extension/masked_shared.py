@@ -95,7 +95,7 @@ class NumericReduce(base.BaseNumericReduceTests):
             exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
             expected = pd.array([exp_value], dtype=cmp_dtype)
 
-        result1 = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs={})
+        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
         result2 = getattr(df, op_name)(skipna=skipna).array
 
         tm.assert_extension_array_equal(result1, result2)

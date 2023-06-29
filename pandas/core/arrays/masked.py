@@ -1083,30 +1083,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
-            return getattr(self, name)(skipna=skipna, **kwargs)
-
-        data = self._data
-        mask = self._mask
-
-        # median, skew, kurt, sem
-        op = getattr(nanops, f"nan{name}")
-        axis = kwargs.pop("axis", None)
-        result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
-        if np.isnan(result):
-            return libmissing.NA
-
-        return result
-
-    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        res = self._reduce(name=name, skipna=skipna, **kwargs)
-        if res is libmissing.NA:
-            return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
+            result = getattr(self, name)(skipna=skipna, **kwargs)
         else:
-            res = res.reshape(1)
-            mask = np.zeros(1, dtype=bool)
-            return self._maybe_mask_result(res, mask)
+            # median, skew, kurt, sem
+            data = self._data
+            mask = self._mask
+            op = getattr(nanops, f"nan{name}")
+            axis = kwargs.pop("axis", None)
+            result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
+
+        if keepdims:
+            if isna(result):
+                return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
+            else:
+                result = result.reshape(1)
+                mask = np.zeros(1, dtype=bool)
+                return self._maybe_mask_result(result, mask)
+
+        if isna(result):
+            return libmissing.NA
+        else:
+            return result
 
     def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
         if isinstance(result, np.ndarray):

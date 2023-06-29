@@ -387,7 +387,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             raise TypeError("not supposed to reach this")
 
-        result = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs={})
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
         if not skipna and ser.isna().any():
             expected = pd.array([pd.NA], dtype=cmp_dtype)
         else:

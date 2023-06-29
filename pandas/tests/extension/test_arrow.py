@@ -533,7 +533,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
                 "u": "uint64[pyarrow]",
                 "f": "float64[pyarrow]",
             }[arr.dtype.kind]
-        result = arr._reduce_and_wrap(op_name, skipna=skipna, kwargs=kwargs)
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
 
         if not skipna and ser.isna().any():
             expected = pd.array([pd.NA], dtype=cmp_dtype)

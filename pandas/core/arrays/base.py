@@ -140,7 +140,6 @@ class ExtensionArray:
     _from_sequence_of_strings
     _hash_pandas_object
     _reduce
-    _reduce_and_wrap
     _values_for_argsort
     _values_for_factorize
 
@@ -190,7 +189,6 @@ class ExtensionArray:
 
     * _accumulate
     * _reduce
-    * _reduce_and_wrap
 
     One can implement methods to handle parsing from strings that will be used
     in methods such as ``pandas.io.parsers.read_csv``.
@@ -1437,7 +1435,9 @@ class ExtensionArray:
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1449,6 +1449,15 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
+
+            .. versionadded:: 2.1
+
+               This parameter is not required in the _reduce signature to keep backward
+               compatibility, but will become required in the future. If the parameter
+               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -1460,11 +1469,6 @@ class ExtensionArray:
         Raises
         ------
         TypeError : subclass does not define reductions
-
-        See Also
-        --------
-        ExtensionArray._reduce_and_wrap
-            Calls ``_reduce`` and wraps the result in a ndarray/ExtensionArray.
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -1472,29 +1476,11 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        return meth(skipna=skipna, **kwargs)
+        result = meth(skipna=skipna, **kwargs)
+        if keepdims:
+            result = np.array([result])
 
-    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        """
-        Call ``_reduce`` and wrap the result in a ndarray/ExtensionArray.
-
-        This is used to control the returned dtype when doing reductions in DataFrames,
-        and ensures the correct dtype for e.g. ``DataFrame({"a": extr_arr2}).sum()``.
-
-        Returns
-        -------
-        ndarray or ExtensionArray
-
-        Examples
-        --------
-        >>> arr = pd.array([1, 2, pd.NA])
-        >>> arr._reduce_and_wrap("sum", kwargs={})
-        <IntegerArray>
-        [3]
-        Length: 1, dtype: Int64
-        """
-        result = self._reduce(name, skipna=skipna, **kwargs)
-        return np.array([result])
+        return result
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class

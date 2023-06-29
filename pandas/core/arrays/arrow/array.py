@@ -1512,7 +1512,9 @@ class ArrowExtensionArray(
 
         return result
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1536,18 +1538,16 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
-        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+        pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
-        if pc.is_null(result).as_py():
+        if keepdims:
+            result = pa.array([pa_result.as_py()], type=pa_result.type)
+            return type(self)(result)
+
+        if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
-
-        return result.as_py()
-
-    def _reduce_and_wrap(self, name: str, *, skipna: bool = True, kwargs):
-        """Takes the result of ``_reduce`` and wraps it an a ndarray/extensionArray."""
-        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
-        result = pa.array([result.as_py()], type=result.type)
-        return type(self)(result)
+        else:
+            return pa_result.as_py()
 
     def _explode(self):
         """

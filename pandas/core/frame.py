@@ -13,6 +13,7 @@ from __future__ import annotations
 import collections
 from collections import abc
 import functools
+from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -10877,7 +10878,18 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce_and_wrap(name, skipna=skipna, kwargs=kwds)
+                sign = signature(values._reduce)
+                if "keepdims" in sign.parameters:
+                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                else:
+                    warnings.warn(
+                        f"{type(values)}._reduce will require a `keepdims` parameter "
+                        "in the future",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    result = values._reduce(name, skipna=skipna, kwargs=kwds)
+                    return np.array([result])
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
