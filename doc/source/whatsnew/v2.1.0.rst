@@ -52,7 +52,7 @@ columns with a common dtype (:issue:`52788`).
 
 Notice that the dtype is now a masked dtype and pyarrow dtype, respectively, while previously it was a numpy integer dtype.
 
-To allow Dataframe reductions to preserve extension dtypes, :ref:`ExtensionArray._reduce` has gotten a new keyword parameter ``keepdims``. Calling :ref:`ExtensionArray._reduce` with ``keepdims=True`` should return an array of length 1 along the reduction axis. In order to maintain backward compatibility, the parameter is not required, but will it become required in the future. If the parameter is not found in the signature, DataFrame reductions can not preserve extension dtypes. Also, if the parameter is not found, a ``FutureWarning`` will be emitted and type checkers like mypy may complain about the signature not being compatible with :ref:`ExtensionArray._reduce`.
+To allow Dataframe reductions to preserve extension dtypes, :meth:`ExtensionArray._reduce` has gotten a new keyword parameter ``keepdims``. Calling :meth:`ExtensionArray._reduce` with ``keepdims=True`` should return an array of length 1 along the reduction axis. In order to maintain backward compatibility, the parameter is not required, but will it become required in the future. If the parameter is not found in the signature, DataFrame reductions can not preserve extension dtypes. Also, if the parameter is not found, a ``FutureWarning`` will be emitted and type checkers like mypy may complain about the signature not being compatible with :meth:`ExtensionArray._reduce`.
 
 .. _whatsnew_210.enhancements.cow:
 
