@@ -81,7 +81,7 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      LANG: ${{ matrix.lang || '' }}
+      LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
@@ -122,7 +122,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:4.1.4
+        image: motoserver/moto:4.1.12
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -227,7 +227,7 @@ jobs:
           fi
       - name: Build environment and Run Tests
         run: |
-          /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
@@ -265,7 +265,7 @@ jobs:
           apk add musl-locales
       - name: Build environment
         run: |
-          /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
