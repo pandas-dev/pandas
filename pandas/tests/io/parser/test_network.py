@@ -74,11 +74,6 @@ def tips_df(datapath):
 
 @pytest.mark.single_cpu
 @pytest.mark.usefixtures("s3_resource")
-@pytest.mark.xfail(
-    reason="CI race condition GH 45433, GH 44584",
-    raises=FileNotFoundError,
-    strict=False,
-)
 @td.skip_if_not_us_locale()
 class TestS3:
     @td.skip_if_no("s3fs")

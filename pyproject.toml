@@ -453,7 +453,7 @@ disable = [
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion = "7.0"
+minversion = "7.3.2"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
