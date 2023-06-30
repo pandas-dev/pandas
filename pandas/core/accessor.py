@@ -217,7 +217,7 @@ class CachedAccessor:
         self._name = name
         self._accessor = accessor
 
-    def __get__(self, obj, cls):
+    def __get__(self, obj):
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
