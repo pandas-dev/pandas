@@ -276,6 +276,7 @@ class PyArrowImpl(BaseImpl):
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
+        handles = None
         try:
             result, handles = self._read_helper(
                 path,
@@ -304,7 +305,6 @@ class PyArrowImpl(BaseImpl):
                 to_pandas_kwargs,
                 manager,
             )
-            print(f"handles: {handles}")
             return result
         finally:
             if handles is not None:
