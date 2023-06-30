@@ -124,17 +124,17 @@ def _get_path_or_handle(
         try:
             if fs is None:
                 fsspec = import_optional_dependency("fsspec")
-            file_obj = fsspec.open(
+            fsspec.open(
                 path_or_handle, mode=fsspec_mode, **(storage_options or {})
             ).open()
         # GH 34626 Reads from Public Buckets without Credentials needs anon=True
         except tuple(err_types_to_retry_with_anon):
             storage_options = {"anon": True}
-        
+
         if storage_options is None:
             pa = import_optional_dependency("pyarrow")
             pa_fs = import_optional_dependency("pyarrow.fs")
-            
+
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
             except (TypeError, pa.ArrowInvalid):
@@ -276,6 +276,50 @@ class PyArrowImpl(BaseImpl):
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 
+        try:
+            result, handles = self._read_helper(
+                path,
+                filesystem,
+                storage_options,
+                columns,
+                kwargs,
+                to_pandas_kwargs,
+                manager,
+            )
+            return result
+        except OSError:
+            # retry with anon=True
+            if storage_options is None:
+                storage_options = {"anon": True}
+            else:
+                # don't mutate user input.
+                storage_options = dict(storage_options)
+                storage_options["anon"] = True
+            result, handles = self._read_helper(
+                path,
+                filesystem,
+                storage_options,
+                columns,
+                kwargs,
+                to_pandas_kwargs,
+                manager,
+            )
+            print(f"handles: {handles}")
+            return result
+        finally:
+            if handles is not None:
+                handles.close()
+
+    def _read_helper(
+        self,
+        path,
+        filesystem,
+        storage_options,
+        columns,
+        kwargs,
+        to_pandas_kwargs,
+        manager,
+    ):
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -283,18 +327,15 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
 
-        try:
-            pa_table = self.api.parquet.read_table(
-                path_or_handle, columns=columns, filesystem=filesystem, **kwargs
-            )
-            result = pa_table.to_pandas(**to_pandas_kwargs)
+        pa_table = self.api.parquet.read_table(
+            path_or_handle, columns=columns, filesystem=filesystem, **kwargs
+        )
+        result = pa_table.to_pandas(**to_pandas_kwargs)
 
-            if manager == "array":
-                result = result._as_manager("array", copy=False)
-            return result
-        finally:
-            if handles is not None:
-                handles.close()
+        if manager == "array":
+            result = result._as_manager("array", copy=False)
+
+        return result, handles
 
 
 class FastParquetImpl(BaseImpl):
