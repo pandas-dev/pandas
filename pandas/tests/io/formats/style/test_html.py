@@ -15,8 +15,12 @@ from pandas import (
 jinja2 = pytest.importorskip("jinja2")
 from pandas.io.formats.style import Styler
 
-loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-env = jinja2.Environment(loader=loader, trim_blocks=True)
+
+@pytest.fixture
+def env():
+    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    return env
 
 
 @pytest.fixture
@@ -31,19 +35,19 @@ def styler_mi():
 
 
 @pytest.fixture
-def tpl_style():
+def tpl_style(env):
     return env.get_template("html_style.tpl")
 
 
 @pytest.fixture
-def tpl_table():
+def tpl_table(env):
     return env.get_template("html_table.tpl")
 
 
 def test_html_template_extends_options():
     # make sure if templates are edited tests are updated as are setup fixtures
     # to understand the dependency
-    with open("pandas/io/formats/templates/html.tpl") as file:
+    with open("pandas/io/formats/templates/html.tpl", encoding="utf-8") as file:
         result = file.read()
     assert "{% include html_style_tpl %}" in result
     assert "{% include html_table_tpl %}" in result

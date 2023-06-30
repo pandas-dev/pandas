@@ -4,10 +4,13 @@
 pip
 versioneer[toml]
 cython==0.29.33
-pytest>=7.0.0
+meson[ninja]==1.0.1
+meson-python==0.13.1
+pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
 pytest-asyncio>=0.17.0
+pytest-localserver>=0.7.1
 coverage
 python-dateutil
 numpy
@@ -62,7 +65,7 @@ gitpython
 gitdb
 natsort
 numpydoc
-pydata-sphinx-theme<0.11
+pydata-sphinx-theme
 pytest-cython
 sphinx
 sphinx-design
@@ -88,4 +91,3 @@ pygments
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1
-setuptools>=61.0.0

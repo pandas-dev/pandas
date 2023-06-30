@@ -76,6 +76,8 @@ if TYPE_CHECKING:
         Self,
     )
 
+    from pandas import Index
+
 # -----------------------------------------------------------------------------
 # -- Helper functions
 
@@ -129,13 +131,13 @@ def _parse_date_columns(data_frame, parse_dates):
     # we want to coerce datetime64_tz dtypes for now to UTC
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
-    for col_name, df_col in data_frame.items():
+    for i, (col_name, df_col) in enumerate(data_frame.items()):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
-            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+            data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
     return data_frame
 
@@ -159,7 +161,9 @@ def _convert_arrays_to_dataframe(
             ArrowExtensionArray(pa.array(arr, from_pandas=True)) for arr in arrays
         ]
     if arrays:
-        return DataFrame(dict(zip(columns, arrays)))
+        df = DataFrame(dict(zip(list(range(len(columns))), arrays)))
+        df.columns = columns
+        return df
     else:
         return DataFrame(columns=columns)
 
@@ -756,7 +760,7 @@ def to_sql(
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
-    """  # noqa:E501
+    """  # noqa: E501
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError(f"'{if_exists}' is not valid for if_exists")
 
@@ -970,10 +974,16 @@ class SQLTable(PandasObject):
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
                 if isinstance(ser._values, ArrowExtensionArray):
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings("ignore", category=FutureWarning)
-                        # GH#52459 to_pydatetime will return Index[object]
-                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                    import pyarrow as pa
+
+                    if pa.types.is_date(ser.dtype.pyarrow_dtype):
+                        # GH#53854 to_pydatetime not supported for pyarrow date dtypes
+                        d = ser._values.to_numpy(dtype=object)
+                    else:
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=FutureWarning)
+                            # GH#52459 to_pydatetime will return Index[object]
+                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
@@ -1256,7 +1266,7 @@ class SQLTable(PandasObject):
             except KeyError:
                 pass  # this column not in results
 
-    def _sqlalchemy_type(self, col):
+    def _sqlalchemy_type(self, col: Index | Series):
         dtype: DtypeArg = self.dtype or {}
         if is_dict_like(dtype):
             dtype = cast(dict, dtype)
@@ -1284,7 +1294,8 @@ class SQLTable(PandasObject):
             # GH 9086: TIMESTAMP is the suggested type if the column contains
             # timezone information
             try:
-                if col.dt.tz is not None:
+                # error: Item "Index" of "Union[Index, Series]" has no attribute "dt"
+                if col.dt.tz is not None:  # type: ignore[union-attr]
                     return TIMESTAMP(timezone=True)
             except AttributeError:
                 # The column is actually a DatetimeIndex

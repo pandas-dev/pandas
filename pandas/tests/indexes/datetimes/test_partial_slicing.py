@@ -379,7 +379,7 @@ class TestSlicing:
         # Disallowed since 2.0 (GH 37819)
         ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
-        nonmonotonic = ser[[3, 5, 4]]
+        nonmonotonic = ser.iloc[[3, 5, 4]]
         timestamp = Timestamp("2014-01-10")
         with pytest.raises(
             KeyError, match="Value based partial slicing on non-monotonic"

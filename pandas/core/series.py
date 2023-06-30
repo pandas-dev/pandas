@@ -72,7 +72,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -571,6 +574,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _constructor(self) -> Callable[..., Series]:
         return Series
 
+    def _constructor_from_mgr(self, mgr, axes):
+        ser = self._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is Series:
+            # fastpath avoiding constructor call
+            return ser
+        else:
+            assert axes is mgr.axes
+            return self._constructor(ser, copy=False)
+
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
@@ -580,6 +593,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         from pandas.core.frame import DataFrame
 
         return DataFrame
+
+    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #  with self._constructor_expanddim._constructor_from_mgr(...)
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
+        from pandas import DataFrame
+
+        return DataFrame._from_mgr(mgr, axes=mgr.axes)
+
+    def _constructor_expanddim_from_mgr(self, mgr, axes):
+        df = self._expanddim_from_mgr(mgr, axes)
+        if type(self) is Series:
+            # fastpath avoiding constructor
+            return df
+        assert axes is mgr.axes
+        return self._constructor_expanddim(df, copy=False)
 
     # types
     @property
@@ -770,6 +802,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.ravel : Return a flattened array.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.ravel()
+        array([1, 2, 3])
         """
         arr = self._values.ravel(order=order)
         if isinstance(arr, np.ndarray) and using_copy_on_write():
@@ -967,6 +1005,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key = unpack_1tuple(key)
 
         if is_integer(key) and self.index._should_fallback_to_positional:
+            warnings.warn(
+                # GH#50617
+                "Series.__getitem__ treating keys as positions is deprecated. "
+                "In a future version, integer keys will always be treated "
+                "as labels (consistent with DataFrame behavior). To access "
+                "a value by position, use `ser.iloc[pos]`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self._values[key]
 
         elif key_is_scalar:
@@ -998,7 +1045,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if com.is_bool_indexer(key):
             key = check_bool_indexer(self.index, key)
             key = np.asarray(key, dtype=bool)
-            return self._get_values(key)
+            return self._get_rows_with_mask(key)
 
         return self._get_with(key)
 
@@ -1029,6 +1076,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not self.index._should_fallback_to_positional:
                 return self.loc[key]
             else:
+                warnings.warn(
+                    # GH#50617
+                    "Series.__getitem__ treating keys as positions is deprecated. "
+                    "In a future version, integer keys will always be treated "
+                    "as labels (consistent with DataFrame behavior). To access "
+                    "a value by position, use `ser.iloc[pos]`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return self.iloc[key]
 
         # handle the dup indexing case GH#4246
@@ -1054,9 +1110,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             new_ser._mgr.add_references(self._mgr)  # type: ignore[arg-type]
         return new_ser.__finalize__(self)
 
-    def _get_values(self, indexer: slice | npt.NDArray[np.bool_]) -> Series:
-        new_mgr = self._mgr.getitem_mgr(indexer)
-        return self._constructor(new_mgr, fastpath=True).__finalize__(self)
+    def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
+        new_mgr = self._mgr.get_rows_with_mask(indexer)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1130,6 +1186,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     # positional setter
                     # can't use _mgr.setitem_inplace yet bc could have *both*
                     #  KeyError and then ValueError, xref GH#45070
+                    warnings.warn(
+                        # GH#50617
+                        "Series.__setitem__ treating keys as positions is deprecated. "
+                        "In a future version, integer keys will always be treated "
+                        "as labels (consistent with DataFrame behavior). To set "
+                        "a value by position, use `ser.iloc[pos] = value`",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
                     self._set_values(key, value)
             else:
                 # GH#12862 adding a new key to the Series
@@ -1205,6 +1270,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             key_type = lib.infer_dtype(key, skipna=False)
 
             if key_type == "integer":
+                warnings.warn(
+                    # GH#50617
+                    "Series.__setitem__ treating keys as positions is deprecated. "
+                    "In a future version, integer keys will always be treated "
+                    "as labels (consistent with DataFrame behavior). To set "
+                    "a value by position, use `ser.iloc[pos] = value`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 self._set_values(key, value)
             else:
                 self._set_labels(key, value)
@@ -1671,6 +1745,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         str or None
             String representation of Series if ``buf=None``, otherwise None.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3]).to_string()
+        >>> ser
+        '0    1\\n1    2\\n2    3'
         """
         formatter = fmt.SeriesFormatter(
             self,
@@ -1699,7 +1779,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if hasattr(buf, "write"):
                 buf.write(result)
             else:
-                with open(buf, "w") as f:
+                with open(buf, "w", encoding="utf-8") as f:
                     f.write(result)
         return None
 
@@ -1904,10 +1984,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(self, name, inplace: bool = False) -> Series:
+    def _set_name(
+        self, name, inplace: bool = False, deep: bool | None = None
+    ) -> Series:
         """
         Set the Series name.
 
@@ -1916,9 +1998,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name : str
         inplace : bool
             Whether to modify `self` directly or return a copy.
+        deep : bool|None, default None
+            Whether to do a deep copy, a shallow copy, or Copy on Write(None)
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
-        ser = self if inplace else self.copy()
+        ser = self if inplace else self.copy(deep and not using_copy_on_write())
         ser.name = name
         return ser
 
@@ -2081,6 +2165,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         -------
         Series
             Modes of the Series in sorted order.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 4, 2, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        dtype: float64
+
+        More than one mode:
+
+        >>> s = pd.Series([2, 4, 8, 2, 4, None])
+        >>> s.mode()
+        0    2.0
+        1    4.0
+        dtype: float64
+
+        With and without considering null value:
+
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode(dropna=False)
+        0   NaN
+        dtype: float64
+        >>> s = pd.Series([2, 4, None, None, 4, None])
+        >>> s.mode()
+        0    4.0
+        dtype: float64
         """
         # TODO: Add option for bins like value_counts()
         values = self._values
@@ -2682,7 +2792,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
-        """  # noqa:E501
+        """  # noqa: E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
             return np.nan
@@ -3781,6 +3891,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         numpy.ndarray.argsort : Returns the indices that would sort this array.
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.argsort()
+        0    2
+        1    1
+        2    0
+        dtype: int64
         """
         values = self._values
         mask = isna(values)
@@ -4096,6 +4215,28 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Returns
         -------
         type of caller (new object)
+
+        Examples
+        --------
+        >>> arrays = [np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
+        ...           np.array(["white", "black", "white", "black", "white", "black"])]
+        >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=arrays)
+        >>> s
+        dog   white    1
+              black    2
+        cat   white    3
+              black    3
+        bird  white    5
+              black    2
+        dtype: int64
+        >>> s.reorder_levels([1, 0])
+        white  dog     1
+        black  dog     2
+        white  cat     3
+        black  cat     3
+        white  bird    5
+        black  bird    2
+        dtype: int64
         """
         if not isinstance(self.index, MultiIndex):  # pragma: no cover
             raise Exception("Can only reorder levels on a hierarchical axis.")
@@ -4158,11 +4299,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self.dtype):
+        if isinstance(self.dtype, ArrowDtype) and self.dtype.type == list:
+            values, counts = self._values._explode()
+        elif len(self) and is_object_dtype(self.dtype):
+            values, counts = reshape.explode(np.asarray(self._values))
+        else:
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
-
-        values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
             index = default_index(len(values))
@@ -4171,7 +4314,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return self._constructor(values, index=index, name=self.name, copy=False)
 
-    def unstack(self, level: IndexLabel = -1, fill_value: Hashable = None) -> DataFrame:
+    def unstack(
+        self, level: IndexLabel = -1, fill_value: Hashable = None, sort: bool = True
+    ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
 
@@ -4181,6 +4326,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Level(s) to unstack, can pass level name.
         fill_value : scalar value, default None
             Value to use when replacing NaN values.
+        sort : bool, default True
+            Sort the level(s) in the resulting MultiIndex columns.
 
         Returns
         -------
@@ -4215,7 +4362,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value)
+        return unstack(self, level, fill_value, sort)
 
     # ----------------------------------------------------------------------
     # function application
@@ -4381,7 +4528,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
+        ser = self.copy(deep=False) if using_copy_on_write() else self
+        result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4389,6 +4537,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         func: AggFuncType,
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
+        *,
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4412,10 +4562,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             preserved for some extension array dtypes, such as Categorical.
 
             .. deprecated:: 2.1.0
-                The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
+                ``convert_dtype`` has been deprecated. Do ``ser.astype(object).apply()``
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
+        by_row : False or "compat", default "compat"
+            If ``"compat"`` and func is a callable, func will be passed each element of
+            the Series, like ``Series.map``. If func is a list or dict of
+            callables, will first try to translate each func into pandas methods. If
+            that doesn't work, will try call to apply again with ``by_row="compat"``
+            and if that fails, will call apply again with ``by_row=False``
+            (backward compatible).
+            If False, the func will be passed the whole Series at once.
+
+            ``by_row`` has no effect when ``func`` is a string.
+
+            .. versionadded:: 2.1.0
         **kwargs
             Additional keyword arguments passed to func.
 
@@ -4504,7 +4666,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         return SeriesApply(
-            self, func, convert_dtype=convert_dtype, args=args, kwargs=kwargs
+            self,
+            func,
+            convert_dtype=convert_dtype,
+            by_row=by_row,
+            args=args,
+            kwargs=kwargs,
         ).apply()
 
     def _reindex_indexer(
@@ -4580,7 +4747,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         index: Renamer | Hashable | None = None,
         *,
         axis: Axis | None = None,
-        copy: bool = True,
+        copy: bool | None = None,
         inplace: bool = False,
         level: Level | None = None,
         errors: IgnoreRaise = "ignore",
@@ -4667,7 +4834,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 errors=errors,
             )
         else:
-            return self._set_name(index, inplace=inplace)
+            return self._set_name(index, inplace=inplace, deep=copy)
 
     @Appender(
         """
@@ -5876,7 +6043,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> bool:
@@ -5895,7 +6062,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def all(
         self,
         axis: Axis = 0,
-        bool_only=None,
+        bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
     ) -> bool:

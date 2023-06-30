@@ -42,6 +42,7 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -151,9 +152,9 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
-
 # ----------------------------------------------------------------------
 # API
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -973,7 +974,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
             "Only resolutions 's', 'ms', 'us', 'ns' are supported."
         )
 
-    td_base._value= value
+    td_base._value = value
     td_base._is_populated = 0
     td_base._creso = reso
     return td_base
@@ -1112,7 +1113,17 @@ cdef class _Timedelta(timedelta):
         return self._ms * 1000 + self._us
 
     def total_seconds(self) -> float:
-        """Total seconds in the duration."""
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """
         # We need to override bc we overrode days/seconds/microseconds
         # TODO: add nanos/1e9?
         return self.days * 24 * 3600 + self.seconds + self.microseconds / 1_000_000
@@ -1274,6 +1285,14 @@ cdef class _Timedelta(timedelta):
         Notes
         -----
         Any nanosecond resolution will be lost.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_pytimedelta()
+        datetime.timedelta(days=3)
         """
         if self._creso == NPY_FR_ns:
             return timedelta(microseconds=int(self._value) / 1000)
@@ -1287,6 +1306,14 @@ cdef class _Timedelta(timedelta):
     def to_timedelta64(self) -> np.timedelta64:
         """
         Return a numpy.timedelta64 object with 'ns' precision.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_timedelta64()
+        numpy.timedelta64(259200000000000,'ns')
         """
         cdef:
             str abbrev = npy_unit_to_abbrev(self._creso)
@@ -1309,6 +1336,14 @@ cdef class _Timedelta(timedelta):
         See Also
         --------
         Series.to_numpy : Similar method for Series.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.to_numpy()
+        numpy.timedelta64(259200000000000,'ns')
         """
         if dtype is not None or copy is not False:
             raise ValueError(
@@ -1324,6 +1359,14 @@ cdef class _Timedelta(timedelta):
         ----------
         dtype : str or dtype
             The dtype to view the underlying data as.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('3D')
+        >>> td
+        Timedelta('3 days 00:00:00')
+        >>> td.view(int)
+        259200000000000
         """
         return np.timedelta64(self._value).view(dtype)
 
@@ -1592,7 +1635,7 @@ cdef class _Timedelta(timedelta):
 
     def as_unit(self, str unit, bint round_ok=True):
         """
-        Convert the underlying int64 representaton to the given unit.
+        Convert the underlying int64 representation to the given unit.
 
         Parameters
         ----------
@@ -1603,6 +1646,14 @@ cdef class _Timedelta(timedelta):
         Returns
         -------
         Timedelta
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.as_unit('s')
+        Timedelta('0 days 00:00:01')
         """
         dtype = np.dtype(f"m8[{unit}]")
         reso = get_unit_from_dtype(dtype)
@@ -1739,7 +1790,6 @@ class Timedelta(_Timedelta):
                 + int(kwargs.get("milliseconds", 0) * 1_000_000)
                 + seconds
             )
-
         if unit in {"Y", "y", "M"}:
             raise ValueError(
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
@@ -1786,6 +1836,15 @@ class Timedelta(_Timedelta):
                 return NaT
 
             reso = get_datetime64_unit(value)
+            if not (is_supported_unit(reso) or
+                    reso in [NPY_DATETIMEUNIT.NPY_FR_m,
+                             NPY_DATETIMEUNIT.NPY_FR_h,
+                             NPY_DATETIMEUNIT.NPY_FR_D,
+                             NPY_DATETIMEUNIT.NPY_FR_W,
+                             NPY_DATETIMEUNIT.NPY_FR_GENERIC]):
+                err = npy_unit_to_abbrev(reso)
+                raise ValueError(f" cannot construct a Timedelta from a unit {err}")
+
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                 try:
@@ -1875,6 +1934,14 @@ class Timedelta(_Timedelta):
         Raises
         ------
         ValueError if the freq cannot be converted
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.round('s')
+        Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN)
 
@@ -1886,6 +1953,14 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the flooring resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.floor('s')
+        Timedelta('0 days 00:00:01')
         """
         return self._round(freq, RoundTo.MINUS_INFTY)
 
@@ -1897,6 +1972,14 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the ceiling resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1001ms')
+        >>> td
+        Timedelta('0 days 00:00:01.001000')
+        >>> td.ceil('s')
+        Timedelta('0 days 00:00:02')
         """
         return self._round(freq, RoundTo.PLUS_INFTY)
 
