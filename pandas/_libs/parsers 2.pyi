@@ -12,7 +12,6 @@ from pandas._typing import (
 )
 
 STR_NA_VALUES: set[str]
-DEFAULT_BUFFER_HEURISTIC: int
 
 def sanitize_objects(
     values: npt.NDArray[np.object_],

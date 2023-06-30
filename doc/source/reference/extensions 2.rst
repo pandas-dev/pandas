@@ -51,7 +51,6 @@ objects.
       api.extensions.ExtensionArray.factorize
       api.extensions.ExtensionArray.fillna
       api.extensions.ExtensionArray.insert
-      api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
       api.extensions.ExtensionArray.ravel
