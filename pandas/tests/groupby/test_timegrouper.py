@@ -907,6 +907,7 @@ class TestGroupBy:
         tm.assert_frame_equal(res, expected)
 
     @td.skip_if_no("numba")
+    @pytest.mark.single_cpu
     def test_groupby_agg_numba_timegrouper_with_nat(
         self, groupby_with_truncated_bingrouper
     ):
