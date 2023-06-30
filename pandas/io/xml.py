@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import io
+from os import PathLike
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -326,10 +327,13 @@ class _XMLFrameParser:
             )
 
         if (not hasattr(self.path_or_buffer, "read")) and (
-            not isinstance(self.path_or_buffer, str)
+            not isinstance(self.path_or_buffer, (str, PathLike))
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)
-            or self.path_or_buffer.startswith(("<?xml", "<"))
+            or (
+                isinstance(self.path_or_buffer, str)
+                and self.path_or_buffer.startswith(("<?xml", "<"))
+            )
             or infer_compression(self.path_or_buffer, "infer") is not None
         ):
             raise ParserError(
