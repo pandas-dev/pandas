@@ -1114,7 +1114,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Parameters
         ----------
-        numeric_only : bool, default no
+        numeric_only : bool, default False
             Include only float, int, boolean columns.
 
             .. versionchanged:: 2.0.0
@@ -1161,7 +1161,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Parameters
         ----------
-        numeric_only : bool, default no
+        numeric_only : bool, default False
             Include only float, int, boolean columns.
 
             .. versionchanged:: 2.0.0

@@ -3341,7 +3341,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ...                                         '2023-02-01',
         ...                                         '2023-02-10',
         ...                                         '2023-02-15']))
-        >>> print(ser.resample('MS').ohlc())
+        >>> ser.resample('MS').ohlc()
                     open  high  low  close
         2023-01-01     1     3    1      2
         2023-02-01     4     5    3      5
