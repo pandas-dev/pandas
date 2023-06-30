@@ -126,10 +126,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.resample.Resampler.sum \
         pandas.core.resample.Resampler.var \
         pandas.core.resample.Resampler.quantile \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
