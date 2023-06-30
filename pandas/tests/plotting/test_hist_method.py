@@ -440,8 +440,6 @@ class TestDataFramePlots:
         _check_plot_works(df.hist, default_axes=True)
         mpl.pyplot.tight_layout()
 
-        tm.close()
-
     def test_hist_subplot_xrot(self):
         # GH 30288
         df = DataFrame(
@@ -582,7 +580,6 @@ class TestDataFramePlots:
         _check_legend_labels(ax, labels=["a", "b (right)"])
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_hist_secondary_secondary(self):
         # GH 9610
@@ -596,7 +593,6 @@ class TestDataFramePlots:
         _check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_hist_secondary_primary(self):
         # GH 9610
@@ -611,7 +607,6 @@ class TestDataFramePlots:
         _check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
         assert ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
-        tm.close()
 
     @td.skip_if_no_mpl
     def test_hist_with_nans_and_weights(self):

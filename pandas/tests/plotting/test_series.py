@@ -135,7 +135,6 @@ class TestSeriesPlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
-        tm.close()
 
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
@@ -145,7 +144,6 @@ class TestSeriesPlots:
         assert xmin <= line[0]
         assert xmax >= line[-1]
         _check_ticks_props(ax, xrot=0)
-        tm.close()
 
     def test_ts_area_lim_xcompat(self, ts):
         # GH 7471
@@ -156,7 +154,6 @@ class TestSeriesPlots:
         assert xmin <= line[0]
         assert xmax >= line[-1]
         _check_ticks_props(ax, xrot=30)
-        tm.close()
 
     def test_ts_tz_area_lim_xcompat(self, ts):
         tz_ts = ts.copy()
@@ -168,7 +165,6 @@ class TestSeriesPlots:
         assert xmin <= line[0]
         assert xmax >= line[-1]
         _check_ticks_props(ax, xrot=0)
-        tm.close()
 
     def test_ts_tz_area_lim_xcompat_secondary_y(self, ts):
         tz_ts = ts.copy()
@@ -180,7 +176,6 @@ class TestSeriesPlots:
         assert xmin <= line[0]
         assert xmax >= line[-1]
         _check_ticks_props(ax, xrot=0)
-        tm.close()
 
     def test_area_sharey_dont_overwrite(self, ts):
         # GH37942
@@ -288,7 +283,6 @@ class TestSeriesPlots:
         _, ax = mpl.pyplot.subplots()
         ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
-        tm.close()
 
     @pytest.mark.xfail(
         np_version_gte1p24 and is_platform_linux(),
@@ -311,7 +305,6 @@ class TestSeriesPlots:
         tm.assert_almost_equal(res[0], ymin)
         tm.assert_almost_equal(res[1], ymax)
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
-        tm.close()
 
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
@@ -455,7 +448,6 @@ class TestSeriesPlots:
         _check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_df_series_secondary_legend_with_axes(self):
         # GH 9779
@@ -470,7 +462,6 @@ class TestSeriesPlots:
         _check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
         assert ax.get_yaxis().get_visible()
         assert ax.right_ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_df_series_secondary_legend_both(self):
         # GH 9779
@@ -486,7 +477,6 @@ class TestSeriesPlots:
         _check_legend_labels(ax.left_ax, labels=expected)
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_df_series_secondary_legend_both_with_axis(self):
         # GH 9779
@@ -502,7 +492,6 @@ class TestSeriesPlots:
         _check_legend_labels(ax.left_ax, expected)
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
-        tm.close()
 
     def test_df_series_secondary_legend_both_with_axis_2(self):
         # GH 9779
@@ -518,7 +507,6 @@ class TestSeriesPlots:
         _check_legend_labels(ax.left_ax, expected)
         assert not ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
-        tm.close()
 
     @pytest.mark.parametrize(
         "input_logy, expected_scale", [(True, "log"), ("sym", "symlog")]
@@ -665,8 +653,6 @@ class TestSeriesPlots:
         )
         with pytest.raises(ValueError, match=msg):
             s.plot(yerr=np.random.rand(2, 11))
-
-        tm.close()
 
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar"])
