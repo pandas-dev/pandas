@@ -36,8 +36,8 @@ def test_dt64_array():
     for unit in dtype_unit_lst:
         dtype_var = np.dtype(unit)
         msg = (
-            r"datetime64 and timedelta64 dtypes with 'm' and 'h' resolutions "
-            r"are deprecated.Supported resolutions are 's', 'ms','us', and 'ns'. "
+            r"Deprecating unsupported datetime64 and timedelta64 dtype resolutions. "
+            r"Supported resolutions are 's', 'ms','us', and 'ns'. "
             r"In future releases resolutions will be cast to the closest "
             r"supported unit."
         )
