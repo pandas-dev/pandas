@@ -668,7 +668,7 @@ ctypedef fused int6432_t:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_range_indexer(ndarray[int6432_t, ndim=1] left, int n) -> bool:
+def is_range_indexer(ndarray[int6432_t, ndim=1] left, Py_ssize_t n) -> bool:
     """
     Perform an element by element comparison on 1-d integer arrays, meant for indexer
     comparisons
@@ -1056,6 +1056,14 @@ def is_float(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_float(1.0)
+    True
+
+    >>> pd.api.types.is_float(1)
+    False
     """
     return util.is_float_object(obj)
 
@@ -1067,6 +1075,14 @@ def is_integer(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_integer(1)
+    True
+
+    >>> pd.api.types.is_integer(1.0)
+    False
     """
     return util.is_integer_object(obj)
 
@@ -1089,6 +1105,14 @@ def is_bool(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_bool(True)
+    True
+
+    >>> pd.api.types.is_bool(1)
+    False
     """
     return util.is_bool_object(obj)
 
@@ -1100,6 +1124,14 @@ def is_complex(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_complex(1 + 1j)
+    True
+
+    >>> pd.api.types.is_complex(1)
+    False
     """
     return util.is_complex_object(obj)
 
@@ -2485,7 +2517,14 @@ def maybe_convert_objects(ndarray[object] objects,
         elif util.is_nan(val):
             seen.nan_ = True
             mask[i] = True
-            floats[i] = complexes[i] = val
+            if util.is_complex_object(val):
+                floats[i] = fnan
+                complexes[i] = val
+                seen.complex_ = True
+                if not convert_numeric:
+                    break
+            else:
+                floats[i] = complexes[i] = val
         elif util.is_bool_object(val):
             seen.bool_ = True
             bools[i] = val

@@ -367,6 +367,36 @@ def test_reindex_columns(using_copy_on_write):
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize(
+    "index",
+    [
+        lambda idx: idx,
+        lambda idx: idx.view(),
+        lambda idx: idx.copy(),
+        lambda idx: list(idx),
+    ],
+    ids=["identical", "view", "copy", "values"],
+)
+def test_reindex_rows(index, using_copy_on_write):
+    # Case: reindexing the rows with an index that matches the current index
+    # can use a shallow copy
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df_orig = df.copy()
+    df2 = df.reindex(index=index(df.index))
+
+    if using_copy_on_write:
+        # still shares memory (df2 is a shallow copy)
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    # mutating df2 triggers a copy-on-write for that column
+    df2.iloc[0, 0] = 0
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    tm.assert_frame_equal(df, df_orig)
+
+
 def test_drop_on_column(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
@@ -1398,11 +1428,18 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_where_noop(using_copy_on_write, dtype):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda ser: ser.where(ser > 0, 10),
+        lambda ser: ser.mask(ser <= 0, 10),
+    ],
+)
+def test_where_mask_noop(using_copy_on_write, dtype, func):
     ser = Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
-    result = ser.where(ser > 0, 10)
+    result = func(ser)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(ser), get_array(result))
@@ -1416,22 +1453,36 @@ def test_where_noop(using_copy_on_write, dtype):
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
-def test_where(using_copy_on_write, dtype):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda ser: ser.where(ser < 0, 10),
+        lambda ser: ser.mask(ser >= 0, 10),
+    ],
+)
+def test_where_mask(using_copy_on_write, dtype, func):
     ser = Series([1, 2, 3], dtype=dtype)
     ser_orig = ser.copy()
 
-    result = ser.where(ser < 0, 10)
+    result = func(ser)
 
     assert not np.shares_memory(get_array(ser), get_array(result))
     tm.assert_series_equal(ser, ser_orig)
 
 
 @pytest.mark.parametrize("dtype, val", [("int64", 10.5), ("Int64", 10)])
-def test_where_noop_on_single_column(using_copy_on_write, dtype, val):
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda df, val: df.where(df < 0, val),
+        lambda df, val: df.mask(df >= 0, val),
+    ],
+)
+def test_where_mask_noop_on_single_column(using_copy_on_write, dtype, val, func):
     df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
     df_orig = df.copy()
 
-    result = df.where(df < 0, val)
+    result = func(df, val)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(result, "b"))
@@ -1734,6 +1785,32 @@ def test_transpose_ea_single_column(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "a"), get_array(result, 0))
 
 
+def test_transform_frame(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    df.transform(func)
+    if using_copy_on_write:
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_transform_series(using_copy_on_write):
+    ser = Series([1, 2, 3])
+    ser_orig = ser.copy()
+
+    def func(ser):
+        ser.iloc[0] = 100
+        return ser
+
+    ser.transform(func)
+    if using_copy_on_write:
+        tm.assert_series_equal(ser, ser_orig)
+
+
 def test_count_read_only_array():
     df = DataFrame({"a": [1, 2], "b": 3})
     result = df.count()
@@ -1773,3 +1850,30 @@ def test_insert_series(using_copy_on_write):
 
     df.iloc[0, 1] = 100
     tm.assert_series_equal(ser, ser_orig)
+
+
+def test_eval(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+
+    result = df.eval("c = a+b")
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    else:
+        assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+
+    result.iloc[0, 0] = 100
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_eval_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": 1})
+    df_orig = df.copy()
+    df_view = df[:]
+
+    df.eval("c = a+b", inplace=True)
+    assert np.shares_memory(get_array(df, "a"), get_array(df_view, "a"))
+
+    df.iloc[0, 0] = 100
+    if using_copy_on_write:
+        tm.assert_frame_equal(df_view, df_orig)

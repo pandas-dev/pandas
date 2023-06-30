@@ -30,6 +30,7 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from pathlib import Path
 from typing import (
     Callable,
     Hashable,
@@ -136,6 +137,8 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
+        ("NDFrame.replace", "The 'method' keyword"),
+        ("NDFrame.replace", "Series.replace without 'value'"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -151,6 +154,18 @@ def pytest_collection_modifyitems(items, config) -> None:
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
             "Please create a mask and filter using `.loc` instead",
+        ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
         ),
     ]
 
@@ -673,7 +688,7 @@ def index_with_missing(request):
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values
+    vals = ind.values.copy()
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -1153,6 +1168,16 @@ def strict_data_files(pytestconfig):
     Returns the configuration for the test setting `--strict-data-files`.
     """
     return pytestconfig.getoption("--strict-data-files")
+
+
+@pytest.fixture
+def tests_path() -> Path:
+    return Path(__file__).parent / "tests"
+
+
+@pytest.fixture
+def tests_io_data_path(tests_path) -> Path:
+    return tests_path / "io" / "data"
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -53,21 +53,24 @@ def test_notna_notnull(notna_f):
     assert not notna_f(None)
     assert not notna_f(np.NaN)
 
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert notna_f(np.inf)
-        assert notna_f(-np.inf)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert notna_f(np.inf)
+            assert notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.all()
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.all()
 
-    with cf.option_context("mode.use_inf_as_na", True):
-        assert not notna_f(np.inf)
-        assert not notna_f(-np.inf)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", True):
+            assert not notna_f(np.inf)
+            assert not notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.sum() == 2
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.sum() == 2
 
 
 @pytest.mark.parametrize("null_func", [notna, notnull, isna, isnull])
@@ -82,8 +85,10 @@ def test_notna_notnull(notna_f):
     ],
 )
 def test_null_check_is_series(null_func, ser):
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert isinstance(null_func(ser), Series)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert isinstance(null_func(ser), Series)
 
 
 class TestIsNA:
@@ -214,8 +219,10 @@ class TestIsNA:
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
-            with cf.option_context("mode.use_inf_as_na", True):
-                result = isna(obj)
+            msg = "use_inf_as_na option is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                with cf.option_context("mode.use_inf_as_na", True):
+                    result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -461,7 +468,7 @@ def test_array_equivalent_series(val):
     cm = (
         # stacklevel is chosen to make sense when called from .equals
         tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if isinstance(val, str) and not is_numpy_dev
+        if isinstance(val, str) and not np_version_gte1p25
         else nullcontext()
     )
     with cm:
