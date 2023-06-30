@@ -259,9 +259,6 @@ an alternative is to divide by another timedelta object. Note that division by t
    # to days
    td / np.timedelta64(1, "D")
 
-   # to months (these are constant months)
-   td / np.timedelta64(1, "M")
-
 Dividing or multiplying a ``timedelta64[ns]`` Series by an integer or integer Series
 yields another ``timedelta64[ns]`` dtypes Series.
 

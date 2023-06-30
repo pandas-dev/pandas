@@ -21,6 +21,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 import zipfile
 
 from pandas._config import config
@@ -36,6 +37,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -97,6 +99,10 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method,
     such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
+
+    .. deprecated:: 2.1.0
+        Passing byte strings is deprecated. To read from a
+        byte string, wrap it in a ``BytesIO`` object.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
@@ -1474,6 +1480,12 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    Examples
+    --------
+    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
+    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1504,6 +1516,13 @@ class ExcelFile:
         # First argument can also be bytes, so create a buffer
         if isinstance(path_or_buffer, bytes):
             path_or_buffer = BytesIO(path_or_buffer)
+            warnings.warn(
+                "Passing bytes to 'read_excel' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "byte string, wrap it in a `BytesIO` object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
@@ -1582,6 +1601,13 @@ class ExcelFile:
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
+        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
             sheet_name=sheet_name,

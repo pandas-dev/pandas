@@ -1235,7 +1235,9 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
 
     expected = Series(data=[2, 4, np.nan, 1, np.nan, 3], index=index, name="C")
     if operation == "agg":
-        expected = expected.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
     result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
@@ -2067,11 +2069,8 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
     if as_index and (test_series or reduction_func == "size"):
         expected = expected.to_frame(reduction_func)
     if not test_series:
-        if not as_index:
-            # TODO: GH#52849 - as_index=False is not respected
-            expected = expected.set_index(keys)
-        expected.columns = MultiIndex(
-            levels=[["b"], [reduction_func]], codes=[[0], [0]]
+        expected.columns = MultiIndex.from_tuples(
+            [(ind, "") for ind in expected.columns[:-1]] + [("b", reduction_func)]
         )
     elif not as_index:
         expected.columns = keys + [reduction_func]
