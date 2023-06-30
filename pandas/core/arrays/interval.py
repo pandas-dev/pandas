@@ -1644,8 +1644,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         na_tuple : bool, default True
-            Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
-            value itself if False, ``nan``.
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
 
         Returns
         -------
@@ -1657,12 +1657,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["to_tuples"]
         % {
-            "return_type": "ndarray",
+            "return_type": (
+                "ndarray (if self is IntervalArray) or Index (if self is IntervalIndex)"
+            ),
             "examples": textwrap.dedent(
                 """\
 
          Examples
          --------
+         For :class:`pandas.IntervalArray`:
+
          >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
          >>> idx
          <IntervalArray>
@@ -1670,6 +1674,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
          Length: 2, dtype: interval[int64, right]
          >>> idx.to_tuples()
          array([(0, 1), (1, 2)], dtype=object)
+
+         For :class:`pandas.IntervalIndex`:
+
+         >>> idx = pd.interval_range(start=0, end=2)
+         >>> idx
+         IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+         >>> idx.to_tuples()
+         Index([(0, 1), (1, 2)], dtype='object')
          """
             ),
         }

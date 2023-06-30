@@ -1090,11 +1090,19 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return an ndarray of datetime.datetime objects.
+        Return an ndarray of ``datetime.datetime`` objects.
 
         Returns
         -------
         numpy.ndarray
+
+        Examples
+        --------
+        >>> idx = pd.date_range('2018-02-27', periods=3)
+        >>> idx.to_pydatetime()
+        array([datetime.datetime(2018, 2, 27, 0, 0),
+               datetime.datetime(2018, 2, 28, 0, 0),
+               datetime.datetime(2018, 3, 1, 0, 0)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
@@ -2097,23 +2105,40 @@ default 'raise'
         """
         Return sample standard deviation over requested axis.
 
-        Normalized by N-1 by default. This can be changed using the ddof argument
+        Normalized by `N-1` by default. This can be changed using ``ddof``.
 
         Parameters
         ----------
-        axis : int optional, default None
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to `None`.
+        axis : int, optional
+            Axis for the function to be applied on. For :class:`pandas.Series`
+            this parameter is unused and defaults to ``None``.
         ddof : int, default 1
-            Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Degrees of Freedom. The divisor used in calculations is `N - ddof`,
+            where `N` represents the number of elements.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result will be
-            NA.
+            Exclude NA/null values. If an entire row/column is ``NA``, the result
+            will be ``NA``.
 
         Returns
         -------
         Timedelta
+
+        See Also
+        --------
+        numpy.ndarray.std : Returns the standard deviation of the array elements
+            along given axis.
+        Series.std : Return sample standard deviation over requested axis.
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.std()
+        Timedelta('1 days 00:00:00')
         """
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it
