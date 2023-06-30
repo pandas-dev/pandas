@@ -77,6 +77,8 @@ def _check_data(xp, rs):
     xp : matplotlib Axes object
     rs : matplotlib Axes object
     """
+    import matplotlib.pyplot as plt
+
     xp_lines = xp.get_lines()
     rs_lines = rs.get_lines()
 
@@ -86,7 +88,7 @@ def _check_data(xp, rs):
         rsdata = rsl.get_xydata()
         tm.assert_almost_equal(xpdata, rsdata)
 
-    tm.close()
+    plt.close("all")
 
 
 def _check_visible(collections, visible=True):
@@ -538,7 +540,7 @@ def _check_plot_works(f, default_axes=False, **kwargs):
             plt.savefig(path)
 
     finally:
-        tm.close(fig)
+        plt.close(fig)
 
     return ret
 

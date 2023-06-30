@@ -166,20 +166,3 @@ def write_to_compressed(compression, path, data, dest: str = "test"):
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
-
-
-# ------------------------------------------------------------------
-# Plotting
-
-
-def close(fignum=None) -> None:
-    from matplotlib.pyplot import (
-        close as _close,
-        get_fignums,
-    )
-
-    if fignum is None:
-        for fignum in get_fignums():
-            _close(fignum)
-    else:
-        _close(fignum)
