@@ -82,7 +82,6 @@ for seed_nans in [True, False]:
             ids.append(f"{k}-{n}-{m}")
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
