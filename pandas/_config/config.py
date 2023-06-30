@@ -300,6 +300,11 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.get_option('display.max_columns')  # doctest: +SKIP
+4
 """
 
 _set_option_tmpl = """
@@ -336,6 +341,17 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.set_option('display.max_columns', 4)
+>>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+>>> df
+   0  1  ...  3   4
+0  1  2  ...  4   5
+1  6  7  ...  9  10
+[2 rows x 5 columns]
+>>> pd.reset_option('display.max_columns')
 """
 
 _describe_option_tmpl = """
@@ -370,6 +386,12 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.describe_option('display.max_columns')  # doctest: +SKIP
+display.max_columns : int
+    If max_cols is exceeded, switch to truncate view...
 """
 
 _reset_option_tmpl = """
@@ -402,6 +424,10 @@ Please reference the :ref:`User Guide <options>` for more information.
 The available options with its descriptions:
 
 {opts_desc}
+
+Examples
+--------
+>>> pd.reset_option('display.max_columns')  # doctest: +SKIP
 """
 
 # bind the functions with their docstrings into a Callable
