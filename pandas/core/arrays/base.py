@@ -829,12 +829,13 @@ class ExtensionArray:
             if method is not None:
                 meth = missing.clean_fill_method(method)
 
+                npmask = np.asarray(mask)
                 if meth == "pad":
-                    indexer = libalgos.get_fill_indexer(mask, limit=limit)
+                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
                     return self.take(indexer, allow_fill=True)
                 else:
                     # i.e. meth == "backfill"
-                    indexer = libalgos.get_fill_indexer(mask[::-1], limit=limit)[::-1]
+                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
