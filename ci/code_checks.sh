@@ -118,10 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
