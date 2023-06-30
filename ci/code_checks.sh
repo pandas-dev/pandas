@@ -21,23 +21,6 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
-function invgrep {
-    # grep with inverse exist status and formatting for azure-pipelines
-    #
-    # This function works exactly as grep, but with opposite exit status:
-    # - 0 (success) when no patterns are found
-    # - 1 (fail) when the patterns are found
-    #
-    # This is useful for the CI, as we want to fail if one of the patterns
-    # that we want to avoid is found by grep.
-    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
-    return $((! $EXIT_STATUS))
-}
-
-if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    INVGREP_PREPEND="##[error]"
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
@@ -118,10 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
