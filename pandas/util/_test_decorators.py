@@ -69,7 +69,7 @@ def safe_import(mod_name: str, min_version: str | None = None):
         mod = __import__(mod_name)
     except ImportError:
         return False
-    
+
     if not min_version:
         return mod
     else:
