@@ -2312,7 +2312,11 @@ class Rolling(RollingAndExpandingMixin):
         "scipy.stats.skew : Third moment of a probability density.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of three periods is required for the rolling calculation.\n",
+        dedent(
+            """
+        A minimum of three periods is required for the rolling calculation.\n
+        """
+        ).replace("\n", "", 1),
         create_section_header("Examples"),
         dedent(
             """
