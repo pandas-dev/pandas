@@ -5470,16 +5470,17 @@ The above example creates a partitioned dataset that may look like:
    * The data will be read in accordance with the ``string_storage`` settings.
 
 .. ipython:: python
+
     df1 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("pyarrow"))})
     df2 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("python"))})
     df1.to_parquet("test.parquet")
     with pd.option_context("string_storage", "pyarrow"):
-        b = pd.read_parquet("test.parquet")
-    pd.testing.assert_frame_equal(b, a)
+        df3 = pd.read_parquet("test.parquet")
+    pd.testing.assert_frame_equal(df3, df1)
     df2.to_parquet("test.parquet")
     with pd.option_context("string_storage", "pyarrow"):
-        b = pd.read_parquet("test.parquet")
-    pd.testing.assert_frame_equal(b, a)
+        df4 = pd.read_parquet("test.parquet")
+    pd.testing.assert_frame_equal(df4, df1)
 
 
 .. _io.orc:
