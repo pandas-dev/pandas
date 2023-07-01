@@ -128,7 +128,7 @@ def hist_series(
 
 def hist_frame(
     data: DataFrame,
-    column: IndexLabel = None,
+    column: IndexLabel | None = None,
     by=None,
     grid: bool = True,
     xlabelsize: int | None = None,
@@ -1059,7 +1059,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def line(self, x: Hashable | None = None, y: Hashable | None = None, **kwargs) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1147,7 +1147,7 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable = None, y: Hashable = None, **kwargs
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1234,7 +1234,7 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def barh(self, x: Hashable | None = None, y: Hashable | None = None, **kwargs) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1246,7 +1246,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by: IndexLabel = None, **kwargs) -> PlotAccessor:
+    def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1313,7 +1313,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by: IndexLabel = None, bins: int = 10, **kwargs) -> PlotAccessor:
+    def hist(self, by: IndexLabel | None = None, bins: int = 10, **kwargs) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1491,7 +1491,7 @@ class PlotAccessor(PandasObject):
     density = kde
 
     def area(
-        self, x: Hashable = None, y: Hashable = None, stacked: bool = True, **kwargs
+        self, x: Hashable | None = None, y: Hashable | None = None, stacked: bool = True, **kwargs
     ) -> PlotAccessor:
         """
         Draw a stacked area plot.
@@ -1624,8 +1624,8 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        s: Hashable | Sequence[Hashable] = None,
-        c: Hashable | Sequence[Hashable] = None,
+        s: Hashable | Sequence[Hashable] | None = None,
+        c: Hashable | Sequence[Hashable] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1714,7 +1714,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        C: Hashable = None,
+        C: Hashable | None = None,
         reduce_C_function: Callable | None = None,
         gridsize: int | tuple[int, int] | None = None,
         **kwargs,

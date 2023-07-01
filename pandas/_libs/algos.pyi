@@ -5,9 +5,6 @@ import numpy as np
 from pandas._typing import npt
 
 class Infinity:
-    """
-    Provide a positive Infinity comparison method for ranking.
-    """
 
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
@@ -17,9 +14,6 @@ class Infinity:
     def __ge__(self, other) -> bool: ...
 
 class NegInfinity:
-    """
-    Provide a negative Infinity comparison method for ranking.
-    """
 
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
