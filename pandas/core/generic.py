@@ -1445,6 +1445,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
         other = cast(NDFrame, other)
+        if self.size != other.size:
+            return False
         return self._mgr.equals(other._mgr)
 
     # -------------------------------------------------------------------------
