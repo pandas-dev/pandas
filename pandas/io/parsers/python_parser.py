@@ -11,7 +11,6 @@ import sys
 from typing import (
     IO,
     TYPE_CHECKING,
-    DefaultDict,
     Hashable,
     Iterator,
     List,
@@ -35,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.inference import is_dict_like
 
 from pandas.io.common import (
     dedup_names,
@@ -446,39 +444,18 @@ class PythonParser(ParserBase):
                         this_columns.append(c)
 
                 if not have_mi_columns:
-                    counts: DefaultDict = defaultdict(int)
+                    defaultdict(int)
                     # Ensure that regular columns are used before unnamed ones
                     # to keep given names and mangle unnamed columns
-                    col_loop_order = [
+                    [
                         i
                         for i in range(len(this_columns))
                         if i not in this_unnamed_cols
                     ] + this_unnamed_cols
 
                     # TODO: Use pandas.io.common.dedup_names instead (see #50371)
-                    for i in col_loop_order:
-                        col = this_columns[i]
-                        old_col = col
-                        cur_count = counts[col]
+                    this_columns = list(dedup_names(this_columns, False))
 
-                        if cur_count > 0:
-                            while cur_count > 0:
-                                counts[old_col] = cur_count + 1
-                                col = f"{old_col}.{cur_count}"
-                                if col in this_columns:
-                                    cur_count += 1
-                                else:
-                                    cur_count = counts[col]
-
-                            if (
-                                self.dtype is not None
-                                and is_dict_like(self.dtype)
-                                and self.dtype.get(old_col) is not None
-                                and self.dtype.get(col) is None
-                            ):
-                                self.dtype.update({col: self.dtype.get(old_col)})
-                        this_columns[i] = col
-                        counts[col] = cur_count + 1
                 elif have_mi_columns:
                     # if we have grabbed an extra line, but its not in our
                     # format so save in the buffer, and create an blank extra
