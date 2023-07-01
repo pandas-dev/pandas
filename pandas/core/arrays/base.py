@@ -600,10 +600,28 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray or pandas.api.extensions.ExtensionArray
-            An ExtensionArray if dtype is ExtensionDtype,
-            Otherwise a NumPy ndarray with 'dtype' for its dtype.
-        """
+            An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
+            otherwise a NumPy ndarray with ``dtype`` for its dtype.
 
+        Examples
+        --------
+        >>> class ListArray(pd.api.extensions.ExtensionArray):
+        ...     def __init__(self, values):
+        ...         if not isinstance(values, np.ndarray):
+        ...             raise TypeError("Need to pass a numpy array as values")
+        ...         self.data = values
+        ...     ...
+
+        ...     def astype(self):
+        ...         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
+        ...             if copy:
+        ...                 return type(self)(self.data[:])
+        ...             return self
+        ...         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+        ...             # numpy has problems with astype(str) for nested elements
+        ...             return np.array([str(x) for x in self.data], dtype=dtype)
+        ...         return np.array(self.data, dtype=dtype, copy=copy)
+        """
         dtype = pandas_dtype(dtype)
         if dtype == self.dtype:
             if not copy:
@@ -1322,6 +1340,18 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> class ListArray(pd.api.extensions.ExtensionArray):
+        ...     def __init__(self, values):
+        ...         if not isinstance(values, np.ndarray):
+        ...             raise TypeError("Need to pass a numpy array as values")
+        ...         self.data = values
+
+        ...     def copy(self):
+        ...         return type(self)(self.data[:])
+        ...     ...
         """
         raise AbstractMethodError(self)
 
@@ -1338,11 +1368,27 @@ class ExtensionArray:
         -------
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
+
+        Notes
+        -----
+        This must return a *new* object referencing the same data, not self.
+        The only case that *must* be implemented is with ``dtype=None``,
+        giving a view with the same dtype as self.
+
+        Examples
+        --------
+        >>> class ListArray(pd.api.extensions.ExtensionArray):
+        ...     def __init__(self, values):
+        ...         if not isinstance(values, np.ndarray):
+        ...             raise TypeError("Need to pass a numpy array as values")
+        ...         self.data = values
+
+        ...     def view(self):
+        ...         if dtype is not None:
+        ...             return self.data.view(dtype=dtype)
+        ...         return super().view()
+        ...     ...
         """
-        # NB:
-        # - This must return a *new* object referencing the same data, not self.
-        # - The only case that *must* be implemented is with dtype=None,
-        #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
         return self[:]
