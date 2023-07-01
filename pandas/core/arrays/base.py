@@ -501,7 +501,19 @@ class ExtensionArray:
     @property
     def dtype(self) -> ExtensionDtype:
         """
-        An instance of 'ExtensionDtype'.
+        An instance of ``ExtensionDtype``.
+
+        Examples
+        --------
+        >>> class ListDtype(pd.api.extensions.ExtensionDtype):
+        ...     @classmethod
+        ...     def construct_array_type(cls):
+        ...         return ListArray
+        ...     ...
+
+        ... class ListArray(pd.api.extensions.ExtensionArray):
+        ...     dtype = ListDtype()
+        ...     ...
         """
         raise AbstractMethodError(self)
 
