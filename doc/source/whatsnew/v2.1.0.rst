@@ -25,6 +25,7 @@ Copy-on-Write improvements
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Index objects and specifying ``copy=False``, will now use a lazy copy
   of those Index objects for the columns of the DataFrame (:issue:`52947`)
+- Add lazy copy mechanism to :meth:`DataFrame.eval` (:issue:`53746`)
 
 .. _whatsnew_210.enhancements.enhancement2:
 
@@ -112,7 +113,7 @@ Other enhancements
 - :meth:`SeriesGroupby.transform` and :meth:`DataFrameGroupby.transform` now support passing in a string as the function for ``engine="numba"`` (:issue:`53579`)
 - Added :meth:`ExtensionArray.interpolate` used by :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`53659`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
-- Added a new parameter ``by_row`` to :meth:`Series.apply`. When set to ``False`` the supplied callables will always operate on the whole Series (:issue:`53400`).
+- Added a new parameter ``by_row`` to :meth:`Series.apply` and :meth:`DataFrame.apply`. When set to ``False`` the supplied callables will always operate on the whole Series or DataFrame (:issue:`53400`, :issue:`53601`).
 - Groupby aggregations (such as :meth:`DataFrameGroupby.sum`) now can preserve the dtype of the input instead of casting to ``float64`` (:issue:`44952`)
 - Improved error message when :meth:`DataFrameGroupBy.agg` failed (:issue:`52930`)
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
@@ -256,6 +257,7 @@ Deprecations
 - Deprecated making the functions in a list of functions given to :meth:`DataFrame.agg` attempt to operate on each element in the :class:`DataFrame` and only operate on the columns of the :class:`DataFrame` if the elementwise operations failed. To keep the current behavior, use :meth:`DataFrame.transform` instead. (:issue:`53325`)
 - Deprecated passing a :class:`DataFrame` to :meth:`DataFrame.from_records`, use :meth:`DataFrame.set_index` or :meth:`DataFrame.drop` instead (:issue:`51353`)
 - Deprecated silently dropping unrecognized timezones when parsing strings to datetimes (:issue:`18702`)
+- Deprecated the "downcast" keyword in :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`Series.ffill`, :meth:`DataFrame.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.bfill` (:issue:`40988`)
 - Deprecated the ``axis`` keyword in :meth:`DataFrame.ewm`, :meth:`Series.ewm`, :meth:`DataFrame.rolling`, :meth:`Series.rolling`, :meth:`DataFrame.expanding`, :meth:`Series.expanding` (:issue:`51778`)
 - Deprecated the ``axis`` keyword in :meth:`DataFrame.resample`, :meth:`Series.resample` (:issue:`51778`)
 - Deprecated the behavior of :func:`concat` with both ``len(keys) != len(objs)``, in a future version this will raise instead of truncating to the shorter of the two sequences (:issue:`43485`)
@@ -293,7 +295,6 @@ Deprecations
 - Deprecated :meth:`Series.first` and :meth:`DataFrame.first` (please create a mask and filter using ``.loc`` instead) (:issue:`45908`)
 - Deprecated :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`53631`)
 - Deprecated :meth:`Series.last` and :meth:`DataFrame.last` (please create a mask and filter using ``.loc`` instead) (:issue:`53692`)
-- Deprecated allowing ``downcast`` keyword other than ``None``, ``False``, "infer", or a dict with these as values in :meth:`Series.fillna`, :meth:`DataFrame.fillna` (:issue:`40988`)
 - Deprecated allowing arbitrary ``fill_value`` in :class:`SparseDtype`, in a future version the ``fill_value`` will need to be compatible with the ``dtype.subtype``, either a scalar that can be held by that subtype or ``NaN`` for integer or bool subtypes (:issue:`23124`)
 - Deprecated behavior of :func:`assert_series_equal` and :func:`assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)
 - Deprecated bytes input to :func:`read_excel`. To read a file path, use a string or path-like object. (:issue:`53767`)
