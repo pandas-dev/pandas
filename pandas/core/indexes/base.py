@@ -2932,7 +2932,7 @@ class Index(IndexOpsMixin, PandasObject):
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
 
-            .. deprecated: 2.1.0
+            .. deprecated:: 2.1.0
 
         Returns
         -------
