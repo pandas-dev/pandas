@@ -7969,18 +7969,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
 
-        if method not in fillna_methods:
-            should_transpose = axis == 1
-        elif not self._mgr.is_single_block and axis == 1:
-            if inplace:
-                raise NotImplementedError()
-            should_transpose = True
-        else:
-            should_transpose = False
-
-        obj, axis = (self.T, 1 - axis) if should_transpose else (self, axis)
-
-        if obj.empty:
+        if self.empty:
             if inplace:
                 return None
             return self.copy()
@@ -7996,9 +7985,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        elif np.any(obj.dtypes == object):
+        elif np.any(self.dtypes == object):
             # GH#53631
-            if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
+            if not (self.ndim == 2 and np.all(self.dtypes == object)):
                 # don't warn in cases that already raise
                 warnings.warn(
                     f"{type(self).__name__}.interpolate with object dtype is "
@@ -8008,14 +7997,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     stacklevel=find_stack_level(),
                 )
 
-        if isinstance(obj.index, MultiIndex) and method != "linear":
+        if isinstance(self.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
 
-        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype("object")):
+        if self.ndim == 2 and np.all(self.dtypes == np.dtype("object")):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -8032,6 +8021,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
             #  as of 2023-06-26 no tests get here with either
+            if not self._mgr.is_single_block and axis == 1:
+                if inplace:
+                    raise NotImplementedError()
+                obj, axis, should_transpose = self.T, 1 - axis, True
+            else:
+                obj, should_transpose = self, False
+
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
                 axis=axis,
@@ -8041,6 +8037,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
+            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
             index = missing.get_interp_index(method, obj.index)
             axis = self._info_axis_number
             new_data = obj._mgr.interpolate(
