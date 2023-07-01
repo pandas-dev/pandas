@@ -506,6 +506,7 @@ class ExtensionArray:
         Examples
         --------
         >>> class ListDtype(pd.api.extensions.ExtensionDtype):
+        ...     ...
         ...     @classmethod
         ...     def construct_array_type(cls):
         ...         return ListArray
@@ -544,9 +545,24 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        Notes
+        -----
+        If this is expensive to compute, return an approximate lower bound
+        on the number of bytes needed.
+
+        Examples
+        --------
+        >>> class DecimalArray(pd.api.extensions.ExtensionArray):
+        ...     ...
+        ...     @property
+        ...     def nbytes(self) -> int:
+        ...         n = len(self)
+        ...         if n:
+        ...             return n * sys.getsizeof(self[0])
+        ...         return 0
+        ...     ...
         """
-        # If this is expensive to compute, return an approximate lower bound
-        # on the number of bytes needed.
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------

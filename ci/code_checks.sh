@@ -177,7 +177,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
         pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.nbytes \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
