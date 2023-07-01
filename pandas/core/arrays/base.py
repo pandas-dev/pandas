@@ -522,6 +522,9 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
+
+        Since Extension Arrays are only allowed to be 1-dimensional,
+        the shape should be ``(len(self),)``.
         """
         return (len(self),)
 
@@ -656,6 +659,54 @@ class ExtensionArray:
         """
         return bool(self.isna().any())
 
+    _extension_array_shared_docs[
+        "_values_for_argsort"
+    ] = """
+        Examples
+        --------
+        With the default implementation, ``_values_for_argsort`` uses
+        ``np.array(self)`` to construct the values used for ``argsort``, ``argmin``,
+        and ``argmax``, which then internally uses numpy sorting. There are two ways
+        to override the behavior of these methods.
+
+        The first way is to override ``_values_for_argsort`` which constructs the
+        values used for sorting. For instance we have an extension array of lists
+        and we want to perform ``argsort``/``argmin``/``argmax`` based on the sum
+        of each list:
+
+        >>> class ListArray(pd.api.extensions.ExtensionArray):
+        ...     ...
+        ...     def _values_for_argsort(self):
+        ...         return np.array([sum(x) for x in self])
+        ...     ...
+
+        The second way is to completely override ``argsort``/``argmin``/``argmax``.
+        It is recommended that if one of these methods is overridden, the other to
+        should be overridden as well. Using the same example as above:
+
+        >>> class ListArray(pd.api.extensions.ExtensionArray):
+        ...     ...
+        ...     def argsort(self, ascending=True, kind='quicksort'):
+        ...         return np.array([sum(x) for x in self]).argsort(
+        ...             ascending=ascending, kind=kind
+        ...         )
+
+        ...     def argmin(self, skipna=True):
+        ...         values =  np.array([sum(x) for x in self])
+        ...         if skipna:
+        ...             return values.nanargmin()
+        ...         else:
+        ...             return values.argmin()
+
+        ...     def argmax(self, skipna=True):
+        ...         values =  np.array([sum(x) for x in self])
+        ...         if skipna:
+        ...             return values.nanargmax()
+        ...         else:
+        ...             return values.argmax()
+        """
+
+    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -673,16 +724,17 @@ class ExtensionArray:
         Notes
         -----
         The caller is responsible for *not* modifying these values in-place, so
-        it is safe for implementors to give views on `self`.
+        it is safe for implementors to give views on ``self``.
 
-        Functions that use this (e.g. ExtensionArray.argsort) should ignore
-        entries with missing values in the original array (according to `self.isna()`).
-        This means that the corresponding entries in the returned array don't need to
-        be modified to sort correctly.
+        Functions that use this (e.g. ``ExtensionArray.argsort``) should ignore
+        entries with missing values in the original array (according to
+        ``self.isna()``). This means that the corresponding entries in the returned
+        array don't need to be modified to sort correctly.
         """
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
+    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argsort(
         self,
         *,
@@ -701,6 +753,9 @@ class ExtensionArray:
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If ``'first'``, put ``NaN`` values at the beginning.
+            If ``'last'``, put ``NaN`` values at the end.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
 
@@ -714,11 +769,6 @@ class ExtensionArray:
         --------
         numpy.argsort : Sorting implementation used internally.
         """
-        # Implementor note: You have two places to override the behavior of
-        # argsort.
-        # 1. _values_for_argsort : construct the values passed to np.argsort
-        # 2. argsort : total control over sorting. In case of overriding this,
-        #    it is recommended to also override argmax/argmin
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         values = self._values_for_argsort()
@@ -730,6 +780,7 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
+    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argmin(self, skipna: bool = True) -> int:
         """
         Return the index of minimum value.
@@ -747,17 +798,14 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmax
+        ExtensionArray.argmax : Return the index of the maximum value.
         """
-        # Implementor note: You have two places to override the behavior of
-        # argmin.
-        # 1. _values_for_argsort : construct the values used in nargminmax
-        # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
+    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argmax(self, skipna: bool = True) -> int:
         """
         Return the index of maximum value.
@@ -775,12 +823,8 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmin
+        ExtensionArray.argmin : Return the index of the minimum value.
         """
-        # Implementor note: You have two places to override the behavior of
-        # argmax.
-        # 1. _values_for_argsort : construct the values used in nargminmax
-        # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
