@@ -2795,6 +2795,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1    1.5  4.5
         2    0.5  2.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
@@ -2851,6 +2865,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1    2
         7    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        dtype: int64
+        >>> ser.resample('MS').size()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         result = self.grouper.size()
 
@@ -3303,6 +3331,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             open high  low close open high  low close
         CAC  2.3  4.5  1.0   1.0  9.0  9.4  1.0   1.0
         SPX  1.2  8.9  1.2   2.0  3.4  8.8  3.4   8.2
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').ohlc()
+                    open  high  low  close
+        2023-01-01     1     3    1      2
+        2023-02-01     4     5    3      5
         """
         if self.obj.ndim == 1:
             obj = self._selected_obj
