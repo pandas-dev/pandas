@@ -7968,9 +7968,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis = self._get_axis_number(axis)
 
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-        should_transpose = axis == 1 and method not in fillna_methods
 
-        obj = self.T if should_transpose else self
+        if method not in fillna_methods:
+            should_transpose = axis == 1
+        elif not self._mgr.is_single_block and axis == 1:
+            if inplace:
+                raise NotImplementedError()
+            should_transpose = True
+        else:
+            should_transpose = False
+
+        obj, axis = (self.T, 1 - axis) if should_transpose else (self, axis)
 
         if obj.empty:
             if inplace:
@@ -8024,7 +8032,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
             #  as of 2023-06-26 no tests get here with either
-
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
                 axis=axis,
