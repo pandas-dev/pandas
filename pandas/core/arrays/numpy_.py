@@ -233,13 +233,12 @@ class PandasArray(  # type: ignore[misc]
         self,
         *,
         method: FillnaOptions,
-        axis: int,
         limit: int | None,
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
         """
-        ffill or bfill
+        ffill or bfill along axis=0.
         """
         if copy:
             out_data = self._ndarray.copy()
@@ -250,7 +249,7 @@ class PandasArray(  # type: ignore[misc]
         missing.pad_or_backfill_inplace(
             out_data,
             method=meth,
-            axis=axis,
+            axis=0,
             limit=limit,
             limit_area=limit_area,
         )
