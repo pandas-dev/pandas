@@ -17,6 +17,7 @@ from typing import (
     Sequence,
     cast,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -25,6 +26,7 @@ from pandas.errors import (
     EmptyDataError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -38,6 +40,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import (
     file_exists,
     get_handle,
+    is_file_like,
+    is_fsspec_url,
     is_url,
     stringify_path,
     urlopen,
@@ -992,6 +996,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **
             continue
     return ret
 
+
 @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_html(
     io: FilePath | ReadBuffer[str],
@@ -1024,6 +1029,10 @@ def read_html(
         The string can represent a URL or the HTML itself. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
+
+        .. deprecated:: 2.1.0
+            Passing html literal strings is deprecated.
+            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1173,6 +1182,22 @@ def read_html(
     check_dtype_backend(dtype_backend)
 
     io = stringify_path(io)
+
+    if isinstance(io, str) and not any(
+        [
+            is_file_like(io),
+            file_exists(io),
+            is_url(io),
+            is_fsspec_url(io),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal html to 'read_html' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return _parse(
         flavor=flavor,

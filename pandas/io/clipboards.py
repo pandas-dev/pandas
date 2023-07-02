@@ -11,15 +11,16 @@ from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.generic import ABCDataFrame
-from pandas.core.shared_docs import _shared_docs
 
 from pandas import (
     get_option,
     option_context,
 )
+from pandas.core.shared_docs import _shared_docs
 
 if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
+
 
 @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_clipboard(
@@ -59,7 +60,12 @@ def read_clipboard(
 
     Examples
     --------
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df.to_clipboard()  # doctest: +SKIP
     >>> pd.read_clipboard()  # doctest: +SKIP
+         A  B  C
+    0    1  2  3
+    1    4  5  6
     """
     encoding = kwargs.pop("encoding", "utf-8")
 
