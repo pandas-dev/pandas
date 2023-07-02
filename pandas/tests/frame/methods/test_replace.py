@@ -1515,6 +1515,12 @@ class TestDataFrameReplace:
         result = ser.replace("nil", "anything else")
         tm.assert_frame_equal(expected, result)
 
+    def test_replace_no_replacements_dtypes(self):
+        # GH 53539
+        df = DataFrame({"a": [1, 2], "b": [3, 4]}, dtype="object")
+        res = df.replace({5: 0})
+        tm.assert_frame_equal(df, res)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
