@@ -15,7 +15,7 @@ import pandas._testing as tm
 from pandas.io.excel import ExcelWriter
 from pandas.io.formats.excel import ExcelFormatter
 
-#pytest.importorskip("jinja2")
+# pytest.importorskip("jinja2")
 # jinja2 is currently required for Styler.__init__(). Technically Styler.to_excel
 # could compute styles and render to excel without jinja2, since there is no
 # 'template' file, but this needs the import error to delayed until render time.
@@ -257,24 +257,24 @@ def test_styler_to_excel_border_style(engine, border_style):
 def test_styler_default_values():
     openpyxl = pytest.importorskip("openpyxl")
 
-    df = DataFrame([{'A': 1, 'B': 2, 'C': 3}, {'A': 1, 'B': 2, 'C': 3}])
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
-            df.to_excel(writer, sheet_name='custom')
+            df.to_excel(writer, sheet_name="custom")
 
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
             # Check font, spacing, indentation
             assert wb["custom"].cell(1, 1).font.color.value == 1
-            assert wb["custom"].cell(1, 1).alignment.horizontal == None
-            assert wb["custom"].cell(1, 1).alignment.vertical == None
+            assert wb["custom"].cell(1, 1).alignment.horizontal is None
+            assert wb["custom"].cell(1, 1).alignment.vertical is None
             assert wb["custom"].cell(1, 1).alignment.indent == 0.0
 
             # Check border
-            x = wb["custom"].cell(1, 1).border
-            assert wb["custom"].cell(1, 1).border.bottom.color == None
-            assert wb["custom"].cell(1, 1).border.top.color == None
-            assert wb["custom"].cell(1, 1).border.left.color == None
-            assert wb["custom"].cell(1, 1).border.right.color == None
+            wb["custom"].cell(1, 1).border
+            assert wb["custom"].cell(1, 1).border.bottom.color is None
+            assert wb["custom"].cell(1, 1).border.top.color is None
+            assert wb["custom"].cell(1, 1).border.left.color is None
+            assert wb["custom"].cell(1, 1).border.right.color is None
 
 
 def test_styler_custom_converter():
