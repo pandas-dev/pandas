@@ -28,7 +28,7 @@ from pandas.tests.extension import base
 
 
 def make_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] * 4 + [pd.NA] + [True, False] * 44 + [pd.NA] + [True, False]
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def data_for_twos(dtype):
 
 @pytest.fixture
 def data_missing(dtype):
-    return pd.array([np.nan, True], dtype=dtype)
+    return pd.array([pd.NA, True], dtype=dtype)
 
 
 @pytest.fixture
@@ -58,7 +58,7 @@ def data_for_sorting(dtype):
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return pd.array([True, np.nan, False], dtype=dtype)
+    return pd.array([True, pd.NA, False], dtype=dtype)
 
 
 @pytest.fixture
@@ -76,7 +76,7 @@ def na_value():
 def data_for_grouping(dtype):
     b = True
     a = False
-    na = np.nan
+    na = pd.NA
     return pd.array([b, b, na, na, a, a, b], dtype=dtype)
 
 
@@ -147,7 +147,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 expected = expected.astype("Float64")
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
-                expected[result.isna()] = np.nan
+                expected[result.isna()] = pd.NA
             self.assert_equal(result, expected)
         else:
             with pytest.raises(exc):

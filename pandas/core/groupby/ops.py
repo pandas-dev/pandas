@@ -587,7 +587,7 @@ class BaseGrouper:
 
     def get_iterator(
         self, data: NDFrameT, axis: AxisInt = 0
-    ) -> Iterator[tuple[Hashable, NDFrameT]]:
+    ) -> Iterator[tuple[Hashable, NDFrameT]]:  # Doesn't work with non-hashable EA types
         """
         Groupby iterator
 
