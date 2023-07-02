@@ -356,7 +356,7 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         """
         super().test_groupby_extension_no_sort()
 
-    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
+    # GH#39098 is now fixed, so we don't need to XFAIL
     def test_groupby_agg_extension(self, data_for_grouping):
         super().test_groupby_agg_extension(data_for_grouping)
 
