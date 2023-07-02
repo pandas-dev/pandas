@@ -30,6 +30,31 @@ def assert_equal_cell_styles(cell1, cell2):
     assert cell1.number_format == cell2.number_format
     assert cell1.protection.__dict__ == cell2.protection.__dict__
 
+def test_styler_to_excel_set_instance():
+    style = {
+            "font": {"bold": True},
+            "borders": {
+                "top": "thin",
+                "right": "thin",
+                "bottom": "thin",
+                "left": "thin",
+            },
+            "alignment": {"horizontal": "center", "vertical": "top"},
+        }
+
+    df = DataFrame([{'A': 1, 'B': 2, 'C': 3}, {'A': 1, 'B': 2, 'C': 3}])
+    fmt = ExcelFormatter(df)
+
+    # Check default value
+    assert fmt.header_style == None
+
+    # Check updated value
+    header_style = fmt.set_body_style(style)
+    assert header_style == style
+
+    # Check value for invalid input
+    header_style = fmt.set_body_style('abcd')
+    assert header_style == None
 
 @pytest.mark.parametrize(
     "engine",
@@ -252,6 +277,24 @@ def test_styler_to_excel_border_style(engine, border_style):
         else:
             assert u_cell is None or u_cell != expected
             assert s_cell == expected
+
+def test_styler_change_values():
+    openpyxl = pytest.importorskip("openpyxl")
+    font1 = {"font": {"color": {"rgb": "111222"}}}
+    font2 = {"font": {"color": {"rgb": "000222"}}}
+
+
+    df = DataFrame(np.random.randn(1, 1))
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine="openpyxl") as writer:
+            fil = ExcelFormatter(df)
+            fil.set_body_style(font1)
+            fil.write(writer, sheet_name="custom")
+
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            assert wb["custom"].cell(2, 2).font.color.value == "00111222"
+
+
 
 
 def test_styler_custom_converter():

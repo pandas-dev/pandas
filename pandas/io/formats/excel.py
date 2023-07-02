@@ -577,19 +577,15 @@ class ExcelFormatter:
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.header_style = None
+        self.body_style = None
 
-    @property
-    def header_style(self) -> dict[str, dict[str, str | bool]]:
-        return {
-            "font": {"bold": True},
-            "borders": {
-                "top": "thin",
-                "right": "thin",
-                "bottom": "thin",
-                "left": "thin",
-            },
-            "alignment": {"horizontal": "center", "vertical": "top"},
-        }
+    def set_header_style(self, style):
+        if not isinstance(style, dict):
+            self.header_style = None
+        else:
+            self.header_style = style
+        return self.header_style
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
