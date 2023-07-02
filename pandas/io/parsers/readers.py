@@ -32,7 +32,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -1274,6 +1277,7 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
