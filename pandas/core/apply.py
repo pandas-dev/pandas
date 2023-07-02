@@ -67,11 +67,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.groupby import (
-        DataFrameGroupBy,
-        GroupBy,
-        SeriesGroupBy,
-    )
+    from pandas.core.groupby import GroupBy
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -1704,7 +1700,7 @@ def validate_func_kwargs(
 
 
 def warn_alias_replacement(
-    obj: DataFrame | Series | DataFrameGroupBy | SeriesGroupBy,
+    obj: AggObjType,
     func: Callable,
     alias: str,
 ) -> None:
