@@ -40,6 +40,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+
 @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
 def to_numeric(
     arg,
