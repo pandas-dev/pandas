@@ -4656,10 +4656,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         axis : int, default 0
             The axis to apply the cumulative sum along.
-        skipna : bool, default True
-            Exclude NA/null values when computing the result.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
 
         Returns
         -------
