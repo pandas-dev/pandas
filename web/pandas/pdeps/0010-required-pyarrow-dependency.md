@@ -16,8 +16,11 @@ This PDEP proposes that:
 - The minimum version of PyArrow supported starting with pandas 3.0 is version 7 of PyArrow.
 - When the minimum version of PyArrow is bumped, PyArrow will be bumped to the highest version that has
   been released for at least 2 years.
-- Starting in pandas 2.1, pandas raises a ``FutureWarning`` when needing to infer string data that the future
-  data type result will be `ArrowDtype` with `pyarrow.string` instead of object
+- The pandas 2.1 release notes will have a big warning that PyArrow will become a required dependency starting
+  with pandas 3.0.
+- Starting in pandas 2.2, pandas raises a ``FutureWarning`` when PyArrow is not installed in the users
+  environment when pandas is imported. This will ensure that only one warning is raised and users can
+  easily silence it if necessary.
 - Starting in pandas 3.0, the default type inferred for string data will be `ArrowDtype` with `pyarrow.string`
   instead of `object`
 
