@@ -10430,6 +10430,12 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame
             Correlation matrix.
 
+            .. note::
+
+                Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+                ``corr`` automatically considers values with matching indices.
+
+
         See Also
         --------
         DataFrame.corrwith : Compute pairwise correlation with another
@@ -10438,6 +10444,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
+
         Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
 
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
