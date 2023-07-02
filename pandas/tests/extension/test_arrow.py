@@ -38,7 +38,6 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
-from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -697,12 +696,6 @@ class TestBaseMissing(base.BaseMissingTests):
         result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, fillna_method is not None, check_stacklevel=False
-        ):
-            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestBasePrinting(base.BasePrintingTests):

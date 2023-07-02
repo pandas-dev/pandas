@@ -67,8 +67,6 @@ if not pa_version_under7p0:
 
     from pandas.core.dtypes.dtypes import ArrowDtype
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
         "ne": pc.not_equal,
@@ -918,7 +916,6 @@ class ArrowExtensionArray(
             return super().fillna(value=value, method=method, limit=limit)
 
         if method is not None:
-            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
