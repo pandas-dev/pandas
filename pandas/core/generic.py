@@ -149,7 +149,10 @@ from pandas.core import (
     nanops,
     sample,
 )
-from pandas.core.array_algos.replace import should_use_regex
+from pandas.core.array_algos.replace import (
+    keep_original_dtypes,
+    should_use_regex,
+)
 from pandas.core.arrays import ExtensionArray
 from pandas.core.base import PandasObject
 from pandas.core.construction import extract_array
@@ -7594,6 +7597,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            # When replace is called on a copy of a dataframe with inplace set to True,
+            # self gets overridden when new_data is generated. This allows for a copy
+            # of the original dataframe to be retained, so if there are no replacements
+            # the original data types can be kept and returned
+            original_df = self.copy()
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
@@ -7763,8 +7772,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         result = self._constructor_from_mgr(new_data, axes=new_data.axes)
         if inplace:
+            result = keep_original_dtypes(result, original_df)
             return self._update_inplace(result)
         else:
+            result = keep_original_dtypes(result, self)
             return result.__finalize__(self, method="replace")
 
     @final

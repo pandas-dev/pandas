@@ -23,6 +23,7 @@ from pandas.core.dtypes.missing import isna
 if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
+        NDFrame,
         Scalar,
         npt,
     )
@@ -150,3 +151,20 @@ def replace_regex(
         values[:] = f(values)
     else:
         values[mask] = f(values[mask])
+
+
+def keep_original_dtypes(result: NDFrame, original: NDFrame) -> NDFrame:
+    """
+    Keep same data types as the original input if no replacements have been made.
+
+    Parameters
+    ----------
+    result: NDFrame
+    original: NDFrame
+    """
+    # Perform operation only if input is a dataframe, not a series
+    if hasattr(original, "columns"):
+        for col in original.columns:
+            if result[col].astype(str).equals(original[col].astype(str)):
+                result[col] = result[col].astype(original[col].dtypes)
+    return result
