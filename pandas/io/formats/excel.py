@@ -580,13 +580,6 @@ class ExcelFormatter:
         self.header_style = None
         self.body_style = None
 
-    def set_header_style(self, style):
-        if not isinstance(style, dict):
-            self.header_style = None
-        else:
-            self.header_style = style
-        return self.header_style
-
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
             val = self.na_rep
