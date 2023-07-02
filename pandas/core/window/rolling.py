@@ -2320,6 +2320,7 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """
+        >>> pd.set_option("display.float_format", None)
         >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
         >>> ser.rolling(3).skew()
         0             NaN
