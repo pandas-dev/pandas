@@ -465,6 +465,7 @@ class Block(PandasObject):
         refs = self.refs if using_cow and new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
+    @final
     def convert(
         self,
         *,
@@ -953,6 +954,7 @@ class Block(PandasObject):
             self.values = self.values.copy()
         self.values[locs] = values
 
+    @final
     def take_nd(
         self,
         indexer: npt.NDArray[np.intp],
@@ -1366,13 +1368,17 @@ class Block(PandasObject):
 
         # Dispatch to the PandasArray method.
         # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).pad_or_backfill(
+        vals = cast(PandasArray, self.array_values)
+        if axis == 1:
+            vals = vals.T
+        new_values = vals.pad_or_backfill(
             method=method,
-            axis=axis,
             limit=limit,
             limit_area=limit_area,
             copy=copy,
         )
+        if axis == 1:
+            new_values = new_values.T
 
         data = extract_array(new_values, extract_numpy=True)
 
@@ -1634,6 +1640,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
+    @final
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """
         Shift the block by `periods`.
@@ -1646,6 +1653,7 @@ class EABackedBlock(Block):
         new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
         return [self.make_block_same_class(new_values)]
 
+    @final
     def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
@@ -1704,6 +1712,7 @@ class EABackedBlock(Block):
         else:
             return self
 
+    @final
     def where(
         self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
     ) -> list[Block]:
@@ -1774,6 +1783,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
+    @final
     def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
@@ -1841,6 +1851,7 @@ class EABackedBlock(Block):
 
         return [self]
 
+    @final
     def delete(self, loc) -> list[Block]:
         # This will be unnecessary if/when __array_function__ is implemented
         if self.ndim == 1:
@@ -1852,10 +1863,12 @@ class EABackedBlock(Block):
             return []
         return super().delete(loc)
 
+    @final
     @cache_readonly
     def array_values(self) -> ExtensionArray:
         return self.values
 
+    @final
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta

@@ -21,23 +21,6 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
-function invgrep {
-    # grep with inverse exist status and formatting for azure-pipelines
-    #
-    # This function works exactly as grep, but with opposite exit status:
-    # - 0 (success) when no patterns are found
-    # - 1 (fail) when the patterns are found
-    #
-    # This is useful for the CI, as we want to fail if one of the patterns
-    # that we want to avoid is found by grep.
-    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
-    return $((! $EXIT_STATUS))
-}
-
-if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    INVGREP_PREPEND="##[error]"
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
@@ -118,18 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.ohlc \
-        pandas.core.resample.Resampler.prod \
-        pandas.core.resample.Resampler.size \
-        pandas.core.resample.Resampler.sem \
-        pandas.core.resample.Resampler.std \
-        pandas.core.resample.Resampler.sum \
-        pandas.core.resample.Resampler.var \
-        pandas.core.resample.Resampler.quantile \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
@@ -138,25 +109,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.CategoricalIndex.codes \
-        pandas.CategoricalIndex.categories \
-        pandas.CategoricalIndex.ordered \
-        pandas.CategoricalIndex.reorder_categories \
-        pandas.CategoricalIndex.set_categories \
-        pandas.CategoricalIndex.as_ordered \
-        pandas.CategoricalIndex.as_unordered \
-        pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.values \
-        pandas.IntervalIndex.to_tuples \
-        pandas.MultiIndex.dtypes \
-        pandas.MultiIndex.drop \
         pandas.DatetimeIndex.snap \
-        pandas.DatetimeIndex.as_unit \
-        pandas.DatetimeIndex.to_pydatetime \
-        pandas.DatetimeIndex.to_series \
-        pandas.DatetimeIndex.mean \
-        pandas.DatetimeIndex.std \
-        pandas.TimedeltaIndex \
         pandas.core.window.rolling.Rolling.max \
         pandas.core.window.rolling.Rolling.cov \
         pandas.core.window.rolling.Rolling.skew \
