@@ -6693,8 +6693,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
         return res.__finalize__(self, method="infer_objects")
 
-    @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
     @final
+    @doc(dtype_backend_options=_shared_docs["dtype_backend_options"])
     def convert_dtypes(
         self,
         infer_objects: bool_t = True,
@@ -6770,14 +6770,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Examples
         --------
         >>> df = pd.DataFrame(
-        ...     {
+        ...     {{
         ...         "a": pd.Series([1, 2, 3], dtype=np.dtype("int32")),
         ...         "b": pd.Series(["x", "y", "z"], dtype=np.dtype("O")),
         ...         "c": pd.Series([True, False, np.nan], dtype=np.dtype("O")),
         ...         "d": pd.Series(["h", "i", np.nan], dtype=np.dtype("O")),
         ...         "e": pd.Series([10, np.nan, 20], dtype=np.dtype("float")),
         ...         "f": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
-        ...     }
+        ...     }}
         ... )
 
         Start with a DataFrame with default dtypes.
