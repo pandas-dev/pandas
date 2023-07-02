@@ -10435,7 +10435,6 @@ class DataFrame(NDFrame, OpsMixin):
                 Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
                 ``corr`` automatically considers values with matching indices.
 
-
         See Also
         --------
         DataFrame.corrwith : Compute pairwise correlation with another
