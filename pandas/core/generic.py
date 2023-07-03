@@ -95,9 +95,11 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
+    ChainedAssignmentError,
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
+    _chained_assignment_method_msg,
 )
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -7087,13 +7089,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not PYPY and using_copy_on_write():
-                raise ValueError(sys.getrefcount(self))
-                # if sys.getrefcount(self) <= 3:
-                #     warnings.warn(
-                #         _chained_assignment_method_msg,
-                #         ChainedAssignmentError,
-                #         stacklevel=2,
-                #     )
+                if sys.getrefcount(self) <= 3:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
 
         value, method = validate_fillna_kwargs(value, method)
         if method is not None:
