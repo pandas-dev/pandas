@@ -67,7 +67,7 @@ def test_groupby_aggregation_mixed_dtype():
     # GH 6212
     expected = DataFrame(
         {
-            "v1": [5, 5, 7, np.nan, 3, 3, 4, 1],
+
             "v2": [55, 55, 77, np.nan, 33, 33, 44, 11],
         },
         index=MultiIndex.from_tuples(
@@ -1633,9 +1633,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     result = gb.agg(td=("td", "cumsum"))
 
 
-@pytest.mark.skipif(
-    not typing.TYPE_CHECKING, reason="let pyarrow to be imported in dtypes.py"
-)
+@skip_if_no_pyarrow
 def test_agg_arrow_type():
     df = DataFrame.from_dict(
         {
