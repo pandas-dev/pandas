@@ -15,7 +15,7 @@ import pandas._testing as tm
 
 
 def get_freq_code(freqstr: str) -> int:
-    off = to_offset(freqstr)
+    off = to_offset(freqstr, is_period=True)
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     code = off._period_dtype_code  # type: ignore[attr-defined]
     return code
@@ -54,7 +54,7 @@ def test_intra_day_conversion_factors(freq1, freq2, expected):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("A", 0), ("ME", 0), ("W", 1), ("D", 0), ("B", 0)]
+    "freq,expected", [("A", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
 )
 def test_period_ordinal_start_values(freq, expected):
     # information for Jan. 1, 1970.

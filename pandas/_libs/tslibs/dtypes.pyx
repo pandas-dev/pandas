@@ -183,7 +183,32 @@ cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 OFFSET_TO_PERIOD_FREQSTR: dict = {
+    "WEEKDAY": "D",
+    "EOM": "M",
+    "BM": "M",
+    "BQS": "Q",
+    "QS": "Q",
+    "BQ": "Q",
+    "BA": "A",
+    "AS": "A",
+    "BAS": "A",
+    "MS": "M",
+    "D": "D",
+    "B": "B",
+    "T": "T",
+    "S": "S",
+    "L": "L",
+    "U": "U",
+    "N": "N",
+    "H": "H",
+    "Q": "Q",
+    "A": "A",
+    "W": "W",
     "ME": "M",
+    "Y": "A",
+    "BY": "A",
+    "YS": "A",
+    "BYS": "A",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 
