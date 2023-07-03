@@ -13,6 +13,14 @@ import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
 
+import pandas as pd
+
+# Necessary so that everything is registered
+# from pandas.core._numba import extensions
+from pandas.core._numba.extensions import (
+    DataFrameType,
+    SeriesType,
+)
 from pandas.core.util.numba_ import (
     NumbaUtilError,
     jit_user_function,
@@ -134,10 +142,26 @@ def generate_numba_apply_func(
     else:
         numba = import_optional_dependency("numba")
 
+    # Dummy function to give overload something to overload
+    def check_same_indexed(group, group_result):
+        pass
+
+    @numba.core.extending.overload(check_same_indexed)
+    def check_same_indexed_numba(group, group_result):
+        if isinstance(group, (DataFrameType, SeriesType)) and isinstance(
+            group_result, (DataFrameType, SeriesType)
+        ):
+
+            def func(group, group_result):
+                return np.array_equal(group_result.index._data, group.index._data)
+
+            return func
+        else:
+            return lambda group, group_result: False
+
     @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
     def group_apply(
-        values: np.ndarray,
-        index: np.ndarray,
+        df: pd.DataFrame,
         starts: np.ndarray,
         ends: np.ndarray,
         *args: Any,
@@ -145,16 +169,26 @@ def generate_numba_apply_func(
         assert len(starts) == len(ends)
         num_groups = len(starts)
 
-        group_values = []
-        group_indices = []
+        not_indexed_same = False
+        results = []
         for i in numba.prange(num_groups):
-            group_index = index[starts[i] : ends[i]]
-            group = values[starts[i] : ends[i]]
-            # TODO: Consider allowing user to change the index?
-            result_values, result_index = numba_func(group, group_index, *args)
-            group_values.append(result_values)
-            group_indices.append(result_index)
-        return group_values, group_indices
+            # TODO: Use iloc once that is supported
+            # group_result = func(df.iloc[starts[i] : ends[i]])
+            group = pd.DataFrame(
+                df.values[starts[i] : ends[i]],
+                index=pd.Index(df.index._data[starts[i] : ends[i]]),
+            )
+            group_result = numba_func(group)
+
+            if not not_indexed_same:
+                if np.isscalar(group_result):
+                    not_indexed_same = True
+                elif not check_same_indexed(group, group_result):
+                    not_indexed_same = True
+
+            results.append(group_result)
+
+        return results, not_indexed_same
 
     return group_apply
 

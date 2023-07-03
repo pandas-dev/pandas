@@ -86,7 +86,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1609,38 +1608,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _apply_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
         data = self._selected_obj
+        # TODO: Delete this?
         df = data if data.ndim == 2 else data.to_frame()
 
-        numba_.validate_udf(func)
+        # numba_.validate_udf(func)
         numba_apply_func = numba_.generate_numba_apply_func(
             func, **get_jit_arguments(engine_kwargs, kwargs)
         )
-        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-        if sorted_data.dtype.kind == "O":
-            raise ValueError(
-                "Cannot do apply with engine='numba' on data that is either "
-                "object dtype or that has no common numeric dtype"
-            )
+        # starts, ends, sorted_index, sorted_data = self._numba_prep(df)
+        ids, _, ngroups = self.grouper.group_info
+        sorted_index = self.grouper._sort_idx
+        sorted_ids = self.grouper._sorted_ids
 
-        # TODO: Split this in to two steps and add error checking to make sure
-        # a tuple is returned to prevent accidents
-        result_values, result_indices = numba_apply_func(
+        sorted_data = df.take(sorted_index, axis=self.axis)
+
+        starts, ends = lib.generate_slices(sorted_ids, ngroups)
+
+        # TODO: Fix and re-enable this
+        # if np.result_type(sorted_data.dtypes).kind == "O":
+        #     raise ValueError(
+        #         "Cannot do apply with engine='numba' on data that is either "
+        #         "object dtype or that has no common numeric dtype"
+        #     )
+
+        results, not_indexed_same = numba_apply_func(sorted_data, starts, ends, *args)
+
+        return self._wrap_applied_output(
             sorted_data,
-            sorted_index,
-            starts,
-            ends,
-            *args,
+            results,
+            # TODO: not_indexed_same/is_transform parameters?
+            not_indexed_same,
         )
-
-        result_values = concat_compat(result_values)
-        result_index = concat_compat(result_indices)
-
-        if result_values.ndim == 1:
-            result = Series(result_values, index=result_index)
-        else:
-            result = DataFrame(result_values, index=result_index)
-
-        return result
 
     # -----------------------------------------------------------------
     # apply/agg/transform
