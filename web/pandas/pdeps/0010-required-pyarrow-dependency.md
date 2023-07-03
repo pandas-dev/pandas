@@ -151,7 +151,7 @@ Lastly, pandas development and releases will need to be mindful of PyArrow's dev
 supporting a newly released Python version, pandas will also need to be mindful of PyArrow's wheel support for that Python version
 before releasing a new pandas version.
 
-### PDEP-1 History
+### PDEP-10 History
 
 - 17 April 2023: Initial version
 - 8 May 2023: Changed proposal to make pyarrow required in pandas 3.0 instead of 2.1
