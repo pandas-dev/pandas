@@ -6293,7 +6293,7 @@ class Index(IndexOpsMixin, PandasObject):
             ):
                 return _dtype_obj
 
-        dtype = find_result_type(self._values, target)
+        dtype = find_result_type(self.dtype, target)
         dtype = common_dtype_categorical_compat([self, target], dtype)
         return dtype
 
