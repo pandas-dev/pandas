@@ -480,7 +480,15 @@ class Block(PandasObject):
             return [self.copy()] if copy else [self]
 
         if self.ndim != 1 and self.shape[0] != 1:
-            return self.split_and_operate(Block.convert, copy=copy, using_cow=using_cow)
+            blocks = self.split_and_operate(
+                Block.convert, copy=copy, using_cow=using_cow
+            )
+            if all(blk.dtype.kind == "O" for blk in blocks):
+                # Avoid fragmenting the block if convert is a no-op
+                if using_cow:
+                    return [self.copy(deep=False)]
+                return [self.copy()] if copy else [self]
+            return blocks
 
         values = self.values
         if values.ndim == 2:
