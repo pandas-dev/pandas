@@ -79,7 +79,7 @@ if TYPE_CHECKING:
     )
 _read_excel_doc = (
     """
-Read an Excel file into a ``pandas`` ``DataFrame``.
+Read an Excel file into a ``pandas`` DataFrame.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -105,22 +105,22 @@ sheet_name : str, int, list, or None, default 0
 
     Available cases:
 
-    * Defaults to ``0``: 1st sheet as a ``DataFrame``
-    * ``1``: 2nd sheet as a ``DataFrame``
+    * Defaults to ``0``: 1st sheet as a DataFrame
+    * ``1``: 2nd sheet as a DataFrame
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
-      as a dict of ``DataFrame``
+      as a dict of DataFrame
     * ``None``: All worksheets.
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
-    ``DataFrame``. If a list of integers is passed those row positions will
+    DataFrame. If a list of integers is passed those row positions will
     be combined into a ``MultiIndex``. Use ``None`` if there is no header.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass ``header=None``.
 index_col : int, str, list of int, default None
-    Column (0-indexed) to use as the row labels of the ``DataFrame``.
+    Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, ``index_col``
@@ -143,7 +143,7 @@ usecols : str, list-like, or callable, default None
 
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
+    Data type for data or columns. E.g. ``{{'a': np.float64, 'b': np.int32}}``
     Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of ``dtype`` conversion.
@@ -152,10 +152,10 @@ engine : str, default None
     Supported engines: ``"xlrd"``, ``"openpyxl"``, ``"odf"``, ``"pyxlsb"``.
     Engine compatibility :
 
-    - ``"xlrd"`` supports old-style Excel files (.xls).
-    - ``"openpyxl"`` supports newer Excel file formats.
-    - ``"odf"`` supports OpenDocument file formats (.odf, .ods, .odt).
-    - ``"pyxlsb"`` supports Binary Excel files.
+    - ``xlrd`` supports old-style Excel files (.xls).
+    - ``openpyxl`` supports newer Excel file formats.
+    - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
+    - ``pyxlsb`` supports Binary Excel files.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
@@ -215,7 +215,7 @@ keep_default_na : bool, default True
     ``na_values`` parameters will be ignored.
 na_filter : bool, default True
     Detect missing value markers (empty strings and the value of ``na_values``). In
-    data without any NAs, ``passing na_filter=False`` can improve the performance
+    data without any NAs, passing ``na_filter=False`` can improve the performance
     of reading a large file.
 verbose : bool, default False
     Indicate number of NA values placed in non-numeric columns.
@@ -233,7 +233,7 @@ parse_dates : bool, list-like, or dict, default False
     If a column or index contains an unparsable date, the entire column or
     index will be returned unaltered as an object data type. If you don`t want to
     parse some cells as date, just change their type in Excel to "Text".
-    For non-standard ``datetime`` parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
+    For non-standard datetime parsing, use ``pd.to_datetime`` after ``pd.read_excel``.
 
     Note: A fast-path exists for iso8601-formatted dates.
 date_parser : function, optional
@@ -279,8 +279,8 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to ``numpy`` backed ``DataFrames``
-    Which ``dtype_backend`` to use, e.g. whether a ``DataFrame`` should have ``numpy``
+dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed ``DataFrames``
+    Which ``dtype_backend`` to use, e.g. whether a DataFrame should have NumPy
     arrays, nullable ``dtypes`` are used for all ``dtypes`` that have a nullable
     implementation when ``"numpy_nullable"`` is set, ``pyarrow`` is used for all
     dtypes if ``"pyarrow"`` is set.
@@ -295,15 +295,15 @@ engine_kwargs : dict, optional
 Returns
 -------
 DataFrame or dict of DataFrames
-    ``DataFrame`` from the passed in Excel file. See notes in ``sheet_name``
+    DataFrame from the passed in Excel file. See notes in ``sheet_name``
     argument for more information on when a ``dict`` of ``DataFrames`` is returned.
 
 See Also
 --------
-DataFrame.to_excel : Write ``DataFrame`` to an Excel file.
-DataFrame.to_csv : Write ``DataFrame`` to a comma-separated values (csv) file.
-read_csv : Read a comma-separated values (csv) file into ``DataFrame``.
-read_fwf : Read a table of fixed-width formatted lines into ``DataFrame``.
+DataFrame.to_excel : Write DataFrame to an Excel file.
+DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+read_csv : Read a comma-separated values (csv) file into DataFrame.
+read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 
 Notes
 -----
@@ -345,7 +345,7 @@ Column types are inferred but can be explicitly specified
 1   string2    2.0
 2  #Comment    3.0
 
-``True``, ``False``, ``NaN`` values, and thousands of separators have defaults,
+True, False, NA values, and thousands of separators have defaults,
 but can be explicitly specified, too. Supply the values you would like
 as strings or lists of strings!
 
@@ -356,7 +356,7 @@ as strings or lists of strings!
 1       NaN      2
 2  #Comment      3
 
-Comment lines in the excel input file can be skipped using the ``comment`` ``kwarg``
+Comment lines in the excel input file can be skipped using the ``comment`` keyword argument
 
 >>> pd.read_excel('tmp.xlsx', index_col=0, comment='#')  # doctest: +SKIP
       Name  Value
