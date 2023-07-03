@@ -6911,7 +6911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_mgr = self._mgr.pad_or_backfill(
             method=method,
-            axis=axis,
+            axis=self._get_block_manager_axis(axis),
             limit=limit,
             inplace=inplace,
             downcast=downcast,
@@ -8027,7 +8027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
-                axis=axis,
+                axis=self._get_block_manager_axis(axis),
                 limit=limit,
                 limit_area=limit_area,
                 inplace=inplace,
