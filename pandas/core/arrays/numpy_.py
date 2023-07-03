@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -32,6 +35,8 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        FillnaOptions,
+        InterpolateOptions,
         NpDtype,
         Scalar,
         Self,
@@ -224,29 +229,58 @@ class PandasArray(  # type: ignore[misc]
             fv = np.nan
         return self._ndarray, fv
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        """
+        ffill or bfill along axis=0.
+        """
+        if copy:
+            out_data = self._ndarray.copy()
+        else:
+            out_data = self._ndarray
+
+        meth = missing.clean_fill_method(method)
+        missing.pad_or_backfill_inplace(
+            out_data,
+            method=meth,
+            axis=0,
+            limit=limit,
+            limit_area=limit_area,
+        )
+
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
+
     def interpolate(
         self,
         *,
-        method,
+        method: InterpolateOptions,
         axis: int,
-        index: Index | None,
+        index: Index,
         limit,
         limit_direction,
         limit_area,
-        fill_value,
-        inplace: bool,
+        copy: bool,
         **kwargs,
     ) -> Self:
         """
         See NDFrame.interpolate.__doc__.
         """
-        # NB: we return type(self) even if inplace=True
-        if inplace:
+        # NB: we return type(self) even if copy=False
+        if not copy:
             out_data = self._ndarray
         else:
             out_data = self._ndarray.copy()
 
-        missing.interpolate_array_2d(
+        # TODO: assert we have floating dtype?
+        missing.interpolate_2d_inplace(
             out_data,
             method=method,
             axis=axis,
@@ -254,10 +288,9 @@ class PandasArray(  # type: ignore[misc]
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
-        if inplace:
+        if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
 

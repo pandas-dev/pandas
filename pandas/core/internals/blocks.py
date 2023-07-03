@@ -36,6 +36,7 @@ from pandas._typing import (
     F,
     FillnaOptions,
     IgnoreRaise,
+    InterpolateOptions,
     QuantileInterpolation,
     Self,
     Shape,
@@ -478,6 +479,7 @@ class Block(PandasObject):
         refs = self.refs if using_cow and new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
+    @final
     def convert(
         self,
         *,
@@ -588,6 +590,29 @@ class Block(PandasObject):
         return type(self)(values, placement=self._mgr_locs, ndim=self.ndim, refs=refs)
 
     # ---------------------------------------------------------------------
+    # Copy-on-Write Helpers
+
+    @final
+    def _maybe_copy(self, using_cow: bool, inplace: bool) -> Self:
+        if using_cow and inplace:
+            deep = self.refs.has_reference()
+            blk = self.copy(deep=deep)
+        else:
+            blk = self if inplace else self.copy()
+        return blk
+
+    @final
+    def _get_refs_and_copy(self, using_cow: bool, inplace: bool):
+        refs = None
+        copy = not inplace
+        if inplace:
+            if using_cow and self.refs.has_reference():
+                copy = True
+            else:
+                refs = self.refs
+        return copy, refs
+
+    # ---------------------------------------------------------------------
     # Replace
 
     @final
@@ -613,12 +638,7 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            if using_cow and (self.refs.has_reference() or not inplace):
-                blk = self.copy()
-            elif using_cow:
-                blk = self.copy(deep=False)
-            else:
-                blk = self if inplace else self.copy()
+            blk = self._maybe_copy(using_cow, inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=to_replace, value=value, inplace=True)
             return [blk]
@@ -646,13 +666,7 @@ class Block(PandasObject):
         elif self._can_hold_element(value):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
-            if using_cow:
-                if inplace:
-                    blk = self.copy(deep=self.refs.has_reference())
-                else:
-                    blk = self.copy()
-            else:
-                blk = self if inplace else self.copy()
+            blk = self._maybe_copy(using_cow, inplace)
             putmask_inplace(blk.values, mask, value)
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
@@ -728,20 +742,10 @@ class Block(PandasObject):
 
         rx = re.compile(to_replace)
 
-        if using_cow:
-            if inplace and not self.refs.has_reference():
-                refs = self.refs
-                new_values = self.values
-            else:
-                refs = None
-                new_values = self.values.copy()
-        else:
-            refs = None
-            new_values = self.values if inplace else self.values.copy()
+        block = self._maybe_copy(using_cow, inplace)
 
-        replace_regex(new_values, rx, value, mask)
+        replace_regex(block.values, rx, value, mask)
 
-        block = self.make_block(new_values, refs=refs)
         return block.convert(copy=False, using_cow=using_cow)
 
     @final
@@ -761,10 +765,7 @@ class Block(PandasObject):
         if isinstance(values, Categorical):
             # TODO: avoid special-casing
             # GH49404
-            if using_cow and inplace:
-                blk = self.copy(deep=self.refs.has_reference())
-            else:
-                blk = self if inplace else self.copy()
+            blk = self._maybe_copy(using_cow, inplace)
             values = cast(Categorical, blk.values)
             values._replace(to_replace=src_list, value=dest_list, inplace=True)
             return [blk]
@@ -967,6 +968,7 @@ class Block(PandasObject):
             self.values = self.values.copy()
         self.values[locs] = values
 
+    @final
     def take_nd(
         self,
         indexer: npt.NDArray[np.intp],
@@ -1361,22 +1363,64 @@ class Block(PandasObject):
             ]
         )
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        axis: AxisInt = 0,
+        inplace: bool = False,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        downcast: Literal["infer"] | None = None,
+        using_cow: bool = False,
+    ) -> list[Block]:
+        if not self._can_hold_na:
+            # If there are no NAs, then interpolate is a no-op
+            if using_cow:
+                return [self.copy(deep=False)]
+            return [self] if inplace else [self.copy()]
+
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+        # Dispatch to the PandasArray method.
+        # We know self.array_values is a PandasArray bc EABlock overrides
+        vals = cast(PandasArray, self.array_values)
+        if axis == 1:
+            vals = vals.T
+        new_values = vals.pad_or_backfill(
+            method=method,
+            limit=limit,
+            limit_area=limit_area,
+            copy=copy,
+        )
+        if axis == 1:
+            new_values = new_values.T
+
+        data = extract_array(new_values, extract_numpy=True)
+
+        nb = self.make_block_same_class(data, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow)
+
+    @final
     def interpolate(
         self,
         *,
-        method: FillnaOptions = "pad",
-        axis: AxisInt = 0,
-        index: Index | None = None,
+        method: InterpolateOptions,
+        axis: AxisInt,
+        index: Index,
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
-        limit_area: str | None = None,
-        fill_value: Any | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        # error: Non-overlapping equality check [...]
+        if method == "asfreq":  # type: ignore[comparison-overlap]
+            # clean_fill_method used to allow this
+            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1384,17 +1428,8 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        try:
-            m = missing.clean_fill_method(method)
-        except ValueError:
-            m = None
-            # error: Non-overlapping equality check (left operand type:
-            # "Literal['backfill', 'bfill', 'ffill', 'pad']", right
-            # operand type: "Literal['asfreq']")
-            if method == "asfreq":  # type: ignore[comparison-overlap]
-                # clean_fill_method used to allow this
-                raise
-        if m is None and self.dtype == _dtype_obj:
+        # TODO(3.0): this case will not be reachable once GH#53638 is enforced
+        if self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
@@ -1413,49 +1448,41 @@ class Block(PandasObject):
                 limit=limit,
                 limit_direction=limit_direction,
                 limit_area=limit_area,
-                fill_value=fill_value,
                 downcast=downcast,
                 **kwargs,
             )
 
-        refs = None
-        arr_inplace = inplace
-        if inplace:
-            if using_cow and self.refs.has_reference():
-                arr_inplace = False
-            else:
-                refs = self.refs
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
-        # Dispatch to the PandasArray method.
-        # We know self.array_values is a PandasArray bc EABlock overrides
-        new_values = cast(PandasArray, self.array_values).interpolate(
+        # Dispatch to the EA method.
+        new_values = self.array_values.interpolate(
             method=method,
             axis=axis,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
-            inplace=arr_inplace,
+            copy=copy,
             **kwargs,
         )
-        data = new_values._ndarray
+        data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
+    @final
+    def diff(self, n: int) -> list[Block]:
         """return block for the diff of the values"""
-        # only reached with ndim == 2 and axis == 1
-        new_values = algos.diff(self.values, n, axis=axis)
+        # only reached with ndim == 2
+        # TODO(EA2D): transpose will be unnecessary with 2D EAs
+        new_values = algos.diff(self.values.T, n, axis=0).T
         return [self.make_block(values=new_values)]
 
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
+    def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """shift the block by periods, possibly upcast"""
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
+        axis = self.ndim - 1
 
         # Note: periods is never 0 here, as that is handled at the top of
         #  NDFrame.shift.  If that ever changes, we can do a check for periods=0
@@ -1477,19 +1504,18 @@ class Block(PandasObject):
             )
         except LossySetitemError:
             nb = self.coerce_to_target_dtype(fill_value)
-            return nb.shift(periods, axis=axis, fill_value=fill_value)
+            return nb.shift(periods, fill_value=fill_value)
 
         else:
             values = cast(np.ndarray, self.values)
             new_values = shift(values, periods, axis, casted)
-            return [self.make_block(new_values)]
+            return [self.make_block_same_class(new_values)]
 
     @final
     def quantile(
         self,
         qs: Index,  # with dtype float64
         interpolation: QuantileInterpolation = "linear",
-        axis: AxisInt = 0,
     ) -> Block:
         """
         compute the quantiles of the
@@ -1500,8 +1526,6 @@ class Block(PandasObject):
             The quantiles to be computed in float64.
         interpolation : str, default 'linear'
             Type of interpolation.
-        axis : int, default 0
-            Axis to compute.
 
         Returns
         -------
@@ -1509,7 +1533,6 @@ class Block(PandasObject):
         """
         # We should always have ndim == 2 because Series dispatches to DataFrame
         assert self.ndim == 2
-        assert axis == 1  # only ever called this way
         assert is_list_like(qs)  # caller is responsible for this
 
         result = quantile_compat(self.values, np.asarray(qs._values), interpolation)
@@ -1633,6 +1656,20 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
+    @final
+    def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        # Transpose since EA.shift is always along axis=0, while we want to shift
+        #  along rows.
+        new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
+        return [self.make_block_same_class(new_values)]
+
+    @final
     def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
@@ -1691,6 +1728,7 @@ class EABackedBlock(Block):
         else:
             return self
 
+    @final
     def where(
         self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
     ) -> list[Block]:
@@ -1761,6 +1799,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
+    @final
     def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
@@ -1828,6 +1867,7 @@ class EABackedBlock(Block):
 
         return [self]
 
+    @final
     def delete(self, loc) -> list[Block]:
         # This will be unnecessary if/when __array_function__ is implemented
         if self.ndim == 1:
@@ -1839,10 +1879,12 @@ class EABackedBlock(Block):
             return []
         return super().delete(loc)
 
+    @final
     @cache_readonly
     def array_values(self) -> ExtensionArray:
         return self.values
 
+    @final
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
@@ -1856,24 +1898,25 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
+    @final
+    def pad_or_backfill(
         self,
         *,
-        method: FillnaOptions = "pad",
-        axis: int = 0,
+        method: FillnaOptions,
+        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
-        fill_value=None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
-        **kwargs,
-    ):
+    ) -> list[Block]:
         values = self.values
         if values.ndim == 2 and axis == 0:
             # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
+            new_values = values.T.fillna(method=method, limit=limit).T
         else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
+            new_values = values.fillna(method=method, limit=limit)
+        return [self.make_block_same_class(new_values)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -2085,24 +2128,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         new_values = self.values[slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
 
-    def diff(self, n: int, axis: AxisInt = 1) -> list[Block]:
-        # only reached with ndim == 2 and axis == 1
-        # TODO(EA2D): Can share with NDArrayBackedExtensionBlock
-        new_values = algos.diff(self.values, n, axis=0)
-        return [self.make_block(values=new_values)]
-
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
-        """
-        Shift the block by `periods`.
-
-        Dispatches to underlying ExtensionArray and re-boxes in an
-        ExtensionBlock.
-        """
-        new_values = self.values.shift(periods=periods, fill_value=fill_value)
-        return [self.make_block_same_class(new_values)]
-
     def _unstack(
         self,
         unstacker,
@@ -2209,39 +2234,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
 
-    def diff(self, n: int, axis: AxisInt = 0) -> list[Block]:
-        """
-        1st discrete difference.
-
-        Parameters
-        ----------
-        n : int
-            Number of periods to diff.
-        axis : int, default 0
-            Axis to diff upon.
-
-        Returns
-        -------
-        A list with a new Block.
-
-        Notes
-        -----
-        The arguments here are mimicking shift so they are called correctly
-        by apply.
-        """
-        # only reached with ndim == 2 and axis == 1
-        values = self.values
-
-        new_values = values - values.shift(n, axis=axis)
-        return [self.make_block(new_values)]
-
-    def shift(
-        self, periods: int, axis: AxisInt = 0, fill_value: Any = None
-    ) -> list[Block]:
-        values = self.values
-        new_values = values.shift(periods, fill_value=fill_value, axis=axis)
-        return [self.make_block_same_class(new_values)]
-
 
 def _catch_deprecated_value_error(err: Exception) -> None:
     """
@@ -2265,51 +2257,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
 
     def values_for_json(self) -> np.ndarray:
         return self.values._ndarray
-
-    def interpolate(
-        self,
-        *,
-        method: FillnaOptions = "pad",
-        index: Index | None = None,
-        axis: int = 0,
-        inplace: bool = False,
-        limit: int | None = None,
-        fill_value=None,
-        using_cow: bool = False,
-        **kwargs,
-    ):
-        values = self.values
-
-        # error: Non-overlapping equality check (left operand type:
-        # "Literal['backfill', 'bfill', 'ffill', 'pad']", right operand type:
-        # "Literal['linear']")  [comparison-overlap]
-        if method == "linear":  # type: ignore[comparison-overlap]
-            # TODO: GH#50950 implement for arbitrary EAs
-            refs = None
-            arr_inplace = inplace
-            if using_cow:
-                if inplace and not self.refs.has_reference():
-                    refs = self.refs
-                else:
-                    arr_inplace = False
-
-            new_values = self.values.interpolate(
-                method=method,
-                index=index,
-                axis=axis,
-                inplace=arr_inplace,
-                limit=limit,
-                fill_value=fill_value,
-                **kwargs,
-            )
-            return self.make_block_same_class(new_values, refs=refs)
-
-        elif values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
-            new_values = values.T.fillna(value=fill_value, method=method, limit=limit).T
-        else:
-            new_values = values.fillna(value=fill_value, method=method, limit=limit)
-        return self.make_block_same_class(new_values)
 
 
 class DatetimeTZBlock(DatetimeLikeBlock):

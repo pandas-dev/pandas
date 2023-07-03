@@ -58,6 +58,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -1551,6 +1552,17 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.mean()
+        Timestamp('2001-01-02 00:00:00')
+
+        For :class:`pandas.TimedeltaIndex`:
+
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
@@ -2233,29 +2245,28 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def interpolate(
         self,
         *,
-        method,
+        method: InterpolateOptions,
         axis: int,
-        index: Index | None,
+        index: Index,
         limit,
         limit_direction,
         limit_area,
-        fill_value,
-        inplace: bool,
+        copy: bool,
         **kwargs,
     ) -> Self:
         """
         See NDFrame.interpolate.__doc__.
         """
-        # NB: we return type(self) even if inplace=True
+        # NB: we return type(self) even if copy=False
         if method != "linear":
             raise NotImplementedError
 
-        if inplace:
+        if not copy:
             out_data = self._ndarray
         else:
             out_data = self._ndarray.copy()
 
-        missing.interpolate_array_2d(
+        missing.interpolate_2d_inplace(
             out_data,
             method=method,
             axis=axis,
@@ -2263,10 +2274,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
-        if inplace:
+        if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
 
