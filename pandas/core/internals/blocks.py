@@ -484,6 +484,7 @@ class Block(PandasObject):
                 Block.convert, copy=copy, using_cow=using_cow
             )
             if all(blk.dtype.kind == "O" for blk in blocks):
+                # Avoid fragmenting the block if convert is a no-op
                 if using_cow:
                     return [self.copy(deep=False)]
                 return [self.copy()] if copy else [self]
