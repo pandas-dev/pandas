@@ -30,7 +30,6 @@ bar2,12,13,14,15
 
     expected = parser.read_csv(StringIO(data), **kwargs)
     with parser.read_csv(StringIO(data), iterator=True, **kwargs) as reader:
-
         first_chunk = reader.read(3)
         tm.assert_frame_equal(first_chunk, expected[:3])
 
@@ -96,10 +95,10 @@ def test_iteration_open_handle(all_parsers):
     kwargs = {"header": None}
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 if "CCC" in line:
                     break

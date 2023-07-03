@@ -1,19 +1,24 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._libs import json
-from pandas._typing import (
-    FilePath,
-    StorageOptions,
-    WriteExcelBuffer,
-)
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
     combine_kwargs,
     validate_freeze_panes,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        FilePath,
+        StorageOptions,
+        WriteExcelBuffer,
+    )
 
 
 class _XlsxStyler:
@@ -207,7 +212,11 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        self._book = Workbook(self._handles.handle, **engine_kwargs)
+        try:
+            self._book = Workbook(self._handles.handle, **engine_kwargs)
+        except TypeError:
+            self._handles.handle.close()
+            raise
 
     @property
     def book(self):

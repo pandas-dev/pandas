@@ -143,11 +143,8 @@ class TestSetOpsSort:
         # sort=False
         tm.assert_index_equal(idx.union(other, sort=False), idx)
 
-    @pytest.mark.xfail(reason="Not implemented")
     @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
     def test_union_sort_special_true(self, slice_):
-        # TODO(GH#25151): decide on True behaviour
-        # sort=True
         idx = Index([1, 0, 2])
         # default, sort=None
         other = idx[slice_]

@@ -137,7 +137,6 @@ class TestInsert:
                 Timestamp("2000-01-01 15:00", tz=tz),
                 pytz.timezone(tz).localize(datetime(2000, 1, 1, 15)),
             ]:
-
                 result = idx.insert(6, d)
                 tm.assert_index_equal(result, expected)
                 assert result.name == expected.name

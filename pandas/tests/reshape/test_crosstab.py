@@ -1,10 +1,9 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
     DataFrame,
     Index,
@@ -264,7 +263,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna2(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
@@ -275,7 +273,6 @@ class TestCrosstab:
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna3(self):
-
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, np.nan, 2], "b": [3, 3, 4, 4, 4, 4]}
         )
@@ -289,24 +286,29 @@ class TestCrosstab:
         # GH 12642
         # _add_margins raises KeyError: Level None not found
         # when margins=True and dropna=False
+        # GH: 10772: Keep np.nan in result with dropna=False
         df = DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = DataFrame([[1, 0, 1], [1, 3, 4], [2, 4, 6]])
-        expected.index = Index([1.0, 2.0, "All"], name="a")
+        expected = DataFrame([[1, 0, 1.0], [1, 3, 4.0], [0, 1, np.nan], [2, 4, 6.0]])
+        expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna5(self):
+        # GH: 10772: Keep np.nan in result with dropna=False
         df = DataFrame(
             {"a": [1, np.nan, np.nan, np.nan, 2, np.nan], "b": [3, np.nan, 4, 4, 4, 4]}
         )
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = DataFrame([[1, 0, 1], [0, 1, 1], [1, 4, 6]])
-        expected.index = Index([1.0, 2.0, "All"], name="a")
-        expected.columns = Index([3.0, 4.0, "All"], name="b")
+        expected = DataFrame(
+            [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, np.nan], [1, 4, 0, 6.0]]
+        )
+        expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
+        expected.columns = Index([3.0, 4.0, np.nan, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
 
     def test_margin_dropna6(self):
+        # GH: 10772: Keep np.nan in result with dropna=False
         a = np.array(["foo", "foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
         b = np.array(["one", "one", "two", "one", "two", np.nan, "two"], dtype=object)
         c = np.array(
@@ -318,13 +320,14 @@ class TestCrosstab:
         )
         m = MultiIndex.from_arrays(
             [
-                ["one", "one", "two", "two", "All"],
-                ["dull", "shiny", "dull", "shiny", ""],
+                ["one", "one", "two", "two", np.nan, np.nan, "All"],
+                ["dull", "shiny", "dull", "shiny", "dull", "shiny", ""],
             ],
             names=["b", "c"],
         )
         expected = DataFrame(
-            [[1, 0, 1, 0, 2], [2, 0, 1, 1, 5], [3, 0, 2, 1, 7]], columns=m
+            [[1, 0, 1, 0, 0, 0, 2], [2, 0, 1, 1, 0, 1, 5], [3, 0, 2, 1, 0, 0, 7]],
+            columns=m,
         )
         expected.index = Index(["bar", "foo", "All"], name="a")
         tm.assert_frame_equal(actual, expected)
@@ -333,11 +336,23 @@ class TestCrosstab:
             [a, b], c, rownames=["a", "b"], colnames=["c"], margins=True, dropna=False
         )
         m = MultiIndex.from_arrays(
-            [["bar", "bar", "foo", "foo", "All"], ["one", "two", "one", "two", ""]],
+            [
+                ["bar", "bar", "bar", "foo", "foo", "foo", "All"],
+                ["one", "two", np.nan, "one", "two", np.nan, ""],
+            ],
             names=["a", "b"],
         )
         expected = DataFrame(
-            [[1, 0, 1], [1, 0, 1], [2, 0, 2], [1, 1, 2], [5, 2, 7]], index=m
+            [
+                [1, 0, 1.0],
+                [1, 0, 1.0],
+                [0, 0, np.nan],
+                [2, 0, 2.0],
+                [1, 1, 2.0],
+                [0, 1, np.nan],
+                [5, 2, 7.0],
+            ],
+            index=m,
         )
         expected.columns = Index(["dull", "shiny", "All"], name="c")
         tm.assert_frame_equal(actual, expected)
@@ -821,6 +836,27 @@ class TestCrosstab:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_margin_with_ordered_categorical_column(self):
+        # GH 25278
+        df = DataFrame(
+            {
+                "First": ["B", "B", "C", "A", "B", "C"],
+                "Second": ["C", "B", "B", "B", "C", "A"],
+            }
+        )
+        df["First"] = df["First"].astype(CategoricalDtype(ordered=True))
+        customized_categories_order = ["C", "A", "B"]
+        df["First"] = df["First"].cat.reorder_categories(customized_categories_order)
+        result = crosstab(df["First"], df["Second"], margins=True)
+
+        expected_index = Index(["C", "A", "B", "All"], name="First")
+        expected_columns = Index(["A", "B", "C", "All"], name="Second")
+        expected_data = [[1, 1, 0, 2], [0, 1, 0, 1], [0, 1, 2, 3], [1, 3, 2, 6]]
+        expected = DataFrame(
+            expected_data, index=expected_index, columns=expected_columns
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("a_dtype", ["category", "int64"])
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
@@ -838,7 +874,7 @@ def test_categoricals(a_dtype, b_dtype):
 
     # Verify when categorical does not have all values present
     a.loc[a == 1] = 2
-    a_is_cat = is_categorical_dtype(a.dtype)
+    a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
     values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]

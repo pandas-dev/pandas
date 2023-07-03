@@ -18,7 +18,6 @@ import pandas._testing as tm
 
 class TestSeriesMissingData:
     def test_categorical_nan_handling(self):
-
         # NaNs are represented as -1 in labels
         s = Series(Categorical(["a", "b", np.nan, "a"]))
         tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
@@ -28,23 +27,24 @@ class TestSeriesMissingData:
 
     def test_isna_for_inf(self):
         s = Series(["a", np.inf, np.nan, pd.NA, 1.0])
-        with pd.option_context("mode.use_inf_as_na", True):
-            r = s.isna()
-            dr = s.dropna()
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                r = s.isna()
+                dr = s.dropna()
         e = Series([False, True, True, True, False])
         de = Series(["a", 1.0], index=[0, 4])
         tm.assert_series_equal(r, e)
         tm.assert_series_equal(dr, de)
 
     def test_timedelta64_nan(self):
-
         td = Series([timedelta(days=i) for i in range(10)])
 
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
         assert isna(td1[0])
-        assert td1[0].value == iNaT
+        assert td1[0]._value == iNaT
         td1[0] = td[0]
         assert not isna(td1[0])
 
@@ -58,7 +58,7 @@ class TestSeriesMissingData:
 
         td1[2] = NaT
         assert isna(td1[2])
-        assert td1[2].value == iNaT
+        assert td1[2]._value == iNaT
         td1[2] = td[2]
         assert not isna(td1[2])
 
@@ -93,7 +93,8 @@ class TestSeriesMissingData:
 
 def test_hasnans_uncached_for_series():
     # GH#19700
-    idx = Index([0, 1])
+    # set float64 dtype to avoid upcast when setting nan
+    idx = Index([0, 1], dtype="float64")
     assert idx.hasnans is False
     assert "hasnans" in idx._cache
     ser = idx.to_series()
@@ -101,4 +102,3 @@ def test_hasnans_uncached_for_series():
     assert not hasattr(ser, "_cache")
     ser.iloc[-1] = np.nan
     assert ser.hasnans is True
-    assert Series.hasnans.__doc__ == Index.hasnans.__doc__

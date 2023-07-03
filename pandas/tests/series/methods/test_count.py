@@ -5,6 +5,7 @@ from pandas import (
     Categorical,
     Series,
 )
+import pandas._testing as tm
 
 
 class TestSeriesCount:
@@ -15,12 +16,15 @@ class TestSeriesCount:
 
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 
+    def test_count_inf_as_na(self):
         # GH#29478
-        with pd.option_context("use_inf_as_na", True):
-            assert Series([pd.Timestamp("1990/1/1")]).count() == 1
+        ser = Series([pd.Timestamp("1990/1/1")])
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("use_inf_as_na", True):
+                assert ser.count() == 1
 
     def test_count_categorical(self):
-
         ser = Series(
             Categorical(
                 [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True

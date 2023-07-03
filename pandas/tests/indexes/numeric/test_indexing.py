@@ -11,7 +11,10 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.core.arrays import FloatingArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    FloatingArray,
+)
 
 
 @pytest.fixture
@@ -317,26 +320,26 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(indexer, expected)
 
     @pytest.mark.parametrize("val, val2", [(4, 5), (4, 4), (4, NA), (NA, NA)])
-    def test_get_loc_masked(self, val, val2, any_numeric_ea_dtype):
+    def test_get_loc_masked(self, val, val2, any_numeric_ea_and_arrow_dtype):
         # GH#39133
-        idx = Index([1, 2, 3, val, val2], dtype=any_numeric_ea_dtype)
+        idx = Index([1, 2, 3, val, val2], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.get_loc(2)
         assert result == 1
 
         with pytest.raises(KeyError, match="9"):
             idx.get_loc(9)
 
-    def test_get_loc_masked_na(self, any_numeric_ea_dtype):
+    def test_get_loc_masked_na(self, any_numeric_ea_and_arrow_dtype):
         # GH#39133
-        idx = Index([1, 2, NA], dtype=any_numeric_ea_dtype)
+        idx = Index([1, 2, NA], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.get_loc(NA)
         assert result == 2
 
-        idx = Index([1, 2, NA, NA], dtype=any_numeric_ea_dtype)
+        idx = Index([1, 2, NA, NA], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.get_loc(NA)
         tm.assert_numpy_array_equal(result, np.array([False, False, True, True]))
 
-        idx = Index([1, 2, 3], dtype=any_numeric_ea_dtype)
+        idx = Index([1, 2, 3], dtype=any_numeric_ea_and_arrow_dtype)
         with pytest.raises(KeyError, match="NA"):
             idx.get_loc(NA)
 
@@ -371,20 +374,43 @@ class TestGetIndexer:
             idx.get_loc(NA)
 
     @pytest.mark.parametrize("val", [4, 2])
-    def test_get_indexer_masked_na(self, any_numeric_ea_dtype, val):
+    def test_get_indexer_masked_na(self, any_numeric_ea_and_arrow_dtype, val):
         # GH#39133
-        idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_dtype)
+        idx = Index([1, 2, NA, 3, val], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.get_indexer_for([1, NA, 5])
         expected = np.array([0, 2, -1])
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
-    def test_get_indexer_masked_na_boolean(self):
+    @pytest.mark.parametrize("dtype", ["boolean", "bool[pyarrow]"])
+    def test_get_indexer_masked_na_boolean(self, dtype):
         # GH#39133
-        idx = Index([True, False, NA], dtype="boolean")
+        if dtype == "bool[pyarrow]":
+            pytest.importorskip("pyarrow")
+        idx = Index([True, False, NA], dtype=dtype)
         result = idx.get_loc(False)
         assert result == 1
         result = idx.get_loc(NA)
         assert result == 2
+
+    def test_get_indexer_arrow_dictionary_target(self):
+        pa = pytest.importorskip("pyarrow")
+        target = Index(
+            ArrowExtensionArray(
+                pa.array([1, 2], type=pa.dictionary(pa.int8(), pa.int8()))
+            )
+        )
+        idx = Index([1])
+
+        result = idx.get_indexer(target)
+        expected = np.array([0, -1], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result_1, result_2 = idx.get_indexer_non_unique(target)
+        expected_1, expected_2 = np.array([0, -1], dtype=np.int64), np.array(
+            [1], dtype=np.int64
+        )
+        tm.assert_numpy_array_equal(result_1, expected_1)
+        tm.assert_numpy_array_equal(result_2, expected_2)
 
 
 class TestWhere:

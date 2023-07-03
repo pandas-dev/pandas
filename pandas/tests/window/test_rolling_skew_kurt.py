@@ -56,7 +56,7 @@ def test_time_rule_series(series, sp_func, roll_func):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @td.skip_if_no_scipy
@@ -177,7 +177,6 @@ def test_center_reindex_frame(frame, roll_func):
 
 
 def test_rolling_skew_edge_cases(step):
-
     expected = Series([np.NaN] * 4 + [0.0])[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
@@ -199,7 +198,6 @@ def test_rolling_skew_edge_cases(step):
 
 
 def test_rolling_kurt_edge_cases(step):
-
     expected = Series([np.NaN] * 4 + [-3.0])[::step]
 
     # yields all NaN (0 variance)

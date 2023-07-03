@@ -14,32 +14,19 @@ from pandas.core.indexes.api import (
     CategoricalIndex,
     Index,
 )
-from pandas.tests.indexes.common import Base
 
 
-class TestCategoricalIndex(Base):
-    _index_cls = CategoricalIndex
-
+class TestCategoricalIndex:
     @pytest.fixture
     def simple_index(self) -> CategoricalIndex:
-        return self._index_cls(list("aabbca"), categories=list("cab"), ordered=False)
-
-    @pytest.fixture
-    def index(self):
-        return tm.makeCategoricalIndex(100)
-
-    def create_index(self, *, categories=None, ordered=False):
-        if categories is None:
-            categories = list("cab")
-        return CategoricalIndex(list("aabbca"), categories=categories, ordered=ordered)
+        return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
-        idx = self.create_index(categories=list("abcd"))
+        idx = CategoricalIndex(list("aabbca"), categories=None, ordered=False)
         key = idx[0]
         assert idx._can_hold_identifiers_and_holds_name(key) is True
 
     def test_insert(self, simple_index):
-
         ci = simple_index
         categories = ci.categories
 
@@ -76,7 +63,6 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     def test_delete(self, simple_index):
-
         ci = simple_index
         categories = ci.categories
 
@@ -185,7 +171,6 @@ class TestCategoricalIndex(Base):
         ],
     )
     def test_drop_duplicates(self, data, categories, expected):
-
         idx = CategoricalIndex(data, categories=categories, name="foo")
         for keep, e in expected.items():
             tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
@@ -210,7 +195,6 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
-
         ci = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         str(ci)
         tm.assert_index_equal(eval(repr(ci)), ci, exact=True)
@@ -224,7 +208,6 @@ class TestCategoricalIndex(Base):
         str(ci)
 
     def test_isin(self):
-
         ci = CategoricalIndex(list("aabca") + [np.nan], categories=["c", "a", "b"])
         tm.assert_numpy_array_equal(
             ci.isin(["c"]), np.array([False, False, False, True, False, False])
@@ -246,19 +229,19 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
-
         ci1 = CategoricalIndex(["a", "b"], categories=["a", "b"], ordered=True)
         ci2 = CategoricalIndex(["a", "b"], categories=["a", "b", "c"], ordered=True)
         assert ci1.identical(ci1)
         assert ci1.identical(ci1.copy())
         assert not ci1.identical(ci2)
 
-    def test_ensure_copied_data(self, index):
+    def test_ensure_copied_data(self):
         # gh-12309: Check the "copy" argument of each
         # Index.__new__ is honored.
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
+        index = tm.makeCategoricalIndex(10)
 
         result = CategoricalIndex(index.values, copy=True)
         tm.assert_index_equal(index, result)
@@ -273,18 +256,8 @@ class TestCategoricalIndex(Base):
         expected = "   A\na  1\nb  2\nc  3"
         assert result == expected
 
-    def test_reindex_base(self):
-        # See test_reindex.py
-        pass
-
-    def test_map_str(self):
-        # See test_map.py
-        pass
-
 
 class TestCategoricalIndex2:
-    # Tests that are not overriding a test in Base
-
     def test_view_i8(self):
         # GH#25464
         ci = tm.makeCategoricalIndex(100)
@@ -354,7 +327,6 @@ class TestCategoricalIndex2:
             func(idx)
 
     def test_method_delegation(self):
-
         ci = CategoricalIndex(list("aabbca"), categories=list("cabdef"))
         result = ci.set_categories(list("cab"))
         tm.assert_index_equal(

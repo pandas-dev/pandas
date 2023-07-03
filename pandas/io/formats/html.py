@@ -430,7 +430,6 @@ class HTMLFormatter:
 
         row: list[str] = []
         for i in range(nrows):
-
             if is_truncated_vertically and i == (self.fmt.tr_row_num):
                 str_sep_row = ["..."] * len(row)
                 self.write_tr(
@@ -622,7 +621,7 @@ class NotebookFormatter(HTMLFormatter):
                 )
         else:
             element_props.append(("thead th", "text-align", "right"))
-        template_mid = "\n\n".join(map(lambda t: template_select % t, element_props))
+        template_mid = "\n\n".join(template_select % t for t in element_props)
         template = dedent("\n".join((template_first, template_mid, template_last)))
         self.write(template)
 

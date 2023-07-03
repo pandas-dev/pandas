@@ -25,6 +25,8 @@ class TestUpdate:
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
+        # Cast to object to avoid upcast when setting "foo"
+        df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
         df["c"].update(Series(["foo"], index=[0]))
@@ -62,7 +64,6 @@ class TestUpdate:
         ],
     )
     def test_update_dtypes(self, other, dtype, expected):
-
         ser = Series([10, 11, 12], dtype=dtype)
         other = Series(other, index=[1, 3])
         ser.update(other)

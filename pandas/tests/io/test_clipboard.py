@@ -4,7 +4,10 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_mac
+from pandas.compat import (
+    is_ci_environment,
+    is_platform_mac,
+)
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -313,7 +316,7 @@ class TestClipboard:
         df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
-        assert df.iloc[1][1] == "Harry Carney"
+        assert df.iloc[1, 1] == "Harry Carney"
 
         # having diff tab counts doesn't trigger it
         text = dedent(
@@ -401,26 +404,23 @@ class TestClipboard:
     @pytest.mark.single_cpu
     @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
     @pytest.mark.xfail(
-        os.environ.get("DISPLAY") is None and not is_platform_mac(),
-        reason="Cannot be runed if a headless system is not put in place with Xvfb",
-        strict=True,
+        (os.environ.get("DISPLAY") is None and not is_platform_mac())
+        or is_ci_environment(),
+        reason="Cannot pass if a headless system is not put in place with Xvfb",
+        strict=not is_ci_environment(),  # Flaky failures in the CI
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes(
+    def test_read_clipboard_dtype_backend(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
     ):
         # GH#50502
         if string_storage == "pyarrow" or dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-
-        if dtype_backend == "pyarrow" and engine == "c":
-            pytest.skip(reason="c engine not yet supported")
 
         if string_storage == "python":
             string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
@@ -436,10 +436,7 @@ y,2,5.0,,,,,False,"""
         mock_clipboard[request.node.name] = text
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_clipboard(
-                    sep=",", use_nullable_dtypes=True, engine=engine
-                )
+            result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
 
         expected = DataFrame(
             {
@@ -467,19 +464,10 @@ y,2,5.0,,,,,False,"""
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes_option(
-        self, request, mock_clipboard, engine
-    ):
-        # GH#50748
-
-        text = """a
-1
-2"""
-        mock_clipboard[request.node.name] = text
-
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = read_clipboard(sep=",", engine=engine)
-
-        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_clipboard(dtype_backend="numpy")

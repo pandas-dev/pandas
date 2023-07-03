@@ -9,6 +9,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -59,7 +60,6 @@ def df_main_dtypes():
 
 
 class TestNLargestNSmallest:
-
     # ----------------------------------------------------------------------
     # Top / bottom
     @pytest.mark.parametrize(
@@ -85,7 +85,6 @@ class TestNLargestNSmallest:
         # GH#10393
         df = df_strings
         if "b" in order:
-
             error_msg = (
                 f"Column 'b' has dtype object, "
                 f"cannot use method '{nselect_method}' with this dtype"
@@ -157,7 +156,7 @@ class TestNLargestNSmallest:
         [["a", "b", "c"], ["c", "b", "a"], ["a"], ["b"], ["a", "b"], ["c", "b"]],
     )
     @pytest.mark.parametrize("n", range(1, 6))
-    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order):
+    def test_nlargest_n_duplicate_index(self, df_duplicates, n, order, request):
         # GH#13412
 
         df = df_duplicates
@@ -167,6 +166,18 @@ class TestNLargestNSmallest:
 
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False).head(n)
+        if Version(np.__version__) >= Version("1.25") and (
+            (order == ["a"] and n in (1, 2, 3, 4)) or (order == ["a", "b"]) and n == 5
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_nlargest_duplicate_keep_all_ties(self):

@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
@@ -16,7 +18,6 @@ import pandas._testing as tm
 
 
 def test_labels_dtypes():
-
     # GH 8456
     i = MultiIndex.from_tuples([("A", 1), ("A", 2)])
     assert i.codes[0].dtype == "int8"
@@ -187,12 +188,11 @@ def test_large_multiindex_error():
         df_above_1000000.loc[(3, 0), "dest"]
 
 
-def test_million_record_attribute_error():
+def test_mi_hashtable_populated_attribute_error(monkeypatch):
     # GH 18165
-    r = list(range(1000000))
-    df = pd.DataFrame(
-        {"a": r, "b": r}, index=MultiIndex.from_tuples([(x, x) for x in r])
-    )
+    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 50)
+    r = range(50)
+    df = pd.DataFrame({"a": r, "b": r}, index=MultiIndex.from_arrays([r, r]))
 
     msg = "'Series' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
@@ -270,7 +270,6 @@ def test_memory_usage(idx):
             assert result3 > result2
 
     else:
-
         # we report 0 for no-length
         assert result == 0
 

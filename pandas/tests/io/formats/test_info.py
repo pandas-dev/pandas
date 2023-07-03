@@ -501,3 +501,20 @@ def test_memory_usage_empty_no_warning():
         result = df.memory_usage()
     expected = Series(16 if IS64 else 8, index=["Index"])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.single_cpu
+def test_info_compute_numba():
+    # GH#51922
+    pytest.importorskip("numba")
+    df = DataFrame([[1, 2], [3, 4]])
+
+    with option_context("compute.use_numba", True):
+        buf = StringIO()
+        df.info()
+        result = buf.getvalue()
+
+    buf = StringIO()
+    df.info()
+    expected = buf.getvalue()
+    assert result == expected

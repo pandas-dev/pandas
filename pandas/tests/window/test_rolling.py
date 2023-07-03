@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from pandas.compat import (
+    IS64,
     is_platform_arm,
-    is_platform_mac,
     is_platform_power,
 )
 
@@ -32,7 +32,6 @@ from pandas.tseries.offsets import BusinessDay
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.rolling(2).sum()
@@ -516,7 +515,6 @@ def test_missing_minp_zero_variable():
 
 
 def test_multi_index_names():
-
     # GH 16789, 16825
     cols = MultiIndex.from_product([["A", "B"], ["C", "D", "E"]], names=["1", "2"])
     df = DataFrame(np.ones((10, 6)), columns=cols)
@@ -532,12 +530,15 @@ def test_rolling_axis_sum(axis_frame):
     axis = df._get_axis_number(axis_frame)
 
     if axis == 0:
+        msg = "The 'axis' keyword in DataFrame.rolling"
         expected = DataFrame({i: [np.nan] * 2 + [3.0] * 8 for i in range(20)})
     else:
         # axis == 1
+        msg = "Support for axis=1 in DataFrame.rolling is deprecated"
         expected = DataFrame([[np.nan] * 2 + [3.0] * 18] * 10)
 
-    result = df.rolling(3, axis=axis_frame).sum()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(3, axis=axis_frame).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -548,11 +549,14 @@ def test_rolling_axis_count(axis_frame):
     axis = df._get_axis_number(axis_frame)
 
     if axis in [0, "index"]:
+        msg = "The 'axis' keyword in DataFrame.rolling"
         expected = DataFrame({"x": [1.0, 2.0, 2.0], "y": [1.0, 2.0, 2.0]})
     else:
+        msg = "Support for axis=1 in DataFrame.rolling is deprecated"
         expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
 
-    result = df.rolling(2, axis=axis_frame, min_periods=0).count()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(2, axis=axis_frame, min_periods=0).count()
     tm.assert_frame_equal(result, expected)
 
 
@@ -571,10 +575,15 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     df = DataFrame(
         {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
+
     if axis_frame in [0, "index"]:
-        result = df.T.rolling("2D", axis=axis_frame).sum().T
+        msg = "The 'axis' keyword in DataFrame.rolling"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.T.rolling("2D", axis=axis_frame).sum().T
     else:
-        result = df.rolling("2D", axis=axis_frame).sum()
+        msg = "Support for axis=1 in DataFrame.rolling"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.rolling("2D", axis=axis_frame).sum()
     expected = DataFrame(
         {
             **{
@@ -798,9 +807,7 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, df.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -846,7 +853,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expected = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for (expected, actual) in zip(expected, df.rolling(window, on="C")):
+    for expected, actual in zip(expected, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -896,9 +903,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(
-        expected, ser.rolling(window, min_periods=min_periods)
-    ):
+    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -948,7 +953,7 @@ def test_iter_rolling_datetime(expected, expected_index, window):
         Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
     ]
 
-    for (expected, actual) in zip(expected, ser.rolling(window)):
+    for expected, actual in zip(expected, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -1054,7 +1059,7 @@ def test_rolling_numerical_too_large_numbers():
     # GH: 11645
     dates = date_range("2015-01-01", periods=10, freq="D")
     ds = Series(data=range(10), index=dates, dtype=np.float64)
-    ds[2] = -9e33
+    ds.iloc[2] = -9e33
     result = ds.rolling(5).mean()
     expected = Series(
         [
@@ -1082,7 +1087,10 @@ def test_rolling_mixed_dtypes_axis_1(func, value):
     # GH: 20649
     df = DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
     df["c"] = 1.0
-    result = getattr(df.rolling(window=2, min_periods=1, axis=1), func)()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        roll = df.rolling(window=2, min_periods=1, axis=1)
+    result = getattr(roll, func)()
     expected = DataFrame(
         {"a": [1.0, 1.0], "b": [value, value], "c": [value, value]},
         index=[1, 2],
@@ -1099,7 +1107,9 @@ def test_rolling_axis_one_with_nan():
             [0, 2, 2, np.nan, 2, np.nan, 1],
         ]
     )
-    result = df.rolling(window=7, min_periods=1, axis="columns").sum()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(window=7, min_periods=1, axis="columns").sum()
     expected = DataFrame(
         [
             [0.0, 1.0, 3.0, 7.0, 7.0, 7.0, 7.0],
@@ -1118,7 +1128,9 @@ def test_rolling_axis_1_non_numeric_dtypes(value):
     # GH: 20649
     df = DataFrame({"a": [1, 2]})
     df["b"] = value
-    result = df.rolling(window=2, min_periods=1, axis=1).sum()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(window=2, min_periods=1, axis=1).sum()
     expected = DataFrame({"a": [1.0, 2.0]})
     tm.assert_frame_equal(result, expected)
 
@@ -1127,7 +1139,9 @@ def test_rolling_on_df_transposed():
     # GH: 32724
     df = DataFrame({"A": [1, None], "B": [4, 5], "C": [7, 8]})
     expected = DataFrame({"A": [1.0, np.nan], "B": [5.0, 5.0], "C": [11.0, 13.0]})
-    result = df.rolling(min_periods=1, window=2, axis=1).sum()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(min_periods=1, window=2, axis=1).sum()
     tm.assert_frame_equal(result, expected)
 
     result = df.T.rolling(min_periods=1, window=2).sum().T
@@ -1174,7 +1188,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    (is_platform_arm() and not is_platform_mac()) or is_platform_power(),
+    is_platform_arm() or is_platform_power(),
     reason="GH 38921",
 )
 @pytest.mark.parametrize(
@@ -1589,7 +1603,9 @@ def test_rolling_float_dtype(float_numpy_dtype):
         {"A": [np.nan] * 5, "B": range(10, 20, 2)},
         dtype=float_numpy_dtype,
     )
-    result = df.rolling(2, axis=1).sum()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(2, axis=1).sum()
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
@@ -1609,7 +1625,9 @@ def test_rolling_numeric_dtypes():
             "j": "uint64",
         }
     )
-    result = df.rolling(window=2, min_periods=1, axis=1).min()
+    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.rolling(window=2, min_periods=1, axis=1).min()
     expected = DataFrame(
         {
             "a": range(0, 40, 10),
@@ -1693,7 +1711,11 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
     if np.isnan(q1):
         assert np.isnan(q2)
     else:
-        assert q1 == q2
+        if not IS64:
+            # Less precision on 32-bit
+            assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
+        else:
+            assert q1 == q2
 
 
 def test_invalid_quantile_value():

@@ -5,19 +5,21 @@ from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DatetimeIndex,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     isna,
     notna,
     offsets,
+    period_range,
 )
 import pandas._testing as tm
 
 
 class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
-        ts = Timestamp("20130101").as_unit("ns").value
+        ts = Timestamp("20130101").as_unit("ns")._value
         dti = DatetimeIndex([ts + 50 + i for i in range(100)])
         ser = Series(np.random.randn(100), index=dti)
 
@@ -34,7 +36,6 @@ class TestSeriesAsof:
         assert first_value == ser[Timestamp(expected_ts)]
 
     def test_basic(self):
-
         # array or list or dates
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
@@ -60,7 +61,6 @@ class TestSeriesAsof:
         assert ts[ub] == val
 
     def test_scalar(self):
-
         N = 30
         rng = date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
@@ -71,16 +71,16 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        assert result == ts[3]
+        assert result == ts.iloc[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
@@ -116,11 +116,6 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import (
-            PeriodIndex,
-            period_range,
-        )
-
         # array or list or dates
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")
@@ -149,15 +144,15 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
-        assert ts.asof(ts.index[3]) == ts[3]
+        assert ts.asof(ts.index[3]) == ts.iloc[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
@@ -169,7 +164,6 @@ class TestSeriesAsof:
             ts.asof(rng.asfreq("D"))
 
     def test_errors(self):
-
         s = Series(
             [1, 2, 3],
             index=[Timestamp("20130101"), Timestamp("20130103"), Timestamp("20130102")],

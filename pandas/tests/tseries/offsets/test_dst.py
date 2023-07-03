@@ -43,7 +43,6 @@ def get_utc_offset_hours(ts):
 
 
 class TestDST:
-
     # one microsecond before the DST transition
     ts_pre_fallback = "2013-11-03 01:59:59.999999"
     ts_pre_springfwd = "2013-03-10 01:59:59.999999"
@@ -193,7 +192,7 @@ class TestDST:
             Timestamp("1900-01-01"),
             Timestamp("1905-07-01"),
             MonthBegin(66),
-            "Africa/Kinshasa",
+            "Africa/Lagos",
             marks=pytest.mark.xfail(
                 pytz_version < Version("2020.5") or pytz_version == Version("2022.2"),
                 reason="GH#41906: pytz utc transition dates changed",

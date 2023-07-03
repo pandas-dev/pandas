@@ -96,32 +96,29 @@ class TestSorting:
 
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
-        arr = np.random.randint(-1 << 12, 1 << 12, (1 << 15, 5))
-        i = np.random.choice(len(arr), len(arr) * 4)
+        rs = np.random.RandomState(42)
+        arr = rs.randint(-1 << 12, 1 << 12, (1 << 15, 5))
+        i = rs.choice(len(arr), len(arr) * 4)
         arr = np.vstack((arr, arr[i]))  # add some duplicate rows
 
-        i = np.random.permutation(len(arr))
+        i = rs.permutation(len(arr))
         arr = arr[i]  # shuffle rows
 
         df = DataFrame(arr, columns=list("abcde"))
-        df["jim"], df["joe"] = np.random.randn(2, len(df)) * 10
+        df["jim"], df["joe"] = np.zeros((2, len(df)))
         gr = df.groupby(list("abcde"))
 
         # verify this is testing what it is supposed to test!
         assert is_int64_overflow_possible(gr.grouper.shape)
 
-        # manually compute groupings
-        jim, joe = defaultdict(list), defaultdict(list)
-        for key, a, b in zip(map(tuple, arr), df["jim"], df["joe"]):
-            jim[key].append(a)
-            joe[key].append(b)
+        mi = MultiIndex.from_arrays(
+            [ar.ravel() for ar in np.array_split(np.unique(arr, axis=0), 5, axis=1)],
+            names=list("abcde"),
+        )
 
-        assert len(gr) == len(jim)
-        mi = MultiIndex.from_tuples(jim.keys(), names=list("abcde"))
-
-        f = lambda a: np.fromiter(map(getattr(np, agg), a), dtype="f8")
-        arr = np.vstack((f(jim.values()), f(joe.values()))).T
-        res = DataFrame(arr, columns=["jim", "joe"], index=mi).sort_index()
+        res = DataFrame(
+            np.zeros((len(mi), 2)), columns=["jim", "joe"], index=mi
+        ).sort_index()
 
         tm.assert_frame_equal(getattr(gr, agg)(), res)
 
@@ -156,61 +153,33 @@ class TestSorting:
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     @pytest.mark.parametrize(
-        "ascending, na_position, exp, box",
+        "ascending, na_position, exp",
         [
             [
                 True,
                 "last",
                 list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 True,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                list,
             ],
             [
                 False,
                 "last",
                 list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                list,
             ],
             [
                 False,
                 "first",
                 list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                list,
-            ],
-            [
-                True,
-                "last",
-                list(range(5, 105)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                True,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(5, 105)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "last",
-                list(range(104, 4, -1)) + list(range(5)) + list(range(105, 110)),
-                lambda x: np.array(x, dtype="O"),
-            ],
-            [
-                False,
-                "first",
-                list(range(5)) + list(range(105, 110)) + list(range(104, 4, -1)),
-                lambda x: np.array(x, dtype="O"),
             ],
         ],
     )
-    def test_nargsort(self, ascending, na_position, exp, box):
+    def test_nargsort(self, ascending, na_position, exp):
         # list places NaNs last, np.array(..., dtype="O") may not place NaNs first
-        items = box([np.nan] * 5 + list(range(100)) + [np.nan] * 5)
+        items = np.array([np.nan] * 5 + list(range(100)) + [np.nan] * 5, dtype="O")
 
         # mergesort is the most difficult to get right because we want it to be
         # stable.
@@ -401,12 +370,15 @@ class TestSafeSort:
         "arg, exp",
         [
             [[3, 1, 2, 0, 4], [0, 1, 2, 3, 4]],
-            [list("baaacb"), np.array(list("aaabbc"), dtype=object)],
+            [
+                np.array(list("baaacb"), dtype=object),
+                np.array(list("aaabbc"), dtype=object),
+            ],
             [[], []],
         ],
     )
     def test_basic_sort(self, arg, exp):
-        result = safe_sort(arg)
+        result = safe_sort(np.array(arg))
         expected = np.array(exp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -419,7 +391,7 @@ class TestSafeSort:
         ],
     )
     def test_codes(self, verify, codes, exp_codes):
-        values = [3, 1, 2, 0, 4]
+        values = np.array([3, 1, 2, 0, 4])
         expected = np.array([0, 1, 2, 3, 4])
 
         result, result_codes = safe_sort(
@@ -435,7 +407,7 @@ class TestSafeSort:
         "Windows fatal exception: access violation",
     )
     def test_codes_out_of_bound(self):
-        values = [3, 1, 2, 0, 4]
+        values = np.array([3, 1, 2, 0, 4])
         expected = np.array([0, 1, 2, 3, 4])
 
         # out of bound indices
@@ -445,9 +417,8 @@ class TestSafeSort:
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_codes, expected_codes)
 
-    @pytest.mark.parametrize("box", [lambda x: np.array(x, dtype=object), list])
-    def test_mixed_integer(self, box):
-        values = box(["b", 1, 0, "a", 0, "b"])
+    def test_mixed_integer(self):
+        values = np.array(["b", 1, 0, "a", 0, "b"], dtype=object)
         result = safe_sort(values)
         expected = np.array([0, 0, 1, "a", "b", "b"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
@@ -471,9 +442,9 @@ class TestSafeSort:
     @pytest.mark.parametrize(
         "arg, codes, err, msg",
         [
-            [1, None, TypeError, "Only list-like objects are allowed"],
-            [[0, 1, 2], 1, TypeError, "Only list-like objects or None"],
-            [[0, 1, 2, 1], [0, 1], ValueError, "values should be unique"],
+            [1, None, TypeError, "Only np.ndarray, ExtensionArray, and Index"],
+            [np.array([0, 1, 2]), 1, TypeError, "Only list-like objects or None"],
+            [np.array([0, 1, 2, 1]), [0, 1], ValueError, "values should be unique"],
         ],
     )
     def test_exceptions(self, arg, codes, err, msg):

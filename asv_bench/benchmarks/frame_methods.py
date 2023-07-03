@@ -17,6 +17,21 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class Clip:
+    params = [
+        ["float64", "Float64", "float64[pyarrow]"],
+    ]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        data = np.random.randn(100_000, 10)
+        df = DataFrame(data, dtype=dtype)
+        self.df = df
+
+    def time_clip(self, dtype):
+        self.df.clip(-1.0, 1.0)
+
+
 class GetNumericData:
     def setup(self):
         self.df = DataFrame(np.random.randn(10000, 25))
@@ -371,7 +386,6 @@ class Isnull:
 
 
 class Fillna:
-
     params = (
         [True, False],
         ["pad", "bfill"],
@@ -412,7 +426,6 @@ class Fillna:
 
 
 class Dropna:
-
     params = (["all", "any"], [0, 1])
     param_names = ["how", "axis"]
 
@@ -431,8 +444,23 @@ class Dropna:
         self.df_mixed.dropna(how=how, axis=axis)
 
 
-class Count:
+class Isna:
+    params = ["float64", "Float64", "float64[pyarrow]"]
+    param_names = ["dtype"]
 
+    def setup(self, dtype):
+        data = np.random.randn(10000, 1000)
+        # all-na columns
+        data[:, 600:800] = np.nan
+        # partial-na columns
+        data[800:1000, 4000:5000] = np.nan
+        self.df = DataFrame(data, dtype=dtype)
+
+    def time_isna(self, dtype):
+        self.df.isna()
+
+
+class Count:
     params = [0, 1]
     param_names = ["axis"]
 
@@ -531,7 +559,6 @@ class Equals:
 
 
 class Interpolate:
-
     params = [None, "infer"]
     param_names = ["downcast"]
 
@@ -616,7 +643,6 @@ class Duplicated:
 
 
 class XS:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -629,7 +655,6 @@ class XS:
 
 
 class SortValues:
-
     params = [True, False]
     param_names = ["ascending"]
 
@@ -657,7 +682,6 @@ class SortIndexByColumns:
 
 
 class Quantile:
-
     params = [0, 1]
     param_names = ["axis"]
 
@@ -697,7 +721,6 @@ class GetDtypeCounts:
 
 
 class NSort:
-
     params = ["first", "last", "all"]
     param_names = ["keep"]
 
@@ -745,6 +768,64 @@ class MemoryUsage:
 
     def time_memory_usage_object_dtype(self):
         self.df2.memory_usage(deep=True)
+
+
+class Round:
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 10))
+        self.df_t = self.df.transpose(copy=True)
+
+    def time_round(self):
+        self.df.round()
+
+    def time_round_transposed(self):
+        self.df_t.round()
+
+    def peakmem_round(self):
+        self.df.round()
+
+    def peakmem_round_transposed(self):
+        self.df_t.round()
+
+
+class Where:
+    params = (
+        [True, False],
+        ["float64", "Float64", "float64[pyarrow]"],
+    )
+    param_names = ["dtype"]
+
+    def setup(self, inplace, dtype):
+        self.df = DataFrame(np.random.randn(100_000, 10), dtype=dtype)
+        self.mask = self.df < 0
+
+    def time_where(self, inplace, dtype):
+        self.df.where(self.mask, other=0.0, inplace=inplace)
+
+
+class FindValidIndex:
+    param_names = ["dtype"]
+    params = [
+        ["float", "Float64", "float64[pyarrow]"],
+    ]
+
+    def setup(self, dtype):
+        df = DataFrame(
+            np.random.randn(100000, 2),
+            columns=list("AB"),
+            dtype=dtype,
+        )
+        df.iloc[:100, 0] = None
+        df.iloc[:200, 1] = None
+        df.iloc[-100:, 0] = None
+        df.iloc[-200:, 1] = None
+        self.df = df
+
+    def time_first_valid_index(self, dtype):
+        self.df.first_valid_index()
+
+    def time_last_valid_index(self, dtype):
+        self.df.last_valid_index()
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

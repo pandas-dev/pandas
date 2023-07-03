@@ -3,7 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.compat import is_platform_windows
 from pandas.util._test_decorators import async_mark
 
 import pandas as pd
@@ -17,14 +17,16 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
-test_frame = DataFrame(
-    {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
-    index=date_range("1/1/2000", freq="s", periods=40),
-)
+
+@pytest.fixture
+def test_frame():
+    return DataFrame(
+        {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
+        index=date_range("1/1/2000", freq="s", periods=40),
+    )
 
 
 @async_mark()
-@td.check_file_leaks
 async def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
@@ -45,7 +47,6 @@ async def test_tab_complete_ipython6_warning(ip):
 
 
 def test_deferred_with_groupby():
-
     # GH 12486
     # support deferred resample ops with groupby
     data = [
@@ -87,7 +88,7 @@ def test_deferred_with_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem():
+def test_getitem(test_frame):
     g = test_frame.groupby("A")
 
     expected = g.B.apply(lambda x: x.resample("2s").mean())
@@ -103,7 +104,6 @@ def test_getitem():
 
 
 def test_getitem_multiple():
-
     # GH 13174
     # multiple calls after selection causing an issue with aliasing
     data = [{"id": 1, "buyer": "A"}, {"id": 2, "buyer": "B"}]
@@ -176,7 +176,6 @@ def test_groupby_with_origin():
 
 
 def test_nearest():
-
     # GH 17496
     # Resample nearest
     index = date_range("1/1/2000", periods=3, freq="T")
@@ -221,7 +220,7 @@ def test_nearest():
         "ohlc",
     ],
 )
-def test_methods(f):
+def test_methods(f, test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -230,7 +229,7 @@ def test_methods(f):
     tm.assert_equal(result, expected)
 
 
-def test_methods_nunique():
+def test_methods_nunique(test_frame):
     # series only
     g = test_frame.groupby("A")
     r = g.resample("2s")
@@ -240,7 +239,7 @@ def test_methods_nunique():
 
 
 @pytest.mark.parametrize("f", ["std", "var"])
-def test_methods_std_var(f):
+def test_methods_std_var(f, test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
     result = getattr(r, f)(ddof=1)
@@ -248,8 +247,7 @@ def test_methods_std_var(f):
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply():
-
+def test_apply(test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -286,7 +284,7 @@ def test_apply_with_mutated_index():
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M")).apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
     result = df["col1"].resample("M").apply(f)
     tm.assert_series_equal(result, expected)
 
@@ -306,6 +304,25 @@ def test_apply_columns_multilevel():
         ),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_apply_non_naive_index():
+    def weighted_quantile(series, weights, q):
+        series = series.sort_values()
+        cumsum = weights.reindex(series.index).fillna(0).cumsum()
+        cutoff = cumsum.iloc[-1] * q
+        return series[cumsum >= cutoff].iloc[0]
+
+    times = date_range("2017-6-23 18:00", periods=8, freq="15T", tz="UTC")
+    data = Series([1.0, 1, 1, 1, 1, 2, 2, 0], index=times)
+    weights = Series([160.0, 91, 65, 43, 24, 10, 1, 0], index=times)
+
+    result = data.resample("D").apply(weighted_quantile, weights=weights, q=0.5)
+    ind = date_range(
+        "2017-06-23 00:00:00+00:00", "2017-06-23 00:00:00+00:00", freq="D", tz="UTC"
+    )
+    expected = Series([1.0], index=ind)
+    tm.assert_series_equal(result, expected)
 
 
 def test_resample_groupby_with_label():
@@ -328,8 +345,7 @@ def test_resample_groupby_with_label():
     tm.assert_frame_equal(result, expected)
 
 
-def test_consistency_with_window():
-
+def test_consistency_with_window(test_frame):
     # consistent return values with window
     df = test_frame
     expected = Index([1, 2, 3], name="A")
@@ -501,7 +517,7 @@ def test_groupby_resample_with_list_of_keys():
 
 
 @pytest.mark.parametrize("keys", [["a"], ["a", "b"]])
-def test_resample_empty_Dataframe(keys):
+def test_resample_no_index(keys):
     # GH 47705
     df = DataFrame([], columns=["a", "b", "date"])
     df["date"] = pd.to_datetime(df["date"])
@@ -514,6 +530,37 @@ def test_resample_empty_Dataframe(keys):
         expected.index.name = keys[0]
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_no_columns():
+    # GH#52484
+    df = DataFrame(
+        index=Index(
+            pd.to_datetime(
+                ["2018-01-01 00:00:00", "2018-01-01 12:00:00", "2018-01-02 00:00:00"]
+            ),
+            name="date",
+        )
+    )
+    result = df.groupby([0, 0, 1]).resample(rule=pd.to_timedelta("06:00:00")).mean()
+    index = pd.to_datetime(
+        [
+            "2018-01-01 00:00:00",
+            "2018-01-01 06:00:00",
+            "2018-01-01 12:00:00",
+            "2018-01-02 00:00:00",
+        ]
+    )
+    expected = DataFrame(
+        index=pd.MultiIndex(
+            levels=[np.array([0, 1], dtype=np.intp), index],
+            codes=[[0, 0, 0, 1], [0, 1, 2, 3]],
+            names=[None, "date"],
+        )
+    )
+
+    # GH#52710 - Index comes out as 32-bit on 64-bit Windows
+    tm.assert_frame_equal(result, expected, check_index_type=not is_platform_windows())
 
 
 def test_groupby_resample_size_all_index_same():

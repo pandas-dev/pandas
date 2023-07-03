@@ -13,11 +13,9 @@ import pandas._testing as tm
 
 class TestInvalidConcat:
     def test_concat_invalid(self):
-
         # trying to concat a ndframe with a non-ndframe
         df1 = tm.makeCustomDataframe(10, 2)
         for obj in [1, {}, [1, 2], (1, 2)]:
-
             msg = (
                 f"cannot concatenate object of type '{type(obj)}'; "
                 "only Series and DataFrame objs are valid"

@@ -8,7 +8,7 @@ import pandas._testing as tm
 from pandas.core import accessor
 
 
-def test_dirname_mixin():
+def test_dirname_mixin() -> None:
     # GH37173
 
     class X(accessor.DirNamesMixin):
@@ -98,7 +98,6 @@ def test_overwrite_warns():
 
 
 def test_raises_attribute_error():
-
     with ensure_removed(pd.Series, "bad"):
 
         @pd.api.extensions.register_series_accessor("bad")

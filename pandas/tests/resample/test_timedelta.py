@@ -46,25 +46,23 @@ def test_resample_as_freq_with_subperiod():
 
 
 def test_resample_with_timedeltas():
-
     expected = DataFrame({"A": np.arange(1480)})
     expected = expected.groupby(expected.index // 30).sum()
-    expected.index = timedelta_range("0 days", freq="30T", periods=50)
+    expected.index = timedelta_range("0 days", freq="30min", periods=50)
 
     df = DataFrame(
-        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="T")
+        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="min")
     )
-    result = df.resample("30T").sum()
+    result = df.resample("30min").sum()
 
     tm.assert_frame_equal(result, expected)
 
     s = df["A"]
-    result = s.resample("30T").sum()
+    result = s.resample("30min").sum()
     tm.assert_series_equal(result, expected["A"])
 
 
 def test_resample_single_period_timedelta():
-
     s = Series(list(range(5)), index=timedelta_range("1 day", freq="s", periods=5))
     result = s.resample("2s").sum()
     expected = Series([1, 5, 4], index=timedelta_range("1 day", freq="2s", periods=3))
@@ -72,7 +70,6 @@ def test_resample_single_period_timedelta():
 
 
 def test_resample_timedelta_idempotency():
-
     # GH 12072
     index = timedelta_range("0", periods=9, freq="10L")
     series = Series(range(9), index=index)
@@ -150,7 +147,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
     tm.assert_index_equal(result.index, expected_index)
     assert result.index.freq == expected_index.freq
-    assert not np.isnan(result[-1])
+    assert not np.isnan(result.iloc[-1])
 
 
 @pytest.mark.parametrize("duplicates", [True, False])

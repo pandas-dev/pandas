@@ -14,7 +14,6 @@ import pandas._testing as tm
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.expanding(2).sum()
@@ -86,14 +85,17 @@ def test_expanding_axis(axis_frame):
     axis = df._get_axis_number(axis_frame)
 
     if axis == 0:
+        msg = "The 'axis' keyword in DataFrame.expanding is deprecated"
         expected = DataFrame(
             {i: [np.nan] * 2 + [float(j) for j in range(3, 11)] for i in range(20)}
         )
     else:
         # axis == 1
+        msg = "Support for axis=1 in DataFrame.expanding is deprecated"
         expected = DataFrame([[np.nan] * 2 + [float(i) for i in range(3, 21)]] * 10)
 
-    result = df.expanding(3, axis=axis_frame).sum()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.expanding(3, axis=axis_frame).sum()
     tm.assert_frame_equal(result, expected)
 
 
@@ -186,7 +188,7 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
     expected = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, df.expanding(min_periods)):
+    for expected, actual in zip(expected, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -205,7 +207,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
     expected = [Series(values, index=index) for (values, index) in expected]
 
-    for (expected, actual) in zip(expected, ser.expanding(min_periods)):
+    for expected, actual in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -324,10 +326,19 @@ def test_expanding_corr_pairwise(frame):
 )
 def test_expanding_func(func, static_comp, frame_or_series):
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
-    result = getattr(data.expanding(min_periods=1, axis=0), func)()
+
+    msg = "The 'axis' keyword in (Series|DataFrame).expanding is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        obj = data.expanding(min_periods=1, axis=0)
+    result = getattr(obj, func)()
     assert isinstance(result, frame_or_series)
 
-    expected = static_comp(data[:11])
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    warn = None
+    if frame_or_series is DataFrame and static_comp is np.sum:
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        expected = static_comp(data[:11])
     if frame_or_series is Series:
         tm.assert_almost_equal(result[10], expected)
     else:
@@ -342,26 +353,33 @@ def test_expanding_func(func, static_comp, frame_or_series):
 def test_expanding_min_periods(func, static_comp):
     ser = Series(np.random.randn(50))
 
-    result = getattr(ser.expanding(min_periods=30, axis=0), func)()
+    msg = "The 'axis' keyword in Series.expanding is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=30, axis=0), func)()
     assert result[:29].isna().all()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
     # min_periods is working correctly
-    result = getattr(ser.expanding(min_periods=15, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=15, axis=0), func)()
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
     ser2 = Series(np.random.randn(20))
-    result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
     assert isna(result[3])
     assert notna(result[4])
 
     # min_periods=0
-    result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
-    result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result0 = getattr(ser.expanding(min_periods=0, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result1 = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result0, result1)
 
-    result = getattr(ser.expanding(min_periods=1, axis=0), func)()
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = getattr(ser.expanding(min_periods=1, axis=0), func)()
     tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
 
@@ -428,7 +446,6 @@ def test_expanding_min_periods_apply(engine_and_raw):
     ],
 )
 def test_moment_functions_zero_length_pairwise(f):
-
     df1 = DataFrame()
     df2 = DataFrame(columns=Index(["a"], name="foo"), index=Index([], name="bar"))
     df2["a"] = df2["a"].astype("float64")
@@ -695,3 +712,10 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(expanding2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+def test_keyword_quantile_deprecated():
+    # GH #52550
+    ser = Series([1, 2, 3, 4])
+    with tm.assert_produces_warning(FutureWarning):
+        ser.expanding().quantile(quantile=0.5)

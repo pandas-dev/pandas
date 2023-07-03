@@ -208,10 +208,8 @@ class CSSResolver:
             f"border-{prop}": _side_expander(f"border-{{:s}}-{prop}")
             for prop in ["color", "style", "width"]
         },
-        **{
-            "margin": _side_expander("margin-{:s}"),
-            "padding": _side_expander("padding-{:s}"),
-        },
+        "margin": _side_expander("margin-{:s}"),
+        "padding": _side_expander("padding-{:s}"),
     }
 
     def __call__(
@@ -336,7 +334,7 @@ class CSSResolver:
                     )
         return props
 
-    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
+    def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS) -> str:
         def _error():
             warnings.warn(
                 f"Unhandled size: {repr(in_val)}",

@@ -25,7 +25,6 @@ def add_var(
     prev_value: float,
 ) -> tuple[int, float, float, float, int, float]:
     if not np.isnan(val):
-
         if val == prev_value:
             num_consecutive_same_value += 1
         else:
@@ -69,11 +68,12 @@ def remove_var(
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_var(
     values: np.ndarray,
+    result_dtype: np.dtype,
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
     ddof: int = 1,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(start)
     nobs = 0
     mean_x = 0.0
@@ -86,13 +86,12 @@ def sliding_var(
         start
     ) and is_monotonic_increasing(end)
 
-    output = np.empty(N, dtype=np.float64)
+    output = np.empty(N, dtype=result_dtype)
 
     for i in range(N):
         s = start[i]
         e = end[i]
         if i == 0 or not is_monotonic_increasing_bounds:
-
             prev_value = values[s]
             num_consecutive_same_value = 0
 
@@ -112,7 +111,7 @@ def sliding_var(
                     ssqdm_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
         else:
             for j in range(start[i - 1], s):
@@ -137,7 +136,7 @@ def sliding_var(
                     ssqdm_x,
                     compensation_add,
                     num_consecutive_same_value,
-                    prev_value,
+                    prev_value,  # pyright: ignore[reportGeneralTypeIssues]
                 )
 
         if nobs >= min_periods and nobs > ddof:
@@ -156,4 +155,8 @@ def sliding_var(
             ssqdm_x = 0.0
             compensation_remove = 0.0
 
-    return output
+    # na_position is empty list since float64 can already hold nans
+    # Do list comprehension, since numba cannot figure out that na_pos is
+    # empty list of ints on its own
+    na_pos = [0 for i in range(0)]
+    return output, na_pos

@@ -17,7 +17,6 @@ def test_infer_objects(idx):
 
 
 def test_shift(idx):
-
     # GH8083 test the base class for shift
     msg = (
         "This method is only implemented for DatetimeIndex, PeriodIndex and "
@@ -160,7 +159,6 @@ def test_iter(idx):
 
 
 def test_sub(idx):
-
     first = idx
 
     # - now raises (previously was set op difference)
@@ -192,7 +190,6 @@ def test_map(idx):
     ],
 )
 def test_map_dictlike(idx, mapper):
-
     identity = mapper(idx.values, idx)
 
     # we don't infer to uint64 dtype for a dict

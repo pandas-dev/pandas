@@ -186,7 +186,6 @@ class TestMergeMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_compress_group_combinations(self):
-
         # ~ 40000000 possible unique groups
         key1 = tm.rands_array(10, 10000)
         key1 = np.tile(key1, 2)
@@ -202,7 +201,6 @@ class TestMergeMulti:
         merge(df, df2, how="outer")
 
     def test_left_join_index_preserve_order(self):
-
         on_cols = ["k1", "k2"]
         left = DataFrame(
             {
@@ -481,7 +479,7 @@ class TestMergeMulti:
             expected = DataFrame(
                 data={
                     "data": [1.5, 1.5],
-                    "state": [None, None],
+                    "state": np.array([np.nan, np.nan], dtype=object),
                 },
                 index=expected_index,
             )
@@ -490,7 +488,7 @@ class TestMergeMulti:
         else:
             expected = DataFrame(
                 data={
-                    "state": [None, None],
+                    "state": np.array([np.nan, np.nan], dtype=object),
                     "data": [1.5, 1.5],
                 },
                 index=expected_index,
@@ -644,7 +642,6 @@ class TestMergeMulti:
             portfolio2.join(portfolio, how="inner")
 
     def test_join_multi_levels2(self):
-
         # some more advanced merges
         # GH6360
         household = DataFrame(
@@ -823,7 +820,6 @@ class TestJoinMultiMulti:
     def test_join_multi_empty_frames(
         self, left_multi, right_multi, join_type, on_cols_multi, idx_cols_multi
     ):
-
         left_multi = left_multi.drop(columns=left_multi.columns)
         right_multi = right_multi.drop(columns=right_multi.columns)
 

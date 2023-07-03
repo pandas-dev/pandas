@@ -46,7 +46,6 @@ class TestResetIndex:
         tm.assert_frame_equal(result, df[[]], check_index_type=True)
 
     def test_set_reset(self):
-
         idx = Index([2**63, 2**63 + 5, 2**63 + 10], name="foo")
 
         # set/reset
@@ -58,7 +57,6 @@ class TestResetIndex:
         tm.assert_index_equal(df.index, idx)
 
     def test_set_index_reset_index_dt64tz(self):
-
         idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
 
         # set/reset
@@ -775,3 +773,18 @@ def test_errorreset_index_rename(float_frame):
 
     with pytest.raises(IndexError, match="list index out of range"):
         stacked_df.reset_index(names=["new_first"])
+
+
+def test_reset_index_false_index_name():
+    result_series = Series(data=range(5, 10), index=range(0, 5))
+    result_series.index.name = False
+    result_series.reset_index()
+    expected_series = Series(range(5, 10), RangeIndex(range(0, 5), name=False))
+    tm.assert_series_equal(result_series, expected_series)
+
+    # GH 38147
+    result_frame = DataFrame(data=range(5, 10), index=range(0, 5))
+    result_frame.index.name = False
+    result_frame.reset_index()
+    expected_frame = DataFrame(range(5, 10), RangeIndex(range(0, 5), name=False))
+    tm.assert_frame_equal(result_frame, expected_frame)

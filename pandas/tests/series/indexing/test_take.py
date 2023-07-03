@@ -5,6 +5,15 @@ from pandas import Series
 import pandas._testing as tm
 
 
+def test_take_validate_axis():
+    # GH#51022
+    ser = Series([-1, 5, 6, 2, 4])
+
+    msg = "No axis named foo for object type Series"
+    with pytest.raises(ValueError, match=msg):
+        ser.take([1, 2], axis="foo")
+
+
 def test_take():
     ser = Series([-1, 5, 6, 2, 4])
 
@@ -16,10 +25,10 @@ def test_take():
     expected = Series([4, 2, 4], index=[4, 3, 4])
     tm.assert_series_equal(actual, expected)
 
-    msg = lambda x: f"index {x} is out of bounds for( axis 0 with)? size 5"
-    with pytest.raises(IndexError, match=msg(10)):
+    msg = "indices are out-of-bounds"
+    with pytest.raises(IndexError, match=msg):
         ser.take([1, 10])
-    with pytest.raises(IndexError, match=msg(5)):
+    with pytest.raises(IndexError, match=msg):
         ser.take([2, 5])
 
 
@@ -31,3 +40,11 @@ def test_take_categorical():
         pd.Categorical(["b", "b", "a"], categories=["a", "b", "c"]), index=[1, 1, 0]
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_take_slice_raises():
+    ser = Series([-1, 5, 6, 2, 4])
+
+    msg = "Series.take requires a sequence of integers, not slice"
+    with pytest.raises(TypeError, match=msg):
+        ser.take(slice(0, 3, 1))

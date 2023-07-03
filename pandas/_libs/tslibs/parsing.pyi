@@ -6,7 +6,7 @@ from pandas._typing import npt
 
 class DateParseError(ValueError): ...
 
-def parse_datetime_string(
+def py_parse_datetime_string(
     date_string: str,
     dayfirst: bool = ...,
     yearfirst: bool = ...,

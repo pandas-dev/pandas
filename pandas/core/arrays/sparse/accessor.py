@@ -8,13 +8,13 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import find_common_type
+from pandas.core.dtypes.dtypes import SparseDtype
 
 from pandas.core.accessor import (
     PandasDelegate,
     delegate_names,
 )
 from pandas.core.arrays.sparse.array import SparseArray
-from pandas.core.arrays.sparse.dtype import SparseDtype
 
 if TYPE_CHECKING:
     from pandas import (
@@ -40,16 +40,24 @@ class BaseAccessor:
 class SparseAccessor(BaseAccessor, PandasDelegate):
     """
     Accessor for SparseSparse from other sparse matrix data types.
+
+    Examples
+    --------
+    >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
+    >>> ser.sparse.density
+    0.6
+    >>> ser.sparse.sp_values
+    array([2, 2, 2])
     """
 
     def _validate(self, data):
         if not isinstance(data.dtype, SparseDtype):
             raise AttributeError(self._validation_msg)
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         return getattr(self._parent.array, name)
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         if name == "from_coo":
             return self.from_coo(*args, **kwargs)
         elif name == "to_coo":
@@ -219,12 +227,20 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
             self._parent.array.to_dense(),
             index=self._parent.index,
             name=self._parent.name,
+            copy=False,
         )
 
 
 class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     """
     DataFrame accessor for sparse data.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"a": [1, 2, 0, 0],
+    ...                   "b": [3, 0, 0, 4]}, dtype="Sparse[int]")
+    >>> df.sparse.density
+    0.5
     """
 
     def _validate(self, data):
@@ -329,6 +345,13 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32. By numpy.find_common_type convention, mixing int64 and
         and uint64 will result in a float64 dtype.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
+        >>> df.sparse.to_coo()
+        <4x1 sparse matrix of type '<class 'numpy.int64'>'
+                with 2 stored elements in COOrdinate format>
         """
         import_optional_dependency("scipy")
         from scipy.sparse import coo_matrix
@@ -357,6 +380,12 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
     def density(self) -> float:
         """
         Ratio of non-sparse points to total (dense) data points.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 1, 0, 1])})
+        >>> df.sparse.density
+        0.5
         """
         tmp = np.mean([column.array.density for _, column in self._parent.items()])
         return tmp

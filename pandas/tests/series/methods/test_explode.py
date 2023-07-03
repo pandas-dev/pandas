@@ -82,7 +82,6 @@ def test_non_object_dtype(s):
 
 
 def test_typical_usecase():
-
     df = pd.DataFrame(
         [{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}],
         columns=["var1", "var2"],
@@ -141,4 +140,26 @@ def test_explode_scalars_can_ignore_index():
     s = pd.Series([1, 2, 3], index=["a", "b", "c"])
     result = s.explode(ignore_index=True)
     expected = pd.Series([1, 2, 3])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ignore_index", [True, False])
+def test_explode_pyarrow_list_type(ignore_index):
+    # GH 53602
+    pa = pytest.importorskip("pyarrow")
+
+    data = [
+        [None, None],
+        [1],
+        [],
+        [2, 3],
+        None,
+    ]
+    ser = pd.Series(data, dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+    result = ser.explode(ignore_index=ignore_index)
+    expected = pd.Series(
+        data=[None, None, 1, None, 2, 3, None],
+        index=None if ignore_index else [0, 0, 1, 2, 3, 3, 4],
+        dtype=pd.ArrowDtype(pa.int64()),
+    )
     tm.assert_series_equal(result, expected)

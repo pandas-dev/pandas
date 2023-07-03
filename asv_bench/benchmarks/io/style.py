@@ -7,7 +7,6 @@ from pandas import (
 
 
 class Render:
-
     params = [[12, 24, 36], [12, 120]]
     param_names = ["cols", "rows"]
 

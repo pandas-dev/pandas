@@ -27,13 +27,10 @@ pytestmark = pytest.mark.single_cpu
 
 
 def test_append(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # this is allowed by almost always don't want to do it
         # tables.NaturalNameWarning):
         with catch_warnings(record=True):
-
             df = tm.makeTimeDataFrame()
             _maybe_remove(store, "df1")
             store.append("df1", df[:10])
@@ -86,19 +83,17 @@ def test_append(setup_path):
             )
             _maybe_remove(store, "uints")
             store.append("uints", uint_data)
-            tm.assert_frame_equal(store["uints"], uint_data)
+            tm.assert_frame_equal(store["uints"], uint_data, check_index_type=True)
 
             # uints - test storage of uints in indexable columns
             _maybe_remove(store, "uints")
             # 64-bit indices not yet supported
             store.append("uints", uint_data, data_columns=["u08", "u16", "u32"])
-            tm.assert_frame_equal(store["uints"], uint_data)
+            tm.assert_frame_equal(store["uints"], uint_data, check_index_type=True)
 
 
 def test_append_series(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # basic
         ss = tm.makeStringSeries()
         ts = tm.makeTimeSeries()
@@ -128,7 +123,7 @@ def test_append_series(setup_path):
         # select on the index and values
         expected = ns[(ns > 70) & (ns.index < 90)]
         result = store.select("ns", "foo>70 and index<90")
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected, check_index_type=True)
 
         # multi-index
         mi = DataFrame(np.random.randn(5, 1), columns=["A"])
@@ -139,11 +134,10 @@ def test_append_series(setup_path):
         s = mi.stack()
         s.index = s.index.droplevel(2)
         store.append("mi", s)
-        tm.assert_series_equal(store["mi"], s)
+        tm.assert_series_equal(store["mi"], s, check_index_type=True)
 
 
 def test_append_some_nans(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             {
@@ -152,8 +146,8 @@ def test_append_some_nans(setup_path):
                 "A2": np.random.randn(20),
                 "B": "foo",
                 "C": "bar",
-                "D": Timestamp("20010101"),
-                "E": datetime.datetime(2001, 1, 2, 0, 0),
+                "D": Timestamp("2001-01-01").as_unit("ns"),
+                "E": Timestamp("2001-01-02").as_unit("ns"),
             },
             index=np.arange(20),
         )
@@ -162,7 +156,7 @@ def test_append_some_nans(setup_path):
         df.loc[0:15, ["A1", "B", "D", "E"]] = np.nan
         store.append("df1", df[:10])
         store.append("df1", df[10:])
-        tm.assert_frame_equal(store["df1"], df)
+        tm.assert_frame_equal(store["df1"], df, check_index_type=True)
 
         # first column
         df1 = df.copy()
@@ -170,7 +164,7 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df1")
         store.append("df1", df1[:10])
         store.append("df1", df1[10:])
-        tm.assert_frame_equal(store["df1"], df1)
+        tm.assert_frame_equal(store["df1"], df1, check_index_type=True)
 
         # 2nd column
         df2 = df.copy()
@@ -178,7 +172,7 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df2")
         store.append("df2", df2[:10])
         store.append("df2", df2[10:])
-        tm.assert_frame_equal(store["df2"], df2)
+        tm.assert_frame_equal(store["df2"], df2, check_index_type=True)
 
         # datetimes
         df3 = df.copy()
@@ -186,13 +180,11 @@ def test_append_some_nans(setup_path):
         _maybe_remove(store, "df3")
         store.append("df3", df3[:10])
         store.append("df3", df3[10:])
-        tm.assert_frame_equal(store["df3"], df3)
+        tm.assert_frame_equal(store["df3"], df3, check_index_type=True)
 
 
 def test_append_all_nans(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(
             {"A1": np.random.randn(20), "A2": np.random.randn(20)},
             index=np.arange(20),
@@ -203,13 +195,13 @@ def test_append_all_nans(setup_path):
         _maybe_remove(store, "df")
         store.append("df", df[:10], dropna=True)
         store.append("df", df[10:], dropna=True)
-        tm.assert_frame_equal(store["df"], df[-4:])
+        tm.assert_frame_equal(store["df"], df[-4:], check_index_type=True)
 
         # nan some entire rows (dropna=False)
         _maybe_remove(store, "df2")
         store.append("df2", df[:10], dropna=False)
         store.append("df2", df[10:], dropna=False)
-        tm.assert_frame_equal(store["df2"], df)
+        tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
         # tests the option io.hdf.dropna_table
         with pd.option_context("io.hdf.dropna_table", False):
@@ -240,12 +232,12 @@ def test_append_all_nans(setup_path):
             _maybe_remove(store, "df")
             store.append("df", df[:10], dropna=True)
             store.append("df", df[10:], dropna=True)
-            tm.assert_frame_equal(store["df"], df)
+            tm.assert_frame_equal(store["df"], df, check_index_type=True)
 
             _maybe_remove(store, "df2")
             store.append("df2", df[:10], dropna=False)
             store.append("df2", df[10:], dropna=False)
-            tm.assert_frame_equal(store["df2"], df)
+            tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
             # nan some entire rows (but since we have dates they are still
             # written!)
@@ -255,8 +247,8 @@ def test_append_all_nans(setup_path):
                     "A2": np.random.randn(20),
                     "B": "foo",
                     "C": "bar",
-                    "D": Timestamp("20010101"),
-                    "E": datetime.datetime(2001, 1, 2, 0, 0),
+                    "D": Timestamp("2001-01-01").as_unit("ns"),
+                    "E": Timestamp("2001-01-02").as_unit("ns"),
                 },
                 index=np.arange(20),
             )
@@ -266,17 +258,16 @@ def test_append_all_nans(setup_path):
             _maybe_remove(store, "df")
             store.append("df", df[:10], dropna=True)
             store.append("df", df[10:], dropna=True)
-            tm.assert_frame_equal(store["df"], df)
+            tm.assert_frame_equal(store["df"], df, check_index_type=True)
 
             _maybe_remove(store, "df2")
             store.append("df2", df[:10], dropna=False)
             store.append("df2", df[10:], dropna=False)
-            tm.assert_frame_equal(store["df2"], df)
+            tm.assert_frame_equal(store["df2"], df, check_index_type=True)
 
 
 def test_append_frame_column_oriented(setup_path):
     with ensure_clean_store(setup_path) as store:
-
         # column oriented
         df = tm.makeTimeDataFrame()
         df.index = df.index._with_freq(None)  # freq doesn't round-trip
@@ -305,12 +296,9 @@ def test_append_frame_column_oriented(setup_path):
 
 
 def test_append_with_different_block_ordering(setup_path):
-
     # GH 4096; using same frames, but different block orderings
     with ensure_clean_store(setup_path) as store:
-
         for i in range(10):
-
             df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
             df["index"] = range(10)
             df["index"] += i * 10
@@ -331,7 +319,6 @@ def test_append_with_different_block_ordering(setup_path):
     # test a different ordering but with more fields (like invalid
     # combinations)
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")
         df["int64"] = Series([1] * len(df), dtype="int64")
         df["int16"] = Series([1] * len(df), dtype="int16")
@@ -355,7 +342,6 @@ def test_append_with_different_block_ordering(setup_path):
 
 
 def test_append_with_strings(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         with catch_warnings(record=True):
 
@@ -434,7 +420,6 @@ def test_append_with_strings(setup_path):
             tm.assert_frame_equal(result, df)
 
     with ensure_clean_store(setup_path) as store:
-
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(10))
 
         # a min_itemsize that creates a data_column
@@ -473,9 +458,7 @@ def test_append_with_strings(setup_path):
 
 
 def test_append_with_empty_string(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # with all empty strings (GH 12242)
         df = DataFrame({"x": ["a", "b", "c", "d", "e", "f", ""]})
         store.append("df", df[:-1], min_itemsize={"x": 1})
@@ -484,7 +467,6 @@ def test_append_with_empty_string(setup_path):
 
 
 def test_append_with_data_columns(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeTimeDataFrame()
         df.iloc[0, df.columns.get_loc("B")] = 1.0
@@ -590,7 +572,7 @@ def test_append_with_data_columns(setup_path):
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
         df_dc["string2"] = "cool"
-        df_dc["datetime"] = Timestamp("20010102")
+        df_dc["datetime"] = Timestamp("20010102").as_unit("ns")
         df_dc.loc[df_dc.index[3:5], ["A", "B", "datetime"]] = np.nan
 
         _maybe_remove(store, "df_dc")
@@ -653,7 +635,6 @@ def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_d
 
 
 def test_append_misc(setup_path):
-
     with ensure_clean_store(setup_path) as store:
         df = tm.makeDataFrame()
         store.append("df", df, chunksize=1)
@@ -673,8 +654,8 @@ def test_append_misc_chunksize(setup_path, chunksize):
     df["float322"] = 1.0
     df["float322"] = df["float322"].astype("float32")
     df["bool"] = df["float322"] > 0
-    df["time1"] = Timestamp("20130101")
-    df["time2"] = Timestamp("20130102")
+    df["time1"] = Timestamp("20130101").as_unit("ns")
+    df["time2"] = Timestamp("20130102").as_unit("ns")
     with ensure_clean_store(setup_path, mode="w") as store:
         store.append("obj", df, chunksize=chunksize)
         result = store.select("obj")
@@ -684,7 +665,6 @@ def test_append_misc_chunksize(setup_path, chunksize):
 def test_append_misc_empty_frame(setup_path):
     # empty frame, GH4273
     with ensure_clean_store(setup_path) as store:
-
         # 0 len
         df_empty = DataFrame(columns=list("ABC"))
         store.append("df", df_empty)
@@ -709,9 +689,7 @@ def test_append_misc_empty_frame(setup_path):
 # a datetime64 column no longer raising an error
 @td.skip_array_manager_not_yet_implemented
 def test_append_raise(setup_path):
-
     with ensure_clean_store(setup_path) as store:
-
         # test append with invalid input to get good error messages
 
         # list in column
@@ -789,19 +767,17 @@ def test_append_with_timedelta(setup_path):
     # GH 3577
     # append timedelta
 
+    ts = Timestamp("20130101").as_unit("ns")
     df = DataFrame(
         {
-            "A": Timestamp("20130101"),
-            "B": [
-                Timestamp("20130101") + timedelta(days=i, seconds=10) for i in range(10)
-            ],
+            "A": ts,
+            "B": [ts + timedelta(days=i, seconds=10) for i in range(10)],
         }
     )
     df["C"] = df["A"] - df["B"]
     df.loc[3:5, "C"] = np.nan
 
     with ensure_clean_store(setup_path) as store:
-
         # table
         _maybe_remove(store, "df")
         store.append("df", df, data_columns=True)
@@ -841,7 +817,6 @@ def test_append_to_multiple(setup_path):
     df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
-
         # exceptions
         msg = "append_to_multiple requires a selector that is in passed dict"
         with pytest.raises(ValueError, match=msg):
@@ -875,14 +850,13 @@ def test_append_to_multiple_dropna(setup_path):
     df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
-
         # dropna=True should guarantee rows are synchronized
         store.append_to_multiple(
             {"df1": ["A", "B"], "df2": None}, df, selector="df1", dropna=True
         )
         result = store.select_as_multiple(["df1", "df2"])
         expected = df.dropna()
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=True)
         tm.assert_index_equal(store.select("df1").index, store.select("df2").index)
 
 
@@ -932,4 +906,4 @@ def test_append_to_multiple_min_itemsize(setup_path):
             min_itemsize={"Str": 10, "LongStr": 100, "Num": 2},
         )
         result = store.select_as_multiple(["index", "nums", "strs"])
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=True)

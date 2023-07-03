@@ -3,11 +3,11 @@ timedelta support tools
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -20,6 +20,7 @@ from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -30,6 +31,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
         ArrayLike,
@@ -115,10 +118,10 @@ def to_timedelta(
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        .. versionchanged:: 1.1.0
+        Must not be specified when `arg` context strings and ``errors="raise"``.
 
-           Must not be specified when `arg` context strings and
-           ``errors="raise"``.
+        .. deprecated:: 2.1.0
+            Units 'T' and 'L' are deprecated and will be removed in a future version.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -171,6 +174,13 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
+    if unit in {"T", "t", "L", "l"}:
+        warnings.warn(
+            f"Unit '{unit}' is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
@@ -240,7 +250,9 @@ def _convert_listlike(
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
         #  used-up generator
-        arg = np.array(list(arg), dtype=object)
+        if not hasattr(arg, "__array__"):
+            arg = list(arg)
+        arg = np.array(arg, dtype=object)
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

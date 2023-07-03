@@ -5,6 +5,7 @@ from datetime import datetime
 import re
 
 from dateutil.parser import parse as du_parse
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
@@ -13,9 +14,33 @@ from pandas._libs.tslibs import (
     strptime,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import (
+    ISMUSL,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
+
+
+@pytest.mark.skipif(
+    is_platform_windows() or ISMUSL,
+    reason="TZ setting incorrect on Windows and MUSL Linux",
+)
+def test_parsing_tzlocal_deprecated():
+    # GH#50791
+    msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
+    dtstr = "Jan 15 2004 03:00 EST"
+
+    with tm.set_timezone("US/Eastern"):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res, _ = parse_datetime_string_with_reso(dtstr)
+
+        assert isinstance(res.tzinfo, tzlocal)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = parsing.py_parse_datetime_string(dtstr)
+        assert isinstance(res.tzinfo, tzlocal)
 
 
 def test_parse_datetime_string_with_reso():
@@ -183,8 +208,10 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:", None),
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
-        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
-        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("Tue 24 Aug 2021 01:30:48", "%a %d %b %Y %H:%M:%S"),
+        ("Tuesday 24 Aug 2021 01:30:48", "%A %d %b %Y %H:%M:%S"),
+        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
+        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
         ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
     ],
 )
@@ -228,6 +255,7 @@ def test_guess_datetime_format_with_locale_specific_formats(string, fmt):
         "13/2019",
         "202001",  # YYYYMM isn't ISO8601
         "2020/01",  # YYYY/MM isn't ISO8601 either
+        "87156549591102612381000001219H5",
     ],
 )
 def test_guess_datetime_format_invalid_inputs(invalid_dt):

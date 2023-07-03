@@ -3,11 +3,11 @@ from functools import partial
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 
 from pandas import (
     Categorical,
+    CategoricalDtype,
     CategoricalIndex,
     Index,
     Interval,
@@ -18,7 +18,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 from pandas.core.arrays import IntervalArray
 import pandas.core.common as com
 
@@ -39,9 +38,9 @@ class ConstructorTests:
         params=[
             ([3, 14, 15, 92, 653], np.int64),
             (np.arange(10, dtype="int64"), np.int64),
-            (NumericIndex(range(-10, 11), dtype=np.int64), np.int64),
-            (NumericIndex(range(10, 31), dtype=np.uint64), np.uint64),
-            (NumericIndex(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
+            (Index(np.arange(-10, 11, dtype=np.int64)), np.int64),
+            (Index(np.arange(10, 31, dtype=np.uint64)), np.uint64),
+            (Index(np.arange(20, 30, 0.5), dtype=np.float64), np.float64),
             (date_range("20180101", periods=10), "<M8[ns]"),
             (
                 date_range("20180101", periods=10, tz="US/Eastern"),
@@ -69,10 +68,10 @@ class ConstructorTests:
     @pytest.mark.parametrize(
         "breaks, subtype",
         [
-            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "float64"),
-            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "datetime64[ns]"),
-            (NumericIndex([0, 1, 2, 3, 4], dtype=np.int64), "timedelta64[ns]"),
-            (NumericIndex([0, 1, 2, 3, 4], dtype=np.float64), "int64"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "float64"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "datetime64[ns]"),
+            (Index([0, 1, 2, 3, 4], dtype=np.int64), "timedelta64[ns]"),
+            (Index([0, 1, 2, 3, 4], dtype=np.float64), "int64"),
             (date_range("2017-01-01", periods=5), "int64"),
             (timedelta_range("1 day", periods=5), "int64"),
         ],
@@ -91,9 +90,9 @@ class ConstructorTests:
     @pytest.mark.parametrize(
         "breaks",
         [
-            NumericIndex([0, 1, 2, 3, 4], dtype=np.int64),
-            NumericIndex([0, 1, 2, 3, 4], dtype=np.uint64),
-            NumericIndex([0, 1, 2, 3, 4], dtype=np.float64),
+            Index([0, 1, 2, 3, 4], dtype=np.int64),
+            Index([0, 1, 2, 3, 4], dtype=np.uint64),
+            Index([0, 1, 2, 3, 4], dtype=np.float64),
             date_range("2017-01-01", periods=5),
             timedelta_range("1 day", periods=5),
         ],
@@ -106,7 +105,6 @@ class ConstructorTests:
 
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(None):
-
                 result = constructor(dtype=dtype, closed="left", **result_kwargs)
             assert result.dtype.closed == "left"
 
@@ -250,8 +248,8 @@ class TestFromArrays(ConstructorTests):
         right = np.arange(1, 10, dtype=right_subtype)
         result = IntervalIndex.from_arrays(left, right)
 
-        expected_left = NumericIndex(left, dtype=np.float64)
-        expected_right = NumericIndex(right, dtype=np.float64)
+        expected_left = Index(left, dtype=np.float64)
+        expected_right = Index(right, dtype=np.float64)
         expected_subtype = np.float64
 
         tm.assert_index_equal(result.left, expected_left)
@@ -318,7 +316,7 @@ class TestFromTuples(ConstructorTests):
         tuples = list(zip(breaks[:-1], breaks[1:]))
         if isinstance(breaks, (list, tuple)):
             return {"data": tuples}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(tuples)}
         return {"data": com.asarray_tuplesafe(tuples)}
 
@@ -380,7 +378,7 @@ class TestClassConstructors(ConstructorTests):
 
         if isinstance(breaks, list):
             return {"data": ivs}
-        elif is_categorical_dtype(breaks):
+        elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
             return {"data": breaks._constructor(ivs)}
         return {"data": np.array(ivs, dtype=object)}
 

@@ -9,42 +9,19 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.common import NumericBase
 
 # aliases to make some tests easier to read
 RI = RangeIndex
 
 
-class TestRangeIndex(NumericBase):
-    _index_cls = RangeIndex
-
+class TestRangeIndex:
     @pytest.fixture
-    def dtype(self):
-        return np.int64
+    def simple_index(self):
+        return RangeIndex(start=0, stop=20, step=2)
 
-    @pytest.fixture(
-        params=["uint64", "float64", "category", "datetime64", "object"],
-    )
-    def invalid_dtype(self, request):
-        return request.param
-
-    @pytest.fixture
-    def simple_index(self) -> Index:
-        return self._index_cls(start=0, stop=20, step=2)
-
-    @pytest.fixture(
-        params=[
-            RangeIndex(start=0, stop=20, step=2, name="foo"),
-            RangeIndex(start=18, stop=-1, step=-2, name="bar"),
-        ],
-        ids=["index_inc", "index_dec"],
-    )
-    def index(self, request):
-        return request.param
-
-    def test_constructor_unwraps_index(self, dtype):
-        result = self._index_cls(1, 3)
-        expected = np.array([1, 2], dtype=dtype)
+    def test_constructor_unwraps_index(self):
+        result = RangeIndex(1, 3)
+        expected = np.array([1, 2], dtype=np.int64)
         tm.assert_numpy_array_equal(result._data, expected)
 
     def test_can_hold_identifiers(self, simple_index):
@@ -98,7 +75,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, i, exact=True)
 
     def test_insert(self):
-
         idx = RangeIndex(5, name="Foo")
         result = idx[1:4]
 
@@ -139,7 +115,6 @@ class TestRangeIndex(NumericBase):
         tm.assert_index_equal(result, expected, exact=True)
 
     def test_delete(self):
-
         idx = RangeIndex(5, name="Foo")
         expected = idx[1:]
         result = idx.delete(0)
@@ -332,16 +307,18 @@ class TestRangeIndex(NumericBase):
         assert index._is_strictly_monotonic_increasing is True
         assert index._is_strictly_monotonic_decreasing is True
 
-    def test_equals_range(self):
-        equiv_pairs = [
+    @pytest.mark.parametrize(
+        "left,right",
+        [
             (RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
             (RangeIndex(0), RangeIndex(1, -1, 3)),
             (RangeIndex(1, 2, 3), RangeIndex(1, 3, 4)),
             (RangeIndex(0, -9, -2), RangeIndex(0, -10, -2)),
-        ]
-        for left, right in equiv_pairs:
-            assert left.equals(right)
-            assert right.equals(left)
+        ],
+    )
+    def test_equals_range(self, left, right):
+        assert left.equals(right)
+        assert right.equals(left)
 
     def test_logical_compat(self, simple_index):
         idx = simple_index
@@ -371,7 +348,6 @@ class TestRangeIndex(NumericBase):
         assert not index.copy(dtype=object).identical(index.copy(dtype="int64"))
 
     def test_nbytes(self):
-
         # memory savings vs int index
         idx = RangeIndex(0, 1000)
         assert idx.nbytes < Index(idx._values).nbytes / 10
@@ -411,6 +387,14 @@ class TestRangeIndex(NumericBase):
         idx = RangeIndex(1, 2, name="asdf")
         assert idx.name == idx[1:].name
 
+    @pytest.mark.parametrize(
+        "index",
+        [
+            RangeIndex(start=0, stop=20, step=2, name="foo"),
+            RangeIndex(start=18, stop=-1, step=-2, name="bar"),
+        ],
+        ids=["index_inc", "index_dec"],
+    )
     def test_has_duplicates(self, index):
         assert index.is_unique
         assert not index.has_duplicates
@@ -442,10 +426,6 @@ class TestRangeIndex(NumericBase):
 
         result = RangeIndex(5, big_num * 2, 1)._min_fitting_element(big_num)
         assert big_num == result
-
-    def test_pickle_compat_construction(self):
-        # RangeIndex() is a valid constructor
-        pass
 
     def test_slice_specialised(self, simple_index):
         index = simple_index
@@ -514,8 +494,9 @@ class TestRangeIndex(NumericBase):
         index = RangeIndex(stop, start, step)
         assert len(index) == 0
 
-    @pytest.fixture(
-        params=[
+    @pytest.mark.parametrize(
+        "indices, expected",
+        [
             ([RI(1, 12, 5)], RI(1, 12, 5)),
             ([RI(0, 6, 4)], RI(0, 6, 4)),
             ([RI(1, 3), RI(3, 7)], RI(1, 7)),
@@ -535,17 +516,10 @@ class TestRangeIndex(NumericBase):
             ([RI(3), Index([-1, 3.1, 15.0])], Index([0, 1, 2, -1, 3.1, 15.0])),
             ([RI(3), Index(["a", None, 14])], Index([0, 1, 2, "a", None, 14])),
             ([RI(3, 1), Index(["a", None, 14])], Index(["a", None, 14])),
-        ]
+        ],
     )
-    def appends(self, request):
-        """Inputs and expected outputs for RangeIndex.append test"""
-        return request.param
-
-    def test_append(self, appends):
+    def test_append(self, indices, expected):
         # GH16212
-
-        indices, expected = appends
-
         result = indices[0].append(indices[1:])
         tm.assert_index_equal(result, expected, exact=True)
 
@@ -578,7 +552,7 @@ class TestRangeIndex(NumericBase):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._index_cls(0)
+        empty_idx = RangeIndex(0)
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
@@ -612,3 +586,9 @@ class TestRangeIndex(NumericBase):
         result = values.sort_values(key=lambda x: x.map(sort_order))
         expected = Index([4, 8, 6, 0, 2], dtype="int64")
         tm.assert_index_equal(result, expected, check_exact=True)
+
+    def test_range_index_rsub_by_const(self):
+        # GH#53255
+        result = 3 - RangeIndex(0, 4, 1)
+        expected = RangeIndex(3, -1, -1)
+        tm.assert_index_equal(result, expected)

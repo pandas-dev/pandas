@@ -11,14 +11,12 @@ import pandas._testing as tm
 
 
 def test_doc_string():
-
     df = DataFrame({"B": [0, 1, 2, np.nan, 4]})
     df
     df.ewm(com=0.5).mean()
 
 
 def test_constructor(frame_or_series):
-
     c = frame_or_series(range(5)).ewm
 
     # valid
@@ -200,7 +198,9 @@ def test_float_dtype_ewma(func, expected, float_numpy_dtype):
     df = DataFrame(
         {0: range(5), 1: range(6, 11), 2: range(10, 20, 2)}, dtype=float_numpy_dtype
     )
-    e = df.ewm(alpha=0.5, axis=1)
+    msg = "Support for axis=1 in DataFrame.ewm is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        e = df.ewm(alpha=0.5, axis=1)
     result = getattr(e, func)()
 
     tm.assert_frame_equal(result, expected)
@@ -403,7 +403,7 @@ def test_ewma_nan_handling():
 )
 def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
     # GH 7603
-    expected = (s.multiply(w).cumsum() / Series(w).cumsum()).fillna(method="ffill")
+    expected = (s.multiply(w).cumsum() / Series(w).cumsum()).ffill()
     result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
 
     tm.assert_series_equal(result, expected)

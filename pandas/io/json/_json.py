@@ -7,21 +7,20 @@ from abc import (
 from collections import abc
 from io import StringIO
 from itertools import islice
-from types import TracebackType
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Generic,
+    Hashable,
     Literal,
     Mapping,
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
-
-from pandas._config import using_nullable_dtypes
 
 from pandas._libs import lib
 from pandas._libs.json import (
@@ -29,26 +28,18 @@ from pandas._libs.json import (
     loads,
 )
 from pandas._libs.tslibs import iNaT
-from pandas._typing import (
-    CompressionOptions,
-    DtypeArg,
-    FilePath,
-    IndexLabel,
-    JSONSerializable,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    ensure_str,
-    is_period_dtype,
-)
+from pandas.core.dtypes.common import ensure_str
+from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCIndex
 
 from pandas import (
+    ArrowDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -78,6 +69,21 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionOptions,
+        DtypeArg,
+        DtypeBackend,
+        FilePath,
+        IndexLabel,
+        JSONEngine,
+        JSONSerializable,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas.core.generic import NDFrame
 
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
@@ -96,7 +102,7 @@ def to_json(
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
     lines: bool = ...,
     compression: CompressionOptions = ...,
-    index: bool = ...,
+    index: bool | None = ...,
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
@@ -116,7 +122,7 @@ def to_json(
     default_handler: Callable[[Any], JSONSerializable] | None = ...,
     lines: bool = ...,
     compression: CompressionOptions = ...,
-    index: bool = ...,
+    index: bool | None = ...,
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
@@ -135,16 +141,24 @@ def to_json(
     default_handler: Callable[[Any], JSONSerializable] | None = None,
     lines: bool = False,
     compression: CompressionOptions = "infer",
-    index: bool = True,
+    index: bool | None = None,
     indent: int = 0,
     storage_options: StorageOptions = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
-
-    if not index and orient not in ["split", "table"]:
+    if orient in ["records", "values"] and index is True:
         raise ValueError(
-            "'index=False' is only valid when 'orient' is 'split' or 'table'"
+            "'index=True' is only valid when 'orient' is 'split', 'table', "
+            "'index', or 'columns'."
         )
+    elif orient in ["index", "columns"] and index is False:
+        raise ValueError(
+            "'index=False' is only valid when 'orient' is 'split', 'table', "
+            "'records', or 'values'."
+        )
+    elif index is None:
+        # will be ignored for orient='records' and 'values'
+        index = True
 
     if lines and orient != "records":
         raise ValueError("'lines' keyword only valid when 'orient' is records")
@@ -362,9 +376,9 @@ class JSONTableWriter(FrameWriter):
         obj = obj.copy()
         timedeltas = obj.select_dtypes(include=["timedelta"]).columns
         if len(timedeltas):
-            obj[timedeltas] = obj[timedeltas].applymap(lambda x: x.isoformat())
+            obj[timedeltas] = obj[timedeltas].map(lambda x: x.isoformat())
         # Convert PeriodIndex to datetimes before serializing
-        if is_period_dtype(obj.index.dtype):
+        if isinstance(obj.index.dtype, PeriodDtype):
             obj.index = obj.index.to_timestamp()
 
         # exclude index from obj if index=False
@@ -388,7 +402,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -400,7 +414,8 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    engine: JSONEngine = ...,
 ) -> JsonReader[Literal["frame"]]:
     ...
 
@@ -412,7 +427,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -424,7 +439,8 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    engine: JSONEngine = ...,
 ) -> JsonReader[Literal["series"]]:
     ...
 
@@ -436,7 +452,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["series"],
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -448,7 +464,8 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    engine: JSONEngine = ...,
 ) -> Series:
     ...
 
@@ -460,7 +477,7 @@ def read_json(
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
     dtype: DtypeArg | None = ...,
-    convert_axes=...,
+    convert_axes: bool | None = ...,
     convert_dates: bool | list[str] = ...,
     keep_default_dates: bool = ...,
     precise_float: bool = ...,
@@ -472,7 +489,8 @@ def read_json(
     compression: CompressionOptions = ...,
     nrows: int | None = ...,
     storage_options: StorageOptions = ...,
-    use_nullable_dtypes: bool = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    engine: JSONEngine = ...,
 ) -> DataFrame:
     ...
 
@@ -487,7 +505,7 @@ def read_json(
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
     dtype: DtypeArg | None = None,
-    convert_axes=None,
+    convert_axes: bool | None = None,
     convert_dates: bool | list[str] = True,
     keep_default_dates: bool = True,
     precise_float: bool = False,
@@ -499,7 +517,8 @@ def read_json(
     compression: CompressionOptions = "infer",
     nrows: int | None = None,
     storage_options: StorageOptions = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    engine: JSONEngine = "ujson",
 ) -> DataFrame | Series | JsonReader:
     """
     Convert a JSON string to pandas object.
@@ -518,6 +537,10 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        .. deprecated:: 2.1.0
+            Passing json literal strings is deprecated.
+
     orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
@@ -531,6 +554,7 @@ def read_json(
         - ``'index'`` : dict like ``{{index -> {{column -> value}}}}``
         - ``'columns'`` : dict like ``{{column -> {{index -> value}}}}``
         - ``'values'`` : just the values array
+        - ``'table'`` : dict like ``{{'schema': {{schema}}, 'data': {{data}}}}``
 
         The allowed and default values depend on the value
         of the `typ` parameter.
@@ -634,29 +658,31 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, all the rows will be returned.
 
-        .. versionadded:: 1.1
-
     {storage_options}
 
         .. versionadded:: 1.2.0
 
-    use_nullable_dtypes : bool = False
-        Whether or not to use nullable dtypes as default when reading data. If
-        set to True, nullable dtypes are used for all dtypes that have a nullable
-        implementation, even if no nulls are present.
+    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
+        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
+        arrays, nullable dtypes are used for all dtypes that have a nullable
+        implementation when "numpy_nullable" is set, pyarrow is used for all
+        dtypes if "pyarrow" is set.
 
-        The nullable dtype implementation can be configured by calling
-        ``pd.set_option("mode.dtype_backend", "pandas")`` to use
-        numpy-backed nullable dtypes or
-        ``pd.set_option("mode.dtype_backend", "pyarrow")`` to use
-        pyarrow-backed nullable dtypes (using ``pd.ArrowDtype``).
+        The dtype_backends are still experimential.
+
+        .. versionadded:: 2.0
+
+    engine : {{"ujson", "pyarrow"}}, default "ujson"
+        Parser engine to use. The ``"pyarrow"`` engine is only available when
+        ``lines=True``.
 
         .. versionadded:: 2.0
 
     Returns
     -------
-    Series or DataFrame
-        The type returned depends on the value of `typ`.
+    Series, DataFrame, or pandas.api.typing.JsonReader
+        A JsonReader is returned when ``chunksize`` is not ``0`` or ``None``.
+        Otherwise, the type returned depends on the value of ``typ``.
 
     See Also
     --------
@@ -677,6 +703,7 @@ def read_json(
 
     Examples
     --------
+    >>> from io import StringIO
     >>> df = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
@@ -691,7 +718,7 @@ def read_json(
 "data":[["a","b"],["c","d"]]\
 }}\
 '
-    >>> pd.read_json(_, orient='split')
+    >>> pd.read_json(StringIO(_), orient='split')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -701,7 +728,7 @@ def read_json(
     >>> df.to_json(orient='index')
     '{{"row 1":{{"col 1":"a","col 2":"b"}},"row 2":{{"col 1":"c","col 2":"d"}}}}'
 
-    >>> pd.read_json(_, orient='index')
+    >>> pd.read_json(StringIO(_), orient='index')
           col 1 col 2
     row 1     a     b
     row 2     c     d
@@ -711,7 +738,7 @@ def read_json(
 
     >>> df.to_json(orient='records')
     '[{{"col 1":"a","col 2":"b"}},{{"col 1":"c","col 2":"d"}}]'
-    >>> pd.read_json(_, orient='records')
+    >>> pd.read_json(StringIO(_), orient='records')
       col 1 col 2
     0     a     b
     1     c     d
@@ -737,11 +764,7 @@ def read_json(
     if orient == "table" and convert_axes:
         raise ValueError("cannot pass both convert_axes and orient='table'")
 
-    use_nullable_dtypes = (
-        use_nullable_dtypes
-        if use_nullable_dtypes is not lib.no_default
-        else using_nullable_dtypes()
-    )
+    check_dtype_backend(dtype_backend)
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
@@ -770,7 +793,8 @@ def read_json(
         nrows=nrows,
         storage_options=storage_options,
         encoding_errors=encoding_errors,
-        use_nullable_dtypes=use_nullable_dtypes,
+        dtype_backend=dtype_backend,
+        engine=engine,
     )
 
     if chunksize:
@@ -794,7 +818,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         orient,
         typ: FrameSeriesStrT,
         dtype,
-        convert_axes,
+        convert_axes: bool | None,
         convert_dates,
         keep_default_dates: bool,
         precise_float: bool,
@@ -806,9 +830,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         nrows: int | None,
         storage_options: StorageOptions = None,
         encoding_errors: str | None = "strict",
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        engine: JSONEngine = "ujson",
     ) -> None:
-
         self.orient = orient
         self.typ = typ
         self.dtype = dtype
@@ -818,6 +842,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.precise_float = precise_float
         self.date_unit = date_unit
         self.encoding = encoding
+        self.engine = engine
         self.compression = compression
         self.storage_options = storage_options
         self.lines = lines
@@ -826,19 +851,46 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.nrows = nrows
         self.encoding_errors = encoding_errors
         self.handles: IOHandles[str] | None = None
-        self.use_nullable_dtypes = use_nullable_dtypes
+        self.dtype_backend = dtype_backend
 
+        if self.engine not in {"pyarrow", "ujson"}:
+            raise ValueError(
+                f"The engine type {self.engine} is currently not supported."
+            )
         if self.chunksize is not None:
             self.chunksize = validate_integer("chunksize", self.chunksize, 1)
             if not self.lines:
                 raise ValueError("chunksize can only be passed if lines=True")
+            if self.engine == "pyarrow":
+                raise ValueError(
+                    "currently pyarrow engine doesn't support chunksize parameter"
+                )
         if self.nrows is not None:
             self.nrows = validate_integer("nrows", self.nrows, 0)
             if not self.lines:
                 raise ValueError("nrows can only be passed if lines=True")
-
-        data = self._get_data_from_filepath(filepath_or_buffer)
-        self.data = self._preprocess_data(data)
+        if (
+            isinstance(filepath_or_buffer, str)
+            and not self.lines
+            and "\n" in filepath_or_buffer
+        ):
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if self.engine == "pyarrow":
+            if not self.lines:
+                raise ValueError(
+                    "currently pyarrow engine only supports "
+                    "the line-delimited JSON format"
+                )
+            self.data = filepath_or_buffer
+        elif self.engine == "ujson":
+            data = self._get_data_from_filepath(filepath_or_buffer)
+            self.data = self._preprocess_data(data)
 
     def _preprocess_data(self, data):
         """
@@ -894,7 +946,14 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             and not file_exists(filepath_or_buffer)
         ):
             raise FileNotFoundError(f"File {filepath_or_buffer} does not exist")
-
+        else:
+            warnings.warn(
+                "Passing literal json to 'read_json' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "literal string, wrap it in a 'StringIO' object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         return filepath_or_buffer
 
     def _combine_lines(self, lines) -> str:
@@ -923,23 +982,41 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         """
         obj: DataFrame | Series
         with self:
-            if self.lines:
-                if self.chunksize:
-                    obj = concat(self)
-                elif self.nrows:
-                    lines = list(islice(self.data, self.nrows))
-                    lines_json = self._combine_lines(lines)
-                    obj = self._get_object_parser(lines_json)
+            if self.engine == "pyarrow":
+                pyarrow_json = import_optional_dependency("pyarrow.json")
+                pa_table = pyarrow_json.read_json(self.data)
+
+                mapping: type[ArrowDtype] | None | Callable
+                if self.dtype_backend == "pyarrow":
+                    mapping = ArrowDtype
+                elif self.dtype_backend == "numpy_nullable":
+                    from pandas.io._util import _arrow_dtype_mapping
+
+                    mapping = _arrow_dtype_mapping().get
                 else:
-                    data = ensure_str(self.data)
-                    data_lines = data.split("\n")
-                    obj = self._get_object_parser(self._combine_lines(data_lines))
-            else:
-                obj = self._get_object_parser(self.data)
-        if self.use_nullable_dtypes:
-            return obj.convert_dtypes(infer_objects=False)
-        else:
-            return obj
+                    mapping = None
+
+                return pa_table.to_pandas(types_mapper=mapping)
+            elif self.engine == "ujson":
+                if self.lines:
+                    if self.chunksize:
+                        obj = concat(self)
+                    elif self.nrows:
+                        lines = list(islice(self.data, self.nrows))
+                        lines_json = self._combine_lines(lines)
+                        obj = self._get_object_parser(lines_json)
+                    else:
+                        data = ensure_str(self.data)
+                        data_lines = data.split("\n")
+                        obj = self._get_object_parser(self._combine_lines(data_lines))
+                else:
+                    obj = self._get_object_parser(self.data)
+                if self.dtype_backend is not lib.no_default:
+                    return obj.convert_dtypes(
+                        infer_objects=False, dtype_backend=self.dtype_backend
+                    )
+                else:
+                    return obj
 
     def _get_object_parser(self, json) -> DataFrame | Series:
         """
@@ -955,7 +1032,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "keep_default_dates": self.keep_default_dates,
             "precise_float": self.precise_float,
             "date_unit": self.date_unit,
-            "use_nullable_dtypes": self.use_nullable_dtypes,
+            "dtype_backend": self.dtype_backend,
         }
         obj = None
         if typ == "frame":
@@ -1014,8 +1091,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             self.close()
             raise ex
 
-        if self.use_nullable_dtypes:
-            return obj.convert_dtypes(infer_objects=False)
+        if self.dtype_backend is not lib.no_default:
+            return obj.convert_dtypes(
+                infer_objects=False, dtype_backend=self.dtype_backend
+            )
         else:
             return obj
 
@@ -1054,7 +1133,7 @@ class Parser:
         keep_default_dates: bool = False,
         precise_float: bool = False,
         date_unit=None,
-        use_nullable_dtypes: bool = False,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> None:
         self.json = json
 
@@ -1081,7 +1160,7 @@ class Parser:
         self.date_unit = date_unit
         self.keep_default_dates = keep_default_dates
         self.obj: DataFrame | Series | None = None
-        self.use_nullable_dtypes = use_nullable_dtypes
+        self.dtype_backend = dtype_backend
 
     def check_keys_split(self, decoded) -> None:
         """
@@ -1126,7 +1205,7 @@ class Parser:
 
     def _try_convert_data(
         self,
-        name,
+        name: Hashable,
         data,
         use_dtypes: bool = True,
         convert_dates: bool | list[str] = True,
@@ -1141,12 +1220,7 @@ class Parser:
                     return data, False
                 return data.fillna(np.nan), True
 
-            # error: Non-overlapping identity check (left operand type:
-            # "Union[ExtensionDtype, str, dtype[Any], Type[object],
-            # Dict[Hashable, Union[ExtensionDtype, Union[str, dtype[Any]],
-            # Type[str], Type[float], Type[int], Type[complex], Type[bool],
-            # Type[object]]]]", right operand type: "Literal[True]")
-            elif self.dtype is True:  # type: ignore[comparison-overlap]
+            elif self.dtype is True:
                 pass
             else:
                 # dtype to force
@@ -1164,11 +1238,10 @@ class Parser:
             if result:
                 return new_data, True
 
-        if self.use_nullable_dtypes and not isinstance(data, ABCIndex):
+        if self.dtype_backend is not lib.no_default and not isinstance(data, ABCIndex):
             # Fall through for conversion later on
             return data, True
         elif data.dtype == "object":
-
             # try float
             try:
                 data = data.astype("float64")
@@ -1176,9 +1249,7 @@ class Parser:
                 pass
 
         if data.dtype.kind == "f":
-
             if data.dtype != "float64":
-
                 # coerce floats to 64
                 try:
                     data = data.astype("float64")
@@ -1187,7 +1258,6 @@ class Parser:
 
         # don't coerce 0-len data
         if len(data) and data.dtype in ("float", "object"):
-
             # coerce ints if we can
             try:
                 new_data = data.astype("int64")
@@ -1198,7 +1268,6 @@ class Parser:
 
         # coerce ints to 64
         if data.dtype == "int":
-
             # coerce floats to 64
             try:
                 data = data.astype("int64")
@@ -1284,7 +1353,6 @@ class FrameParser(Parser):
     _split_keys = ("columns", "index", "data")
 
     def _parse(self) -> None:
-
         json = self.json
         orient = self.orient
 
@@ -1341,7 +1409,6 @@ class FrameParser(Parser):
             new_obj[i] = c
 
         if needs_new_obj:
-
             # possibly handle dup columns
             new_frame = DataFrame(new_obj, index=obj.index)
             new_frame.columns = obj.columns
@@ -1376,8 +1443,7 @@ class FrameParser(Parser):
 
             col_lower = col.lower()
             if (
-                col_lower.endswith("_at")
-                or col_lower.endswith("_time")
+                col_lower.endswith(("_at", "_time"))
                 or col_lower == "modified"
                 or col_lower == "date"
                 or col_lower == "datetime"

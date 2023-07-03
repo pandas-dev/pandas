@@ -24,15 +24,18 @@ import pandas._testing as tm
 from pandas.core.arrays import period_array
 
 
+@pytest.mark.filterwarnings(
+    "ignore:(Series|DataFrame).fillna with 'method' is deprecated:FutureWarning"
+)
 class TestSeriesFillNA:
     def test_fillna_nat(self):
-        series = Series([0, 1, 2, NaT.value], dtype="M8[ns]")
+        series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
 
         filled = series.fillna(method="pad")
         filled2 = series.fillna(value=series.values[2])
 
         expected = series.copy()
-        expected.values[3] = expected.values[2]
+        expected.iloc[3] = expected.iloc[2]
 
         tm.assert_series_equal(filled, expected)
         tm.assert_series_equal(filled2, expected)
@@ -44,7 +47,7 @@ class TestSeriesFillNA:
         tm.assert_frame_equal(filled, expected)
         tm.assert_frame_equal(filled2, expected)
 
-        series = Series([NaT.value, 0, 1, 2], dtype="M8[ns]")
+        series = Series([NaT._value, 0, 1, 2], dtype="M8[ns]")
 
         filled = series.fillna(method="bfill")
         filled2 = series.fillna(value=series[1])
@@ -72,7 +75,7 @@ class TestSeriesFillNA:
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
 
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
 
         exp = Series([0.0, 1.0, 1.0, 3.0, 4.0], index=ts.index)
         tm.assert_series_equal(ts.fillna(method="ffill"), exp)
@@ -172,13 +175,16 @@ class TestSeriesFillNA:
         # GH#15277
         # infer int64 from float64
         ser = Series([1.0, np.nan])
-        result = ser.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna(0, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         ser = Series([1.0, np.nan])
-        result = ser.fillna({1: 0}, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna({1: 0}, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
@@ -191,15 +197,21 @@ class TestSeriesFillNA:
 
         ser = Series(arr)
 
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         expected = Series(np.arange(5), dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2, 2, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2, 4, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
@@ -207,14 +219,20 @@ class TestSeriesFillNA:
         ser[2] = 2.5
 
         expected = Series([0, 1, 2.5, 3, 4], dtype=np.float64)
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2.5, 2.5, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2.5, 4, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
@@ -320,7 +338,6 @@ class TestSeriesFillNA:
         tm.assert_equal(result, expected)
 
     def test_datetime64_fillna(self):
-
         ser = Series(
             [
                 Timestamp("20130101"),
@@ -794,7 +811,6 @@ class TestSeriesFillNA:
             ser.fillna((1, 2))
 
     def test_fillna_method_and_limit_invalid(self):
-
         # related GH#9217, make sure limit is an int and greater than 0
         ser = Series([1, 2, 3, None])
         msg = "|".join(
@@ -848,6 +864,9 @@ class TestSeriesFillNA:
         tm.assert_categorical_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
+)
 class TestFillnaPad:
     def test_fillna_bug(self):
         ser = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
@@ -861,7 +880,7 @@ class TestFillnaPad:
 
     def test_ffill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
@@ -872,7 +891,7 @@ class TestFillnaPad:
 
     def test_bfill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts[2] = np.NaN
+        ts.iloc[2] = np.NaN
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
     def test_pad_nan(self):
@@ -887,7 +906,7 @@ class TestFillnaPad:
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
         )
         tm.assert_series_equal(x[1:], expected[1:])
-        assert np.isnan(x[0]), np.isnan(expected[0])
+        assert np.isnan(x.iloc[0]), np.isnan(expected.iloc[0])
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
@@ -936,7 +955,7 @@ class TestFillnaPad:
             [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
         )
 
-        filled = data.fillna(method="bfill")
+        filled = data.bfill()
 
         expected = Series(
             [
@@ -967,6 +986,13 @@ class TestFillnaPad:
         )
         expected = Series(arr)
 
-        filled = ser.fillna(method="pad")
+        filled = ser.ffill()
 
         tm.assert_series_equal(filled, expected)
+
+    @pytest.mark.parametrize("func", ["pad", "backfill"])
+    def test_pad_backfill_deprecated(self, func):
+        # GH#33396
+        ser = Series([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            getattr(ser, func)()

@@ -102,11 +102,11 @@ def test_value_counts_na():
     result = arr.value_counts(dropna=False)
     idx = pd.Index([0.1, 0.2, pd.NA], dtype=arr.dtype)
     assert idx.dtype == arr.dtype
-    expected = pd.Series([2, 1, 1], index=idx, dtype="Int64")
+    expected = pd.Series([2, 1, 1], index=idx, dtype="Int64", name="count")
     tm.assert_series_equal(result, expected)
 
     result = arr.value_counts(dropna=True)
-    expected = pd.Series([2, 1], index=idx[:-1], dtype="Int64")
+    expected = pd.Series([2, 1], index=idx[:-1], dtype="Int64", name="count")
     tm.assert_series_equal(result, expected)
 
 
@@ -115,14 +115,14 @@ def test_value_counts_empty():
     result = ser.value_counts()
     idx = pd.Index([], dtype="Float64")
     assert idx.dtype == "Float64"
-    expected = pd.Series([], index=idx, dtype="Int64")
+    expected = pd.Series([], index=idx, dtype="Int64", name="count")
     tm.assert_series_equal(result, expected)
 
 
 def test_value_counts_with_normalize():
     ser = pd.Series([0.1, 0.2, 0.1, pd.NA], dtype="Float64")
     result = ser.value_counts(normalize=True)
-    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64") / 3
+    expected = pd.Series([2, 1], index=ser[:2], dtype="Float64", name="proportion") / 3
     assert expected.index.dtype == ser.dtype
     tm.assert_series_equal(result, expected)
 

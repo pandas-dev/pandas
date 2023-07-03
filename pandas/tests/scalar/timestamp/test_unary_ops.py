@@ -13,6 +13,7 @@ from pytz import utc
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
     conversion,
@@ -27,9 +28,8 @@ import pandas._testing as tm
 
 
 class TestTimestampUnaryOps:
-
     # --------------------------------------------------------------
-    def test_round_divison_by_zero_raises(self):
+    def test_round_division_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
 
         msg = "Division by zero in rounding"
@@ -268,21 +268,21 @@ class TestTimestampUnaryOps:
 
         # test floor
         result = dt.floor(freq)
-        assert result.value % unit == 0, f"floor not a {freq} multiple"
-        assert 0 <= dt.value - result.value < unit, "floor error"
+        assert result._value % unit == 0, f"floor not a {freq} multiple"
+        assert 0 <= dt._value - result._value < unit, "floor error"
 
         # test ceil
         result = dt.ceil(freq)
-        assert result.value % unit == 0, f"ceil not a {freq} multiple"
-        assert 0 <= result.value - dt.value < unit, "ceil error"
+        assert result._value % unit == 0, f"ceil not a {freq} multiple"
+        assert 0 <= result._value - dt._value < unit, "ceil error"
 
         # test round
         result = dt.round(freq)
-        assert result.value % unit == 0, f"round not a {freq} multiple"
-        assert abs(result.value - dt.value) <= unit // 2, "round error"
-        if unit % 2 == 0 and abs(result.value - dt.value) == unit // 2:
+        assert result._value % unit == 0, f"round not a {freq} multiple"
+        assert abs(result._value - dt._value) <= unit // 2, "round error"
+        if unit % 2 == 0 and abs(result._value - dt._value) == unit // 2:
             # round half to even
-            assert result.value // unit % 2 == 0, "round half to even error"
+            assert result._value // unit % 2 == 0, "round half to even error"
 
     def test_round_implementation_bounds(self):
         # See also: analogous test for Timedelta
@@ -294,74 +294,117 @@ class TestTimestampUnaryOps:
         expected = Timestamp.max - Timedelta(854775807)
         assert result == expected
 
-        with pytest.raises(OverflowError, match="value too large"):
+        msg = "Cannot round 1677-09-21 00:12:43.145224193 to freq=<Second>"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.min.floor("s")
 
-        # the second message here shows up in windows builds
-        msg = "|".join(
-            ["Python int too large to convert to C long", "int too big to convert"]
-        )
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp.min.round("s")
+
+        msg = "Cannot round 2262-04-11 23:47:16.854775807 to freq=<Second>"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.ceil("s")
 
-    @pytest.mark.xfail(reason="Failing on builds", strict=False)
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            Timestamp.max.round("s")
+
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]
     )
     def test_round_sanity(self, val, method):
-        val = np.int64(val)
-        ts = Timestamp(val)
+        cls = Timestamp
+        err_cls = OutOfBoundsDatetime
 
-        def checker(res, ts, nanos):
-            if method is Timestamp.round:
-                diff = np.abs((res - ts).value)
+        val = np.int64(val)
+        ts = cls(val)
+
+        def checker(ts, nanos, unit):
+            # First check that we do raise in cases where we should
+            if nanos == 1:
+                pass
+            else:
+                div, mod = divmod(ts._value, nanos)
+                diff = int(nanos - mod)
+                lb = ts._value - mod
+                assert lb <= ts._value  # i.e. no overflows with python ints
+                ub = ts._value + diff
+                assert ub > ts._value  # i.e. no overflows with python ints
+
+                msg = "without overflow"
+                if mod == 0:
+                    # We should never be raising in this
+                    pass
+                elif method is cls.ceil:
+                    if ub > cls.max._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif method is cls.floor:
+                    if lb < cls.min._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif mod >= diff:
+                    if ub > cls.max._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif lb < cls.min._value:
+                    with pytest.raises(err_cls, match=msg):
+                        method(ts, unit)
+                    return
+
+            res = method(ts, unit)
+
+            td = res - ts
+            diff = abs(td._value)
+            assert diff < nanos
+            assert res._value % nanos == 0
+
+            if method is cls.round:
                 assert diff <= nanos / 2
-            elif method is Timestamp.floor:
+            elif method is cls.floor:
                 assert res <= ts
-            elif method is Timestamp.ceil:
+            elif method is cls.ceil:
                 assert res >= ts
 
-        assert method(ts, "ns") == ts
+        nanos = 1
+        checker(ts, nanos, "ns")
 
-        res = method(ts, "us")
         nanos = 1000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "us")
 
-        res = method(ts, "ms")
         nanos = 1_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "ms")
 
-        res = method(ts, "s")
         nanos = 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "s")
 
-        res = method(ts, "min")
         nanos = 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "min")
 
-        res = method(ts, "h")
         nanos = 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "h")
 
-        res = method(ts, "D")
         nanos = 24 * 60 * 60 * 1_000_000_000
-        assert np.abs((res - ts).value) < nanos
-        assert res.value % nanos == 0
-        checker(res, ts, nanos)
+        checker(ts, nanos, "D")
 
     # --------------------------------------------------------------
     # Timestamp.replace
+
+    def test_replace_out_of_pydatetime_bounds(self):
+        # GH#50348
+        ts = Timestamp("2016-01-01").as_unit("ns")
+
+        msg = "Out of bounds nanosecond timestamp: 99999-01-01 00:00:00"
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ts.replace(year=99_999)
+
+        ts = ts.as_unit("ms")
+        result = ts.replace(year=99_999)
+        assert result.year == 99_999
+        assert result._value == Timestamp(np.datetime64("99999-01-01", "ms"))._value
 
     def test_replace_non_nano(self):
         ts = Timestamp._from_value_and_reso(

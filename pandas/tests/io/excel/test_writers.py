@@ -11,6 +11,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat._constants import PY310
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -269,8 +270,18 @@ class TestRoundTrip:
             tm.assert_frame_equal(df, res)
 
             date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
+            with tm.assert_produces_warning(
+                FutureWarning, match="use 'date_format' instead"
+            ):
+                res = pd.read_excel(
+                    pth,
+                    parse_dates=["date_strings"],
+                    date_parser=date_parser,
+                    index_col=0,
+                )
+            tm.assert_frame_equal(df, res)
             res = pd.read_excel(
-                pth, parse_dates=["date_strings"], date_parser=date_parser, index_col=0
+                pth, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
             )
             tm.assert_frame_equal(df, res)
 
@@ -329,7 +340,6 @@ class TestRoundTrip:
 @pytest.mark.usefixtures("set_engine")
 class TestExcelWriter:
     def test_excel_sheet_size(self, path):
-
         # GH 26080
         breaking_row_count = 2**20 + 1
         breaking_col_count = 2**14 + 1
@@ -502,7 +512,6 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_sheets(self, frame, tsframe, path):
-
         # freq doesn't round-trip
         index = pd.DatetimeIndex(np.asarray(tsframe.index), freq=None)
         tsframe.index = index
@@ -1106,6 +1115,38 @@ class TestExcelWriter:
             bio.seek(0)
             reread_df = pd.read_excel(bio, index_col=0)
             tm.assert_frame_equal(df, reread_df)
+
+    def test_engine_kwargs(self, engine, path):
+        # GH#52368
+        df = DataFrame([{"A": 1, "B": 2}, {"A": 3, "B": 4}])
+
+        msgs = {
+            "odf": r"OpenDocumentSpreadsheet() got an unexpected keyword "
+            r"argument 'foo'",
+            "openpyxl": r"__init__() got an unexpected keyword argument 'foo'",
+            "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
+        }
+
+        if PY310:
+            msgs[
+                "openpyxl"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+            msgs[
+                "xlsxwriter"
+            ] = "Workbook.__init__() got an unexpected keyword argument 'foo'"
+
+        # Handle change in error message for openpyxl (write and append mode)
+        if engine == "openpyxl" and not os.path.exists(path):
+            msgs[
+                "openpyxl"
+            ] = r"load_workbook() got an unexpected keyword argument 'foo'"
+
+        with pytest.raises(TypeError, match=re.escape(msgs[engine])):
+            df.to_excel(
+                path,
+                engine=engine,
+                engine_kwargs={"foo": "bar"},
+            )
 
     def test_write_lists_dict(self, path):
         # see gh-8188.

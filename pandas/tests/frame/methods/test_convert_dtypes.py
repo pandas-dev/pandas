@@ -53,11 +53,11 @@ class TestConvertDtypes:
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
                 "e": pd.Series(pd.date_range("2022", periods=3)),
-                "f": pd.Series(pd.timedelta_range("1D", periods=3)),
+                "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
+                "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = df.convert_dtypes()
+        result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -79,6 +79,16 @@ class TestConvertDtypes:
                 "f": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
+                            datetime.datetime(2022, 1, 1),
+                            datetime.datetime(2022, 1, 2),
+                            datetime.datetime(2022, 1, 3),
+                        ],
+                        type=pa.timestamp(unit="s", tz="UTC"),
+                    )
+                ),
+                "g": pd.arrays.ArrowExtensionArray(
+                    pa.array(
+                        [
                             datetime.timedelta(1),
                             datetime.timedelta(2),
                             datetime.timedelta(3),
@@ -93,8 +103,7 @@ class TestConvertDtypes:
     def test_pyarrow_dtype_backend_already_pyarrow(self):
         pytest.importorskip("pyarrow")
         expected = pd.DataFrame([1, 2, 3], dtype="int64[pyarrow]")
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = expected.convert_dtypes()
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_frame_equal(result, expected)
 
     def test_pyarrow_dtype_backend_from_pandas_nullable(self):
@@ -107,8 +116,7 @@ class TestConvertDtypes:
                 "d": pd.Series([None, 100.5, 200], dtype="Float64"),
             }
         )
-        with pd.option_context("mode.dtype_backend", "pyarrow"):
-            result = df.convert_dtypes()
+        result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -119,4 +127,43 @@ class TestConvertDtypes:
                 "d": pd.arrays.ArrowExtensionArray(pa.array([None, 100.5, 200.0])),
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pyarrow_dtype_empty_object(self):
+        # GH 50970
+        pytest.importorskip("pyarrow")
+        expected = pd.DataFrame(columns=[0])
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_frame_equal(result, expected)
+
+    def test_pyarrow_engine_lines_false(self):
+        # GH 48893
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.convert_dtypes(dtype_backend="numpy")
+
+    def test_pyarrow_backend_no_conversion(self):
+        # GH#52872
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
+        expected = df.copy()
+        result = df.convert_dtypes(
+            convert_floating=False,
+            convert_integer=False,
+            convert_boolean=False,
+            convert_string=False,
+            dtype_backend="pyarrow",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_to_np_nullable(self):
+        # GH 53648
+        pytest.importorskip("pyarrow")
+        ser = pd.DataFrame(range(2), dtype="int32[pyarrow]")
+        result = ser.convert_dtypes(dtype_backend="numpy_nullable")
+        expected = pd.DataFrame(range(2), dtype="Int32")
         tm.assert_frame_equal(result, expected)

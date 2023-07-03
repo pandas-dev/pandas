@@ -9,8 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-
-from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
@@ -26,12 +25,12 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
 
 
 @pytest.mark.parametrize(
@@ -43,7 +42,6 @@ from pandas.core.ops import roperator
     ],
 )
 def test_nat_fields(nat, idx):
-
     for field in idx._field_ops:
         # weekday is a property of DTI, but a method
         # on NaT/Timestamp for compat with datetime
@@ -57,7 +55,6 @@ def test_nat_fields(nat, idx):
         assert np.isnan(result)
 
     for field in idx._bool_ops:
-
         result = getattr(NaT, field)
         assert result is False
 
@@ -97,20 +94,11 @@ def test_nat_vector_field_access():
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat"])
+@pytest.mark.parametrize(
+    "value", [None, np.nan, iNaT, float("nan"), NaT, "NaT", "nat", "", "NAT"]
+)
 def test_identity(klass, value):
     assert klass(value) is NaT
-
-
-@pytest.mark.parametrize("klass", [Timestamp, Timedelta, Period])
-@pytest.mark.parametrize("value", ["", "nat", "NAT", None, np.nan])
-def test_equality(klass, value, request):
-    if klass is Period and value == "":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Period cannot parse empty string")
-        )
-
-    assert klass(value).value == iNaT
 
 
 @pytest.mark.parametrize("klass", [Timestamp, Timedelta])
@@ -454,7 +442,7 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+    if value.dtype.kind == "M" and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
@@ -503,7 +491,7 @@ def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
 
 def test_nat_pinned_docstrings():
     # see gh-17327
-    assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+    assert NaT.ctime.__doc__ == Timestamp.ctime.__doc__
 
 
 def test_to_numpy_alias():
@@ -538,7 +526,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timedelta(0).to_timedelta64(),
             marks=pytest.mark.xfail(
-                reason="td64 doesn't return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0),
@@ -546,7 +535,8 @@ def test_to_numpy_alias():
         pytest.param(
             Timestamp(0).to_datetime64(),
             marks=pytest.mark.xfail(
-                reason="dt64 doesn't return NotImplemented, see numpy#17017"
+                not np_version_gte1p24p3,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
             ),
         ),
         Timestamp(0).tz_localize("UTC"),

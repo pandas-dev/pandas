@@ -125,7 +125,6 @@ class TestMultiIndexSetItem:
     # all NaNs -> doesn't work in the "split" path (also for BlockManager actually)
     @td.skip_array_manager_not_yet_implemented
     def test_multiindex_setitem(self):
-
         # GH 3738
         # setting with a multi-index right hand side
         arrays = [
@@ -149,7 +148,6 @@ class TestMultiIndexSetItem:
             df.loc["bar"] *= 2
 
     def test_multiindex_setitem2(self):
-
         # from SO
         # https://stackoverflow.com/questions/24572040/pandas-access-the-level-of-multiindex-for-inplace-operation
         df_orig = DataFrame.from_dict(
@@ -181,7 +179,6 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_multiindex_assignment(self):
-
         # GH3777 part 2
 
         # mixed dtype
@@ -284,7 +281,7 @@ class TestMultiIndexSetItem:
     def test_frame_getitem_setitem_boolean(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         df = frame.T.copy()
-        values = df.values
+        values = df.values.copy()
 
         result = df[df > 0]
         expected = df.where(df > 0)
@@ -344,7 +341,6 @@ class TestMultiIndexSetItem:
         tm.assert_frame_equal(cp["a"], cp["b"])
 
     def test_frame_setitem_multi_column2(self):
-
         # ---------------------------------------
         # GH#1803
         columns = MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")])
@@ -437,7 +433,6 @@ class TestMultiIndexSetItem:
         assert (df.xs((1, 1))["C"] == "_").all()
 
     def test_astype_assignment_with_dups(self):
-
         # GH 4686
         # assignment with dups that has a dtype change
         cols = MultiIndex.from_tuples([("A", "1"), ("B", "1"), ("A", "2")])
@@ -484,15 +479,37 @@ class TestSetitemWithExpansionMultiIndex:
         df["new"] = s
         assert df["new"].isna().all()
 
+    def test_setitem_enlargement_keep_index_names(self):
+        # GH#53053
+        mi = MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
+        df = DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
+        df.loc[(0, 0, 0)] = df.loc[(1, 2, 3)]
+        mi_expected = MultiIndex.from_tuples(
+            [(1, 2, 3), (0, 0, 0)], names=["i1", "i2", "i3"]
+        )
+        expected = DataFrame(
+            data=[[10, 20, 30], [10, 20, 30]],
+            index=mi_expected,
+            columns=["A", "B", "C"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 @td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
 # is not a view
-def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
+def test_frame_setitem_view_direct(
+    multiindex_dataframe_random_data, using_copy_on_write
+):
     # this works because we are modifying the underlying array
     # really a no-no
     df = multiindex_dataframe_random_data.T
-    df["foo"].values[:] = 0
-    assert (df["foo"].values == 0).all()
+    if using_copy_on_write:
+        with pytest.raises(ValueError, match="read-only"):
+            df["foo"].values[:] = 0
+        assert (df["foo"].values != 0).all()
+    else:
+        df["foo"].values[:] = 0
+        assert (df["foo"].values == 0).all()
 
 
 def test_frame_setitem_copy_raises(

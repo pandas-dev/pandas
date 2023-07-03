@@ -12,6 +12,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 class TestDataFrameSortValues:
@@ -291,7 +292,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_datetimes(self):
-
         # GH#3461, argsort / lexsort differences for a datetime column
         df = DataFrame(
             ["a", "a", "a", "b", "c", "d", "e", "f", "g"],
@@ -349,13 +349,12 @@ class TestDataFrameSortValues:
         cp.sort_values()  # it works!
 
     def test_sort_values_nat_values_in_int_column(self):
-
         # GH#14922: "sorting with large float and multiple columns incorrect"
 
         # cause was that the int64 value NaT was considered as "na". Which is
         # only correct for datetime64 columns.
 
-        int_values = (2, int(NaT.value))
+        int_values = (2, int(NaT._value))
         float_values = (2.0, -1.797693e308)
 
         df = DataFrame(
@@ -509,7 +508,6 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_values_nat(self):
-
         # GH#16836
 
         d1 = [Timestamp(x) for x in ["2016-01-01", "2015-01-01", np.nan, "2016-01-01"]]
@@ -598,7 +596,7 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_array_manager):
+    def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
         df["D"] = df["A"] * 2
@@ -607,9 +605,15 @@ class TestDataFrameSortValues:
             assert len(df._mgr.blocks) == 2
 
         df.sort_values(by="A")
-        ser.values[0] = 99
 
-        assert df.iloc[0, 0] == df["A"][0]
+        if using_copy_on_write:
+            ser.iloc[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] != 99
+        else:
+            ser.values[0] = 99
+            assert df.iloc[0, 0] == df["A"][0]
+            assert df.iloc[0, 0] == 99
 
     def test_sort_values_reshaping(self):
         # GH 39426
@@ -626,6 +630,13 @@ class TestDataFrameSortValues:
         result = df.sort_values(by=[], inplace=True)
         tm.assert_frame_equal(df, expected)
         assert result is None
+
+    def test_sort_values_no_op_reset_index(self):
+        # GH#52553
+        df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
+        result = df.sort_values(by="A", ignore_index=True)
+        expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
@@ -839,9 +850,22 @@ def ascending(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if (
+            Version(np.__version__) >= Version("1.25")
+            and request.node.callspec.id == "df_idx0-inner-True"
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
@@ -857,7 +881,7 @@ class TestSortValuesLevelAsStr:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_column_level_and_index_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
 
@@ -875,6 +899,17 @@ class TestSortValuesLevelAsStr:
 
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
+
+        if Version(np.__version__) >= Version("1.25"):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         tm.assert_frame_equal(result, expected)
 

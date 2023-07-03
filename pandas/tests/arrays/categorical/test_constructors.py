@@ -32,6 +32,13 @@ import pandas._testing as tm
 
 
 class TestCategoricalConstructors:
+    def test_fastpath_deprecated(self):
+        codes = np.array([1, 2, 3])
+        dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=False)
+        msg = "The 'fastpath' keyword in Categorical is deprecated"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            Categorical(codes, dtype=dtype, fastpath=True)
+
     def test_categorical_from_cat_and_dtype_str_preserve_ordered(self):
         # GH#49309 we should preserve orderedness in `res`
         cat = Categorical([3, 1], categories=[3, 2, 1], ordered=True)
@@ -110,7 +117,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, expected)
 
     def test_constructor_unsortable(self):
-
         # it works!
         arr = np.array([1, 2, 3, datetime.now()], dtype="O")
         factor = Categorical(arr, ordered=False)
@@ -134,7 +140,6 @@ class TestCategoricalConstructors:
         tm.assert_index_equal(result.categories, ii)
 
     def test_constructor(self):
-
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)
         c1 = Categorical(exp_arr)
         tm.assert_numpy_array_equal(c1.__array__(), exp_arr)
@@ -263,7 +268,6 @@ class TestCategoricalConstructors:
             Categorical(["a", "b"], categories="a")
 
     def test_constructor_with_null(self):
-
         # Cannot have NaN in categories
         msg = "Categorical categories cannot be null"
         with pytest.raises(ValueError, match=msg):
@@ -505,12 +509,13 @@ class TestCategoricalConstructors:
 
         tm.assert_categorical_equal(result, expected)
 
-    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype):
+    @pytest.mark.parametrize("validate", [True, False])
+    def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype, validate):
         # GH#39649
         cats = pd.array(range(5), dtype=any_numeric_ea_dtype)
         codes = np.random.randint(5, size=3)
         dtype = CategoricalDtype(cats)
-        arr = Categorical.from_codes(codes, dtype=dtype)
+        arr = Categorical.from_codes(codes, dtype=dtype, validate=validate)
         assert arr.categories.dtype == cats.dtype
         tm.assert_index_equal(arr.categories, Index(cats))
 
@@ -520,6 +525,17 @@ class TestCategoricalConstructors:
         expected = Categorical([], categories=cat)
 
         tm.assert_categorical_equal(result, expected)
+
+    @pytest.mark.parametrize("validate", [True, False])
+    def test_from_codes_validate(self, validate):
+        # GH53122
+        dtype = CategoricalDtype(["a", "b"])
+        if validate:
+            with pytest.raises(ValueError, match="codes need to be between "):
+                Categorical.from_codes([4, 5], dtype=dtype, validate=validate)
+        else:
+            # passes, though has incorrect codes, but that's the user responsibility
+            Categorical.from_codes([4, 5], dtype=dtype, validate=validate)
 
     def test_from_codes_too_few_categories(self):
         dtype = CategoricalDtype(categories=[1, 2])

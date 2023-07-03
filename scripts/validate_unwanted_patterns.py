@@ -33,24 +33,21 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_doc_template",
-    "_agg_template",
+    "_agg_template_series",
+    "_agg_template_frame",
     "_pipe_template",
     "__main__",
     "_transform_template",
-    "_flex_comp_doc_FRAME",
-    "_op_descriptions",
-    "_IntegerDtype",
     "_use_inf_as_na",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
     "_registry",
-    "_get_offset",  # TODO: remove after get_offset deprecation enforced
     "_test_parse_iso8601",
     "_testing",
     "_test_decorators",
     "__version__",  # check np.__version__ in compat.numpy.function
+    "__git_version__",
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",
@@ -139,15 +136,14 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
                 "Bare pytests raise have been found. "
                 "Please pass in the argument 'match' as well the exception.",
             )
-        else:
-            # Means that there are arguments that are being passed in,
-            # now we validate that `match` is one of the passed in arguments
-            if not any(keyword.arg == "match" for keyword in node.keywords):
-                yield (
-                    node.lineno,
-                    "Bare pytests raise have been found. "
-                    "Please pass in the argument 'match' as well the exception.",
-                )
+        # Means that there are arguments that are being passed in,
+        # now we validate that `match` is one of the passed in arguments
+        elif not any(keyword.arg == "match" for keyword in node.keywords):
+            yield (
+                node.lineno,
+                "Bare pytests raise have been found. "
+                "Please pass in the argument 'match' as well the exception.",
+            )
 
 
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
@@ -230,55 +226,6 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
 
             if module_name.startswith("_"):
                 yield (node.lineno, f"Import of internal function {repr(module_name)}")
-
-
-def strings_to_concatenate(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
-    """
-    This test case is necessary after 'Black' (https://github.com/psf/black),
-    is formatting strings over multiple lines.
-
-    For example, when this:
-
-    >>> foo = (
-    ...     "bar "
-    ...     "baz"
-    ... )
-
-    Is becoming this:
-
-    >>> foo = ("bar " "baz")
-
-    'Black' is not considering this as an
-    issue (see https://github.com/psf/black/issues/1051),
-    so we are checking it here instead.
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #30454
-    """
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
-
-    for current_token, next_token in zip(tokens, tokens[1:]):
-        if current_token.type == next_token.type == token.STRING:
-            yield (
-                current_token.start[0],
-                (
-                    "String unnecessarily split in two by black. "
-                    "Please merge them manually."
-                ),
-            )
 
 
 def strings_with_wrong_placed_whitespace(
@@ -406,6 +353,52 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
+def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """Test case where pandas._libs.lib.NoDefault is not used for typing.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of misused lib.NoDefault.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+    in_annotation = False
+    nodes: List[tuple[bool, ast.AST]] = [(in_annotation, tree)]
+
+    while nodes:
+        in_annotation, node = nodes.pop()
+        if not in_annotation and (
+            isinstance(node, ast.Name)  # Case `NoDefault`
+            and node.id == "NoDefault"
+            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+            and node.attr == "NoDefault"
+        ):
+            yield (node.lineno, "NoDefault is used not only for typing")
+
+        # This part is adapted from
+        # https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+        for name in reversed(node._fields):
+            value = getattr(node, name)
+            if name in {"annotation", "returns"}:
+                next_in_annotation = True
+            else:
+                next_in_annotation = in_annotation
+            if isinstance(value, ast.AST):
+                nodes.append((next_in_annotation, value))
+            elif isinstance(value, list):
+                for value in reversed(value):
+                    if isinstance(value, ast.AST):
+                        nodes.append((next_in_annotation, value))
+
+
 def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
@@ -457,8 +450,8 @@ if __name__ == "__main__":
         "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",
-        "strings_to_concatenate",
         "strings_with_wrong_placed_whitespace",
+        "nodefault_used_not_only_for_typing",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
@@ -467,7 +460,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}",
+        default="{source_path}:{line_number}: {msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(

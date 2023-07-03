@@ -6,7 +6,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
 from pandas.tests.extension.decimal.array import (
     DecimalArray,
@@ -70,15 +69,7 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-    def test_hashable(self, dtype):
-        pass
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_infer_dtype(self, data, data_missing, skipna):
-        # here overriding base test to ensure we fall back to return
-        # "unknown-array" for an EA pandas doesn't know
-        assert infer_dtype(data, skipna=skipna) == "unknown-array"
-        assert infer_dtype(data_missing, skipna=skipna) == "unknown-array"
+    pass
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -111,7 +102,6 @@ class TestMissing(base.BaseMissingTests):
 
 class Reduce:
     def check_reduce(self, s, op_name, skipna):
-
         if op_name in ["median", "skew", "kurt", "sem"]:
             msg = r"decimal does not support the .* operation"
             with pytest.raises(NotImplementedError, match=msg):
@@ -483,3 +473,14 @@ def test_to_numpy_keyword():
 
     result = pd.Series(a).to_numpy(decimals=2)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_array_copy_on_write(using_copy_on_write):
+    df = pd.DataFrame({"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype="object")
+    df2 = df.astype(DecimalDtype())
+    df.iloc[0, 0] = 0
+    if using_copy_on_write:
+        expected = pd.DataFrame(
+            {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
+        )
+        tm.assert_equal(df2.values, expected.values)

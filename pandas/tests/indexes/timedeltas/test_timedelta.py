@@ -3,47 +3,23 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     Index,
     NaT,
     Series,
     Timedelta,
-    TimedeltaIndex,
     timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-from pandas.tests.indexes.datetimelike import DatetimeLike
-
-randn = np.random.randn
 
 
-class TestTimedeltaIndex(DatetimeLike):
-    _index_cls = TimedeltaIndex
-
-    @pytest.fixture
-    def simple_index(self) -> TimedeltaIndex:
-        index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
-        assert index.freq == "D"
-        ret = index + pd.offsets.Hour(1)
-        assert ret.freq == "D"
-        return ret
-
+class TestTimedeltaIndex:
     @pytest.fixture
     def index(self):
         return tm.makeTimedeltaIndex(10)
 
-    def test_numeric_compat(self):
-        # Dummy method to override super's version; this test is now done
-        # in test_arithmetic.py
-        pass
-
-    def test_shift(self):
-        pass  # this is handled in test_arithmetic.py
-
     def test_misc_coverage(self):
-
         rng = timedelta_range("1 day", periods=5)
         result = rng.groupby(rng.days)
         assert isinstance(list(result.values())[0][0], Timedelta)
@@ -55,11 +31,10 @@ class TestTimedeltaIndex(DatetimeLike):
 
         f = lambda x: x.days
         result = rng.map(f)
-        exp = Index([f(x) for x in rng], dtype=np.int32)
+        exp = Index([f(x) for x in rng], dtype=np.int64)
         tm.assert_index_equal(result, exp)
 
     def test_pass_TimedeltaIndex_to_index(self):
-
         rng = timedelta_range("1 days", "10 days")
         idx = Index(rng, dtype=object)
 
@@ -69,7 +44,7 @@ class TestTimedeltaIndex(DatetimeLike):
 
     def test_fields(self):
         rng = timedelta_range("1 days, 10:11:12.100123456", periods=2, freq="s")
-        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int32))
+        tm.assert_index_equal(rng.days, Index([1, 1], dtype=np.int64))
         tm.assert_index_equal(
             rng.seconds,
             Index([10 * 3600 + 11 * 60 + 12, 10 * 3600 + 11 * 60 + 13], dtype=np.int32),
@@ -124,7 +99,6 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_equal(res._values, expected._values._with_freq(None))
 
     def test_freq_conversion(self, index_or_series):
-
         # doc example
 
         scalar = Timedelta(days=31)
@@ -160,3 +134,21 @@ class TestTimedeltaIndex(DatetimeLike):
         assert expected.dtype == "m8[s]"
         result = td.astype("timedelta64[s]")
         tm.assert_equal(result, expected)
+
+    def test_arithmetic_zero_freq(self):
+        # GH#51575 don't get a .freq with freq.n = 0
+        tdi = timedelta_range(0, periods=100, freq="ns")
+        result = tdi / 2
+        assert result.freq is None
+        expected = tdi[:50].repeat(2)
+        tm.assert_index_equal(result, expected)
+
+        result2 = tdi // 2
+        assert result2.freq is None
+        expected2 = expected
+        tm.assert_index_equal(result2, expected2)
+
+        result3 = tdi * 0
+        assert result3.freq is None
+        expected3 = tdi[:1].repeat(100)
+        tm.assert_index_equal(result3, expected3)

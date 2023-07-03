@@ -7,17 +7,10 @@ from typing import (
     Callable,
 )
 
-from pandas._typing import (
-    Axis,
-    QuantileInterpolation,
-    WindowingRankType,
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    doc,
 )
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
-
-from pandas.util._decorators import doc
 
 from pandas.core.indexers.objects import (
     BaseIndexer,
@@ -39,6 +32,19 @@ from pandas.core.window.rolling import (
     BaseWindowGroupby,
     RollingAndExpandingMixin,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        QuantileInterpolation,
+        WindowingRankType,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
 class Expanding(RollingAndExpandingMixin):
@@ -69,7 +75,7 @@ class Expanding(RollingAndExpandingMixin):
 
     Returns
     -------
-    ``Expanding`` subclass
+    pandas.api.typing.Expanding
 
     See Also
     --------
@@ -572,6 +578,9 @@ class Expanding(RollingAndExpandingMixin):
             """
         quantile : float
             Quantile to compute. 0 <= quantile <= 1.
+
+            .. deprecated:: 2.1.0
+                This will be renamed to 'q' in a future version.
         interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -593,14 +602,15 @@ class Expanding(RollingAndExpandingMixin):
         aggregation_description="quantile",
         agg_method="quantile",
     )
+    @deprecate_kwarg(old_arg_name="quantile", new_arg_name="q")
     def quantile(
         self,
-        quantile: float,
+        q: float,
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
         return super().quantile(
-            quantile=quantile,
+            q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )

@@ -131,7 +131,6 @@ def test_empty(idx):
 
 
 def test_difference(idx, sort):
-
     first = idx
     result = first.difference(idx[-3:], sort=sort)
     vals = idx[:-3].values
@@ -204,7 +203,6 @@ def test_difference_sort_special():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_difference_sort_special_true():
     # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
@@ -233,8 +231,10 @@ def test_difference_sort_incomparable_true():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000"), 2], ["a", "b"]])
     other = MultiIndex.from_product([[3, pd.Timestamp("2000"), 4], ["c", "d"]])
 
-    msg = "The 'sort' keyword only takes the values of None or False; True was passed."
-    with pytest.raises(ValueError, match=msg):
+    # TODO: this is raising in constructing a Categorical when calling
+    #  algos.safe_sort. Should we catch and re-raise with a better message?
+    msg = "'values' is not ordered, please explicitly specify the categories order "
+    with pytest.raises(TypeError, match=msg):
         idx.difference(other, sort=True)
 
 
@@ -344,12 +344,11 @@ def test_intersect_equal_sort():
     tm.assert_index_equal(idx.intersection(idx, sort=None), idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_intersect_equal_sort_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
-    sorted_ = MultiIndex.from_product([[0, 1], ["a", "b"]])
-    tm.assert_index_equal(idx.intersection(idx, sort=True), sorted_)
+    expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
+    result = idx.intersection(idx, sort=True)
+    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("slice_", [slice(None), slice(0)])
@@ -366,7 +365,6 @@ def test_union_sort_other_empty(slice_):
     tm.assert_index_equal(idx.union(other, sort=False), idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_empty_sort():
     # TODO(GH#25151): decide on True behaviour
     # # sort=True
@@ -391,12 +389,10 @@ def test_union_sort_other_incomparable():
     tm.assert_index_equal(result, idx)
 
 
-@pytest.mark.xfail(reason="Not implemented.")
 def test_union_sort_other_incomparable_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
-    with pytest.raises(TypeError, match="Cannot compare"):
+    msg = "'<' not supported between instances of 'Timestamp' and 'int'"
+    with pytest.raises(TypeError, match=msg):
         idx.union(idx[:1], sort=True)
 
 
@@ -435,12 +431,15 @@ def test_union_multiindex_empty_rangeindex():
 @pytest.mark.parametrize(
     "method", ["union", "intersection", "difference", "symmetric_difference"]
 )
-def test_setops_disallow_true(method):
+def test_setops_sort_validation(method):
     idx1 = MultiIndex.from_product([["a", "b"], [1, 2]])
     idx2 = MultiIndex.from_product([["b", "c"], [1, 2]])
 
     with pytest.raises(ValueError, match="The 'sort' keyword only takes"):
-        getattr(idx1, method)(idx2, sort=True)
+        getattr(idx1, method)(idx2, sort=2)
+
+    # sort=True is supported as of GH#?
+    getattr(idx1, method)(idx2, sort=True)
 
 
 @pytest.mark.parametrize("val", [pd.NA, 100])

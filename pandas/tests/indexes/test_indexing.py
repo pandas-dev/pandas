@@ -19,7 +19,10 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_scalar,
+)
 
 from pandas import (
     NA,
@@ -29,11 +32,9 @@ from pandas import (
     MultiIndex,
     NaT,
     PeriodIndex,
-    RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 
 class TestTake:
@@ -141,7 +142,7 @@ class TestContains:
         # GH#22085
         dtype = any_real_numpy_dtype
         data = [0, 1, 2, 3] if not is_float_dtype(dtype) else [0.1, 1.1, 2.2, 3.3]
-        index = NumericIndex(data, dtype=dtype)
+        index = Index(data, dtype=dtype)
 
         if not is_float_dtype(index.dtype):
             assert 1.1 not in index
@@ -180,8 +181,33 @@ class TestGetLoc:
         with pytest.raises((TypeError, InvalidIndexError), match="slice"):
             index.get_loc(slice(0, 1))
 
-    def test_get_loc_generator(self, index):
+    def test_get_loc_non_scalar_hashable(self, index):
+        # GH52877
+        from enum import Enum
 
+        class E(Enum):
+            X1 = "x1"
+
+        assert not is_scalar(E.X1)
+
+        exc = KeyError
+        msg = "<E.X1: 'x1'>"
+        if isinstance(
+            index,
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                IntervalIndex,
+            ),
+        ):
+            # TODO: make these more consistent?
+            exc = InvalidIndexError
+            msg = "E.X1"
+        with pytest.raises(exc, match=msg):
+            index.get_loc(E.X1)
+
+    def test_get_loc_generator(self, index):
         exc = KeyError
         if isinstance(
             index,
@@ -189,7 +215,6 @@ class TestGetLoc:
                 DatetimeIndex,
                 TimedeltaIndex,
                 PeriodIndex,
-                RangeIndex,
                 IntervalIndex,
                 MultiIndex,
             ),
@@ -210,7 +235,6 @@ class TestGetLoc:
 
 class TestGetIndexer:
     def test_get_indexer_base(self, index):
-
         if index._index_as_unique:
             expected = np.arange(index.size, dtype=np.intp)
             actual = index.get_indexer(index)

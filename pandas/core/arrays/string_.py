@@ -14,14 +14,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
-from pandas._typing import (
-    AxisInt,
-    Dtype,
-    Scalar,
-    npt,
-    type_t,
-)
-from pandas.compat import pa_version_under6p0
+from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -33,7 +26,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -42,13 +34,15 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
-    ExtensionArray,
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.floating import (
     FloatingArray,
-    IntegerArray,
+    FloatingDtype,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.integer import (
+    IntegerArray,
+    IntegerDtype,
+)
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -58,8 +52,13 @@ if TYPE_CHECKING:
     import pyarrow
 
     from pandas._typing import (
+        AxisInt,
+        Dtype,
         NumpySorter,
         NumpyValueArrayLike,
+        Scalar,
+        npt,
+        type_t,
     )
 
     from pandas import Series
@@ -69,8 +68,6 @@ if TYPE_CHECKING:
 class StringDtype(StorageExtensionDtype):
     """
     Extension dtype for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -115,9 +112,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under6p0:
+        if storage == "pyarrow" and pa_version_under7p0:
             raise ImportError(
-                "pyarrow>=6.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -197,7 +194,6 @@ class StringDtype(StorageExtensionDtype):
 
             return ArrowStringArray(array)
         else:
-
             import pyarrow
 
             if isinstance(array, pyarrow.Array):
@@ -206,16 +202,19 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
-            results = []
-            for arr in chunks:
-                # using _from_sequence to ensure None is converted to NA
-                str_arr = StringArray._from_sequence(np.array(arr))
-                results.append(str_arr)
-
-        if results:
-            return StringArray._concat_same_type(results)
+        if len(chunks) == 0:
+            arr = np.array([], dtype=object)
         else:
-            return StringArray(np.array([], dtype="object"))
+            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
+            arr = lib.convert_nans_to_NA(arr)
+        # Bypass validation inside StringArray constructor, see GH#47781
+        new_string_array = StringArray.__new__(StringArray)
+        NDArrayBacked.__init__(
+            new_string_array,
+            arr,
+            StringDtype(storage="python"),
+        )
+        return new_string_array
 
 
 class BaseStringArray(ExtensionArray):
@@ -230,11 +229,11 @@ class BaseStringArray(ExtensionArray):
         return list(self.to_numpy())
 
 
-class StringArray(BaseStringArray, PandasArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     """
     Extension array for string data.
-
-    .. versionadded:: 1.0.0
 
     .. warning::
 
@@ -356,6 +355,11 @@ class StringArray(BaseStringArray, PandasArray):
             result[na_values] = libmissing.NA
 
         else:
+            if lib.is_pyarrow_array(scalars):
+                # pyarrow array; we cannot rely on the "to_numpy" check in
+                #  ensure_string_array because calling scalars.to_numpy would set
+                #  zero_copy_only to True which caused problems see GH#52076
+                scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
 
@@ -414,16 +418,19 @@ class StringArray(BaseStringArray, PandasArray):
             if isna(value):
                 value = libmissing.NA
             elif not isinstance(value, str):
-                raise ValueError(
+                raise TypeError(
                     f"Cannot set non-string value '{value}' into a StringArray."
                 )
         else:
             if not is_array_like(value):
                 value = np.asarray(value, dtype=object)
             if len(value) and not lib.is_string_array(value, skipna=True):
-                raise ValueError("Must provide strings.")
+                raise TypeError("Must provide strings.")
 
-            value[isna(value)] = libmissing.NA
+            mask = isna(value)
+            if mask.any():
+                value = value.copy()
+                value[isna(value)] = libmissing.NA
 
         super().__setitem__(key, value)
 
@@ -436,7 +443,7 @@ class StringArray(BaseStringArray, PandasArray):
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -454,7 +461,8 @@ class StringArray(BaseStringArray, PandasArray):
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            # Skip the PandasArray.astype method
+            return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
@@ -488,7 +496,7 @@ class StringArray(BaseStringArray, PandasArray):
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas.core.algorithms import value_counts_internal as value_counts
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)

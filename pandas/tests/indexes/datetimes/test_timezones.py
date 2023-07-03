@@ -22,7 +22,8 @@ import pytz
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type  [misc]
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 from pandas._libs.tslibs import (
     conversion,
@@ -1138,7 +1139,7 @@ class TestDatetimeIndexTimezones:
         assert timezones.tz_compare(result.tz, tz)
 
         converted = to_datetime(dates_aware, utc=True)
-        ex_vals = np.array([Timestamp(x).as_unit("ns").value for x in dates_aware])
+        ex_vals = np.array([Timestamp(x).as_unit("ns")._value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is timezone.utc
 

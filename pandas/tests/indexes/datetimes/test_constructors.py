@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -15,7 +17,6 @@ from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     astype_overflowsafe,
 )
-from pandas.compat import PY39
 
 import pandas as pd
 from pandas import (
@@ -32,11 +33,20 @@ from pandas.core.arrays import (
     period_array,
 )
 
-if PY39:
-    import zoneinfo
-
 
 class TestDatetimeIndex:
+    def test_closed_deprecated(self):
+        # GH#52628
+        msg = "The 'closed' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], closed=True)
+
+    def test_normalize_deprecated(self):
+        # GH#52628
+        msg = "The 'normalize' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], normalize=True)
+
     def test_from_dt64_unsupported_unit(self):
         # GH#49292
         val = np.datetime64(1, "D")
@@ -73,7 +83,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             dt_cls([pd.NaT, Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, Timestamp("2011-01-01").value], freq="D")
+            dt_cls([pd.NaT, Timestamp("2011-01-01")._value], freq="D")
 
     # TODO: better place for tests shared by DTI/TDI?
     @pytest.mark.parametrize(
@@ -155,7 +165,6 @@ class TestDatetimeIndex:
         assert result.dtype == arr.dtype
 
     def test_construction_caching(self):
-
         df = pd.DataFrame(
             {
                 "dt": date_range("20130101", periods=3),
@@ -289,6 +298,10 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
+
+        msg = "DatetimeIndex has mixed timezones"
+        with pytest.raises(TypeError, match=msg):
+            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
@@ -696,7 +709,6 @@ class TestDatetimeIndex:
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
     def test_constructor_dtype(self):
-
         # passing a dtype with a tz should localize
         idx = DatetimeIndex(
             ["2013-01-01", "2013-01-02"], dtype="datetime64[ns, US/Eastern]"
@@ -805,7 +817,7 @@ class TestDatetimeIndex:
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
         ts = Timestamp("2018-01-01", tz=tz).as_unit("ns")
-        result = klass(box([ts.value]), dtype=dtype)
+        result = klass(box([ts._value]), dtype=dtype)
         expected = klass([ts])
         assert result == expected
 
@@ -1102,104 +1114,3 @@ class TestTimeSeries:
         edate = datetime(2000, 1, 1)
         with pytest.raises(TypeError, match="pass as a string instead"):
             date_range(end=edate, freq=("D", 5), periods=20)
-
-
-def test_timestamp_constructor_invalid_fold_raise():
-    # Test for #25057
-    # Valid fold values are only [None, 0, 1]
-    msg = "Valid values for the fold argument are None, 0, or 1."
-    with pytest.raises(ValueError, match=msg):
-        Timestamp(123, fold=2)
-
-
-def test_timestamp_constructor_pytz_fold_raise():
-    # Test for #25057
-    # pytz doesn't support fold. Check that we raise
-    # if fold is passed with pytz
-    msg = "pytz timezones do not support fold. Please use dateutil timezones."
-    tz = pytz.timezone("Europe/London")
-    with pytest.raises(ValueError, match=msg):
-        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
-
-
-@pytest.mark.parametrize("fold", [0, 1])
-@pytest.mark.parametrize(
-    "ts_input",
-    [
-        1572136200000000000,
-        1572136200000000000.0,
-        np.datetime64(1572136200000000000, "ns"),
-        "2019-10-27 01:30:00+01:00",
-        datetime(2019, 10, 27, 0, 30, 0, 0, tzinfo=timezone.utc),
-    ],
-)
-def test_timestamp_constructor_fold_conflict(ts_input, fold):
-    # Test for #25057
-    # Check that we raise on fold conflict
-    msg = (
-        "Cannot pass fold with possibly unambiguous input: int, float, "
-        "numpy.datetime64, str, or timezone-aware datetime-like. "
-        "Pass naive datetime-like or build Timestamp from components."
-    )
-    with pytest.raises(ValueError, match=msg):
-        Timestamp(ts_input=ts_input, fold=fold)
-
-
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
-@pytest.mark.parametrize("fold", [0, 1])
-def test_timestamp_constructor_retain_fold(tz, fold):
-    # Test for #25057
-    # Check that we retain fold
-    ts = Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
-    result = ts.fold
-    expected = fold
-    assert result == expected
-
-
-_tzs = ["dateutil/Europe/London"]
-if PY39:
-    try:
-        _tzs = ["dateutil/Europe/London", zoneinfo.ZoneInfo("Europe/London")]
-    except zoneinfo.ZoneInfoNotFoundError:
-        pass
-
-
-@pytest.mark.parametrize("tz", _tzs)
-@pytest.mark.parametrize(
-    "ts_input,fold_out",
-    [
-        (1572136200000000000, 0),
-        (1572139800000000000, 1),
-        ("2019-10-27 01:30:00+01:00", 0),
-        ("2019-10-27 01:30:00+00:00", 1),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=0), 0),
-        (datetime(2019, 10, 27, 1, 30, 0, 0, fold=1), 1),
-    ],
-)
-def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
-    # Test for #25057
-    # Check that we infer fold correctly based on timestamps since utc
-    # or strings
-    ts = Timestamp(ts_input, tz=tz)
-    result = ts.fold
-    expected = fold_out
-    assert result == expected
-    # TODO: belongs in Timestamp tests?
-
-
-@pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
-@pytest.mark.parametrize(
-    "ts_input,fold,value_out",
-    [
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 0, 1572136200000000),
-        (datetime(2019, 10, 27, 1, 30, 0, 0), 1, 1572139800000000),
-    ],
-)
-def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_out):
-    # Test for #25057
-    # Check that we adjust value for fold correctly
-    # based on timestamps since utc
-    ts = Timestamp(ts_input, tz=tz, fold=fold)
-    result = ts.value
-    expected = value_out
-    assert result == expected

@@ -17,13 +17,15 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(GH#44584): Mark these as pytest.mark.single_cpu
-pytestmark = pytest.mark.skipif(
-    is_ci_environment() and (is_platform_windows() or is_platform_mac()),
-    reason="On GHA CI, Windows can fail with "
-    "'Windows fatal exception: stack overflow' "
-    "and macOS can timeout",
-)
+pytestmark = [
+    pytest.mark.single_cpu,
+    pytest.mark.skipif(
+        is_ci_environment() and (is_platform_windows() or is_platform_mac()),
+        reason="On GHA CI, Windows can fail with "
+        "'Windows fatal exception: stack overflow' "
+        "and macOS can timeout",
+    ),
+]
 
 
 @pytest.fixture(params=["single", "table"])
@@ -103,7 +105,6 @@ class TestEngine:
         arithmetic_numba_supported_operators,
         step,
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
@@ -121,7 +122,6 @@ class TestEngine:
     def test_numba_vs_cython_expanding_methods(
         self, data, nogil, parallel, nopython, arithmetic_numba_supported_operators
     ):
-
         method, kwargs = arithmetic_numba_supported_operators
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}

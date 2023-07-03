@@ -541,7 +541,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result.replace(-1e8, np.nan), float_string_frame)
 
     def test_replace_mixed_int_block_upcasting(self):
-
         # int block upcasting
         df = DataFrame(
             {
@@ -563,7 +562,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(df, expected)
 
     def test_replace_mixed_int_block_splitting(self):
-
         # int block splitting
         df = DataFrame(
             {
@@ -583,7 +581,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_mixed2(self):
-
         # to object block upcasting
         df = DataFrame(
             {
@@ -617,8 +614,8 @@ class TestDataFrameReplace:
         result = df.replace(3, df.mean().to_dict())
         expected = df.copy().astype("float64")
         m = df.mean()
-        expected.iloc[0, 0] = m[0]
-        expected.iloc[1, 1] = m[1]
+        expected.iloc[0, 0] = m.iloc[0]
+        expected.iloc[1, 1] = m.iloc[1]
         tm.assert_frame_equal(result, expected)
 
     def test_replace_nullable_int_with_string_doesnt_cast(self):
@@ -713,7 +710,6 @@ class TestDataFrameReplace:
         datetime_frame.iloc[1, 0] = orig2
 
     def test_replace_for_new_dtypes(self, datetime_frame):
-
         # dtypes
         tsframe = datetime_frame.copy().astype(np.float32)
         tsframe.loc[tsframe.index[:5], "A"] = np.nan
@@ -730,8 +726,11 @@ class TestDataFrameReplace:
         b = tsframe["B"]
         b[b == -1e8] = np.nan
         tsframe["B"] = b
-        result = tsframe.fillna(method="bfill")
-        tm.assert_frame_equal(result, tsframe.fillna(method="bfill"))
+        msg = "DataFrame.fillna with 'method' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # TODO: what is this even testing?
+            result = tsframe.fillna(method="bfill")
+            tm.assert_frame_equal(result, tsframe.fillna(method="bfill"))
 
     @pytest.mark.parametrize(
         "frame, to_replace, value, expected",
@@ -1076,7 +1075,7 @@ class TestDataFrameReplace:
         assert set(df.fname.values) == set(d["fname"].keys())
 
         expected = DataFrame({"fname": [d["fname"][k] for k in df.fname.values]})
-        assert expected.dtypes[0] == "Period[M]"
+        assert expected.dtypes.iloc[0] == "Period[M]"
         result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
@@ -1111,7 +1110,6 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_datetimetz(self):
-
         # GH 11326
         # behaving poorly when presented with a datetime64[ns, tz]
         df = DataFrame(
@@ -1238,7 +1236,9 @@ class TestDataFrameReplace:
         # GH 19632
         df = DataFrame({"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]})
 
-        result = df.replace(to_replace=to_replace, value=None, method=method)
+        msg = "The 'method' keyword in DataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.replace(to_replace=to_replace, value=None, method=method)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1329,8 +1329,13 @@ class TestDataFrameReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
+        msg2 = (
+            "DataFrame.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
-            df.replace(lambda x: x.strip())
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                df.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
@@ -1503,6 +1508,13 @@ class TestDataFrameReplace:
         result = df.replace({val: None})
         tm.assert_frame_equal(result, expected)
 
+    def test_replace_with_nil_na(self):
+        # GH 32075
+        ser = DataFrame({"a": ["nil", pd.NA]})
+        expected = DataFrame({"a": ["anything else", pd.NA]}, index=[0, 1])
+        result = ser.replace("nil", "anything else")
+        tm.assert_frame_equal(expected, result)
+
 
 class TestDataFrameReplaceRegex:
     @pytest.mark.parametrize(
@@ -1580,3 +1592,10 @@ class TestDataFrameReplaceRegex:
 
         result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_object_splitting(self):
+        # GH#53977
+        df = DataFrame({"a": ["a"], "b": "b"})
+        assert len(df._mgr.blocks) == 1
+        df.replace(to_replace=r"^\s*$", value="", inplace=True, regex=True)
+        assert len(df._mgr.blocks) == 1

@@ -26,8 +26,8 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
+from pandas.io.common import urlopen
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -284,15 +284,16 @@ def test_fwf_regression():
 2009164210000   9.6034  9.0897  8.3822  7.4905  6.0908  5.7904  5.4039
 """
 
-    result = read_fwf(
-        StringIO(data),
-        index_col=0,
-        header=None,
-        names=names,
-        widths=widths,
-        parse_dates=True,
-        date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
-    )
+    with tm.assert_produces_warning(FutureWarning, match="use 'date_format' instead"):
+        result = read_fwf(
+            StringIO(data),
+            index_col=0,
+            header=None,
+            names=names,
+            widths=widths,
+            parse_dates=True,
+            date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
+        )
     expected = DataFrame(
         [
             [9.5403, 9.4105, 8.6571, 7.8372, 6.0612, 5.8843, 5.5192],
@@ -313,11 +314,21 @@ def test_fwf_regression():
         columns=["SST", "T010", "T020", "T030", "T060", "T080", "T100"],
     )
     tm.assert_frame_equal(result, expected)
+    result = read_fwf(
+        StringIO(data),
+        index_col=0,
+        header=None,
+        names=names,
+        widths=widths,
+        parse_dates=True,
+        date_format="%Y%j%H%M%S",
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_fwf_for_uint8():
     data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
-1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa:E501
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa: E501
     df = read_fwf(
         StringIO(data),
         colspecs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
@@ -655,13 +666,13 @@ cc\tdd """
 
 
 @pytest.mark.parametrize("infer", [True, False])
-def test_fwf_compression(compression_only, infer):
+def test_fwf_compression(compression_only, infer, compression_to_extension):
     data = """1111111111
     2222222222
     3333333333""".strip()
 
     compression = compression_only
-    extension = _compression_to_extension[compression]
+    extension = compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -948,17 +959,13 @@ def test_widths_and_usecols():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-def test_use_nullable_dtypes(string_storage, dtype_backend):
+def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
-
-    if string_storage == "pyarrow" or dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-
     if string_storage == "python":
         arr = StringArray(np.array(["a", "b"], dtype=np.object_))
         arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
     else:
+        pa = pytest.importorskip("pyarrow")
         arr = ArrowStringArray(pa.array(["a", "b"]))
         arr_na = ArrowStringArray(pa.array([None, "a"]))
 
@@ -966,8 +973,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
-        with pd.option_context("mode.dtype_backend", dtype_backend):
-            result = read_fwf(StringIO(data), use_nullable_dtypes=True)
+        result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {
@@ -983,6 +989,7 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
         }
     )
     if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
         from pandas.arrays import ArrowExtensionArray
 
         expected = DataFrame(
@@ -996,14 +1003,29 @@ def test_use_nullable_dtypes(string_storage, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-def test_use_nullable_dtypes_option():
-    # GH#50748
+def test_invalid_dtype_backend():
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        read_fwf("test", dtype_backend="numpy")
 
-    data = """a
-1
-3"""
-    with pd.option_context("mode.nullable_dtypes", True):
-        result = read_fwf(StringIO(data))
 
-    expected = DataFrame({"a": pd.Series([1, 3], dtype="Int64")})
-    tm.assert_frame_equal(result, expected)
+@pytest.mark.network
+@pytest.mark.single_cpu
+def test_url_urlopen(httpserver):
+    data = """\
+A         B            C            D
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+201160    364.136849   183.628767   11806.2
+201161    413.836124   184.375703   11916.8
+201162    502.953953   173.237159   12468.3
+"""
+    httpserver.serve_content(content=data)
+    expected = pd.Index(list("ABCD"))
+    with urlopen(httpserver.url) as f:
+        result = read_fwf(f).columns
+
+    tm.assert_index_equal(result, expected)

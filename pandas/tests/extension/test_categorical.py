@@ -184,6 +184,11 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series([a + val for a in list(orig_data1)])
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        self.assert_extension_array_equal(result, data)
+
 
 class TestCasting(base.BaseCastingTests):
     @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
@@ -314,3 +319,12 @@ class Test2DCompat(base.NDArrayBacked2DTests):
 
         res = repr(data.reshape(-1, 1))
         assert res.count("\nCategories") == 1
+
+
+def test_astype_category_readonly_mask_values():
+    # GH 53658
+    df = pd.DataFrame([0, 1, 2], dtype="Int64")
+    df._mgr.arrays[0]._mask.flags["WRITEABLE"] = False
+    result = df.astype("category")
+    expected = pd.DataFrame([0, 1, 2], dtype="Int64").astype("category")
+    tm.assert_frame_equal(result, expected)

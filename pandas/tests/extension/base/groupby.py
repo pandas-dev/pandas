@@ -1,10 +1,11 @@
+import re
+
 import pytest
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_numeric_dtype,
     is_object_dtype,
-    is_period_dtype,
     is_string_dtype,
 )
 
@@ -135,7 +136,6 @@ class BaseGroupbyTests(BaseExtensionTests):
             or is_bool_dtype(dtype)
             or dtype.name == "decimal"
             or is_string_dtype(dtype)
-            or is_period_dtype(dtype)
             or is_object_dtype(dtype)
             or dtype.kind == "m"  # in particular duration[*][pyarrow]
         ):
@@ -143,7 +143,16 @@ class BaseGroupbyTests(BaseExtensionTests):
             result = df.groupby("A").sum().columns
         else:
             expected = pd.Index(["C"])
-            with pytest.raises(TypeError, match="does not support"):
-                df.groupby("A").sum().columns
+
+            msg = "|".join(
+                [
+                    # period/datetime
+                    "does not support sum operations",
+                    # all others
+                    re.escape(f"agg function failed [how->sum,dtype->{dtype}"),
+                ]
+            )
+            with pytest.raises(TypeError, match=msg):
+                df.groupby("A").sum()
             result = df.groupby("A").sum(numeric_only=True).columns
         tm.assert_index_equal(result, expected)

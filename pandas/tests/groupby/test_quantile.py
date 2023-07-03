@@ -396,7 +396,10 @@ def test_columns_groupby_quantile():
         index=list("XYZ"),
         columns=pd.Series(list("ABAB"), name="col"),
     )
-    result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("col", axis=1)
+    result = gb.quantile(q=[0.8, 0.2])
     expected = DataFrame(
         [
             [1.6, 0.4, 2.6, 1.4],
@@ -445,3 +448,56 @@ def test_timestamp_groupby_quantile():
     )
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_dt64tz_period():
+    # GH#51373
+    dti = pd.date_range("2016-01-01", periods=1000)
+    ser = pd.Series(dti)
+    df = ser.to_frame()
+    df[1] = dti.tz_localize("US/Pacific")
+    df[2] = dti.to_period("D")
+    df[3] = dti - dti[0]
+    df.iloc[-1] = pd.NaT
+
+    by = np.tile(np.arange(5), 200)
+    gb = df.groupby(by)
+
+    result = gb.quantile(0.5)
+
+    # Check that we match the group-by-group result
+    exp = {i: df.iloc[i::5].quantile(0.5) for i in range(5)}
+    expected = DataFrame(exp).T.infer_objects()
+    expected.index = expected.index.astype(np.int_)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_nonmulti_levels_order():
+    # Non-regression test for GH #53009
+    ind = pd.MultiIndex.from_tuples(
+        [
+            (0, "a", "B"),
+            (0, "a", "A"),
+            (0, "b", "B"),
+            (0, "b", "A"),
+            (1, "a", "B"),
+            (1, "a", "A"),
+            (1, "b", "B"),
+            (1, "b", "A"),
+        ],
+        names=["sample", "cat0", "cat1"],
+    )
+    ser = pd.Series(range(8), index=ind)
+    result = ser.groupby(level="cat1", sort=False).quantile([0.2, 0.8])
+
+    qind = pd.MultiIndex.from_tuples(
+        [("B", 0.2), ("B", 0.8), ("A", 0.2), ("A", 0.8)], names=["cat1", None]
+    )
+    expected = pd.Series([1.2, 4.8, 2.2, 5.8], index=qind)
+
+    tm.assert_series_equal(result, expected)
+
+    # We need to check that index levels are not sorted
+    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
+    tm.assert_equal(result.index.levels, expected_levels)

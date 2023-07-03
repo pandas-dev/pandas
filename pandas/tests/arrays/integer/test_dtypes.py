@@ -225,7 +225,6 @@ def test_astype_dt64():
 
 
 def test_construct_cast_invalid(dtype):
-
     msg = "cannot safely"
     arr = [1.2, 2.3, 3.7]
     with pytest.raises(TypeError, match=msg):

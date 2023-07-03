@@ -38,7 +38,6 @@ class TestDatetime64:
             freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
         )
         for dti in [dti_naive, dti_tz]:
-
             assert dti.year[0] == 1998
             assert dti.month[0] == 1
             assert dti.day[0] == 1
@@ -51,8 +50,8 @@ class TestDatetime64:
             assert dti.dayofyear[0] == 1
             assert dti.dayofyear[120] == 121
 
-            assert dti.isocalendar().week[0] == 1
-            assert dti.isocalendar().week[120] == 18
+            assert dti.isocalendar().week.iloc[0] == 1
+            assert dti.isocalendar().week.iloc[120] == 18
 
             assert dti.quarter[0] == 1
             assert dti.quarter[120] == 2

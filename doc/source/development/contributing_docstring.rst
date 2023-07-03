@@ -67,8 +67,6 @@ case of pandas, the NumPy docstring convention is followed. These conventions ar
 explained in this document:
 
 * `numpydoc docstring guide <https://numpydoc.readthedocs.io/en/latest/format.html>`_
-  (which is based in the original `Guide to NumPy/SciPy documentation
-  <https://github.com/numpy/numpy/blob/main/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
 numpydoc is a Sphinx extension to support the NumPy docstring convention.
 
@@ -654,9 +652,9 @@ A simple example could be:
 
             Examples
             --------
-            >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
+            >>> ser = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
             ...                'Lion', 'Monkey', 'Rabbit', 'Zebra'])
-            >>> s.head()
+            >>> ser.head()
             0   Ant
             1   Bear
             2   Cow
@@ -666,7 +664,7 @@ A simple example could be:
 
             With the ``n`` parameter, we can change the number of returned rows:
 
-            >>> s.head(n=3)
+            >>> ser.head(n=3)
             0   Ant
             1   Bear
             2   Cow
@@ -697,10 +695,10 @@ and avoiding aliases. Avoid excessive imports, but if needed, imports from
 the standard library go first, followed by third-party libraries (like
 matplotlib).
 
-When illustrating examples with a single ``Series`` use the name ``s``, and if
+When illustrating examples with a single ``Series`` use the name ``ser``, and if
 illustrating with a single ``DataFrame`` use the name ``df``. For indices,
 ``idx`` is the preferred name. If a set of homogeneous ``Series`` or
-``DataFrame`` is used, name them ``s1``, ``s2``, ``s3``...  or ``df1``,
+``DataFrame`` is used, name them ``ser1``, ``ser2``, ``ser3``...  or ``df1``,
 ``df2``, ``df3``... If the data is not homogeneous, and more than one structure
 is needed, name them with something meaningful, for example ``df_main`` and
 ``df_to_join``.
@@ -733,8 +731,8 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series([1, 2, 3])
-            >>> s.mean()
+            >>> ser = pd.Series([1, 2, 3])
+            >>> ser.mean()
             2
             """
             pass
@@ -746,8 +744,8 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series([1, np.nan, 3])
-            >>> s.fillna(0)
+            >>> ser = pd.Series([1, np.nan, 3])
+            >>> ser.fillna(0)
             [1, 0, 3]
             """
             pass
@@ -758,10 +756,10 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series([380., 370., 24., 26],
+            >>> ser = pd.Series([380., 370., 24., 26],
             ...               name='max_speed',
             ...               index=['falcon', 'falcon', 'parrot', 'parrot'])
-            >>> s.groupby_mean()
+            >>> ser.groupby_mean()
             index
             falcon    375.0
             parrot     25.0
@@ -778,8 +776,8 @@ positional arguments ``head(3)``.
 
             Examples
             --------
-            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', np.nan)
-            >>> s.contains(pattern='a')
+            >>> ser = pd.Series('Antelope', 'Lion', 'Zebra', np.nan)
+            >>> ser.contains(pattern='a')
             0    False
             1    False
             2     True
@@ -802,7 +800,7 @@ positional arguments ``head(3)``.
 
             We can fill missing values in the output using the ``na`` parameter:
 
-            >>> s.contains(pattern='a', na=False)
+            >>> ser.contains(pattern='a', na=False)
             0    False
             1    False
             2     True
@@ -922,8 +920,8 @@ plot will be generated automatically when building the documentation.
             .. plot::
                 :context: close-figs
 
-                >>> s = pd.Series([1, 2, 3])
-                >>> s.plot()
+                >>> ser = pd.Series([1, 2, 3])
+                >>> ser.plot()
             """
             pass
 

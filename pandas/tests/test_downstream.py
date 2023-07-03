@@ -35,14 +35,13 @@ def df():
 
 
 def test_dask(df):
-
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        toolz = import_module("toolz")  # noqa:F841
-        dask = import_module("dask")  # noqa:F841
+        toolz = import_module("toolz")  # noqa: F841
+        dask = import_module("dask")  # noqa: F841
 
         import dask.dataframe as dd
 
@@ -59,7 +58,7 @@ def test_dask_ufunc():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa:F841
+        dask = import_module("dask")  # noqa: F841
         import dask.array as da
         import dask.dataframe as dd
 
@@ -101,8 +100,7 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
 
 
 def test_xarray(df):
-
-    xarray = import_module("xarray")  # noqa:F841
+    xarray = import_module("xarray")  # noqa: F841
 
     assert df.to_xarray() is not None
 
@@ -141,21 +139,18 @@ def test_oo_optimized_datetime_index_unpickle():
     )
 
 
-@pytest.mark.network
-@tm.network
 def test_statsmodels():
-
-    statsmodels = import_module("statsmodels")  # noqa:F841
-    import statsmodels.api as sm
+    statsmodels = import_module("statsmodels")  # noqa: F841
     import statsmodels.formula.api as smf
 
-    df = sm.datasets.get_rdataset("Guerry", "HistData").data
+    df = DataFrame(
+        {"Lottery": range(5), "Literacy": range(5), "Pop1831": range(100, 105)}
+    )
     smf.ols("Lottery ~ Literacy + np.log(Pop1831)", data=df).fit()
 
 
 def test_scikit_learn():
-
-    sklearn = import_module("sklearn")  # noqa:F841
+    sklearn = import_module("sklearn")  # noqa: F841
     from sklearn import (
         datasets,
         svm,
@@ -167,36 +162,25 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-@pytest.mark.network
-@tm.network
 def test_seaborn():
-
     seaborn = import_module("seaborn")
-    tips = seaborn.load_dataset("tips")
+    tips = DataFrame(
+        {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
+    )
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
 def test_pandas_gbq():
     # Older versions import from non-public, non-existent pandas funcs
     pytest.importorskip("pandas_gbq", minversion="0.10.0")
-    pandas_gbq = import_module("pandas_gbq")  # noqa:F841
+    pandas_gbq = import_module("pandas_gbq")  # noqa: F841
 
 
-@pytest.mark.network
-@tm.network
-@pytest.mark.xfail(
-    raises=ValueError,
-    reason="The Quandl API key must be provided either through the api_key "
-    "variable or through the environmental variable QUANDL_API_KEY",
-)
 def test_pandas_datareader():
-
-    pandas_datareader = import_module("pandas_datareader")
-    pandas_datareader.DataReader("F", "quandl", "2017-01-01", "2017-02-01")
+    pandas_datareader = import_module("pandas_datareader")  # noqa: F841
 
 
 def test_pyarrow(df):
-
     pyarrow = import_module("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
@@ -260,7 +244,7 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa:F841
+        dask = import_module("dask")  # noqa: F841
 
         import dask.array as da
 
@@ -274,3 +258,19 @@ def test_frame_setitem_dask_array_into_new_col():
         tm.assert_frame_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
+
+
+def test_pandas_priority():
+    # GH#48347
+
+    class MyClass:
+        __pandas_priority__ = 5000
+
+        def __radd__(self, other):
+            return self
+
+    left = MyClass()
+    right = Series(range(3))
+
+    assert right.__add__(left) is NotImplemented
+    assert right + left is left

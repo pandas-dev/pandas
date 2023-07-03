@@ -11,14 +11,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-from pandas.io.formats.format import DataFrameFormatter
-from pandas.io.formats.latex import (
-    RegularTableBuilder,
-    RowBodyIterator,
-    RowHeaderIterator,
-    RowStringConverter,
-)
-
 pytest.importorskip("jinja2")
 
 
@@ -42,7 +34,7 @@ class TestToLatex:
     def test_to_latex_to_file(self, float_frame):
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert float_frame.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_with_encoding(self):
@@ -782,24 +774,14 @@ class TestToLatexEscape:
         assert result == expected
 
     def test_to_latex_escape_default(self, df_with_symbols):
-        result = df_with_symbols.to_latex()  # default: escape=True
-        expected = _dedent(
-            r"""
-            \begin{tabular}{lll}
-            \toprule
-             & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
-            \midrule
-            a & a & a \\
-            b & b & b \\
-            \bottomrule
-            \end{tabular}
-            """
-        )
-        assert result == expected
+        # gh50871: in v2.0 escape is False by default (styler.format.escape=None)
+        default = df_with_symbols.to_latex()
+        specified_true = df_with_symbols.to_latex(escape=True)
+        assert default != specified_true
 
     def test_to_latex_special_escape(self):
         df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
-        result = df.to_latex()
+        result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
@@ -818,7 +800,7 @@ class TestToLatexEscape:
     def test_to_latex_escape_special_chars(self):
         special_characters = ["&", "%", "$", "#", "_", "{", "}", "~", "^", "\\"]
         df = DataFrame(data=special_characters)
-        result = df.to_latex()
+        result = df.to_latex(escape=True)
         expected = _dedent(
             r"""
             \begin{tabular}{ll}
@@ -1039,7 +1021,7 @@ class TestToLatexMultiindex:
         # GH 16718
         df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]})
         df = df.set_index(["a", "b"])
-        observed = df.to_latex(header=["r1", "r2"])
+        observed = df.to_latex(header=["r1", "r2"], multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llrr}
@@ -1093,7 +1075,7 @@ class TestToLatexMultiindex:
 
     def test_to_latex_multiindex_small_tabular(self):
         df = DataFrame({("x", "y"): ["a"]}).T
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -1108,7 +1090,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multiindex_tabular(self, multiindex_frame):
-        result = multiindex_frame.to_latex()
+        result = multiindex_frame.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llrrrr}
@@ -1130,12 +1112,12 @@ class TestToLatexMultiindex:
         # GH 14184
         df = multiindex_frame.T
         df.columns.names = ["a", "b"]
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-            a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+            a & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
             b & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 4 & 0 & 4 & 0 \\
@@ -1151,7 +1133,7 @@ class TestToLatexMultiindex:
     def test_to_latex_index_has_name_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.set_index(["a", "b"]).to_latex()
+        result = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1172,12 +1154,16 @@ class TestToLatexMultiindex:
     def test_to_latex_groupby_tabular(self):
         # GH 10660
         df = DataFrame({"a": [0, 0, 1, 1], "b": list("abab"), "c": [1, 2, 3, 4]})
-        result = df.groupby("a").describe().to_latex(float_format="{:.1f}".format)
+        result = (
+            df.groupby("a")
+            .describe()
+            .to_latex(float_format="{:.1f}".format, escape=True)
+        )
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrrrrr}
             \toprule
-             & \multicolumn{8}{l}{c} \\
+             & \multicolumn{8}{r}{c} \\
              & count & mean & std & min & 25\% & 50\% & 75\% & max \\
             a &  &  &  &  &  &  &  &  \\
             \midrule
@@ -1200,7 +1186,7 @@ class TestToLatexMultiindex:
         df = DataFrame(
             index=pd.MultiIndex.from_tuples([("A", "c"), ("B", "c")]), columns=["col"]
         )
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{lll}
@@ -1221,7 +1207,7 @@ class TestToLatexMultiindex:
             r"""
             \begin{tabular}{lrrrrr}
             \toprule
-             & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
+             & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\
              & 0 & 1 & 0 & 1 & 0 \\
             \midrule
             0 & 0 & 5 & 0 & 5 & 0 \\
@@ -1236,7 +1222,7 @@ class TestToLatexMultiindex:
         assert result == expected
 
     def test_to_latex_multicolumn_false(self, multicolumn_frame):
-        result = multicolumn_frame.to_latex(multicolumn=False)
+        result = multicolumn_frame.to_latex(multicolumn=False, multicolumn_format="l")
         expected = _dedent(
             r"""
             \begin{tabular}{lrrrrr}
@@ -1323,11 +1309,11 @@ class TestToLatexMultiindex:
             else ""
         )
         col_names = [n if (bool(n) and 1 in axes) else "" for n in names]
-        observed = df.to_latex()
+        observed = df.to_latex(multirow=False)
         # pylint: disable-next=consider-using-f-string
         expected = r"""\begin{tabular}{llrrrr}
 \toprule
- & %s & \multicolumn{2}{l}{1} & \multicolumn{2}{l}{2} \\
+ & %s & \multicolumn{2}{r}{1} & \multicolumn{2}{r}{2} \\
  & %s & 3 & 4 & 3 & 4 \\
 %s\midrule
 1 & 3 & -1 & -1 & -1 & -1 \\
@@ -1347,7 +1333,7 @@ class TestToLatexMultiindex:
         df = DataFrame({"a": [None, 1], "b": [2, 3], "c": [4, 5]})
         if one_row:
             df = df.iloc[[0]]
-        observed = df.set_index(["a", "b"]).to_latex()
+        observed = df.set_index(["a", "b"]).to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1369,7 +1355,7 @@ class TestToLatexMultiindex:
     def test_to_latex_non_string_index(self):
         # GH 19981
         df = DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
-        result = df.to_latex()
+        result = df.to_latex(multirow=False)
         expected = _dedent(
             r"""
             \begin{tabular}{llr}
@@ -1421,87 +1407,3 @@ class TestToLatexMultiindex:
             """
         )
         assert result == expected
-
-
-class TestTableBuilder:
-    @pytest.fixture
-    def dataframe(self):
-        return DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
-
-    @pytest.fixture
-    def table_builder(self, dataframe):
-        return RegularTableBuilder(formatter=DataFrameFormatter(dataframe))
-
-    def test_create_row_iterator(self, table_builder):
-        iterator = table_builder._create_row_iterator(over="header")
-        assert isinstance(iterator, RowHeaderIterator)
-
-    def test_create_body_iterator(self, table_builder):
-        iterator = table_builder._create_row_iterator(over="body")
-        assert isinstance(iterator, RowBodyIterator)
-
-    def test_create_body_wrong_kwarg_raises(self, table_builder):
-        with pytest.raises(ValueError, match="must be either 'header' or 'body'"):
-            table_builder._create_row_iterator(over="SOMETHING BAD")
-
-
-class TestRowStringConverter:
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} &  Design &  ratio &  xy \\"),
-            (1, r"0 &       1 &      4 &  10 \\"),
-            (2, r"1 &       2 &      5 &  11 \\"),
-        ],
-    )
-    def test_get_strrow_normal_without_escape(self, row_num, expected):
-        df = DataFrame({r"Design": [1, 2, 3], r"ratio": [4, 5, 6], r"xy": [10, 11, 12]})
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df, escape=True),
-        )
-        assert row_string_converter.get_strrow(row_num=row_num) == expected
-
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} &  Design \# &  ratio, \% &  x\&y \\"),
-            (1, r"0 &         1 &         4 &   10 \\"),
-            (2, r"1 &         2 &         5 &   11 \\"),
-        ],
-    )
-    def test_get_strrow_normal_with_escape(self, row_num, expected):
-        df = DataFrame(
-            {r"Design #": [1, 2, 3], r"ratio, %": [4, 5, 6], r"x&y": [10, 11, 12]}
-        )
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df, escape=True),
-        )
-        assert row_string_converter.get_strrow(row_num=row_num) == expected
-
-    @pytest.mark.parametrize(
-        "row_num, expected",
-        [
-            (0, r"{} & \multicolumn{2}{r}{c1} & \multicolumn{2}{r}{c2} & c3 \\"),
-            (1, r"{} &  0 &  1 &  0 &  1 &  0 \\"),
-            (2, r"0 &  0 &  5 &  0 &  5 &  0 \\"),
-        ],
-    )
-    def test_get_strrow_multindex_multicolumn(self, row_num, expected):
-        df = DataFrame(
-            {
-                ("c1", 0): {x: x for x in range(5)},
-                ("c1", 1): {x: x + 5 for x in range(5)},
-                ("c2", 0): {x: x for x in range(5)},
-                ("c2", 1): {x: x + 5 for x in range(5)},
-                ("c3", 0): {x: x for x in range(5)},
-            }
-        )
-
-        row_string_converter = RowStringConverter(
-            formatter=DataFrameFormatter(df),
-            multicolumn=True,
-            multicolumn_format="r",
-            multirow=True,
-        )
-
-        assert row_string_converter.get_strrow(row_num=row_num) == expected

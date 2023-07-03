@@ -99,7 +99,6 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
 def lhs(request):
-
     nan_df1 = DataFrame(np.random.rand(10, 5))
     nan_df1[nan_df1 > 0.5] = np.nan
 
@@ -179,7 +178,6 @@ class TestEval:
     @pytest.mark.parametrize("op", expr.CMP_OPS_SYMS)
     def test_compound_invert_op(self, op, lhs, rhs, request, engine, parser):
         if parser == "python" and op in ["in", "not in"]:
-
             msg = "'(In|NotIn)' nodes are not implemented"
             with pytest.raises(NotImplementedError, match=msg):
                 ex = f"~(lhs {op} rhs)"
@@ -220,7 +218,7 @@ class TestEval:
         else:
             # compound
             if is_scalar(lhs) and is_scalar(rhs):
-                lhs, rhs = map(lambda x: np.array([x]), (lhs, rhs))
+                lhs, rhs = (np.array([x]) for x in (lhs, rhs))
             expected = _eval_single_bin(lhs, op, rhs, engine)
             if is_scalar(expected):
                 expected = not expected
@@ -624,8 +622,8 @@ class TestEval:
         ),
     )
     def test_disallow_scalar_bool_ops(self, ex, engine, parser):
-        x, a, b = np.random.randn(3), 1, 2  # noqa:F841
-        df = DataFrame(np.random.randn(3, 2))  # noqa:F841
+        x, a, b = np.random.randn(3), 1, 2  # noqa: F841
+        df = DataFrame(np.random.randn(3, 2))  # noqa: F841
 
         msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
         with pytest.raises(NotImplementedError, match=msg):
@@ -659,7 +657,7 @@ class TestEval:
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         assert result.shape == (1,)
 
-        x = np.array([False])  # noqa:F841
+        x = np.array([False])  # noqa: F841
         result = pd.eval("x", engine=engine, parser=parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         assert result.shape == (1,)
@@ -748,13 +746,12 @@ class TestTypeCasting:
 def should_warn(*args):
     not_mono = not any(map(operator.attrgetter("is_monotonic_increasing"), args))
     only_one_dt = reduce(
-        operator.xor, map(lambda x: issubclass(x.dtype.type, np.datetime64), args)
+        operator.xor, (issubclass(x.dtype.type, np.datetime64) for x in args)
     )
     return not_mono and only_one_dt
 
 
 class TestAlignment:
-
     index_types = ["i", "s", "dt"]
     lhs_index_types = index_types + ["s"]  # 'p'
 
@@ -805,7 +802,6 @@ class TestAlignment:
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
     def test_medium_complex_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -860,6 +856,19 @@ class TestAlignment:
     def test_basic_series_frame_alignment(
         self, request, engine, parser, index_name, r_idx_type, c_idx_type
     ):
+        if (
+            engine == "numexpr"
+            and parser in ("pandas", "python")
+            and index_name == "index"
+            and r_idx_type == "i"
+            and c_idx_type == "s"
+        ):
+            reason = (
+                f"Flaky column ordering when engine={engine}, "
+                f"parser={parser}, index_name={index_name}, "
+                f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
+            )
+            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -884,7 +893,6 @@ class TestAlignment:
     def test_series_frame_commutativity(
         self, engine, parser, index_name, op, r_idx_type, c_idx_type
     ):
-
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("always", RuntimeWarning)
 
@@ -1095,7 +1103,7 @@ class TestOperations:
         tm.assert_frame_equal(df, df2)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
@@ -1164,7 +1172,7 @@ class TestOperations:
     def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         df = df.copy()
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         df.eval("a = 1 + b", inplace=True)
 
         expected = df.copy()
@@ -1174,7 +1182,7 @@ class TestOperations:
     def test_assignment_single_assign_name(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
 
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         old_a = df.a.copy()
         df.eval("a = a + b", inplace=True)
         result = old_a + df.b
@@ -1473,7 +1481,7 @@ class TestOperations:
                 pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
 
     def test_check_many_exprs(self, engine, parser):
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         expr = " * ".join("a" * 33)
         expected = 1
         res = pd.eval(expr, engine=engine, parser=parser)
@@ -1512,7 +1520,7 @@ class TestOperations:
 
     @pytest.mark.parametrize("char", ["|", "&"])
     def test_fails_ampersand_pipe(self, char, engine, parser):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
         if parser == "python":
             msg = "cannot evaluate scalar only bool ops"
@@ -1632,7 +1640,7 @@ class TestScope:
         assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
-        x = 1  # noqa:F841
+        x = 1  # noqa: F841
         gbls = globals().copy()
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1710,7 +1718,6 @@ def test_disallowed_nodes(engine, parser):
     inst = VisitorClass("x + 1", engine, parser)
 
     for ops in VisitorClass.unsupported_nodes:
-
         msg = "nodes are not implemented"
         with pytest.raises(NotImplementedError, match=msg):
             getattr(inst, ops)()
@@ -1731,7 +1738,7 @@ def test_name_error_exprs(engine, parser):
 
 @pytest.mark.parametrize("express", ["a + @b", "@a + b", "@a + @b"])
 def test_invalid_local_variable_reference(engine, parser, express):
-    a, b = 1, 2  # noqa:F841
+    a, b = 1, 2  # noqa: F841
 
     if parser != "pandas":
         with pytest.raises(SyntaxError, match="The '@' prefix is only"):
@@ -1775,7 +1782,7 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()  # noqa:F841
+    mid = gen[lhs]()  # noqa: F841
     lhs = gen[lhs]()
     rhs = gen[rhs]()
 
@@ -1882,7 +1889,6 @@ def test_set_inplace(using_copy_on_write):
 class TestValidate:
     @pytest.mark.parametrize("value", [1, "True", [1, 2, 3], 5.0])
     def test_validate_bool_args(self, value):
-
         msg = 'For argument "inplace" expected type bool, received type'
         with pytest.raises(ValueError, match=msg):
             pd.eval("2+2", inplace=value)

@@ -72,7 +72,6 @@ class TestEmptyFrameSetitemExpansion:
         tm.assert_frame_equal(df, exp)
 
     def test_partial_set_empty_frame(self):
-
         # partially set with an empty object
         # frame
         df = DataFrame()
@@ -229,7 +228,6 @@ class TestEmptyFrameSetitemExpansion:
 
 class TestPartialSetting:
     def test_partial_setting(self):
-
         # GH2578, allow ix and friends to partially set
 
         # series
@@ -285,30 +283,30 @@ class TestPartialSetting:
             df.iat[4, 2] = 5.0
 
         # row setting where it exists
-        expected = DataFrame(dict({"A": [0, 4, 4], "B": [1, 5, 5]}))
+        expected = DataFrame({"A": [0, 4, 4], "B": [1, 5, 5]})
         df = df_orig.copy()
         df.iloc[1] = df.iloc[2]
         tm.assert_frame_equal(df, expected)
 
-        expected = DataFrame(dict({"A": [0, 4, 4], "B": [1, 5, 5]}))
+        expected = DataFrame({"A": [0, 4, 4], "B": [1, 5, 5]})
         df = df_orig.copy()
         df.loc[1] = df.loc[2]
         tm.assert_frame_equal(df, expected)
 
         # like 2578, partial setting with dtype preservation
-        expected = DataFrame(dict({"A": [0, 2, 4, 4], "B": [1, 3, 5, 5]}))
+        expected = DataFrame({"A": [0, 2, 4, 4], "B": [1, 3, 5, 5]})
         df = df_orig.copy()
         df.loc[3] = df.loc[2]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": [0, 2, 4]}))
+        expected = DataFrame({"A": [0, 2, 4], "B": [0, 2, 4]})
         df = df_orig.copy()
         df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])}))
+        expected = DataFrame({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])})
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
         # as of 2.0, df.loc[:, "B"] = ... attempts (and here succeeds) at
@@ -358,7 +356,6 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
-
         # in a mixed dtype environment, try to preserve dtypes
         # by appending
         df = DataFrame([[True, 1], [False, 2]], columns=["female", "fitness"])
@@ -403,7 +400,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[NumericIndex\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -484,7 +481,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[NumericIndex\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -533,7 +530,6 @@ class TestPartialSetting:
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_invalid(self):
-
         # GH 4940
         # allow only setting of 'valid' values
 

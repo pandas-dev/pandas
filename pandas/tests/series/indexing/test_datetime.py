@@ -35,7 +35,9 @@ def test_fancy_getitem():
 
     s = Series(np.arange(len(dti)), index=dti)
 
-    assert s[48] == 48
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert s[48] == 48
     assert s["1/2/2009"] == 48
     assert s["2009-1-2"] == 48
     assert s[datetime(2009, 1, 2)] == 48
@@ -53,10 +55,13 @@ def test_fancy_setitem():
     )
 
     s = Series(np.arange(len(dti)), index=dti)
-    s[48] = -1
-    assert s[48] == -1
+
+    msg = "Series.__setitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s[48] = -1
+    assert s.iloc[48] == -1
     s["1/2/2009"] = -2
-    assert s[48] == -2
+    assert s.iloc[48] == -2
     s["1/2/2009":"2009-06-05"] = -3
     assert (s[48:54] == -3).all()
 
@@ -77,25 +82,25 @@ def test_getitem_setitem_datetime_tz(tz_source):
     # also test Timestamp tz handling, GH #2789
     result = ts.copy()
     result["1990-01-01 09:00:00+00:00"] = 0
-    result["1990-01-01 09:00:00+00:00"] = ts[4]
+    result["1990-01-01 09:00:00+00:00"] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
     result["1990-01-01 03:00:00-06:00"] = 0
-    result["1990-01-01 03:00:00-06:00"] = ts[4]
+    result["1990-01-01 03:00:00-06:00"] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
     # repeat with datetimes
     result = ts.copy()
     result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = 0
-    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = ts[4]
+    result[datetime(1990, 1, 1, 9, tzinfo=tzget("UTC"))] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
     result = ts.copy()
     dt = Timestamp(1990, 1, 1, 3).tz_localize(tzget("US/Central"))
     dt = dt.to_pydatetime()
     result[dt] = 0
-    result[dt] = ts[4]
+    result[dt] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
 
@@ -106,12 +111,12 @@ def test_getitem_setitem_datetimeindex():
     ts = Series(np.random.randn(N), index=rng)
 
     result = ts["1990-01-01 04:00:00"]
-    expected = ts[4]
+    expected = ts.iloc[4]
     assert result == expected
 
     result = ts.copy()
     result["1990-01-01 04:00:00"] = 0
-    result["1990-01-01 04:00:00"] = ts[4]
+    result["1990-01-01 04:00:00"] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
     result = ts["1990-01-01 04:00:00":"1990-01-01 07:00:00"]
@@ -148,7 +153,7 @@ def test_getitem_setitem_datetimeindex():
     # GH#36148 as of 2.0 we do not ignore tzawareness mismatch in indexing,
     #  so setting it as a new key casts to object rather than matching
     #  rng[4]
-    result[naive] = ts[4]
+    result[naive] = ts.iloc[4]
     assert result.index.dtype == object
     tm.assert_index_equal(result.index[:-1], rng.astype(object))
     assert result.index[-1] == naive
@@ -183,7 +188,7 @@ def test_getitem_setitem_datetimeindex():
     tm.assert_series_equal(result, expected)
 
     result = ts[ts.index[4]]
-    expected = ts[4]
+    expected = ts.iloc[4]
     assert result == expected
 
     result = ts[ts.index[4:8]]
@@ -207,18 +212,17 @@ def test_getitem_setitem_datetimeindex():
 
 
 def test_getitem_setitem_periodindex():
-
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
     ts = Series(np.random.randn(N), index=rng)
 
     result = ts["1990-01-01 04"]
-    expected = ts[4]
+    expected = ts.iloc[4]
     assert result == expected
 
     result = ts.copy()
     result["1990-01-01 04"] = 0
-    result["1990-01-01 04"] = ts[4]
+    result["1990-01-01 04"] = ts.iloc[4]
     tm.assert_series_equal(result, ts)
 
     result = ts["1990-01-01 04":"1990-01-01 07"]
@@ -238,7 +242,7 @@ def test_getitem_setitem_periodindex():
 
     # GH 2782
     result = ts[ts.index[4]]
-    expected = ts[4]
+    expected = ts.iloc[4]
     assert result == expected
 
     result = ts[ts.index[4:8]]
@@ -252,7 +256,6 @@ def test_getitem_setitem_periodindex():
 
 
 def test_datetime_indexing():
-
     index = date_range("1/1/2000", "1/7/2000")
     index = index.repeat(3)
 
@@ -292,7 +295,7 @@ def test_indexing_with_duplicate_datetimeindex(
         if total > 1:
             tm.assert_series_equal(result, expected)
         else:
-            tm.assert_almost_equal(result, expected[0])
+            tm.assert_almost_equal(result, expected.iloc[0])
 
         cp = ts.copy()
         cp[date] = 0
@@ -369,7 +372,6 @@ def test_indexing_unordered():
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
-
         expected = ts[t]
         result = ts2[t]
         assert expected == result
@@ -400,7 +402,6 @@ def test_indexing_unordered():
 
 
 def test_indexing_unordered2():
-
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
     ts = Series(np.arange(len(rng)), index=rng)

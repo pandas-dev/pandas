@@ -26,8 +26,15 @@ def main(argv: Sequence[str] | None = None) -> None:
             "codemod",
             "autotyping.AutotypeCommand",
             *args.paths,
-            "--aggressive",
             "--no-format",
+            "--safe",
+            # all except 'guess-common-names' from 'aggresive'
+            "--bool-param",
+            "--int-param",
+            "--float-param",
+            "--str-param",
+            "--bytes-param",
+            "--annotate-imprecise-magics",
         ],
         check=True,
     )

@@ -25,12 +25,10 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
-import gc
 import locale
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Generator,
 )
 
 import numpy as np
@@ -38,7 +36,8 @@ import pytest
 
 from pandas._config import get_option
 
-from pandas._typing import F
+if TYPE_CHECKING:
+    from pandas._typing import F
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -70,24 +69,13 @@ def safe_import(mod_name: str, min_version: str | None = None):
         mod = __import__(mod_name)
     except ImportError:
         return False
-    except SystemError:
-        # TODO: numba is incompatible with numpy 1.24+.
-        # Once that's fixed, this block should be removed.
-        if mod_name == "numba":
-            return False
-        else:
-            raise
 
     if not min_version:
         return mod
     else:
         import sys
 
-        try:
-            version = getattr(sys.modules[mod_name], "__version__")
-        except AttributeError:
-            # xlrd uses a capitalized attribute name
-            version = getattr(sys.modules[mod_name], "__VERSION__")
+        version = getattr(sys.modules[mod_name], "__version__")
         if version and Version(version) >= Version(min_version):
             return mod
 
@@ -119,9 +107,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_installed(package: str):
+def skip_if_installed(package: str) -> pytest.MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -129,15 +115,19 @@ def skip_if_installed(package: str):
     ----------
     package : str
         The name of the package.
+
+    Returns
+    -------
+    pytest.MarkDecorator
+        a pytest.mark.skipif to use as either a test decorator or a
+        parametrization mark.
     """
     return pytest.mark.skipif(
         safe_import(package), reason=f"Skipping because {package} is installed."
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_no(package: str, min_version: str | None = None):
+def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -163,7 +153,7 @@ def skip_if_no(package: str, min_version: str | None = None):
 
     Returns
     -------
-    _pytest.mark.structures.MarkDecorator
+    pytest.MarkDecorator
         a pytest.mark.skipif to use as either a test decorator or a
         parametrization mark.
     """
@@ -194,9 +184,9 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
+def skip_if_np_lt(
+    ver_str: str, *args, reason: str | None = None
+) -> pytest.MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
@@ -233,43 +223,6 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     return documented_fixture
 
 
-def check_file_leaks(func) -> Callable:
-    """
-    Decorate a test function to check that we are not leaking file descriptors.
-    """
-    with file_leak_context():
-        return func
-
-
-@contextmanager
-def file_leak_context() -> Generator[None, None, None]:
-    """
-    ContextManager analogue to check_file_leaks.
-    """
-    psutil = safe_import("psutil")
-    if not psutil or is_platform_windows():
-        # Checking for file leaks can hang on Windows CI
-        yield
-    else:
-        proc = psutil.Process()
-        flist = proc.open_files()
-        conns = proc.connections()
-
-        try:
-            yield
-        finally:
-            gc.collect()
-            flist2 = proc.open_files()
-            # on some builds open_files includes file position, which we _dont_
-            #  expect to remain unchanged, so we need to compare excluding that
-            flist_ex = [(x.path, x.fd) for x in flist]
-            flist2_ex = [(x.path, x.fd) for x in flist2]
-            assert set(flist2_ex) <= set(flist_ex), (flist2, flist)
-
-            conns2 = proc.connections()
-            assert conns2 == conns, (conns2, conns)
-
-
 def async_mark():
     try:
         import_optional_dependency("pytest_asyncio")
@@ -298,4 +251,9 @@ skip_array_manager_invalid_test = pytest.mark.skipif(
 skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
     get_option("mode.copy_on_write"),
     reason="Not yet implemented/adapted for Copy-on-Write mode",
+)
+
+skip_copy_on_write_invalid_test = pytest.mark.skipif(
+    get_option("mode.copy_on_write"),
+    reason="Test not valid for Copy-on-Write mode",
 )

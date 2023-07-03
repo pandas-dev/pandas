@@ -1,5 +1,4 @@
 from functools import partial
-from importlib import reload
 from io import (
     BytesIO,
     StringIO,
@@ -26,6 +25,7 @@ from pandas import (
     Timestamp,
     date_range,
     read_csv,
+    read_html,
     to_datetime,
 )
 import pandas._testing as tm
@@ -35,8 +35,6 @@ from pandas.core.arrays import (
 )
 
 from pandas.io.common import file_path_to_url
-import pandas.io.html
-from pandas.io.html import read_html
 
 
 @pytest.fixture(
@@ -88,7 +86,7 @@ def test_invalid_flavor():
     msg = r"\{" + flavor + r"\} is not a valid set of flavors"
 
     with pytest.raises(ValueError, match=msg):
-        read_html(url, match="google", flavor=flavor)
+        read_html(StringIO(url), match="google", flavor=flavor)
 
 
 @td.skip_if_no("bs4")
@@ -109,6 +107,38 @@ def test_same_ordering(datapath):
     ],
 )
 class TestReadHtml:
+    def test_literal_html_deprecation(self):
+        # GH 53785
+        msg = (
+            "Passing literal html to 'read_html' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            self.read_html(
+                """<table>
+                <thead>
+                    <tr>
+                        <th>A</th>
+                        <th>B</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2</td>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>3</td>
+                        <td>4</td>
+                    </tr>
+                </tbody>
+            </table>"""
+            )
+
     @pytest.fixture
     def spam_data(self, datapath):
         return datapath("io", "data", "html", "spam.html")
@@ -132,15 +162,15 @@ class TestReadHtml:
                 r_idx_names=False,
             )
             # pylint: disable-next=consider-using-f-string
-            .applymap("{:.3f}".format).astype(float)
+            .map("{:.3f}".format).astype(float)
         )
         out = df.to_html()
-        res = self.read_html(out, attrs={"class": "dataframe"}, index_col=0)[0]
+        res = self.read_html(StringIO(out), attrs={"class": "dataframe"}, index_col=0)[
+            0
+        ]
         tm.assert_frame_equal(res, df)
 
-    @pytest.mark.parametrize("dtype_backend", ["pandas", "pyarrow"])
-    @pytest.mark.parametrize("storage", ["python", "pyarrow"])
-    def test_use_nullable_dtypes(self, storage, dtype_backend):
+    def test_dtype_backend(self, string_storage, dtype_backend):
         # GH#50286
         df = DataFrame(
             {
@@ -155,7 +185,7 @@ class TestReadHtml:
             }
         )
 
-        if storage == "python":
+        if string_storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
 
@@ -165,9 +195,8 @@ class TestReadHtml:
             string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
 
         out = df.to_html(index=False)
-        with pd.option_context("mode.string_storage", storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = self.read_html(out, use_nullable_dtypes=True)[0]
+        with pd.option_context("mode.string_storage", string_storage):
+            result = self.read_html(StringIO(out), dtype_backend=dtype_backend)[0]
 
         expected = DataFrame(
             {
@@ -196,55 +225,31 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_use_nullable_dtypes_option(self):
-        # GH#50748
-        df = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
-
-        out = df.to_html(index=False)
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = self.read_html(out)[0]
-
-        expected = DataFrame({"a": Series([1, np.nan, 3], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)
-
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://www.fdic.gov/resources/resolutions/"
-            "bank-failures/failed-bank-list/index.html"
-        ),
-        check_before_test=True,
-    )
-    def test_banklist_url(self):
-        url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list/index.html"  # noqa E501
-        df1 = self.read_html(
+    @pytest.mark.single_cpu
+    def test_banklist_url(self, httpserver, banklist_data):
+        with open(banklist_data, encoding="utf-8") as f:
+            httpserver.serve_content(content=f.read())
+            df1 = self.read_html(
+                # lxml cannot find attrs leave out for now
+                httpserver.url,
+                match="First Federal Bank of Florida",  # attrs={"class": "dataTable"}
+            )
             # lxml cannot find attrs leave out for now
-            url,
-            match="First Federal Bank of Florida",  # attrs={"class": "dataTable"}
-        )
-        # lxml cannot find attrs leave out for now
-        df2 = self.read_html(
-            url,
-            match="Metcalf Bank",
-        )  # attrs={"class": "dataTable"})
+            df2 = self.read_html(
+                httpserver.url,
+                match="Metcalf Bank",
+            )  # attrs={"class": "dataTable"})
 
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/html/spam.html"
-        ),
-        check_before_test=True,
-    )
-    def test_spam_url(self):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/html/spam.html"
-        )
-        df1 = self.read_html(url, match=".*Water.*")
-        df2 = self.read_html(url, match="Unit")
+    @pytest.mark.single_cpu
+    def test_spam_url(self, httpserver, spam_data):
+        with open(spam_data, encoding="utf-8") as f:
+            httpserver.serve_content(content=f.read())
+            df1 = self.read_html(httpserver.url, match=".*Water.*")
+            df2 = self.read_html(httpserver.url, match="Unit")
 
         assert_framelist_equal(df1, df2)
 
@@ -346,7 +351,6 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     def test_infer_types(self, spam_data):
-
         # 10892 infer_types removed
         df1 = self.read_html(spam_data, match=".*Water.*", index_col=0)
         df2 = self.read_html(spam_data, match="Unit", index_col=0)
@@ -367,8 +371,8 @@ class TestReadHtml:
         with open(spam_data, encoding="UTF-8") as f:
             data = f.read()
 
-        df1 = self.read_html(data, match=".*Water.*")
-        df2 = self.read_html(data, match="Unit")
+        df1 = self.read_html(StringIO(data), match=".*Water.*")
+        df2 = self.read_html(StringIO(data), match="Unit")
 
         assert_framelist_equal(df1, df2)
 
@@ -382,21 +386,19 @@ class TestReadHtml:
         assert_framelist_equal(df1, df2)
 
     @pytest.mark.network
-    @tm.network
-    def test_bad_url_protocol(self):
+    @pytest.mark.single_cpu
+    def test_bad_url_protocol(self, httpserver):
+        httpserver.serve_content("urlopen error unknown url type: git", code=404)
         with pytest.raises(URLError, match="urlopen error unknown url type: git"):
             self.read_html("git://github.com", match=".*Water.*")
 
     @pytest.mark.slow
     @pytest.mark.network
-    @tm.network
-    def test_invalid_url(self):
-        msg = (
-            "Name or service not known|Temporary failure in name resolution|"
-            "No tables found"
-        )
-        with pytest.raises((URLError, ValueError), match=msg):
-            self.read_html("http://www.a23950sdfa908sd.com", match=".*Water.*")
+    @pytest.mark.single_cpu
+    def test_invalid_url(self, httpserver):
+        httpserver.serve_content("Name or service not known", code=404)
+        with pytest.raises((URLError, ValueError), match="HTTP Error 404: NOT FOUND"):
+            self.read_html(httpserver.url, match=".*Water.*")
 
     @pytest.mark.slow
     def test_file_url(self, banklist_data):
@@ -470,20 +472,69 @@ class TestReadHtml:
         with pytest.raises(ValueError, match=msg):
             self.read_html(spam_data, match="Water", skiprows=-1)
 
+    @pytest.fixture
+    def python_docs(self):
+        return """
+          <table class="contentstable" align="center"><tr>
+            <td width="50%">
+            <p class="biglink"><a class="biglink" href="whatsnew/2.7.html">What's new in Python 2.7?</a><br/>
+                <span class="linkdescr">or <a href="whatsnew/index.html">all "What's new" documents</a> since 2.0</span></p>
+            <p class="biglink"><a class="biglink" href="tutorial/index.html">Tutorial</a><br/>
+                <span class="linkdescr">start here</span></p>
+            <p class="biglink"><a class="biglink" href="library/index.html">Library Reference</a><br/>
+                <span class="linkdescr">keep this under your pillow</span></p>
+            <p class="biglink"><a class="biglink" href="reference/index.html">Language Reference</a><br/>
+                <span class="linkdescr">describes syntax and language elements</span></p>
+            <p class="biglink"><a class="biglink" href="using/index.html">Python Setup and Usage</a><br/>
+                <span class="linkdescr">how to use Python on different platforms</span></p>
+            <p class="biglink"><a class="biglink" href="howto/index.html">Python HOWTOs</a><br/>
+                <span class="linkdescr">in-depth documents on specific topics</span></p>
+            </td><td width="50%">
+            <p class="biglink"><a class="biglink" href="installing/index.html">Installing Python Modules</a><br/>
+                <span class="linkdescr">installing from the Python Package Index &amp; other sources</span></p>
+            <p class="biglink"><a class="biglink" href="distributing/index.html">Distributing Python Modules</a><br/>
+                <span class="linkdescr">publishing modules for installation by others</span></p>
+            <p class="biglink"><a class="biglink" href="extending/index.html">Extending and Embedding</a><br/>
+                <span class="linkdescr">tutorial for C/C++ programmers</span></p>
+            <p class="biglink"><a class="biglink" href="c-api/index.html">Python/C API</a><br/>
+                <span class="linkdescr">reference for C/C++ programmers</span></p>
+            <p class="biglink"><a class="biglink" href="faq/index.html">FAQs</a><br/>
+                <span class="linkdescr">frequently asked questions (with answers!)</span></p>
+            </td></tr>
+        </table>
+
+        <p><strong>Indices and tables:</strong></p>
+        <table class="contentstable" align="center"><tr>
+            <td width="50%">
+            <p class="biglink"><a class="biglink" href="py-modindex.html">Python Global Module Index</a><br/>
+                <span class="linkdescr">quick access to all modules</span></p>
+            <p class="biglink"><a class="biglink" href="genindex.html">General Index</a><br/>
+                <span class="linkdescr">all functions, classes, terms</span></p>
+            <p class="biglink"><a class="biglink" href="glossary.html">Glossary</a><br/>
+                <span class="linkdescr">the most important terms explained</span></p>
+            </td><td width="50%">
+            <p class="biglink"><a class="biglink" href="search.html">Search page</a><br/>
+                <span class="linkdescr">search this documentation</span></p>
+            <p class="biglink"><a class="biglink" href="contents.html">Complete Table of Contents</a><br/>
+                <span class="linkdescr">lists all sections and subsections</span></p>
+            </td></tr>
+        </table>
+        """  # noqa: E501
+
     @pytest.mark.network
-    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
-    def test_multiple_matches(self):
-        url = "https://docs.python.org/2/"
-        dfs = self.read_html(url, match="Python")
+    @pytest.mark.single_cpu
+    def test_multiple_matches(self, python_docs, httpserver):
+        httpserver.serve_content(content=python_docs)
+        dfs = self.read_html(httpserver.url, match="Python")
         assert len(dfs) > 1
 
     @pytest.mark.network
-    @tm.network(url="https://docs.python.org/2/", check_before_test=True)
-    def test_python_docs_table(self):
-        url = "https://docs.python.org/2/"
-        dfs = self.read_html(url, match="Python")
+    @pytest.mark.single_cpu
+    def test_python_docs_table(self, python_docs, httpserver):
+        httpserver.serve_content(content=python_docs)
+        dfs = self.read_html(httpserver.url, match="Python")
         zz = [df.iloc[0, 0][0:4] for df in dfs]
-        assert sorted(zz) == sorted(["Repo", "What"])
+        assert sorted(zz) == ["Pyth", "What"]
 
     def test_empty_tables(self):
         """
@@ -509,14 +560,15 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
-        result = self.read_html(html)
+        result = self.read_html(StringIO(html))
         assert len(result) == 1
 
     def test_multiple_tbody(self):
         # GH-20690
         # Read all tbody tags within a single table.
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -536,6 +588,7 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
+            )
         )[0]
 
         expected = DataFrame(data=[[1, 2], [3, 4]], columns=["A", "B"])
@@ -548,7 +601,8 @@ class TestReadHtml:
         as described in issue #9178
         """
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
                 <thead>
                     <tr>
                         <th>Header</th>
@@ -560,6 +614,7 @@ class TestReadHtml:
                     </tr>
                 </tbody>
             </table>"""
+            )
         )[0]
 
         expected = DataFrame(data={"Header": "first"}, index=[0])
@@ -571,7 +626,8 @@ class TestReadHtml:
         Ensure parser adds <tr> within <thead> on malformed HTML.
         """
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
             <thead>
                 <tr>
                     <th>Country</th>
@@ -587,6 +643,7 @@ class TestReadHtml:
                 </tr>
             </tbody>
         </table>"""
+            )
         )[0]
 
         expected = DataFrame(
@@ -628,8 +685,8 @@ class TestReadHtml:
         data1 = data_template.format(footer="")
         data2 = data_template.format(footer="<tr><td>footA</td><th>footB</th></tr>")
 
-        result1 = self.read_html(data1)[0]
-        result2 = self.read_html(data2)[0]
+        result1 = self.read_html(StringIO(data1))[0]
+        result2 = self.read_html(StringIO(data2))[0]
 
         tm.assert_frame_equal(result1, expected1)
         tm.assert_frame_equal(result2, expected2)
@@ -638,7 +695,8 @@ class TestReadHtml:
         # GH5048: if header is specified explicitly, an int column should be
         # parsed as int while its header is parsed as str
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <td>S</td>
@@ -649,7 +707,8 @@ class TestReadHtml:
                     <td>1944</td>
                 </tr>
             </table>
-        """,
+        """
+            ),
             header=0,
         )[0]
 
@@ -698,8 +757,8 @@ class TestReadHtml:
             "Hamilton Bank, NA",
             "The Citizens Savings Bank",
         ]
-        dfnew = df.applymap(try_remove_ws).replace(old, new)
-        gtnew = ground_truth.applymap(try_remove_ws)
+        dfnew = df.map(try_remove_ws).replace(old, new)
+        gtnew = ground_truth.map(try_remove_ws)
         converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
@@ -708,7 +767,7 @@ class TestReadHtml:
     @pytest.mark.slow
     def test_gold_canyon(self, banklist_data):
         gc = "Gold Canyon"
-        with open(banklist_data) as f:
+        with open(banklist_data, encoding="utf-8") as f:
             raw_text = f.read()
 
         assert gc in raw_text
@@ -719,7 +778,8 @@ class TestReadHtml:
 
     def test_different_number_of_cols(self):
         expected = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
                         <thead>
                             <tr style="text-align: right;">
                             <th></th>
@@ -748,12 +808,14 @@ class TestReadHtml:
                             <td> 0.222</td>
                             </tr>
                         </tbody>
-                    </table>""",
+                    </table>"""
+            ),
             index_col=0,
         )[0]
 
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
                     <thead>
                         <tr style="text-align: right;">
                         <th></th>
@@ -779,7 +841,8 @@ class TestReadHtml:
                         <td> 0.222</td>
                         </tr>
                     </tbody>
-                 </table>""",
+                 </table>"""
+            ),
             index_col=0,
         )[0]
 
@@ -788,7 +851,8 @@ class TestReadHtml:
     def test_colspan_rowspan_1(self):
         # GH17054
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -802,6 +866,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
+            )
         )[0]
 
         expected = DataFrame([["a", "b", "c"]], columns=["A", "B", "C"])
@@ -817,7 +882,8 @@ class TestReadHtml:
         # A B b z C
 
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <td colspan="2">X</td>
@@ -831,7 +897,8 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """,
+        """
+            ),
             header=0,
         )[0]
 
@@ -850,7 +917,8 @@ class TestReadHtml:
         # a b b b D
 
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <td rowspan="2">A</td>
@@ -861,7 +929,8 @@ class TestReadHtml:
                     <td>D</td>
                 </tr>
             </table>
-        """,
+        """
+            ),
             header=0,
         )[0]
 
@@ -880,7 +949,8 @@ class TestReadHtml:
         # C b
 
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <td>A</td>
@@ -890,7 +960,8 @@ class TestReadHtml:
                     <td>C</td>
                 </tr>
             </table>
-        """,
+        """
+            ),
             header=0,
         )[0]
 
@@ -902,14 +973,16 @@ class TestReadHtml:
         # GH17054
 
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <td rowspan="3">A</td>
                     <td rowspan="3">B</td>
                 </tr>
             </table>
-        """,
+        """
+            ),
             header=0,
         )[0]
 
@@ -920,7 +993,8 @@ class TestReadHtml:
     def test_header_inferred_from_rows_with_only_th(self):
         # GH17054
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -936,6 +1010,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
+            )
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
@@ -946,9 +1021,9 @@ class TestReadHtml:
     def test_parse_dates_list(self):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
         expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[1], index_col=0)
+        res = self.read_html(StringIO(expected), parse_dates=[1], index_col=0)
         tm.assert_frame_equal(df, res[0])
-        res = self.read_html(expected, parse_dates=["date"], index_col=0)
+        res = self.read_html(StringIO(expected), parse_dates=["date"], index_col=0)
         tm.assert_frame_equal(df, res[0])
 
     def test_parse_dates_combine(self):
@@ -960,7 +1035,7 @@ class TestReadHtml:
             }
         )
         res = self.read_html(
-            df.to_html(), parse_dates={"datetime": [1, 2]}, index_col=1
+            StringIO(df.to_html()), parse_dates={"datetime": [1, 2]}, index_col=1
         )
         newdf = DataFrame({"datetime": raw_dates})
         tm.assert_frame_equal(newdf, res[0])
@@ -985,7 +1060,8 @@ class TestReadHtml:
 
     def test_parser_error_on_empty_header_row(self):
         result = self.read_html(
-            """
+            StringIO(
+                """
                 <table>
                     <thead>
                         <tr><th></th><th></tr>
@@ -995,7 +1071,8 @@ class TestReadHtml:
                         <tr><td>a</td><td>b</td></tr>
                     </tbody>
                 </table>
-            """,
+            """
+            ),
             header=[0, 1],
         )
         expected = DataFrame(
@@ -1009,7 +1086,8 @@ class TestReadHtml:
     def test_decimal_rows(self):
         # GH 12907
         result = self.read_html(
-            """<html>
+            StringIO(
+                """<html>
             <body>
              <table>
                 <thead>
@@ -1024,7 +1102,8 @@ class TestReadHtml:
                 </tbody>
             </table>
             </body>
-        </html>""",
+        </html>"""
+            ),
             decimal="#",
         )[0]
 
@@ -1047,7 +1126,8 @@ class TestReadHtml:
     def test_converters(self):
         # GH 13461
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1061,7 +1141,8 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>""",
+               </table>"""
+            ),
             converters={"a": str},
         )[0]
 
@@ -1072,7 +1153,8 @@ class TestReadHtml:
     def test_na_values(self):
         # GH 13461
         result = self.read_html(
-            """<table>
+            StringIO(
+                """<table>
                  <thead>
                    <tr>
                      <th>a</th>
@@ -1086,7 +1168,8 @@ class TestReadHtml:
                      <td> 0.244</td>
                    </tr>
                  </tbody>
-               </table>""",
+               </table>"""
+            ),
             na_values=[0.244],
         )[0]
 
@@ -1112,16 +1195,17 @@ class TestReadHtml:
                     </table>"""
 
         expected_df = DataFrame({"a": ["N/A", "NA"]})
-        html_df = self.read_html(html_data, keep_default_na=False)[0]
+        html_df = self.read_html(StringIO(html_data), keep_default_na=False)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
         expected_df = DataFrame({"a": [np.nan, np.nan]})
-        html_df = self.read_html(html_data, keep_default_na=True)[0]
+        html_df = self.read_html(StringIO(html_data), keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_preserve_empty_rows(self):
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -1137,6 +1221,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
+            )
         )[0]
 
         expected = DataFrame(data=[["a", "b"], [np.nan, np.nan]], columns=["A", "B"])
@@ -1145,7 +1230,8 @@ class TestReadHtml:
 
     def test_ignore_empty_rows_when_inferring_header(self):
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <thead>
                     <tr><th></th><th></tr>
@@ -1157,6 +1243,7 @@ class TestReadHtml:
                 </tbody>
             </table>
         """
+            )
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
@@ -1174,7 +1261,7 @@ class TestReadHtml:
             ["Name", "Unnamed: 1_level_1", "Unnamed: 2_level_1"],
         ]
         html = expected_df.to_html(index=False)
-        html_df = self.read_html(html)[0]
+        html_df = self.read_html(StringIO(html))[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_works_on_valid_markup(self, datapath):
@@ -1224,8 +1311,7 @@ class TestReadHtml:
     )
     def test_displayed_only(self, displayed_only, exp0, exp1):
         # GH 20027
-        data = StringIO(
-            """<html>
+        data = """<html>
           <body>
             <table>
               <tr>
@@ -1244,15 +1330,36 @@ class TestReadHtml:
             </table>
           </body>
         </html>"""
-        )
 
-        dfs = self.read_html(data, displayed_only=displayed_only)
+        dfs = self.read_html(StringIO(data), displayed_only=displayed_only)
         tm.assert_frame_equal(dfs[0], exp0)
 
         if exp1 is not None:
             tm.assert_frame_equal(dfs[1], exp1)
         else:
             assert len(dfs) == 1  # Should not parse hidden table
+
+    @pytest.mark.parametrize("displayed_only", [True, False])
+    def test_displayed_only_with_many_elements(self, displayed_only):
+        html_table = """
+        <table>
+            <tr>
+                <th>A</th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td><span style="display:none"></span>4</td>
+                <td>5</td>
+            </tr>
+        </table>
+        """
+        result = read_html(StringIO(html_table), displayed_only=displayed_only)[0]
+        expected = DataFrame({"A": [1, 4], "B": [2, 5]})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings(
         "ignore:You provided Unicode markup but also provided a value for "
@@ -1341,6 +1448,7 @@ class TestReadHtml:
         assert self.read_html(bad)
 
     @pytest.mark.slow
+    @pytest.mark.single_cpu
     def test_importcheck_thread_safety(self, datapath):
         # see gh-16928
 
@@ -1352,9 +1460,6 @@ class TestReadHtml:
                     self.err = err
                 else:
                     self.err = None
-
-        # force import check by reinitalising global vars in html.py
-        reload(pandas.io.html)
 
         filename = datapath("io", "data", "html", "valid_markup.html")
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
@@ -1378,7 +1483,8 @@ class TestReadHtml:
     def test_parse_br_as_space(self):
         # GH 29528: pd.read_html() convert <br> to space
         result = self.read_html(
-            """
+            StringIO(
+                """
             <table>
                 <tr>
                     <th>A</th>
@@ -1388,6 +1494,7 @@ class TestReadHtml:
                 </tr>
             </table>
         """
+            )
         )[0]
 
         expected = DataFrame(data=[["word1 word2"]], columns=["A"])
@@ -1458,8 +1565,9 @@ class TestReadHtml:
         elif arg == "header":
             head_exp = gh_13141_expected["head_extract"]
 
-        result = self.read_html(gh_13141_data, extract_links=arg)[0]
+        result = self.read_html(StringIO(gh_13141_data), extract_links=arg)[0]
         expected = DataFrame([data_exp, foot_exp], columns=head_exp)
+        expected = expected.fillna(np.nan)
         tm.assert_frame_equal(result, expected)
 
     def test_extract_links_bad(self, spam_data):
@@ -1481,6 +1589,39 @@ class TestReadHtml:
           </tr>
         </table>
         """
-        result = self.read_html(data, extract_links="all")[0]
+        result = self.read_html(StringIO(data), extract_links="all")[0]
         expected = DataFrame([[("Google.com", "https://google.com")]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_html("test", dtype_backend="numpy")
+
+    def test_style_tag(self):
+        # GH 48316
+        data = """
+        <table>
+            <tr>
+                <th>
+                    <style>.style</style>
+                    A
+                    </th>
+                <th>B</th>
+            </tr>
+            <tr>
+                <td>A1</td>
+                <td>B1</td>
+            </tr>
+            <tr>
+                <td>A2</td>
+                <td>B2</td>
+            </tr>
+        </table>
+        """
+        result = self.read_html(StringIO(data))[0]
+        expected = DataFrame(data=[["A1", "B1"], ["A2", "B2"]], columns=["A", "B"])
         tm.assert_frame_equal(result, expected)

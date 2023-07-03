@@ -17,7 +17,6 @@ from typing import (
 
 import numpy as np
 
-from pandas.compat import PY39
 from pandas.errors import UndefinedVariableError
 
 import pandas.core.common as com
@@ -193,7 +192,7 @@ def _filter_nodes(superclass, all_nodes=_all_nodes):
     return frozenset(node_names)
 
 
-_all_node_names = frozenset(map(lambda x: x.__name__, _all_nodes))
+_all_node_names = frozenset(x.__name__ for x in _all_nodes)
 _mod_nodes = _filter_nodes(ast.mod)
 _stmt_nodes = _filter_nodes(ast.stmt)
 _expr_nodes = _filter_nodes(ast.expr)
@@ -207,9 +206,6 @@ _handler_nodes = _filter_nodes(ast.excepthandler)
 _arguments_nodes = _filter_nodes(ast.arguments)
 _keyword_nodes = _filter_nodes(ast.keyword)
 _alias_nodes = _filter_nodes(ast.alias)
-
-if not PY39:
-    _slice_nodes = _filter_nodes(ast.slice)
 
 
 # nodes that we don't support directly but are needed for parsing
@@ -430,7 +426,6 @@ class BaseExprVisitor(ast.NodeVisitor):
 
         # must be two terms and the comparison operator must be ==/!=/in/not in
         if is_term(left) and is_term(right) and op_type in self.rewrite_map:
-
             left_list, right_list = map(_is_list, (left, right))
             left_str, right_str = map(_is_str, (left, right))
 
@@ -656,7 +651,6 @@ class BaseExprVisitor(ast.NodeVisitor):
         raise ValueError(f"Invalid Attribute context {type(ctx).__name__}")
 
     def visit_Call(self, node, side=None, **kwargs):
-
         if isinstance(node.func, ast.Attribute) and node.func.attr != "__call__":
             res = self.visit_Attribute(node.func)
         elif not isinstance(node.func, ast.Name):
@@ -681,7 +675,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             res = res.value
 
         if isinstance(res, FuncNode):
-
             new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
@@ -692,7 +685,6 @@ class BaseExprVisitor(ast.NodeVisitor):
             return res(*new_args)
 
         else:
-
             new_args = [self.visit(arg)(self.env) for arg in node.args]
 
             for key in node.keywords:

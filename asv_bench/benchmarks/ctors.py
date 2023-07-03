@@ -49,7 +49,6 @@ def list_of_lists_with_none(arr):
 
 
 class SeriesConstructors:
-
     param_names = ["data_fmt", "with_index", "dtype"]
     params = [
         [
@@ -124,7 +123,6 @@ class MultiIndexConstructor:
 
 class DatetimeIndexConstructor:
     def setup(self):
-
         N = 20_000
         dti = date_range("1900-01-01", periods=N)
 

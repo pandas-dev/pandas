@@ -3,6 +3,7 @@
 from collections import OrderedDict
 import datetime as dt
 import decimal
+from io import StringIO
 import json
 
 import pytest
@@ -143,7 +144,6 @@ class TestTableOrient:
         )
 
     def test_build_date_series(self, da):
-
         s = Series(da, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -169,7 +169,6 @@ class TestTableOrient:
         assert result == expected
 
     def test_build_decimal_series(self, dc):
-
         s = Series(dc, name="a")
         s.index.name = "id"
         result = s.to_json(orient="table", date_format="iso")
@@ -245,7 +244,6 @@ class TestTableOrient:
         assert result == expected
 
     def test_to_json(self, df):
-
         df = df.copy()
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
@@ -290,7 +288,7 @@ class TestTableOrient:
         )
         expected = df.copy()
         data_json = df.to_json(orient="table", indent=4)
-        result = read_json(data_json, orient="table")
+        result = read_json(StringIO(data_json), orient="table")
         tm.assert_frame_equal(result, expected)
 
     def test_json_ext_dtype_reading(self):
@@ -314,6 +312,6 @@ class TestTableOrient:
                 }
             ]
         }"""
-        result = read_json(data_json, orient="table")
+        result = read_json(StringIO(data_json), orient="table")
         expected = DataFrame({"a": Series([2, NA], dtype="Int64")})
         tm.assert_frame_equal(result, expected)

@@ -218,9 +218,8 @@ class TestDataFrameCorr:
         _ = df.corr(numeric_only=True)
 
         if using_copy_on_write:
-            # TODO(CoW) we should disallow this, so `df` doesn't get updated
-            ser.values[0] = 99
-            assert df.loc[0, "A"] == 99
+            ser.iloc[0] = 99
+            assert df.loc[0, "A"] == 0
         else:
             # Check that the corr didn't break link between ser and df
             ser.values[0] = 99
@@ -275,7 +274,17 @@ class TestDataFrameCorr:
 
 
 class TestDataFrameCorrWith:
-    def test_corrwith(self, datetime_frame):
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "float64",
+            "Float64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_corrwith(self, datetime_frame, dtype):
+        datetime_frame = datetime_frame.astype(dtype)
+
         a = datetime_frame
         noise = Series(np.random.randn(len(a)), index=a.index)
 
@@ -356,8 +365,8 @@ class TestDataFrameCorrWith:
             tm.assert_series_equal(result, expected)
         else:
             with pytest.raises(
-                TypeError,
-                match=r"unsupported operand type\(s\) for /: 'str' and 'int'",
+                ValueError,
+                match="could not convert string to float",
             ):
                 df.corrwith(s, numeric_only=numeric_only)
 

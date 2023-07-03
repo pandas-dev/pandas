@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -50,7 +52,6 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_concat_dtypes(self):
-
         # GH8143
         index = ["cat", "obj", "num"]
         cat = Categorical(["a", "b", "c"])
@@ -93,7 +94,6 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(result, exp)
 
     def test_categorical_concat_preserve(self):
-
         # GH 8641  series concat not preserving category dtype
         # GH 13524 can concat different categories
         s = Series(list("abc"), dtype="category")
@@ -125,7 +125,6 @@ class TestCategoricalConcat:
         tm.assert_frame_equal(res, exp)
 
     def test_categorical_index_preserver(self):
-
         a = Series(np.arange(6, dtype="int64"))
         b = Series(list("aabbca"))
 
@@ -168,6 +167,22 @@ class TestCategoricalConcat:
             ]
         )
         tm.assert_series_equal(result, expected)
+
+    def test_concat_categorical_datetime(self):
+        # GH-39443
+        df1 = DataFrame(
+            {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+        )
+        df2 = DataFrame(
+            {"x": Series(datetime(2021, 1, 2), index=[1], dtype="category")}
+        )
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame(
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+        )
+
+        tm.assert_equal(result, expected)
 
     def test_concat_categorical_unchanged(self):
         # GH-12007

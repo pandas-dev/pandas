@@ -47,12 +47,9 @@ def get_objs():
     return objs
 
 
-objs = get_objs()
-
-
 class TestReductions:
     @pytest.mark.parametrize("opname", ["max", "min"])
-    @pytest.mark.parametrize("obj", objs)
+    @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
@@ -63,7 +60,7 @@ class TestReductions:
         if getattr(obj, "tz", None) is not None:
             # We need to de-localize before comparing to the numpy-produced result
             expected = expected.astype("M8[ns]").astype("int64")
-            assert result.value == expected
+            assert result._value == expected
         else:
             assert result == expected
 
@@ -251,7 +248,6 @@ class TestIndexReductions:
         assert isna(idx.min())
 
     def test_minmax_timedelta64(self):
-
         # monotonic
         idx1 = TimedeltaIndex(["1 days", "2 days", "3 days"])
         assert idx1.is_monotonic_increasing
@@ -478,7 +474,6 @@ class TestIndexReductions:
             np.argmax(dr, out=0)
 
     def test_minmax_period(self):
-
         # monotonic
         idx1 = PeriodIndex([NaT, "2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         assert not idx1.is_monotonic_increasing
@@ -528,7 +523,6 @@ class TestIndexReductions:
             np.argmax(pr, out=0)
 
     def test_min_max_categorical(self):
-
         ci = pd.CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         msg = (
             r"Categorical is not ordered for operation min\n"
@@ -565,8 +559,10 @@ class TestSeriesReductions:
         arr = np.random.randn(100, 100).astype("f4")
         arr[:, 2] = np.inf
 
-        with pd.option_context("mode.use_inf_as_na", True):
-            tm.assert_almost_equal(s.sum(), s2.sum())
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                tm.assert_almost_equal(s.sum(), s2.sum())
 
         res = nanops.nansum(arr, axis=1)
         assert np.isinf(res).all()
@@ -675,7 +671,6 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("method", ["mean", "var"])
     @pytest.mark.parametrize("dtype", ["Float64", "Int64", "boolean"])
     def test_ops_consistency_on_empty_nullable(self, method, dtype):
-
         # GH#34814
         # consistency for nullable dtypes on empty or ALL-NA mean
 
@@ -691,7 +686,6 @@ class TestSeriesReductions:
 
     @pytest.mark.parametrize("method", ["mean", "median", "std", "var"])
     def test_ops_consistency_on_empty(self, method):
-
         # GH#7869
         # consistency on empty
 
@@ -723,7 +717,6 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("use_bottleneck", [True, False])
     @pytest.mark.parametrize("dtype", ["int32", "int64"])
     def test_sum_overflow_int(self, use_bottleneck, dtype):
-
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
@@ -985,27 +978,32 @@ class TestSeriesReductions:
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        msg = "'(any|all)' with datetime64 dtypes is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
 
-        assert dta.all()
-        assert dta.any()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#34479
+            assert dta.all()
+            assert dta.any()
 
-        assert ser.all()
-        assert ser.any()
+            assert ser.all()
+            assert ser.any()
 
-        assert df.any().all()
-        assert df.all().all()
+            assert df.any().all()
+            assert df.all().all()
 
         tda = dta - dta[0]
         ser = Series(tda)
@@ -1021,7 +1019,6 @@ class TestSeriesReductions:
         assert not df.all().any()
 
     def test_timedelta64_analytics(self):
-
         # index min/max
         dti = date_range("2012-1-1", periods=3, freq="D")
         td = Series(dti) - Timestamp("20120101")
@@ -1104,13 +1101,22 @@ class TestSeriesReductions:
         assert s.idxmax() == 2
         assert np.isnan(s.idxmax(skipna=False))
 
-        # Using old-style behavior that treats floating point nan, -inf, and
-        # +inf as missing
-        with pd.option_context("mode.use_inf_as_na", True):
-            assert s.idxmin() == 0
-            assert np.isnan(s.idxmin(skipna=False))
-            assert s.idxmax() == 0
-            np.isnan(s.idxmax(skipna=False))
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # Using old-style behavior that treats floating point nan, -inf, and
+            # +inf as missing
+            with pd.option_context("mode.use_inf_as_na", True):
+                assert s.idxmin() == 0
+                assert np.isnan(s.idxmin(skipna=False))
+                assert s.idxmax() == 0
+                np.isnan(s.idxmax(skipna=False))
+
+    def test_sum_uint64(self):
+        # GH 53401
+        s = Series([10000000000000000000], dtype="uint64")
+        result = s.sum()
+        expected = np.uint64(10000000000000000000)
+        tm.assert_almost_equal(result, expected)
 
 
 class TestDatetime64SeriesReductions:

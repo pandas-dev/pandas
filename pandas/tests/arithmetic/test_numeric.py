@@ -22,7 +22,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.core.api import NumericIndex
 from pandas.core.computation import expressions as expr
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
@@ -105,21 +104,24 @@ class TestNumericComparisons:
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
-    def test_numeric_cmp_string_numexpr_path(self, box_with_array):
+    def test_numeric_cmp_string_numexpr_path(self, box_with_array, monkeypatch):
         # GH#36377, GH#35700
         box = box_with_array
         xbox = box if box is not Index else np.ndarray
 
-        obj = Series(np.random.randn(10**5))
+        obj = Series(np.random.randn(51))
         obj = tm.box_expected(obj, box, transpose=False)
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj == "a"
 
-        result = obj == "a"
-
-        expected = Series(np.zeros(10**5, dtype=bool))
+        expected = Series(np.zeros(51, dtype=bool))
         expected = tm.box_expected(expected, xbox, transpose=False)
         tm.assert_equal(result, expected)
 
-        result = obj != "a"
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 50)
+            result = obj != "a"
         tm.assert_equal(result, ~expected)
 
         msg = "Invalid comparison between dtype=float64 and str"
@@ -293,6 +295,7 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
             np.datetime64("NaT", "ns"),
             pd.NaT,
         ],
+        ids=repr,
     )
     def test_add_sub_datetimedeltalike_invalid(
         self, numeric_idx, other, box_with_array
@@ -796,7 +799,6 @@ class TestMultiplicationDivision:
     #  de-duplication with test_modulo above
     def test_modulo2(self):
         with np.errstate(all="ignore"):
-
             # GH#3590, modulo as ints
             p = pd.DataFrame({"first": [3, 4, 5, 8], "second": [0, 0, 0, 3]})
             result = p["first"] % p["second"]
@@ -1055,7 +1057,7 @@ class TestAdditionSubtraction:
 
 class TestUFuncCompat:
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, RangeIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, RangeIndex, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_compat(self, holder, dtype):
         box = Series if holder is Series else Index
@@ -1071,7 +1073,7 @@ class TestUFuncCompat:
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_coercions(self, holder, dtype):
         idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
@@ -1115,7 +1117,7 @@ class TestUFuncCompat:
         tm.assert_equal(result, exp)
 
     # TODO: add more dtypes
-    @pytest.mark.parametrize("holder", [NumericIndex, Series])
+    @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_multiple_return_values(self, holder, dtype):
         obj = holder([1, 2, 3], dtype=dtype, name="x")

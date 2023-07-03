@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_integer_dtype
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,10 +38,12 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     expected = Series(counts, dtype="int64")
     if sort:
         expected = expected.sort_index()
-    if tm.is_integer_dtype(expected.index) and not any(x is None for x in by):
+    if is_integer_dtype(expected.index.dtype) and not any(x is None for x in by):
         expected.index = expected.index.astype(np.int_)
 
-    grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()
     tm.assert_series_equal(result, expected)
 
@@ -81,7 +85,7 @@ def test_size_period_index():
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")
-    result = df.groupby(["A", "B"], as_index=as_index).size()
+    result = df.groupby(["A", "B"], as_index=as_index, observed=False).size()
 
     expected = DataFrame(
         [[1, 1, 1], [1, 2, 0], [2, 1, 0], [2, 2, 1]], columns=["A", "B", "size"]

@@ -9,11 +9,12 @@ from pandas._config import config as cf
 
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_float,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -41,7 +42,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.api import NumericIndex
 
 fix_now = pd.Timestamp("2021-01-01")
 fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
@@ -53,21 +53,24 @@ def test_notna_notnull(notna_f):
     assert not notna_f(None)
     assert not notna_f(np.NaN)
 
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert notna_f(np.inf)
-        assert notna_f(-np.inf)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert notna_f(np.inf)
+            assert notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.all()
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.all()
 
-    with cf.option_context("mode.use_inf_as_na", True):
-        assert not notna_f(np.inf)
-        assert not notna_f(-np.inf)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", True):
+            assert not notna_f(np.inf)
+            assert not notna_f(-np.inf)
 
-        arr = np.array([1.5, np.inf, 3.5, -np.inf])
-        result = notna_f(arr)
-        assert result.sum() == 2
+            arr = np.array([1.5, np.inf, 3.5, -np.inf])
+            result = notna_f(arr)
+            assert result.sum() == 2
 
 
 @pytest.mark.parametrize("null_func", [notna, notnull, isna, isnull])
@@ -82,8 +85,10 @@ def test_notna_notnull(notna_f):
     ],
 )
 def test_null_check_is_series(null_func, ser):
-    with cf.option_context("mode.use_inf_as_na", False):
-        assert isinstance(null_func(ser), Series)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with cf.option_context("mode.use_inf_as_na", False):
+            assert isinstance(null_func(ser), Series)
 
 
 class TestIsNA:
@@ -214,8 +219,10 @@ class TestIsNA:
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
-            with cf.option_context("mode.use_inf_as_na", True):
-                result = isna(obj)
+            msg = "use_inf_as_na option is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                with cf.option_context("mode.use_inf_as_na", True):
+                    result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -406,10 +413,10 @@ def test_array_equivalent(dtype_equal):
         np.array(["a", "b", "c", "d"]), np.array(["e", "e"]), dtype_equal=dtype_equal
     )
     assert array_equivalent(
-        NumericIndex([0, np.nan]), NumericIndex([0, np.nan]), dtype_equal=dtype_equal
+        Index([0, np.nan]), Index([0, np.nan]), dtype_equal=dtype_equal
     )
     assert not array_equivalent(
-        NumericIndex([0, np.nan]), NumericIndex([1, np.nan]), dtype_equal=dtype_equal
+        Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
     )
     assert array_equivalent(
         DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
@@ -461,7 +468,7 @@ def test_array_equivalent_series(val):
     cm = (
         # stacklevel is chosen to make sense when called from .equals
         tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if isinstance(val, str) and not is_numpy_dev
+        if isinstance(val, str) and not np_version_gte1p25
         else nullcontext()
     )
     with cm:
@@ -569,6 +576,7 @@ def test_array_equivalent_nested(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.parametrize(
     "strict_nan", [pytest.param(True, marks=pytest.mark.xfail), False]
 )
@@ -611,6 +619,7 @@ def test_array_equivalent_nested_list(strict_nan):
     assert not array_equivalent(left, right, strict_nan=strict_nan)
 
 
+@pytest.mark.filterwarnings("ignore:elementwise comparison failed:DeprecationWarning")
 @pytest.mark.xfail(reason="failing")
 @pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nested_mixed_list(strict_nan):
@@ -641,7 +650,7 @@ def test_array_equivalent_nested_mixed_list(strict_nan):
         np.array(["c", "d"], dtype=object),
     ]
     left = np.array([subarr, None], dtype=object)
-    right = np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object)
+    right = np.array([[[None, "b"], ["c", "d"]], None], dtype=object)
     assert array_equivalent(left, right, strict_nan=strict_nan)
     assert not array_equivalent(left, right[::-1], strict_nan=strict_nan)
 
@@ -708,7 +717,7 @@ def test_array_equivalent_index_with_tuples():
     ],
 )
 def test_na_value_for_dtype(dtype, na_value):
-    result = na_value_for_dtype(dtype)
+    result = na_value_for_dtype(pandas_dtype(dtype))
     # identify check doesn't work for datetime64/timedelta64("NaT") bc they
     #  are not singletons
     assert result is na_value or (
@@ -801,8 +810,8 @@ inf_vals = [
 
 int_na_vals = [
     # Values that match iNaT, which we treat as null in specific cases
-    np.int64(NaT.value),
-    int(NaT.value),
+    np.int64(NaT._value),
+    int(NaT._value),
 ]
 
 sometimes_na_vals = [Decimal("NaN")]
@@ -875,7 +884,6 @@ class TestLibMissing:
             assert not libmissing.is_matching_na(left, right)
 
     def test_is_matching_na_nan_matches_none(self):
-
         assert not libmissing.is_matching_na(None, np.nan)
         assert not libmissing.is_matching_na(np.nan, None)
 

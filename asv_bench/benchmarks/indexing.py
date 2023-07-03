@@ -3,6 +3,7 @@ These benchmarks are for Series and DataFrame indexing methods.  For the
 lower-level methods directly on Index and subclasses, see index_object.py,
 indexing_engine.py, and index_cached.py
 """
+from datetime import datetime
 import warnings
 
 import numpy as np
@@ -25,7 +26,6 @@ from .pandas_vb_common import tm
 
 
 class NumericSeriesIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -97,7 +97,6 @@ class NumericMaskedIndexing:
     param_names = ["dtype", "monotonic"]
 
     def setup(self, dtype, monotonic):
-
         indices = {
             True: Index(self.monotonic_list, dtype=dtype),
             False: Index(self.non_monotonic_list, dtype=dtype).append(
@@ -116,7 +115,6 @@ class NumericMaskedIndexing:
 
 
 class NonNumericSeriesIndexing:
-
     params = [
         ("string", "datetime", "period"),
         ("unique_monotonic_inc", "nonunique_monotonic_inc", "non_monotonic"),
@@ -191,7 +189,6 @@ class DataFrameStringIndexing:
 
 
 class DataFrameNumericIndexing:
-
     params = [
         (np.int64, np.uint64, np.float64),
         ("unique_monotonic_inc", "nonunique_monotonic_inc"),
@@ -228,7 +225,6 @@ class DataFrameNumericIndexing:
 
 
 class Take:
-
     params = ["int", "datetime"]
     param_names = ["index"]
 
@@ -247,7 +243,6 @@ class Take:
 
 
 class MultiIndexing:
-
     params = [True, False]
     param_names = ["unique_levels"]
 
@@ -376,7 +371,6 @@ class SortedAndUnsortedDatetimeIndexLoc:
 
 
 class CategoricalIndexIndexing:
-
     params = ["monotonic_incr", "monotonic_decr", "non_monotonic"]
     param_names = ["index"]
 
@@ -522,7 +516,6 @@ class Setitem:
 
 
 class ChainIndexing:
-
     params = [None, "warn"]
     param_names = ["mode"]
 
@@ -537,6 +530,27 @@ class ChainIndexing:
             with option_context("mode.chained_assignment", mode):
                 df2 = df[df.A > N // 2]
                 df2["C"] = 1.0
+
+
+class Block:
+    params = [
+        (True, "True"),
+        (np.array(True), "np.array(True)"),
+    ]
+
+    def setup(self, true_value, mode):
+        self.df = DataFrame(
+            False,
+            columns=np.arange(500).astype(str),
+            index=date_range("2010-01-01", "2011-01-01"),
+        )
+
+        self.true_value = true_value
+
+    def time_test(self, true_value, mode):
+        start = datetime(2010, 5, 1)
+        end = datetime(2010, 9, 1)
+        self.df.loc[start:end, :] = true_value
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

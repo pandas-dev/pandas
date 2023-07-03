@@ -99,7 +99,7 @@ def test_time_rule_series(series, compare_func, roll_func, kwargs, minp):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @pytest.mark.parametrize(
@@ -340,7 +340,7 @@ def test_center_reindex_frame(frame, roll_func, kwargs, minp, fill_value):
         lambda x: x.rolling(window=10, min_periods=5).var(),
         lambda x: x.rolling(window=10, min_periods=5).skew(),
         lambda x: x.rolling(window=10, min_periods=5).kurt(),
-        lambda x: x.rolling(window=10, min_periods=5).quantile(quantile=0.5),
+        lambda x: x.rolling(window=10, min_periods=5).quantile(q=0.5),
         lambda x: x.rolling(window=10, min_periods=5).median(),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=False),
         lambda x: x.rolling(window=10, min_periods=5).apply(sum, raw=True),
@@ -384,7 +384,6 @@ def test_rolling_max_gh6297(step):
 
 
 def test_rolling_max_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -422,7 +421,6 @@ def test_rolling_max_resample(step):
 
 
 def test_rolling_min_resample(step):
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
@@ -443,7 +441,6 @@ def test_rolling_min_resample(step):
 
 
 def test_rolling_median_resample():
-
     indices = [datetime(1975, 1, i) for i in range(1, 6)]
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))

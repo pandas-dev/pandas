@@ -129,6 +129,12 @@ def parse(version: str) -> LegacyVersion | Version:
 class InvalidVersion(ValueError):
     """
     An invalid version was found, users should refer to PEP 440.
+
+    Examples
+    --------
+    >>> pd.util.version.Version('1.')
+    Traceback (most recent call last):
+    InvalidVersion: Invalid version: '1.'
     """
 
 
@@ -253,23 +259,22 @@ _legacy_version_replacement_map = {
 
 def _parse_version_parts(s: str) -> Iterator[str]:
     for part in _legacy_version_component_re.split(s):
-        part = _legacy_version_replacement_map.get(part, part)
+        mapped_part = _legacy_version_replacement_map.get(part, part)
 
-        if not part or part == ".":
+        if not mapped_part or mapped_part == ".":
             continue
 
-        if part[:1] in "0123456789":
+        if mapped_part[:1] in "0123456789":
             # pad for numeric comparison
-            yield part.zfill(8)
+            yield mapped_part.zfill(8)
         else:
-            yield "*" + part
+            yield "*" + mapped_part
 
     # ensure that alpha/beta/candidate are before final
     yield "*final"
 
 
 def _legacy_cmpkey(version: str) -> LegacyCmpKey:
-
     # We hardcode an epoch of -1 here. A PEP 440 version can only have a epoch
     # greater than or equal to 0. This will effectively put the LegacyVersion,
     # which uses the defacto standard originally implemented by setuptools,
@@ -330,11 +335,9 @@ VERSION_PATTERN = r"""
 
 
 class Version(_BaseVersion):
-
     _regex = re.compile(r"^\s*" + VERSION_PATTERN + r"\s*$", re.VERBOSE | re.IGNORECASE)
 
     def __init__(self, version: str) -> None:
-
         # Validate the version and parse it into pieces
         match = self._regex.search(version)
         if not match:
@@ -468,7 +471,6 @@ class Version(_BaseVersion):
 def _parse_letter_version(
     letter: str, number: str | bytes | SupportsInt
 ) -> tuple[str, int] | None:
-
     if letter:
         # We consider there to be an implicit 0 in a pre-release if there is
         # not a numeral associated with it.
@@ -524,7 +526,6 @@ def _cmpkey(
     dev: tuple[str, int] | None,
     local: tuple[SubLocalType] | None,
 ) -> CmpKey:
-
     # When we compare a release version, we want to compare it with all of the
     # trailing zeros removed. So we'll use a reverse the list, drop all the now
     # leading zeros until we come to something non zero, then take the rest

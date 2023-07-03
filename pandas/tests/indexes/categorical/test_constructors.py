@@ -19,7 +19,6 @@ class TestCategoricalIndexConstructors:
             CategoricalIndex(categories=list("abcd"), ordered=False)
 
     def test_construction(self):
-
         ci = CategoricalIndex(list("aabbca"), categories=list("abcd"), ordered=False)
         categories = ci.categories
 
@@ -93,7 +92,6 @@ class TestCategoricalIndexConstructors:
         assert not isinstance(result, CategoricalIndex)
 
     def test_construction_with_dtype(self):
-
         # specify dtype
         ci = CategoricalIndex(list("aabbca"), categories=list("abc"), ordered=False)
 

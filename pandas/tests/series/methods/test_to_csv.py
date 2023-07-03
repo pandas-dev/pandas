@@ -52,7 +52,7 @@ class TestSeriesToCSV:
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
-            with open(path, "w") as outfile:
+            with open(path, "w", encoding="utf-8") as outfile:
                 outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
             series = self.read_csv(path, sep="|", parse_dates=True)
@@ -66,11 +66,10 @@ class TestSeriesToCSV:
             tm.assert_series_equal(check_series, series)
 
     def test_to_csv(self, datetime_series):
-
         with tm.ensure_clean() as path:
             datetime_series.to_csv(path, header=False)
 
-            with open(path, newline=None) as f:
+            with open(path, newline=None, encoding="utf-8") as f:
                 lines = f.readlines()
             assert lines[1] != "\n"
 
@@ -89,7 +88,6 @@ class TestSeriesToCSV:
         tm.assert_series_equal(s, s2)
 
     def test_to_csv_float_format(self):
-
         with tm.ensure_clean() as filename:
             ser = Series([0.123456, 0.234567, 0.567567])
             ser.to_csv(filename, float_format="%.2f", header=False)
@@ -128,9 +126,7 @@ class TestSeriesToCSV:
         ],
     )
     def test_to_csv_compression(self, s, encoding, compression):
-
         with tm.ensure_clean() as filename:
-
             s.to_csv(filename, compression=compression, encoding=encoding, header=True)
             # test the round trip - to_csv -> read_csv
             result = pd.read_csv(

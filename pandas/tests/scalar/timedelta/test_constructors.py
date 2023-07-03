@@ -44,7 +44,7 @@ def test_from_td64_retain_resolution():
     obj = np.timedelta64(12345, "ms")
 
     td = Timedelta(obj)
-    assert td.value == obj.view("i8")
+    assert td._value == obj.view("i8")
     assert td._creso == NpyDatetimeUnit.NPY_FR_ms.value
 
     # Case where we cast to nearest-supported reso
@@ -95,22 +95,22 @@ def test_from_tick_reso():
 
 def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
-    assert Timedelta(10, unit="d").value == expected
-    assert Timedelta(10.0, unit="d").value == expected
-    assert Timedelta("10 days").value == expected
-    assert Timedelta(days=10).value == expected
-    assert Timedelta(days=10.0).value == expected
+    assert Timedelta(10, unit="d")._value == expected
+    assert Timedelta(10.0, unit="d")._value == expected
+    assert Timedelta("10 days")._value == expected
+    assert Timedelta(days=10)._value == expected
+    assert Timedelta(days=10.0)._value == expected
 
     expected += np.timedelta64(10, "s").astype("m8[ns]").view("i8")
-    assert Timedelta("10 days 00:00:10").value == expected
-    assert Timedelta(days=10, seconds=10).value == expected
-    assert Timedelta(days=10, milliseconds=10 * 1000).value == expected
-    assert Timedelta(days=10, microseconds=10 * 1000 * 1000).value == expected
+    assert Timedelta("10 days 00:00:10")._value == expected
+    assert Timedelta(days=10, seconds=10)._value == expected
+    assert Timedelta(days=10, milliseconds=10 * 1000)._value == expected
+    assert Timedelta(days=10, microseconds=10 * 1000 * 1000)._value == expected
 
     # rounding cases
-    assert Timedelta(82739999850000).value == 82739999850000
+    assert Timedelta(82739999850000)._value == 82739999850000
     assert "0 days 22:58:59.999850" in str(Timedelta(82739999850000))
-    assert Timedelta(123072001000000).value == 123072001000000
+    assert Timedelta(123072001000000)._value == 123072001000000
     assert "1 days 10:11:12.001" in str(Timedelta(123072001000000))
 
     # string conversion with/without leading zero
@@ -200,7 +200,7 @@ def test_construction():
     expected = np.timedelta64(10, "s").astype("m8[ns]").view("i8") + np.timedelta64(
         500, "ms"
     ).astype("m8[ns]").view("i8")
-    assert Timedelta(10.5, unit="s").value == expected
+    assert Timedelta(10.5, unit="s")._value == expected
 
     # offset
     assert to_timedelta(offsets.Hour(2)) == Timedelta(hours=2)
@@ -239,7 +239,7 @@ def test_td_construction_with_np_dtypes(npdtype, item):
     # GH#8757: test construction with np dtypes
     pykwarg, npkwarg = item
     expected = np.timedelta64(1, npkwarg).astype("m8[ns]").view("i8")
-    assert Timedelta(**{pykwarg: npdtype(1)}).value == expected
+    assert Timedelta(**{pykwarg: npdtype(1)})._value == expected
 
 
 @pytest.mark.parametrize(
@@ -261,7 +261,7 @@ def test_td_construction_with_np_dtypes(npdtype, item):
 def test_td_from_repr_roundtrip(val):
     # round-trip both for string and value
     td = Timedelta(val)
-    assert Timedelta(td.value) == td
+    assert Timedelta(td._value) == td
 
     assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
@@ -270,7 +270,7 @@ def test_td_from_repr_roundtrip(val):
 
 def test_overflow_on_construction():
     # GH#3374
-    value = Timedelta("1day").value * 20169940
+    value = Timedelta("1day")._value * 20169940
     msg = "Cannot cast 1742682816000000000000 from ns to 'ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(value)
@@ -289,7 +289,6 @@ def test_overflow_on_construction():
 @pytest.mark.parametrize(
     "val, unit",
     [
-        (3508, "M"),
         (15251, "W"),  # 1
         (106752, "D"),  # change from previous:
         (2562048, "h"),  # 0 hours
@@ -333,7 +332,6 @@ def test_construction_out_of_bounds_td64ns(val, unit):
 @pytest.mark.parametrize(
     "val, unit",
     [
-        (3508 * 10**9, "M"),
         (15251 * 10**9, "W"),
         (106752 * 10**9, "D"),
         (2562048 * 10**9, "h"),
@@ -512,3 +510,23 @@ def test_subclass_respected():
 
     td = MyCustomTimedelta("1 minute")
     assert isinstance(td, MyCustomTimedelta)
+
+
+def test_non_nano_value():
+    # https://github.com/pandas-dev/pandas/issues/49076
+    result = Timedelta(10, unit="D").as_unit("s").value
+    # `.value` shows nanoseconds, even though unit is 's'
+    assert result == 864000000000000
+
+    # out-of-nanoseconds-bounds `.value` raises informative message
+    msg = (
+        r"Cannot convert Timedelta to nanoseconds without overflow. "
+        r"Use `.asm8.view\('i8'\)` to cast represent Timedelta in its "
+        r"own unit \(here, s\).$"
+    )
+    td = Timedelta(1_000, "D").as_unit("s") * 1_000
+    with pytest.raises(OverflowError, match=msg):
+        td.value
+    # check that the suggested workaround actually works
+    result = td.asm8.view("i8")
+    assert result == 86400000000

@@ -585,7 +585,6 @@ class TestDataFrameSubclassing:
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_subclassed_count(self):
-
         df = tm.SubclassedDataFrame(
             {
                 "Person": ["John", "Myla", "Lewis", "John", "Myla"],
@@ -617,7 +616,6 @@ class TestDataFrameSubclassing:
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_isin(self):
-
         df = tm.SubclassedDataFrame(
             {"num_legs": [2, 4], "num_wings": [2, 0]}, index=["falcon", "dog"]
         )
@@ -625,7 +623,6 @@ class TestDataFrameSubclassing:
         assert isinstance(result, tm.SubclassedDataFrame)
 
     def test_duplicated(self):
-
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.duplicated()
         assert isinstance(result, tm.SubclassedSeries)
@@ -636,13 +633,11 @@ class TestDataFrameSubclassing:
 
     @pytest.mark.parametrize("idx_method", ["idxmax", "idxmin"])
     def test_idx(self, idx_method):
-
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = getattr(df, idx_method)()
         assert isinstance(result, tm.SubclassedSeries)
 
     def test_dot(self):
-
         df = tm.SubclassedDataFrame([[0, 1, -2, -1], [1, 1, 1, 1]])
         s = tm.SubclassedSeries([1, 1, 2, 1])
         result = df.dot(s)
@@ -654,7 +649,6 @@ class TestDataFrameSubclassing:
         assert isinstance(result, tm.SubclassedDataFrame)
 
     def test_memory_usage(self):
-
         df = tm.SubclassedDataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         result = df.memory_usage()
         assert isinstance(result, tm.SubclassedSeries)
@@ -677,7 +671,6 @@ class TestDataFrameSubclassing:
         assert isinstance(correls, (tm.SubclassedSeries))
 
     def test_asof(self):
-
         N = 3
         rng = pd.date_range("1/1/1990", periods=N, freq="53s")
         df = tm.SubclassedDataFrame(
@@ -739,7 +732,9 @@ class TestDataFrameSubclassing:
     def test_replace_list_method(self):
         # https://github.com/pandas-dev/pandas/pull/46018
         df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
-        result = df.replace([1, 2], method="ffill")
+        msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.replace([1, 2], method="ffill")
         expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)

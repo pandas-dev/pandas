@@ -34,6 +34,14 @@ import pandas._testing as tm
 
 
 class TestPeriodConstruction:
+    def test_custom_business_day_freq_raises(self):
+        # GH#52534
+        msg = "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        with pytest.raises(TypeError, match=msg):
+            Period("2023-04-10", freq="C")
+        with pytest.raises(TypeError, match=msg):
+            Period("2023-04-10", freq=offsets.CustomBusinessDay())
+
     def test_from_td64nat_raises(self):
         # GH#44507
         td = NaT.to_numpy("m8[ns]")
@@ -131,7 +139,6 @@ class TestPeriodConstruction:
         assert rt2.asm8 == dt64
 
     def test_construction_bday(self):
-
         # Biz day construction, roll forward if non-weekday
         i1 = Period("3/10/12", freq="B")
         i2 = Period("3/10/12", freq="D")
@@ -149,7 +156,6 @@ class TestPeriodConstruction:
         assert i1 == i2
 
     def test_construction_quarter(self):
-
         i1 = Period(year=2005, quarter=1, freq="Q")
         i2 = Period("1/1/2005", freq="Q")
         assert i1 == i2
@@ -185,7 +191,6 @@ class TestPeriodConstruction:
         assert i1 == lower
 
     def test_construction_month(self):
-
         expected = Period("2007-01", freq="M")
         i1 = Period("200701", freq="M")
         assert i1 == expected
@@ -627,7 +632,7 @@ class TestPeriodMethods:
         def _ex(p):
             if p.freq == "B":
                 return p.start_time + Timedelta(days=1, nanoseconds=-1)
-            return Timestamp((p + p.freq).start_time.value - 1)
+            return Timestamp((p + p.freq).start_time._value - 1)
 
         for fcode in from_lst:
             p = Period("1982", freq=fcode)
@@ -700,26 +705,40 @@ class TestPeriodMethods:
     # --------------------------------------------------------------
     # Rendering: __repr__, strftime, etc
 
-    def test_repr(self):
-        p = Period("Jan-2000")
-        assert "2000-01" in repr(p)
-
-        p = Period("2000-12-15")
-        assert "2000-12-15" in repr(p)
+    @pytest.mark.parametrize(
+        "str_ts,freq,str_res,str_freq",
+        (
+            ("Jan-2000", None, "2000-01", "M"),
+            ("2000-12-15", None, "2000-12-15", "D"),
+            (
+                "2000-12-15 13:45:26.123456789",
+                "N",
+                "2000-12-15 13:45:26.123456789",
+                "N",
+            ),
+            ("2000-12-15 13:45:26.123456789", "U", "2000-12-15 13:45:26.123456", "U"),
+            ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "U"),
+            ("2000-12-15 13:45:26.123456789", "L", "2000-12-15 13:45:26.123", "L"),
+            ("2000-12-15 13:45:26.123", None, "2000-12-15 13:45:26.123", "L"),
+            ("2000-12-15 13:45:26", "S", "2000-12-15 13:45:26", "S"),
+            ("2000-12-15 13:45:26", "T", "2000-12-15 13:45", "T"),
+            ("2000-12-15 13:45:26", "H", "2000-12-15 13:00", "H"),
+            ("2000-12-15", "Y", "2000", "A-DEC"),
+            ("2000-12-15", "Q", "2000Q4", "Q-DEC"),
+            ("2000-12-15", "M", "2000-12", "M"),
+            ("2000-12-15", "W", "2000-12-11/2000-12-17", "W-SUN"),
+            ("2000-12-15", "D", "2000-12-15", "D"),
+            ("2000-12-15", "B", "2000-12-15", "B"),
+        ),
+    )
+    def test_repr(self, str_ts, freq, str_res, str_freq):
+        p = Period(str_ts, freq=freq)
+        assert str(p) == str_res
+        assert repr(p) == f"Period('{str_res}', '{str_freq}')"
 
     def test_repr_nat(self):
         p = Period("nat", freq="M")
         assert repr(NaT) in repr(p)
-
-    def test_millisecond_repr(self):
-        p = Period("2000-01-01 12:15:02.123")
-
-        assert repr(p) == "Period('2000-01-01 12:15:02.123', 'L')"
-
-    def test_microsecond_repr(self):
-        p = Period("2000-01-01 12:15:02.123567")
-
-        assert repr(p) == "Period('2000-01-01 12:15:02.123567', 'U')"
 
     def test_strftime(self):
         # GH#3363
@@ -839,7 +858,7 @@ class TestPeriodProperties:
         p = Period("2012", freq="A")
 
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
 
         xp = _ex(2013, 1, 1)
         assert xp == p.end_time
@@ -891,7 +910,7 @@ class TestPeriodProperties:
 
     def test_anchor_week_end_time(self):
         def _ex(*args):
-            return Timestamp(Timestamp(datetime(*args)).as_unit("ns").value - 1)
+            return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
 
         p = Period("2013-1-1", "W-SAT")
         xp = _ex(2013, 1, 6)
@@ -1096,7 +1115,6 @@ class TestPeriodComparisons:
         int_or_per = "'(Period|int)'"
         msg = f"not supported between instances of {int_or_per} and {int_or_per}"
         for left, right in [(jan, 1), (1, jan)]:
-
             with pytest.raises(TypeError, match=msg):
                 left > right
             with pytest.raises(TypeError, match=msg):
@@ -1321,7 +1339,6 @@ class TestArithmetic:
                 np.timedelta64(365, "D"),
                 timedelta(365),
             ]:
-
                 with pytest.raises(IncompatibleFrequency, match=msg):
                     p + o
                 with pytest.raises(IncompatibleFrequency, match=msg):

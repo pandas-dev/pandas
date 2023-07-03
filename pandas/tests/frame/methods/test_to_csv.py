@@ -33,7 +33,6 @@ class TestDataFrameToCSV:
         return read_csv(path, **params)
 
     def test_to_csv_from_csv1(self, float_frame, datetime_frame):
-
         with tm.ensure_clean("__tmp_to_csv_from_csv1__") as path:
             float_frame.iloc[:5, float_frame.columns.get_loc("A")] = np.nan
 
@@ -72,9 +71,7 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(dm, recons)
 
     def test_to_csv_from_csv2(self, float_frame):
-
         with tm.ensure_clean("__tmp_to_csv_from_csv2__") as path:
-
             # duplicate index
             df = DataFrame(
                 np.random.randn(3, 3), index=["a", "a", "b"], columns=["x", "y", "z"]
@@ -104,7 +101,6 @@ class TestDataFrameToCSV:
                 float_frame.to_csv(path, header=["AA", "X"])
 
     def test_to_csv_from_csv3(self):
-
         with tm.ensure_clean("__tmp_to_csv_from_csv3__") as path:
             df1 = DataFrame(np.random.randn(3, 1))
             df2 = DataFrame(np.random.randn(3, 1))
@@ -118,7 +114,6 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(xp, rs)
 
     def test_to_csv_from_csv4(self):
-
         with tm.ensure_clean("__tmp_to_csv_from_csv4__") as path:
             # GH 10833 (TimedeltaIndex formatting)
             dt = pd.Timedelta(seconds=1)
@@ -135,10 +130,8 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(df, result, check_index_type=True)
 
     def test_to_csv_from_csv5(self, timezone_frame):
-
         # tz, 8260
         with tm.ensure_clean("__tmp_to_csv_from_csv5__") as path:
-
             timezone_frame.to_csv(path)
             result = read_csv(path, index_col=0, parse_dates=["A"])
 
@@ -181,7 +174,6 @@ class TestDataFrameToCSV:
             # we wrote them in a different order
             # so compare them in that order
             if cols is not None:
-
                 if df.columns.is_unique:
                     rs_c.columns = cols
                 else:
@@ -418,7 +410,6 @@ class TestDataFrameToCSV:
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_to_csv_from_csv_w_some_infs(self, float_frame):
-
         # test roundtrip with inf, -inf, nan, as full columns and mix
         float_frame["G"] = np.nan
         f = lambda x: [np.inf, np.nan][np.random.rand() < 0.5]
@@ -432,7 +423,6 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(np.isinf(float_frame), np.isinf(recons))
 
     def test_to_csv_from_csv_w_all_infs(self, float_frame):
-
         # test roundtrip with inf, -inf, nan, as full columns and mix
         float_frame["E"] = np.inf
         float_frame["F"] = -np.inf
@@ -483,7 +473,6 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(to_df, recons)
 
     def test_to_csv_multiindex(self, float_frame, datetime_frame):
-
         frame = float_frame
         old_index = frame.index
         arrays = np.arange(len(old_index) * 2, dtype=np.int64).reshape(2, -1)
@@ -491,7 +480,6 @@ class TestDataFrameToCSV:
         frame.index = new_index
 
         with tm.ensure_clean("__tmp_to_csv_multiindex__") as path:
-
             frame.to_csv(path, header=False)
             frame.to_csv(path, columns=["A", "B"])
 
@@ -638,12 +626,11 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_float32_nanrep__.csv") as path:
             df.to_csv(path, na_rep=999)
 
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert lines[1].split(",")[2] == "999"
 
     def test_to_csv_withcommas(self):
-
         # Commas inside fields should be correctly escaped when saving as CSV.
         df = DataFrame({"A": [1, 2, 3], "B": ["5,6", "7,8", "9,0"]})
 
@@ -669,7 +656,9 @@ class TestDataFrameToCSV:
             "foo", index=df_float.index, columns=create_cols("object")
         )
         df_dt = DataFrame(
-            Timestamp("20010101"), index=df_float.index, columns=create_cols("date")
+            Timestamp("20010101").as_unit("ns"),
+            index=df_float.index,
+            columns=create_cols("date"),
         )
 
         # add in some nans
@@ -677,6 +666,7 @@ class TestDataFrameToCSV:
 
         # ## this is a bug in read_csv right now ####
         # df_dt.loc[30:50,1:3] = np.nan
+        # FIXME: don't leave commented-out
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
@@ -699,7 +689,6 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(rs, df)
 
     def test_to_csv_dups_cols(self):
-
         df = DataFrame(
             np.random.randn(1000, 30),
             columns=list(range(15)) + list(range(15)),
@@ -716,7 +705,9 @@ class TestDataFrameToCSV:
         df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
-        df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
+        df_dt = DataFrame(
+            Timestamp("20010101").as_unit("ns"), index=df_float.index, columns=range(3)
+        )
         df = pd.concat(
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
@@ -750,7 +741,6 @@ class TestDataFrameToCSV:
 
     @pytest.mark.parametrize("chunksize", [10000, 50000, 100000])
     def test_to_csv_chunking(self, chunksize):
-
         aa = DataFrame({"A": range(100000)})
         aa["B"] = aa.A + 1.0
         aa["C"] = aa.A + 2.0
@@ -762,13 +752,16 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(rs, aa)
 
     @pytest.mark.slow
-    def test_to_csv_wide_frame_formatting(self):
+    def test_to_csv_wide_frame_formatting(self, monkeypatch):
         # Issue #8621
-        df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
+        chunksize = 100
+        df = DataFrame(np.random.randn(1, chunksize + 10), columns=None, index=None)
         with tm.ensure_clean() as filename:
-            df.to_csv(filename, header=False, index=False)
+            with monkeypatch.context() as m:
+                m.setattr("pandas.io.formats.csvs._DEFAULT_CHUNKSIZE_CELLS", chunksize)
+                df.to_csv(filename, header=False, index=False)
             rs = read_csv(filename, header=None)
-            tm.assert_frame_equal(rs, df)
+        tm.assert_frame_equal(rs, df)
 
     def test_to_csv_bug(self):
         f1 = StringIO("a,1.0\nb,2.0")
@@ -783,10 +776,8 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(recons, newdf, check_names=False)
 
     def test_to_csv_unicode(self):
-
         df = DataFrame({"c/\u03c3": [1, 2, 3]})
         with tm.ensure_clean() as path:
-
             df.to_csv(path, encoding="UTF-8")
             df2 = read_csv(path, index_col=0, encoding="UTF-8")
             tm.assert_frame_equal(df, df2)
@@ -817,7 +808,6 @@ class TestDataFrameToCSV:
         tm.assert_frame_equal(recons, float_frame)
 
     def test_to_csv_float_format(self):
-
         df = DataFrame(
             [[0.123456, 0.234567, 0.567567], [12.32112, 123123.2, 321321.2]],
             index=["A", "B"],
@@ -825,7 +815,6 @@ class TestDataFrameToCSV:
         )
 
         with tm.ensure_clean() as filename:
-
             df.to_csv(filename, float_format="%.2f")
 
             rs = read_csv(filename, index_col=0)
@@ -920,7 +909,6 @@ class TestDataFrameToCSV:
                 assert f.read() == expected
 
     def test_to_csv_from_csv_categorical(self):
-
         # CSV with categoricals should result in the same output
         # as when one would add a "normal" Series/DataFrame.
         s = Series(pd.Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
@@ -974,9 +962,7 @@ class TestDataFrameToCSV:
         ],
     )
     def test_to_csv_compression(self, df, encoding, compression):
-
         with tm.ensure_clean() as filename:
-
             df.to_csv(filename, compression=compression, encoding=encoding)
             # test the round trip - to_csv -> read_csv
             result = read_csv(
@@ -1019,9 +1005,7 @@ class TestDataFrameToCSV:
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
 
-            datetime_frame_int = datetime_frame.applymap(
-                lambda x: int(x.strftime("%Y%m%d"))
-            )
+            datetime_frame_int = datetime_frame.map(lambda x: int(x.strftime("%Y%m%d")))
             datetime_frame_int.index = datetime_frame_int.index.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
@@ -1032,9 +1016,7 @@ class TestDataFrameToCSV:
 
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
-            datetime_frame_str = datetime_frame.applymap(
-                lambda x: x.strftime("%Y-%m-%d")
-            )
+            datetime_frame_str = datetime_frame.map(lambda x: x.strftime("%Y-%m-%d"))
             datetime_frame_str.index = datetime_frame_str.index.map(
                 lambda x: x.strftime("%Y-%m-%d")
             )
@@ -1047,7 +1029,7 @@ class TestDataFrameToCSV:
 
             test = read_csv(path, index_col=0)
 
-            datetime_frame_columns = datetime_frame_columns.applymap(
+            datetime_frame_columns = datetime_frame_columns.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
             # Columns don't get converted to ints by read_csv
@@ -1070,7 +1052,6 @@ class TestDataFrameToCSV:
 
     @pytest.mark.parametrize("td", [pd.Timedelta(0), pd.Timedelta("10s")])
     def test_to_csv_with_dst_transitions(self, td):
-
         with tm.ensure_clean("csv_date_format_with_dst") as path:
             # make sure we are not failing on transitions
             times = date_range(

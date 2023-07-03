@@ -61,7 +61,8 @@ class TestSetitemDT64Values:
 
     def test_setitem_with_string_index(self):
         # GH#23451
-        ser = Series([1, 2, 3], index=["Date", "b", "other"])
+        # Set object dtype to avoid upcast when setting date.today()
+        ser = Series([1, 2, 3], index=["Date", "b", "other"], dtype=object)
         ser["Date"] = date.today()
         assert ser.Date == date.today()
         assert ser["Date"] == date.today()
@@ -175,8 +176,10 @@ class TestSetitemScalarIndexer:
         ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
+        warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            ser[-11] = "foo"
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser[-11] = "foo"
 
     @pytest.mark.parametrize("indexer", [tm.loc, tm.at])
     @pytest.mark.parametrize("ser_index", [0, 1])
@@ -350,7 +353,7 @@ class TestSetitemBooleanMask:
         mask = [False] * 3 + [True] * 5 + [False] * 2
         ser[mask] = range(5)
         result = ser
-        expected = Series([None] * 3 + list(range(5)) + [None] * 2).astype("object")
+        expected = Series([None] * 3 + list(range(5)) + [None] * 2, dtype=object)
         tm.assert_series_equal(result, expected)
 
     def test_setitem_nan_with_bool(self):
@@ -404,7 +407,7 @@ class TestSetitemBooleanMask:
 
 
 class TestSetitemViewCopySemantics:
-    def test_setitem_invalidates_datetime_index_freq(self):
+    def test_setitem_invalidates_datetime_index_freq(self, using_copy_on_write):
         # GH#24096 altering a datetime64tz Series inplace invalidates the
         #  `freq` attribute on the underlying DatetimeIndex
 
@@ -412,7 +415,10 @@ class TestSetitemViewCopySemantics:
         ts = dti[1]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
         assert dti.freq == "D"
         ser.iloc[1] = NaT
         assert ser._values.freq is None
@@ -423,15 +429,20 @@ class TestSetitemViewCopySemantics:
         assert dti[1] == ts
         assert dti.freq == "D"
 
-    def test_dt64tz_setitem_does_not_mutate_dti(self):
+    def test_dt64tz_setitem_does_not_mutate_dti(self, using_copy_on_write):
         # GH#21907, GH#24096
         dti = date_range("2016-01-01", periods=10, tz="US/Pacific")
         ts = dti[0]
         ser = Series(dti)
         assert ser._values is not dti
-        assert ser._values._ndarray.base is not dti._data._ndarray.base
+        if using_copy_on_write:
+            assert ser._values._ndarray.base is dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is dti._data._ndarray.base
+        else:
+            assert ser._values._ndarray.base is not dti._data._ndarray.base
+            assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
+
         assert ser._mgr.arrays[0] is not dti
-        assert ser._mgr.arrays[0]._ndarray.base is not dti._data._ndarray.base
 
         ser[::3] = NaT
         assert ser[0] is NaT
@@ -451,7 +462,8 @@ class TestSetitemCallable:
         # GH#13299
         inc = lambda x: x + 1
 
-        ser = Series([1, 2, -1, 4])
+        # set object dtype to avoid upcast when setting inc
+        ser = Series([1, 2, -1, 4], dtype=object)
         ser[ser < 0] = inc
 
         expected = Series([1, 2, inc, 4])
@@ -570,7 +582,7 @@ def test_setitem_scalar_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     for n in series.index:
         msg = "assignment destination is read-only"
@@ -585,7 +597,7 @@ def test_setitem_slice_into_readonly_backing_data():
 
     array = np.zeros(5)
     array.flags.writeable = False  # make the array immutable
-    series = Series(array)
+    series = Series(array, copy=False)
 
     msg = "assignment destination is read-only"
     with pytest.raises(ValueError, match=msg):
@@ -676,11 +688,7 @@ class SetitemCastingEquivalents:
         """
         Whether we expect the setting to be in-place or not.
         """
-        try:
-            return expected.dtype == obj.dtype
-        except TypeError:
-            # older numpys
-            return False
+        return expected.dtype == obj.dtype
 
     def check_indexer(self, obj, key, expected, val, indexer, is_inplace):
         orig = obj
@@ -784,6 +792,13 @@ class SetitemCastingEquivalents:
         arr = obj._values
 
         res = obj.where(~mask, val)
+
+        if val is NA and res.dtype == object:
+            expected = expected.fillna(NA)
+        elif val is None and res.dtype == object:
+            assert expected.dtype == object
+            expected = expected.copy()
+            expected[expected.isna()] = None
         tm.assert_series_equal(res, expected)
 
         self._check_inplace(is_inplace, orig, arr, obj)
@@ -899,7 +914,7 @@ class TestSetitemTimedelta64IntoNumeric(SetitemCastingEquivalents):
         arr = np.arange(5).astype(dtype)
         ser = Series(arr)
         ser = ser.astype(object)
-        ser.values[0] = np.timedelta64(4, "ns")
+        ser.iloc[0] = np.timedelta64(4, "ns")
         return ser
 
     @pytest.fixture
@@ -949,7 +964,7 @@ class TestSetitemNAPeriodDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, key):
         exp = Series(period_range("2000-01-01", periods=10, freq="D"))
-        exp._values.view("i8")[key] = NaT.value
+        exp._values.view("i8")[key] = NaT._value
         assert exp[key] is NaT or all(x is NaT for x in exp[key])
         return exp
 
@@ -1517,7 +1532,9 @@ def test_setitem_positional_with_casting():
     #  we fallback we *also* get a ValueError if we try to set inplace.
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
-    ser[0] = "X"
+    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        ser[0] = "X"
     expected = Series(["X", 2, 3], index=["a", "b", "c"], dtype=object)
     tm.assert_series_equal(ser, expected)
 
@@ -1526,7 +1543,10 @@ def test_setitem_positional_float_into_int_coerces():
     # Case where we hit a KeyError and then trying to set in-place incorrectly
     #  casts a float to an int
     ser = Series([1, 2, 3], index=["a", "b", "c"])
-    ser[0] = 1.5
+
+    warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        ser[0] = 1.5
     expected = Series([1.5, 2, 3], index=["a", "b", "c"])
     tm.assert_series_equal(ser, expected)
 

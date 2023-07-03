@@ -60,7 +60,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
     # GH#26988
     cat = Categorical(["a", "b"])
     expected = Categorical(result)
-    result = pd.Series(cat).replace(to_replace, value)._values
+    result = pd.Series(cat, copy=False).replace(to_replace, value)._values
 
     tm.assert_categorical_equal(result, expected)
     if to_replace == "b":  # the "c" test is supposed to be unchanged
@@ -68,7 +68,7 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
 
-    pd.Series(cat).replace(to_replace, value, inplace=True)
+    pd.Series(cat, copy=False).replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)
 
 
@@ -78,3 +78,13 @@ def test_replace_categorical_ea_dtype():
     result = pd.Series(cat).replace(["a", "b"], ["c", pd.NA])._values
     expected = Categorical(pd.array(["c", pd.NA], dtype="string"))
     tm.assert_categorical_equal(result, expected)
+
+
+def test_replace_maintain_ordering():
+    # GH51016
+    dtype = pd.CategoricalDtype([0, 1, 2], ordered=True)
+    ser = pd.Series([0, 1, 2], dtype=dtype)
+    result = ser.replace(0, 2)
+    expected_dtype = pd.CategoricalDtype([1, 2], ordered=True)
+    expected = pd.Series([2, 1, 2], dtype=expected_dtype)
+    tm.assert_series_equal(expected, result, check_category_order=True)

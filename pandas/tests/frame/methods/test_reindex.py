@@ -8,6 +8,10 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -23,7 +27,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype as CDT
-import pandas.core.common as com
 
 
 class TestReindexSetIndex:
@@ -54,7 +57,6 @@ class TestReindexSetIndex:
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):
-
         df = DataFrame({"A": range(10)})
         ser = pd.cut(df.A, 5)
         df["B"] = ser
@@ -110,15 +112,49 @@ class TestReindexSetIndex:
             .set_index("index")
             .reindex(["1", "2"])
         )
+        exp = DataFrame({"index": ["1", "2"], "vals": [np.nan, np.nan]}).set_index(
+            "index"
+        )
+        exp = exp.astype(object)
         tm.assert_frame_equal(
             df,
-            DataFrame({"index": ["1", "2"], "vals": [None, None]}).set_index("index"),
+            exp,
         )
 
 
 class TestDataFrameSelectReindex:
     # These are specific reindex-based tests; other indexing tests should go in
     # test_indexing
+
+    @pytest.mark.xfail(
+        not IS64 or is_platform_windows(),
+        reason="Passes int32 values to DatetimeArray in make_na_array on "
+        "windows, 32bit linux builds",
+    )
+    @td.skip_array_manager_not_yet_implemented
+    def test_reindex_tzaware_fill_value(self):
+        # GH#52586
+        df = DataFrame([[1]])
+
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        res = df.reindex([0, 1], axis=1, fill_value=ts)
+        assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
+        expected = DataFrame({0: [1], 1: [ts]})
+        expected[1] = expected[1].astype(res.dtypes[1])
+        tm.assert_frame_equal(res, expected)
+
+        per = ts.tz_localize(None).to_period("s")
+        res = df.reindex([0, 1], axis=1, fill_value=per)
+        assert res.dtypes[1] == pd.PeriodDtype("s")
+        expected = DataFrame({0: [1], 1: [per]})
+        tm.assert_frame_equal(res, expected)
+
+        interval = pd.Interval(ts, ts + pd.Timedelta(seconds=1))
+        res = df.reindex([0, 1], axis=1, fill_value=interval)
+        assert res.dtypes[1] == pd.IntervalDtype("datetime64[s, US/Pacific]", "right")
+        expected = DataFrame({0: [1], 1: [interval]})
+        expected[1] = expected[1].astype(res.dtypes[1])
+        tm.assert_frame_equal(res, expected)
 
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
@@ -133,6 +169,27 @@ class TestDataFrameSelectReindex:
         # pass both columns and index
         result2 = df.reindex(columns=cols, index=df.index, copy=True)
         assert not np.shares_memory(result2[0]._values, df[0]._values)
+
+    def test_reindex_copies_ea(self, using_copy_on_write):
+        # https://github.com/pandas-dev/pandas/pull/51197
+        # also ensure to honor copy keyword for ExtensionDtypes
+        N = 10
+        df = DataFrame(np.random.randn(N * 10, N), dtype="Float64")
+        cols = np.arange(N)
+        np.random.shuffle(cols)
+
+        result = df.reindex(columns=cols, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result[0].array._data, df[0].array._data)
+
+        # pass both columns and index
+        result2 = df.reindex(columns=cols, index=df.index, copy=True)
+        if using_copy_on_write:
+            assert np.shares_memory(result2[0].array._data, df[0].array._data)
+        else:
+            assert not np.shares_memory(result2[0].array._data, df[0].array._data)
 
     @td.skip_array_manager_not_yet_implemented
     def test_reindex_date_fill_value(self):
@@ -312,7 +369,7 @@ class TestDataFrameSelectReindex:
         result = df.reindex(range(15))
         assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
 
-        mask = com.isna(result)["B"]
+        mask = isna(result)["B"]
         assert mask[-5:].all()
         assert not mask[:-5].any()
 
@@ -674,7 +731,6 @@ class TestDataFrameSelectReindex:
         assert new_frame.empty
 
     def test_reindex_columns_method(self):
-
         # GH 14992, reindexing over columns ignored method
         df = DataFrame(
             data=[[11, 12, 13], [21, 22, 23], [31, 32, 33]],
@@ -794,7 +850,6 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_dups(self):
-
         # GH4746, reindex on duplicate index error messages
         arr = np.random.randn(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
@@ -811,7 +866,6 @@ class TestDataFrameSelectReindex:
             df.reindex(index=list(range(len(df))))
 
     def test_reindex_with_duplicate_columns(self):
-
         # reindex is invalid!
         df = DataFrame(
             [[1, 5, 7.0], [1, 5, 7.0], [1, 5, 7.0]], columns=["bar", "a", "a"]
@@ -841,17 +895,18 @@ class TestDataFrameSelectReindex:
         # https://github.com/pandas-dev/pandas/issues/12392
         # Enforced in 2.0
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        with pytest.raises(TypeError, match=r".* is ambiguous."):
+        msg = r"reindex\(\) takes from 1 to 2 positional arguments but 3 were given"
+        with pytest.raises(TypeError, match=msg):
             df.reindex([0, 1], ["A", "B", "C"])
 
     def test_reindex_axis_style_raises(self):
         # https://github.com/pandas-dev/pandas/issues/12392
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis=1)
+            df.reindex([0, 1], columns=["A"], axis=1)
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
-            df.reindex([0, 1], ["A"], axis="index")
+            df.reindex([0, 1], columns=["A"], axis="index")
 
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
             df.reindex(index=[0, 1], axis="index")
@@ -866,7 +921,7 @@ class TestDataFrameSelectReindex:
             df.reindex(index=[0, 1], columns=[0, 1], axis="columns")
 
         with pytest.raises(TypeError, match="Cannot specify all"):
-            df.reindex([0, 1], [0], ["A"])
+            df.reindex(labels=[0, 1], index=[0], columns=["A"])
 
         # Mixing styles
         with pytest.raises(TypeError, match="Cannot specify both 'axis'"):
@@ -1140,7 +1195,7 @@ class TestDataFrameSelectReindex:
         idx = date_range(start="2020", freq="30s", periods=3)
         df = DataFrame([], index=Index([], name="time"), columns=["a"])
         result = df.reindex(idx, **kwargs)
-        expected = DataFrame({"a": [pd.NA] * 3}, index=idx)
+        expected = DataFrame({"a": [np.nan] * 3}, index=idx, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1236,3 +1291,10 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_invalid_method(self):
+        df = DataFrame({"A": [1, np.nan, 2]})
+
+        msg = "Invalid fill method"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex([1, 0, 2], method="asfreq")

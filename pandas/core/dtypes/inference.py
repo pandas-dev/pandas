@@ -5,11 +5,18 @@ from __future__ import annotations
 from collections import abc
 from numbers import Number
 import re
-from typing import Pattern
+from typing import (
+    TYPE_CHECKING,
+    Hashable,
+    Pattern,
+)
 
 import numpy as np
 
 from pandas._libs import lib
+
+if TYPE_CHECKING:
+    from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 
@@ -30,7 +37,7 @@ is_list_like = lib.is_list_like
 is_iterator = lib.is_iterator
 
 
-def is_number(obj) -> bool:
+def is_number(obj) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
 
@@ -119,6 +126,7 @@ def is_file_like(obj) -> bool:
     Examples
     --------
     >>> import io
+    >>> from pandas.api.types import is_file_like
     >>> buffer = io.StringIO("data")
     >>> is_file_like(buffer)
     True
@@ -131,7 +139,7 @@ def is_file_like(obj) -> bool:
     return bool(hasattr(obj, "__iter__"))
 
 
-def is_re(obj) -> bool:
+def is_re(obj) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
@@ -146,6 +154,8 @@ def is_re(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re
+    >>> import re
     >>> is_re(re.compile(".*"))
     True
     >>> is_re("foo")
@@ -169,6 +179,7 @@ def is_re_compilable(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_re_compilable
     >>> is_re_compilable(".*")
     True
     >>> is_re_compilable(1)
@@ -275,6 +286,7 @@ def is_dict_like(obj) -> bool:
 
     Examples
     --------
+    >>> from pandas.api.types import is_dict_like
     >>> is_dict_like({1: 2})
     True
     >>> is_dict_like([1, 2, 3])
@@ -308,6 +320,7 @@ def is_named_tuple(obj) -> bool:
     Examples
     --------
     >>> from collections import namedtuple
+    >>> from pandas.api.types import is_named_tuple
     >>> Point = namedtuple("Point", ["x", "y"])
     >>> p = Point(1, 2)
     >>>
@@ -319,7 +332,7 @@ def is_named_tuple(obj) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> bool:
+def is_hashable(obj) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -336,6 +349,7 @@ def is_hashable(obj) -> bool:
     Examples
     --------
     >>> import collections
+    >>> from pandas.api.types import is_hashable
     >>> a = ([],)
     >>> isinstance(a, collections.abc.Hashable)
     True

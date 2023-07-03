@@ -524,7 +524,6 @@ class TestSemiMonthBegin:
 
 
 class TestMonthBegin:
-
     offset_cases = []
     # NOTE: I'm not entirely happy with the logic here for Begin -ss
     # see thread 'offset conventions' on the ML

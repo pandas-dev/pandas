@@ -13,6 +13,7 @@ from pandas.errors import IndexingError
 from pandas.core.dtypes.common import (
     is_float_dtype,
     is_integer_dtype,
+    is_object_dtype,
 )
 
 import pandas as pd
@@ -70,6 +71,10 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__getitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
     ):
@@ -112,6 +117,10 @@ class TestFancy:
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__setitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
@@ -170,7 +179,6 @@ class TestFancy:
         tm.assert_index_equal(result, expected)
 
     def test_setitem_dtype_upcast(self):
-
         # GH3216
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
@@ -184,7 +192,6 @@ class TestFancy:
 
     @pytest.mark.parametrize("val", [3.14, "wxyz"])
     def test_setitem_dtype_upcast2(self, val):
-
         # GH10280
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(2, 3),
@@ -223,7 +230,6 @@ class TestFancy:
         assert is_float_dtype(left["baz"])
 
     def test_dups_fancy_indexing(self):
-
         # GH 3455
 
         df = tm.makeCustomDataframe(10, 3)
@@ -233,7 +239,6 @@ class TestFancy:
         tm.assert_index_equal(result, expected)
 
     def test_dups_fancy_indexing_across_dtypes(self):
-
         # across dtypes
         df = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]], columns=list("aaaaaaa"))
         df.head()
@@ -273,7 +278,6 @@ class TestFancy:
             df.loc[rows]
 
     def test_dups_fancy_indexing_only_missing_label(self):
-
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
         with pytest.raises(
@@ -286,14 +290,12 @@ class TestFancy:
 
     @pytest.mark.parametrize("vals", [[0, 1, 2], list("abc")])
     def test_dups_fancy_indexing_missing_label(self, vals):
-
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": vals})
         with pytest.raises(KeyError, match="not in index"):
             df.loc[[0, 8, 0]]
 
     def test_dups_fancy_indexing_non_unique(self):
-
         # non unique with non unique selector
         df = DataFrame({"test": [5, 7, 9, 11]}, index=["A", "A", "B", "C"])
         with pytest.raises(KeyError, match="not in index"):
@@ -308,7 +310,6 @@ class TestFancy:
             df.loc[:, ["A", "B", "C"]]
 
     def test_dups_fancy_indexing3(self):
-
         # GH 6504, multi-axis indexing
         df = DataFrame(
             np.random.randn(9, 2), index=[1, 1, 1, 2, 2, 2, 3, 3, 3], columns=["a", "b"]
@@ -334,7 +335,6 @@ class TestFancy:
         tm.assert_series_equal(result, expected)
 
     def test_indexing_mixed_frame_bug(self):
-
         # GH3492
         df = DataFrame(
             {"a": {1: "aaa", 2: "bbb", 3: "ccc"}, "b": {1: 111, 2: 222, 3: 333}}
@@ -358,7 +358,6 @@ class TestFancy:
         assert df[21].shape[0] == df.shape[0]
 
     def test_set_index_nan(self):
-
         # GH 3586
         df = DataFrame(
             {
@@ -437,8 +436,8 @@ class TestFancy:
         tm.assert_frame_equal(result, df)
 
     def test_multi_assign(self):
-
         # GH 3626, an assignment of a sub-df to a df
+        # set float64 to avoid upcast when setting nan
         df = DataFrame(
             {
                 "FC": ["a", "b", "a", "b", "a", "b"],
@@ -446,7 +445,7 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype({"col2": "float64"})
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
@@ -504,7 +503,6 @@ class TestFancy:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list(self):
-
         # GH 6043
         # iloc with a list
         df = DataFrame(index=[0, 1], columns=[0])
@@ -540,7 +538,6 @@ class TestFancy:
             df.loc["2011", 0]
 
     def test_astype_assignment(self):
-
         # GH4312 (iloc)
         df_orig = DataFrame(
             [["1", "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
@@ -592,7 +589,6 @@ class TestFancy:
 
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
     def test_index_type_coercion(self, indexer):
-
         # GH 11836
         # if we have an index type and set it with something that looks
         # to numpy like the same, but is actually, not
@@ -601,7 +597,6 @@ class TestFancy:
 
         # integer indexes
         for s in [Series(range(5)), Series(range(5), index=range(1, 6))]:
-
             assert is_integer_dtype(s.index)
 
             s2 = s.copy()
@@ -618,10 +613,9 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
         for s in [Series(range(5), index=np.arange(5.0))]:
-
             assert is_float_dtype(s.index)
 
             s2 = s.copy()
@@ -635,7 +629,7 @@ class TestFancy:
 
             s2 = s.copy()
             indexer(s2)["0"] = 0
-            assert s2.index.is_object()
+            assert is_object_dtype(s2.index)
 
 
 class TestMisc:
@@ -864,7 +858,7 @@ class TestDatetimelikeCoercion:
         tz = tz_naive_fixture
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -892,7 +886,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         dti = date_range("2016-01-01", periods=3, tz=tz)
-        ser = Series(dti)
+        ser = Series(dti.copy(deep=True))
 
         values = ser._values
 
@@ -912,7 +906,7 @@ class TestDatetimelikeCoercion:
     def test_setitem_td64_scalar(self, indexer_sli, scalar):
         # dispatching _can_hold_element to underling TimedeltaArray
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
         values._validate_setitem_value(scalar)
@@ -930,7 +924,7 @@ class TestDatetimelikeCoercion:
             key = slice(0, 1)
 
         tdi = timedelta_range("1 Day", periods=3)
-        ser = Series(tdi)
+        ser = Series(tdi.copy(deep=True))
 
         values = ser._values
 
