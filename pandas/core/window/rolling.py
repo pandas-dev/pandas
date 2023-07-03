@@ -2320,15 +2320,14 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """
-        >>> pd.set_option("display.float_format", None)
         >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
-        >>> ser.rolling(3).skew()
-        0             NaN
-        1             NaN
-        2    1.293343e+00
-        3   -5.855827e-01
-        4   -1.278977e-16
-        5    1.545393e+00
+        >>> ser.rolling(3).skew().round(6)
+        0         NaN
+        1         NaN
+        2    1.293343
+        3   -0.585583
+        4    0.000000
+        5    1.545393
         dtype: float64
         """
         ).replace("\n", "", 1),
