@@ -1018,7 +1018,9 @@ def test_dataframe_add_column_from_series(backend, using_copy_on_write):
         (tm.iloc, (slice(None), 0)),
     ],
 )
-@pytest.mark.parametrize("col", [[0.1, 0.2, 0.3], [7, 8, 9]], ids=["mixed-block", "single-block"])
+@pytest.mark.parametrize(
+    "col", [[0.1, 0.2, 0.3], [7, 8, 9]], ids=["mixed-block", "single-block"]
+)
 def test_set_value_copy_only_necessary_column(
     using_copy_on_write, indexer_func, indexer, val, col
 ):

@@ -388,7 +388,7 @@ class BaseBlockManager(DataManager):
                         0, blk_loc, values
                     )
                     # first block equals values
-                    self.blocks[0].setitem((indexer[0], slice(None)), value)
+                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
