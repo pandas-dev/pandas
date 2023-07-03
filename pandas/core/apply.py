@@ -296,7 +296,12 @@ class Apply(metaclass=abc.ABCMeta):
         """
         return self.agg_or_apply_list_like(op_name="agg")
 
-    def compute_results_list_like(self, op_name, selected_obj, kwargs):
+    def compute_list_like(
+        self,
+        op_name: Literal["agg", "apply"],
+        selected_obj: Series | DataFrame,
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Hashable], list[Series | DataFrame]]:
         func = cast(List[AggFuncTypeBase], self.func)
         obj = self.obj
 
@@ -366,11 +371,13 @@ class Apply(metaclass=abc.ABCMeta):
             assert False
             selected_obj = obj._obj_with_exclusions
 
-        keys, results = self.compute_results_list_like(op_name, selected_obj, kwargs)
+        keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 
-    def wrap_results_list_like(self, keys, results):
+    def wrap_results_list_like(
+        self, keys: list[Hashable], results: list[Series | DataFrame]
+    ):
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
@@ -399,7 +406,13 @@ class Apply(metaclass=abc.ABCMeta):
         """
         return self.agg_or_apply_dict_like(op_name="agg")
 
-    def compute_results_dict_like(self, op_name, selected_obj, selection, kwargs):
+    def compute_dict_like(
+        self,
+        op_name: Literal["agg", "apply"],
+        selected_obj: Series | DataFrame,
+        selection: Hashable | Sequence[Hashable],
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Hashable], list[Any]]:
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
@@ -462,15 +475,21 @@ class Apply(metaclass=abc.ABCMeta):
             raise NotImplementedError("axis other than 0 is not supported")
 
         selected_obj = obj
+        assert isinstance(selected_obj, (ABCSeries, ABCDataFrame))
         selection = None
 
-        result_index, result_data = self.compute_results_dict_like(
+        result_index, result_data = self.compute_dict_like(
             op_name, selected_obj, selection, kwargs
         )
         result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
         return result
 
-    def wrap_results_dict_like(self, selected_obj, result_index, result_data):
+    def wrap_results_dict_like(
+        self,
+        selected_obj: Series | DataFrame,
+        result_index: list[Hashable],
+        result_data: list,
+    ):
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
@@ -1287,9 +1306,7 @@ class GroupByApply(Apply):
             selected_obj = obj._obj_with_exclusions
 
         with com.temp_setattr(obj, "as_index", True):
-            keys, results = self.compute_results_list_like(
-                op_name, selected_obj, kwargs
-            )
+            keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 
@@ -1316,7 +1333,7 @@ class GroupByApply(Apply):
         kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with com.temp_setattr(obj, "as_index", True):
-            result_index, result_data = self.compute_results_dict_like(
+            result_index, result_data = self.compute_dict_like(
                 op_name, selected_obj, selection, kwargs
             )
         result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
@@ -1367,7 +1384,7 @@ class ResamplerWindowApply(GroupByApply):
         else:
             selected_obj = obj._obj_with_exclusions
 
-        keys, results = self.compute_results_list_like(op_name, selected_obj, kwargs)
+        keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 
@@ -1388,7 +1405,7 @@ class ResamplerWindowApply(GroupByApply):
         selected_obj = obj._selected_obj
         selection = obj._selection
 
-        result_index, result_data = self.compute_results_dict_like(
+        result_index, result_data = self.compute_dict_like(
             op_name, selected_obj, selection, kwargs
         )
         result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
@@ -1782,7 +1799,7 @@ def validate_func_kwargs(
     return columns, func
 
 
-def include_axis(op_name, colg) -> bool:
+def include_axis(op_name: Literal["agg", "apply"], colg: Series | DataFrame) -> bool:
     return isinstance(colg, ABCDataFrame) or (
         isinstance(colg, ABCSeries) and op_name == "agg"
     )
