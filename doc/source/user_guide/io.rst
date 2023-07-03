@@ -1619,8 +1619,8 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", iterator=True) as reader:
-       reader.get_chunk(5)
+   with pd.read_csv("tmp.csv", iterator=True) as reader:
+       print(reader.get_chunk(5))
 
 .. ipython:: python
    :suppress:
