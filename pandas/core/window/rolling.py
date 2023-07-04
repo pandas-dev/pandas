@@ -1273,7 +1273,7 @@ class Window(BaseWindow):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
         To get an instance of :class: ~pandas.core.window.rolling.Window we need
@@ -1295,7 +1295,7 @@ class Window(BaseWindow):
         4    9.862071
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="weighted window sum",
         agg_method="sum",
@@ -1323,7 +1323,7 @@ class Window(BaseWindow):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
         To get an instance of :class: ~pandas.core.window.rolling.Window we need
@@ -1344,7 +1344,7 @@ class Window(BaseWindow):
         4    5.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="weighted window mean",
         agg_method="mean",
@@ -1414,7 +1414,7 @@ class Window(BaseWindow):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
         To get an instance of :class: ~pandas.core.window.rolling.Window we need
@@ -1435,7 +1435,7 @@ class Window(BaseWindow):
         4    4.242641
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="weighted window standard deviation",
         agg_method="std",
