@@ -17,7 +17,7 @@ This PDEP proposes that:
 - When the minimum version of PyArrow is bumped, PyArrow will be bumped to the highest version that has
   been released for at least 2 years.
 - The pandas 2.1 release notes will have a big warning that PyArrow will become a required dependency starting
-  with pandas 3.0.
+  with pandas 3.0. We will pin a feedback issue on the pandas issue tracker.
 - Starting in pandas 2.2, pandas raises a ``FutureWarning`` when PyArrow is not installed in the users
   environment when pandas is imported. This will ensure that only one warning is raised and users can
   easily silence it if necessary.
