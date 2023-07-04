@@ -5470,7 +5470,6 @@ The above example creates a partitioned dataset that may look like:
    * The data will be read in accordance with the ``string_storage`` settings.
 
 .. ipython:: python
-   :okwarning:
 
     df1 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("pyarrow"))})
     df2 = pd.DataFrame({"A": pd.array(['a', 'b'], dtype=pd.StringDtype("python"))})
