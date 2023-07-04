@@ -298,10 +298,10 @@ class Expanding(RollingAndExpandingMixin):
         create_section_header("Examples"),
         dedent(
             """
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+        >>> ser = pd.Series([3, 2, 1, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().max()
-        a    1.0
-        b    2.0
+        a    3.0
+        b    3.0
         c    3.0
         d    4.0
         dtype: float64
@@ -336,16 +336,16 @@ class Expanding(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+            """\
+        >>> ser = pd.Series([2, 3, 4, 1], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().min()
-        a    1.0
-        b    1.0
-        c    1.0
+        a    2.0
+        b    2.0
+        c    2.0
         d    1.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="minimum",
         agg_method="min",
