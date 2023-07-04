@@ -75,7 +75,7 @@ functionality that would be better suited by PyArrow including:
   - fastparquet engine in `read_parquet`
   - potentially simplifying the `read_csv` logic (needs more investigation)
 
-- Avoiding NumPy object data types more by default for analogous types that have native PyArrow support such as:
+- NumPy object dtype will be avoided as much as possible. This means that every dtype that has a PyArrow equivalent is inferred automatically as such. This includes:
   - decimal
   - binary
   - nested types (list or dict data)
