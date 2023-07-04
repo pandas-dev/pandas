@@ -23,7 +23,7 @@ This PDEP proposes that:
   environment when pandas is imported. This will ensure that only one warning is raised and users can
   easily silence it if necessary. This warning will point to the feedback issue.
 - Starting in pandas 3.0, the default type inferred for string data will be `ArrowDtype` with `pyarrow.string`
-  instead of `object`
+  instead of `object`. Additionally, we will infer all dtypes that are listed below as well instead of storing as objec.
 
 ## Background
 
@@ -81,6 +81,8 @@ functionality that would be better suited by PyArrow including:
   - binary
   - nested types (list or dict data)
   - strings
+  - time
+  - date
 
 Out of this group, strings offer the most advantages for users. They use significantly less memory and are faster:
 
