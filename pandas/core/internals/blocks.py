@@ -1887,9 +1887,9 @@ class EABackedBlock(Block):
         values = self.values
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.fillna(method=method, limit=limit).T
+            new_values = values.T.pad_or_backfill(method=method, limit=limit).T
         else:
-            new_values = values.fillna(method=method, limit=limit)
+            new_values = values.pad_or_backfill(method=method, limit=limit)
         return [self.make_block_same_class(new_values)]
 
 

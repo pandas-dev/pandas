@@ -713,6 +713,30 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mask[self.sp_index.indices] = isna(self.sp_values)
         return type(self)(mask, fill_value=False, dtype=dtype)
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        msg = "pad_or_backfill with 'method' requires high memory usage."
+        warnings.warn(
+            msg,
+            PerformanceWarning,
+            stacklevel=find_stack_level(),
+        )
+        new_values = np.asarray(self)
+        # pad_or_backfill_inplace modifies new_values inplace
+        # error: Argument "method" to "pad_or_backfill_inplace" has incompatible
+        # type "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
+        # "Literal['pad', 'backfill']"
+        pad_or_backfill_inplace(
+            new_values, method=method, limit=limit  # type: ignore[arg-type]
+        )
+        return type(self)(new_values, fill_value=self.fill_value)
+
     def fillna(
         self,
         value=None,

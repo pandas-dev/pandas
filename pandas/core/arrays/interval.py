@@ -31,6 +31,7 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
+    FillnaOptions,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
@@ -885,6 +886,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         indexer = obj.argsort()[-1]
         return obj[indexer]
+
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        raise TypeError("Filling by method is not supported for IntervalArray.")
 
     def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         """

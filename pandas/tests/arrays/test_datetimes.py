@@ -497,7 +497,7 @@ class TestDatetimeArray:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
-        result = arr.fillna(method=method)
+        result = arr.pad_or_backfill(method=method)
         tm.assert_extension_array_equal(result, expected)
 
         # assert that arr and dti were not modified in-place
@@ -510,12 +510,12 @@ class TestDatetimeArray:
         dta[0, 1] = pd.NaT
         dta[1, 0] = pd.NaT
 
-        res1 = dta.fillna(method="pad")
+        res1 = dta.pad_or_backfill(method="pad")
         expected1 = dta.copy()
         expected1[1, 0] = dta[0, 0]
         tm.assert_extension_array_equal(res1, expected1)
 
-        res2 = dta.fillna(method="backfill")
+        res2 = dta.pad_or_backfill(method="backfill")
         expected2 = dta.copy()
         expected2 = dta.copy()
         expected2[1, 0] = dta[2, 0]
@@ -529,10 +529,10 @@ class TestDatetimeArray:
         assert not dta2._ndarray.flags["C_CONTIGUOUS"]
         tm.assert_extension_array_equal(dta, dta2)
 
-        res3 = dta2.fillna(method="pad")
+        res3 = dta2.pad_or_backfill(method="pad")
         tm.assert_extension_array_equal(res3, expected1)
 
-        res4 = dta2.fillna(method="backfill")
+        res4 = dta2.pad_or_backfill(method="backfill")
         tm.assert_extension_array_equal(res4, expected2)
 
         # test the DataFrame method while we're here

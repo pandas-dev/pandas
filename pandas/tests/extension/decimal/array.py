@@ -276,6 +276,16 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def value_counts(self, dropna: bool = True):
         return value_counts(self.to_numpy(), dropna=dropna)
 
+    # We override fillna here to simulate a 3rd party EA that has done so. This
+    #  lets us test the deprecation telling authors to implement pad_or_backfill
+    def fillna(
+        self,
+        value=None,
+        method=None,
+        limit: int | None = None,
+    ):
+        return super().fillna(value=value, method=method, limit=limit)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
