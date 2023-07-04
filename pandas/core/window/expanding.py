@@ -186,7 +186,7 @@ class Expanding(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().count()
         a    1.0
@@ -195,7 +195,7 @@ class Expanding(RollingAndExpandingMixin):
         d    4.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="count of non NaN observations",
         agg_method="count",
@@ -213,7 +213,7 @@ class Expanding(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().apply(lambda s: s.max() - 2 * s.min())
         a   -1.0
@@ -222,7 +222,7 @@ class Expanding(RollingAndExpandingMixin):
         d    2.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="custom aggregation function",
         agg_method="apply",
@@ -258,7 +258,7 @@ class Expanding(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().sum()
         a     1.0
@@ -267,7 +267,7 @@ class Expanding(RollingAndExpandingMixin):
         d    10.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="sum",
         agg_method="sum",
@@ -297,7 +297,7 @@ class Expanding(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([3, 2, 1, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().max()
         a    3.0
@@ -306,7 +306,7 @@ class Expanding(RollingAndExpandingMixin):
         d    4.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="maximum",
         agg_method="max",
@@ -375,7 +375,7 @@ class Expanding(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().mean()
         a    1.0
@@ -384,7 +384,7 @@ class Expanding(RollingAndExpandingMixin):
         d    2.5
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="mean",
         agg_method="mean",
@@ -414,7 +414,7 @@ class Expanding(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser.expanding().median()
         a    1.0
@@ -423,7 +423,7 @@ class Expanding(RollingAndExpandingMixin):
         d    2.5
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="median",
         agg_method="median",
@@ -610,7 +610,7 @@ class Expanding(RollingAndExpandingMixin):
         "A minimum of three periods is required for the rolling calculation.\n\n",
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([-1, 0, 2, -1, 2], index=['a', 'b', 'c', 'd', 'e'])
         >>> ser.expanding().skew()
         a         NaN
@@ -620,7 +620,7 @@ class Expanding(RollingAndExpandingMixin):
         e    0.315356
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="unbiased skewness",
         agg_method="skew",
@@ -697,7 +697,7 @@ class Expanding(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4, 5, 6], index=['a', 'b', 'c', 'd', 'e', 'f'])
         >>> ser.expanding(min_periods=4).quantile(.25)
         a     NaN
@@ -708,7 +708,7 @@ class Expanding(RollingAndExpandingMixin):
         f    2.25
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="quantile",
         agg_method="quantile",
@@ -828,7 +828,7 @@ class Expanding(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser1 = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser2 = pd.Series([10, 11, 13, 16], index=['a', 'b', 'c', 'd'])
         >>> ser1.expanding().cov(ser2)
@@ -838,7 +838,7 @@ class Expanding(RollingAndExpandingMixin):
         d    3.333333
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="sample covariance",
         agg_method="cov",
@@ -911,7 +911,7 @@ class Expanding(RollingAndExpandingMixin):
         ),
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser1 = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
         >>> ser2 = pd.Series([10, 11, 13, 16], index=['a', 'b', 'c', 'd'])
         >>> ser1.expanding().corr(ser2)
@@ -921,7 +921,7 @@ class Expanding(RollingAndExpandingMixin):
         d    0.975900
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="expanding",
         aggregation_description="correlation",
         agg_method="corr",
