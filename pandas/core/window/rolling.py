@@ -1276,15 +1276,15 @@ class Window(BaseWindow):
             """
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        In order to get an instance of pandas.core.window.rolling.Window we need
+        To get an instance of :class: ~pandas.core.window.rolling.Window we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
         <class 'pandas.core.window.rolling.Window'>
 
-        In order to use the `Sci-py` gaussian window we need to provide the parameters
-        M and std. The parameter M corresponds to 2 in our example.
-        We pass the second parameter std as a parameter of the following method
+        In order to use the `SciPy` Gaussian window we need to provide the parameters
+        `M` and `std`. The parameter `M` corresponds to 2 in our example.
+        We pass the second parameter `std` as a parameter of the following method
         (`sum` in this case):
 
         >>> ser.rolling(2, win_type='gaussian').sum(std=3)
@@ -1326,15 +1326,15 @@ class Window(BaseWindow):
             """
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        In order to get an instance of pandas.core.window.rolling.Window we need
+        To get an instance of :class: ~pandas.core.window.rolling.Window we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
         <class 'pandas.core.window.rolling.Window'>
 
-        In order to use the `Sci-py` gaussian window we need to provide the parameters
-        M and std. The parameter M corresponds to 2 in our example.
-        We pass the second parameter std as a parameter of the following method:
+        In order to use the `SciPy` Gaussian window we need to provide the parameters
+        `M` and `std`. The parameter `M` corresponds to 2 in our example.
+        We pass the second parameter `std` as a parameter of the following method:
 
         >>> ser.rolling(2, win_type='gaussian').mean(std=3)
         0    NaN
@@ -1375,15 +1375,15 @@ class Window(BaseWindow):
             """
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        In order to get an instance of pandas.core.window.rolling.Window we need
+        To get an instance of :class: ~pandas.core.window.rolling.Window we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
         <class 'pandas.core.window.rolling.Window'>
 
-        In order to use the `Sci-py` gaussian window we need to provide the parameters
-        M and std. The parameter M corresponds to 2 in our example.
-        We pass the second parameter std as a parameter of the following method:
+        In order to use the `SciPy` Gaussian window we need to provide the parameters
+        `M` and `std`. The parameter `M` corresponds to 2 in our example.
+        We pass the second parameter `std` as a parameter of the following method:
 
         >>> ser.rolling(2, win_type='gaussian').var(std=3)
         0     NaN
@@ -1417,15 +1417,15 @@ class Window(BaseWindow):
             """
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        In order to get an instance of pandas.core.window.rolling.Window we need
+        To get an instance of :class: ~pandas.core.window.rolling.Window we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
         <class 'pandas.core.window.rolling.Window'>
 
-        In order to use the `Sci-py` gaussian window we need to provide the parameters
-        M and std. The parameter M corresponds to 2 in our example.
-        We pass the second parameter std as a parameter of the following method:
+        In order to use the `SciPy` Gaussian window we need to provide the parameters
+        `M` and `std`. The parameter `M` corresponds to 2 in our example.
+        We pass the second parameter `std` as a parameter of the following method:
 
         >>> ser.rolling(2, win_type='gaussian').std(std=3)
         0         NaN
