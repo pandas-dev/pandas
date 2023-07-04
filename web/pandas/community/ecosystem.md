@@ -527,7 +527,7 @@ Pandas-Genomics provides an extension type and extension array for working
 
 ### [Physipandas](https://github.com/mocquin/physipandas)
 
-Physipandas provides an extension for manipulating physical qunatities
+Physipandas provides an extension for manipulating physical quantities
  (like scalar and numpy.ndarray) in association with a physical unit
  (like meter or joule) and additional features for integration of
  `physipy` accessors with pandas Series and Dataframe.
