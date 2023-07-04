@@ -406,7 +406,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
--
+- Bug in :class:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -498,11 +498,6 @@ Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.squeeze`, and :meth:`DataFrame.describe` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.std` (:issue:`28283`)
-
-Algos
-^^^^^
-- Bug in :class:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
--
 
 Other
 ^^^^^

@@ -9470,6 +9470,7 @@ class DataFrame(NDFrame, OpsMixin):
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
                 if (self.dtypes == np.bool_).all():
+                    # GH#43248
                     result = self ^ self.shift(periods=periods, axis=axis)
                     result.iloc[:, :periods] = np.nan
                     return result
