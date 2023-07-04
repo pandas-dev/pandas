@@ -1592,3 +1592,10 @@ class TestDataFrameReplaceRegex:
 
         result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_object_splitting(self):
+        # GH#53977
+        df = DataFrame({"a": ["a"], "b": "b"})
+        assert len(df._mgr.blocks) == 1
+        df.replace(to_replace=r"^\s*$", value="", inplace=True, regex=True)
+        assert len(df._mgr.blocks) == 1
