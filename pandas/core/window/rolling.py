@@ -1903,7 +1903,7 @@ class Rolling(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 6, 5, 4])
         >>> ser.rolling(2).apply(lambda s: s.sum() - s.min())
         0    NaN
@@ -1912,7 +1912,7 @@ class Rolling(RollingAndExpandingMixin):
         3    5.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="custom aggregation function",
         agg_method="apply",
@@ -2023,7 +2023,7 @@ class Rolling(RollingAndExpandingMixin):
         numba_notes,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 2, 3, 4])
         >>> ser.rolling(2).max()
         0    NaN
@@ -2032,7 +2032,7 @@ class Rolling(RollingAndExpandingMixin):
         3    4.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="maximum",
         agg_method="max",
@@ -2319,7 +2319,7 @@ class Rolling(RollingAndExpandingMixin):
         ).replace("\n", "", 1),
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
         >>> ser.rolling(3).skew().round(6)
         0         NaN
@@ -2330,7 +2330,7 @@ class Rolling(RollingAndExpandingMixin):
         5    1.545393
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="unbiased skewness",
         agg_method="skew",
@@ -2583,7 +2583,7 @@ class Rolling(RollingAndExpandingMixin):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser1 = pd.Series([1, 2, 3, 4])
         >>> ser2 = pd.Series([1, 4, 5, 8])
         >>> ser1.rolling(2).cov(ser2)
@@ -2593,7 +2593,7 @@ class Rolling(RollingAndExpandingMixin):
         3    1.5
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="sample covariance",
         agg_method="cov",
