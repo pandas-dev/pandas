@@ -585,7 +585,7 @@ class ExcelFormatter:
         return self._header_style
 
     @header_style.setter
-    def set_header_style(self, val):
+    def header_style(self, val):
         if not isinstance(val, dict):
             return None
         else:
@@ -597,7 +597,7 @@ class ExcelFormatter:
         return self._body_style
 
     @body_style.setter
-    def set_body_style(self, val):
+    def body_style(self, val):
         if not isinstance(val, dict):
             return None
         else:
