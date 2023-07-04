@@ -2316,7 +2316,7 @@ class Rolling(RollingAndExpandingMixin):
             """
         A minimum of three periods is required for the rolling calculation.\n
         """
-        ).replace("\n", "", 1),
+        ),
         create_section_header("Examples"),
         dedent(
             """\
