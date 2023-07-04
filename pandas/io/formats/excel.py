@@ -577,8 +577,8 @@ class ExcelFormatter:
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
-        self._header_style = None
-        self._body_style = None
+        self._header_style = dict[str] | None
+        self._body_style = dict[str] | None
 
     @property
     def header_style(self):
