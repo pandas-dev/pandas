@@ -282,7 +282,6 @@ class TestDataFramePlotsSubplots:
         assert returned.shape == (3,)
         assert returned[0].figure is fig
         _check_axes_shape(axes, axes_num=6, layout=(2, 3))
-        tm.close()
 
     def test_subplots_multiple_axes_error(self):
         # GH 5353, 6970, GH 7069
