@@ -547,7 +547,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         kwargs["numeric_only"] = numeric_only
 
     # Functions without numeric_only and axis args
-    no_args = ("cumprod", "cumsum", "diff", "fillna", "pct_change", "rank", "shift")
+    no_args = ("diff", "fillna", "pct_change", "rank", "shift")
     # Functions with axis args
     has_axis = (
         "cumprod",
@@ -565,13 +565,8 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     warn_msg = f"DataFrameGroupBy.{groupby_func} with axis=1 is deprecated"
     if numeric_only is not None and groupby_func in no_args:
         msg = "got an unexpected keyword argument 'numeric_only'"
-        if groupby_func in ["cumprod", "cumsum"]:
-            with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-                    method(*args, **kwargs)
-        else:
-            with pytest.raises(TypeError, match=msg):
-                method(*args, **kwargs)
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
     elif groupby_func not in has_axis:
         msg = "got an unexpected keyword argument 'axis'"
         with pytest.raises(TypeError, match=msg):
@@ -814,11 +809,13 @@ def test_numpy_compat(func):
     g = df.groupby("A")
 
     msg = "numpy operations are not valid with groupby"
+    warn_msg = f"DataFrameGroupBy.{func} with axis=1 is deprecated"
 
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(g, func)(1, 2, 3)
-    with pytest.raises(UnsupportedFunctionCall, match=msg):
-        getattr(g, func)(foo=1)
+    with pytest.raises(FutureWarning, match=warn_msg):
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(g, func)(1, 2, 3)
+        with pytest.raises(UnsupportedFunctionCall, match=msg):
+            getattr(g, func)(foo=1)
 
 
 def test_cummin(dtypes_for_minmax):
