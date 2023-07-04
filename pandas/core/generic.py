@@ -7963,20 +7963,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if downcast is not None and downcast != "infer":
             raise ValueError("downcast must be either None or 'infer'")
 
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        axis = self._get_axis_number(axis)
-
-        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-
-        if self.empty:
-            if inplace:
-                return None
-            return self.copy()
-
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
-        elif method.lower() in fillna_methods:
+
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
+        if method.lower() in fillna_methods:
             # GH#53581
             warnings.warn(
                 f"{type(self).__name__}.interpolate with method={method} is "
@@ -7985,24 +7976,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        elif np.any(self.dtypes == object):
-            # GH#53631
-            if not (self.ndim == 2 and np.all(self.dtypes == object)):
-                # don't warn in cases that already raise
-                warnings.warn(
-                    f"{type(self).__name__}.interpolate with object dtype is "
-                    "deprecated and will raise in a future version. Call "
-                    "obj.infer_objects(copy=False) before interpolating instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+
+        if "fill_value" in kwargs:
+            raise ValueError(
+                "'fill_value' is not a valid keyword for "
+                f"{type(self).__name__}.interpolate"
+            )
+
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        axis = self._get_axis_number(axis)
+
+        if self.empty:
+            if inplace:
+                return None
+            return self.copy()
 
         if isinstance(self.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
-
-        limit_direction = missing.infer_limit_direction(limit_direction, method)
 
         if self.ndim == 2 and np.all(self.dtypes == np.dtype("object")):
             raise TypeError(
@@ -8011,16 +8003,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "column to a numeric dtype."
             )
 
-        if "fill_value" in kwargs:
-            raise ValueError(
-                "'fill_value' is not a valid keyword for "
-                f"{type(self).__name__}.interpolate"
-            )
+        limit_direction = missing.infer_limit_direction(limit_direction, method)
 
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
-            #  as of 2023-06-26 no tests get here with either
+            # as of 2023-06-26 no tests get here with either
             if not self._mgr.is_single_block and axis == 1:
                 if inplace:
                     raise NotImplementedError()
@@ -8038,8 +8026,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
+            if np.any(obj.dtypes == object):
+                # GH#53631
+                warnings.warn(
+                    f"{type(self).__name__}.interpolate with object dtype is "
+                    "deprecated and will raise in a future version. Call "
+                    "obj.infer_objects(copy=False) before interpolating instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             index = missing.get_interp_index(method, obj.index)
             axis = self._info_axis_number
+
             new_data = obj._mgr.interpolate(
                 method=method,
                 axis=axis,
