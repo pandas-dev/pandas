@@ -1276,7 +1276,7 @@ class Window(BaseWindow):
             """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        To get an instance of :class: ~pandas.core.window.rolling.Window we need
+        To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
@@ -1326,7 +1326,7 @@ class Window(BaseWindow):
             """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        To get an instance of :class: ~pandas.core.window.rolling.Window we need
+        To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
@@ -1375,7 +1375,7 @@ class Window(BaseWindow):
             """
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        To get an instance of :class: ~pandas.core.window.rolling.Window we need
+        To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
@@ -1417,7 +1417,7 @@ class Window(BaseWindow):
             """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
-        To get an instance of :class: ~pandas.core.window.rolling.Window we need
+        To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type='gaussian'))
