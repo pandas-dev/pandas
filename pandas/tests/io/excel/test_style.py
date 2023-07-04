@@ -6,6 +6,7 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     read_excel,
@@ -252,6 +253,38 @@ def test_styler_to_excel_border_style(engine, border_style):
         else:
             assert u_cell is None or u_cell != expected
             assert s_cell == expected
+
+
+def test_styler_update_values():
+    openpyxl = pytest.importorskip("openpyxl")
+    pd.io.formats.excel.ExcelFormatter.header_style = {
+        "font": {"bold": True},
+        "borders": {
+            "top": "thin",
+            "right": "thin",
+            "bottom": "thin",
+            "left": "thin",
+        },
+        "alignment": {"horizontal": "center", "vertical": "top"},
+    }
+
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="custom")
+
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            # Check font, spacing, indentation
+            assert wb["custom"].cell(1, 2).font.bold is True
+            assert wb["custom"].cell(1, 2).alignment.horizontal == "center"
+            assert wb["custom"].cell(1, 2).alignment.vertical == "top"
+
+            # Check border
+            wb["custom"].cell(1, 2).border
+            assert wb["custom"].cell(1, 2).border.bottom.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.top.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.left.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.right.border_style == "thin"
 
 
 def test_styler_default_values():
