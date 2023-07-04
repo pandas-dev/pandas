@@ -1372,7 +1372,7 @@ class Window(BaseWindow):
         template_see_also,
         create_section_header("Examples"),
         dedent(
-            """
+            """\
         >>> ser = pd.Series([0, 1, 5, 2, 8])
 
         To get an instance of :class:`~pandas.core.window.rolling.Window` we need
@@ -1393,7 +1393,7 @@ class Window(BaseWindow):
         4    18.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
+        ),
         window_method="rolling",
         aggregation_description="weighted window variance",
         agg_method="var",
