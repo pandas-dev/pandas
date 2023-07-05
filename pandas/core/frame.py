@@ -11137,8 +11137,8 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ):
-        self._get_numeric_data() if numeric_only else self
-        return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cumsum(data, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
     def cumprod(
@@ -11149,8 +11149,8 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ):
-        self._get_numeric_data() if numeric_only else self
-        return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+        data = self._get_numeric_data() if numeric_only else self
+        return NDFrame.cumprod(data, axis, skipna, *args, **kwargs)
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:
         """
