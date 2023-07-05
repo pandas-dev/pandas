@@ -296,6 +296,7 @@ Deprecations
 - Deprecated :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for object-dtype (:issue:`53631`)
 - Deprecated :meth:`Series.last` and :meth:`DataFrame.last` (please create a mask and filter using ``.loc`` instead) (:issue:`53692`)
 - Deprecated allowing arbitrary ``fill_value`` in :class:`SparseDtype`, in a future version the ``fill_value`` will need to be compatible with the ``dtype.subtype``, either a scalar that can be held by that subtype or ``NaN`` for integer or bool subtypes (:issue:`23124`)
+- Deprecated allowing bool dtype in :meth:`DataFrameGroupBy.quantile` and :meth:`SeriesGroupBy.quantile`, consistent with the :meth:`Series.quantile` and :meth:`DataFrame.quantile` behavior (:issue:`51424`)
 - Deprecated behavior of :func:`assert_series_equal` and :func:`assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)
 - Deprecated bytes input to :func:`read_excel`. To read a file path, use a string or path-like object. (:issue:`53767`)
 - Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
