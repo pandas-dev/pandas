@@ -319,13 +319,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.starts_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        return type(self)(result)
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
 
     def _str_endswith(self, pat: str, na=None):
         result = pc.ends_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        return type(self)(result)
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
 
     def _str_replace(
         self,
