@@ -2801,6 +2801,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
+        >>> s1.corr(s2)
         -1.0
         """  # noqa: E501
         this, other = self.align(other, join="inner", copy=False)
