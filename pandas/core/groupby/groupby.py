@@ -1559,7 +1559,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         func: Callable,
         dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
-        is_grouped_kernel: bool = False,
         **aggregator_kwargs,
     ):
         """
@@ -1577,29 +1576,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         df = data if data.ndim == 2 else data.to_frame()
 
         aggregator = executor.generate_shared_aggregator(
-            func, dtype_mapping, is_grouped_kernel, **get_jit_arguments(engine_kwargs)
+            func,
+            dtype_mapping,
+            True,  # is_grouped_kernel
+            **get_jit_arguments(engine_kwargs),
         )
-        if is_grouped_kernel:
-            # Pass group ids to kernel directly if it can handle it
-            # (This is faster since it doesn't require a sort)
-            ids, _, _ = self.grouper.group_info
-            ngroups = self.grouper.ngroups
+        # Pass group ids to kernel directly if it can handle it
+        # (This is faster since it doesn't require a sort)
+        ids, _, _ = self.grouper.group_info
+        ngroups = self.grouper.ngroups
 
-            res_mgr = df._mgr.apply(
-                aggregator, labels=ids, ngroups=ngroups, **aggregator_kwargs
-            )
-        else:
-            # Go through window version of kernel
-            # This requires a sort
-
-            sorted_df = df.take(self.grouper._sort_idx, axis=self.axis)
-            sorted_ids = self.grouper._sorted_ids
-            _, _, ngroups = self.grouper.group_info
-            starts, ends = lib.generate_slices(sorted_ids, ngroups)
-
-            res_mgr = sorted_df._mgr.apply(
-                aggregator, start=starts, end=ends, **aggregator_kwargs
-            )
+        res_mgr = df._mgr.apply(
+            aggregator, labels=ids, ngroups=ngroups, **aggregator_kwargs
+        )
         res_mgr.axes[1] = self.grouper.result_index
         result = df._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
 
@@ -2315,7 +2304,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouped_mean,
                 executor.float_dtype_mapping,
                 engine_kwargs,
-                is_grouped_kernel=True,
                 min_periods=0,
             )
         else:
@@ -2503,7 +2491,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     grouped_var,
                     executor.float_dtype_mapping,
                     engine_kwargs,
-                    is_grouped_kernel=True,
                     min_periods=0,
                     ddof=ddof,
                 )
@@ -2612,7 +2599,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouped_var,
                 executor.float_dtype_mapping,
                 engine_kwargs,
-                is_grouped_kernel=True,
                 min_periods=0,
                 ddof=ddof,
             )
@@ -2974,7 +2960,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouped_sum,
                 executor.default_dtype_mapping,
                 engine_kwargs,
-                is_grouped_kernel=True,
                 min_periods=min_count,
             )
         else:
@@ -3092,7 +3077,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouped_min_max,
                 executor.identity_dtype_mapping,
                 engine_kwargs,
-                is_grouped_kernel=True,
                 min_periods=min_count,
                 is_max=False,
             )
@@ -3159,7 +3143,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 grouped_min_max,
                 executor.identity_dtype_mapping,
                 engine_kwargs,
-                is_grouped_kernel=True,
                 min_periods=min_count,
                 is_max=True,
             )
