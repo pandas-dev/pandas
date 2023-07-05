@@ -338,7 +338,7 @@ def _return_parsed_timezone_results(
     """
     tz_results = np.empty(len(result), dtype=object)
     unique_timezones = unique(timezones)
-    if len(unique_timezones) > 1 and not utc and name is not None:
+    if len(unique_timezones) > 1 and not utc:
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
             "zones will raise a warning unless `utc=True`. Please specify `utc=True "

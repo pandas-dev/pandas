@@ -1451,15 +1451,32 @@ def test_group_mean_timedelta_nat():
             ["2021-01-01T00:00", "NaT", "2021-01-01T02:00"],
             ["2021-01-01T01:00"],
         ),
+    ],
+)
+def test_group_mean_datetime64_nat_notz(input_data, expected_output):
+    # GH43132
+    data = to_datetime(Series(input_data))
+    expected = to_datetime(Series(expected_output, index=np.array([0])))
+
+    result = data.groupby([0, 0, 0]).mean()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_data, expected_output",
+    [
         (  # timezone
             ["2021-01-01T00:00-0100", "NaT", "2021-01-01T02:00-0100"],
             ["2021-01-01T01:00-0100"],
         ),
     ],
 )
-def test_group_mean_datetime64_nat(input_data, expected_output):
-    # GH43132
-    data = to_datetime(Series(input_data))
+def test_group_mean_datetime64_nat_tz(input_data, expected_output):
+    # GH43132, 50887
+    msg = "In a future version of pandas, parsing datetimes with mixed "
+    "time zones will raise a warning unless `utc=True`."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        data = to_datetime(Series(input_data))
     expected = to_datetime(Series(expected_output, index=np.array([0])))
 
     result = data.groupby([0, 0, 0]).mean()
