@@ -55,7 +55,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -359,19 +358,7 @@ class Apply(metaclass=abc.ABCMeta):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
-        selected_obj = obj
-        if not isinstance(obj, SelectionMixin):
-            # i.e. obj is Series or DataFrame
-            selected_obj = obj
-        elif obj._selected_obj.ndim == 1:
-            assert False
-            # For SeriesGroupBy this matches _obj_with_exclusions
-            selected_obj = obj._selected_obj
-        else:
-            assert False
-            selected_obj = obj._obj_with_exclusions
-
-        keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
+        keys, results = self.compute_list_like(op_name, obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
 
@@ -465,6 +452,7 @@ class Apply(metaclass=abc.ABCMeta):
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
+        assert isinstance(obj, (ABCSeries, ABCDataFrame))
 
         kwargs = {}
         if op_name == "apply":
@@ -474,14 +462,11 @@ class Apply(metaclass=abc.ABCMeta):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
-        selected_obj = obj
-        assert isinstance(selected_obj, (ABCSeries, ABCDataFrame))
         selection = None
-
         result_index, result_data = self.compute_dict_like(
-            op_name, selected_obj, selection, kwargs
+            op_name, obj, selection, kwargs
         )
-        result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
+        result = self.wrap_results_dict_like(obj, result_index, result_data)
         return result
 
     def wrap_results_dict_like(
