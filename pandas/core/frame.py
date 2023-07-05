@@ -10438,7 +10438,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-
         Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
 
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
