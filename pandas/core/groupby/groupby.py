@@ -57,6 +57,7 @@ from pandas._typing import (
     T,
     npt,
 )
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
@@ -4624,7 +4625,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         horse  16  10
         bull    6   9
         """
-
+        nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumprod")
@@ -4685,7 +4686,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         gorilla  10   7
         lion      6   9
         """
-
+        nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "cumsum")
