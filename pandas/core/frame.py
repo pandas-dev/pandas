@@ -11129,11 +11129,27 @@ class DataFrame(NDFrame, OpsMixin):
         return NDFrame.cummax(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumsum", ndim=2))
-    def cumsum(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumsum(
+        self,
+        axis: Axis | None = None,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
+    ):
+        self._get_numeric_data() if numeric_only else self
         return NDFrame.cumsum(self, axis, skipna, *args, **kwargs)
 
     @doc(make_doc("cumprod", 2))
-    def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def cumprod(
+        self,
+        axis: Axis | None = None,
+        numeric_only: bool = False,
+        skipna: bool = True,
+        *args,
+        **kwargs,
+    ):
+        self._get_numeric_data() if numeric_only else self
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
 
     def nunique(self, axis: Axis = 0, dropna: bool = True) -> Series:

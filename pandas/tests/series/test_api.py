@@ -231,9 +231,9 @@ class TestSeriesMisc:
             ("cummax", False),
             ("shift", False),
             ("diff", False),
-            ("cumsum", True),
+            ("cumsum", False),
             ("cummin", False),
-            ("cumprod", True),
+            ("cumprod", False),
             ("fillna", False),
             ("ffill", False),
             ("pad", False),
@@ -276,7 +276,7 @@ class TestSeriesMisc:
             )
             with pytest.raises(TypeError, match=msg):
                 method(*args, numeric_only=True)
-        elif dtype is object and kernel not in ["cumprod", "cumsum"]:
+        elif dtype is object:
             msg = f"Series.{kernel} does not allow numeric_only=True with non-numeric"
             with pytest.raises(TypeError, match=msg):
                 method(*args, numeric_only=True)

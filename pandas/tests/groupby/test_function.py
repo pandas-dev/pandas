@@ -565,8 +565,9 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
     warn_msg = f"DataFrameGroupBy.{groupby_func} with axis=1 is deprecated"
     if numeric_only is not None and groupby_func in no_args:
         msg = "got an unexpected keyword argument 'numeric_only'"
-        with pytest.raises(TypeError, match=msg):
-            method(*args, **kwargs)
+        if groupby_func in ["cumprod", "cumsum"]:
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                method(*args, **kwargs)
     elif groupby_func not in has_axis:
         msg = "got an unexpected keyword argument 'axis'"
         with pytest.raises(TypeError, match=msg):

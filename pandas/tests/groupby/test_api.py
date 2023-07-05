@@ -184,8 +184,7 @@ def test_frame_consistency(groupby_func):
         exclude_expected = {"skipna", "args"}
         exclude_result = {"numeric_only"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"args", "kwargs"}
-        exclude_result = {"numeric_only"}
+        exclude_expected = {"skipna", "numeric_only"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
         exclude_result = {"axis"}
@@ -243,8 +242,7 @@ def test_series_consistency(request, groupby_func):
         exclude_expected = {"skipna", "args"}
         exclude_result = {"numeric_only"}
     elif groupby_func in ("cumprod", "cumsum"):
-        exclude_expected = {"args", "kwargs"}
-        exclude_result = {"numeric_only"}
+        exclude_expected = {"skipna"}
     elif groupby_func in ("pct_change",):
         exclude_expected = {"kwargs"}
         exclude_result = {"axis"}
