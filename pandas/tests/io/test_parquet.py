@@ -424,9 +424,14 @@ class TestBasic(Base):
         check_round_trip(
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
-        
+
     def test_read_filters(self, engine, tmp_path):
-        df = pd.DataFrame({"int": list(range(4)), "part": list("aabb"),})
+        df = pd.DataFrame(
+            {
+                "int": list(range(4)),
+                "part": list("aabb"),
+            }
+        )
 
         expected = pd.DataFrame({"int": [0, 1]})
         check_round_trip(
@@ -435,7 +440,7 @@ class TestBasic(Base):
             path=tmp_path,
             expected=expected,
             write_kwargs={"partition_cols": ["part"]},
-            read_kwargs={"filters": [("part", "==", "a")], "columns":["int"]},
+            read_kwargs={"filters": [("part", "==", "a")], "columns": ["int"]},
             repeat=1,
         )
 
