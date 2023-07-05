@@ -22,7 +22,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     NaT,
@@ -113,6 +116,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
@@ -1545,7 +1549,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
 
-        By default, the original Index and original name is reused.
+        By default, the original index and original name is reused.
 
         >>> idx.to_series()
         animal
@@ -1554,7 +1558,7 @@ class Index(IndexOpsMixin, PandasObject):
         Cow      Cow
         Name: animal, dtype: object
 
-        To enforce a new Index, specify new labels to ``index``:
+        To enforce a new index, specify new labels to ``index``:
 
         >>> idx.to_series(index=[0, 1, 2])
         0     Ant
@@ -1562,7 +1566,7 @@ class Index(IndexOpsMixin, PandasObject):
         2     Cow
         Name: animal, dtype: object
 
-        To override the name of the resulting column, specify `name`:
+        To override the name of the resulting column, specify ``name``:
 
         >>> idx.to_series(name='zoo')
         animal
@@ -1635,7 +1639,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is lib.no_default:
             name = self._get_level_names()
-        result = DataFrame({name: self._values.copy()})
+        result = DataFrame({name: self}, copy=not using_copy_on_write())
 
         if index:
             result.index = self
@@ -2820,8 +2824,7 @@ class Index(IndexOpsMixin, PandasObject):
         NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
         mapped to ``True`` values.
         Everything else get mapped to ``False`` values. Characters such as
-        empty strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values.
 
         Returns
         -------
@@ -2876,8 +2879,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Return a boolean same-sized object indicating if the values are not NA.
         Non-missing values get mapped to ``True``. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
 
@@ -3317,7 +3319,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._wrap_setop_result(other, result)
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Specific union logic should go here. In subclasses, union behavior
         should be overwritten here rather than in `self.union`.
@@ -3328,6 +3330,7 @@ class Index(IndexOpsMixin, PandasObject):
         sort : False or None, default False
             Whether to sort the resulting index.
 
+            * True : sort the result
             * False : do not sort the result.
             * None : sort the result, except when `self` and `other` are equal
               or when the values cannot be compared.
@@ -3340,7 +3343,7 @@ class Index(IndexOpsMixin, PandasObject):
         rvals = other._values
 
         if (
-            sort is None
+            sort in (None, True)
             and self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
@@ -4189,7 +4192,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
-        if isinstance(self.dtype, np.dtype) and self.dtype.kind == "f":
+        if lib.is_np_dtype(self.dtype, "f"):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
             return self.slice_indexer(start, stop, step)
@@ -5050,12 +5053,28 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
+        For :class:`pandas.Index`:
+
         >>> idx = pd.Index([1, 2, 3])
         >>> idx
         Index([1, 2, 3], dtype='int64')
         >>> idx.values
         array([1, 2, 3])
+
+        For :class:`pandas.IntervalIndex`:
+
+        >>> idx = pd.interval_range(start=0, end=5)
+        >>> idx.values
+        <IntervalArray>
+        [(0, 1], (1, 2], (2, 3], (3, 4], (4, 5]]
+        Length: 5, dtype: interval[int64, right]
         """
+        if using_copy_on_write():
+            data = self._data
+            if isinstance(data, np.ndarray):
+                data = data.view()
+                data.flags.writeable = False
+            return data
         return self._data
 
     @cache_readonly
@@ -5661,14 +5680,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the locations (indices) of labels in the index.
 
-        As in the `asof` function, if the label (a particular entry in
-        `where`) is not in the index, the latest index label up to the
+        As in the :meth:`pandas.Index.asof`, if the label (a particular entry in
+        ``where``) is not in the index, the latest index label up to the
         passed label is chosen and its index returned.
 
-        If all of the labels in the index are later than a label in `where`,
+        If all of the labels in the index are later than a label in ``where``,
         -1 is returned.
 
-        `mask` is used to ignore NA values in the index during calculation.
+        ``mask`` is used to ignore ``NA`` values in the index during calculation.
 
         Parameters
         ----------
@@ -5676,14 +5695,34 @@ class Index(IndexOpsMixin, PandasObject):
             An Index consisting of an array of timestamps.
         mask : np.ndarray[bool]
             Array of booleans denoting where values in the original
-            data are not NA.
+            data are not ``NA``.
 
         Returns
         -------
         np.ndarray[np.intp]
-            An array of locations (indices) of the labels from the Index
-            which correspond to the return values of the `asof` function
-            for every element in `where`.
+            An array of locations (indices) of the labels from the index
+            which correspond to the return values of :meth:`pandas.Index.asof`
+            for every element in ``where``.
+
+        See Also
+        --------
+        Index.asof : Return the label from the index, or, if not present, the
+            previous one.
+
+        Examples
+        --------
+        >>> idx = pd.date_range('2023-06-01', periods=3, freq='D')
+        >>> where = pd.DatetimeIndex(['2023-05-30 00:12:00', '2023-06-01 00:00:00',
+        ...                           '2023-06-02 23:59:59'])
+        >>> mask = np.ones(3, dtype=bool)
+        >>> idx.asof_locs(where, mask)
+        array([-1,  0,  1])
+
+        We can use ``mask`` to ignore certain values in the index during calculation.
+
+        >>> mask[1] = False
+        >>> idx.asof_locs(where, mask)
+        array([-1,  0,  0])
         """
         # error: No overload variant of "searchsorted" of "ndarray" matches argument
         # types "Union[ExtensionArray, ndarray[Any, Any]]", "str"
@@ -6038,7 +6077,9 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
             keyarr.name = key.name
-        if keyarr.dtype.kind in "mM":
+        if lib.is_np_dtype(keyarr.dtype, "mM") or isinstance(
+            keyarr.dtype, DatetimeTZDtype
+        ):
             # DTI/TDI.take can infer a freq in some cases when we dont want one
             if isinstance(key, list) or (
                 isinstance(key, type(self))
@@ -6616,6 +6657,27 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         int
             Index of label.
+
+        See Also
+        --------
+        Index.get_loc : Get integer location, slice or boolean mask for requested
+            label.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_slice_bound(3, 'left')
+        3
+
+        >>> idx.get_slice_bound(3, 'right')
+        4
+
+        If ``label`` is non-unique in the index, an error will be raised.
+
+        >>> idx_duplicate = pd.Index(['a', 'b', 'a', 'c', 'd'])
+        >>> idx_duplicate.get_slice_bound('a', 'left')
+        Traceback (most recent call last):
+        KeyError: Cannot get left slice bound for non-unique label: 'a'
         """
 
         if side not in ("left", "right"):
@@ -7539,6 +7601,12 @@ def _unpack_nested_dtype(other: Index) -> Index:
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
         return dtype.categories
+    elif isinstance(dtype, ArrowDtype):
+        # GH 53617
+        import pyarrow as pa
+
+        if pa.types.is_dictionary(dtype.pyarrow_dtype):
+            other = other.astype(ArrowDtype(dtype.pyarrow_dtype.value_type))
     return other
 
 

@@ -89,6 +89,7 @@ For example, a `weighted mean <https://en.wikipedia.org/wiki/Weighted_arithmetic
 be calculated with :meth:`~Rolling.apply` by specifying a separate column of weights.
 
 .. ipython:: python
+   :okwarning:
 
    def weighted_mean(x):
        arr = np.ones((1, x.shape[1]))
@@ -114,6 +115,7 @@ the ``update`` argument to continue the windowing calculation.
    df.ewm(0.5).mean()
 
 .. ipython:: python
+   :okwarning:
 
    online_ewm = df.head(2).ewm(0.5).online()
    online_ewm.mean()

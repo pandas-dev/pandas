@@ -14,6 +14,14 @@ import pandas._testing as tm
 
 
 class TestDataFrameAlign:
+    def test_align_asfreq_method_raises(self):
+        df = DataFrame({"A": [1, np.nan, 2]})
+        msg = "Invalid fill method"
+        msg2 = "The 'method', 'limit', and 'fill_axis' keywords"
+        with pytest.raises(ValueError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                df.align(df.iloc[::-1], method="asfreq")
+
     def test_frame_align_aware(self):
         idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
         idx2 = date_range("2001", periods=5, freq="2H", tz="US/Eastern")
@@ -408,8 +416,10 @@ class TestDataFrameAlign:
             ea = ea.reindex(columns=join_columns)
             eb = eb.reindex(columns=join_columns)
 
-        ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
-        eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
+        msg = "DataFrame.fillna with 'method' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
+            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
 
         tm.assert_frame_equal(aa, ea)
         tm.assert_frame_equal(ab, eb)
