@@ -343,6 +343,7 @@ class Apply(metaclass=abc.ABCMeta):
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
         obj = self.obj
+        assert isinstance(obj, (ABCSeries, ABCDataFrame))
 
         kwargs = self.kwargs
         if op_name == "apply":
