@@ -68,10 +68,16 @@ class HTMLFormatter:
         self.table_id = table_id
         self.render_links = render_links
 
-        self.col_space = {
-            column: f"{value}px" if isinstance(value, int) else value
-            for column, value in self.fmt.col_space.items()
-        }
+        self.col_space = {}
+        for column, value in self.fmt.col_space.items():
+            col_space_value = f"{value}px" if isinstance(value, int) else value
+            # GH 53885: Handling case where column is MultiIndex
+            # Flatten the data in the multi index and add in the map
+            if isinstance(column, tuple):
+                for column_index in column:
+                    self.col_space[str(column_index)] = col_space_value
+            else:
+                self.col_space[column] = col_space_value
 
     def to_string(self) -> str:
         lines = self.render()
