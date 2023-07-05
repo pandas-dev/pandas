@@ -4569,22 +4569,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def cumprod(
-        self,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        numeric_only: bool = False,
-        skipna: bool = True,
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
     ) -> NDFrameT:
         """
         Cumulative product for each group.
-
-        Parameters
-        ----------
-        axis : int, default 0
-            The axis to apply the cumulative product along.
-        numeric_only : bool, default False
-            Include only float, int, boolean columns.
-        skipna : bool, default True
-            Exclude NA/null values when computing the result.
 
         Returns
         -------
@@ -4633,33 +4621,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumprod(axis=axis, numeric_only=numeric_only, skipna=skipna)
+            f = lambda x: x.cumprod(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform(
-            "cumprod", numeric_only=numeric_only, skipna=skipna
-        )
+        return self._cython_transform("cumprod", **kwargs)
 
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
     def cumsum(
-        self,
-        axis: Axis | lib.NoDefault = lib.no_default,
-        numeric_only: bool = False,
-        skipna: bool = True,
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
     ) -> NDFrameT:
         """
         Cumulative sum for each group.
-
-         Parameters
-        ----------
-        axis : int, default 0
-            The axis to apply the cumulative sum along.
-        numeric_only : bool, default False
-            Include only float, int, boolean columns.
-        skipna : bool, default True
-            Exclude NA/null values when computing the result.
 
         Returns
         -------
@@ -4708,12 +4682,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if axis != 0:
-            f = lambda x: x.cumsum(axis=axis, numeric_only=numeric_only, skipna=skipna)
+            f = lambda x: x.cumsum(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
-        return self._cython_transform(
-            "cumsum", numeric_only=numeric_only, skipna=skipna
-        )
+        return self._cython_transform("cumsum", **kwargs)
 
     @final
     @Substitution(name="groupby")
