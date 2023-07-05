@@ -83,10 +83,10 @@ from pandas._libs.tslibs.util cimport (
 )
 
 
-cdef extern from "../src/headers/portable.h":
+cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
-cdef extern from "../src/parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                    int skip_trailing, int *error, int *maybe_int)
 
@@ -1018,6 +1018,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 pass
 
             output_format.append(tokens[i])
+
+    # if am/pm token present, replace 24-hour %H, with 12-hour %I
+    if "%p" in output_format and "%H" in output_format:
+        i = output_format.index("%H")
+        output_format[i] = "%I"
 
     guessed_format = "".join(output_format)
 

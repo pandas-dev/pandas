@@ -6,6 +6,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import (
@@ -76,6 +77,13 @@ class TestToPeriod:
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")
+
+    @pytest.mark.parametrize("freq", ["2M", MonthEnd(2)])
+    def test_dti_to_period_2monthish(self, freq):
+        dti = date_range("2020-01-01", periods=3, freq=freq)
+        pi = dti.to_period()
+
+        tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq))
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358

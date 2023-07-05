@@ -154,7 +154,7 @@ class TestDataFrameSetItem:
     def test_setitem_timestamp_empty_columns(self):
         # GH#19843
         df = DataFrame(index=range(3))
-        df["now"] = Timestamp("20130101", tz="UTC")
+        df["now"] = Timestamp("20130101", tz="UTC").as_unit("ns")
 
         expected = DataFrame(
             [[Timestamp("20130101", tz="UTC")]] * 3, index=[0, 1, 2], columns=["now"]
@@ -234,7 +234,7 @@ class TestDataFrameSetItem:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )
@@ -316,7 +316,7 @@ class TestDataFrameSetItem:
         df["dates"] = vals
         assert (df["dates"].values == ex_vals).all()
 
-    def test_setitem_dt64tz(self, timezone_frame):
+    def test_setitem_dt64tz(self, timezone_frame, using_copy_on_write):
         df = timezone_frame
         idx = df["B"].rename("foo")
 
@@ -331,12 +331,16 @@ class TestDataFrameSetItem:
 
         # assert that A & C are not sharing the same base (e.g. they
         # are copies)
+        # Note: This does not hold with Copy on Write (because of lazy copying)
         v1 = df._mgr.arrays[1]
         v2 = df._mgr.arrays[2]
         tm.assert_extension_array_equal(v1, v2)
         v1base = v1._ndarray.base
         v2base = v2._ndarray.base
-        assert v1base is None or (id(v1base) != id(v2base))
+        if not using_copy_on_write:
+            assert v1base is None or (id(v1base) != id(v2base))
+        else:
+            assert id(v1base) == id(v2base)
 
         # with nan
         df2 = df.copy()
@@ -925,6 +929,20 @@ class TestDataFrameSetItemWithExpansion:
             }
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_expansion_with_timedelta_type(self):
+        result = DataFrame(columns=list("abc"))
+        result.loc[0] = {
+            "a": pd.to_timedelta(5, unit="s"),
+            "b": pd.to_timedelta(72, unit="s"),
+            "c": "23",
+        }
+        expected = DataFrame(
+            [[pd.Timedelta("0 days 00:00:05"), pd.Timedelta("0 days 00:01:12"), "23"]],
+            index=Index([0]),
+            columns=(["a", "b", "c"]),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameSetItemSlicing:

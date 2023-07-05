@@ -11,7 +11,7 @@ from pandas.core.arrays import (
 
 from pandas.io.feather_format import read_feather, to_feather  # isort:skip
 
-pyarrow = pytest.importorskip("pyarrow", minversion="1.0.1")
+pyarrow = pytest.importorskip("pyarrow")
 
 
 @pytest.mark.single_cpu
@@ -40,6 +40,7 @@ class TestFeather:
             to_feather(df, path, **write_kwargs)
 
             result = read_feather(path, **read_kwargs)
+
             tm.assert_frame_equal(result, expected)
 
     def test_error(self):
@@ -86,7 +87,10 @@ class TestFeather:
         df["intervals"] = pd.interval_range(0, 3, 3)
 
         assert df.dttz.dtype.tz.zone == "US/Eastern"
-        self.check_round_trip(df)
+
+        expected = df.copy()
+        expected.loc[1, "bool_with_null"] = None
+        self.check_round_trip(df, expected=expected)
 
     def test_duplicate_columns(self):
         # https://github.com/wesm/feather/issues/53
@@ -138,21 +142,13 @@ class TestFeather:
         self.check_round_trip(df, write_kwargs={"version": 1})
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/feather/feather-0_3_1.feather"
-        ),
-        check_before_test=True,
-    )
-    def test_http_path(self, feather_file):
+    @pytest.mark.single_cpu
+    def test_http_path(self, feather_file, httpserver):
         # GH 29055
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/feather/feather-0_3_1.feather"
-        )
         expected = read_feather(feather_file)
-        res = read_feather(url)
+        with open(feather_file, "rb") as f:
+            httpserver.serve_content(content=f.read())
+            res = read_feather(httpserver.url)
         tm.assert_frame_equal(expected, res)
 
     def test_read_feather_dtype_backend(self, string_storage, dtype_backend):

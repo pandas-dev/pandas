@@ -1,5 +1,6 @@
 import builtins
 from io import StringIO
+import re
 
 import numpy as np
 import pytest
@@ -67,13 +68,18 @@ def test_intercept_builtin_sum():
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
     # see gh-8155
-    df = DataFrame(np.random.randint(1, 50, (1000, 2)), columns=["jim", "joe"])
-    df["jolie"] = np.random.randn(1000)
+    rs = np.random.RandomState(42)
+    df = DataFrame(rs.randint(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.randn(10)
 
     gb = df.groupby(keys)
 
     fname = f.__name__
-    result = gb.apply(f)
+
+    warn = None if f is not sum else FutureWarning
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
     assert_msg = f"invalid frame shape: {result.shape} (expected ({ngroups}, 3))"
@@ -245,8 +251,10 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "Categorical is not ordered",
-                    "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    # cumsum/cummin/cummax/cumprod
+                    "function is not implemented for this dtype",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -255,12 +263,9 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "category type does not support sum operations",
-                    "[Cc]ould not convert",
-                    "can't multiply sequence by non-int of type 'str'",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
                 ]
             )
-            if method == "median":
-                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)()
         else:
@@ -270,16 +275,13 @@ class TestNumericOnly:
         if method not in ("first", "last"):
             msg = "|".join(
                 [
-                    "[Cc]ould not convert",
                     "Categorical is not ordered",
                     "category type does not support",
-                    "can't multiply sequence",
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    re.escape(f"agg function failed [how->{method},dtype->object]"),
                 ]
             )
-            if method == "median":
-                msg = r"Cannot convert \['a' 'b'\] to numeric"
             with pytest.raises(exception, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
@@ -1460,16 +1462,14 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         msg = "|".join(
             [
                 "not allowed for this dtype",
-                "must be a string or a number",
                 "cannot be performed against 'object' dtypes",
-                "must be a string or a real number",
+                # On PY39 message is "a number"; on PY310 and after is "a real number"
+                "must be a string or a.* number",
                 "unsupported operand type",
-                "not supported between instances of",
                 "function is not implemented for this dtype",
+                re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "median":
-            msg = r"Cannot convert \[<class 'object'> <class 'object'>\] to numeric"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
@@ -1589,6 +1589,13 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
+    elif dtype == bool and groupby_func == "quantile":
+        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#51424
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+        tm.assert_series_equal(result, expected)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)

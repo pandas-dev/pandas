@@ -656,7 +656,9 @@ class TestDataFrameToCSV:
             "foo", index=df_float.index, columns=create_cols("object")
         )
         df_dt = DataFrame(
-            Timestamp("20010101"), index=df_float.index, columns=create_cols("date")
+            Timestamp("20010101").as_unit("ns"),
+            index=df_float.index,
+            columns=create_cols("date"),
         )
 
         # add in some nans
@@ -664,6 +666,7 @@ class TestDataFrameToCSV:
 
         # ## this is a bug in read_csv right now ####
         # df_dt.loc[30:50,1:3] = np.nan
+        # FIXME: don't leave commented-out
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
@@ -702,7 +705,9 @@ class TestDataFrameToCSV:
         df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
-        df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
+        df_dt = DataFrame(
+            Timestamp("20010101").as_unit("ns"), index=df_float.index, columns=range(3)
+        )
         df = pd.concat(
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
@@ -747,13 +752,16 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(rs, aa)
 
     @pytest.mark.slow
-    def test_to_csv_wide_frame_formatting(self):
+    def test_to_csv_wide_frame_formatting(self, monkeypatch):
         # Issue #8621
-        df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
+        chunksize = 100
+        df = DataFrame(np.random.randn(1, chunksize + 10), columns=None, index=None)
         with tm.ensure_clean() as filename:
-            df.to_csv(filename, header=False, index=False)
+            with monkeypatch.context() as m:
+                m.setattr("pandas.io.formats.csvs._DEFAULT_CHUNKSIZE_CELLS", chunksize)
+                df.to_csv(filename, header=False, index=False)
             rs = read_csv(filename, header=None)
-            tm.assert_frame_equal(rs, df)
+        tm.assert_frame_equal(rs, df)
 
     def test_to_csv_bug(self):
         f1 = StringIO("a,1.0\nb,2.0")

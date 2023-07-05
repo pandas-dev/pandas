@@ -491,7 +491,7 @@ def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
 
 def test_nat_pinned_docstrings():
     # see gh-17327
-    assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+    assert NaT.ctime.__doc__ == Timestamp.ctime.__doc__
 
 
 def test_to_numpy_alias():

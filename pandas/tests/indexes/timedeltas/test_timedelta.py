@@ -3,44 +3,21 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas import (
     Index,
     NaT,
     Series,
     Timedelta,
-    TimedeltaIndex,
     timedelta_range,
 )
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
-from pandas.tests.indexes.datetimelike import DatetimeLike
-
-randn = np.random.randn
 
 
-class TestTimedeltaIndex(DatetimeLike):
-    _index_cls = TimedeltaIndex
-
-    @pytest.fixture
-    def simple_index(self) -> TimedeltaIndex:
-        index = pd.to_timedelta(range(5), unit="d")._with_freq("infer")
-        assert index.freq == "D"
-        ret = index + pd.offsets.Hour(1)
-        assert ret.freq == "D"
-        return ret
-
+class TestTimedeltaIndex:
     @pytest.fixture
     def index(self):
         return tm.makeTimedeltaIndex(10)
-
-    def test_numeric_compat(self):
-        # Dummy method to override super's version; this test is now done
-        # in test_arithmetic.py
-        pass
-
-    def test_shift(self):
-        pass  # this is handled in test_arithmetic.py
 
     def test_misc_coverage(self):
         rng = timedelta_range("1 day", periods=5)
