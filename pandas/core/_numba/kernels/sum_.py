@@ -150,16 +150,11 @@ def sliding_sum(
     return output, na_pos
 
 
-@numba.jit(nopython=True, nogil=True, parallel=False)
-def grouped_sum(
-    values: np.ndarray,
-    result_dtype: np.dtype,
-    labels: np.ndarray,
-    ngroups: int,
-    min_periods: int,
+@numba.extending.register_jitable
+def grouped_kahan_sum(
+    values: np.ndarray, result_dtype: np.dtype, labels: np.ndarray, ngroups: int
 ) -> np.ndarray:
     N = len(labels)
-    na_pos = []
 
     nobs_arr = np.zeros(ngroups, dtype=np.int64)
     comp_arr = np.zeros(ngroups, dtype=values.dtype)
@@ -200,6 +195,22 @@ def grouped_sum(
         prev_vals[lab] = prev_value
         comp_arr[lab] = compensation_add
         nobs_arr[lab] = nobs
+    return output, nobs_arr, comp_arr, consecutive_counts, prev_vals
+
+
+@numba.jit(nopython=True, nogil=True, parallel=False)
+def grouped_sum(
+    values: np.ndarray,
+    result_dtype: np.dtype,
+    labels: np.ndarray,
+    ngroups: int,
+    min_periods: int,
+) -> np.ndarray:
+    na_pos = []
+
+    output, nobs_arr, comp_arr, consecutive_counts, prev_vals = grouped_kahan_sum(
+        values, result_dtype, labels, ngroups
+    )
 
     # Post-processing, replace sums that don't satisfy min_periods
     for lab in range(ngroups):
