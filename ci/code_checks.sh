@@ -148,6 +148,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
+        pandas.api.extensions.ExtensionArray.pad_or_backfill \
         pandas.api.extensions.ExtensionArray.ravel \
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
