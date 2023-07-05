@@ -77,6 +77,44 @@ Out[2]: string[pyarrow]
 Dask developers investigated performance and memory of pyarrow strings [here](https://www.coiled.io/blog/pyarrow-strings-in-dask-dataframes),
 and found them to be a significant improvement over the current `object` dtype.
 
+Little demo:
+```python
+import string
+import random
+
+import pandas as pd
+
+
+def random_string() -> str:
+    return "".join(random.choices(string.printable, k=random.randint(10, 100)))
+
+
+ser_object = pd.Series([random_string() for _ in range(1_000_000)])
+ser_string = ser_object.astype("string[pyarrow]")\
+```
+
+PyArrow backed strings are significantly faster than NumPy object strings:
+
+*str.len*
+
+```python
+In[1]: %timeit ser_object.str.len()
+118 ms ± 260 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+In[2]: %timeit ser_string.str.len()
+24.2 ms ± 187 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+```
+
+*str.startswith*
+
+```python
+In[3]: %timeit ser_object.str.startswith("a")
+136 ms ± 300 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+
+In[4]: %timeit ser_string.str.startswith("a")
+11 ms ± 19.8 µs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+```
+
 ### Immediate User Benefit 2: Nested Datatypes
 
 Currently, if you try storing `dict`s in a pandas `Series`, you will again get the horrendeous `object` dtype:
