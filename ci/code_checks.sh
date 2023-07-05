@@ -110,25 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas_object \
         pandas.api.interchange.from_dataframe \
         pandas.DatetimeIndex.snap \
-        pandas.core.window.rolling.Rolling.max \
-        pandas.core.window.rolling.Rolling.cov \
-        pandas.core.window.rolling.Rolling.skew \
-        pandas.core.window.rolling.Rolling.apply \
-        pandas.core.window.rolling.Window.mean \
-        pandas.core.window.rolling.Window.sum \
-        pandas.core.window.rolling.Window.var \
-        pandas.core.window.rolling.Window.std \
-        pandas.core.window.expanding.Expanding.count \
-        pandas.core.window.expanding.Expanding.sum \
-        pandas.core.window.expanding.Expanding.mean \
-        pandas.core.window.expanding.Expanding.median \
-        pandas.core.window.expanding.Expanding.min \
-        pandas.core.window.expanding.Expanding.max \
-        pandas.core.window.expanding.Expanding.corr \
-        pandas.core.window.expanding.Expanding.cov \
-        pandas.core.window.expanding.Expanding.skew \
-        pandas.core.window.expanding.Expanding.apply \
-        pandas.core.window.expanding.Expanding.quantile \
         pandas.core.window.ewm.ExponentialMovingWindow.mean \
         pandas.core.window.ewm.ExponentialMovingWindow.sum \
         pandas.core.window.ewm.ExponentialMovingWindow.std \
