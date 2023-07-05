@@ -895,8 +895,8 @@ def test_head_tail(method, using_copy_on_write):
     df2._mgr._verify_integrity()
 
     if using_copy_on_write:
-        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
     # modify df2 to trigger CoW for that block
     df2.iloc[0, 0] = 0
