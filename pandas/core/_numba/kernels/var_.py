@@ -8,8 +8,13 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numba
 import numpy as np
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
@@ -166,7 +171,7 @@ def sliding_var(
 def grouped_var(
     values: np.ndarray,
     result_dtype: np.dtype,
-    labels: np.ndarray,
+    labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
     ddof: int = 1,

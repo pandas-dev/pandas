@@ -8,10 +8,16 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numba
 import numpy as np
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
@@ -152,7 +158,10 @@ def sliding_sum(
 
 @numba.extending.register_jitable
 def grouped_kahan_sum(
-    values: np.ndarray, result_dtype: np.dtype, labels: np.ndarray, ngroups: int
+    values: np.ndarray,
+    result_dtype: np.dtype,
+    labels: npt.NDArray[np.intp],
+    ngroups: int,
 ) -> np.ndarray:
     N = len(labels)
 
@@ -202,7 +211,7 @@ def grouped_kahan_sum(
 def grouped_sum(
     values: np.ndarray,
     result_dtype: np.dtype,
-    labels: np.ndarray,
+    labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
 ) -> np.ndarray:

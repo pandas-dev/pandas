@@ -8,8 +8,13 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numba
 import numpy as np
+
+if TYPE_CHECKING:
+    from pandas._typing import npt
 
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
@@ -78,7 +83,7 @@ def sliding_min_max(
 def grouped_min_max(
     values: np.ndarray,
     result_dtype: np.dtype,
-    labels: np.ndarray,
+    labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
     is_max: bool,
