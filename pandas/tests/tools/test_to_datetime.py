@@ -1649,7 +1649,10 @@ class TestToDatetime:
 
         now = Timestamp("now")
         today = Timestamp("today")
-        mixed = to_datetime(ser)
+        msg = "In a future version of pandas, parsing datetimes with mixed time zones "
+        "will raise a warning unless `utc=True`."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            mixed = to_datetime(ser)
         expected = Series(
             [
                 "NaT",

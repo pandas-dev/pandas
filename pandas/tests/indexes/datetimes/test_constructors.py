@@ -301,7 +301,10 @@ class TestDatetimeIndex:
 
         msg = "DatetimeIndex has mixed timezones"
         with pytest.raises(TypeError, match=msg):
-            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
+            msg = "In a future version of pandas, parsing datetimes with mixed "
+            "time zones will raise a warning unless `utc=True`."
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")

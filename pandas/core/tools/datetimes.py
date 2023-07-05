@@ -337,7 +337,16 @@ def _return_parsed_timezone_results(
     tz_result : Index-like of parsed dates with timezone
     """
     tz_results = np.empty(len(result), dtype=object)
-    for zone in unique(timezones):
+    unique_timezones = unique(timezones)
+    if len(unique_timezones) > 1 and not utc and name is not None:
+        warnings.warn(
+            "In a future version of pandas, parsing datetimes with mixed time "
+            "zones will raise a warning unless `utc=True`. Please specify `utc=True "
+            "to opt in to the new behaviour and silence this warning.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+    for zone in unique_timezones:
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
         if utc:
