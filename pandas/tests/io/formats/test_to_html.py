@@ -903,7 +903,5 @@ def test_to_html_multiindex_col_with_colspace(datapath):
     df = DataFrame([[1, 2], [3, 4]])
     df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
     result = df.to_html(col_space=100)
-    print(result)
     expected = expected_html(datapath, "gh53885_expected_output")
-    print(expected)
     assert result == expected
