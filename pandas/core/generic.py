@@ -11579,8 +11579,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
-        if name not in ["cumprod", "cumsum"]:
-            skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
             axis = 0
         else:
