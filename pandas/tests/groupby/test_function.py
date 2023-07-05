@@ -810,13 +810,11 @@ def test_numpy_compat(func):
     g = df.groupby("A")
 
     msg = "numpy operations are not valid with groupby"
-    warn_msg = f"DataFrameGroupBy.{func} with axis=1 is deprecated"
 
-    with pytest.raises(FutureWarning, match=warn_msg):
-        with pytest.raises(UnsupportedFunctionCall, match=msg):
-            getattr(g, func)(1, 2, 3)
-        with pytest.raises(UnsupportedFunctionCall, match=msg):
-            getattr(g, func)(foo=1)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(1, 2, 3)
+    with pytest.raises(UnsupportedFunctionCall, match=msg):
+        getattr(g, func)(foo=1)
 
 
 def test_cummin(dtypes_for_minmax):
