@@ -20,6 +20,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
@@ -279,7 +280,7 @@ class StringMethods(NoNewAttributesMixin):
 
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-                value_lengths = result._pa_array.combine_chunks().value_lengths()
+                value_lengths = pa.compute.list_value_length(result._pa_array)
                 max_len = pa.compute.max(value_lengths).as_py()
                 min_len = pa.compute.min(value_lengths).as_py()
                 if result._hasna:
@@ -313,9 +314,14 @@ class StringMethods(NoNewAttributesMixin):
                     labels = name
                 else:
                     labels = range(max_len)
+                result = (
+                    pa.compute.list_flatten(result._pa_array)
+                    .to_numpy()
+                    .reshape(len(result), max_len)
+                )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, (zip(*result.tolist())))
+                    for label, res in zip(labels, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -3361,7 +3367,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: list, sep: str):
+def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
