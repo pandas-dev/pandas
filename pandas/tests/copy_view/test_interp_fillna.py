@@ -352,10 +352,10 @@ def test_fillna_chained_assignment(using_copy_on_write):
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
     if using_copy_on_write:
-        with tm.assert_produces_warning(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error(ChainedAssignmentError):
             df["a"].fillna(100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
 
-        with tm.assert_produces_warning(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error(ChainedAssignmentError):
             df[["a"]].fillna(100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
