@@ -171,7 +171,6 @@ optional dependency checks.
 Second, it could potentially remove redundant functionality:
 - fastparquet engine in `read_parquet`;
 - potentially simplifying the `read_csv` logic (needs more investigation);
-- MaskedDtypes/Arrays;
 - factorization;
 - datetime/timezone ops.
 
@@ -202,7 +201,8 @@ before releasing a new pandas version.
 
 **Q: Are all pyarrow dtypes ready? Isn't it too soon to make them the default?**
 
-**A**: We're not making them the default (yet). For example, `pd.Series([1, 2, 3])` will continue to be auto-inferred to be
+**A**: They will likely be ready by 3.0 - however, we're not making them the default (yet).
+  For example, `pd.Series([1, 2, 3])` will continue to be auto-inferred to be
   `np.int64`.  We will only change the default for dtypes which currently have no `numpy`-backed equivalent and which are
   stored as `object` dtype, such as strings and nested datatypes.
 
