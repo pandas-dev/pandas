@@ -28,24 +28,17 @@ pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
 @pytest.mark.network
-@tm.network(
-    url=(
-        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        "pandas/tests/io/parser/data/salaries.csv"
-    ),
-    check_before_test=True,
-)
-def test_url(all_parsers, csv_dir_path):
+@pytest.mark.single_cpu
+def test_url(all_parsers, csv_dir_path, httpserver):
     parser = all_parsers
     kwargs = {"sep": "\t"}
 
-    url = (
-        "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-        "pandas/tests/io/parser/data/salaries.csv"
-    )
-    url_result = parser.read_csv(url, **kwargs)
-
     local_path = os.path.join(csv_dir_path, "salaries.csv")
+    with open(local_path, encoding="utf-8") as f:
+        httpserver.serve_content(content=f.read())
+
+    url_result = parser.read_csv(httpserver.url, **kwargs)
+
     local_result = parser.read_csv(local_path, **kwargs)
     tm.assert_frame_equal(url_result, local_result)
 

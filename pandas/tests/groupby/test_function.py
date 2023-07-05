@@ -68,8 +68,9 @@ def test_intercept_builtin_sum():
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
     # see gh-8155
-    df = DataFrame(np.random.randint(1, 50, (1000, 2)), columns=["jim", "joe"])
-    df["jolie"] = np.random.randn(1000)
+    rs = np.random.RandomState(42)
+    df = DataFrame(rs.randint(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.randn(10)
 
     gb = df.groupby(keys)
 
@@ -1588,6 +1589,13 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
+    elif dtype == bool and groupby_func == "quantile":
+        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#51424
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+        tm.assert_series_equal(result, expected)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
