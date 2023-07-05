@@ -2769,7 +2769,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         float
             Correlation with other.
 
-            .. note::
+        .. note::
+
             Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
             ``corr`` automatically considers values with matching indices.
 
