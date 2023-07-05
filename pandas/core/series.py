@@ -2769,11 +2769,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         float
             Correlation with other.
 
-        .. note::
-
-            Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
-            ``corr`` automatically considers values with matching indices.
-
         See Also
         --------
         DataFrame.corr : Compute pairwise correlation between columns.
@@ -2787,6 +2782,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+        ``corr()`` automatically considers values with matching indices.
 
         Examples
         --------
