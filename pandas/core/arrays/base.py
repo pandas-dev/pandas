@@ -821,6 +821,9 @@ class ExtensionArray:
             The base class implementation ignores the keyword if any NAs are
             present.
 
+        Returns
+        -------
+        Same type as self
         """
 
         # If a 3rd-party EA has implemented this functionality in fillna,
