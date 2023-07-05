@@ -110,10 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas_object \
         pandas.api.interchange.from_dataframe \
         pandas.DatetimeIndex.snap \
-        pandas.core.window.rolling.Rolling.max \
-        pandas.core.window.rolling.Rolling.cov \
-        pandas.core.window.rolling.Rolling.skew \
-        pandas.core.window.rolling.Rolling.apply \
         pandas.core.window.rolling.Window.mean \
         pandas.core.window.rolling.Window.sum \
         pandas.core.window.rolling.Window.var \

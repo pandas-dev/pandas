@@ -1900,7 +1900,19 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 6, 5, 4])
+        >>> ser.rolling(2).apply(lambda s: s.sum() - s.min())
+        0    NaN
+        1    6.0
+        2    6.0
+        3    5.0
+        dtype: float64
+        """
+        ),
         window_method="rolling",
         aggregation_description="custom aggregation function",
         agg_method="apply",
@@ -2008,7 +2020,19 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes[:-1],
+        numba_notes,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.rolling(2).max()
+        0    NaN
+        1    2.0
+        2    3.0
+        3    4.0
+        dtype: float64
+        """
+        ),
         window_method="rolling",
         aggregation_description="maximum",
         agg_method="max",
@@ -2288,7 +2312,25 @@ class Rolling(RollingAndExpandingMixin):
         "scipy.stats.skew : Third moment of a probability density.\n",
         template_see_also,
         create_section_header("Notes"),
-        "A minimum of three periods is required for the rolling calculation.\n",
+        dedent(
+            """
+        A minimum of three periods is required for the rolling calculation.\n
+        """
+        ),
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 5, 2, 7, 12, 6])
+        >>> ser.rolling(3).skew().round(6)
+        0         NaN
+        1         NaN
+        2    1.293343
+        3   -0.585583
+        4    0.000000
+        5    1.545393
+        dtype: float64
+        """
+        ),
         window_method="rolling",
         aggregation_description="unbiased skewness",
         agg_method="skew",
@@ -2538,7 +2580,20 @@ class Rolling(RollingAndExpandingMixin):
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser1 = pd.Series([1, 2, 3, 4])
+        >>> ser2 = pd.Series([1, 4, 5, 8])
+        >>> ser1.rolling(2).cov(ser2)
+        0    NaN
+        1    1.5
+        2    0.5
+        3    1.5
+        dtype: float64
+        """
+        ),
         window_method="rolling",
         aggregation_description="sample covariance",
         agg_method="cov",
