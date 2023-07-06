@@ -413,10 +413,17 @@ def _convert_listlike_datetimes(
             # pyarrow uses UTC, not lowercase utc
             if isinstance(arg, Index):
                 arg_array = cast(ArrowExtensionArray, arg.array)
-                arg = Index(arg_array._dt_tz_localize("UTC"))
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg_array = arg_array._dt_tz_convert("UTC")
+                else:
+                    arg_array = arg_array._dt_tz_localize("UTC")
+                arg = Index(arg_array)
             else:
                 # ArrowExtensionArray
-                arg = arg._dt_tz_localize("UTC")
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg = arg._dt_tz_convert("UTC")
+                else:
+                    arg = arg._dt_tz_localize("UTC")
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
