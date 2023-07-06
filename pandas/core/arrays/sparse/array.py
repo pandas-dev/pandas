@@ -42,7 +42,6 @@ from pandas.core.dtypes.cast import (
     maybe_box_datetimelike,
 )
 from pandas.core.dtypes.common import (
-    is_array_like,
     is_bool_dtype,
     is_integer,
     is_list_like,
@@ -80,7 +79,7 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.missing import interpolate_2d
+from pandas.core.missing import pad_or_backfill_inplace
 from pandas.core.nanops import check_below_min_count
 
 from pandas.io.formats import printing
@@ -428,19 +427,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             # Union[int, Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
             data = np.array([], dtype=dtype)  # type: ignore[arg-type]
 
-        if not is_array_like(data):
-            try:
-                # probably shared code in sanitize_series
-
-                data = sanitize_array(data, index=None)
-            except ValueError:
-                # NumPy may raise a ValueError on data like [1, []]
-                # we retry with object dtype here.
-                if dtype is None:
-                    dtype = np.dtype(object)
-                    data = np.atleast_1d(np.asarray(data, dtype=dtype))
-                else:
-                    raise
+        try:
+            data = sanitize_array(data, index=None)
+        except ValueError:
+            # NumPy may raise a ValueError on data like [1, []]
+            # we retry with object dtype here.
+            if dtype is None:
+                dtype = np.dtype(object)
+                data = np.atleast_1d(np.asarray(data, dtype=dtype))
+            else:
+                raise
 
         if copy:
             # TODO: avoid double copy when dtype forces cast.
@@ -629,6 +625,16 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Elements in `data` that are `fill_value` are not stored.
 
         For memory savings, this should be the most common value in the array.
+
+        Examples
+        --------
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype="Sparse[int]")
+        >>> ser.sparse.fill_value
+        0
+        >>> spa_dtype = pd.SparseDtype(dtype=np.int32, fill_value=2)
+        >>> ser = pd.Series([0, 0, 2, 2, 2], dtype=spa_dtype)
+        >>> ser.sparse.fill_value
+        2
         """
         return self.dtype.fill_value
 
@@ -758,8 +764,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 stacklevel=find_stack_level(),
             )
             new_values = np.asarray(self)
-            # interpolate_2d modifies new_values inplace
-            interpolate_2d(new_values, method=method, limit=limit)
+            # pad_or_backfill_inplace modifies new_values inplace
+            # error: Argument "method" to "pad_or_backfill_inplace" has incompatible
+            # type "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
+            # "Literal['pad', 'backfill']"
+            pad_or_backfill_inplace(
+                new_values, method=method, limit=limit  # type: ignore[arg-type]
+            )
             return type(self)(new_values, fill_value=self.fill_value)
 
         else:
