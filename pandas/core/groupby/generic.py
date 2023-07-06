@@ -633,6 +633,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
+        For SeriesGroupby:
 
         >>> lst = ['a', 'a', 'b', 'b']
         >>> ser = pd.Series([1, 2, 3, 3], index=lst)
@@ -646,6 +647,21 @@ class SeriesGroupBy(GroupBy[Series]):
         a    2
         b    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample('MS').nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 
@@ -868,7 +884,7 @@ class SeriesGroupBy(GroupBy[Series]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -911,6 +927,8 @@ class SeriesGroupBy(GroupBy[Series]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2390,7 +2408,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -2433,6 +2451,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------

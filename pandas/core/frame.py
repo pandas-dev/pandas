@@ -961,13 +961,6 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         bool
 
-        See Also
-        --------
-        Index._is_homogeneous_type : Whether the object has a single
-            dtype.
-        MultiIndex._is_homogeneous_type : Whether all the levels of a
-            MultiIndex have the same dtype.
-
         Examples
         --------
         >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
@@ -983,12 +976,8 @@ class DataFrame(NDFrame, OpsMixin):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if isinstance(self._mgr, ArrayManager):
-            return len({arr.dtype for arr in self._mgr.arrays}) == 1
-        if self._mgr.any_extension_types:
-            return len({block.dtype for block in self._mgr.blocks}) == 1
-        else:
-            return not self._is_mixed_type
+        # The "<" part of "<=" here is for empty DataFrame cases
+        return len({arr.dtype for arr in self._mgr.arrays}) <= 1
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -4958,7 +4947,7 @@ class DataFrame(NDFrame, OpsMixin):
         if row_indexer is not None and col_indexer is not None:
             # Fastpath. By doing two 'take's at once we avoid making an
             #  unnecessary copy.
-            # We only get here with `not self._is_mixed_type`, which (almost)
+            # We only get here with `self._can_fast_transpose`, which (almost)
             #  ensures that self.values is cheap. It may be worth making this
             #  condition more specific.
             indexer = row_indexer, col_indexer
@@ -9017,7 +9006,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9043,8 +9032,6 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
-        sort : bool, default True
-            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9144,15 +9131,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_multi_level_cols2.stack(0)
                      kg    m
-        cat height  NaN  2.0
-            weight  1.0  NaN
-        dog height  NaN  4.0
-            weight  3.0  NaN
+        cat weight  1.0  NaN
+            height  NaN  2.0
+        dog weight  3.0  NaN
+            height  NaN  4.0
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  height  m     2.0
-             weight  kg    1.0
-        dog  height  m     4.0
-             weight  kg    3.0
+        cat  weight  kg    1.0
+             height  m     2.0
+        dog  weight  kg    3.0
+             height  m     4.0
         dtype: float64
 
         **Dropping missing values**
@@ -9188,9 +9175,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            result = stack_multiple(self, level, dropna=dropna)
         else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+            result = stack(self, level, dropna=dropna)
 
         return result.__finalize__(self, method="stack")
 
@@ -9636,6 +9623,7 @@ class DataFrame(NDFrame, OpsMixin):
         raw: bool = False,
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ):
         """
@@ -9684,6 +9672,17 @@ class DataFrame(NDFrame, OpsMixin):
         args : tuple
             Positional arguments to pass to `func` in addition to the
             array/series.
+        by_row : False or "compat", default "compat"
+            Only has an effect when ``func`` is a listlike or dictlike of funcs
+            and the func isn't a string.
+            If "compat", will if possible first translate the func into pandas
+            methods (e.g. ``Series().apply(np.sum)`` will be translated to
+            ``Series().sum()``). If that doesn't work, will try call to apply again with
+            ``by_row=True`` and if that fails, will call apply again with
+            ``by_row=False`` (backward compatible).
+            If False, the funcs will be passed the whole Series at once.
+
+            .. versionadded:: 2.1.0
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -9783,6 +9782,7 @@ class DataFrame(NDFrame, OpsMixin):
             axis=axis,
             raw=raw,
             result_type=result_type,
+            by_row=by_row,
             args=args,
             kwargs=kwargs,
         )
@@ -10838,17 +10838,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(frame._get_axis(axis)) == 0:
             result = self._constructor_sliced(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type or frame._mgr.any_extension_types:
-                # the or any_extension_types is really only hit for single-
-                # column frames with an extension array
-                result = notna(frame).sum(axis=axis)
-            else:
-                # GH13407
-                series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts._values
-                result = self._constructor_sliced(
-                    counts, index=frame._get_agg_axis(axis), copy=False
-                )
+            result = notna(frame).sum(axis=axis)
 
         return result.astype("int64").__finalize__(self, method="count")
 
@@ -11502,7 +11492,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f"Invalid method: {method}. Method must be in {valid_method}."
             )
         if method == "single":
-            res = data._mgr.quantile(qs=q, axis=1, interpolation=interpolation)
+            res = data._mgr.quantile(qs=q, interpolation=interpolation)
         elif method == "table":
             valid_interpolation = {"nearest", "lower", "higher"}
             if interpolation not in valid_interpolation:

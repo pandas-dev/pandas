@@ -210,10 +210,11 @@ or may not be compatible with non-HTML Jupyter output formats.)
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
 
-### [quantopian/qgrid](https://github.com/quantopian/qgrid)
+### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
 
-qgrid is "an interactive grid for sorting and filtering DataFrames in
-IPython Notebook" built with SlickGrid.
+modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
+It is a fork of qgrid and is actively maintained by the modin project.
+modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -525,6 +526,13 @@ Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
 
+### [Physipandas](https://github.com/mocquin/physipandas)
+
+Physipandas provides an extension for manipulating physical quantities
+ (like scalar and numpy.ndarray) in association with a physical unit
+ (like meter or joule) and additional features for integration of
+ `physipy` accessors with pandas Series and Dataframe.
+
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
 Pint-Pandas provides an extension type for storing numeric arrays with units.
@@ -550,6 +558,7 @@ authors to coordinate on the namespace.
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
