@@ -2,8 +2,8 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/master/containers/python-3-miniconda
 {
 	"name": "pandas",
-	"context": ".",
-	"dockerFile": "Dockerfile",
+	"context": "..",
+	"dockerFile": "../Dockerfile",
 
 	// Use 'settings' to set *default* container specific settings.json values on container create.
 	// You can edit these settings after create using File > Preferences > Settings > Remote.
