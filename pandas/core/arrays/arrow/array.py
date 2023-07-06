@@ -67,8 +67,6 @@ if not pa_version_under7p0:
 
     from pandas.core.dtypes.dtypes import ArrowDtype
 
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
-
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
         "ne": pc.not_equal,
@@ -918,7 +916,6 @@ class ArrowExtensionArray(
             return super().fillna(value=value, method=method, limit=limit)
 
         if method is not None:
-            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
@@ -1131,13 +1128,7 @@ class ArrowExtensionArray(
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
         """
-        # TODO: Remove once we got rid of the (indices < 0) check
-        if not is_array_like(indices):
-            indices_array = np.asanyarray(indices)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Sequence[int]", variable has type "ndarray")
-            indices_array = indices  # type: ignore[assignment]
+        indices_array = np.asanyarray(indices)
 
         if len(self._pa_array) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
@@ -2035,8 +2026,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(
                 f"repeat is not implemented when repeats is {type(repeats).__name__}"
             )
-        elif pa_version_under7p0:
-            raise NotImplementedError("repeat is not implemented for pyarrow < 7")
         else:
             return type(self)(pc.binary_repeat(self._pa_array, repeats))
 

@@ -132,6 +132,8 @@ def test_reindex_pad():
     expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
+
+def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
@@ -141,13 +143,17 @@ def test_reindex_pad():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected.astype("float64"))
 
-    result = s.reindex(new_index).ffill(downcast="infer")
+    msg = "The 'downcast' keyword in ffill is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(new_index).ffill(downcast="infer")
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
@@ -155,6 +161,8 @@ def test_reindex_pad():
     expected = Series([True, True, False], index=list(new_index))
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
     result = s.shift(1).bfill()

@@ -29,7 +29,10 @@ import pandas._testing as tm
 )
 def test_parsing_tzlocal_deprecated():
     # GH#50791
-    msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
+    msg = (
+        "Parsing 'EST' as tzlocal.*"
+        "Pass the 'tz' keyword or call tz_localize after construction instead"
+    )
     dtstr = "Jan 15 2004 03:00 EST"
 
     with tm.set_timezone("US/Eastern"):
