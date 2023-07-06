@@ -56,7 +56,9 @@ def test_replace_categorical_series(to_replace, value, expected, flip_categories
         ("b", None, ["a", None], "Categorical.categories length are different"),
     ],
 )
-def test_replace_categorical(to_replace, value, result, expected_error_msg):
+def test_replace_categorical(
+    to_replace, value, result, expected_error_msg, using_copy_on_write
+):
     # GH#26988
     cat = Categorical(["a", "b"])
     expected = Categorical(result)
@@ -68,7 +70,11 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
 
-    pd.Series(cat, copy=False).replace(to_replace, value, inplace=True)
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            pd.Series(cat, copy=False).replace(to_replace, value, inplace=True)
+    else:
+        pd.Series(cat, copy=False).replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)
 
 
