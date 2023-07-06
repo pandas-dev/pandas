@@ -24,6 +24,7 @@ from io import (
 import operator
 import pickle
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -323,11 +324,15 @@ class TestConstructors(base.BaseConstructorsTests):
                     )
                 )
         pa_array = data._pa_array.cast(pa.string())
-        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        with tm.assert_produces_warning(None):
+            warnings.simplefilter("ignore", FutureWarning)
+            result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
 
         pa_array = pa_array.combine_chunks()
-        result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
+        with tm.assert_produces_warning(None):
+            warnings.simplefilter("ignore", FutureWarning)
+            result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
 
 
@@ -747,12 +752,14 @@ class TestBaseParsing(base.BaseParsingTests):
             csv_output = BytesIO(csv_output)
         else:
             csv_output = StringIO(csv_output)
-        result = pd.read_csv(
-            csv_output,
-            dtype={"with_dtype": str(data.dtype)},
-            engine=engine,
-            dtype_backend=dtype_backend,
-        )
+        with tm.assert_produces_warning(None):
+            warnings.simplefilter("ignore", FutureWarning)
+            result = pd.read_csv(
+                csv_output,
+                dtype={"with_dtype": str(data.dtype)},
+                engine=engine,
+                dtype_backend=dtype_backend,
+            )
         expected = df
         self.assert_frame_equal(result, expected)
 
