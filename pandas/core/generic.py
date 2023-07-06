@@ -5543,12 +5543,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             (common.count_not_none(*axes.values()) == self._AXIS_LEN)
             and method is None
             and level is None
-            and not self._is_mixed_type
-            and not (
-                self.ndim == 2
-                and len(self.dtypes) == 1
-                and isinstance(self.dtypes.iloc[0], ExtensionDtype)
-            )
+            # reindex_multi calls self.values, so we only want to go
+            #  down that path when doing so is cheap.
+            and self._can_fast_transpose
         )
 
     def _reindex_multi(self, axes, copy, fill_value):
@@ -6273,9 +6270,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self
         )
 
+    @final
     @property
     def _is_mixed_type(self) -> bool_t:
         if self._mgr.is_single_block:
+            # Includes all Series cases
             return False
 
         if self._mgr.any_extension_types:
