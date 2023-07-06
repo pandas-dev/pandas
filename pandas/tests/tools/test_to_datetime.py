@@ -22,6 +22,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas.compat import is_platform_windows
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -933,6 +934,7 @@ class TestToDatetime:
         result = to_datetime(arr)
         assert result is arr
 
+    @pytest.mark.xfail(is_platform_windows(), reason="TZDATA path not correct")
     @pytest.mark.parametrize("arg_class", [Series, Index])
     @pytest.mark.parametrize("utc", [True, False])
     @pytest.mark.parametrize("tz", [None, "US/Central"])
