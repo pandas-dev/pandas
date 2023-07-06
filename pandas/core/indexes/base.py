@@ -3572,7 +3572,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def difference(self, other, sort=None):
+    def difference(self, other, sort=False):
         """
         Return a new Index with elements of index not in `other`.
 
