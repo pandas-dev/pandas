@@ -210,10 +210,11 @@ or may not be compatible with non-HTML Jupyter output formats.)
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
 
-### [quantopian/qgrid](https://github.com/quantopian/qgrid)
+### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
 
-qgrid is "an interactive grid for sorting and filtering DataFrames in
-IPython Notebook" built with SlickGrid.
+modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
+It is a fork of qgrid and is actively maintained by the modin project.
+modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
