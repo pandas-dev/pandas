@@ -25,6 +25,11 @@ def dropna(request):
 
 
 @pytest.fixture(params=[True, False])
+def skipna(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
 def observed(request):
     return request.param
 
