@@ -795,7 +795,7 @@ class ExtensionArray:
         copy: bool = True,
     ) -> Self:
         """
-        pad or backfill values, used by Series/DataFrame ffill and bfill.
+        Pad or backfill values, used by Series/DataFrame ffill and bfill.
 
         Parameters
         ----------
