@@ -7611,6 +7611,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                refcount = 2 if PY311 else 3
+                if sys.getrefcount(self) <= refcount:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 

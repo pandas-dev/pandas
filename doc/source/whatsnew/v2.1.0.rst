@@ -34,6 +34,7 @@ Copy-on-Write improvements
   as a temporary copy. This holds true for:
 
   - DataFrame.fillna / Series.fillna
+  - DataFrame.replace / Series.replace
 
 .. _whatsnew_210.enhancements.enhancement2:
 
