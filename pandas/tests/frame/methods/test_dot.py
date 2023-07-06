@@ -132,6 +132,8 @@ class TestDataFrameDot(DotSharedTests):
 
 
 def test_arrow_dtype():
+    pytest.importorskip("pyarrow")
+
     cols = ["a", "b"]
     df_a = DataFrame([[1, 2], [3, 4], [5, 6]], columns=cols, dtype="int")
     df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype="float[pyarrow]")
