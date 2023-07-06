@@ -8052,10 +8052,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
         else:
             index = missing.get_interp_index(method, obj.index)
-            axis = self._info_axis_number
             new_data = obj._mgr.interpolate(
                 method=method,
-                axis=axis,
                 index=index,
                 limit=limit,
                 limit_direction=limit_direction,
