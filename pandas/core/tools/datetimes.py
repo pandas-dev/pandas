@@ -74,6 +74,7 @@ from pandas.arrays import (
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
@@ -411,7 +412,8 @@ def _convert_listlike_datetimes(
         if utc:
             # pyarrow uses UTC, not lowercase utc
             if isinstance(arg, Index):
-                arg = Index(arg.array._dt_tz_localize("UTC"))
+                arg_array = cast(ArrowExtensionArray, arg.array)
+                arg = Index(arg_array._dt_tz_localize("UTC"))
             else:
                 # ArrowExtensionArray
                 arg = arg._dt_tz_localize("UTC")
