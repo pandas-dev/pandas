@@ -284,11 +284,13 @@ def test_underlying_data_conversion(using_copy_on_write):
     df["val"] = 0
     df_original = df.copy()
     df
-    df["val"].update(s)
 
     if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["val"].update(s)
         expected = df_original
     else:
+        df["val"].update(s)
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
         )
