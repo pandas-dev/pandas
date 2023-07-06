@@ -141,6 +141,18 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> DataFrame | Series:
         pass
 
+    @abc.abstractmethod
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        pass
+
+    @abc.abstractmethod
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        pass
+
     def agg(self) -> DataFrame | Series | None:
         """
         Provide an implementation for the aggregators.
@@ -339,30 +351,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         return keys, results
 
-    def agg_or_apply_list_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        obj = self.obj
-        assert isinstance(obj, (ABCSeries, ABCDataFrame))
-
-        kwargs = self.kwargs
-        if op_name == "apply":
-            if isinstance(self, FrameApply):
-                by_row = self.by_row
-
-            elif isinstance(self, SeriesApply):
-                by_row = "_compat" if self.by_row else False
-            else:
-                by_row = False
-            kwargs = {**kwargs, "by_row": by_row}
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        keys, results = self.compute_list_like(op_name, obj, kwargs)
-        result = self.wrap_results_list_like(keys, results)
-        return result
-
     def wrap_results_list_like(
         self, keys: list[Hashable], results: list[Series | DataFrame]
     ):
@@ -446,29 +434,6 @@ class Apply(metaclass=abc.ABCMeta):
             result_index = list(func.keys())
 
         return result_index, result_data
-
-    def agg_or_apply_dict_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        assert op_name in ["agg", "apply"]
-
-        obj = self.obj
-        assert isinstance(obj, (ABCSeries, ABCDataFrame))
-
-        kwargs = {}
-        if op_name == "apply":
-            by_row = "_compat" if self.by_row else False
-            kwargs.update({"by_row": by_row})
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        selection = None
-        result_index, result_data = self.compute_dict_like(
-            op_name, obj, selection, kwargs
-        )
-        result = self.wrap_results_dict_like(obj, result_index, result_data)
-        return result
 
     def wrap_results_dict_like(
         self,
@@ -683,6 +648,50 @@ class NDFrameApply(Apply):
     @property
     def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
+
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        obj = self.obj
+        kwargs = self.kwargs
+
+        if op_name == "apply":
+            if isinstance(self, FrameApply):
+                by_row = self.by_row
+
+            elif isinstance(self, SeriesApply):
+                by_row = "_compat" if self.by_row else False
+            else:
+                by_row = False
+            kwargs = {**kwargs, "by_row": by_row}
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        keys, results = self.compute_list_like(op_name, obj, kwargs)
+        result = self.wrap_results_list_like(keys, results)
+        return result
+
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        assert op_name in ["agg", "apply"]
+        obj = self.obj
+
+        kwargs = {}
+        if op_name == "apply":
+            by_row = "_compat" if self.by_row else False
+            kwargs.update({"by_row": by_row})
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        selection = None
+        result_index, result_data = self.compute_dict_like(
+            op_name, obj, selection, kwargs
+        )
+        result = self.wrap_results_dict_like(obj, result_index, result_data)
+        return result
 
 
 class FrameApply(NDFrameApply):
@@ -1249,6 +1258,8 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
+    obj: GroupBy | Resampler | BaseWindow
+
     def __init__(
         self,
         obj: GroupBy[NDFrameT],
@@ -1291,7 +1302,9 @@ class GroupByApply(Apply):
         else:
             selected_obj = obj._obj_with_exclusions
 
-        with com.temp_setattr(obj, "as_index", True):
+        with com.temp_setattr(
+            obj, "as_index", True, condition=hasattr(obj, "as_index")
+        ):
             keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
@@ -1299,6 +1312,11 @@ class GroupByApply(Apply):
     def agg_or_apply_dict_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
@@ -1313,12 +1331,17 @@ class GroupByApply(Apply):
         selected_obj = obj._selected_obj
         selection = obj._selection
 
-        # Numba Groupby engine/engine-kwargs passthrough
-        engine = self.kwargs.get("engine", None)
-        engine_kwargs = self.kwargs.get("engine_kwargs", None)
-        kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
 
-        with com.temp_setattr(obj, "as_index", True):
+        # Numba Groupby engine/engine-kwargs passthrough
+        if is_groupby:
+            engine = self.kwargs.get("engine", None)
+            engine_kwargs = self.kwargs.get("engine_kwargs", None)
+            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
+
+        with com.temp_setattr(
+            obj, "as_index", True, condition=hasattr(obj, "as_index")
+        ):
             result_index, result_data = self.compute_dict_like(
                 op_name, selected_obj, selection, kwargs
             )
@@ -1352,50 +1375,6 @@ class ResamplerWindowApply(GroupByApply):
 
     def transform(self):
         raise NotImplementedError
-
-    def agg_or_apply_list_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        obj = self.obj
-        kwargs = self.kwargs
-        if op_name == "apply":
-            kwargs = {**kwargs, "by_row": False}
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        if obj._selected_obj.ndim == 1:
-            # For SeriesGroupBy this matches _obj_with_exclusions
-            selected_obj = obj._selected_obj
-        else:
-            selected_obj = obj._obj_with_exclusions
-
-        keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
-        result = self.wrap_results_list_like(keys, results)
-        return result
-
-    def agg_or_apply_dict_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        assert op_name in ["agg", "apply"]
-
-        obj = self.obj
-        kwargs = {}
-        if op_name == "apply":
-            by_row = "_compat" if self.by_row else False
-            kwargs.update({"by_row": by_row})
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        selected_obj = obj._selected_obj
-        selection = obj._selection
-
-        result_index, result_data = self.compute_dict_like(
-            op_name, selected_obj, selection, kwargs
-        )
-        result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
-        return result
 
 
 def reconstruct_func(
