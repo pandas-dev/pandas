@@ -15,18 +15,11 @@ default_stages: [
 ci:
     autofix_prs: false
 repos:
--   repo: local
+-   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
+    # black compiled with mypyc
+    rev: 23.3.0
     hooks:
-    # NOTE: we make `black` a local hook because if it's installed from
-    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
-    -   id: black
-        name: black
-        description: "Black: The uncompromising Python code formatter"
-        entry: black
-        language: python
-        require_serial: true
-        types_or: [python, pyi]
-        additional_dependencies: [black==23.3.0]
+      - id: black
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.270
     hooks:
@@ -74,7 +67,7 @@ repos:
             --linelength=88,
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
--   repo: https://github.com/pycqa/pylint
+-   repo: https://github.com/pylint-dev/pylint
     rev: v3.0.0a6
     hooks:
     -   id: pylint
@@ -92,11 +85,6 @@ repos:
             |^pandas/_version\.py  # keep excluded
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
-        stages: [manual]
-    -   id: pylint
-        alias: unspecified-encoding
-        name: Using open without explicitly specifying an encoding
-        args: [--disable=all, --enable=unspecified-encoding]
         stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
