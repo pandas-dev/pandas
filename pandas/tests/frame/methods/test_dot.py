@@ -129,3 +129,13 @@ class TestDataFrameDot(DotSharedTests):
         """
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name is None
+
+
+def test_arrow_dtype():
+    cols = ["a", "b"]
+    df_a = DataFrame([[1, 2], [3, 4], [5, 6]], columns=cols, dtype="int")
+    df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype="float[pyarrow]")
+    result = df_a.dot(df_b)
+    expected = DataFrame([[1, 2], [3, 4], [5, 6]], dtype="double[pyarrow]")
+
+    tm.assert_frame_equal(result, expected)

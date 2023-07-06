@@ -1616,15 +1616,20 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         if isinstance(other, DataFrame):
+            common_type = find_common_type(
+                left.dtypes.to_list() + right.dtypes.to_list()
+            )
             return self._constructor(
                 np.dot(lvals, rvals),
                 index=left.index,
                 columns=other.columns,
                 copy=False,
+                dtype=common_type,
             )
         elif isinstance(other, Series):
+            common_type = find_common_type(left.dtypes.to_list() + [right.dtypes])
             return self._constructor_sliced(
-                np.dot(lvals, rvals), index=left.index, copy=False
+                np.dot(lvals, rvals), index=left.index, copy=False, dtype=common_type
             )
         elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
