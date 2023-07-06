@@ -1885,8 +1885,8 @@ class EABackedBlock(Block):
         using_cow: bool = False,
     ) -> list[Block]:
         values = self.values
-        if values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
+        if values.ndim == 2 and axis == 1:
+            # NDArrayBackedExtensionArray.fillna assumes axis=0
             new_values = values.T.fillna(method=method, limit=limit).T
         else:
             new_values = values.fillna(method=method, limit=limit)
