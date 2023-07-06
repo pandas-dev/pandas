@@ -55,7 +55,7 @@ jobs:
         path: doc/build
         key: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       # We want to build from scratch on a release
-      if: ! (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')))
+      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
     - name: Build documentation
       run: doc/make.py --warnings-are-errors
