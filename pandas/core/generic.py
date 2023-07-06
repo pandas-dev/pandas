@@ -9,6 +9,7 @@ from json import loads
 import operator
 import pickle
 import re
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -89,13 +90,19 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
+from pandas.compat import (
+    PY311,
+    PYPY,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
+    ChainedAssignmentError,
     InvalidIndexError,
     SettingWithCopyError,
     SettingWithCopyWarning,
+    _chained_assignment_method_msg,
 )
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -7083,6 +7090,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Note that column D is not affected since it is not present in df2.
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                refcount = 2 if PY311 else 3
+                if sys.getrefcount(self) <= refcount:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         value, method = validate_fillna_kwargs(value, method)
         if method is not None:
             warnings.warn(
