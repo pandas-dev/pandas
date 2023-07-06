@@ -49,7 +49,7 @@ jobs:
     - name: Build website
       run: python web/pandas_web.py web/pandas --target-path=web/build
 
-    - name: Cache documentation
+    - name: Restore Cached documentation
       uses: actions/cache/restore@v3
       with:
         path: doc/build
@@ -85,7 +85,7 @@ jobs:
     - name: Upload prod docs
       run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${GITHUB_REF_NAME:1}
       if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    
+
     - name: Cache documentation
       uses: actions/cache/save@v3
       with:
