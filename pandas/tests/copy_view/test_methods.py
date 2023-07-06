@@ -900,11 +900,12 @@ def test_head_tail(method, using_copy_on_write):
 
     # modify df2 to trigger CoW for that block
     df2.iloc[0, 0] = 0
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     if using_copy_on_write:
+        assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         # without CoW enabled, head and tail return views. Mutating df2 also mutates df.
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         df2.iloc[0, 0] = 1
     tm.assert_frame_equal(df, df_orig)
 
