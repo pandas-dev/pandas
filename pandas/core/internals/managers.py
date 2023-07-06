@@ -1624,16 +1624,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
                     dtype=dtype,
                     na_value=na_value,
+                    copy=copy,
                 ).reshape(blk.shape)
             else:
-                arr = np.asarray(blk.get_values())
-                if dtype:
-                    arr = arr.astype(dtype, copy=copy)
-                    copy = False
+                arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if copy:
-                arr = arr.copy()
-            elif using_copy_on_write():
+            if using_copy_on_write():
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
