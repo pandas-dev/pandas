@@ -13,7 +13,7 @@ tasks:
       conda activate pandas-dev
       git pull --unshallow  # need to force this else the prebuild fails
       git fetch --tags
-      python setup.py build_ext --inplace -j 4
+      python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
       echo "🛠 Completed rebuilding Pandas!! 🛠 "
       pre-commit install
       echo "✨ Pre-build complete! You can close this terminal ✨ "
