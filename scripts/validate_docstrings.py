@@ -58,7 +58,7 @@ ERROR_MSGS = {
     "SA05": "{reference_name} in `See Also` section does not need `pandas` "
     "prefix, use {right_reference} instead.",
     "EX02": "Examples do not pass tests:\n{doctest_log}",
-    "EX03": "flake8 error: line {line_number}, col {col_number}: {error_code} "
+    "EX03": "Lint error: line {line_number}, col {col_number}: {error_code} "
     "{error_message}",
     "EX04": "Do not import {imported_library}, as it is imported "
     "automatically for the examples (numpy as np, pandas as pd)",
@@ -215,9 +215,10 @@ class PandasDocstring(Validator):
             cmd = [
                 "python",
                 "-m",
-                "flake8",
-                "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
-                "--max-line-length=88",
+                "ruff",
+                "check",
+                "--select=F,E,W,C90",
+                "--show-source",
                 "--ignore=E203,E3,W503,W504,E402,E731",
                 file.name,
             ]

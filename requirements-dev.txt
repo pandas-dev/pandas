@@ -52,7 +52,6 @@ seaborn
 moto
 flask
 asv>=0.5.1
-flake8==6.0.0
 mypy==1.2
 tokenize-rt
 pre-commit>=2.15.0
