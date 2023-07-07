@@ -1156,7 +1156,7 @@ cdef class _Timedelta(timedelta):
             #  resolution.
             try:
                 obj = (<_Timedelta>self)._as_creso(<NPY_DATETIMEUNIT>(self._creso + 1))
-            except OverflowError:
+            except OutOfBoundsTimedelta:
                 # Doesn't fit, so we're off the hook
                 return hash(self._value)
             else:
