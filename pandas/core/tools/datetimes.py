@@ -337,16 +337,9 @@ def _return_parsed_timezone_results(
     tz_result : Index-like of parsed dates with timezone
     """
     tz_results = np.empty(len(result), dtype=object)
-    unique_timezones = unique(timezones)
-    if len(unique_timezones) > 1 and not utc:
-        warnings.warn(
-            "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise a warning unless `utc=True`. Please specify `utc=True "
-            "to opt in to the new behaviour and silence this warning.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    for zone in unique_timezones:
+    unique(timezones)
+    non_na_timezones = set()
+    for zone in unique(timezones):
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
         if utc:
@@ -354,8 +347,18 @@ def _return_parsed_timezone_results(
                 dta = dta.tz_localize("utc")
             else:
                 dta = dta.tz_convert("utc")
+        else:
+            if not dta.isna().all():
+                non_na_timezones.add(zone)
         tz_results[mask] = dta
-
+    if len(non_na_timezones) > 1:
+        warnings.warn(
+            "In a future version of pandas, parsing datetimes with mixed time "
+            "zones will raise a warning unless `utc=True`. Please specify `utc=True "
+            "to opt in to the new behaviour and silence this warning.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     return Index(tz_results, name=name)
 
 
@@ -457,7 +460,7 @@ def _convert_listlike_datetimes(
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
 
-    # `format` could be inferred, or user didn't ask for mixed-format parsing.
+    # `format` could be inferred, or user didn't ask for mixed-format parsing. 
     if format is not None and format != "mixed":
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 

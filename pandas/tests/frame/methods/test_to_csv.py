@@ -140,11 +140,8 @@ class TestDataFrameToCSV:
                 .dt.tz_convert("UTC")
                 .dt.tz_convert(timezone_frame[c].dt.tz)
             )
-            msg = "In a future version of pandas, parsing datetimes with mixed "
-            "time zones will raise a warning unless `utc=True`."
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                result["B"] = converter("B")
-                result["C"] = converter("C")
+            result["B"] = converter("B")
+            result["C"] = converter("C")
             tm.assert_frame_equal(result, timezone_frame)
 
     def test_to_csv_cols_reordering(self):
