@@ -40,7 +40,7 @@ def test_groupby_agg_no_extra_calls():
 
 def test_agg_regression1(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -141,8 +141,8 @@ def test_agg_apply_corner(ts, tsframe):
     # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
-    tm.assert_series_equal(grouped.agg(np.sum), exp)
-    tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
+    tm.assert_series_equal(grouped.agg("sum"), exp)
+    tm.assert_series_equal(grouped.apply("sum"), exp, check_index_type=False)
 
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan, group_keys=False)
@@ -152,7 +152,7 @@ def test_agg_apply_corner(ts, tsframe):
         index=Index([], name="A", dtype=np.float64),
     )
     tm.assert_frame_equal(grouped.sum(), exp_df)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
@@ -167,13 +167,13 @@ def test_agg_grouping_is_list_tuple(ts):
     grouper = grouped.grouper.groupings[0].grouping_vector
     grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -181,7 +181,7 @@ def test_agg_grouping_is_list_tuple(ts):
 def test_agg_python_multiindex(mframe):
     grouped = mframe.groupby(["A", "B"])
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -348,7 +348,9 @@ def test_wrap_agg_out(three_group):
 def test_agg_multiple_functions_maintain_order(df):
     # GH #610
     funcs = [("mean", np.mean), ("max", np.max), ("min", np.min)]
-    result = df.groupby("A")["C"].agg(funcs)
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A")["C"].agg(funcs)
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
@@ -428,20 +430,20 @@ def test_multiple_functions_tuples_and_non_tuples(df):
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg({"C": np.mean, "D": np.mean})
-    exstd = grouped.agg({"C": np.std, "D": np.std})
+    exmean = grouped.agg({"C": "mean", "D": "mean"})
+    exstd = grouped.agg({"C": "std", "D": "std"})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
+    d = {"C": ["mean", "std"], "D": ["mean", "std"]}
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
-    expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
+    result = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
+    expected = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
     tm.assert_frame_equal(result, expected)
 
     def numpymean(x):
@@ -453,11 +455,11 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = {"C": np.mean, "D": {"foo": np.mean, "bar": np.std}}
+        d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [numpymean, numpystd]}
+    d = {"C": ["mean"], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 
@@ -774,8 +776,8 @@ class TestNamedAggregationDataFrame:
         p98 = functools.partial(np.percentile, q=98)
         result = df.groupby("group").agg(
             b_min=("B", "min"),
-            a_min=("A", min),
-            a_mean=("A", np.mean),
+            a_min=("A", "min"),
+            a_mean=("A", "mean"),
             a_max=("A", "max"),
             b_max=("B", "max"),
             a_98=("A", p98),
@@ -880,16 +882,16 @@ class TestNamedAggregationDataFrame:
     [
         (
             (("y", "A"), "max"),
-            (("y", "A"), np.min),
+            (("y", "A"), np.mean),
             (("y", "B"), "mean"),
             [1, 3],
-            [0, 2],
+            [0.5, 2.5],
             [5.5, 7.5],
         ),
         (
             (("y", "A"), lambda x: max(x)),
             (("y", "A"), lambda x: 1),
-            (("y", "B"), "mean"),
+            (("y", "B"), np.mean),
             [1, 3],
             [1, 1],
             [5.5, 7.5],
@@ -918,9 +920,11 @@ def test_agg_relabel_multiindex_column(
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(("x", "group")).agg(
-        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
-    )
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(("x", "group")).agg(
+            col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+        )
     expected = DataFrame(
         {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )

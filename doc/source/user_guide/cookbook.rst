@@ -530,7 +530,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    code_groups = df.groupby("code")
 
-   agg_n_sort_order = code_groups[["data"]].transform(sum).sort_values(by="data")
+   agg_n_sort_order = code_groups[["data"]].transform("sum").sort_values(by="data")
 
    sorted_df = df.loc[agg_n_sort_order.index]
 
@@ -549,7 +549,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
            return x.iloc[1] * 1.234
        return pd.NaT
 
-   mhc = {"Mean": np.mean, "Max": np.max, "Custom": MyCust}
+   mhc = {"Mean": "mean", "Max": "max", "Custom": MyCust}
    ts.resample("5min").apply(mhc)
    ts
 
@@ -685,7 +685,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        values=["Sales"],
        index=["Province"],
        columns=["City"],
-       aggfunc=np.sum,
+       aggfunc="sum",
        margins=True,
    )
    table.stack("City")

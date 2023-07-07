@@ -881,8 +881,8 @@ statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
-   df.apply(np.mean)
-   df.apply(np.mean, axis=1)
+   df.apply(lambda x: np.mean(x))
+   df.apply(lambda x: np.mean(x), axis=1)
    df.apply(lambda x: x.max() - x.min())
    df.apply(np.cumsum)
    df.apply(np.exp)
@@ -986,7 +986,7 @@ output:
 
 .. ipython:: python
 
-   tsdf.agg(np.sum)
+   tsdf.agg(lambda x: np.sum(x))
 
    tsdf.agg("sum")
 

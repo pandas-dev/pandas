@@ -140,7 +140,7 @@ of multiple aggregations applied to a window.
 .. ipython:: python
 
    df = pd.DataFrame({"A": range(5), "B": range(10, 15)})
-   df.expanding().agg([np.sum, np.mean, np.std])
+   df.expanding().agg(["sum", "mean", "std"])
 
 
 .. _window.generic:

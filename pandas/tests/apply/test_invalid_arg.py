@@ -222,8 +222,10 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis):
     # GH 21224
     msg = "can't multiply sequence by non-int of type 'str'"
+    warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
-        df.agg(func, axis=axis)
+        with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
+            df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize(
@@ -247,10 +249,12 @@ def test_agg_cython_table_raises_series(series, func, expected):
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+    warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
-        series.agg(func)
+        with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+            series.agg(func)
 
 
 def test_agg_none_to_type():

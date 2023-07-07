@@ -299,7 +299,7 @@ def test_apply_to_empty_series(empty_series_dti, freq):
         return
 
     result = ser.resample(freq, group_keys=False).apply(lambda x: 1)
-    expected = ser.resample(freq).apply(np.sum)
+    expected = ser.resample(freq).apply("sum")
 
     tm.assert_series_equal(result, expected, check_dtype=False)
 

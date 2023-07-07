@@ -984,7 +984,7 @@ Previous behavior:
      75%    3.750000
      max    4.000000
 
-   In [3]: df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+   In [3]: df.groupby('A').agg(["mean", "std", "min", "max"])
    Out[3]:
         B
      mean       std amin amax
@@ -1000,7 +1000,7 @@ New behavior:
 
    df.groupby('A').describe()
 
-   df.groupby('A').agg([np.mean, np.std, np.min, np.max])
+   df.groupby('A').agg(["mean", "std", "min", "max"])
 
 .. _whatsnew_0200.api_breaking.rolling_pairwise:
 
@@ -1163,7 +1163,7 @@ Previous behavior:
 
 .. code-block:: ipython
 
-   In [2]: df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+   In [2]: df.pivot_table('col1', index=['col3', 'col2'], aggfunc="sum")
    Out[2]:
    col3  col2
    1     C       3
@@ -1175,7 +1175,7 @@ New behavior:
 
 .. ipython:: python
 
-   df.pivot_table('col1', index=['col3', 'col2'], aggfunc=np.sum)
+   df.pivot_table('col1', index=['col3', 'col2'], aggfunc="sum")
 
 .. _whatsnew_0200.api:
 
