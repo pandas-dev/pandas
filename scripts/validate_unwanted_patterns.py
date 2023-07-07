@@ -353,6 +353,52 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
+def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+    """Test case where pandas._libs.lib.NoDefault is not used for typing.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of misused lib.NoDefault.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    tree = ast.parse(contents)
+    in_annotation = False
+    nodes: List[tuple[bool, ast.AST]] = [(in_annotation, tree)]
+
+    while nodes:
+        in_annotation, node = nodes.pop()
+        if not in_annotation and (
+            isinstance(node, ast.Name)  # Case `NoDefault`
+            and node.id == "NoDefault"
+            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+            and node.attr == "NoDefault"
+        ):
+            yield (node.lineno, "NoDefault is used not only for typing")
+
+        # This part is adapted from
+        # https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+        for name in reversed(node._fields):
+            value = getattr(node, name)
+            if name in {"annotation", "returns"}:
+                next_in_annotation = True
+            else:
+                next_in_annotation = in_annotation
+            if isinstance(value, ast.AST):
+                nodes.append((next_in_annotation, value))
+            elif isinstance(value, list):
+                for value in reversed(value):
+                    if isinstance(value, ast.AST):
+                        nodes.append((next_in_annotation, value))
+
+
 def main(
     function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
     source_path: str,
@@ -405,6 +451,7 @@ if __name__ == "__main__":
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
+        "nodefault_used_not_only_for_typing",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")
@@ -413,7 +460,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--format",
         "-f",
-        default="{source_path}:{line_number}:{msg}",
+        default="{source_path}:{line_number}: {msg}",
         help="Output format of the error message.",
     )
     parser.add_argument(

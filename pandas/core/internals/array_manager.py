@@ -220,7 +220,7 @@ class BaseArrayManager(DataManager):
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_arrays: list[np.ndarray] = []
+        result_arrays: list[ArrayLike] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -247,16 +247,10 @@ class BaseArrayManager(DataManager):
             else:
                 applied = getattr(arr, f)(**kwargs)
 
-            # if not isinstance(applied, ExtensionArray):
-            #     # TODO not all EA operations return new EAs (eg astype)
-            #     applied = array(applied)
             result_arrays.append(applied)
 
         new_axes = self._axes
-
-        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
-        # expected "List[Union[ndarray, ExtensionArray]]"
-        return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
+        return type(self)(result_arrays, new_axes)
 
     def apply_with_block(self, f, align_keys=None, **kwargs) -> Self:
         # switch axis to follow BlockManager logic
@@ -1319,7 +1313,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
+    elif all(lib.is_np_dtype(x, "iub") for x in dtypes):
         # GH#42092
         target_dtype = np_find_common_type(*dtypes)
     else:
