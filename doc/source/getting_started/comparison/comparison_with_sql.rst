@@ -198,7 +198,7 @@ to your grouped DataFrame, indicating which functions to apply to specific colum
 
 .. ipython:: python
 
-    tips.groupby("day").agg({"tip": np.mean, "day": np.size})
+    tips.groupby("day").agg({"tip": "mean", "day": "size"})
 
 Grouping by more than one column is done by passing a list of columns to the
 :meth:`~pandas.DataFrame.groupby` method.
@@ -222,7 +222,7 @@ Grouping by more than one column is done by passing a list of columns to the
 
 .. ipython:: python
 
-    tips.groupby(["smoker", "day"]).agg({"tip": [np.size, np.mean]})
+    tips.groupby(["smoker", "day"]).agg({"tip": ["size", "mean"]})
 
 .. _compare_with_sql.join:
 
