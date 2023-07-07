@@ -12,12 +12,8 @@ tasks:
       mkdir -p .vscode
       cp gitpod/settings.json .vscode/settings.json
       conda activate pandas-dev
-      git pull --unshallow  # need to force this else the prebuild fails
       git fetch --tags
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
-      echo "🛠 Completed rebuilding Pandas!! 🛠 "
-      pre-commit install
-      echo "✨ Pre-build complete! You can close this terminal ✨ "
 
 # --------------------------------------------------------
 # exposing ports for liveserve
