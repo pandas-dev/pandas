@@ -1,6 +1,6 @@
+from collections.abc import Iterator
 from io import StringIO
 from pathlib import Path
-from typing import Iterator
 
 import numpy as np
 import pytest

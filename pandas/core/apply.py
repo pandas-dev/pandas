@@ -11,13 +11,7 @@ from typing import (
     Callable,
     ContextManager,
     DefaultDict,
-    Dict,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Sequence,
     cast,
 )
 import warnings
@@ -62,6 +56,13 @@ import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -72,7 +73,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
 
-ResType = Dict[int, Any]
+ResType = dict[int, Any]
 
 
 def frame_apply(
@@ -204,7 +205,7 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(List[AggFuncTypeBase], func)
+            func = cast(list[AggFuncTypeBase], func)
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -310,7 +311,7 @@ class Apply(metaclass=abc.ABCMeta):
         from pandas.core.reshape.concat import concat
 
         obj = self.obj
-        func = cast(List[AggFuncTypeBase], self.func)
+        func = cast(list[AggFuncTypeBase], self.func)
         kwargs = self.kwargs
         if op_name == "apply":
             if isinstance(self, FrameApply):

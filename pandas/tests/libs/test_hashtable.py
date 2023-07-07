@@ -1,8 +1,8 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
-from typing import Generator
 
 import numpy as np
 import pytest

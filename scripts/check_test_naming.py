@@ -15,10 +15,13 @@ import ast
 import os
 from pathlib import Path
 import sys
-from typing import (
-    Iterator,
-    Sequence,
-)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
 
 PRAGMA = "# not a test"
 

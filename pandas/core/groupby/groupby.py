@@ -8,6 +8,12 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import (
     partial,
@@ -18,12 +24,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -685,9 +686,9 @@ class GroupByPlot(PandasObject):
 
 _KeysArgType = Union[
     Hashable,
-    List[Hashable],
+    list[Hashable],
     Callable[[Hashable], Hashable],
-    List[Callable[[Hashable], Hashable]],
+    list[Callable[[Hashable], Hashable]],
     Mapping[Hashable, Hashable],
 ]
 

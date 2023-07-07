@@ -12,19 +12,16 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
+from collections.abc import Iterable
 import sys
 import token
 import tokenize
 from typing import (
     IO,
     Callable,
-    Iterable,
-    List,
-    Set,
-    Tuple,
 )
 
-PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
+PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
     "_index_shared_docs",
     "_interval_shared_docs",
@@ -88,7 +85,7 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def bare_pytest_raises(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
     Test Case for bare pytest raises.
 
@@ -150,7 +147,7 @@ def bare_pytest_raises(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
 
 
-def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
     Checking that a private function is not used across modules.
     Parameters
@@ -167,7 +164,7 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
     contents = file_obj.read()
     tree = ast.parse(contents)
 
-    imported_modules: Set[str] = set()
+    imported_modules: set[str] = set()
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -199,7 +196,7 @@ def private_function_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str
             yield (node.lineno, f"Private function '{module_name}.{function_name}'")
 
 
-def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
     Checking that a private function is not imported across modules.
     Parameters
@@ -231,7 +228,7 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[Tuple[int, str]]
 
 def strings_with_wrong_placed_whitespace(
     file_obj: IO[str],
-) -> Iterable[Tuple[int, str]]:
+) -> Iterable[tuple[int, str]]:
     """
     Test case for leading spaces in concated strings.
 
@@ -328,7 +325,7 @@ def strings_with_wrong_placed_whitespace(
             return True
         return False
 
-    tokens: List = list(tokenize.generate_tokens(file_obj.readline))
+    tokens: list = list(tokenize.generate_tokens(file_obj.readline))
 
     for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
         # Checking if we are in a block of concated string
@@ -354,7 +351,7 @@ def strings_with_wrong_placed_whitespace(
                 )
 
 
-def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int, str]]:
+def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """Test case where pandas._libs.lib.NoDefault is not used for typing.
 
     Parameters
@@ -372,7 +369,7 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int,
     contents = file_obj.read()
     tree = ast.parse(contents)
     in_annotation = False
-    nodes: List[tuple[bool, ast.AST]] = [(in_annotation, tree)]
+    nodes: list[tuple[bool, ast.AST]] = [(in_annotation, tree)]
 
     while nodes:
         in_annotation, node = nodes.pop()
@@ -401,7 +398,7 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[Tuple[int,
 
 
 def main(
-    function: Callable[[IO[str]], Iterable[Tuple[int, str]]],
+    function: Callable[[IO[str]], Iterable[tuple[int, str]]],
     source_path: str,
     output_format: str,
 ) -> bool:
@@ -447,7 +444,7 @@ def main(
 
 
 if __name__ == "__main__":
-    available_validation_types: List[str] = [
+    available_validation_types: list[str] = [
         "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",

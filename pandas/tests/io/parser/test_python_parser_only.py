@@ -12,7 +12,7 @@ from io import (
     StringIO,
     TextIOWrapper,
 )
-from typing import Iterator
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
@@ -28,6 +28,9 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def test_default_separator(python_parser_only):

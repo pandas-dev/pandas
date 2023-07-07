@@ -4,10 +4,12 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Hashable,
     Sequence,
+)
+from typing import (
+    TYPE_CHECKING,
     cast,
     final,
 )

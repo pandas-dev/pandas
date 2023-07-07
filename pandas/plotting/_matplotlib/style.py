@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Collection,
+    Iterator,
+)
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Collection,
-    Iterator,
     cast,
 )
 import warnings

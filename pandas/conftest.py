@@ -32,9 +32,8 @@ import operator
 import os
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
 )
 
 from dateutil.tz import (
@@ -72,6 +71,12 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
 try:
     import pyarrow as pa

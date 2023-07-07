@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypedDict,
     overload,
 )
@@ -66,6 +63,11 @@ from pandas.io.parsers.python_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
     from types import TracebackType
 
     from pandas._typing import (

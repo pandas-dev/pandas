@@ -12,8 +12,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
@@ -43,6 +41,11 @@ from pandas.core.reshape.concat import concat
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Series,

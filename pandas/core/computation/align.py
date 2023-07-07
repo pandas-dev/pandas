@@ -10,7 +10,6 @@ from functools import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Sequence,
 )
 import warnings
 
@@ -29,6 +28,8 @@ import pandas.core.common as com
 from pandas.core.computation.common import result_type_many
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import F
 
     from pandas.core.generic import NDFrame

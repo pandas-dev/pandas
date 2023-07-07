@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
-import itertools
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Hashable,
     Iterable,
 )
+import itertools
+from typing import TYPE_CHECKING
 
 import numpy as np
 

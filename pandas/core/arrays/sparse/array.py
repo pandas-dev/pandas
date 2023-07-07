@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -86,6 +85,7 @@ from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from enum import Enum
 
     class ellipsis(Enum):

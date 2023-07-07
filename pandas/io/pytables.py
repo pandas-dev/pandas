@@ -19,10 +19,7 @@ from typing import (
     Any,
     Callable,
     Final,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -105,6 +102,11 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
     from types import TracebackType
 
     from tables import (

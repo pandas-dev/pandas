@@ -6,10 +6,10 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,

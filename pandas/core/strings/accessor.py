@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
 )
@@ -49,6 +48,8 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas import (
         DataFrame,
         Index,
