@@ -395,7 +395,7 @@ def ndframe_method(request):
 
 
 @pytest.mark.filterwarnings(
-    "ignore:DataFrame.combine is deprecated:FutureWarning"
+    "ignore:DataFrame.combine is deprecated:FutureWarning",
     "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
     "ignore:last is deprecated:FutureWarning",
 )
