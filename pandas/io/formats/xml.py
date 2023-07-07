@@ -252,10 +252,18 @@ class BaseXMLFormatter:
 
         nmsp_dict: dict[str, str] = {}
         if self.namespaces and self.prefix is None:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
+            nmsp_dict = {
+                "xmlns": n  # noqa: RUF011
+                for p, n in self.namespaces.items()
+                if p != ""
+            }
 
         if self.namespaces and self.prefix:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p == ""}
+            nmsp_dict = {
+                "xmlns": n  # noqa: RUF011
+                for p, n in self.namespaces.items()
+                if p == ""
+            }
 
         return nmsp_dict
 
