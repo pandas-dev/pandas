@@ -1,3 +1,5 @@
+import gc
+
 import numpy as np
 import pytest
 
@@ -8,32 +10,28 @@ from pandas import (
 
 
 @pytest.fixture(autouse=True)
-def non_interactive():
+def mpl_cleanup():
+    # matplotlib/testing/decorators.py#L24
+    # 1) Resets units registry
+    # 2) Resets rc_context
+    # 3) Closes all figures
     mpl = pytest.importorskip("matplotlib")
-    mpl.use("template")
-    yield
-
-
-@pytest.fixture(autouse=True)
-def reset_rcParams():
-    mpl = pytest.importorskip("matplotlib")
-    with mpl.rc_context():
-        yield
-
-
-@pytest.fixture(autouse=True)
-def close_all_figures():
-    # https://stackoverflow.com/q/31156578
-    yield
+    mpl_units = pytest.importorskip("matplotlib.units")
     plt = pytest.importorskip("matplotlib.pyplot")
-    plt.cla()
-    plt.clf()
+    orig_units_registry = mpl_units.registry.copy()
+    with mpl.rc_context():
+        mpl.use("template")
+        yield
+    mpl_units.registry.clear()
+    mpl_units.registry.update(orig_units_registry)
     plt.close("all")
+    # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+    gc.collect(1)
 
 
 @pytest.fixture
 def hist_df():
-    n = 100
+    n = 50
     np_random = np.random.RandomState(42)
     gender = np_random.choice(["Male", "Female"], size=n)
     classroom = np_random.choice(["A", "B", "C"], size=n)

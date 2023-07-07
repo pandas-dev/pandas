@@ -272,7 +272,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     Attributes
     ----------
     categories : Index
-        The categories of this categorical
+        The categories of this categorical.
     codes : ndarray
         The codes (integer positions, which point to the categories) of this
         categorical, read only.
@@ -760,23 +760,32 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+        For :class:`pandas.Series`:
 
-        For Series:
-
-        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         >>> ser.cat.categories
         Index(['a', 'b', 'c'], dtype='object')
 
-        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"],)
+        >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'a'], categories=['b', 'c', 'd'])
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='object')
 
-        For Categorical:
+        For :class:`pandas.Categorical`:
 
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
         >>> cat.categories
         Index(['a', 'b'], dtype='object')
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'c', 'b', 'a', 'c', 'b'])
+        >>> ci.categories
+        Index(['a', 'b', 'c'], dtype='object')
+
+        >>> ci = pd.CategoricalIndex(['a', 'c'], categories=['c', 'b', 'a'])
+        >>> ci.categories
+        Index(['c', 'b', 'a'], dtype='object')
         """
         return self.dtype.categories
 
@@ -787,19 +796,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
+        For :class:`pandas.Series`:
 
-        For Series:
-
-        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        >>> ser = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         >>> ser.cat.ordered
         False
 
-        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], ordered=True)
+        >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'a'], ordered=True)
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.ordered
         True
 
-        For Categorical:
+        For :class:`pandas.Categorical`:
 
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
         >>> cat.ordered
@@ -808,13 +816,23 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> cat = pd.Categorical(['a', 'b'], ordered=False)
         >>> cat.ordered
         False
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b'], ordered=True)
+        >>> ci.ordered
+        True
+
+        >>> ci = pd.CategoricalIndex(['a', 'b'], ordered=False)
+        >>> ci.ordered
+        False
         """
         return self.dtype.ordered
 
     @property
     def codes(self) -> np.ndarray:
         """
-        The category codes of this categorical.
+        The category codes of this categorical index.
 
         Codes are an array of integers which are the positions of the actual
         values in the categories array.
@@ -825,13 +843,25 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Returns
         -------
         ndarray[int]
-            A non-writable view of the `codes` array.
+            A non-writable view of the ``codes`` array.
 
         Examples
         --------
+        For :class:`pandas.Categorical`:
+
         >>> cat = pd.Categorical(['a', 'b'], ordered=True)
         >>> cat.codes
         array([0, 1], dtype=int8)
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'])
+        >>> ci.codes
+        array([0, 1, 2, 0, 1, 2], dtype=int8)
+
+        >>> ci = pd.CategoricalIndex(['a', 'c'], categories=['c', 'b', 'a'])
+        >>> ci.codes
+        array([2, 0], dtype=int8)
         """
         v = self._codes.view()
         v.flags.writeable = False
@@ -915,11 +945,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        For :class:`pandas.Series`:
+
+        >>> ser = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         >>> ser.cat.ordered
         False
         >>> ser = ser.cat.as_ordered()
         >>> ser.cat.ordered
+        True
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a'])
+        >>> ci.ordered
+        False
+        >>> ci = ci.as_ordered()
+        >>> ci.ordered
         True
         """
         return self.set_ordered(True)
@@ -935,24 +976,36 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        >>> raw_cate = pd.Categorical(["a", "b", "c"],
-        ...                           categories=["a", "b", "c"], ordered=True)
-        >>> ser = pd.Series(raw_cate)
+        For :class:`pandas.Series`:
+
+        >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'a'], ordered=True)
+        >>> ser = pd.Series(raw_cat)
+        >>> ser.cat.ordered
+        True
         >>> ser = ser.cat.as_unordered()
         >>> ser.cat.ordered
+        False
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a'], ordered=True)
+        >>> ci.ordered
+        True
+        >>> ci = ci.as_unordered()
+        >>> ci.ordered
         False
         """
         return self.set_ordered(False)
 
     def set_categories(self, new_categories, ordered=None, rename: bool = False):
         """
-        Set the categories to the specified new_categories.
+        Set the categories to the specified new categories.
 
-        `new_categories` can include new categories (which will result in
+        ``new_categories`` can include new categories (which will result in
         unused categories) or remove old categories (which results in values
-        set to NaN). If `rename==True`, the categories will simple be renamed
+        set to ``NaN``). If ``rename=True``, the categories will simply be renamed
         (less or more items than in old categories will result in values set to
-        NaN or in unused categories respectively).
+        ``NaN`` or in unused categories respectively).
 
         This method can be used to perform more than one action of adding,
         removing, and reordering simultaneously and is therefore faster than
@@ -994,9 +1047,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        >>> raw_cate = pd.Categorical(["a", "b", "c", "A"],
-        ...                           categories=["a", "b", "c"], ordered=True)
-        >>> ser = pd.Series(raw_cate)
+        For :class:`pandas.Series`:
+
+        >>> raw_cat = pd.Categorical(['a', 'b', 'c', 'A'],
+        ...                           categories=['a', 'b', 'c'], ordered=True)
+        >>> ser = pd.Series(raw_cat)
         >>> ser
         0   a
         1   b
@@ -1004,13 +1059,29 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         3   NaN
         dtype: category
         Categories (3, object): ['a' < 'b' < 'c']
-        >>> ser.cat.set_categories(["A", "B", "C"], rename=True)
+
+        >>> ser.cat.set_categories(['A', 'B', 'C'], rename=True)
         0   A
         1   B
         2   C
         3   NaN
         dtype: category
         Categories (3, object): ['A' < 'B' < 'C']
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'A'],
+        ...                          categories=['a', 'b', 'c'], ordered=True)
+        >>> ci
+        CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
+                         ordered=True, dtype='category')
+
+        >>> ci.set_categories(['A', 'b', 'c'])
+        CategoricalIndex([nan, 'b', 'c', nan], categories=['A', 'b', 'c'],
+                         ordered=True, dtype='category')
+        >>> ci.set_categories(['A', 'b', 'c'], rename=True)
+        CategoricalIndex(['A', 'b', 'c', nan], categories=['A', 'b', 'c'],
+                         ordered=True, dtype='category')
         """
 
         if ordered is None:
@@ -1108,7 +1179,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Reorder categories as specified in new_categories.
 
-        `new_categories` need to include all old categories and no new category
+        ``new_categories`` need to include all old categories and no new category
         items.
 
         Parameters
@@ -1140,7 +1211,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Examples
         --------
-        >>> ser = pd.Series(["a", "b", "c", "a"], dtype="category")
+        For :class:`pandas.Series`:
+
+        >>> ser = pd.Series(['a', 'b', 'c', 'a'], dtype='category')
         >>> ser = ser.cat.reorder_categories(['c', 'b', 'a'], ordered=True)
         >>> ser
         0   a
@@ -1149,14 +1222,24 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         3   a
         dtype: category
         Categories (3, object): ['c' < 'b' < 'a']
-        >>> ser = ser.sort_values()
-        >>> ser
+
+        >>> ser.sort_values()
         2   c
         1   b
         0   a
         3   a
         dtype: category
         Categories (3, object): ['c' < 'b' < 'a']
+
+        For :class:`pandas.CategoricalIndex`:
+
+        >>> ci = pd.CategoricalIndex(['a', 'b', 'c', 'a'])
+        >>> ci
+        CategoricalIndex(['a', 'b', 'c', 'a'], categories=['a', 'b', 'c'],
+                         ordered=False, dtype='category')
+        >>> ci.reorder_categories(['c', 'b', 'a'], ordered=True)
+        CategoricalIndex(['a', 'b', 'c', 'a'], categories=['c', 'b', 'a'],
+                         ordered=True, dtype='category')
         """
         if (
             len(self.categories) != len(new_categories)
