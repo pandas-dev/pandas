@@ -2058,7 +2058,7 @@ class SQLiteTable(SQLTable):
 
         self._register_date_adapters()
 
-    def _register_date_adapters(self):
+    def _register_date_adapters(self) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
