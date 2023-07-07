@@ -1236,7 +1236,9 @@ class TestDataFrameReplace:
         # GH 19632
         df = DataFrame({"A": [0, 1, 2], "B": [5, np.nan, 7], "C": ["a", "b", "c"]})
 
-        result = df.replace(to_replace=to_replace, value=None, method=method)
+        msg = "The 'method' keyword in DataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.replace(to_replace=to_replace, value=None, method=method)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1327,8 +1329,13 @@ class TestDataFrameReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
+        msg2 = (
+            "DataFrame.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
-            df.replace(lambda x: x.strip())
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                df.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("dtype", ["float", "float64", "int64", "Int64", "boolean"])
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
@@ -1585,3 +1592,10 @@ class TestDataFrameReplaceRegex:
 
         result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)
+
+    def test_replace_object_splitting(self):
+        # GH#53977
+        df = DataFrame({"a": ["a"], "b": "b"})
+        assert len(df._mgr.blocks) == 1
+        df.replace(to_replace=r"^\s*$", value="", inplace=True, regex=True)
+        assert len(df._mgr.blocks) == 1

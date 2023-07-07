@@ -72,7 +72,10 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -571,6 +574,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _constructor(self) -> Callable[..., Series]:
         return Series
 
+    def _constructor_from_mgr(self, mgr, axes):
+        ser = self._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+        if type(self) is Series:
+            # fastpath avoiding constructor call
+            return ser
+        else:
+            assert axes is mgr.axes
+            return self._constructor(ser, copy=False)
+
     @property
     def _constructor_expanddim(self) -> Callable[..., DataFrame]:
         """
@@ -580,6 +593,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         from pandas.core.frame import DataFrame
 
         return DataFrame
+
+    def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
+        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
+        #  This is a short-term implementation that will be replaced
+        #  with self._constructor_expanddim._constructor_from_mgr(...)
+        #  once downstream packages (geopandas) have had a chance to implement
+        #  their own overrides.
+        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
+        from pandas import DataFrame
+
+        return DataFrame._from_mgr(mgr, axes=mgr.axes)
+
+    def _constructor_expanddim_from_mgr(self, mgr, axes):
+        df = self._expanddim_from_mgr(mgr, axes)
+        if type(self) is Series:
+            # fastpath avoiding constructor
+            return df
+        assert axes is mgr.axes
+        return self._constructor_expanddim(df, copy=False)
 
     # types
     @property
@@ -1080,7 +1112,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _get_rows_with_mask(self, indexer: npt.NDArray[np.bool_]) -> Series:
         new_mgr = self._mgr.get_rows_with_mask(indexer)
-        return self._constructor(new_mgr, fastpath=True).__finalize__(self)
+        return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(self)
 
     def _get_value(self, label, takeable: bool = False):
         """
@@ -1351,7 +1383,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
-            assert self.ndim == 1
             ref: DataFrame = cacher[1]()
 
             # we are trying to reference a dead referent, hence
@@ -1374,10 +1405,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # Unsorted
-
-    @property
-    def _is_mixed_type(self) -> bool:
-        return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
         """
@@ -1952,7 +1979,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             columns = Index([name])
 
         mgr = self._mgr.to_2d_mgr(columns)
-        df = self._constructor_expanddim(mgr)
+        df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(
@@ -2751,6 +2778,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
+        Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+        ``corr()`` automatically considers values with matching indices.
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2760,6 +2790,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
+
+        Pandas auto-aligns the values with matching indices
+
+        >>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
+        >>> s1.corr(s2)
+        -1.0
         """  # noqa: E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
@@ -4267,11 +4304,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if not len(self) or not is_object_dtype(self.dtype):
+        if isinstance(self.dtype, ArrowDtype) and self.dtype.type == list:
+            values, counts = self._values._explode()
+        elif len(self) and is_object_dtype(self.dtype):
+            values, counts = reshape.explode(np.asarray(self._values))
+        else:
             result = self.copy()
             return result.reset_index(drop=True) if ignore_index else result
-
-        values, counts = reshape.explode(np.asarray(self._values))
 
         if ignore_index:
             index = default_index(len(values))
@@ -4494,7 +4533,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        result = SeriesApply(self, func=func, args=args, kwargs=kwargs).transform()
+        ser = self.copy(deep=False) if using_copy_on_write() else self
+        result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
         return result
 
     def apply(
@@ -4503,7 +4543,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         convert_dtype: bool | lib.NoDefault = lib.no_default,
         args: tuple[Any, ...] = (),
         *,
-        by_row: bool = True,
+        by_row: Literal[False, "compat"] = "compat",
         **kwargs,
     ) -> DataFrame | Series:
         """
@@ -4527,14 +4567,20 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             preserved for some extension array dtypes, such as Categorical.
 
             .. deprecated:: 2.1.0
-                The convert_dtype has been deprecated. Do ``ser.astype(object).apply()``
+                ``convert_dtype`` has been deprecated. Do ``ser.astype(object).apply()``
                 instead if you want ``convert_dtype=False``.
         args : tuple
             Positional arguments passed to func after the series value.
-        by_row : bool, default True
+        by_row : False or "compat", default "compat"
+            If ``"compat"`` and func is a callable, func will be passed each element of
+            the Series, like ``Series.map``. If func is a list or dict of
+            callables, will first try to translate each func into pandas methods. If
+            that doesn't work, will try call to apply again with ``by_row="compat"``
+            and if that fails, will call apply again with ``by_row=False``
+            (backward compatible).
             If False, the func will be passed the whole Series at once.
-            If True, will func will be passed each element of the Series, like
-            Series.map (backward compatible).
+
+            ``by_row`` has no effect when ``func`` is a string.
 
             .. versionadded:: 2.1.0
         **kwargs
