@@ -9490,7 +9490,11 @@ class DataFrame(NDFrame, OpsMixin):
                 if (self.dtypes == np.bool_).all():
                     # GH#43248
                     result = self ^ self.shift(periods=periods, axis=axis)
-                    result.iloc[:, :periods] = np.nan
+                                        
+                    if periods > 0:
+                        result.iloc[:, :periods] = np.nan
+                    else:
+                        result.iloc[:, periods:] = np.nan
                     return result
                 return self - self.shift(periods, axis=axis)
             # With periods=0 this is equivalent to a diff with axis=0

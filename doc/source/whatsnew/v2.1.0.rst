@@ -445,10 +445,10 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :class:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
 - Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with complex dtype incorrectly failing to fill ``NaN`` entries (:issue:`53635`)
-- Bug in :class:`DataFrame.diff` raising ``TypeError`` with ``axis=1`` when dataframe has ``bool`` dtype (:issue:`52579`)
 
 MultiIndex
 ^^^^^^^^^^
