@@ -504,20 +504,12 @@ class ExtensionArray:
     @property
     def dtype(self) -> ExtensionDtype:
         """
-        An instance of ``ExtensionDtype``.
+        An instance of ExtensionDtype.
 
         Examples
         --------
-        >>> class ListDtype(pd.api.extensions.ExtensionDtype):
-        ...     ...
-        ...     @classmethod
-        ...     def construct_array_type(cls):
-        ...         return ListArray
-        ...     ...
-
-        ... class ListArray(pd.api.extensions.ExtensionArray):
-        ...     dtype = ListDtype()
-        ...     ...
+        >>> pd.array([1, 2, 3]).dtype
+        Int64Dtype()
         """
         raise AbstractMethodError(self)
 
@@ -527,7 +519,7 @@ class ExtensionArray:
         Return a tuple of the array dimensions.
 
         Since Extension Arrays are only allowed to be 1-dimensional,
-        the shape should be ``(len(self),)``.
+        the shape would be ``(len(self),)``.
         """
         return (len(self),)
 
@@ -552,23 +544,13 @@ class ExtensionArray:
         """
         The number of bytes needed to store this object in memory.
 
-        Notes
-        -----
-        If this is expensive to compute, return an approximate lower bound
-        on the number of bytes needed.
-
         Examples
         --------
-        >>> class DecimalArray(pd.api.extensions.ExtensionArray):
-        ...     ...
-        ...     @property
-        ...     def nbytes(self) -> int:
-        ...         n = len(self)
-        ...         if n:
-        ...             return n * sys.getsizeof(self[0])
-        ...         return 0
-        ...     ...
+        >>> pd.array([1, 2, 3]).nbytes
+        27
         """
+        # If this is expensive to compute, return an approximate lower bound
+        # on the number of bytes needed.
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
@@ -604,26 +586,33 @@ class ExtensionArray:
         -------
         np.ndarray or pandas.api.extensions.ExtensionArray
             An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
-            otherwise a NumPy ndarray with ``dtype`` for its dtype.
+            otherwise a Numpy ndarray with ``dtype`` for its dtype.
 
         Examples
         --------
-        >>> class ListArray(pd.api.extensions.ExtensionArray):
-        ...     def __init__(self, values):
-        ...         if not isinstance(values, np.ndarray):
-        ...             raise TypeError("Need to pass a numpy array as values")
-        ...         self.data = values
-        ...     ...
+        >>> arr = np.array([1, 2, 3])
+        >>> arr
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
 
-        ...     def astype(self):
-        ...         if isinstance(dtype, type(self.dtype)) and dtype == self.dtype:
-        ...             if copy:
-        ...                 return type(self)(self.data[:])
-        ...             return self
-        ...         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
-        ...             # numpy has problems with astype(str) for nested elements
-        ...             return np.array([str(x) for x in self.data], dtype=dtype)
-        ...         return np.array(self.data, dtype=dtype, copy=copy)
+        Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
+
+        >>> arr1 = arr.astype('Float64')
+        >>> arr1
+        <FloatingArray>
+        [1.0, 2.0, 3.0]
+        Length: 3, dtype: Float64
+        >>> arr1.dtype
+        Float64Dtype()
+
+        Otherwise, we will get a Numpy ndarray:
+
+        >>> arr2 = arr.astype('float64')
+        >>> arr2
+        array([1., 2., 3.])
+        >>> arr2.dtype
+        dtype('float64')
         """
         dtype = pandas_dtype(dtype)
         if dtype == self.dtype:
@@ -680,54 +669,6 @@ class ExtensionArray:
         """
         return bool(self.isna().any())
 
-    _extension_array_shared_docs[
-        "_values_for_argsort"
-    ] = """
-        Examples
-        --------
-        With the default implementation, ``_values_for_argsort`` uses
-        ``np.array(self)`` to construct the values used for ``argsort``, ``argmin``,
-        and ``argmax``, which then internally uses numpy sorting. There are two ways
-        to override the behavior of these methods.
-
-        The first way is to override ``_values_for_argsort`` which constructs the
-        values used for sorting. For instance we have an extension array of lists
-        and we want to perform ``argsort``/``argmin``/``argmax`` based on the sum
-        of each list:
-
-        >>> class ListArray(pd.api.extensions.ExtensionArray):
-        ...     ...
-        ...     def _values_for_argsort(self):
-        ...         return np.array([sum(x) for x in self])
-        ...     ...
-
-        The second way is to completely override ``argsort``/``argmin``/``argmax``.
-        It is recommended that if one of these methods is overridden, the other to
-        should be overridden as well. Using the same example as above:
-
-        >>> class ListArray(pd.api.extensions.ExtensionArray):
-        ...     ...
-        ...     def argsort(self, ascending=True, kind='quicksort'):
-        ...         return np.array([sum(x) for x in self]).argsort(
-        ...             ascending=ascending, kind=kind
-        ...         )
-
-        ...     def argmin(self, skipna=True):
-        ...         values =  np.array([sum(x) for x in self])
-        ...         if skipna:
-        ...             return values.nanargmin()
-        ...         else:
-        ...             return values.argmin()
-
-        ...     def argmax(self, skipna=True):
-        ...         values =  np.array([sum(x) for x in self])
-        ...         if skipna:
-        ...             return values.nanargmax()
-        ...         else:
-        ...             return values.argmax()
-        """
-
-    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def _values_for_argsort(self) -> np.ndarray:
         """
         Return values for sorting.
@@ -751,11 +692,18 @@ class ExtensionArray:
         entries with missing values in the original array (according to
         ``self.isna()``). This means that the corresponding entries in the returned
         array don't need to be modified to sort correctly.
+
+        Examples
+        --------
+        In most cases, this is the underlying Numpy array of the ``ExtensionArray``:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._values_for_argsort()
+        array([1, 2, 3], dtype=int64)
         """
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
 
-    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argsort(
         self,
         *,
@@ -789,7 +737,18 @@ class ExtensionArray:
         See Also
         --------
         numpy.argsort : Sorting implementation used internally.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argsort()
+        array([1, 2, 0, 4, 3], dtype=int64)
         """
+        # Implementor note: You have two places to override the behavior of
+        # argsort.
+        # 1. _values_for_argsort : construct the values passed to np.argsort
+        # 2. argsort : total control over sorting. In case of overriding this,
+        #    it is recommended to also override argmax/argmin
         ascending = nv.validate_argsort_with_ascending(ascending, (), kwargs)
 
         values = self._values_for_argsort()
@@ -801,7 +760,6 @@ class ExtensionArray:
             mask=np.asarray(self.isna()),
         )
 
-    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argmin(self, skipna: bool = True) -> int:
         """
         Return the index of minimum value.
@@ -820,13 +778,22 @@ class ExtensionArray:
         See Also
         --------
         ExtensionArray.argmax : Return the index of the maximum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmin()
+        1
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmin.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmin itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmin")
 
-    @Appender(_extension_array_shared_docs["_values_for_argsort"])
     def argmax(self, skipna: bool = True) -> int:
         """
         Return the index of maximum value.
@@ -845,7 +812,17 @@ class ExtensionArray:
         See Also
         --------
         ExtensionArray.argmin : Return the index of the minimum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmax()
+        3
         """
+        # Implementor note: You have two places to override the behavior of
+        # argmax.
+        # 1. _values_for_argsort : construct the values used in nargminmax
+        # 2. argmax itself : total control over sorting.
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
@@ -1352,15 +1329,13 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> class ListArray(pd.api.extensions.ExtensionArray):
-        ...     def __init__(self, values):
-        ...         if not isinstance(values, np.ndarray):
-        ...             raise TypeError("Need to pass a numpy array as values")
-        ...         self.data = values
-
-        ...     def copy(self):
-        ...         return type(self)(self.data[:])
-        ...     ...
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.copy()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         raise AbstractMethodError(self)
 
@@ -1378,26 +1353,24 @@ class ExtensionArray:
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
 
-        Notes
-        -----
-        This must return a *new* object referencing the same data, not self.
-        The only case that *must* be implemented is with ``dtype=None``,
-        giving a view with the same dtype as self.
-
         Examples
         --------
-        >>> class ListArray(pd.api.extensions.ExtensionArray):
-        ...     def __init__(self, values):
-        ...         if not isinstance(values, np.ndarray):
-        ...             raise TypeError("Need to pass a numpy array as values")
-        ...         self.data = values
+        This gives view on the underlying data of an ``ExtensionArray`` and is not a
+        copy. Modifications on either the view or the original ``ExtensionArray``
+        will be reflectd on the underlying data:
 
-        ...     def view(self):
-        ...         if dtype is not None:
-        ...             return self.data.view(dtype=dtype)
-        ...         return super().view()
-        ...     ...
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.view()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [2, 2, 3]
+        Length: 3, dtype: Int64
         """
+        # NB:
+        # - This must return a *new* object referencing the same data, not self.
+        # - The only case that *must* be implemented is with dtype=None,
+        #   giving a view with the same dtype as self.
         if dtype is not None:
             raise NotImplementedError(dtype)
         return self[:]
