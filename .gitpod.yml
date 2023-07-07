@@ -14,6 +14,7 @@ tasks:
       conda activate pandas-dev
       git fetch --tags
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+      pre-commit install
 
 # --------------------------------------------------------
 # exposing ports for liveserve
