@@ -46,14 +46,22 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
+    -   id: check-ast
+    -   id: check-case-conflict
+    -   id: check-toml
+    -   id: check-xml
+    -   id: check-yaml
+        exclude: ^ci/meta.yaml$
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
+    -   id: mixed-line-ending
+        args: [--fix=auto]
+        exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
+    -   id: fix-byte-order-marker
+    -   id: fix-encoding-pragma
+        args: [--remove]
     -   id: trailing-whitespace
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.1
     hooks:
@@ -98,6 +106,8 @@ repos:
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
       - id: rst-backticks
       - id: rst-directive-colons
         types: [text]  # overwrite types: [rst]
@@ -160,24 +170,16 @@ repos:
         language: pygrep
         types: [python]
         files: ^pandas/tests/
-        exclude: |
-            (?x)^
-            pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
         entry: |
             (?x)
-            # outdated annotation syntax, missing error codes
+            # outdated annotation syntax
             \#\ type:\ (?!ignore)
-            |\#\ type:\s?ignore(?!\[)
 
             # foo._class__ instead of type(foo)
             |\.__class__
-
-            # np.bool/np.object instead of np.bool_/np.object_
-            |np\.bool[^_8`]
-            |np\.object[^_8`]
 
             # imports from collections.abc instead of `from collections import abc`
             |from\ collections\.abc\ import
@@ -200,16 +202,8 @@ repos:
 
             # builtin filter function
             |(?<!def)[\(\s]filter\(
-
-            # exec
-            |[^a-zA-Z0-9_]exec\(
         types_or: [python, cython, rst]
         exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
-    -   id: cython-casting
-        name: Check Cython casting is `<type>obj`, not `<type> obj`
-        language: pygrep
-        entry: '[a-zA-Z0-9*]> '
-        files: (\.pyx|\.pxi.in)$
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
