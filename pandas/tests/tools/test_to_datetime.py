@@ -3680,3 +3680,27 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     result = to_datetime(ser)
     expected = Series([1, 2], dtype="datetime64[ns]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "date, date_expected, warning",
+    [
+        (["2020-01-01 00:00+00:00", "2020-01-01 00:00+02:00", ""], None, FutureWarning),
+        (
+            ["2020-01-01 00:00+00:00", ""],
+            [Timestamp("2020-01-01 00:00+00:00"), "NaT"],
+            None,
+        ),
+    ],
+)
+def test_to_datetime_with_empty_str_utcFalse_format_mixed(date, date_expected, warning):
+    msg = "In a future version of pandas, parsing datetimes with mixed time zones "
+    "will raise a warning unless `utc=True`."
+
+    if warning is not None:
+        with tm.assert_produces_warning(warning, match=msg):
+            to_datetime(date, format="mixed")
+    else:
+        result = to_datetime(date, format="mixed")
+        expected = Index(date_expected, dtype=object)
+        tm.assert_index_equal(result, expected)

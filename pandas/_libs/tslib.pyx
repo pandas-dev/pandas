@@ -561,14 +561,6 @@ cpdef array_to_datetime(
         #    (with individual dateutil.tzoffsets) are returned
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
-            warnings.warn(
-                "In a future version of pandas, parsing datetimes with mixed time "
-                "zones will raise a warning unless `utc=True`. "
-                "Please specify `utc=True to opt in to the new behaviour "
-                "and silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
             return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
         else:
             tz_offset = out_tzoffset_vals.pop()
@@ -628,6 +620,7 @@ cdef _array_to_datetime_object(
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
     # 3) special strings - "now" & "today"
+    unique_timezones = set()
     for i in range(n):
         # Analogous to: val = values[i]
         val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -657,6 +650,7 @@ cdef _array_to_datetime_object(
                     tzinfo=tsobj.tzinfo,
                     fold=tsobj.fold,
                 )
+                unique_timezones.add(tsobj.tzinfo)
 
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
@@ -674,6 +668,15 @@ cdef _array_to_datetime_object(
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if len(unique_timezones) > 1:
+        warnings.warn(
+            "In a future version of pandas, parsing datetimes with mixed time "
+            "zones will raise a warning unless `utc=True`. "
+            "Please specify `utc=True to opt in to the new behaviour "
+            "and silence this warning.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     return oresult_nd, None
 
 
