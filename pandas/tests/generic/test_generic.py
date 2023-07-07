@@ -307,7 +307,7 @@ class TestGeneric:
     def test_data_deprecated(self, frame_or_series):
         obj = frame_or_series()
         msg = "(Series|DataFrame)._data is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             mgr = obj._data
         assert mgr is obj._mgr
 

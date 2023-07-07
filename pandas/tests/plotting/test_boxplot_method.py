@@ -26,6 +26,7 @@ from pandas.tests.plotting.common import (
 from pandas.io.formats.printing import pprint_thing
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 def _check_ax_limits(col, ax):
@@ -418,12 +419,11 @@ class TestDataFrameGroupByPlots:
         res = gb.plot()
         assert len(mpl.pyplot.get_fignums()) == 2
         assert len(res) == 2
-        tm.close()
+        plt.close("all")
 
         res = gb.boxplot(return_type="axes")
         assert len(mpl.pyplot.get_fignums()) == 1
         assert len(res) == 2
-        tm.close()
 
     def test_grouped_plot_fignums_excluded_col(self):
         n = 10
@@ -433,7 +433,6 @@ class TestDataFrameGroupByPlots:
         df = DataFrame({"height": height, "weight": weight, "gender": gender})
         # now works with GH 5610 as gender is excluded
         df.groupby("gender").hist()
-        tm.close()
 
     @pytest.mark.slow
     def test_grouped_box_return_type(self, hist_df):
