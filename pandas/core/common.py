@@ -565,6 +565,13 @@ _builtin_table = {
     builtins.min: np.minimum.reduce,
 }
 
+# GH#53425: Only for deprecation
+_builtin_table_alias = {
+    builtins.sum: "np.sum",
+    builtins.max: "np.maximum.reduce",
+    builtins.min: "np.minimum.reduce",
+}
+
 _cython_table = {
     builtins.sum: "sum",
     builtins.max: "max",
