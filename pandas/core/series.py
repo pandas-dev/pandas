@@ -4320,7 +4320,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(
-        self, level: IndexLabel = -1, fill_value: Hashable | None = None, sort: bool = True
+        self,
+        level: IndexLabel = -1,
+        fill_value: Hashable | None = None,
+        sort: bool = True,
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.

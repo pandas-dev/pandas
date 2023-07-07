@@ -467,7 +467,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name: Hashable | None = None
+    start=None,
+    end=None,
+    periods: int | None = None,
+    freq=None,
+    name: Hashable | None = None,
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

@@ -642,7 +642,9 @@ class Index(IndexOpsMixin, PandasObject):
     # See each method's docstring.
 
     @classmethod
-    def _simple_new(cls, values: ArrayLike, name: Hashable | None = None, refs=None) -> Self:
+    def _simple_new(
+        cls, values: ArrayLike, name: Hashable | None = None, refs=None
+    ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.

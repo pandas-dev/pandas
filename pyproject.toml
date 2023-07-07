@@ -321,7 +321,9 @@ ignore = [
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
   # explicit-f-string-type-conversion
-  "RUF010"
+  "RUF010",
+  # mutable-class-default
+  "RUF012"
 ]
 
 exclude = [
@@ -642,5 +644,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, afile, foor, aas, mis"
 ignore-regex = 'https://([\w/\.])+'

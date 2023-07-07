@@ -836,7 +836,9 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable | None = None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: Hashable | None = None, sort=None
+    ):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
