@@ -248,6 +248,7 @@ def test_str_size():
     assert int(result) == int(expected)
 
 
+@pytest.mark.single_cpu
 def test_bz2_missing_import():
     # Check whether bz2 missing import is handled correctly (issue #53857)
     code = """
