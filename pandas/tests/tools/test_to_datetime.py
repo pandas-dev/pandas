@@ -517,9 +517,8 @@ class TestTimeConversionFormats:
     def test_to_datetime_parse_tzname_or_tzoffset_utcFalse_deprecated(
         self, fmt, dates, expected_dates
     ):
-        # GH 13486
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        # GH 13486, 50887
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(dates, format=fmt)
         expected = Index(expected_dates)
@@ -709,8 +708,7 @@ class TestToDatetime:
         # a ISO8601 format and a non-ISO8601 one
         ts1 = constructor(args[0])
         ts2 = args[1]
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime([ts1, ts2], format=fmt, utc=utc)
         tm.assert_index_equal(result, expected)
@@ -746,8 +744,7 @@ class TestToDatetime:
     )
     def test_to_datetime_mixed_offsets_with_none_tz(self, fmt, utc, expected):
         # https://github.com/pandas-dev/pandas/issues/50071
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(
@@ -1225,8 +1222,7 @@ class TestToDatetime:
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         arr = [ts_string_1] * 5 + [ts_string_2] * 5
         expected = Index([parse(x) for x in arr])
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
@@ -1594,8 +1590,7 @@ class TestToDatetime:
             "March 1, 2018 12:00:00+0500",
             "20100240",
         ]
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(ts_strings, errors="coerce")
         expected = Index(
@@ -1680,8 +1675,7 @@ class TestToDatetime:
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736, 50887
         ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
-        msg = "In a future version of pandas, parsing datetimes with mixed "
-        "time zones will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(ts_strings)
         expected = np.array(
@@ -1721,8 +1715,7 @@ class TestToDatetime:
 
         now = Timestamp("now")
         today = Timestamp("today")
-        msg = "In a future version of pandas, parsing datetimes with mixed time zones "
-        "will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             mixed = to_datetime(ser)
         expected = Series(
@@ -1803,8 +1796,7 @@ class TestToDatetime:
     )
     def test_to_datetime_mixed_offsets_with_utcFalse_deprecated(self, date):
         # GH 50887
-        msg = "In a future version of pandas, parsing datetimes with mixed time zones "
-        "will raise a warning unless `utc=True`."
+        msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             to_datetime(date, utc=False)
 
@@ -3694,6 +3686,7 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     ],
 )
 def test_to_datetime_with_empty_str_utcFalse_format_mixed(date, date_expected, warning):
+    # GH 50887
     msg = "In a future version of pandas, parsing datetimes with mixed time zones "
     "will raise a warning unless `utc=True`."
 

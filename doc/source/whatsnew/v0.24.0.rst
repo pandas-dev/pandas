@@ -632,18 +632,24 @@ Parsing datetime strings with the same UTC offset will preserve the UTC offset i
 Parsing datetime strings with different UTC offsets will now create an Index of
 ``datetime.datetime`` objects with different UTC offsets
 
-.. ipython:: python
+.. code-block:: ipython
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                          "2015-11-18 16:30:00+06:30"])
-    idx
-    idx[0]
-    idx[1]
+    In [59]: idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                                   "2015-11-18 16:30:00+06:30"])
+
+    In[60]: idx
+    Out[60]: Index([2015-11-18 15:30:00+05:30, 2015-11-18 16:30:00+06:30], dtype='object')
+
+    In[61]: idx[0]
+    Out[61]: Timestamp('2015-11-18 15:30:00+0530', tz='UTC+05:30')
+
+    In[62]: idx[1]
+    Out[62]: Timestamp('2015-11-18 16:30:00+0630', tz='UTC+06:30')
 
 Passing ``utc=True`` will mimic the previous behavior but will correctly indicate
 that the dates have been converted to UTC
 
-.. code-block:: ipython
+.. ipython:: python
 
     pd.to_datetime(["2015-11-18 15:30:00+05:30",
                     "2015-11-18 16:30:00+06:30"], utc=True)
