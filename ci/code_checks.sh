@@ -118,8 +118,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler \
-        pandas.io.formats.style.Styler.from_custom_template \
         pandas.io.formats.style.Styler.set_caption \
         pandas.io.formats.style.Styler.set_sticky \
         pandas.io.formats.style.Styler.set_uuid \
@@ -163,9 +161,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.columns \
         pandas.DataFrame.backfill \
-        pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.attrs \
