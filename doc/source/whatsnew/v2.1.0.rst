@@ -395,6 +395,7 @@ Timedelta
 - Bug in :class:`Timedelta` with Numpy timedelta64 objects not properly raising ``ValueError`` (:issue:`52806`)
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
+- Bug in :meth:`Timedelta.__hash__`, raising an ``OutOfBoundsTimedelta`` on certain large values of second resolution (:issue:`54037`)
 -
 
 Timezones
