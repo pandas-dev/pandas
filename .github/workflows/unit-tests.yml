@@ -173,7 +173,7 @@ jobs:
       uses: ./.github/actions/run-tests
       env:
         PATTERN: 'single_cpu'
-        PYTEST_WORKERS: 1
+        PYTEST_WORKERS: 0
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
@@ -193,8 +193,8 @@ jobs:
       PANDAS_CI: 1
       PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
-      # GH 47443: PYTEST_WORKERS > 1 crashes Windows builds with memory related errors
-      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '1' }}
+      # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
+      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
 
     steps:
       - name: Checkout
