@@ -119,11 +119,13 @@ def test_xarray_cftimeindex_nearest():
     assert result == expected
 
 
+@pytest.mark.single_cpu
 def test_oo_optimizable():
     # GH 21071
     subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
+@pytest.mark.single_cpu
 def test_oo_optimized_datetime_index_unpickle():
     # GH 42866
     subprocess.check_call(
@@ -200,6 +202,7 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
+@pytest.mark.single_cpu
 def test_missing_required_dependency():
     # GH 23868
     # To ensure proper isolation, we pass these flags

@@ -202,6 +202,7 @@ def test_gzip_reproducibility_file_object():
     assert output == buffer.getvalue()
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma():
     """Tests if import pandas works when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
@@ -215,6 +216,7 @@ def test_with_missing_lzma():
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
     having the module available.
