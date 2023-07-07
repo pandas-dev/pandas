@@ -19,6 +19,7 @@ from typing import (
     Union,
     cast,
     overload,
+    Type
 )
 import warnings
 import weakref
@@ -37,6 +38,7 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -148,6 +150,10 @@ from pandas.io.formats.info import (
 import pandas.plotting
 
 if TYPE_CHECKING:
+    import pydantic_core
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core.core_schema import CoreSchema
+
     from pandas._libs.internals import BlockValuesRefs
     from pandas._typing import (
         AggFuncType,
@@ -6220,3 +6226,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @doc(make_doc("cumprod", 1))
     def cumprod(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+
+    @classmethod
+    def __get_pydantic_core_schema__(cls, source_type: Type[Any], handler: GetCoreSchemaHandler) -> CoreSchema:
+        pyd_core = cast("pydantic_core", import_optional_dependency("pydantic_core"))
+        core_schema = pyd_core.core_schema
+
+        return core_schema.union_schema(
+            [
+                core_schema.is_instance_schema(Series),
+                core_schema.no_info_plain_validator_function(Series)
+            ]
+        )
