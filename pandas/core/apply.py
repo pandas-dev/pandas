@@ -312,7 +312,27 @@ class Apply(metaclass=abc.ABCMeta):
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
         kwargs: dict[str, Any],
-    ) -> tuple[list[Hashable], list[Series | DataFrame]]:
+    ) -> tuple[list[Hashable], list[Any]]:
+        """
+        Compute agg/apply results for like-like input.
+
+        Parameters
+        ----------
+        op_name : {"agg", "apply"}
+            Operation being performed.
+        selected_obj : Series or DataFrame
+            Data to perform operation on.
+        kwargs : dict
+            Keyword arguments to pass to the functions.
+
+        Returns
+        -------
+        keys : list[hashable]
+            Index labels for result.
+        results : list
+            Data for result. When aggregating with a Series, this can contain any
+            Python objects.
+        """
         func = cast(List[AggFuncTypeBase], self.func)
         obj = self.obj
 
@@ -389,6 +409,28 @@ class Apply(metaclass=abc.ABCMeta):
         selection: Hashable | Sequence[Hashable],
         kwargs: dict[str, Any],
     ) -> tuple[list[Hashable], list[Any]]:
+        """
+        Compute agg/apply results for dict-like input.
+
+        Parameters
+        ----------
+        op_name : {"agg", "apply"}
+            Operation being performed.
+        selected_obj : Series or DataFrame
+            Data to perform operation on.
+        selection : hashable or sequence of hashables
+            Used by GroupBy, Window, and Resample if selection is applied to the object.
+        kwargs : dict
+            Keyword arguments to pass to the functions.
+
+        Returns
+        -------
+        keys : list[hashable]
+            Index labels for result.
+        results : list
+            Data for result. When aggregating with a Series, this can contain any
+            Python object.
+        """
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
@@ -401,15 +443,13 @@ class Apply(metaclass=abc.ABCMeta):
         if selected_obj.ndim == 1:
             # key only used for output
             colg = obj._gotitem(selection, ndim=1)
-            result_data = [
-                getattr(colg, op_name)(how, **kwargs) for _, how in func.items()
-            ]
-            result_index = list(func.keys())
+            results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
+            keys = list(func.keys())
         elif is_non_unique_col:
             # key used for column selection and output
             # GH#51099
-            result_data = []
-            result_index = []
+            results = []
+            keys = []
             for key, how in func.items():
                 indices = selected_obj.columns.get_indexer_for([key])
                 labels = selected_obj.columns.take(indices)
@@ -423,17 +463,17 @@ class Apply(metaclass=abc.ABCMeta):
                     for indice in indices
                 ]
 
-                result_index += [key] * len(key_data)
-                result_data += key_data
+                keys += [key] * len(key_data)
+                results += key_data
         else:
             # key used for column selection and output
-            result_data = [
+            results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
                 for key, how in func.items()
             ]
-            result_index = list(func.keys())
+            keys = list(func.keys())
 
-        return result_index, result_data
+        return keys, results
 
     def wrap_results_dict_like(
         self,
@@ -1302,6 +1342,8 @@ class GroupByApply(Apply):
         else:
             selected_obj = obj._obj_with_exclusions
 
+        # Only set as_index=True on groupby objects, not Window or Resample
+        # that inherit from this class.
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")
         ):
