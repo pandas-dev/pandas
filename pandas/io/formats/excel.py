@@ -577,8 +577,8 @@ class ExcelFormatter:
         self.header = header
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
-        self._header_styledict[str, Any] = None
-        self._body_styledict[str, Any] = None
+        self._header_style: dict[str, Any] | None = None
+        self._body_style: dict[str, Any] | None = None
 
     @property
     def header_style(self):
@@ -586,11 +586,8 @@ class ExcelFormatter:
 
     @header_style.setter
     def header_style(self, val):
-        if not isinstance(val, dict):
-            return None
-        else:
+        if isinstance(val, dict):
             self._header_style = val
-            return self._header_style
 
     @property
     def body_style(self):
@@ -598,11 +595,8 @@ class ExcelFormatter:
 
     @body_style.setter
     def body_style(self, val):
-        if not isinstance(val, dict):
-            return None
-        else:
+        if isinstance(val, dict):
             self._body_style = val
-            return self._body_style
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
