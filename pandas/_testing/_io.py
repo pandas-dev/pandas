@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import bz2
 import gzip
 import io
 import pathlib
@@ -12,7 +11,10 @@ from typing import (
 )
 import zipfile
 
-from pandas.compat import get_lzma_file
+from pandas.compat import (
+    get_bz2_file,
+    get_lzma_file,
+)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -156,7 +158,7 @@ def write_to_compressed(compression, path, data, dest: str = "test"):
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        compress_method = bz2.BZ2File
+        compress_method = get_bz2_file()
     elif compression == "zstd":
         compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
