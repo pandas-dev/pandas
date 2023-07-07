@@ -10,7 +10,6 @@ pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
 pytest-asyncio>=0.17.0
-pytest-localserver>=0.7.1
 coverage
 python-dateutil
 numpy
@@ -53,14 +52,10 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.3.0
-cpplint
 flake8==6.0.0
-isort>=5.2.1
 mypy==1.2
+tokenize-rt
 pre-commit>=2.15.0
-pyupgrade
-ruff==0.0.215
 gitpython
 gitdb
 natsort

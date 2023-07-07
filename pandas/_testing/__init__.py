@@ -50,7 +50,6 @@ from pandas import (
     bdate_range,
 )
 from pandas._testing._io import (
-    close,
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
@@ -1094,7 +1093,6 @@ __all__ = [
     "box_expected",
     "BYTES_DTYPES",
     "can_set_locale",
-    "close",
     "COMPLEX_DTYPES",
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",

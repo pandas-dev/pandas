@@ -3,6 +3,7 @@ from __future__ import annotations
 import bz2
 import gzip
 import io
+import pathlib
 import tarfile
 from typing import (
     TYPE_CHECKING,
@@ -77,14 +78,12 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     pandas object
         The original object that was serialized and then re-read.
     """
-    import pytest
-
-    Path = pytest.importorskip("pathlib").Path
+    Path = pathlib.Path
     if path is None:
         path = "___pathlib___"
     with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
+        writer(Path(path))  # type: ignore[arg-type]
+        obj = reader(Path(path))  # type: ignore[arg-type]
     return obj
 
 
@@ -167,20 +166,3 @@ def write_to_compressed(compression, path, data, dest: str = "test"):
 
     with compress_method(path, mode=mode) as f:
         getattr(f, method)(*args)
-
-
-# ------------------------------------------------------------------
-# Plotting
-
-
-def close(fignum=None) -> None:
-    from matplotlib.pyplot import (
-        close as _close,
-        get_fignums,
-    )
-
-    if fignum is None:
-        for fignum in get_fignums():
-            _close(fignum)
-    else:
-        _close(fignum)

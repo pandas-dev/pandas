@@ -41,7 +41,10 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import ResamplerWindowApply
+from pandas.core.apply import (
+    ResamplerWindowApply,
+    warn_alias_replacement,
+)
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -295,7 +298,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     >>> r = s.resample('2s')
 
-    >>> r.agg(np.sum)
+    >>> r.agg("sum")
     2013-01-01 00:00:00    3
     2013-01-01 00:00:02    7
     2013-01-01 00:00:04    5
@@ -308,7 +311,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:04    5   5.0    5
 
     >>> r.agg({'result': lambda x: x.mean() / x.std(),
-    ...        'total': np.sum})
+    ...        'total': "sum"})
                            result  total
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
@@ -1109,11 +1112,46 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute sum of group values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            Computed sum of values within each group.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').sum()
+        2023-01-01    3
+        2023-02-01    7
+        Freq: MS, dtype: int64
+        """
         maybe_warn_args_and_kwargs(type(self), "sum", args, kwargs)
         nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
-    @doc(GroupBy.prod)
     def prod(
         self,
         numeric_only: bool = False,
@@ -1121,6 +1159,42 @@ class Resampler(BaseGroupBy, PandasObject):
         *args,
         **kwargs,
     ):
+        """
+        Compute prod of group values.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
+
+        Returns
+        -------
+        Series or DataFrame
+            Computed prod of values within each group.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').prod()
+        2023-01-01    2
+        2023-02-01   12
+        Freq: MS, dtype: int64
+        """
         maybe_warn_args_and_kwargs(type(self), "prod", args, kwargs)
         nv.validate_resampler_func("prod", args, kwargs)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
@@ -1292,6 +1366,21 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Standard deviation of values within each group.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').std()
+        2023-01-01    1.000000
+        2023-02-01    2.645751
+        Freq: MS, dtype: float64
         """
         maybe_warn_args_and_kwargs(type(self), "std", args, kwargs)
         nv.validate_resampler_func("std", args, kwargs)
@@ -1325,6 +1414,26 @@ class Resampler(BaseGroupBy, PandasObject):
         -------
         DataFrame or Series
             Variance of values within each group.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').var()
+        2023-01-01    1.0
+        2023-02-01    7.0
+        Freq: MS, dtype: float64
+
+        >>> ser.resample('MS').var(ddof=0)
+        2023-01-01    0.666667
+        2023-02-01    4.666667
+        Freq: MS, dtype: float64
         """
         maybe_warn_args_and_kwargs(type(self), "var", args, kwargs)
         nv.validate_resampler_func("var", args, kwargs)
@@ -1421,6 +1530,26 @@ class Resampler(BaseGroupBy, PandasObject):
         DataFrameGroupBy.quantile
             Return a DataFrame, where the columns are groupby columns,
             and the values are its quantiles.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').quantile()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
+
+        >>> ser.resample('MS').quantile(.25)
+        2023-01-01    1.5
+        2023-02-01    3.5
+        Freq: MS, dtype: float64
         """
         return self._downsample("quantile", q=q, **kwargs)
 
@@ -1547,7 +1676,10 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
+        orig_how = how
         how = com.get_cython_func(how) or how
+        if orig_how != how:
+            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1701,7 +1833,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
+        orig_how = how
         how = com.get_cython_func(how) or how
+        if orig_how != how:
+            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
