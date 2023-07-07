@@ -274,3 +274,23 @@ def test_pandas_priority():
 
     assert right.__add__(left) is NotImplemented
     assert right + left is left
+
+
+@td.skip_if_no("pydantic")
+@td.skip_if_no("pydantic_core")
+@pytest.mark.parametrize("series", [
+    Series([1, 2, 3]),
+    Series(np.array([1, 2, 3])),
+    Series({'a': 1, 'b': 2, 'c': 3}),
+    Series(3),
+])
+def test_pydantic_protocol(series: Series) -> None:
+    from pydantic import BaseModel
+
+    class Model(BaseModel):
+        series: Series
+
+
+    model = Model(series=series)
+    assert model.model_dump() == {}
+    assert model.model_json_schema() == {}

@@ -45,6 +45,7 @@ dependencies:
   - py
   - psycopg2>=2.9.3
   - pyarrow>=7.0.0
+  - pydantic>=2.0
   - pymysql>=1.0.2
   - pyreadstat>=1.1.5
   - pytables>=3.7.0
