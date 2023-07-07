@@ -247,7 +247,7 @@ class PandasArray(  # type: ignore[misc]
 
         meth = missing.clean_fill_method(method)
         missing.pad_or_backfill_inplace(
-            out_data,
+            out_data.T,
             method=meth,
             axis=0,
             limit=limit,

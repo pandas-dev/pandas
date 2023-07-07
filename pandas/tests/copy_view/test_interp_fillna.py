@@ -348,3 +348,16 @@ def test_fillna_inplace_ea_noop_shares_memory(
     else:
         # we actually have a view
         tm.assert_frame_equal(df, view)
+
+
+def test_fillna_chained_assignment(using_copy_on_write):
+    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].fillna(100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            df[["a"]].fillna(100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
