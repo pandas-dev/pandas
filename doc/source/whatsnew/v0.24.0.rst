@@ -686,7 +686,8 @@ Parsing mixed-timezones with :func:`read_csv`
    a
    2000-01-01T00:00:00+05:00
    2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   df = pd.read_csv(StringIO(content))
+   df.a = pd.to_datetime(df['a'], utc=True)
    df.a
 
 As can be seen, the ``dtype`` is object; each value in the column is a string.
