@@ -3687,8 +3687,7 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
 )
 def test_to_datetime_with_empty_str_utcFalse_format_mixed(date, date_expected, warning):
     # GH 50887
-    msg = "In a future version of pandas, parsing datetimes with mixed time zones "
-    "will raise a warning unless `utc=True`."
+    msg = "parsing datetimes with mixed time zones will raise a warning"
 
     if warning is not None:
         with tm.assert_produces_warning(warning, match=msg):
