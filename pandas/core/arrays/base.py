@@ -590,7 +590,7 @@ class ExtensionArray:
 
         Examples
         --------
-        >>> arr = np.array([1, 2, 3])
+        >>> arr = pd.array([1, 2, 3])
         >>> arr
         <IntegerArray>
         [1, 2, 3]
@@ -699,7 +699,7 @@ class ExtensionArray:
 
         >>> arr = pd.array([1, 2, 3])
         >>> arr._values_for_argsort()
-        array([1, 2, 3], dtype=int64)
+        array([1, 2, 3])
         """
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
@@ -742,7 +742,7 @@ class ExtensionArray:
         --------
         >>> arr = pd.array([3, 1, 2, 5, 4])
         >>> arr.argsort()
-        array([1, 2, 0, 4, 3], dtype=int64)
+        array([1, 2, 0, 4, 3])
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
