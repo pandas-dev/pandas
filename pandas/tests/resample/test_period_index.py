@@ -524,7 +524,7 @@ class TestPeriodIndex:
         )
         result = (
             ts.resample("A")
-            .agg({"first": np.sum, "second": np.mean})
+            .agg({"first": "sum", "second": "mean"})
             .reindex(columns=["first", "second"])
         )
         tm.assert_frame_equal(result, expected)
