@@ -30,7 +30,6 @@ vscode:
     - ms-python.python
     - yzhang.markdown-all-in-one
     - eamodio.gitlens
-    - swyddfa.esbonio
     - lextudio.restructuredtext
     - ritwickdey.liveserver
     # add or remove what you think is generally useful to most contributors
