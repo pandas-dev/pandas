@@ -7979,13 +7979,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if downcast is not None and downcast != "infer":
             raise ValueError("downcast must be either None or 'infer'")
 
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        axis = self._get_axis_number(axis)
+
+        if self.empty:
+            if inplace:
+                return None
+            return self.copy()
+
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
 
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
         if method.lower() in fillna_methods:
             # GH#53581
-            # postpone setting obj, should_transpose
             warnings.warn(
                 f"{type(self).__name__}.interpolate with method={method} is "
                 "deprecated and will raise in a future version. "
@@ -7993,11 +8000,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+            obj, should_transpose = self, False
         else:
             obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
             if np.any(obj.dtypes == object):
                 # GH#53631
-                if not (self.ndim == 2 and np.all(self.dtypes == object)):
+                if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
                     # don't warn in cases that already raise
                     warnings.warn(
                         f"{type(self).__name__}.interpolate with object dtype is "
@@ -8013,38 +8021,29 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 f"{type(self).__name__}.interpolate"
             )
 
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        axis = self._get_axis_number(axis)
-
-        if self.empty:
-            if inplace:
-                return None
-            return self.copy()
-
-        if isinstance(self.index, MultiIndex) and method != "linear":
+        if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if self.ndim == 2 and np.all(self.dtypes == object):
+        limit_direction = missing.infer_limit_direction(limit_direction, method)
+
+        if obj.ndim == 2 and np.all(obj.dtypes == object):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
-        limit_direction = missing.infer_limit_direction(limit_direction, method)
-
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
             # as of 2023-06-26 no tests get here with either
             if not self._mgr.is_single_block and axis == 1:
+                # GH#53898
                 if inplace:
                     raise NotImplementedError()
                 obj, axis, should_transpose = self.T, 1 - axis, True
-            else:
-                obj, should_transpose = self, False
 
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
@@ -8055,7 +8054,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            # obj, should_transpose are already set
             index = missing.get_interp_index(method, obj.index)
             new_data = obj._mgr.interpolate(
                 method=method,
