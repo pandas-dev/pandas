@@ -87,7 +87,7 @@ def test_custom_grouper(index, unit):
     expect = Series(arr, index=idx)
 
     # GH2763 - return input dtype if we can
-    result = g.agg(np.sum)
+    result = g.agg("sum")
     tm.assert_series_equal(result, expect)
 
 
@@ -95,7 +95,7 @@ def test_custom_grouper_df(index, unit):
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype="float64")
-    r = df.groupby(b).agg(np.sum)
+    r = df.groupby(b).agg("sum")
 
     assert len(r.columns) == 10
     assert len(r.index) == 2593
@@ -1847,7 +1847,9 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.prod)
+    msg = "using DatetimeIndexResampler.prod"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(

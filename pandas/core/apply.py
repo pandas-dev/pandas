@@ -170,6 +170,7 @@ class Apply(metaclass=abc.ABCMeta):
         if callable(func):
             f = com.get_cython_func(func)
             if f and not args and not kwargs:
+                warn_alias_replacement(obj, func, f)
                 return getattr(obj, f)()
 
         # caller can react
@@ -280,6 +281,7 @@ class Apply(metaclass=abc.ABCMeta):
         if not args and not kwargs:
             f = com.get_cython_func(func)
             if f:
+                warn_alias_replacement(obj, func, f)
                 return getattr(obj, f)()
 
         # Two possible ways to use a UDF - apply or call directly
@@ -1695,3 +1697,23 @@ def validate_func_kwargs(
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
+
+
+def warn_alias_replacement(
+    obj: AggObjType,
+    func: Callable,
+    alias: str,
+) -> None:
+    if alias.startswith("np."):
+        full_alias = alias
+    else:
+        full_alias = f"{type(obj).__name__}.{alias}"
+        alias = f"'{alias}'"
+    warnings.warn(
+        f"The provided callable {func} is currently using "
+        f"{full_alias}. In a future version of pandas, "
+        f"the provided callable will be used directly. To keep current "
+        f"behavior pass {alias} instead.",
+        category=FutureWarning,
+        stacklevel=find_stack_level(),
+    )
