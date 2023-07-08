@@ -8052,6 +8052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     stacklevel=find_stack_level(),
                 )
             index = missing.get_interp_index(method, obj.index)
+
             new_data = obj._mgr.interpolate(
                 method=method,
                 index=index,
