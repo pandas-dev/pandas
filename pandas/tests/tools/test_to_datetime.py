@@ -957,7 +957,7 @@ class TestToDatetime:
         if arg_class is Series:
             tm.assert_series_equal(result, expected)
         else:
-            tm.assert_index_equal(result, expected, exact=False)
+            tm.assert_index_equal(result, expected)
 
     def test_to_datetime_pydatetime(self):
         actual = to_datetime(datetime(2008, 1, 15))
