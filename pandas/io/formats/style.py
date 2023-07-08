@@ -246,8 +246,7 @@ class Styler(StylerRenderer):
     >>> pd.io.formats.style.Styler(df, precision=2,
     ...                            caption="My table")  # doctest: +SKIP
 
-    Please see:
-        :ref:`Table Visualization for more examples <style.html>`.
+    Please see :ref:`Table Visualization <style.ipynb>` for more examples.
     """
 
     def __init__(
@@ -3510,8 +3509,7 @@ class Styler(StylerRenderer):
         >>> EasyStyler = Styler.from_custom_template(path, file)  # doctest: +SKIP
         >>> HTML(EasyStyler(df).to_html(table_title="Another Title"))  # doctest: +SKIP
 
-        Please see:
-        :ref:`Table Visualization for more examples <style.html.Subclassing`.
+        Please see :ref:`Table Visualization <style.ipynb>` for more examples.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 
