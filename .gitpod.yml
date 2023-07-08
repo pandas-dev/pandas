@@ -3,7 +3,8 @@
 # https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
 # -------------------------------------------------------------------------
 
-# assuming we use dockerhub: name of the docker user, docker image, tag, e.g. https://hub.docker.com/r/pandas/pandas-gitpod/tags
+# images for gitpod pandas are in https://hub.docker.com/r/pandas/pandas-gitpod/tags
+# we're using the Dockerfile in the base of the repo
 image:
   file: Dockerfile
 tasks:
@@ -37,17 +38,18 @@ vscode:
 
 # --------------------------------------------------------
 # using prebuilds for the container
-# With this configuration the prebuild will happen on push to main
+# With this configuration the prebuild will happen on push to main, branches,
+# pull requests, and pull requests from forks
 github:
   prebuilds:
     # enable for main/default branch
     main: true
     # enable for other branches (defaults to false)
-    branches: false
+    branches: true
     # enable for pull requests coming from this repo (defaults to true)
-    pullRequests: false
+    pullRequests: true
     # enable for pull requests coming from forks (defaults to false)
-    pullRequestsFromForks: false
+    pullRequestsFromForks: true
     # add a check to pull requests (defaults to true)
     addCheck: false
     # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
