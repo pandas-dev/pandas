@@ -154,6 +154,29 @@ def get_lzma_file() -> type[pandas.compat.compressors.LZMAFile]:
     return pandas.compat.compressors.LZMAFile
 
 
+def get_bz2_file() -> type[pandas.compat.compressors.BZ2File]:
+    """
+    Importing the `BZ2File` class from the `bz2` module.
+
+    Returns
+    -------
+    class
+        The `BZ2File` class from the `bz2` module.
+
+    Raises
+    ------
+    RuntimeError
+        If the `bz2` module was not imported correctly, or didn't exist.
+    """
+    if not pandas.compat.compressors.has_bz2:
+        raise RuntimeError(
+            "bz2 module not available. "
+            "A Python re-install with the proper dependencies, "
+            "might be required to solve this issue."
+        )
+    return pandas.compat.compressors.BZ2File
+
+
 __all__ = [
     "is_numpy_dev",
     "pa_version_under7p0",
