@@ -51,6 +51,7 @@ PRIVATE_IMPORTS_TO_IGNORE: Set[str] = {
     "_arrow_dtype_mapping",
     "_global_config",
     "_chained_assignment_msg",
+    "_chained_assignment_method_msg",
 }
 
 

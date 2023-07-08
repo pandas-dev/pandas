@@ -1383,7 +1383,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
-            assert self.ndim == 1
             ref: DataFrame = cacher[1]()
 
             # we are trying to reference a dead referent, hence
@@ -1406,10 +1405,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # Unsorted
-
-    @property
-    def _is_mixed_type(self) -> bool:
-        return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
         """
@@ -2783,6 +2778,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
+        Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+        ``corr()`` automatically considers values with matching indices.
+
         Examples
         --------
         >>> def histogram_intersection(a, b):
@@ -2792,6 +2790,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s2 = pd.Series([.3, .6, .0, .1])
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
+
+        Pandas auto-aligns the values with matching indices
+
+        >>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
+        >>> s1.corr(s2)
+        -1.0
         """  # noqa: E501
         this, other = self.align(other, join="inner", copy=False)
         if len(this) == 0:
