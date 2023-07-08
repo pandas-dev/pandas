@@ -171,14 +171,18 @@ def generate_numba_apply_func(
 
         not_indexed_same = False
         results = []
+
+        values = df.values
+        index = df.index._data
+
         for i in numba.prange(num_groups):
             # TODO: Use iloc once that is supported
             # group_result = func(df.iloc[starts[i] : ends[i]])
             group = pd.DataFrame(
-                df.values[starts[i] : ends[i]],
-                index=pd.Index(df.index._data[starts[i] : ends[i]]),
+                values[starts[i] : ends[i]],
+                index=pd.Index(index[starts[i] : ends[i]]),
             )
-            group_result = numba_func(group)
+            group_result = numba_func(group, *args)
 
             if not not_indexed_same:
                 if np.isscalar(group_result):
