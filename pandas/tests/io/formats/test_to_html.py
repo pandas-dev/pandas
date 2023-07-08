@@ -900,8 +900,28 @@ def test_to_html_float_format_object_col(datapath):
 
 def test_to_html_multiindex_col_with_colspace(datapath):
     # GH#53885
-    df = DataFrame([[1, 2], [3, 4]])
+    df = DataFrame([[1, 2]])
     df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
     result = df.to_html(col_space=100)
-    expected = expected_html(datapath, "gh53885_expected_output")
+    expected = '<table border="1" class="dataframe">\n'
+    expected += "  <thead>\n"
+    expected += "    <tr>\n"
+    expected += '      <th style="min-width: 100px;"></th>\n'
+    expected += '      <th style="min-width: 100px;">1</th>\n'
+    expected += '      <th style="min-width: 100px;">2</th>\n'
+    expected += "    </tr>\n"
+    expected += "    <tr>\n"
+    expected += '      <th style="min-width: 100px;"></th>\n'
+    expected += '      <th style="min-width: 100px;">1</th>\n'
+    expected += '      <th style="min-width: 100px;">1</th>\n'
+    expected += "    </tr>\n"
+    expected += "  </thead>\n"
+    expected += "  <tbody>\n"
+    expected += "    <tr>\n"
+    expected += "      <th>0</th>\n"
+    expected += "      <td>1</td>\n"
+    expected += "      <td>2</td>\n"
+    expected += "    </tr>\n"
+    expected += "  </tbody>\n"
+    expected += "</table>"
     assert result == expected
