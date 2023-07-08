@@ -7985,6 +7985,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         fillna_methods = ["ffill", "bfill", "pad", "backfill"]
         if method.lower() in fillna_methods:
             # GH#53581
+            # postpone setting obj, should_transpose
             warnings.warn(
                 f"{type(self).__name__}.interpolate with method={method} is "
                 "deprecated and will raise in a future version. "
@@ -7992,6 +7993,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+        else:
+            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
+            if np.any(obj.dtypes == object):
+                # GH#53631
+                if not (self.ndim == 2 and np.all(self.dtypes == object)):
+                    # don't warn in cases that already raise
+                    warnings.warn(
+                        f"{type(self).__name__}.interpolate with object dtype is "
+                        "deprecated and will raise in a future version. Call "
+                        "obj.infer_objects(copy=False) before interpolating instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         if "fill_value" in kwargs:
             raise ValueError(
@@ -8012,7 +8026,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "Only `method=linear` interpolation is supported on MultiIndexes."
             )
 
-        if self.ndim == 2 and np.all(self.dtypes == np.dtype("object")):
+        if self.ndim == 2 and np.all(self.dtypes == object):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
@@ -8041,18 +8055,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 downcast=downcast,
             )
         else:
-            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
-            if np.any(obj.dtypes == object):
-                # GH#53631
-                warnings.warn(
-                    f"{type(self).__name__}.interpolate with object dtype is "
-                    "deprecated and will raise in a future version. Call "
-                    "obj.infer_objects(copy=False) before interpolating instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            # obj, should_transpose are already set
             index = missing.get_interp_index(method, obj.index)
-
             new_data = obj._mgr.interpolate(
                 method=method,
                 index=index,
