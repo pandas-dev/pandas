@@ -46,11 +46,11 @@ github:
     # enable for main/default branch
     main: true
     # enable for other branches (defaults to false)
-    branches: true
+    branches: false
     # enable for pull requests coming from this repo (defaults to true)
     pullRequests: true
     # enable for pull requests coming from forks (defaults to false)
-    pullRequestsFromForks: true
+    pullRequestsFromForks: false
     # add a check to pull requests (defaults to true)
     addCheck: false
     # add a "Review in Gitpod" button as a comment to pull requests (defaults to false)
