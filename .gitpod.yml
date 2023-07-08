@@ -39,8 +39,7 @@ vscode:
 
 # --------------------------------------------------------
 # using prebuilds for the container
-# With this configuration the prebuild will happen on push to main, branches,
-# pull requests, and pull requests from forks
+# With this configuration the prebuild will happen on push to main
 github:
   prebuilds:
     # enable for main/default branch
