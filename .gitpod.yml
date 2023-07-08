@@ -11,10 +11,10 @@ tasks:
     init: |
       mkdir -p .vscode
       cp gitpod/settings.json .vscode/settings.json
-      conda activate pandas-dev
       git fetch --tags
       python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
       pre-commit install
+      echo "✨ Pre-build complete! You can close this terminal ✨ "
 
 # --------------------------------------------------------
 # exposing ports for liveserve
