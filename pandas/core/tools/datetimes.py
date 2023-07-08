@@ -354,7 +354,7 @@ def _return_parsed_timezone_results(
     if len(non_na_timezones) > 1:
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise a warning unless `utc=True`. Please specify `utc=True "
+            "zones will raise a warning unless `utc=True`. Please specify `utc=True` "
             "to opt in to the new behaviour and silence this warning.",
             FutureWarning,
             stacklevel=find_stack_level(),
@@ -761,6 +761,13 @@ def to_datetime(
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
 
+        .. warning::
+
+            In a future version of pandas, parsing datetimes with mixed time
+            zones will raise a warning unless `utc=True`.
+            Please specify `utc=True` to opt in to the new behaviour
+            and silence this warning.
+
         See also: pandas general documentation about `timezone conversion and
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
@@ -977,11 +984,17 @@ def to_datetime(
 
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
-      are **not successfully converted** to a :class:`DatetimeIndex`. Instead a
-      simple :class:`Index` containing :class:`datetime.datetime` objects is
-      returned:
+      are **not successfully converted** to a :class:`DatetimeIndex`.
+      Parsing datetimes with mixed time zones will raise a warning unless
+      `utc=True`. If you specify `utc=False` the warning below will be raised
+      and a simple :class:`Index` containing :class:`datetime.datetime`
+      objects will be returned:
 
-    >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
+    >>> pd.to_datetime(['2020-10-25 02:00 +0200',
+    ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
+    FutureWarning: In a future version of pandas, parsing datetimes with mixed
+    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    to opt in to the new behaviour and silence this warning.
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
@@ -989,7 +1002,11 @@ def to_datetime(
       a simple :class:`Index` containing :class:`datetime.datetime` objects:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)])
+    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
+    ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
+    FutureWarning: In a future version of pandas, parsing datetimes with mixed
+    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    to opt in to the new behaviour and silence this warning.
     Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
     |
