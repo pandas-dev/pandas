@@ -77,10 +77,10 @@ def test_agg_datetimes_mixed():
     )
 
     df1["weights"] = df1["value"] / df1["value"].sum()
-    gb1 = df1.groupby("date").aggregate(np.sum)
+    gb1 = df1.groupby("date").aggregate("sum")
 
     df2["weights"] = df1["value"] / df1["value"].sum()
-    gb2 = df2.groupby("date").aggregate(np.sum)
+    gb2 = df2.groupby("date").aggregate("sum")
 
     assert len(gb1) == len(gb2)
 
@@ -191,12 +191,12 @@ def test_aggregate_api_consistency():
     expected.columns = ["sum", "mean"]
     tm.assert_frame_equal(result, expected, check_like=True)
 
-    result = grouped.agg([np.sum, np.mean])
+    result = grouped.agg(["sum", "mean"])
     expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
-    result = grouped[["D", "C"]].agg([np.sum, np.mean])
+    result = grouped[["D", "C"]].agg(["sum", "mean"])
     expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
     expected.columns = MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -211,7 +211,7 @@ def test_aggregate_api_consistency():
 
     msg = r"Column\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
+        grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
 
 def test_agg_dict_renaming_deprecation():
@@ -299,7 +299,7 @@ def test_series_agg_multikey():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
-    result = grouped.agg(np.sum)
+    result = grouped.agg("sum")
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
 
@@ -406,9 +406,12 @@ def test_agg_callables():
         fn_class(),
     ]
 
-    expected = df.groupby("foo").agg(sum)
+    expected = df.groupby("foo").agg("sum")
     for ecall in equiv_callables:
-        result = df.groupby("foo").agg(ecall)
+        warn = FutureWarning if ecall is sum or ecall is np.sum else None
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.groupby("foo").agg(ecall)
         tm.assert_frame_equal(result, expected)
 
 
@@ -476,7 +479,7 @@ def test_agg_timezone_round_trip():
     ts = pd.Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
     df = DataFrame({"a": 1, "b": [ts + dt.timedelta(minutes=nn) for nn in range(10)]})
 
-    result1 = df.groupby("a")["b"].agg(np.min).iloc[0]
+    result1 = df.groupby("a")["b"].agg("min").iloc[0]
     result2 = df.groupby("a")["b"].agg(lambda x: np.min(x)).iloc[0]
     result3 = df.groupby("a")["b"].min().iloc[0]
 
@@ -580,7 +583,9 @@ def test_agg_category_nansum(observed):
     df = DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
-    result = df.groupby("A", observed=observed).B.agg(np.nansum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),

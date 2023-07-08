@@ -85,12 +85,14 @@ def test_agg(step):
     b_mean = r["B"].mean()
     b_std = r["B"].std()
 
-    result = r.aggregate([np.mean, np.std])
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
+        result = r.aggregate([np.mean, np.std])
     expected = concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = MultiIndex.from_product([["A", "B"], ["mean", "std"]])
     tm.assert_frame_equal(result, expected)
 
-    result = r.aggregate({"A": np.mean, "B": np.std})
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[mean|std]"):
+        result = r.aggregate({"A": np.mean, "B": np.std})
 
     expected = concat([a_mean, b_std], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -143,7 +145,8 @@ def test_agg_apply(raw):
     r = df.rolling(window=3)
     a_sum = r["A"].sum()
 
-    result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|std]"):
+        result = r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
     rcustom = r["B"].apply(lambda x: np.std(x, ddof=1), raw=raw)
     expected = concat([a_sum, rcustom], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -153,15 +156,18 @@ def test_agg_consistency(step):
     df = DataFrame({"A": range(5), "B": range(0, 10, 2)})
     r = df.rolling(window=3, step=step)
 
-    result = r.agg([np.sum, np.mean]).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r.agg([np.sum, np.mean]).columns
     expected = MultiIndex.from_product([list("AB"), ["sum", "mean"]])
     tm.assert_index_equal(result, expected)
 
-    result = r["A"].agg([np.sum, np.mean]).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r["A"].agg([np.sum, np.mean]).columns
     expected = Index(["sum", "mean"])
     tm.assert_index_equal(result, expected)
 
-    result = r.agg({"A": [np.sum, np.mean]}).columns
+    with tm.assert_produces_warning(FutureWarning, match="using Rolling.[sum|mean]"):
+        result = r.agg({"A": [np.sum, np.mean]}).columns
     expected = MultiIndex.from_tuples([("A", "sum"), ("A", "mean")])
     tm.assert_index_equal(result, expected)
 

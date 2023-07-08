@@ -401,6 +401,7 @@ def test_agg():
 
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
+    msg = "using SeriesGroupBy.[mean|std]"
     for t in cases:
         # In case 2, "date" is an index and a column, so get included in the agg
         if t == cases[2]:
@@ -410,21 +411,26 @@ def test_agg():
             exp.columns = pd.MultiIndex.from_product(
                 [["date", "A", "B"], ["mean", "std"]]
             )
-            result = t.aggregate([np.mean, np.std])
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, exp)
         else:
-            result = t.aggregate([np.mean, np.std])
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
-        result = t.aggregate({"A": np.mean, "B": np.std})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate({"A": np.mean, "B": np.std})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.aggregate(A=("A", np.mean), B=("B", np.std))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate(A=("A", np.mean), B=("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
@@ -501,18 +507,22 @@ def test_agg_misc():
     ]
 
     # passed lambda
+    msg = "using SeriesGroupBy.sum"
     for t in cases:
-        result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
         rcustom = t["B"].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.agg(
-            A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg(
+                A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
+            )
         tm.assert_frame_equal(result, expected, check_like=True)
 
     # agg with renamers
