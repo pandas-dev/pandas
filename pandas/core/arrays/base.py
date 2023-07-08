@@ -517,9 +517,6 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
-
-        Since Extension Arrays are only allowed to be 1-dimensional,
-        the shape would be ``(len(self),)``.
         """
         return (len(self),)
 
