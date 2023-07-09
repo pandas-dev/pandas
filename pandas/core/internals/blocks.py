@@ -460,7 +460,7 @@ class Block(PandasObject):
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
         new_values = maybe_coerce_values(new_values)
-        refs = self.refs if using_cow and new_values is self.values else None
+        refs = self.refs if new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
     @final
@@ -503,7 +503,7 @@ class Block(PandasObject):
         refs = None
         if copy and res_values is values:
             res_values = values.copy()
-        elif res_values is values and using_cow:
+        elif res_values is values:
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -551,7 +551,7 @@ class Block(PandasObject):
         new_values = maybe_coerce_values(new_values)
 
         refs = None
-        if using_cow and astype_is_view(values.dtype, new_values.dtype):
+        if (using_cow or not copy) and astype_is_view(values.dtype, new_values.dtype):
             refs = self.refs
 
         newb = self.make_block(new_values, refs=refs)

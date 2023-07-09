@@ -890,7 +890,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+        if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)  # type: ignore[arg-type]

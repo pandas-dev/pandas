@@ -786,8 +786,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self._values.swapaxes(i, j)  # type: ignore[union-attr]
         if (
-            using_copy_on_write()
-            and self._mgr.is_single_block
+            self._mgr.is_single_block
             and isinstance(self._mgr, BlockManager)
         ):
             # This should only get hit in case of having a single block, otherwise a
