@@ -1,0 +1,41 @@
+.. _whatsnew_204:
+
+What's new in 2.0.4 (August ??, 2023)
+---------------------------------------
+
+These are the changes in pandas 2.0.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_204.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_204.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_204.other:
+
+Other
+~~~~~
+-
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_204.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.0.3..v2.0.4|HEAD
