@@ -333,8 +333,7 @@ def test_replace_list_multiple_elements_inplace(using_copy_on_write):
     arr = get_array(df, "a")
     df.replace([1, 2], 4, inplace=True)
     if using_copy_on_write:
-        # TODO(CoW): This should share memory
-        assert not np.shares_memory(arr, get_array(df, "a"))
+        assert np.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
     else:
         assert np.shares_memory(arr, get_array(df, "a"))
