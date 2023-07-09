@@ -1987,6 +1987,7 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
+    pd.options.mode.copy_on_write = True
     return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
 
 
