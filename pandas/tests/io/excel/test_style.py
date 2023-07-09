@@ -36,7 +36,7 @@ def assert_equal_cell_styles(cell1, cell2):
     "engine",
     ["xlsxwriter", "openpyxl"],
 )
-def test_styler_to_excel_unstyled(engine):
+def test_styler_to_excel_nostyle(engine):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(2, 2))
@@ -256,6 +256,54 @@ def test_styler_to_excel_border_style(engine, border_style):
 
 
 def test_styler_update_values():
+    # GH 53973
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+    style = {
+        "font": {"bold": True},
+        "borders": {
+            "top": "thin",
+            "right": "thin",
+            "bottom": "thin",
+            "left": "thin",
+        },
+        "alignment": {"horizontal": "center", "vertical": "top"},
+    }
+
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine="openpyxl") as writer:
+            # write to sheet 'custom'
+            pd.io.formats.excel.ExcelFormatter.header_style = style
+            pd.io.formats.excel.ExcelFormatter.body_style = style
+            df.to_excel(writer, sheet_name="custom")
+
+            # write to sheet 'default'
+            pd.io.formats.excel.ExcelFormatter.header_style = None
+            pd.io.formats.excel.ExcelFormatter.body_style = None
+            df.to_excel(writer, sheet_name="default")
+
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            # Check font, spacing, indentation
+            assert wb["custom"].cell(1, 2).font.bold is True
+            assert wb["custom"].cell(1, 2).alignment.horizontal == "center"
+            assert wb["custom"].cell(1, 2).alignment.vertical == "top"
+            assert wb["default"].cell(1, 2).font.bold is False
+            assert wb["default"].cell(1, 2).alignment.horizontal is None
+            assert wb["default"].cell(1, 2).alignment.vertical is None
+
+            # Check border
+            assert wb["custom"].cell(1, 2).border.bottom.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.top.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.left.border_style == "thin"
+            assert wb["custom"].cell(1, 2).border.right.border_style == "thin"
+            assert wb["default"].cell(1, 2).border.bottom.border_style is None
+            assert wb["default"].cell(1, 2).border.top.border_style is None
+            assert wb["default"].cell(1, 2).border.left.border_style is None
+            assert wb["default"].cell(1, 2).border.right.border_style is None
+
+
+def test_styler_custom_values():
+    # GH 53973
     openpyxl = pytest.importorskip("openpyxl")
     pd.io.formats.excel.ExcelFormatter.header_style = {
         "font": {"bold": True},
@@ -268,6 +316,17 @@ def test_styler_update_values():
         "alignment": {"horizontal": "center", "vertical": "top"},
     }
 
+    pd.io.formats.excel.ExcelFormatter.body_style = {
+        "font": {"bold": False},
+        "borders": {
+            "top": "thin",
+            "right": "thin",
+            "bottom": "thin",
+            "left": "thin",
+        },
+        "alignment": {"horizontal": "right", "vertical": "top"},
+    }
+
     df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
@@ -276,18 +335,25 @@ def test_styler_update_values():
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
             # Check font, spacing, indentation
             assert wb["custom"].cell(1, 2).font.bold is True
+            assert wb["custom"].cell(2, 2).font.bold is False
             assert wb["custom"].cell(1, 2).alignment.horizontal == "center"
             assert wb["custom"].cell(1, 2).alignment.vertical == "top"
+            assert wb["custom"].cell(2, 2).alignment.horizontal == "right"
+            assert wb["custom"].cell(2, 2).alignment.vertical == "top"
 
             # Check border
-            wb["custom"].cell(1, 2).border
             assert wb["custom"].cell(1, 2).border.bottom.border_style == "thin"
             assert wb["custom"].cell(1, 2).border.top.border_style == "thin"
             assert wb["custom"].cell(1, 2).border.left.border_style == "thin"
             assert wb["custom"].cell(1, 2).border.right.border_style == "thin"
+            assert wb["custom"].cell(2, 2).border.bottom.border_style == "thin"
+            assert wb["custom"].cell(2, 2).border.top.border_style == "thin"
+            assert wb["custom"].cell(2, 2).border.left.border_style == "thin"
+            assert wb["custom"].cell(2, 2).border.right.border_style == "thin"
 
 
 def test_styler_default_values():
+    # GH 53973
     openpyxl = pytest.importorskip("openpyxl")
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
@@ -297,13 +363,11 @@ def test_styler_default_values():
 
         with contextlib.closing(openpyxl.load_workbook(path)) as wb:
             # Check font, spacing, indentation
-            assert wb["custom"].cell(1, 1).font.color.value == 1
+            assert wb["custom"].cell(1, 1).font.bold is False
             assert wb["custom"].cell(1, 1).alignment.horizontal is None
             assert wb["custom"].cell(1, 1).alignment.vertical is None
-            assert wb["custom"].cell(1, 1).alignment.indent == 0.0
 
             # Check border
-            wb["custom"].cell(1, 1).border
             assert wb["custom"].cell(1, 1).border.bottom.color is None
             assert wb["custom"].cell(1, 1).border.top.color is None
             assert wb["custom"].cell(1, 1).border.left.color is None

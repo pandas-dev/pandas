@@ -3881,6 +3881,19 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
+The styling and formatting of a worksheet's header and body can be easily customized using CSS by passing a dictionary object to
+``pd.io.formats.excel.ExcelFormatter.header_style`` and ``pd.io.formats.excel.ExcelFormatter.body_style``.
+
+.. code-block:: python
+
+    # Set Excel worksheet header and body style
+    >>> df = pd.DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+    >>> pd.io.formats.excel.ExcelFormatter.header_style = {"font": {"bold": True},}
+    >>> pd.io.formats.excel.ExcelFormatter.body_style = {
+    ... "font": {"bold": True},"alignment": {"horizontal": "center", "vertical": "top"},
+    ... }
+    >>> df.to_excel("path_to_file.xlsx", "Sheet1", index=False)
+
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
 `Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html

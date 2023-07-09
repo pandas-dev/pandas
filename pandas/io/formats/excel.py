@@ -883,7 +883,7 @@ class ExcelFormatter:
                     row=self.rowcounter + i,
                     col=colidx + coloffset,
                     val=val,
-                    style=None,
+                    style=self.body_style,
                     css_styles=getattr(self.styler, "ctx", None),
                     css_row=i,
                     css_col=colidx,
