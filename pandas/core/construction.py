@@ -384,9 +384,9 @@ def array(
     elif lib.is_np_dtype(dtype, "mM"):
         warnings.warn(
             r"datetime64 and timedelta64 dtype resolutions other than "
-            r"'s', 'ms','us', and 'ns' are deprecated. "
+            r"'s', 'ms', 'us', and 'ns' are deprecated. "
             r"In future releases passing unsupported resolutions will "
-            r"raise an exception. ",
+            r"raise an exception.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
