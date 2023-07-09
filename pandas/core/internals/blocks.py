@@ -641,7 +641,7 @@ class Block(PandasObject):
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
             if using_cow:
-                return [self.copy(deep=False)]
+                return [self]
             else:
                 return [self] if inplace else [self.copy()]
 
@@ -651,7 +651,7 @@ class Block(PandasObject):
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
             if using_cow:
-                return [self.copy(deep=False)]
+                return [self]
             else:
                 return [self] if inplace else [self.copy()]
 
@@ -768,7 +768,7 @@ class Block(PandasObject):
         ]
         if not len(pairs):
             if using_cow:
-                return [self.copy(deep=False)]
+                return [self]
             # shortcut, nothing to replace
             return [self] if inplace else [self.copy()]
 
@@ -797,7 +797,7 @@ class Block(PandasObject):
         if inplace:
             masks = list(masks)
 
-        if using_cow and inplace:
+        if using_cow:
             # Don't set up refs here, otherwise we will think that we have
             # references when we check again later
             rb = [self]
@@ -894,7 +894,7 @@ class Block(PandasObject):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self.copy(deep=False)]
+                    return [self]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,

@@ -373,3 +373,38 @@ def test_replace_columnwise_no_op(using_copy_on_write):
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     df2.iloc[0, 0] = 100
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_replace_listlike(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df_orig = df.copy()
+
+    result = df.replace([200, 201], [11, 11])
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+
+    result.iloc[0, 0] = 100
+    tm.assert_frame_equal(df, df)
+
+    result = df.replace([200, 2], [10, 10])
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_replace_listlike_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    arr = get_array(df, "a")
+    df.replace([200, 2], [10, 11], inplace=True)
+    assert np.shares_memory(get_array(df, "a"), arr)
+
+    view = df[:]
+    df_orig = df.copy()
+    df.replace([200, 3], [10, 11], inplace=True)
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), arr)
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "a"), arr)
+        tm.assert_frame_equal(df, view)
