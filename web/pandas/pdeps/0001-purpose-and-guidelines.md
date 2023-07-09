@@ -58,7 +58,7 @@ advisor on the PDEP when it is submitted to the PDEP repository.
 
 #### Rationale
 
-Our workflow was created to support and enable a consensus seeking process, and to provide clarify,
+Our workflow was created to support and enable a consensus seeking process, and to provide clarity,
 for current and future authors, as well as voting members. It is not a strict policy, and we
 discourage any interpretation which seeks to take advantage of it in a way that could "force" or
 "sneak" decisions in one way or another. We expect and encourage transparency, active discussion,
@@ -99,7 +99,7 @@ E-mail:
 - Once a PDEP is ready for discussion.
 - After 30 discussion days, with 30 days remaining for discussion.
 - After 45 discussion days, with 15 days remaining for discussion.
-- In case 15 days passed without any new comments, the authors may close the discussion period
+- In case 15 days passed without any new unaddressed comments, the authors may close the discussion period
   preemptively, and open the voting period.
 - Once the voting period starts, after 60 days or in case of an earlier vote, with 15 days
   remaining for voting.
@@ -108,7 +108,7 @@ E-mail:
 #### Casting Votes
 
 As the voting period starts, a VOTE issue is created which links to the PDEP discussion pull request.
-Each voting member, including the author(s) may cast a vote by adding one of the following comments:
+Each voting member, including author(s) with voting rights, may cast a vote by adding one of the following comments:
 
 - +1: approve.
 - 0: abstain.
