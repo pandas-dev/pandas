@@ -38,7 +38,7 @@ vscode:
     # avoid adding too many. they each open a pop-up window
 
 # --------------------------------------------------------
-# using prebuilds for the container
+# Using prebuilds for the container
 # With this configuration the prebuild will happen on push to main
 github:
   prebuilds:
