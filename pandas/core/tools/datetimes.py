@@ -404,7 +404,6 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        arg_dtype = cast(np.dtype, arg_dtype)
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(

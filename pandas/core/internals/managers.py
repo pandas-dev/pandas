@@ -1607,11 +1607,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if na_value is not lib.no_default:
                 # We want to copy when na_value is provided to avoid
                 # mutating the original object
-                if (
-                    isinstance(blk.dtype, np.dtype)
-                    and blk.dtype.kind == "f"
-                    and passed_nan
-                ):
+                if lib.is_np_dtype(blk.dtype, "f") and passed_nan:
                     # We are already numpy-float and na_value=np.nan
                     pass
                 else:

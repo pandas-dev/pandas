@@ -387,6 +387,16 @@ class TestSeriesReplace:
             expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "data, data_exp", [(["a", "b", "c"], ["b", "b", "c"]), (["a"], ["b"])]
+    )
+    def test_replace_categorical_inplace(self, data, data_exp):
+        # GH 53358
+        result = pd.Series(data, dtype="category")
+        result.replace(to_replace="a", value="b", inplace=True)
+        expected = pd.Series(data_exp, dtype="category")
+        tm.assert_series_equal(result, expected)
+
     def test_replace_categorical_single(self):
         # GH 26988
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")

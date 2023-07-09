@@ -364,19 +364,9 @@ def array(
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if (
-        lib.is_np_dtype(dtype, "M")
-        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
-        # "Optional[dtype[Any]]"; expected "dtype[Any]"
-        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
-    ):
+    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    if (
-        lib.is_np_dtype(dtype, "m")
-        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
-        # "Optional[dtype[Any]]"; expected "dtype[Any]"
-        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
-    ):
+    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)

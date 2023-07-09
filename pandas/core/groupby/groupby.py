@@ -96,6 +96,7 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
+from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     BaseMaskedArray,
     Categorical,
@@ -1677,7 +1678,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[orig_func]
+            warn_alias_replacement(self, orig_func, alias)
 
         if isinstance(func, str):
             if hasattr(self, func):
@@ -1880,7 +1885,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         # optimized transforms
+        orig_func = func
         func = com.get_cython_func(func) or func
+        if orig_func != func:
+            warn_alias_replacement(self, orig_func, func)
 
         if not isinstance(func, str):
             return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
@@ -2795,6 +2803,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1    1.5  4.5
         2    0.5  2.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
@@ -2851,6 +2873,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1    2
         7    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        dtype: int64
+        >>> ser.resample('MS').size()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         result = self.grouper.size()
 
@@ -3303,6 +3339,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             open high  low close open high  low close
         CAC  2.3  4.5  1.0   1.0  9.0  9.4  1.0   1.0
         SPX  1.2  8.9  1.2   2.0  3.4  8.8  3.4   8.2
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').ohlc()
+                    open  high  low  close
+        2023-01-01     1     3    1      2
+        2023-02-01     4     5    3      5
         """
         if self.obj.ndim == 1:
             obj = self._selected_obj
@@ -4124,6 +4174,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_bool_dtype(vals.dtype):
+                # GH#51424 deprecate to match Series/DataFrame behavior
+                warnings.warn(
+                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
+                    "deprecated and will raise in a future version, matching "
+                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
+                    "calling quantile instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                out = np.asarray(vals)
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the

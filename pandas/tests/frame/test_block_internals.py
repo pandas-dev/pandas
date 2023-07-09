@@ -7,7 +7,10 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    ChainedAssignmentError,
+    PerformanceWarning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -410,7 +413,11 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
-    df["a"].fillna(1, inplace=True)
+    if using_copy_on_write:
+        with tm.assert_produces_warning(ChainedAssignmentError):
+            df["a"].fillna(1, inplace=True)
+    else:
+        df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
