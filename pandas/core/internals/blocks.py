@@ -642,7 +642,7 @@ class Block(PandasObject):
             # Note: If to_replace were a list, NDFrame.replace would call
             #  replace_list instead of replace.
             if using_cow:
-                return [self]
+                return [self.copy(deep=False)]
             else:
                 return [self] if inplace else [self.copy()]
 
@@ -652,7 +652,7 @@ class Block(PandasObject):
             # Note: we get here with test_replace_extension_other incorrectly
             #  bc _can_hold_element is incorrect.
             if using_cow:
-                return [self]
+                return [self.copy(deep=False)]
             else:
                 return [self] if inplace else [self.copy()]
 
@@ -769,7 +769,7 @@ class Block(PandasObject):
         ]
         if not len(pairs):
             if using_cow:
-                return [self]
+                return [self.copy(deep=False)]
             # shortcut, nothing to replace
             return [self] if inplace else [self.copy()]
 
@@ -801,7 +801,6 @@ class Block(PandasObject):
         if using_cow:
             # Don't set up refs here, otherwise we will think that we have
             # references when we check again later
-            original_ref = weakref.ref(self)
             rb = [self]
         else:
             rb = [self if inplace else self.copy()]
@@ -839,8 +838,7 @@ class Block(PandasObject):
                     # many unnecessary copies
                     for b in result:
                         ref = weakref.ref(b)
-                        if ref != original_ref and ref in b.refs.referenced_blocks:
-                            b.refs.referenced_blocks.pop(b.refs.referenced_blocks.index(ref))
+                        b.refs.referenced_blocks.pop(b.refs.referenced_blocks.index(ref))
 
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back

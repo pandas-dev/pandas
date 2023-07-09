@@ -220,17 +220,13 @@ class DataManager(PandasObject):
         # NDFrame.replace ensures the not-is_list_likes here
         assert not lib.is_list_like(to_replace)
         assert not lib.is_list_like(value)
-        using_cow = using_copy_on_write()
-        result = self.apply_with_block(
+        return self.apply_with_block(
             "replace",
             to_replace=to_replace,
             value=value,
             inplace=inplace,
-            using_cow=using_cow,
+            using_cow=using_copy_on_write(),
         )
-        if using_cow:
-            return result.copy(deep=False)
-        return result
 
     @final
     def replace_regex(self, **kwargs) -> Self:
@@ -248,7 +244,6 @@ class DataManager(PandasObject):
     ) -> Self:
         """do a list replace"""
         inplace = validate_bool_kwarg(inplace, "inplace")
-        using_cow = using_copy_on_write()
 
         bm = self.apply_with_block(
             "replace_list",
@@ -256,11 +251,9 @@ class DataManager(PandasObject):
             dest_list=dest_list,
             inplace=inplace,
             regex=regex,
-            using_cow=using_cow,
+            using_cow=using_copy_on_write(),
         )
         bm._consolidate_inplace()
-        if using_cow:
-            bm = bm.copy(deep=False)
         return bm
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
