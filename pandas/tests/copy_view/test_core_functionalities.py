@@ -78,11 +78,18 @@ def test_delete(using_copy_on_write):
     df = DataFrame(np.random.randn(4, 3), columns=["a", "b", "c"])
     del df["b"]
     if using_copy_on_write:
-        # TODO: This should not have references, delete makes a shallow copy
-        # but keeps the blocks alive
-        assert df._mgr.blocks[0].refs.has_reference()
-        assert df._mgr.blocks[1].refs.has_reference()
+        assert not df._mgr.blocks[0].refs.has_reference()
+        assert not df._mgr.blocks[1].refs.has_reference()
 
     df = df[["a"]]
     if using_copy_on_write:
         assert not df._mgr.blocks[0].refs.has_reference()
+
+
+def test_delete_reference(using_copy_on_write):
+    df = DataFrame(np.random.randn(4, 3), columns=["a", "b", "c"])
+    view = df[:]
+    del df["b"]
+    if using_copy_on_write:
+        assert df._mgr.blocks[0].refs.has_reference()
+        assert df._mgr.blocks[1].refs.has_reference()

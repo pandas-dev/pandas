@@ -288,7 +288,7 @@ class Block(PandasObject):
 
     @final
     def getitem_block_columns(
-        self, slicer: slice, new_mgr_locs: BlockPlacement
+        self, slicer: slice, new_mgr_locs: BlockPlacement, ref_inplace_op: bool = False
     ) -> Self:
         """
         Perform __getitem__-like, return result as block.
@@ -296,7 +296,8 @@ class Block(PandasObject):
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
+        refs = self.refs if not ref_inplace_op or self.refs.has_reference() else None
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
     def _can_hold_element(self, element: Any) -> bool:
