@@ -2079,6 +2079,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ):
                 arr = arr.view()
                 arr.flags.writeable = False
+            else:
+                arr.flags.writeable = True
         return arr
 
     @final
