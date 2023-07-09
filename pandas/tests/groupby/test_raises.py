@@ -229,7 +229,12 @@ def test_groupby_raises_string_np(
         ),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -333,7 +338,12 @@ def test_groupby_raises_datetime_np(
         np.mean: (None, ""),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -526,7 +536,12 @@ def test_groupby_raises_category_np(
         ),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
