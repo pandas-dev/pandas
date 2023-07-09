@@ -4158,11 +4158,13 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value: Series) -> None:
+    def _iset_item(self, loc: int, value: Series, inplace=True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
-        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        if using_copy_on_write():
+            self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
+        else:
+            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -5480,7 +5482,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res._iset_item(i, newobj)
+                res._iset_item(i, newobj, inplace=inplace)
 
         if inplace:
             return
