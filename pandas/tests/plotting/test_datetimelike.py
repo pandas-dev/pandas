@@ -178,7 +178,6 @@ class TestTSPlot:
         daily = Series(1, index=date_range("2014-01-01", periods=3, freq="D"))
         daily.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
-        tm.close()
 
     @pytest.mark.parametrize("freq", ["S", "T", "H", "D", "W", "M", "Q", "A"])
     def test_line_plot_period_series(self, freq):
@@ -893,7 +892,6 @@ class TestTSPlot:
                 tm.assert_numpy_array_equal(xdata, expected_l)
             else:
                 tm.assert_numpy_array_equal(xdata, expected_h)
-        tm.close()
 
     @pytest.mark.parametrize("kind1, kind2", [("line", "area"), ("area", "line")])
     def test_from_resampling_area_line_mixed(self, kind1, kind2):
@@ -1002,7 +1000,6 @@ class TestTSPlot:
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "L"
-        tm.close()
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760

@@ -60,6 +60,10 @@ def nancorr_spearman(
 # ----------------------------------------------------------------------
 
 def validate_limit(nobs: int | None, limit=...) -> int: ...
+def get_fill_indexer(
+    mask: npt.NDArray[np.bool_],
+    limit: int | None = None,
+) -> npt.NDArray[np.intp]: ...
 def pad(
     old: np.ndarray,  # ndarray[numeric_object_t]
     new: np.ndarray,  # ndarray[numeric_object_t]

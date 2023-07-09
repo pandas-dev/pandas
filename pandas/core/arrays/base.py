@@ -23,7 +23,10 @@ from typing import (
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -824,10 +827,16 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                npvalues = self.astype(object)
-                func(npvalues, limit=limit, mask=mask)
-                new_values = self._from_sequence(npvalues, dtype=self.dtype)
+                meth = missing.clean_fill_method(method)
+
+                npmask = np.asarray(mask)
+                if meth == "pad":
+                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                    return self.take(indexer, allow_fill=True)
+                else:
+                    # i.e. meth == "backfill"
+                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                    return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
                 new_values = self.copy()

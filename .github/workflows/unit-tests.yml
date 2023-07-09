@@ -57,7 +57,15 @@ jobs:
             # Also install zh_CN (its encoding is gb2312) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
-          - name: "Copy-on-Write"
+          - name: "Copy-on-Write 3.9"
+            env_file: actions-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.10"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.11"
             env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
