@@ -898,7 +898,7 @@ def read_xml(
         include http, ftp, s3, and file.
 
         .. deprecated:: 2.1.0
-            Passing html literal strings is deprecated.
+            Passing xml literal strings is deprecated.
             Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
