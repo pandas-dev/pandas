@@ -102,6 +102,7 @@ API changes
   current behavior:
 
   .. ipython:: python
+     :okwarning:
 
      gr.apply(sum)
 

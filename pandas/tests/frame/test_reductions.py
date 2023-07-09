@@ -331,11 +331,14 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Mismatched null-like values:FutureWarning")
     def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
         expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
+        if axis in [1, "columns"] and method in ["min", "max"]:
+            expected[expected.isna()] = None
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -611,16 +614,16 @@ class TestDataFrameAnalytics:
 
         # min
         result = diffs.min()
-        assert result[0] == diffs.loc[0, "A"]
-        assert result[1] == diffs.loc[0, "B"]
+        assert result.iloc[0] == diffs.loc[0, "A"]
+        assert result.iloc[1] == diffs.loc[0, "B"]
 
         result = diffs.min(axis=1)
         assert (result == diffs.loc[0, "B"]).all()
 
         # max
         result = diffs.max()
-        assert result[0] == diffs.loc[2, "A"]
-        assert result[1] == diffs.loc[2, "B"]
+        assert result.iloc[0] == diffs.loc[2, "A"]
+        assert result.iloc[1] == diffs.loc[2, "B"]
 
         result = diffs.max(axis=1)
         assert (result == diffs["A"]).all()
@@ -964,6 +967,18 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmin_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmin(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
@@ -991,6 +1006,18 @@ class TestDataFrameAnalytics:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmax_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmax(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):

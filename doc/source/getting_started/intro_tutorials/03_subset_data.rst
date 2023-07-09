@@ -330,7 +330,7 @@ selection brackets ``[]``.
 
 When selecting specific rows and/or columns with ``loc`` or ``iloc``,
 new values can be assigned to the selected data. For example, to assign
-the name ``anonymous`` to the first 3 elements of the third column:
+the name ``anonymous`` to the first 3 elements of the fourth column:
 
 .. ipython:: python
 

@@ -73,6 +73,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCSeries,
     ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
@@ -83,9 +84,16 @@ from pandas.core.dtypes.missing import (
 
 import pandas.core.algorithms as algos
 from pandas.core.array_algos.putmask import validate_putmask
-from pandas.core.arrays import Categorical
-from pandas.core.arrays.categorical import factorize_from_iterables
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.arrays.categorical import (
+    factorize_from_iterables,
+    recode_for_categories,
+)
 import pandas.core.common as com
+from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
@@ -789,6 +797,23 @@ class MultiIndex(Index):
     def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=['number', 'color'])
+        >>> idx
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+        >>> idx.dtypes
+        number     int64
+        color     object
+        dtype: object
         """
         from pandas import Series
 
@@ -2140,14 +2165,28 @@ class MultiIndex(Index):
         if all(
             (isinstance(o, MultiIndex) and o.nlevels >= self.nlevels) for o in other
         ):
-            arrays, names = [], []
+            codes = []
+            levels = []
+            names = []
             for i in range(self.nlevels):
-                label = self._get_level_values(i)
-                appended = [o._get_level_values(i) for o in other]
-                arrays.append(label.append(appended))
-                single_label_name = all(label.name == x.name for x in appended)
-                names.append(label.name if single_label_name else None)
-            return MultiIndex.from_arrays(arrays, names=names)
+                level_values = self.levels[i]
+                for mi in other:
+                    level_values = level_values.union(mi.levels[i])
+                level_codes = [
+                    recode_for_categories(
+                        mi.codes[i], mi.levels[i], level_values, copy=False
+                    )
+                    for mi in ([self, *other])
+                ]
+                level_name = self.names[i]
+                if any(mi.names[i] != level_name for mi in other):
+                    level_name = None
+                codes.append(np.concatenate(level_codes))
+                levels.append(level_values)
+                names.append(level_name)
+            return MultiIndex(
+                codes=codes, levels=levels, names=names, verify_integrity=False
+            )
 
         to_concat = (self._values,) + tuple(k._values for k in other)
         new_tuples = np.concatenate(to_concat)
@@ -2200,18 +2239,50 @@ class MultiIndex(Index):
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
-        Make new MultiIndex with passed list of codes deleted.
+        Make a new :class:`pandas.MultiIndex` with the passed list of codes deleted.
 
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples when level is not specified.
+            Must be a list of tuples when ``level`` is not specified.
         level : int or level name, default None
         errors : str, default 'raise'
 
         Returns
         -------
         MultiIndex
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=["number", "color"])
+        >>> idx
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+        >>> idx.drop([(1, 'green'), (2, 'purple')])
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1, 'purple'),
+                    (2,  'green')],
+                   names=['number', 'color'])
+
+        We can also drop from a specific level.
+
+        >>> idx.drop('green', level='color')
+        MultiIndex([(0, 'purple'),
+                    (1, 'purple'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+
+        >>> idx.drop([1, 2], level=0)
+        MultiIndex([(0,  'green'),
+                    (0, 'purple')],
+                   names=['number', 'color'])
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
@@ -3404,6 +3475,8 @@ class MultiIndex(Index):
                 new_order = np.arange(n)[indexer]
             elif is_list_like(k):
                 # Generate a map with all level codes as sorted initially
+                if not isinstance(k, (np.ndarray, ExtensionArray, Index, ABCSeries)):
+                    k = sanitize_array(k, None)
                 k = algos.unique(k)
                 key_order_map = np.ones(len(self.levels[i]), dtype=np.uint64) * len(
                     self.levels[i]

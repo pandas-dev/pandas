@@ -15,20 +15,13 @@ default_stages: [
 ci:
     autofix_prs: false
 repos:
--   repo: local
+-   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
+    # black compiled with mypyc
+    rev: 23.3.0
     hooks:
-    # NOTE: we make `black` a local hook because if it's installed from
-    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
-    -   id: black
-        name: black
-        description: "Black: The uncompromising Python code formatter"
-        entry: black
-        language: python
-        require_serial: true
-        types_or: [python, pyi]
-        additional_dependencies: [black==23.3.0]
+      - id: black
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.264
+    rev: v0.0.270
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -65,11 +58,7 @@ repos:
     rev: 1.6.1
     hooks:
     -   id: cpplint
-        # We don't lint all C files because we don't want to lint any that are built
-        # from Cython files nor do we want to lint C files that we didn't modify for
-        # this particular codebase (e.g. src/headers, src/klib). However,
-        # we can lint all header files since they aren't "generated" like C files are.
-        exclude: ^pandas/_libs/src/(klib|headers)/
+        exclude: ^pandas/_libs/include/pandas/vendored/klib
         args: [
             --quiet,
             '--extensions=c,h',
@@ -78,8 +67,8 @@ repos:
             --linelength=88,
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
--   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
+-   repo: https://github.com/pylint-dev/pylint
+    rev: v3.0.0a6
     hooks:
     -   id: pylint
         stages: [manual]
@@ -97,17 +86,12 @@ repos:
             |^pandas/conftest\.py  # keep excluded
         args: [--disable=all, --enable=redefined-outer-name]
         stages: [manual]
-    -   id: pylint
-        alias: unspecified-encoding
-        name: Using open without explicitly specifying an encoding
-        args: [--disable=all, --enable=unspecified-encoding]
-        stages: [manual]
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.2
+    rev: v3.4.0
     hooks:
     -   id: pyupgrade
         args: [--py38-plus]
@@ -343,6 +327,11 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
         types_or: [python, cython]
+    -   id: unwanted-patterns-nodefault-used-not-only-for-typing
+        name: Check that `pandas._libs.lib.NoDefault` is used only for typing
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
+        types: [python]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python

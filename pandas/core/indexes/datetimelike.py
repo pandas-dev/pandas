@@ -18,6 +18,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
 from pandas._libs import (
     NaT,
     Timedelta,
@@ -431,6 +433,26 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx
+        DatetimeIndex(['2020-01-02 01:02:03.004005006'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.as_unit('s')
+        DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
+
+        For :class:`pandas.TimedeltaIndex`:
+
+        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.as_unit('s')
+        TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
         return type(self)._simple_new(arr, name=self.name)
@@ -442,7 +464,11 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
-        return self._data._ndarray
+        data = self._data._ndarray
+        if using_copy_on_write():
+            data = data.view()
+            data.flags.writeable = False
+        return data
 
     @doc(DatetimeIndexOpsMixin.shift)
     def shift(self, periods: int = 1, freq=None) -> Self:

@@ -243,6 +243,9 @@ def _maybe_cache(
         if not should_cache(arg):
             return cache_array
 
+        if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
+            arg = np.array(arg)
+
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
@@ -401,7 +404,6 @@ def _convert_listlike_datetimes(
         return arg
 
     elif lib.is_np_dtype(arg_dtype, "M"):
-        arg_dtype = cast(np.dtype, arg_dtype)
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
@@ -1252,9 +1254,7 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
 
     # string with NaN-like
     try:
-        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
-        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
-        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
+        mask = ~algorithms.isin(arg, list(nat_strings))
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

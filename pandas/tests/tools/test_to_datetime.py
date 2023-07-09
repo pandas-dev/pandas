@@ -2575,11 +2575,11 @@ class TestToDatetimeMisc:
 
         expected = Series(np.empty(5, dtype="M8[ns]"), index=idx)
         for i in range(5):
-            x = series[i]
+            x = series.iloc[i]
             if isna(x):
-                expected[i] = NaT
+                expected.iloc[i] = NaT
             else:
-                expected[i] = to_datetime(x, cache=cache)
+                expected.iloc[i] = to_datetime(x, cache=cache)
 
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name == "foo"
@@ -2942,6 +2942,9 @@ class TestDatetimeParsingWrappers:
             ("2005-11-09 10:15", datetime(2005, 11, 9, 10, 15)),
             ("2005-11-09 08H", datetime(2005, 11, 9, 8, 0)),
             ("2005/11/09 10:15", datetime(2005, 11, 9, 10, 15)),
+            ("2005/11/09 10:15:32", datetime(2005, 11, 9, 10, 15, 32)),
+            ("2005/11/09 10:15:32 AM", datetime(2005, 11, 9, 10, 15, 32)),
+            ("2005/11/09 10:15:32 PM", datetime(2005, 11, 9, 22, 15, 32)),
             ("2005/11/09 08H", datetime(2005, 11, 9, 8, 0)),
             ("Thu Sep 25 10:36:28 2003", datetime(2003, 9, 25, 10, 36, 28)),
             ("Thu Sep 25 2003", datetime(2003, 9, 25)),

@@ -912,7 +912,6 @@ cdef class SingleConstructorOffset(BaseOffset):
 cdef class Tick(SingleConstructorOffset):
     _adjust_dst = False
     _prefix = "undefined"
-    _td64_unit = "undefined"
     _attributes = tuple(["n", "normalize"])
 
     def __init__(self, n=1, normalize=False):
@@ -1092,7 +1091,6 @@ cdef class Tick(SingleConstructorOffset):
 cdef class Day(Tick):
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
-    _td64_unit = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
 
@@ -1100,7 +1098,6 @@ cdef class Day(Tick):
 cdef class Hour(Tick):
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
-    _td64_unit = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -1108,7 +1105,6 @@ cdef class Hour(Tick):
 cdef class Minute(Tick):
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
-    _td64_unit = "m"
     _period_dtype_code = PeriodDtypeCode.T
     _creso = NPY_DATETIMEUNIT.NPY_FR_m
 
@@ -1116,7 +1112,6 @@ cdef class Minute(Tick):
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
     _prefix = "S"
-    _td64_unit = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
@@ -1124,7 +1119,6 @@ cdef class Second(Tick):
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
     _prefix = "L"
-    _td64_unit = "ms"
     _period_dtype_code = PeriodDtypeCode.L
     _creso = NPY_DATETIMEUNIT.NPY_FR_ms
 
@@ -1132,7 +1126,6 @@ cdef class Milli(Tick):
 cdef class Micro(Tick):
     _nanos_inc = 1000
     _prefix = "U"
-    _td64_unit = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
@@ -1140,7 +1133,6 @@ cdef class Micro(Tick):
 cdef class Nano(Tick):
     _nanos_inc = 1
     _prefix = "N"
-    _td64_unit = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
@@ -1229,12 +1221,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if self.n > 0:
-                for i in range(self.n):
-                    other = other + self._offset
-            else:
-                for i in range(-self.n):
-                    other = other - self._offset
+            other = other + (self._offset * self.n)
 
             if hasattr(self, "nanoseconds"):
                 other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
@@ -2251,8 +2238,12 @@ cdef class BYearEnd(YearOffset):
         The number of years represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    month : int, default 1
+    month : int, default 12
         A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2280,6 +2271,19 @@ cdef class BYearBegin(YearOffset):
     """
     DateOffset increments between the first business day of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BYearBegin
@@ -2292,6 +2296,8 @@ cdef class BYearBegin(YearOffset):
     Timestamp('2020-01-01 05:01:15')
     >>> ts + BYearBegin(2)
     Timestamp('2022-01-03 05:01:15')
+    >>> ts + BYearBegin(month=11)
+    Timestamp('2020-11-02 05:01:15')
     """
 
     _outputName = "BusinessYearBegin"
@@ -2305,6 +2311,15 @@ cdef class YearEnd(YearOffset):
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 12
+        A specific integer for the month of the year.
 
     See Also
     --------
@@ -2320,10 +2335,14 @@ cdef class YearEnd(YearOffset):
     >>> ts + pd.offsets.YearEnd()
     Timestamp('2023-12-31 00:00:00')
 
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearEnd(month=2)
+    Timestamp('2022-02-28 00:00:00')
+
     If you want to get the end of the current year:
 
     >>> ts = pd.Timestamp(2022, 12, 31)
-    >>> pd.offsets.YearEnd().rollback(ts)
+    >>> pd.offsets.YearEnd().rollforward(ts)
     Timestamp('2022-12-31 00:00:00')
     """
 
@@ -2347,6 +2366,15 @@ cdef class YearBegin(YearOffset):
 
     YearBegin goes to the next date which is the start of the year.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    month : int, default 1
+        A specific integer for the month of the year.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2360,6 +2388,10 @@ cdef class YearBegin(YearOffset):
     >>> ts = pd.Timestamp(2023, 1, 1)
     >>> ts + pd.offsets.YearBegin()
     Timestamp('2024-01-01 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.YearBegin(month=2)
+    Timestamp('2022-02-01 00:00:00')
 
     If you want to get the start of the current year:
 
@@ -2461,6 +2493,19 @@ cdef class BQuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/30/2007, 6/29/2007, ...
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> from pandas.tseries.offsets import BQuarterEnd
@@ -2488,6 +2533,19 @@ cdef class BQuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2517,6 +2575,19 @@ cdef class QuarterEnd(QuarterOffset):
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
     startingMonth = 3 corresponds to dates like 3/31/2007, 6/30/2007, ...
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
@@ -2544,6 +2615,19 @@ cdef class QuarterBegin(QuarterOffset):
     startingMonth = 1 corresponds to dates like 1/01/2007, 4/01/2007, ...
     startingMonth = 2 corresponds to dates like 2/01/2007, 5/01/2007, ...
     startingMonth = 3 corresponds to dates like 3/01/2007, 6/01/2007, ...
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 3
+        A specific integer for the month of the year from which we start quarters.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -2593,6 +2677,13 @@ cdef class MonthEnd(MonthOffset):
 
     MonthEnd goes to the next date which is an end of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2624,6 +2715,13 @@ cdef class MonthBegin(MonthOffset):
 
     MonthBegin goes to the next date which is a start of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
     See Also
     --------
     :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
@@ -2654,6 +2752,17 @@ cdef class BusinessMonthEnd(MonthOffset):
 
     BusinessMonthEnd goes to the next date which is the last business day of the month.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 11, 29)
@@ -2680,6 +2789,17 @@ cdef class BusinessMonthBegin(MonthOffset):
 
     BusinessMonthBegin goes to the next date which is the first business day
     of the month.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------
@@ -3692,6 +3812,17 @@ cdef class Easter(SingleConstructorOffset):
 
     Right now uses the revised method which is valid in years 1583-4099.
 
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
     >>> ts = pd.Timestamp(2022, 1, 1)
@@ -4345,14 +4476,14 @@ cdef datetime _shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef int year_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int year_add_months(npy_datetimestruct dts, int months) noexcept nogil:
     """
     New year number after shifting npy_datetimestruct number of months.
     """
     return dts.year + (dts.month + months - 1) // 12
 
 
-cdef int month_add_months(npy_datetimestruct dts, int months) nogil:
+cdef int month_add_months(npy_datetimestruct dts, int months) noexcept nogil:
     """
     New month number after shifting npy_datetimestruct
     number of months.
@@ -4574,7 +4705,7 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     return stamp.replace(year=year, month=month, day=day)
 
 
-cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
+cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) noexcept nogil:
     """
     Find the day in `other`'s month that satisfies a DateOffset's is_on_offset
     policy, as described by the `day_opt` argument.
@@ -4619,7 +4750,7 @@ cdef int get_day_of_month(npy_datetimestruct* dts, str day_opt) nogil:
         return get_lastbday(dts.year, dts.month)
 
 
-cpdef int roll_convention(int other, int n, int compare) nogil:
+cpdef int roll_convention(int other, int n, int compare) noexcept nogil:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

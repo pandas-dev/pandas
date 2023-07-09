@@ -55,7 +55,7 @@ For example:
    pi = dti.to_period("D")
    ser_monotonic = pd.Series(np.arange(30), index=pi)
    shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
-   ser = ser_monotonic[shuffler]
+   ser = ser_monotonic.iloc[shuffler]
    ser
 
 .. ipython:: python

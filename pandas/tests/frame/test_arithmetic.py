@@ -1245,19 +1245,19 @@ class TestFrameArithmeticUnsorted:
         filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
-        expected[pd.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df)
         expected = op(filled, filled).astype(object)
-        expected[pd.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
         result = op(df.fillna(7), df)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
     # TODO: not sure what's correct here.

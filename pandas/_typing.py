@@ -307,6 +307,26 @@ ColspaceArgType = Union[
 
 # Arguments for fillna()
 FillnaOptions = Literal["backfill", "bfill", "ffill", "pad"]
+InterpolateOptions = Literal[
+    "linear",
+    "time",
+    "index",
+    "values",
+    "nearest",
+    "zero",
+    "slinear",
+    "quadratic",
+    "cubic",
+    "barycentric",
+    "polynomial",
+    "krogh",
+    "piecewise_polynomial",
+    "spline",
+    "pchip",
+    "akima",
+    "cubicspline",
+    "from_derivatives",
+]
 
 # internals
 Manager = Union[

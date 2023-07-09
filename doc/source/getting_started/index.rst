@@ -24,7 +24,7 @@ Installation
 
         .. code-block:: bash
 
-            conda install pandas
+            conda install -c conda-forge pandas
 
     .. grid-item-card:: Prefer pip?
         :class-card: install-card

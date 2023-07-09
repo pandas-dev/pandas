@@ -55,7 +55,7 @@ cdef extern from "numpy/ndarraytypes.h":
     int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
 
 
-cdef extern from "src/datetime/pd_datetime.h":
+cdef extern from "pandas/datetime/pd_datetime.h":
     ctypedef struct pandas_timedeltastruct:
         int64_t days
         int32_t hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds
@@ -96,9 +96,9 @@ cdef int64_t pydate_to_dt64(
 )
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
-cdef npy_datetime get_datetime64_value(object obj) nogil
-cdef npy_timedelta get_timedelta64_value(object obj) nogil
-cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil
+cdef npy_datetime get_datetime64_value(object obj) noexcept nogil
+cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
 
 cdef int string_to_dts(
     str val,

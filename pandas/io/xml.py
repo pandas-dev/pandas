@@ -1,10 +1,11 @@
 """
-:mod:`pandas.io.xml` is a module for reading XML.
+:mod:``pandas.io.xml`` is a module for reading XML.
 """
 
 from __future__ import annotations
 
 import io
+from os import PathLike
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -65,26 +66,26 @@ class _XMLFrameParser:
 
     Parameters
     ----------
-    path_or_buffer : a valid JSON str, path object or file-like object
+    path_or_buffer : a valid JSON ``str``, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file.
 
     xpath : str or regex
         The XPath expression to parse required set of nodes for
-        migration to `Data Frame`. `etree` supports limited XPath.
+        migration to :class:`~pandas.DataFrame`. `etree` supports limited XPath.
 
     namespaces : dict
-        The namespaces defined in XML document (`xmlns:namespace='URI')
+        The namespaces defined in XML document (``xmlns:namespace='URI'``)
         as dicts with key being namespace and value the URI.
 
     elems_only : bool
-        Parse only the child elements at the specified `xpath`.
+        Parse only the child elements at the specified ``xpath``.
 
     attrs_only : bool
-        Parse only the attributes at the specified `xpath`.
+        Parse only the attributes at the specified ``xpath``.
 
     names : list
-        Column names for Data Frame of parsed XML data.
+        Column names for :class:`~pandas.DataFrame`of parsed XML data.
 
     dtype : dict
         Data type for data or columns. E.g. {{'a': np.float64,
@@ -326,10 +327,13 @@ class _XMLFrameParser:
             )
 
         if (not hasattr(self.path_or_buffer, "read")) and (
-            not isinstance(self.path_or_buffer, str)
+            not isinstance(self.path_or_buffer, (str, PathLike))
             or is_url(self.path_or_buffer)
             or is_fsspec_url(self.path_or_buffer)
-            or self.path_or_buffer.startswith(("<?xml", "<"))
+            or (
+                isinstance(self.path_or_buffer, str)
+                and self.path_or_buffer.startswith(("<?xml", "<"))
+            )
             or infer_compression(self.path_or_buffer, "infer") is not None
         ):
             raise ParserError(

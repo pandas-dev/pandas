@@ -244,6 +244,7 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.skew()).all()
             else:
                 assert 0 == s.skew()
+                assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
     @td.skip_if_no_scipy
@@ -267,4 +268,5 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.kurt()).all()
             else:
                 assert 0 == s.kurt()
+                assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()

@@ -9,7 +9,6 @@ import pytest
 from pandas.compat import (
     IS64,
     is_platform_arm,
-    is_platform_mac,
     is_platform_power,
 )
 
@@ -1060,7 +1059,7 @@ def test_rolling_numerical_too_large_numbers():
     # GH: 11645
     dates = date_range("2015-01-01", periods=10, freq="D")
     ds = Series(data=range(10), index=dates, dtype=np.float64)
-    ds[2] = -9e33
+    ds.iloc[2] = -9e33
     result = ds.rolling(5).mean()
     expected = Series(
         [
@@ -1189,7 +1188,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    (is_platform_arm() and not is_platform_mac()) or is_platform_power(),
+    is_platform_arm() or is_platform_power(),
     reason="GH 38921",
 )
 @pytest.mark.parametrize(

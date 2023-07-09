@@ -17,15 +17,11 @@ from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_common_type,
+    np_find_common_type,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    DatetimeTZDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
-    ABCExtensionArray,
     ABCSeries,
 )
 
@@ -33,6 +29,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
+        DtypeObj,
     )
 
     from pandas.core.arrays import (
@@ -100,45 +97,54 @@ def concat_compat(
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
+    orig = to_concat
     non_empties = [x for x in to_concat if _is_nonempty(x, axis)]
     if non_empties and axis == 0 and not ea_compat_axis:
         # ea_compat_axis see GH#39574
         to_concat = non_empties
 
+    any_ea, kinds, target_dtype = _get_result_dtype(to_concat, non_empties)
+
+    if len(to_concat) < len(orig):
+        _, _, alt_dtype = _get_result_dtype(orig, non_empties)
+
+    if target_dtype is not None:
+        to_concat = [astype_array(arr, target_dtype, copy=False) for arr in to_concat]
+
+    if not isinstance(to_concat[0], np.ndarray):
+        # i.e. isinstance(to_concat[0], ExtensionArray)
+        to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
+        cls = type(to_concat[0])
+        return cls._concat_same_type(to_concat_eas)
+    else:
+        to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
+        result = np.concatenate(to_concat_arrs, axis=axis)
+
+        if not any_ea and "b" in kinds and result.dtype.kind in "iuf":
+            # GH#39817 cast to object instead of casting bools to numeric
+            result = result.astype(object, copy=False)
+    return result
+
+
+def _get_result_dtype(
+    to_concat: Sequence[ArrayLike], non_empties: Sequence[ArrayLike]
+) -> tuple[bool, set[str], DtypeObj | None]:
+    target_dtype = None
+
     dtypes = {obj.dtype for obj in to_concat}
     kinds = {obj.dtype.kind for obj in to_concat}
-    contains_datetime = any(
-        isinstance(dtype, (np.dtype, DatetimeTZDtype)) and dtype.kind in "mM"
-        for dtype in dtypes
-    ) or any(isinstance(obj, ABCExtensionArray) and obj.ndim > 1 for obj in to_concat)
 
-    all_empty = not len(non_empties)
-    single_dtype = len(dtypes) == 1
-    any_ea = any(isinstance(x, ExtensionDtype) for x in dtypes)
-
-    if contains_datetime:
-        return _concat_datetime(to_concat, axis=axis)
-
+    any_ea = any(not isinstance(x, np.ndarray) for x in to_concat)
     if any_ea:
+        # i.e. any ExtensionArrays
+
         # we ignore axis here, as internally concatting with EAs is always
         # for axis=0
-        if not single_dtype:
+        if len(dtypes) != 1:
             target_dtype = find_common_type([x.dtype for x in to_concat])
             target_dtype = common_dtype_categorical_compat(to_concat, target_dtype)
-            to_concat = [
-                astype_array(arr, target_dtype, copy=False) for arr in to_concat
-            ]
 
-        if isinstance(to_concat[0], ABCExtensionArray):
-            # TODO: what about EA-backed Index?
-            to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
-            cls = type(to_concat[0])
-            return cls._concat_same_type(to_concat_eas)
-        else:
-            to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
-            return np.concatenate(to_concat_arrs)
-
-    elif all_empty:
+    elif not len(non_empties):
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
         # cast this to float)
@@ -148,17 +154,14 @@ def concat_compat(
                 pass
             else:
                 # coerce to object
-                to_concat = [x.astype("object") for x in to_concat]
+                target_dtype = np.dtype(object)
                 kinds = {"o"}
+    else:
+        # error: Argument 1 to "np_find_common_type" has incompatible type
+        # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
+        target_dtype = np_find_common_type(*dtypes)  # type: ignore[arg-type]
 
-    # error: Argument 1 to "concatenate" has incompatible type
-    # "Sequence[Union[ExtensionArray, ndarray[Any, Any]]]"; expected
-    # "Union[_SupportsArray[dtype[Any]], _NestedSequence[_SupportsArray[dtype[Any]]]]"
-    result: np.ndarray = np.concatenate(to_concat, axis=axis)  # type: ignore[arg-type]
-    if "b" in kinds and result.dtype.kind in "iuf":
-        # GH#39817 cast to object instead of casting bools to numeric
-        result = result.astype(object, copy=False)
-    return result
+    return any_ea, kinds, target_dtype
 
 
 def union_categoricals(
@@ -320,45 +323,3 @@ def union_categoricals(
 
     dtype = CategoricalDtype(categories=categories, ordered=ordered)
     return Categorical._simple_new(new_codes, dtype=dtype)
-
-
-def _concatenate_2d(to_concat: Sequence[np.ndarray], axis: AxisInt) -> np.ndarray:
-    # coerce to 2d if needed & concatenate
-    if axis == 1:
-        to_concat = [np.atleast_2d(x) for x in to_concat]
-    return np.concatenate(to_concat, axis=axis)
-
-
-def _concat_datetime(to_concat: Sequence[ArrayLike], axis: AxisInt = 0) -> ArrayLike:
-    """
-    provide concatenation of an datetimelike array of arrays each of which is a
-    single M8[ns], datetime64[ns, tz] or m8[ns] dtype
-
-    Parameters
-    ----------
-    to_concat : sequence of arrays
-    axis : axis to provide concatenation
-
-    Returns
-    -------
-    a single array, preserving the combined dtypes
-    """
-    from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-    to_concat = [ensure_wrapped_if_datetimelike(x) for x in to_concat]
-
-    single_dtype = lib.dtypes_all_equal([x.dtype for x in to_concat])
-
-    # multiple types, need to coerce to object
-    if not single_dtype:
-        # ensure_wrapped_if_datetimelike ensures that astype(object) wraps
-        #  in Timestamp/Timedelta
-        return _concatenate_2d([x.astype(object) for x in to_concat], axis=axis)
-
-    # error: Unexpected keyword argument "axis" for "_concat_same_type" of
-    # "ExtensionArray"
-    to_concat_eas = cast("list[ExtensionArray]", to_concat)
-    result = type(to_concat_eas[0])._concat_same_type(  # type: ignore[call-arg]
-        to_concat_eas, axis=axis
-    )
-    return result

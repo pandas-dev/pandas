@@ -193,7 +193,7 @@ def get_date_name_field(
     return out
 
 
-cdef bint _is_on_month(int month, int compare_month, int modby) nogil:
+cdef bint _is_on_month(int month, int compare_month, int modby) noexcept nogil:
     """
     Analogous to DateOffset.is_on_offset checking for the month part of a date.
     """

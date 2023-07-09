@@ -77,6 +77,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
+        DataFrame,
         Index,
         Series,
     )
@@ -254,6 +255,21 @@ class SelectionMixin(Generic[NDFrameT]):
         """
         raise AbstractMethodError(self)
 
+    @final
+    def _infer_selection(self, key, subset: Series | DataFrame):
+        """
+        Infer the `selection` to pass to our constructor in _gotitem.
+        """
+        # Shared by Rolling and Resample
+        selection = None
+        if subset.ndim == 2 and (
+            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
+        ):
+            selection = key
+        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
+            selection = key
+        return selection
+
     def aggregate(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
 
@@ -300,6 +316,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -311,6 +329,12 @@ class IndexOpsMixin(OpsMixin):
         1    Bear
         2     Cow
         dtype: object
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.T
+        Index([1, 2, 3], dtype='int64')
         """,
     )
 
@@ -345,6 +369,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.ndim
+        1
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.ndim
         1
         """
         return 1
@@ -387,6 +419,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -394,6 +428,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.nbytes
+        24
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.nbytes
         24
         """
         return self._values.nbytes
@@ -405,6 +447,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -412,6 +456,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.size
+        3
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.size
         3
         """
         return len(self._values)
@@ -729,8 +781,19 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series
+
         >>> s = pd.Series([1, 2, 3])
         >>> s.to_list()
+        [1, 2, 3]
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+
+        >>> idx.to_list()
         [1, 2, 3]
         """
         return self._values.tolist()
@@ -911,7 +974,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         Name: count, dtype: int64
         """
-        return algorithms.value_counts(
+        return algorithms.value_counts_internal(
             self,
             sort=sort,
             ascending=ascending,
@@ -1060,6 +1123,12 @@ class IndexOpsMixin(OpsMixin):
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.memory_usage()
+        24
         """
         if hasattr(self.array, "memory_usage"):
             return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]

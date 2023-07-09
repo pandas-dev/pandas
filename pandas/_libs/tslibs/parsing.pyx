@@ -83,10 +83,10 @@ from pandas._libs.tslibs.util cimport (
 )
 
 
-cdef extern from "../src/headers/portable.h":
+cdef extern from "pandas/portable.h":
     int getdigit_ascii(char c, int default) nogil
 
-cdef extern from "../src/parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
     double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                    int skip_trailing, int *error, int *maybe_int)
 
@@ -704,7 +704,7 @@ cdef datetime dateutil_parse(
                 #  we get tzlocal, once the deprecation is enforced will get
                 #  timezone.utc, not raise.
                 warnings.warn(
-                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
                     "is deprecated and will raise in a future version. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
                     FutureWarning,
@@ -1018,6 +1018,11 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
                 pass
 
             output_format.append(tokens[i])
+
+    # if am/pm token present, replace 24-hour %H, with 12-hour %I
+    if "%p" in output_format and "%H" in output_format:
+        i = output_format.index("%H")
+        output_format[i] = "%I"
 
     guessed_format = "".join(output_format)
 

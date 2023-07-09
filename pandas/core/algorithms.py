@@ -32,7 +32,10 @@ from pandas._typing import (
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    np_find_common_type,
+)
 from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_object,
@@ -80,6 +83,7 @@ from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ListLike,
         NumpySorter,
         NumpyValueArrayLike,
     )
@@ -209,11 +213,22 @@ def _reconstruct_data(
     return values
 
 
-def _ensure_arraylike(values) -> ArrayLike:
+def _ensure_arraylike(values, func_name: str) -> ArrayLike:
     """
     ensure that we are arraylike if not already
     """
-    if not is_array_like(values):
+    if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
+        # GH#52986
+        if func_name != "isin-targets":
+            # Make an exception for the comps argument in isin.
+            warnings.warn(
+                f"{func_name} with argument that is not not a Series, Index, "
+                "ExtensionArray, or np.ndarray is deprecated and will raise in a "
+                "future version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         inferred = lib.infer_dtype(values, skipna=False)
         if inferred in ["mixed", "string", "mixed-integer"]:
             # "mixed-integer" to ensure we do not cast ["ss", 42] to str GH#22160
@@ -353,7 +368,7 @@ def unique(values):
             dtype='datetime64[ns, US/Eastern]',
             freq=None)
 
-    >>> pd.unique(list("baabc"))
+    >>> pd.unique(np.array(list("baabc"), dtype="O"))
     array(['b', 'a', 'c'], dtype=object)
 
     An unordered Categorical will return categories in the
@@ -379,7 +394,7 @@ def unique(values):
 
     An array of tuples
 
-    >>> pd.unique([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")])
+    >>> pd.unique(pd.Series([("a", "b"), ("b", "a"), ("a", "c"), ("b", "a")]).values)
     array([('a', 'b'), ('b', 'a'), ('a', 'c')], dtype=object)
     """
     return unique_with_mask(values)
@@ -410,7 +425,7 @@ def nunique_ints(values: ArrayLike) -> int:
 
 def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="unique")
 
     if isinstance(values.dtype, ExtensionDtype):
         # Dispatch to extension dtype's unique.
@@ -435,14 +450,17 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 unique1d = unique
 
 
-def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
+_MINIMUM_COMP_ARR_LEN = 1_000_000
+
+
+def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
 
     Parameters
     ----------
-    comps : array-like
-    values : array-like
+    comps : list-like
+    values : list-like
 
     Returns
     -------
@@ -462,7 +480,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
-        values = _ensure_arraylike(orig_values)
+        values = _ensure_arraylike(orig_values, func_name="isin-targets")
 
         if (
             len(values) > 0
@@ -479,7 +497,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     else:
         values = extract_array(values, extract_numpy=True, extract_range=True)
 
-    comps_array = _ensure_arraylike(comps)
+    comps_array = _ensure_arraylike(comps, func_name="isin")
     comps_array = extract_array(comps_array, extract_numpy=True)
     if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
@@ -503,7 +521,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
     if (
-        len(comps_array) > 1_000_000
+        len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
     ):
@@ -518,7 +536,7 @@ def isin(comps: AnyArrayLike, values: AnyArrayLike) -> npt.NDArray[np.bool_]:
             f = np.in1d
 
     else:
-        common = np.find_common_type([values.dtype, comps_array.dtype], [])
+        common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
         f = htable.ismember
@@ -665,7 +683,7 @@ def factorize(
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
     >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
@@ -674,7 +692,8 @@ def factorize(
     With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> codes, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
+    ...                               sort=True)
     >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
@@ -684,7 +703,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
@@ -742,7 +761,7 @@ def factorize(
     if isinstance(values, (ABCIndex, ABCSeries)):
         return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
 
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="factorize")
     original = values
 
     if (
@@ -822,6 +841,31 @@ def value_counts(
     -------
     Series
     """
+    warnings.warn(
+        # GH#53493
+        "pandas.value_counts is deprecated and will be removed in a "
+        "future version. Use pd.Series(obj).value_counts() instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
+    return value_counts_internal(
+        values,
+        sort=sort,
+        ascending=ascending,
+        normalize=normalize,
+        bins=bins,
+        dropna=dropna,
+    )
+
+
+def value_counts_internal(
+    values,
+    sort: bool = True,
+    ascending: bool = False,
+    normalize: bool = False,
+    bins=None,
+    dropna: bool = True,
+) -> Series:
     from pandas import (
         Index,
         Series,
@@ -876,7 +920,7 @@ def value_counts(
             counts = result._values
 
         else:
-            values = _ensure_arraylike(values)
+            values = _ensure_arraylike(values, func_name="value_counts")
             keys, counts = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
@@ -977,7 +1021,7 @@ def mode(
     -------
     np.ndarray or ExtensionArray
     """
-    values = _ensure_arraylike(values)
+    values = _ensure_arraylike(values, func_name="mode")
     original = values
 
     if needs_i8_conversion(values.dtype):
@@ -1172,6 +1216,11 @@ def take(
     arr : array-like or scalar value
         Non array-likes (sequences/scalars without a dtype) are coerced
         to an ndarray.
+
+        .. deprecated:: 2.1.0
+            Passing an argument other than a numpy.ndarray, ExtensionArray,
+            Index, or Series is deprecated.
+
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
@@ -1237,6 +1286,16 @@ def take(
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
+    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+        # GH#52981
+        warnings.warn(
+            "pd.api.extensions.take accepting non-standard inputs is deprecated "
+            "and will raise in a future version. Pass either a numpy.ndarray, "
+            "ExtensionArray, Index, or Series instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
@@ -1385,8 +1444,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
         arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if not isinstance(dtype, np.dtype):
-        # i.e ExtensionDtype
+    if not isinstance(arr, np.ndarray):
+        # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
             if axis != 0:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
@@ -1647,8 +1706,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    l_count = value_counts(lvals, dropna=False)
-    r_count = value_counts(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)

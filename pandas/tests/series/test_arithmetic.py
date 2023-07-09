@@ -225,8 +225,8 @@ class TestSeriesArithmetic:
 
         result = ser + ser.shift(1)
         result2 = ser.shift(1) + ser
-        assert isna(result[0])
-        assert isna(result2[0])
+        assert isna(result.iloc[0])
+        assert isna(result2.iloc[0])
 
     def test_add_corner_cases(self, datetime_series):
         empty = Series([], index=Index([]), dtype=np.float64)

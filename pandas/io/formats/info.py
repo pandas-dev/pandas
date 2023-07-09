@@ -14,8 +14,6 @@ from typing import (
     Sequence,
 )
 
-import numpy as np
-
 from pandas._config import get_option
 
 from pandas.io.formats import format as fmt
@@ -1099,4 +1097,4 @@ def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     Create mapping between datatypes and their number of occurrences.
     """
     # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum().astype(np.intp)
+    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()

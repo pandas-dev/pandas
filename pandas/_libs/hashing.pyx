@@ -110,11 +110,11 @@ def hash_object_array(
     return result.base  # .base to retrieve underlying np.ndarray
 
 
-cdef uint64_t _rotl(uint64_t x, uint64_t b) nogil:
+cdef uint64_t _rotl(uint64_t x, uint64_t b) noexcept nogil:
     return (x << b) | (x >> (64 - b))
 
 
-cdef uint64_t u8to64_le(uint8_t* p) nogil:
+cdef uint64_t u8to64_le(uint8_t* p) noexcept nogil:
     return (<uint64_t>p[0] |
             <uint64_t>p[1] << 8 |
             <uint64_t>p[2] << 16 |
@@ -145,7 +145,7 @@ cdef void _sipround(uint64_t* v0, uint64_t* v1,
 
 @cython.cdivision(True)
 cdef uint64_t low_level_siphash(uint8_t* data, size_t datalen,
-                                uint8_t* key) nogil:
+                                uint8_t* key) noexcept nogil:
     cdef uint64_t v0 = 0x736f6d6570736575ULL
     cdef uint64_t v1 = 0x646f72616e646f6dULL
     cdef uint64_t v2 = 0x6c7967656e657261ULL

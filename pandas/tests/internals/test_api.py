@@ -27,10 +27,8 @@ def test_namespace():
     ]
     expected = [
         "Block",
-        "NumericBlock",
         "DatetimeTZBlock",
         "ExtensionBlock",
-        "ObjectBlock",
         "make_block",
         "DataManager",
         "ArrayManager",
