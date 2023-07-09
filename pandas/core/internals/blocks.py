@@ -1889,7 +1889,7 @@ class EABackedBlock(Block):
         values = self.values
         copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
-        if values.ndim == 2 and axis == 0:
+        if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=1
             new_values = values.T.fillna(method=method, limit=limit, copy=copy).T
         else:
