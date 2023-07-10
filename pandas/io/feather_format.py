@@ -1,11 +1,7 @@
 """ feather-format compat """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -19,6 +15,11 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
