@@ -756,8 +756,14 @@ def test_concat_ignore_empty_object_float(empty_dtype, df_dtype):
     df = DataFrame({"foo": [1, 2], "bar": [1, 2]}, dtype=df_dtype)
     empty = DataFrame(columns=["foo", "bar"], dtype=empty_dtype)
 
-    result = concat([empty, df])
-
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+    warn = None
+    if df_dtype == "datetime64[ns]" or (
+        df_dtype == "float64" and empty_dtype != "float64"
+    ):
+        warn = FutureWarning
+    with tm.assert_produces_warning(warn, match=msg):
+        result = concat([empty, df])
     expected = df
     if df_dtype == "int64":
         # TODO what exact behaviour do we want for integer eventually?
@@ -782,7 +788,7 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
         else:
             df_dtype = "float64"
 
-    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
     warn = None
     if empty_dtype != df_dtype and empty_dtype is not None:
         warn = FutureWarning
@@ -804,7 +810,7 @@ def test_concat_ignore_empty_from_reindex():
 
     aligned = df2.reindex(columns=df1.columns)
 
-    msg = "The behavior of DataFrame concatenation with all-NA entries"
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = concat([df1, aligned], ignore_index=True)
     expected = df1 = DataFrame({"a": [1, 2], "b": [pd.Timestamp("2012-01-01"), pd.NaT]})
