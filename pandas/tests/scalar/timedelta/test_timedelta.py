@@ -925,7 +925,12 @@ class TestTimedeltas:
         raises=AssertionError,
         strict=True,
     )
-    @given(st.integers(min_value=(-sys.maxsize - 1) / 500, max_value=sys.maxsize / 500))
+    @given(
+        st.integers(
+            min_value=(-sys.maxsize - 1) // 500,
+            max_value=sys.maxsize // 500,
+        )
+    )
     def test_hash_equality_invariance(self, half_microseconds: int) -> None:
         # GH#44504
 
