@@ -137,6 +137,13 @@ class TestPeriodIndex:
         exp = period_range("2007-01", periods=10, freq="M")
         tm.assert_index_equal(result, exp)
 
+    def test_constructor_with_without_freq(self):
+        # GH53687
+        start = Period("2002-01-01 00:00", freq="30T")
+        exp = period_range(start=start, periods=5, freq=start.freq)
+        result = period_range(start=start, periods=5)
+        tm.assert_index_equal(exp, result)
+
     def test_constructor_fromarraylike(self):
         idx = period_range("2007-01", periods=20, freq="M")
 
