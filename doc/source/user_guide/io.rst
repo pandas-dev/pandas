@@ -1568,8 +1568,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   df.to_csv("tmp2.csv", sep=":")
+   df.to_csv("tmp2.csv", sep=":", index=False)
    pd.read_csv("tmp2.csv", sep=None, engine="python")
 
 .. ipython:: python
@@ -1597,8 +1596,8 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   table = pd.read_csv("tmp.csv", sep="|")
+   df.to_csv("tmp.csv", index=False)
+   table = pd.read_csv("tmp.csv")
    table
 
 
@@ -1607,8 +1606,8 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", chunksize=4) as reader:
-       reader
+   with pd.read_csv("tmp.csv", chunksize=4) as reader:
+       print(reader)
        for chunk in reader:
            print(chunk)
 
@@ -1620,8 +1619,8 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", iterator=True) as reader:
-       reader.get_chunk(5)
+   with pd.read_csv("tmp.csv", iterator=True) as reader:
+       print(reader.get_chunk(5))
 
 .. ipython:: python
    :suppress:

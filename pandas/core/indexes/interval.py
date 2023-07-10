@@ -9,7 +9,6 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     Literal,
 )
 
@@ -88,6 +87,8 @@ from pandas.core.indexes.timedeltas import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,

@@ -9,7 +9,6 @@ from pandas import (
     Index,
     Series,
 )
-import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
     _check_legend_labels,
@@ -25,14 +24,12 @@ class TestDataFrameGroupByPlots:
         gender = np.random.RandomState(42).choice(["male", "female"], size=n)
 
         weight.groupby(gender).plot()
-        tm.close()
 
     def test_series_groupby_plotting_nominally_works_hist(self):
         n = 10
         height = Series(np.random.normal(60, 10, size=n))
         gender = np.random.RandomState(42).choice(["male", "female"], size=n)
         height.groupby(gender).hist()
-        tm.close()
 
     def test_series_groupby_plotting_nominally_works_alpha(self):
         n = 10
@@ -40,7 +37,6 @@ class TestDataFrameGroupByPlots:
         gender = np.random.RandomState(42).choice(["male", "female"], size=n)
         # Regression test for GH8733
         height.groupby(gender).plot(alpha=0.5)
-        tm.close()
 
     def test_plotting_with_float_index_works(self):
         # GH 7025
@@ -50,7 +46,6 @@ class TestDataFrameGroupByPlots:
         )
 
         df.groupby("def")["val"].plot()
-        tm.close()
 
     def test_plotting_with_float_index_works_apply(self):
         # GH 7025
@@ -59,7 +54,6 @@ class TestDataFrameGroupByPlots:
             index=[1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0],
         )
         df.groupby("def")["val"].apply(lambda x: x.plot())
-        tm.close()
 
     def test_hist_single_row(self):
         # GH10214
@@ -76,12 +70,10 @@ class TestDataFrameGroupByPlots:
     def test_plot_submethod_works(self):
         df = DataFrame({"x": [1, 2, 3, 4, 5], "y": [1, 2, 3, 2, 1], "z": list("ababa")})
         df.groupby("z").plot.scatter("x", "y")
-        tm.close()
 
     def test_plot_submethod_works_line(self):
         df = DataFrame({"x": [1, 2, 3, 4, 5], "y": [1, 2, 3, 2, 1], "z": list("ababa")})
         df.groupby("z")["x"].plot.line()
-        tm.close()
 
     def test_plot_kwargs(self):
         df = DataFrame({"x": [1, 2, 3, 4, 5], "y": [1, 2, 3, 2, 1], "z": list("ababa")})

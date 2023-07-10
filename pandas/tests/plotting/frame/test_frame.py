@@ -47,6 +47,7 @@ from pandas.tests.plotting.common import (
 from pandas.io.formats.printing import pprint_thing
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
 
 class TestDataFramePlots:
@@ -323,8 +324,6 @@ class TestDataFramePlots:
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         _check_ticks_props(ax, xrot=30)
 
-        tm.close()
-
     def test_xcompat_plot_params(self):
         df = tm.makeTimeDataFrame()
         plotting.plot_params["xaxis.compat"] = True
@@ -332,8 +331,6 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         _check_ticks_props(ax, xrot=30)
-
-        tm.close()
 
     def test_xcompat_plot_params_x_compat(self):
         df = tm.makeTimeDataFrame()
@@ -344,8 +341,6 @@ class TestDataFramePlots:
         assert not isinstance(lines[0].get_xdata(), PeriodIndex)
         assert isinstance(PeriodIndex(lines[0].get_xdata()), PeriodIndex)
 
-        tm.close()
-
     def test_xcompat_plot_params_context_manager(self):
         df = tm.makeTimeDataFrame()
         # useful if you're plotting a bunch together
@@ -354,8 +349,6 @@ class TestDataFramePlots:
             lines = ax.get_lines()
             assert not isinstance(lines[0].get_xdata(), PeriodIndex)
             _check_ticks_props(ax, xrot=30)
-
-        tm.close()
 
     def test_xcompat_plot_period(self):
         df = tm.makeTimeDataFrame()
@@ -376,7 +369,6 @@ class TestDataFramePlots:
 
         df.plot()
         mpl.pyplot.axhline(y=0)
-        tm.close()
 
     @pytest.mark.parametrize("index_dtype", [np.int64, np.float64])
     def test_unsorted_index(self, index_dtype):
@@ -390,7 +382,6 @@ class TestDataFramePlots:
         rs = lines.get_xydata()
         rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64, name="y")
         tm.assert_series_equal(rs, df.y, check_index_type=False)
-        tm.close()
 
     @pytest.mark.parametrize(
         "df",
@@ -956,14 +947,12 @@ class TestDataFramePlots:
             ax.xaxis.get_ticklocs(), np.arange(1, len(numeric_cols) + 1)
         )
         assert len(ax.lines) == 7 * len(numeric_cols)
-        tm.close()
 
     def test_boxplot_series(self, hist_df):
         df = hist_df
         series = df["height"]
         axes = series.plot.box(rot=40)
         _check_ticks_props(axes, xrot=40, yrot=0)
-        tm.close()
 
         _check_plot_works(series.plot.box)
 
@@ -1093,7 +1082,6 @@ class TestDataFramePlots:
         series = Series(np.random.rand(10))
         axes = series.plot.hist(rot=40)
         _check_ticks_props(axes, xrot=40, yrot=0)
-        tm.close()
 
     def test_hist_df_series_cumulative_density(self):
         from matplotlib.patches import Rectangle
@@ -1103,7 +1091,6 @@ class TestDataFramePlots:
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
-        tm.close()
 
     def test_hist_df_series_cumulative(self):
         from matplotlib.patches import Rectangle
@@ -1113,7 +1100,6 @@ class TestDataFramePlots:
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
 
         tm.assert_almost_equal(rects[-2].get_height(), 10.0)
-        tm.close()
 
     def test_hist_df_orientation(self):
         df = DataFrame(np.random.randn(10, 4))
@@ -1801,8 +1787,6 @@ class TestDataFramePlots:
         with pytest.raises(ValueError, match=msg):
             df.plot(yerr=err.T)
 
-        tm.close()
-
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
         _check_plot_works(df.plot, table=True)
@@ -1897,13 +1881,12 @@ class TestDataFramePlots:
             df.plot(x="a", y="b", title="title", ax=ax, sharex=True)
         gs.tight_layout(plt.gcf())
         _check(axes)
-        tm.close()
+        plt.close("all")
 
         gs, axes = _generate_4_axes_via_gridspec()
         with tm.assert_produces_warning(UserWarning):
             axes = df.plot(subplots=True, ax=axes, sharex=True)
         _check(axes)
-        tm.close()
 
     def test_sharex_false_and_ax(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
@@ -1930,7 +1913,6 @@ class TestDataFramePlots:
             _check_visible(ax.get_yticklabels(), visible=True)
             _check_visible(ax.get_xticklabels(), visible=True)
             _check_visible(ax.get_xticklabels(minor=True), visible=True)
-        tm.close()
 
     def test_sharey_and_ax(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
@@ -1963,7 +1945,7 @@ class TestDataFramePlots:
             df.plot(x="a", y="b", title="title", ax=ax, sharey=True)
         gs.tight_layout(plt.gcf())
         _check(axes)
-        tm.close()
+        plt.close("all")
 
         gs, axes = _generate_4_axes_via_gridspec()
         with tm.assert_produces_warning(UserWarning):
@@ -1971,7 +1953,6 @@ class TestDataFramePlots:
 
         gs.tight_layout(plt.gcf())
         _check(axes)
-        tm.close()
 
     def test_sharey_and_ax_tight(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
@@ -2021,7 +2002,7 @@ class TestDataFramePlots:
         ref = weakref.ref(df.plot(kind=kind, **args))
 
         # have matplotlib delete all the figures
-        tm.close()
+        plt.close("all")
         # force a garbage collection
         gc.collect()
         assert ref() is None

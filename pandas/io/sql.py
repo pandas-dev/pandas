@@ -24,9 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -62,6 +60,11 @@ from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Mapping,
+    )
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
