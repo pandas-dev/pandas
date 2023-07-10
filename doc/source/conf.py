@@ -376,10 +376,16 @@ header = f"""\
    os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
 """
 
+footer = f"""<p class="copyright">
+    &copy{datetime.now().year}
+    pandas via <a href="https://numfocus.org">NumFOCUS, Inc.</a>
+    Hosted by <a href="https://www.ovhcloud.com">OVHcloud</a>.</p>"""
+
 
 html_context = {
     "redirects": dict(moved_api_pages),
     "header": header,
+    "footer":footer,
 }
 
 # If false, no module index is generated.
