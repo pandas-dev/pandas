@@ -239,6 +239,8 @@ select = [
   "PGH",
   # Ruff-specific rules
   "RUF",
+  # flake8-bandit: exec-builtin
+  "S102"
 ]
 
 ignore = [
