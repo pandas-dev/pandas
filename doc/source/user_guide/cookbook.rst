@@ -1505,10 +1505,7 @@ For the case that we would drop NA values, we can simply remove those values fir
 
 .. ipython:: python
 
-   from pandas.core.dtypes.missing import remove_na_arraylike
-
-   v = s.values
-   v = remove_na_arraylike(v)
+   v = s.dropna().values
    is_constant = v.shape[0] > 0 and (s[0] == s).all()
 
 If missing values are considered distinct from any other value, then one could use:
