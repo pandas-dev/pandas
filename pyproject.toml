@@ -331,7 +331,6 @@ exclude = [
   ".eggs/*.py",
   # vendored files
   "pandas/util/version/*",
-  "versioneer.py",
   # exclude asv benchmark environments from linting
   "env",
 ]
@@ -445,7 +444,6 @@ disable = [
   "super-init-not-called",
   "try-except-raise",
   "unnecessary-lambda",
-  "unspecified-encoding",
   "unused-argument",
   "unused-variable",
   "using-constant-test"

@@ -96,6 +96,7 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
+from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     BaseMaskedArray,
     Categorical,
@@ -1677,7 +1678,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, **kwargs) -> NDFrameT:
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[orig_func]
+            warn_alias_replacement(self, orig_func, alias)
 
         if isinstance(func, str):
             if hasattr(self, func):
@@ -1880,7 +1885,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         # optimized transforms
+        orig_func = func
         func = com.get_cython_func(func) or func
+        if orig_func != func:
+            warn_alias_replacement(self, orig_func, func)
 
         if not isinstance(func, str):
             return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
@@ -4166,6 +4174,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_bool_dtype(vals.dtype):
+                # GH#51424 deprecate to match Series/DataFrame behavior
+                warnings.warn(
+                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
+                    "deprecated and will raise in a future version, matching "
+                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
+                    "calling quantile instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                out = np.asarray(vals)
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the

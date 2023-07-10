@@ -17,7 +17,6 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-asyncio>=0.17.0
-  - pytest-localserver>=0.7.1
   - coverage
 
   # required dependencies
@@ -40,7 +39,7 @@ dependencies:
   - lxml>=4.8.0
   - matplotlib>=3.6.1
   - numba>=0.55.2
-  - numexpr>=2.8.0  # pin for "Run checks on imported code" job
+  - numexpr>=2.8.0
   - openpyxl>=3.0.10
   - odfpy>=1.4.1
   - py
@@ -76,14 +75,10 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - black=23.3.0
-  - cpplint
-  - flake8=6.0.0
-  - isort>=5.2.1  # check that imports are in the right order
-  - mypy=1.2
+  - flake8=6.0.0  # run in subprocess over docstring examples
+  - mypy=1.2  # pre-commit uses locally installed mypy
+  - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=2.15.0
-  - pyupgrade
-  - ruff=0.0.215
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
@@ -119,6 +114,6 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
-      - sphinx-toggleprompt
+      - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1
