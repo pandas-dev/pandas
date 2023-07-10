@@ -646,5 +646,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, afile, foor, aas, mis"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere"
 ignore-regex = 'https://([\w/\.])+'
