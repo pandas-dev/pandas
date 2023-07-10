@@ -20,7 +20,7 @@ repos:
     rev: 23.3.0
     hooks:
       - id: black
--   repo: https://github.com/charliermarsh/ruff-pre-commit
+-   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.270
     hooks:
     -   id: ruff
@@ -102,7 +102,7 @@ repos:
     rev: v3.4.0
     hooks:
     -   id: pyupgrade
-        args: [--py38-plus]
+        args: [--py39-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -174,9 +174,6 @@ repos:
 
             # foo._class__ instead of type(foo)
             |\.__class__
-
-            # imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
 
             # Numpy
             |from\ numpy\ import\ random

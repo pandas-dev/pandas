@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -74,6 +73,8 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
@@ -1183,6 +1184,7 @@ def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
             freq = end.freq
         else:  # pragma: no cover
             raise ValueError("Could not infer freq from start/end")
+        mult = freq.n
 
     if periods is not None:
         periods = periods * mult

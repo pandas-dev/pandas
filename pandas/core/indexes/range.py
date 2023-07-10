@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+)
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     cast,
 )
 
@@ -910,7 +911,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 
