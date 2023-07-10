@@ -4,9 +4,7 @@ import importlib
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
 )
 
 from pandas._config import get_option
@@ -28,6 +26,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     import types
 
     from matplotlib.axes import Axes

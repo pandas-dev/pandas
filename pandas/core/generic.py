@@ -15,13 +15,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Hashable,
-    Iterator,
     Literal,
-    Mapping,
     NoReturn,
-    Sequence,
-    Type,
     cast,
     final,
     overload,
@@ -202,6 +197,13 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._libs.tslibs import BaseOffset
 
     from pandas import (
@@ -6866,7 +6868,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
             if len(results) > 0:
                 result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(Type["DataFrame"], self._constructor)
+                cons = cast(type["DataFrame"], self._constructor)
                 result = cons(result)
                 result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354

@@ -3,14 +3,16 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Sequence,
+)
 import datetime
 from functools import partial
 import string
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Literal,
-    Sequence,
     cast,
     final,
 )

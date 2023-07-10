@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -92,6 +89,12 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
