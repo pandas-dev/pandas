@@ -1518,5 +1518,4 @@ If missing values are considered distinct from any other value, then one could u
    v = s.values
    is_constant = v.shape[0] > 0 and ((s[0] == s).all() or not pd.notna(v).any())
 
-(Note that this example does not disambiguate between `np.nan`, `pd.NA` and `None`)
-
+(Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)
