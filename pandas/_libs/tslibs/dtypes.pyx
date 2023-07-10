@@ -1,6 +1,9 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
 from enum import Enum
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -274,6 +277,13 @@ class Resolution(Enum):
         """
         try:
             attr_name = _abbrev_to_attrnames[freq]
+            if freq in {"T", "L"}:
+                warnings.warn(
+                    f"Code freq={freq} is deprecated "
+                    "and will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
@@ -284,6 +294,13 @@ class Resolution(Enum):
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
             attr_name = _abbrev_to_attrnames[split_freq[0]]
+            if split_freq[0] in {"T", "L"}:
+                warnings.warn(
+                    f"Code freq={split_freq[0]} is deprecated "
+                    "and will be removed in a future version.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         return cls.from_attrname(attr_name)
 

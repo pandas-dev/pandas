@@ -8,6 +8,8 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import _attrname_to_abbrevs
 
+import pandas._testing as tm
+
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
@@ -38,14 +40,28 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
+    msg = f"Code freq={freqstr} is deprecated and will be removed in a future version."
+
+    if freqstr in {"T", "L"}:
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
+    else:
+        assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
 @pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
 def test_get_freq_roundtrip2(freq):
-    obj = Resolution.get_reso_from_freqstr(freq)
-    result = _attrname_to_abbrevs[obj.attrname]
-    assert freq == result
+    msg = f"Code freq={freq} is deprecated and will be removed in a future version."
+
+    if freq in {"T", "L"}:
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            obj = Resolution.get_reso_from_freqstr(freq)
+            result = _attrname_to_abbrevs[obj.attrname]
+            assert freq == result
+    else:
+        obj = Resolution.get_reso_from_freqstr(freq)
+        result = _attrname_to_abbrevs[obj.attrname]
+        assert freq == result
 
 
 @pytest.mark.parametrize(
@@ -95,3 +111,12 @@ def test_compatibility(freqstr, expected):
     ts_np = np.datetime64("2021-01-01T08:00:00.00")
     do = to_offset(freqstr)
     assert ts_np + do == np.datetime64(expected)
+
+
+@pytest.mark.parametrize("freq", ["T", "L"])
+def test_to_datetime_mixed_offsets_with_utcFalse_deprecated(freq):
+    # GH 52536
+    msg = f"Code freq={freq} is deprecated and will be removed in a future version."
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        Resolution.get_reso_from_freqstr(freq)
