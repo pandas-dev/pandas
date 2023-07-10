@@ -1157,8 +1157,6 @@ class _MergeOperation:
             else:
                 join_index = default_index(len(left_indexer))
 
-        if len(join_index) == 0 and not isinstance(join_index, MultiIndex):
-            join_index = default_index(0).set_names(join_index.name)
         return join_index, left_indexer, right_indexer
 
     @final

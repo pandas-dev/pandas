@@ -1183,6 +1183,7 @@ def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
             freq = end.freq
         else:  # pragma: no cover
             raise ValueError("Could not infer freq from start/end")
+        mult = freq.n
 
     if periods is not None:
         periods = periods * mult
