@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.errors import SettingWithCopyError
+from pandas.errors import (
+    ChainedAssignmentError,
+    SettingWithCopyError,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -30,7 +33,8 @@ def test_detect_chained_assignment(using_copy_on_write):
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
     if using_copy_on_write:
-        zed["eyes"]["right"].fillna(value=555, inplace=True)
+        with tm.assert_produces_warning(ChainedAssignmentError):
+            zed["eyes"]["right"].fillna(value=555, inplace=True)
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
@@ -70,13 +74,11 @@ def test_indexer_caching():
     # GH5727
     # make sure that indexers are in the _internal_names_set
     n = 1000001
-    arrays = (range(n), range(n))
-    index = MultiIndex.from_tuples(zip(*arrays))
+    index = MultiIndex.from_arrays([np.arange(n), np.arange(n)])
     s = Series(np.zeros(n), index=index)
     str(s)
 
     # setitem
     expected = Series(np.ones(n), index=index)
-    s = Series(np.zeros(n), index=index)
     s[s == 0] = 1
     tm.assert_series_equal(s, expected)

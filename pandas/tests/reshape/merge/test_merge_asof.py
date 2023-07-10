@@ -418,6 +418,34 @@ class TestAsOfMerge:
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
 
+    def test_mismatched_index_dtype(self):
+        # similar to test_multiby_indexed, but we change the dtype on left.index
+        left = pd.DataFrame(
+            [
+                [to_datetime("20160602"), 1, "a"],
+                [to_datetime("20160602"), 2, "a"],
+                [to_datetime("20160603"), 1, "b"],
+                [to_datetime("20160603"), 2, "b"],
+            ],
+            columns=["time", "k1", "k2"],
+        ).set_index("time")
+        # different dtype for the index
+        left.index = left.index - pd.Timestamp(0)
+
+        right = pd.DataFrame(
+            [
+                [to_datetime("20160502"), 1, "a", 1.0],
+                [to_datetime("20160502"), 2, "a", 2.0],
+                [to_datetime("20160503"), 1, "b", 3.0],
+                [to_datetime("20160503"), 2, "b", 4.0],
+            ],
+            columns=["time", "k1", "k2", "value"],
+        ).set_index("time")
+
+        msg = "incompatible merge keys"
+        with pytest.raises(MergeError, match=msg):
+            merge_asof(left, right, left_index=True, right_index=True, by=["k1", "k2"])
+
     def test_multiby_indexed(self):
         # GH15676
         left = pd.DataFrame(
@@ -1490,7 +1518,7 @@ def test_merge_asof_index_behavior(kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_index():
+def test_merge_asof_numeric_column_in_index():
     # GH#34488
     left = pd.DataFrame({"b": [10, 11, 12]}, index=Index([1, 2, 3], name="a"))
     right = pd.DataFrame({"c": [20, 21, 22]}, index=Index([0, 2, 3], name="a"))
@@ -1500,7 +1528,7 @@ def test_merge_asof_numeri_column_in_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_multiindex():
+def test_merge_asof_numeric_column_in_multiindex():
     # GH#34488
     left = pd.DataFrame(
         {"b": [10, 11, 12]},

@@ -231,7 +231,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         ["A", "B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    agg_dict = {"c": sum, "d": max, "e": "min"}
+    agg_dict = {"c": "sum", "d": "max", "e": "min"}
     grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
@@ -278,7 +278,7 @@ def test_groupby_dropna_datetime_like_data(
     else:
         indexes = [datetime1, datetime2, np.nan]
 
-    grouped = df.groupby("dt", dropna=dropna).agg({"values": sum})
+    grouped = df.groupby("dt", dropna=dropna).agg({"values": "sum"})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
