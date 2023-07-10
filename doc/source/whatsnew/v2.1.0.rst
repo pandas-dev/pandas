@@ -524,6 +524,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` sorting index lexicographically in rare cases (:issue:`53824`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+- Bug when joining empty :class:`DataFrame` objects, where the joined index would be a :class:`RangeIndex` instead of the joined index type (:issue:`52777`)
 -
 
 Sparse
