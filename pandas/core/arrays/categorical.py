@@ -1366,10 +1366,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             removals = [removals]
 
         removals = Index(removals).unique().dropna()
-        if self.dtype.ordered is True:
-            new_categories = self.dtype.categories.difference(removals, sort=False)
-        else:
-            new_categories = self.dtype.categories.difference(removals)
+        new_categories = self.dtype.categories.difference(
+            removals, sort=not self.dtype.ordered
+        )
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
