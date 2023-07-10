@@ -74,6 +74,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import ABCDataFrame
@@ -99,6 +100,7 @@ from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -3298,7 +3300,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         # try_float=False is to match agg_series
         npvalues = lib.maybe_convert_objects(new_values, try_float=False)
-        res_values = maybe_cast_pointwise_result(npvalues, self.dtype, same_dtype=False)
+        # same_dtype here is a kludge to avoid casting e.g. [True, False] to
+        #  ["True", "False"]
+        same_dtype = isinstance(self.dtype, (StringDtype, CategoricalDtype))
+        res_values = maybe_cast_pointwise_result(
+            npvalues, self.dtype, same_dtype=same_dtype
+        )
         return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:

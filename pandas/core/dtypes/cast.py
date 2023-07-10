@@ -491,10 +491,7 @@ def _maybe_cast_to_extension_array(
     if dtype is not None:
         try:
             result = cls._from_scalars(obj, dtype=dtype)
-        except (TypeError, ValueError, NotImplementedError):
-            # TODO: document that _from_scalars should only raise ValueError
-            #  or TypeError; NotImplementedError is here until we decide what
-            #  to do for Categorical.
+        except (TypeError, ValueError):
             return obj
         return result
 
