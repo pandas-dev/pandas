@@ -29,20 +29,18 @@ from pandas.tests.extension.decimal import (
 )
 
 
-def test_dt64_array():
+@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]", "M8[m]"])
+def test_dt64_array(dtype_unit):
     # PR 53817
-    dtype_unit_lst = ["M8[h]", "M8[m]", "m8[h]", "M8[m]"]
-
-    for unit in dtype_unit_lst:
-        dtype_var = np.dtype(unit)
-        msg = (
-            r"datetime64 and timedelta64 dtype resolutions other than "
-            r"'s', 'ms', 'us', and 'ns' are deprecated. "
-            r"In future releases passing unsupported resolutions will "
-            r"raise an exception."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
-            pd.array([], dtype=dtype_var)
+    dtype_var = np.dtype(dtype_unit)
+    msg = (
+        r"datetime64 and timedelta64 dtype resolutions other than "
+        r"'s', 'ms', 'us', and 'ns' are deprecated. "
+        r"In future releases passing unsupported resolutions will "
+        r"raise an exception."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+        pd.array([], dtype=dtype_var)
 
 
 @pytest.mark.parametrize(
