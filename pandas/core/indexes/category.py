@@ -209,7 +209,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ordered=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> CategoricalIndex:
         name = maybe_extract_name(name, data, cls)
 

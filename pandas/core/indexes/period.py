@@ -212,7 +212,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
         **fields,
     ) -> Self:
         valid_field_set = {
@@ -466,7 +466,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
+    start=None,
+    end=None,
+    periods: int | None = None,
+    freq=None,
+    name: Hashable | None = None,
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
