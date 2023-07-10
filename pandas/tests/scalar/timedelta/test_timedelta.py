@@ -1,5 +1,7 @@
 """ test the scalar Timedelta """
 from datetime import timedelta
+import sys
+from typing import Hashable
 
 from hypothesis import (
     given,
@@ -917,6 +919,30 @@ class TestTimedeltas:
         # python timedeltas drop ns resolution
         ns_td = Timedelta(1, "ns")
         assert hash(ns_td) != hash(ns_td.to_pytimedelta())
+
+    @pytest.mark.xfail(
+        reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
+        raises=AssertionError,
+        strict=True,
+    )
+    @given(st.integers(min_value=(-sys.maxsize - 1) / 500, max_value=sys.maxsize / 500))
+    def test_hash_equality_invariance(self, half_microseconds: int) -> None:
+        # GH#44504
+
+        def _upholds_hash_equality_invariance(v1: Hashable, v2: Hashable, /) -> bool:
+            if v1 != v2:
+                return True
+
+            # See: https://docs.python.org/3/glossary.html#term-hashable
+            # Hashable objects which compare equal must have the same hash value.
+            return hash(v1) == hash(v2)
+
+        nanoseconds = half_microseconds * 500
+
+        pandas_timedelta = Timedelta(nanoseconds)
+        numpy_timedelta = np.timedelta64(nanoseconds)
+
+        assert _upholds_hash_equality_invariance(pandas_timedelta, numpy_timedelta)
 
     def test_implementation_limits(self):
         min_td = Timedelta(Timedelta.min)
