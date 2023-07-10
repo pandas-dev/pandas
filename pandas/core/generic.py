@@ -8038,7 +8038,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
-            # as of 2023-06-26 no tests get here with either
+            #  as of 2023-06-26 no tests get here with either
             if not self._mgr.is_single_block and axis == 1:
                 # GH#53898
                 if inplace:
