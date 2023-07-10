@@ -459,7 +459,7 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
 @td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
     with tm.ensure_clean():
-        mockurl = "memory://afile"
+        mockurl = "memory://mockfile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)

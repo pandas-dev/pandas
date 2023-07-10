@@ -47,7 +47,7 @@ class OpenpyxlWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
@@ -534,7 +534,7 @@ class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """

@@ -24,7 +24,7 @@ class XlrdReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """

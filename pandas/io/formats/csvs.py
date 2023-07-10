@@ -71,7 +71,7 @@ class CSVFormatter:
         date_format: str | None = None,
         doublequote: bool = True,
         escapechar: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         self.fmt = formatter
 

@@ -688,7 +688,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
-    index_label: IndexLabel = None,
+    index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,

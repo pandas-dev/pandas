@@ -695,10 +695,10 @@ def test_binary_mode():
 
     GH 18035.
     """
-    data = """aas aas aas
+    data = """aaa aaa aaa
 bba bab b a"""
     df_reference = DataFrame(
-        [["bba", "bab", "b a"]], columns=["aas", "aas.1", "aas.2"], index=[0]
+        [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
     with tm.ensure_clean() as path:
         Path(path).write_text(data)

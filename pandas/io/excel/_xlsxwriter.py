@@ -188,7 +188,7 @@ class XlsxWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,

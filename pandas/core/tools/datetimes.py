@@ -260,7 +260,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: bool = False, name: Hashable = None
+    dt_array: ArrayLike, utc: bool = False, name: Hashable | None = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -352,7 +352,7 @@ def _return_parsed_timezone_results(
 def _convert_listlike_datetimes(
     arg,
     format: str | None,
-    name: Hashable = None,
+    name: Hashable | None = None,
     utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",

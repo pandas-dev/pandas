@@ -21,7 +21,7 @@ repos:
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.270
+    rev: v0.0.275
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -33,7 +33,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
@@ -91,7 +91,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.4.0
+    rev: v3.7.0
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]

@@ -875,16 +875,16 @@ def test_transform_with_non_scalar_group():
     cols = MultiIndex.from_tuples(
         [
             ("syn", "A"),
-            ("mis", "A"),
+            ("foo", "A"),
             ("non", "A"),
             ("syn", "C"),
-            ("mis", "C"),
+            ("foo", "C"),
             ("non", "C"),
             ("syn", "T"),
-            ("mis", "T"),
+            ("foo", "T"),
             ("non", "T"),
             ("syn", "G"),
-            ("mis", "G"),
+            ("foo", "G"),
             ("non", "G"),
         ]
     )

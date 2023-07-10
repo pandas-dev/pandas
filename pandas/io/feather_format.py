@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     **kwargs,
 ) -> None:
     """
@@ -68,7 +68,7 @@ def read_feather(
     path: FilePath | ReadBuffer[bytes],
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ):
     """
