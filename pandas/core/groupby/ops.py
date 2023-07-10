@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
 
@@ -71,6 +68,12 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas.core.generic import NDFrame
 
 

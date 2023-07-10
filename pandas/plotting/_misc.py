@@ -4,13 +4,16 @@ from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generator,
-    Mapping,
 )
 
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Mapping,
+    )
+
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap
     from matplotlib.figure import Figure

@@ -4,12 +4,7 @@ data hash pandas / numpy objects
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Iterator,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -26,6 +21,12 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         npt,

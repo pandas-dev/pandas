@@ -4,16 +4,15 @@ Module for formatting output data in console (to string).
 from __future__ import annotations
 
 from shutil import get_terminal_size
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas.io.formats.format import DataFrameFormatter
 
 

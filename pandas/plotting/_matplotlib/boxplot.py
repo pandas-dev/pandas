@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Collection,
     Literal,
     NamedTuple,
 )
@@ -33,6 +32,8 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
 

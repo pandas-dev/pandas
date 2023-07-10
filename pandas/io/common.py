@@ -7,6 +7,11 @@ from abc import (
 )
 import codecs
 from collections import defaultdict
+from collections.abc import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import dataclasses
 import functools
 import gzip
@@ -29,10 +34,7 @@ from typing import (
     AnyStr,
     DefaultDict,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,

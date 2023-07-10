@@ -4,8 +4,11 @@ import contextlib
 import inspect
 import os
 import re
-from typing import Generator
+from typing import TYPE_CHECKING
 import warnings
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @contextlib.contextmanager

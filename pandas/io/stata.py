@@ -27,8 +27,6 @@ from typing import (
     AnyStr,
     Callable,
     Final,
-    Hashable,
-    Sequence,
     cast,
 )
 import warnings
@@ -75,6 +73,10 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from types import TracebackType
     from typing import Literal
 

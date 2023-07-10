@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -58,6 +57,8 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,

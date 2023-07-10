@@ -11,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
-    Hashable,
-    Sequence,
     overload,
 )
 import warnings
@@ -60,6 +57,12 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Hashable,
+        Sequence,
+    )
+
     from matplotlib.colors import Colormap
 
     from pandas._typing import (

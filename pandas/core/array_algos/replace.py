@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import operator
 import re
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
     Any,
-    Pattern,
 )
 
 import numpy as np

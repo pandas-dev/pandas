@@ -12,7 +12,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Generator,
     cast,
 )
 
@@ -57,6 +56,8 @@ from pandas.core.indexes.period import (
 import pandas.core.tools.datetimes as tools
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._libs.tslibs.offsets import BaseOffset
 
 # constants

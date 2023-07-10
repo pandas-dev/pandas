@@ -24,7 +24,10 @@ import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (

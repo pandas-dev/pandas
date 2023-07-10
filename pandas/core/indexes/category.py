@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     Literal,
     cast,
 )
@@ -42,6 +41,8 @@ from pandas.core.indexes.extension import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,

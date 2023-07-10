@@ -4,7 +4,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     cast,
 )
 
@@ -19,6 +18,8 @@ from pandas.api.extensions import (
 from pandas.api.types import pandas_dtype
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         Dtype,
         PositionalIndexer,

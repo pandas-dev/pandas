@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from functools import partial
 import re
 from typing import (
@@ -8,11 +9,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     Union,
 )
@@ -52,9 +49,9 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, float]]
-CSSList = List[CSSPair]
+ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
+CSSPair = tuple[str, Union[str, float]]
+CSSList = list[CSSPair]
 CSSProperties = Union[str, CSSList]
 
 
@@ -63,7 +60,7 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = List[CSSDict]
+CSSStyles = list[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 

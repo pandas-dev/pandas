@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    Sized,
     cast,
 )
 
@@ -93,6 +90,12 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sized,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,

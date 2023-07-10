@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import functools
 import operator
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 import unicodedata
@@ -127,6 +124,8 @@ if not pa_version_under7p0:
     }
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -2189,14 +2188,7 @@ class ArrowExtensionArray(
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removeprefix
-
-            predicate = functools.partial(removeprefix, prefix=prefix)
-        else:
-            predicate = lambda val: val.removeprefix(prefix)
+        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 

@@ -22,13 +22,14 @@ https://github.com/asottile/pyupgrade .
 
 import argparse
 import ast
+from collections.abc import (
+    MutableMapping,
+    Sequence,
+)
 import sys
 from typing import (
-    MutableMapping,
     NamedTuple,
     Optional,
-    Sequence,
-    Set,
 )
 
 ERROR_MESSAGE = (
@@ -46,7 +47,7 @@ class OffsetWithNamespace(NamedTuple):
 class Visitor(ast.NodeVisitor):
     def __init__(self) -> None:
         self.pandas_namespace: MutableMapping[OffsetWithNamespace, str] = {}
-        self.imported_from_pandas: Set[str] = set()
+        self.imported_from_pandas: set[str] = set()
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if isinstance(node.value, ast.Name) and node.value.id in {"pandas", "pd"}:

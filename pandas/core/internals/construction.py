@@ -8,8 +8,6 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Sequence,
 )
 
 import numpy as np
@@ -77,6 +75,11 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,

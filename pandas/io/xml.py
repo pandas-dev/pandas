@@ -10,7 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
 )
 
 from pandas._libs import lib
@@ -37,6 +36,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from xml.etree.ElementTree import Element
 
     from lxml import etree

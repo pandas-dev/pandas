@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Sequence,
     cast,
 )
 import warnings
@@ -51,6 +50,8 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,

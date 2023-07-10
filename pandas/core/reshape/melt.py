@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -27,6 +24,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame

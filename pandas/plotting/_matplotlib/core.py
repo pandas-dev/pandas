@@ -4,12 +4,14 @@ from abc import (
     ABC,
     abstractmethod,
 )
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Hashable,
     Iterable,
-    Literal,
     Sequence,
+)
+from typing import (
+    TYPE_CHECKING,
+    Literal,
 )
 import warnings
 

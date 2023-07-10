@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     NamedTuple,
 )
 
 from pandas.core.dtypes.common import is_1d_only_ea_dtype
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._libs.internals import BlockPlacement
     from pandas._typing import ArrayLike
 

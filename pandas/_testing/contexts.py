@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,

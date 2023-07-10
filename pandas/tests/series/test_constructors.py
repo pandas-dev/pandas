@@ -1,9 +1,9 @@
 from collections import OrderedDict
+from collections.abc import Iterator
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np

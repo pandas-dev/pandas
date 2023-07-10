@@ -6,9 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
 )
 
@@ -34,6 +31,12 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,

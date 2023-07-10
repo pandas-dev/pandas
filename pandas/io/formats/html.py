@@ -5,11 +5,9 @@ from __future__ import annotations
 
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
-    Hashable,
-    Iterable,
-    Mapping,
     cast,
 )
 
@@ -28,6 +26,13 @@ from pandas.io.formats.format import (
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
 
 
 class HTMLFormatter:

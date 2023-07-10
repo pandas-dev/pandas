@@ -1,7 +1,7 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import pathlib
 import tempfile
-from typing import Generator
 
 import pytest
 

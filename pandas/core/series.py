@@ -3,6 +3,12 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import operator
 import sys
 from textwrap import dedent
@@ -11,11 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,

@@ -4,9 +4,9 @@ from functools import wraps
 import inspect
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
     cast,
 )
 import warnings
@@ -17,6 +17,9 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 def deprecate(

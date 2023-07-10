@@ -10,9 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     cast,
     final,
@@ -144,6 +142,11 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,

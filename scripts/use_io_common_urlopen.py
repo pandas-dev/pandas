@@ -14,7 +14,11 @@ from __future__ import annotations
 import argparse
 import ast
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 ERROR_MESSAGE = (
     "{path}:{lineno}:{col_offset}: "

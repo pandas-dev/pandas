@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -14,6 +11,7 @@ from pandas.core.dtypes.inference import is_list_like
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from pandas._typing import DtypeBackend

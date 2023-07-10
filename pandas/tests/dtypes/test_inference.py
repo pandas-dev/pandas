@@ -5,6 +5,7 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
+from collections.abc import Iterator
 from datetime import (
     date,
     datetime,
@@ -20,7 +21,6 @@ import re
 import sys
 from typing import (
     Generic,
-    Iterator,
     TypeVar,
 )
 

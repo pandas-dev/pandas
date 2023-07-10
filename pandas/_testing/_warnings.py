@@ -7,13 +7,17 @@ from contextlib import (
 import re
 import sys
 from typing import (
-    Generator,
+    TYPE_CHECKING,
     Literal,
-    Sequence,
-    Type,
     cast,
 )
 import warnings
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Sequence,
+    )
 
 
 @contextmanager
@@ -91,7 +95,7 @@ def assert_produces_warning(
             yield w
         finally:
             if expected_warning:
-                expected_warning = cast(Type[Warning], expected_warning)
+                expected_warning = cast(type[Warning], expected_warning)
                 _assert_caught_expected_warning(
                     caught_warnings=w,
                     expected_warning=expected_warning,
@@ -195,7 +199,7 @@ def _is_unexpected_warning(
     """Check if the actual warning issued is unexpected."""
     if actual_warning and not expected_warning:
         return True
-    expected_warning = cast(Type[Warning], expected_warning)
+    expected_warning = cast(type[Warning], expected_warning)
     return bool(not issubclass(actual_warning.category, expected_warning))
 
 

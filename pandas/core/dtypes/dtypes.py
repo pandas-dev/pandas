@@ -14,7 +14,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    MutableMapping,
     cast,
 )
 import warnings
@@ -65,6 +64,7 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
     from datetime import tzinfo
 
     import pyarrow as pa  # noqa: F811, TCH004

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -50,6 +47,8 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,

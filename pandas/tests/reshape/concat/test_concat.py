@@ -2,9 +2,9 @@ from collections import (
     abc,
     deque,
 )
+from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
-from typing import Iterator
 from warnings import (
     catch_warnings,
     simplefilter,

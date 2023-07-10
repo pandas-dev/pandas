@@ -12,9 +12,7 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
     TypeVar,
     overload,
 )
@@ -69,6 +67,10 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+    )
     from types import TracebackType
 
     from pandas._typing import (
