@@ -720,14 +720,15 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = []
-        for i, (lev, codes) in enumerate(zip(self.levels, zt)):
-            result = lev.get_indexer_for(codes) + 1
-            result[result > 0] += 1
-            if self.level_has_nans[i] and codes.hasnans:
-                result[codes.isna()] += 1
-            level_codes.append(result)
+        level_codes = list(target._recode_for_new_levels(self.levels))
+        for i, codes in enumerate(level_codes):
+            if self.levels[i].hasnans:
+                na_index = self.levels[i].isna().nonzero()[0][0]
+                codes[target.codes[i] == -1] = na_index
+            codes += 1
+            codes[codes > 0] += 1
+            if self.level_has_nans[i]:
+                codes[target.codes[i] == -1] += 1
         return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
