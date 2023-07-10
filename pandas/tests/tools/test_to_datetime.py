@@ -514,7 +514,7 @@ class TestTimeConversionFormats:
             ],
         ],
     )
-    def test_to_datetime_parse_tzname_or_tzoffset_utcFalse_deprecated(
+    def test_to_datetime_parse_tzname_or_tzoffset_utc_false_deprecated(
         self, fmt, dates, expected_dates
     ):
         # GH 13486, 50887
@@ -699,7 +699,7 @@ class TestToDatetime:
         "constructor",
         [Timestamp, lambda x: Timestamp(x).to_pydatetime()],
     )
-    def test_to_datetime_mixed_datetime_and_string_with_format_mixed_offsets_utcFalse(
+    def test_to_datetime_mixed_datetime_and_string_with_format_mixed_offsets_utc_false(
         self, fmt, utc, args, expected, constructor
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
@@ -1794,7 +1794,7 @@ class TestToDatetime:
             ],
         ],
     )
-    def test_to_datetime_mixed_offsets_with_utcFalse_deprecated(self, date):
+    def test_to_datetime_mixed_offsets_with_utc_false_deprecated(self, date):
         # GH 50887
         msg = "parsing datetimes with mixed time zones will raise a warning"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -3685,7 +3685,9 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
         ),
     ],
 )
-def test_to_datetime_with_empty_str_utcFalse_format_mixed(date, date_expected, warning):
+def test_to_datetime_with_empty_str_utc_false_format_mixed(
+    date, date_expected, warning
+):
     # GH 50887
     msg = "parsing datetimes with mixed time zones will raise a warning"
 

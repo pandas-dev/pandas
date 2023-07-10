@@ -337,7 +337,6 @@ def _return_parsed_timezone_results(
     tz_result : Index-like of parsed dates with timezone
     """
     tz_results = np.empty(len(result), dtype=object)
-    unique(timezones)
     non_na_timezones = set()
     for zone in unique(timezones):
         mask = timezones == zone
@@ -985,8 +984,8 @@ def to_datetime(
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
       are **not successfully converted** to a :class:`DatetimeIndex`.
-      Parsing datetimes with mixed time zones will raise a warning unless
-      `utc=True`. If you specify `utc=False` the warning below will be raised
+      Parsing datetimes with mixed time zones will show a warning unless
+      `utc=True`. If you specify `utc=False` the warning below will be shown
       and a simple :class:`Index` containing :class:`datetime.datetime`
       objects will be returned:
 
