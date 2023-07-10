@@ -4,14 +4,16 @@ Module for formatting output data into CSV files.
 
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Sequence,
+)
 import csv as csvlib
 import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Iterator,
-    Sequence,
     cast,
 )
 

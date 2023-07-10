@@ -20,7 +20,7 @@ repos:
     rev: 23.3.0
     hooks:
       - id: black
--   repo: https://github.com/charliermarsh/ruff-pre-commit
+-   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.275
     hooks:
     -   id: ruff
@@ -94,7 +94,7 @@ repos:
     rev: v3.7.0
     hooks:
     -   id: pyupgrade
-        args: [--py38-plus]
+        args: [--py39-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -178,9 +178,6 @@ repos:
             # np.bool/np.object instead of np.bool_/np.object_
             |np\.bool[^_8`]
             |np\.object[^_8`]
-
-            # imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
 
             # Numpy
             |from\ numpy\ import\ random
