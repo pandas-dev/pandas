@@ -25,7 +25,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Mapping,
 )
 
 import numpy as np
@@ -45,6 +44,8 @@ from pandas.api.extensions import (
 from pandas.core.indexers import unpack_tuple_and_ellipses
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from pandas._typing import type_t
 
 
