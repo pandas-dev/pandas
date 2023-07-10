@@ -1513,6 +1513,6 @@ If missing values are considered distinct from any other value, then one could u
 .. ipython:: python
 
    v = s.values
-   is_constant = v.shape[0] == 0 or ((s[0] == s).all() or not pd.notna(v).any())
+   is_constant = v.shape[0] == 0 or (s[0] == s).all() or not pd.notna(v).any()
 
 (Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)
