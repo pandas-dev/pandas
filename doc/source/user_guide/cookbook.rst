@@ -1492,13 +1492,13 @@ of the data values:
 Constant series
 ---------------
 
-To assess if a series has a constant value, we can check if ``series.nunique() == 1``.
+To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.
 However, a more performant approach, that does not count all unique values first, is:
 
 .. ipython:: python
 
    v = s.values
-   is_constant = v.shape[0] > 0 and (s[0] == s).all()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
 
 This approach assumes that the series does not contain missing values.
 For the case that we would drop NA values, we can simply remove those values first:
@@ -1506,13 +1506,13 @@ For the case that we would drop NA values, we can simply remove those values fir
 .. ipython:: python
 
    v = s.dropna().values
-   is_constant = v.shape[0] > 0 and (s[0] == s).all()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
 
 If missing values are considered distinct from any other value, then one could use:
 
 .. ipython:: python
 
    v = s.values
-   is_constant = v.shape[0] > 0 and ((s[0] == s).all() or not pd.notna(v).any())
+   is_constant = v.shape[0] == 0 or ((s[0] == s).all() or not pd.notna(v).any())
 
 (Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)
