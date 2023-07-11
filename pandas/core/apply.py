@@ -1284,7 +1284,7 @@ class SeriesApply(NDFrameApply):
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             warnings.warn(
-                "Returning a DataFrame from Series.apply when the supplied function"
+                "Returning a DataFrame from Series.apply when the supplied function "
                 "returns a Series is deprecated and will be removed in a future "
                 "version.",
                 FutureWarning,
