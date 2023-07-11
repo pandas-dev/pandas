@@ -4,7 +4,7 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
 import numpy as np
 import pytest
-from stringdtype import PandasStringDType
+from stringdtype import StringDType
 
 import pandas.util._test_decorators as td
 
@@ -324,8 +324,16 @@ def test_astype_int(dtype):
     tm.assert_numpy_array_equal(result, expected)
 
     arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
-    msg = r"int\(\) argument must be a string, a bytes-like object or a( real)? number"
-    with pytest.raises(TypeError, match=msg):
+    if dtype.storage == "numpy":
+        msg = "Arrays with missing data cannot be converted to integers"
+        exception = ValueError
+    else:
+        msg = (
+            r"int\(\) argument must be a string, a bytes-like object or a( real)? "
+            "number"
+        )
+        exception = TypeError
+    with pytest.raises(exception, match=msg):
         arr.astype("int64")
 
 
@@ -538,7 +546,7 @@ def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
     if dtype.storage == "numpy":
-        res_dtype = PandasStringDType()
+        res_dtype = StringDType(na_object=pd.NA)
     else:
         res_dtype = object
     expected = np.array(["a", pd.NA, "b"], dtype=res_dtype)
@@ -550,7 +558,7 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = arr.to_numpy(na_value=na_value)
     if dtype.storage == "numpy":
-        res_dtype = PandasStringDType()
+        res_dtype = StringDType(na_object=pd.NA)
     else:
         res_dtype = object
     expected = np.array(["a", na_value, "b"], dtype=res_dtype)

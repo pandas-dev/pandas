@@ -27,6 +27,7 @@ from pandas.core.dtypes.base import (
     register_extension_dtype,
 )
 from pandas.core.dtypes.common import (
+    get_string_dtype,
     is_array_like,
     is_bool_dtype,
     is_integer_dtype,
@@ -344,9 +345,7 @@ class BaseNumpyStringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        from stringdtype import PandasStringDType
-
-        values = np.empty(shape, dtype=PandasStringDType())
+        values = np.empty(shape, dtype=get_string_dtype())
         values[:] = libmissing.NA
         return cls(values).astype(dtype, copy=False)
 
@@ -664,18 +663,14 @@ class NumpyStringArray(BaseNumpyStringArray):
     _storage = "numpy"
 
     def __init__(self, values, copy: bool = False) -> None:
-        from stringdtype import PandasStringDType
-
-        values = np.asarray(values, dtype=PandasStringDType())
+        values = np.asarray(values, dtype=get_string_dtype())
         super().__init__(values, copy=copy)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
-        from stringdtype import PandasStringDType
-
         na_mask, any_na = libmissing.isnaobj(np.asarray(scalars), check_for_any_na=True)
 
-        result = np.array(scalars, dtype=PandasStringDType)
+        result = np.array(scalars, dtype=get_string_dtype())
 
         if any_na:
             result[na_mask] = libmissing.NA
@@ -702,30 +697,24 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
-        from stringdtype import PandasStringDType
-
-        values = np.empty(shape, dtype=PandasStringDType())
+        values = np.empty(shape, dtype=get_string_dtype())
         return cls(values).astype(dtype, copy=False)
 
     def _validate(self):
         """Validate that we only store NA or strings."""
-        from stringdtype import PandasStringDType
-
         if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
-        if type(self._ndarray.dtype) != PandasStringDType:
+        if self._ndarray.dtype != get_string_dtype():
             raise ValueError(
                 f"{type(self).__name__} requires a sequence of strings or "
                 "pandas.NA convertible to a NumPy array with dtype "
-                f"{PandasStringDType()}. Got "
+                f"{get_string_dtype()}. Got "
                 f"'{self._ndarray.dtype}' dtype instead."
             )
 
     def _validate_setitem_value(self, value):
-        from stringdtype import PandasStringDType
-
         if value is np.nan:
-            value = np.array(libmissing.NA, dtype=PandasStringDType())
+            value = np.array(libmissing.NA, dtype=get_string_dtype())
         return value
 
     def _validate_scalar(self, fill_value):

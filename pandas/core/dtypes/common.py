@@ -17,6 +17,7 @@ from pandas._libs import (
     Period,
     algos,
     lib,
+    missing as libmissing,
 )
 from pandas._libs.tslibs import conversion
 from pandas.util._exceptions import find_stack_level
@@ -527,7 +528,7 @@ def get_string_dtype():
 
     import stringdtype
 
-    return stringdtype.PandasStringDType()
+    return stringdtype.StringDType(na_object=libmissing.NA)
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
