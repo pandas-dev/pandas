@@ -119,6 +119,7 @@ Other enhancements
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
+- Replace alias ``M`` with alias ``ME`` for month end. Now offsets accept alias ``ME`` (:issue:`9586`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -276,6 +277,7 @@ Deprecations
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
 - Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated alias ``M`` for offsets, use ``ME`` instead (:issue:`9586`)
 - Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)
 - Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series` before calling (:issue:`52986`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
