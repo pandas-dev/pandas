@@ -5,7 +5,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import partial
-from re import Pattern
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -47,6 +46,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
