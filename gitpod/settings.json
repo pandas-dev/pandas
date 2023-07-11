@@ -1,6 +1,5 @@
 {
-    "restructuredtext.updateOnTextChanged": "true",
-    "restructuredtext.updateDelay": 300,
+    "esbonio.server.pythonPath": "/usr/local/bin/python",
     "restructuredtext.linter.disabledLinters": ["doc8","rst-lint", "rstcheck"],
-    "python.defaultInterpreterPath": "/home/gitpod/mambaforge3/envs/pandas-dev/bin/python"
+    "python.defaultInterpreterPath": "/usr/local/bin/python"
 }
