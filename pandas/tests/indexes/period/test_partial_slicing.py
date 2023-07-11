@@ -15,7 +15,7 @@ class TestPeriodIndex:
     def test_getitem_periodindex_duplicates_string_slice(self, using_copy_on_write):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
-        ts = Series(np.random.default_rng(2).randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
         original = ts.copy()
 
         result = ts["2007"]
@@ -29,7 +29,7 @@ class TestPeriodIndex:
 
         # not monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
-        ts = Series(np.random.default_rng(2).randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["2007"]
         expected = ts[idx == "2007"]

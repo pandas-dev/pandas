@@ -142,7 +142,7 @@ def test_read_column(setup_path):
         tm.assert_almost_equal(result.values, df3["string"].values[-2:2])
 
         # GH 10392 - make sure column name is preserved
-        df4 = DataFrame({"A": np.random.default_rng(2).randn(10), "B": "foo"})
+        df4 = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": "foo"})
         store.append("df4", df4, data_columns=True)
         expected = df4["B"]
         result = store.select_column("df4", "B")

@@ -89,7 +89,7 @@ def test_groupby_resample_on_api():
         {
             "key": ["A", "B"] * 5,
             "dates": date_range("2016-01-01", periods=10),
-            "values": np.random.default_rng(2).randn(10),
+            "values": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -343,7 +343,7 @@ def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
-        np.random.default_rng(2).randn(1000, 3),
+        np.random.default_rng(2).standard_normal(1000, 3),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=["A", "B", "C"],
     )
@@ -358,7 +358,7 @@ def test_agg_consistency():
 def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
-        np.random.default_rng(2).randn(1000, 2),
+        np.random.default_rng(2).standard_normal(1000, 2),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=[1, "a"],
     )

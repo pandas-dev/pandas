@@ -735,7 +735,7 @@ class TestGroupBy:
 
         df = DataFrame(
             {
-                "factor": np.random.default_rng(2).randint(0, 3, size=60),
+                "factor": np.random.default_rng(2).integers(0, 3, size=60),
                 "time": date_range("01/01/2000 00:00", periods=60, freq="s", tz="UTC"),
             }
         )

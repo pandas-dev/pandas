@@ -270,12 +270,12 @@ def test_count():
     df = DataFrame(
         {
             "1st": np.random.default_rng(2).choice(list(ascii_lowercase), n),
-            "2nd": np.random.default_rng(2).randint(0, 5, n),
-            "3rd": np.random.default_rng(2).randn(n).round(3),
-            "4th": np.random.default_rng(2).randint(-10, 10, n),
+            "2nd": np.random.default_rng(2).integers(0, 5, n),
+            "3rd": np.random.default_rng(2).standard_normal(n).round(3),
+            "4th": np.random.default_rng(2).integers(-10, 10, n),
             "5th": np.random.default_rng(2).choice(dr, n),
-            "6th": np.random.default_rng(2).randn(n).round(3),
-            "7th": np.random.default_rng(2).randn(n).round(3),
+            "6th": np.random.default_rng(2).standard_normal(n).round(3),
+            "7th": np.random.default_rng(2).standard_normal(n).round(3),
             "8th": np.random.default_rng(2).choice(dr, n)
             - np.random.default_rng(2).choice(dr, 1),
             "9th": np.random.default_rng(2).choice(list(ascii_lowercase), n),
@@ -330,8 +330,8 @@ def test_count_cross_type():
     # Set float64 dtype to avoid upcast when setting nan below
     vals = np.hstack(
         (
-            np.random.default_rng(2).randint(0, 5, (100, 2)),
-            np.random.default_rng(2).randint(0, 2, (100, 2)),
+            np.random.default_rng(2).integers(0, 5, (100, 2)),
+            np.random.default_rng(2).integers(0, 2, (100, 2)),
         )
     ).astype("float64")
 

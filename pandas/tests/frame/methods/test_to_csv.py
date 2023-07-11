@@ -74,7 +74,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv2__") as path:
             # duplicate index
             df = DataFrame(
-                np.random.default_rng(2).randn(3, 3),
+                np.random.default_rng(2).standard_normal(3, 3),
                 index=["a", "a", "b"],
                 columns=["x", "y", "z"],
             )
@@ -84,7 +84,7 @@ class TestDataFrameToCSV:
 
             midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
             df = DataFrame(
-                np.random.default_rng(2).randn(3, 3),
+                np.random.default_rng(2).standard_normal(3, 3),
                 index=midx,
                 columns=["x", "y", "z"],
             )
@@ -108,8 +108,8 @@ class TestDataFrameToCSV:
 
     def test_to_csv_from_csv3(self):
         with tm.ensure_clean("__tmp_to_csv_from_csv3__") as path:
-            df1 = DataFrame(np.random.default_rng(2).randn(3, 1))
-            df2 = DataFrame(np.random.default_rng(2).randn(3, 1))
+            df1 = DataFrame(np.random.default_rng(2).standard_normal(3, 1))
+            df2 = DataFrame(np.random.default_rng(2).standard_normal(3, 1))
 
             df1.to_csv(path)
             df2.to_csv(path, mode="a", header=False)
@@ -207,9 +207,9 @@ class TestDataFrameToCSV:
                 nnat = int(n * 0.1)  # 10%
             s = list(date_range("2000", freq="5min", periods=n))
             if nnat:
-                for i in np.random.default_rng(2).randint(0, len(s), nnat):
+                for i in np.random.default_rng(2).integers(0, len(s), nnat):
                     s[i] = NaT
-                i = np.random.default_rng(2).randint(100)
+                i = np.random.default_rng(2).integers(100)
                 s[-i] = NaT
                 s[i] = NaT
             return s
@@ -536,7 +536,7 @@ class TestDataFrameToCSV:
                 if names is True:
                     names = ["first", "second"]
                 return DataFrame(
-                    np.random.default_rng(2).randint(0, 10, size=(3, 3)),
+                    np.random.default_rng(2).integers(0, 10, size=(3, 3)),
                     columns=MultiIndex.from_tuples(
                         [("bah", "foo"), ("bah", "bar"), ("ban", "baz")], names=names
                     ),
@@ -626,7 +626,9 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, expected)
 
     def test_to_csv_float32_nanrep(self):
-        df = DataFrame(np.random.default_rng(2).randn(1, 4).astype(np.float32))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(1, 4).astype(np.float32)
+        )
         df[1] = np.nan
 
         with tm.ensure_clean("__tmp_to_csv_float32_nanrep__.csv") as path:
@@ -650,12 +652,12 @@ class TestDataFrameToCSV:
             return [f"{name}{i:03d}" for i in range(5)]
 
         df_float = DataFrame(
-            np.random.default_rng(2).randn(100, 5),
+            np.random.default_rng(2).standard_normal(100, 5),
             dtype="float64",
             columns=create_cols("float"),
         )
         df_int = DataFrame(
-            np.random.default_rng(2).randn(100, 5).astype("int64"),
+            np.random.default_rng(2).standard_normal(100, 5).astype("int64"),
             dtype="int64",
             columns=create_cols("int"),
         )
@@ -698,7 +700,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_dups_cols(self):
         df = DataFrame(
-            np.random.default_rng(2).randn(1000, 30),
+            np.random.default_rng(2).standard_normal(1000, 30),
             columns=list(range(15)) + list(range(15)),
             dtype="float64",
         )
@@ -709,8 +711,12 @@ class TestDataFrameToCSV:
             result.columns = df.columns
             tm.assert_frame_equal(result, df)
 
-        df_float = DataFrame(np.random.default_rng(2).randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.default_rng(2).randn(1000, 3)).astype("int64")
+        df_float = DataFrame(
+            np.random.default_rng(2).standard_normal(1000, 3), dtype="float64"
+        )
+        df_int = DataFrame(np.random.default_rng(2).standard_normal(1000, 3)).astype(
+            "int64"
+        )
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
         df_dt = DataFrame(
@@ -764,7 +770,9 @@ class TestDataFrameToCSV:
         # Issue #8621
         chunksize = 100
         df = DataFrame(
-            np.random.default_rng(2).randn(1, chunksize + 10), columns=None, index=None
+            np.random.default_rng(2).standard_normal(1, chunksize + 10),
+            columns=None,
+            index=None,
         )
         with tm.ensure_clean() as filename:
             with monkeypatch.context() as m:

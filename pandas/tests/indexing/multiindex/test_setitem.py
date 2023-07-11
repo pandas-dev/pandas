@@ -140,7 +140,9 @@ class TestMultiIndexSetItem:
         ]
 
         df_orig = DataFrame(
-            np.random.default_rng(2).randn(6, 3), index=arrays, columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal(6, 3),
+            index=arrays,
+            columns=["A", "B", "C"],
         ).sort_index()
 
         expected = df_orig.loc[["bar"]] * 2
@@ -189,7 +191,7 @@ class TestMultiIndexSetItem:
 
         # mixed dtype
         df = DataFrame(
-            np.random.default_rng(2).randint(5, 10, size=9).reshape(3, 3),
+            np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -205,7 +207,7 @@ class TestMultiIndexSetItem:
         arr = np.array([0.0, 1.0])
 
         df = DataFrame(
-            np.random.default_rng(2).randint(5, 10, size=9).reshape(3, 3),
+            np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
             index=[[4, 4, 8], [8, 10, 12]],
             dtype=np.int64,
@@ -254,7 +256,7 @@ class TestMultiIndexSetItem:
         index_cols = col_names[:5]
 
         df = DataFrame(
-            np.random.default_rng(2).randint(5, size=(NUM_ROWS, NUM_COLS)),
+            np.random.default_rng(2).integers(5, size=(NUM_ROWS, NUM_COLS)),
             dtype=np.int64,
             columns=col_names,
         )
@@ -334,7 +336,7 @@ class TestMultiIndexSetItem:
 
     def test_frame_setitem_multi_column(self):
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 4),
+            np.random.default_rng(2).standard_normal(10, 4),
             columns=[["a", "a", "b", "b"], [0, 1, 0, 1]],
         )
 
@@ -387,7 +389,7 @@ class TestMultiIndexSetItem:
         )
 
         obj = DataFrame(
-            np.random.default_rng(2).randn(len(index), 4),
+            np.random.default_rng(2).standard_normal(len(index), 4),
             index=index,
             columns=["a", "b", "c", "d"],
         )
@@ -472,7 +474,7 @@ class TestSetitemWithExpansionMultiIndex:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.default_rng(2).randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal(4, 6), columns=index)
 
         result = df.copy()
         expected = df.copy()

@@ -64,7 +64,9 @@ class TestRank:
         tm.assert_almost_equal(ranks1.values, exp1)
 
         # integers
-        df = DataFrame(np.random.default_rng(2).randint(0, 5, size=40).reshape((10, 4)))
+        df = DataFrame(
+            np.random.default_rng(2).integers(0, 5, size=40).reshape((10, 4))
+        )
 
         result = df.rank()
         exp = df.astype(float).rank()
@@ -126,7 +128,7 @@ class TestRank:
     def test_rank_does_not_mutate(self):
         # GH#18521
         # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.default_rng(2).randn(10, 3), dtype="float64")
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 3), dtype="float64")
         expected = df.copy()
         df.rank()
         result = df
@@ -229,7 +231,7 @@ class TestRank:
         import scipy.stats  # noqa: F401
         from scipy.stats import rankdata
 
-        xs = np.random.default_rng(2).randint(0, 21, (100, 26))
+        xs = np.random.default_rng(2).integers(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
         cols = [chr(ord("z") - i) for i in range(xs.shape[1])]
 

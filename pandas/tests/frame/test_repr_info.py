@@ -46,7 +46,7 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode_level_names(self, frame_or_series):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
-        obj = DataFrame(np.random.default_rng(2).randn(2, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal(2, 4), index=index)
         obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
@@ -156,7 +156,10 @@ NaT   4"""
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame(
-            {"A": np.random.default_rng(2).randn(200), "B": tm.makeStringIndex(200)},
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": tm.makeStringIndex(200),
+            },
             index=range(200),
         )
         biggie.loc[:20, "A"] = np.nan
@@ -261,7 +264,8 @@ NaT   4"""
 
     def test_very_wide_info_repr(self):
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 20), columns=tm.rands_array(10, 20)
+            np.random.default_rng(2).standard_normal(10, 20),
+            columns=tm.rands_array(10, 20),
         )
         repr(df)
 
@@ -341,7 +345,7 @@ NaT   4"""
 
     def test_frame_to_string_with_periodindex(self):
         index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
-        frame = DataFrame(np.random.default_rng(2).randn(3, 4), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal(3, 4), index=index)
 
         # it works!
         frame.to_string()

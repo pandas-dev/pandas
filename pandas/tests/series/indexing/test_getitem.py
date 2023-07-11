@@ -95,7 +95,7 @@ class TestSeriesGetitemScalars:
     def test_getitem_keyerror_with_integer_index(self, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
         ser = Series(
-            np.random.default_rng(2).randn(6),
+            np.random.default_rng(2).standard_normal(6),
             index=Index([0, 0, 1, 1, 2, 2], dtype=dtype),
         )
 
@@ -106,7 +106,9 @@ class TestSeriesGetitemScalars:
             ser["c"]
 
         # not monotonic
-        ser = Series(np.random.default_rng(2).randn(6), index=[2, 2, 0, 0, 1, 1])
+        ser = Series(
+            np.random.default_rng(2).standard_normal(6), index=[2, 2, 0, 0, 1, 1]
+        )
 
         with pytest.raises(KeyError, match=r"^5$"):
             ser[5]
@@ -147,14 +149,14 @@ class TestSeriesGetitemScalars:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_string_index_alias_tz_aware(self, tz):
         rng = date_range("1/1/2000", periods=10, tz=tz)
-        ser = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ser["1/3/2000"]
         tm.assert_almost_equal(result, ser.iloc[2])
 
     def test_getitem_time_object(self):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         mask = (rng.hour == 9) & (rng.minute == 30)
         result = ts[time(9, 30)]
@@ -238,7 +240,7 @@ class TestSeriesGetitemSlices:
             ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]
         )
 
-        ts = Series(np.random.default_rng(2).randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["1/2/2000":]
         expected = ts[1:]
@@ -287,7 +289,7 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
-        ser = Series(np.random.default_rng(2).randn(13), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(13), index=index)
 
         indexer = [slice(6, 7, None)]
         msg = "Indexing with a single-item list"
@@ -343,7 +345,8 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_slice_integers(self):
         ser = Series(
-            np.random.default_rng(2).randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16]
+            np.random.default_rng(2).standard_normal(8),
+            index=[2, 4, 6, 8, 10, 12, 14, 16],
         )
 
         result = ser[:4]
@@ -639,7 +642,9 @@ def test_getitem_preserve_name(datetime_series):
 
 def test_getitem_with_integer_labels():
     # integer indexes, be careful
-    ser = Series(np.random.default_rng(2).randn(10), index=list(range(0, 20, 2)))
+    ser = Series(
+        np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
+    )
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
     with pytest.raises(KeyError, match="not in index"):

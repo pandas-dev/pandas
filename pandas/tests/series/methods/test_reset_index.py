@@ -56,7 +56,7 @@ class TestResetIndex:
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
-        s = Series(np.random.default_rng(2).randn(6), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(6), index=index)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
 

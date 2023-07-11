@@ -142,7 +142,7 @@ class TestAtWithDuplicates:
         # GH#33041 check that falling back to loc doesn't allow non-scalar
         #  args to slip in
 
-        arr = np.random.default_rng(2).randn(6).reshape(3, 2)
+        arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
         df = DataFrame(arr, columns=["A", "A"])
 
         msg = "Invalid call for scalar access"

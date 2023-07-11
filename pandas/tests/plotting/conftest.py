@@ -42,9 +42,9 @@ def hist_df():
             "classroom": classroom,
             "height": rng.normal(66, 4, size=n),
             "weight": rng.normal(161, 32, size=n),
-            "category": rng.randint(4, size=n),
+            "category": rng.integers(4, size=n),
             "datetime": to_datetime(
-                rng.randint(
+                rng.integers(
                     812419200000000000,
                     819331200000000000,
                     size=n,

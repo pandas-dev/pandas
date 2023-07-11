@@ -370,7 +370,7 @@ class TestDataFrameConstructors:
         elif typ == "float":
             dtypes = MIXED_FLOAT_DTYPES
             arrays = [
-                np.array(np.random.default_rng(2).randint(10, size=10), dtype=d)
+                np.array(np.random.default_rng(2).integers(10, size=10), dtype=d)
                 for d in dtypes
             ]
 
@@ -777,7 +777,7 @@ class TestDataFrameConstructors:
         # can't cast to float
         test_data = {
             "A": dict(zip(range(20), tm.makeStringIndex(20))),
-            "B": dict(zip(range(15), np.random.default_rng(2).randn(15))),
+            "B": dict(zip(range(15), np.random.default_rng(2).standard_normal(15))),
         }
         with pytest.raises(ValueError, match="could not convert string"):
             DataFrame(test_data, dtype=float)
@@ -953,7 +953,7 @@ class TestDataFrameConstructors:
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range("1/1/2000", periods=5)
-        df = DataFrame(np.random.default_rng(2).randn(10, 5), columns=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5), columns=rng)
 
         data = {}
         for col in df.columns:
@@ -1196,7 +1196,7 @@ class TestDataFrameConstructors:
         assert df["object"].dtype == np.object_
 
     def test_constructor_arrays_and_scalars(self):
-        df = DataFrame({"a": np.random.default_rng(2).randn(10), "b": True})
+        df = DataFrame({"a": np.random.default_rng(2).standard_normal(10), "b": True})
         exp = DataFrame({"a": df["a"].values, "b": [True] * 10})
 
         tm.assert_frame_equal(df, exp)
@@ -1218,11 +1218,11 @@ class TestDataFrameConstructors:
 
     def test_constructor_more(self, float_frame):
         # used to be in test_matrix.py
-        arr = np.random.default_rng(2).randn(10)
+        arr = np.random.default_rng(2).standard_normal(10)
         dm = DataFrame(arr, columns=["A"], index=np.arange(10))
         assert dm.values.ndim == 2
 
-        arr = np.random.default_rng(2).randn(0)
+        arr = np.random.default_rng(2).standard_normal(0)
         dm = DataFrame(arr)
         assert dm.values.ndim == 2
         assert dm.values.ndim == 2
@@ -1500,8 +1500,8 @@ class TestDataFrameConstructors:
 
     def test_constructor_ragged(self):
         data = {
-            "A": np.random.default_rng(2).randn(10),
-            "B": np.random.default_rng(2).randn(8),
+            "A": np.random.default_rng(2).standard_normal(10),
+            "B": np.random.default_rng(2).standard_normal(8),
         }
         with pytest.raises(ValueError, match="All arrays must be of the same length"):
             DataFrame(data)
@@ -1635,7 +1635,7 @@ class TestDataFrameConstructors:
         tm.assert_index_equal(df.index, a.index)
 
         # ndarray like
-        arr = np.random.default_rng(2).randn(10)
+        arr = np.random.default_rng(2).standard_normal(10)
         s = Series(arr, name="x")
         df = DataFrame(s)
         expected = DataFrame({"x": s})
@@ -2447,20 +2447,24 @@ class TestDataFrameConstructors:
         rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
         dates = np.asarray(rng)
 
-        df = DataFrame({"A": np.random.default_rng(2).randn(len(rng)), "B": dates})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(len(rng)), "B": dates}
+        )
         assert np.issubdtype(df["B"].dtype, np.dtype("M8[ns]"))
 
     def test_dataframe_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
 
         multi = DataFrame(
-            np.random.default_rng(2).randn(4, 4),
+            np.random.default_rng(2).standard_normal(4, 4),
             index=[np.array(x) for x in index_lists],
         )
         assert isinstance(multi.index, MultiIndex)
         assert not isinstance(multi.columns, MultiIndex)
 
-        multi = DataFrame(np.random.default_rng(2).randn(4, 4), columns=index_lists)
+        multi = DataFrame(
+            np.random.default_rng(2).standard_normal(4, 4), columns=index_lists
+        )
         assert isinstance(multi.columns, MultiIndex)
 
     @pytest.mark.parametrize(
@@ -2679,10 +2683,10 @@ class TestDataFrameConstructors:
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
         rng1 = pd.period_range("1/1/1999", "1/1/2012", freq="M")
-        s1 = Series(np.random.default_rng(2).randn(len(rng1)), rng1)
+        s1 = Series(np.random.default_rng(2).standard_normal(len(rng1)), rng1)
 
         rng2 = pd.period_range("1/1/1980", "12/1/2001", freq="M")
-        s2 = Series(np.random.default_rng(2).randn(len(rng2)), rng2)
+        s2 = Series(np.random.default_rng(2).standard_normal(len(rng2)), rng2)
         df = DataFrame({"s1": s1, "s2": s2})
 
         exp = pd.period_range("1/1/1980", "1/1/2012", freq="M")
@@ -2756,7 +2760,7 @@ class TestDataFrameConstructorWithDtypeCoercion:
         # GH#40110 make DataFrame behavior with arraylike floating data and
         #  inty dtype match Series behavior
 
-        arr = np.random.default_rng(2).randn(10, 5)
+        arr = np.random.default_rng(2).standard_normal(10, 5)
 
         # GH#49599 in 2.0 we raise instead of either
         #  a) silently ignoring dtype and returningfloat (the old Series behavior) or
@@ -2988,7 +2992,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
         assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
 
     def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
-        arr = np.random.default_rng(2).randn(10, 2)
+        arr = np.random.default_rng(2).standard_normal(10, 2)
         dtype = pd.array([2.0]).dtype
         msg = r"len\(arrays\) must match len\(columns\)"
         with pytest.raises(ValueError, match=msg):

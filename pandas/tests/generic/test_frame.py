@@ -74,8 +74,8 @@ class TestDataFrame:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.default_rng(2).randn(8),
-                "D": np.random.default_rng(2).randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
             }
         )
         result = df.groupby("A").sum()
@@ -84,7 +84,7 @@ class TestDataFrame:
     def test_metadata_propagation_indiv_resample(self):
         # resample
         df = DataFrame(
-            np.random.default_rng(2).randn(1000, 2),
+            np.random.default_rng(2).standard_normal(1000, 2),
             index=date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1T")
@@ -115,10 +115,10 @@ class TestDataFrame:
             m.setattr(DataFrame, "__finalize__", finalize)
 
             df1 = DataFrame(
-                np.random.default_rng(2).randint(0, 4, (3, 2)), columns=["a", "b"]
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["a", "b"]
             )
             df2 = DataFrame(
-                np.random.default_rng(2).randint(0, 4, (3, 2)), columns=["c", "d"]
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=["c", "d"]
             )
             DataFrame._metadata = ["filename"]
             df1.filename = "fname1.csv"
@@ -130,7 +130,7 @@ class TestDataFrame:
             # concat
             # GH#6927
             df1 = DataFrame(
-                np.random.default_rng(2).randint(0, 4, (3, 2)), columns=list("ab")
+                np.random.default_rng(2).integers(0, 4, (3, 2)), columns=list("ab")
             )
             df1.filename = "foo"
 
@@ -188,7 +188,9 @@ class TestDataFrame2:
 
     def test_unexpected_keyword(self):
         # GH8597
-        df = DataFrame(np.random.default_rng(2).randn(5, 2), columns=["jim", "joe"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(5, 2), columns=["jim", "joe"]
+        )
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
         ts = df["joe"].copy()
         ts[2] = np.nan

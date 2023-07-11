@@ -106,7 +106,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(2).RandomState(42).standard_normal(100, 3))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -131,7 +131,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(2).RandomState(42).standard_normal(100, 3))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -170,9 +170,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.default_rng(2).rand(10),
-                    "B": np.random.default_rng(2).rand(10),
-                    "C": np.random.default_rng(2).rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -197,9 +197,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.default_rng(2).rand(10),
-                    "B": np.random.default_rng(2).rand(10),
-                    "C": np.random.default_rng(2).rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -467,7 +467,9 @@ class TestDataFramePlots:
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = DataFrame(np.random.default_rng(2).randn(48, 4), columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(48, 4), columns=list("ABCD")
+        )
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
@@ -597,8 +599,8 @@ class TestDataFramePlots:
         # Create data
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).randn(1000),
-                "b": np.random.default_rng(2).randn(1000),
+                "a": np.random.default_rng(2).standard_normal(1000),
+                "b": np.random.default_rng(2).standard_normal(1000),
             }
         )
 

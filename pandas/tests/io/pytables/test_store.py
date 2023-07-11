@@ -500,7 +500,7 @@ def test_remove(setup_path):
 def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).randn(20, 2),
+            np.random.default_rng(2).standard_normal(20, 2),
             index=date_range("20130101", periods=20),
         )
         store.put("df", df, format="table")
@@ -624,7 +624,7 @@ def test_coordinates(setup_path):
     # pass array/mask as the coordinates
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).randn(1000, 2),
+            np.random.default_rng(2).standard_normal(1000, 2),
             index=date_range("20000101", periods=1000),
         )
         store.append("df", df)
@@ -664,7 +664,7 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # list
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         store.append("df2", df)
         result = store.select("df2", where=[0, 3, 5])
         expected = df.iloc[[0, 3, 5]]
@@ -763,7 +763,7 @@ def test_start_stop_fixed(setup_path):
 
 
 def test_select_filter_corner(setup_path):
-    df = DataFrame(np.random.default_rng(2).randn(50, 100))
+    df = DataFrame(np.random.default_rng(2).standard_normal(50, 100))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
@@ -941,7 +941,9 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
     ]
 
     for index in types_should_fail:
-        df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=index(2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(10, 2), columns=index(2)
+        )
         path = tmp_path / setup_path
         with catch_warnings(record=True):
             msg = "cannot have non-object label DataIndexableCol"
@@ -949,7 +951,9 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
                 df.to_hdf(path, "df", format="table", data_columns=True)
 
     for index in types_should_run:
-        df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=index(2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(10, 2), columns=index(2)
+        )
         path = tmp_path / setup_path
         with catch_warnings(record=True):
             df.to_hdf(path, "df", format="table", data_columns=True)

@@ -192,7 +192,7 @@ def test_filter_pdna_is_false():
 
 def test_filter_against_workaround():
     # Series of ints
-    s = Series(np.random.default_rng(2).randint(0, 100, 1000))
+    s = Series(np.random.default_rng(2).integers(0, 100, 1000))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -213,10 +213,10 @@ def test_filter_against_workaround():
     # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
     N = 1000
-    random_letters = letters.take(np.random.default_rng(2).randint(0, 26, N))
+    random_letters = letters.take(np.random.default_rng(2).integers(0, 26, N))
     df = DataFrame(
         {
-            "ints": Series(np.random.default_rng(2).randint(0, 100, N)),
+            "ints": Series(np.random.default_rng(2).integers(0, 100, N)),
             "floats": N / 10 * Series(np.random.default_rng(2).random(N)),
             "letters": Series(random_letters),
         }

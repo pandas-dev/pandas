@@ -56,7 +56,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_reorder_on_ops(self):
         # GH#15687
         df = DataFrame(
-            np.random.default_rng(2).randn(8, 2),
+            np.random.default_rng(2).standard_normal(8, 2),
             index=MultiIndex.from_product(
                 [["a", "b"], ["big", "small"], ["red", "blu"]],
                 names=["letter", "size", "color"],
@@ -217,7 +217,7 @@ class TestDataFrameSortIndex:
 
     def test_sort_index_inplace(self):
         frame = DataFrame(
-            np.random.default_rng(2).randn(4, 4),
+            np.random.default_rng(2).standard_normal(4, 4),
             index=[1, 2, 3, 4],
             columns=["A", "B", "C", "D"],
         )
@@ -262,7 +262,9 @@ class TestDataFrameSortIndex:
         A = A.take(indexer)
         B = B.take(indexer)
 
-        df = DataFrame({"A": A, "B": B, "C": np.random.default_rng(2).randn(100)})
+        df = DataFrame(
+            {"A": A, "B": B, "C": np.random.default_rng(2).standard_normal(100)}
+        )
 
         ex_indexer = np.lexsort((df.B.max() - df.B, df.A))
         expected = df.take(ex_indexer)
@@ -376,10 +378,11 @@ class TestDataFrameSortIndex:
     def test_sort_index_intervalindex(self):
         # this is a de-facto sort via unstack
         # confirming that we sort in the order of the bins
-        y = Series(np.random.default_rng(2).randn(100))
-        x1 = Series(np.sign(np.random.default_rng(2).randn(100)))
+        y = Series(np.random.default_rng(2).standard_normal(100))
+        x1 = Series(np.sign(np.random.default_rng(2).standard_normal(100)))
         x2 = pd.cut(
-            Series(np.random.default_rng(2).randn(100)), bins=[-3, -0.5, 0, 0.5, 3]
+            Series(np.random.default_rng(2).standard_normal(100)),
+            bins=[-3, -0.5, 0, 0.5, 3],
         )
         model = pd.concat([y, x1, x2], axis=1, keys=["Y", "X1", "X2"])
 
@@ -615,7 +618,7 @@ class TestDataFrameSortIndex:
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(
-            np.random.default_rng(2).randn(4000).astype("int64"), index=index
+            np.random.default_rng(2).standard_normal(4000).astype("int64"), index=index
         )
 
         # it works!
@@ -625,7 +628,7 @@ class TestDataFrameSortIndex:
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(
-            np.random.default_rng(2).randn(4000).astype("int32"), index=index
+            np.random.default_rng(2).standard_normal(4000).astype("int32"), index=index
         )
 
         # it works!
@@ -685,7 +688,7 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-        data = np.random.default_rng(2).randn(3, 4)
+        data = np.random.default_rng(2).standard_normal(3, 4)
 
         columns = MultiIndex.from_tuples([("red", i) for i in gen])
         df = DataFrame(data, index=list("def"), columns=columns)

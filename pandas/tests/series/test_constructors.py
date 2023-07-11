@@ -177,7 +177,7 @@ class TestSeriesConstructors:
             ValueError,
             match=r"Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead",
         ):
-            Series(np.random.default_rng(2).randn(3, 3), index=np.arange(3))
+            Series(np.random.default_rng(2).standard_normal(3, 3), index=np.arange(3))
 
         mixed.name = "Series"
         rs = Series(mixed).name
@@ -810,7 +810,7 @@ class TestSeriesConstructors:
 
     def test_constructor_floating_data_int_dtype(self, frame_or_series):
         # GH#40110
-        arr = np.random.default_rng(2).randn(2)
+        arr = np.random.default_rng(2).standard_normal(2)
 
         # Long-standing behavior (for Series, new in 2.0 for DataFrame)
         #  has been to ignore the dtype on these;
@@ -2076,7 +2076,9 @@ class TestSeriesConstructors:
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
-        ser = Series(np.random.default_rng(2).randn(len(idx)), idx.astype(object))
+        ser = Series(
+            np.random.default_rng(2).standard_normal(len(idx)), idx.astype(object)
+        )
         # as of 2.0, we no longer silently cast the object-dtype index
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)

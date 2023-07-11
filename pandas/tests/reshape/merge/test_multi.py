@@ -22,7 +22,7 @@ def left():
     key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
     key2 = ["two", "one", "three", "one", "two", "one", "two", "two", "three", "one"]
 
-    data = np.random.default_rng(2).randn(len(key1))
+    data = np.random.default_rng(2).standard_normal(len(key1))
     return DataFrame({"key1": key1, "key2": key2, "data": data})
 
 
@@ -130,7 +130,7 @@ class TestMergeMulti:
         left.insert(
             1,
             "2nd",
-            np.random.default_rng(2).randint(0, 1000, len(left)).astype("float"),
+            np.random.default_rng(2).integers(0, 1000, len(left)).astype("float"),
         )
 
         i = np.random.default_rng(2).permutation(len(left))
@@ -201,7 +201,7 @@ class TestMergeMulti:
             {
                 "key1": key1,
                 "key2": key2,
-                "value1": np.random.default_rng(2).randn(20000),
+                "value1": np.random.default_rng(2).standard_normal(20000),
             }
         )
 
@@ -209,7 +209,7 @@ class TestMergeMulti:
             {
                 "key1": key1[::2],
                 "key2": key2[::2],
-                "value2": np.random.default_rng(2).randn(10000),
+                "value2": np.random.default_rng(2).standard_normal(10000),
             }
         )
 
@@ -393,10 +393,10 @@ class TestMergeMulti:
         left = DataFrame(
             {
                 "id": list("abcde"),
-                "v1": np.random.default_rng(2).randn(5),
-                "v2": np.random.default_rng(2).randn(5),
+                "v1": np.random.default_rng(2).standard_normal(5),
+                "v2": np.random.default_rng(2).standard_normal(5),
                 "dummy": list("abcde"),
-                "v3": np.random.default_rng(2).randn(5),
+                "v3": np.random.default_rng(2).standard_normal(5),
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )

@@ -52,7 +52,7 @@ def seed_df(seed_nans, n, m):
         {
             "1st": np.random.default_rng(2).choice(list("abcd"), n),
             "2nd": np.random.default_rng(2).choice(days, n),
-            "3rd": np.random.default_rng(2).randint(1, m + 1, n),
+            "3rd": np.random.default_rng(2).integers(1, m + 1, n),
         }
     )
 

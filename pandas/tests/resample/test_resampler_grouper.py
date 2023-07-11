@@ -142,7 +142,7 @@ def test_groupby_with_origin():
     middle = "1/15/2000 00:00:00"
 
     rng = date_range(start, end, freq="1231min")  # prime number
-    ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
@@ -364,7 +364,7 @@ def test_median_duplicate_columns():
     # GH 14233
 
     df = DataFrame(
-        np.random.default_rng(2).randn(20, 3),
+        np.random.default_rng(2).standard_normal(20, 3),
         columns=list("aaa"),
         index=date_range("2012-01-01", periods=20, freq="s"),
     )

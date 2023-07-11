@@ -73,7 +73,7 @@ class TestDataFramePlots:
     )
     def test_boxplot_legacy1(self, kwargs, warn):
         df = DataFrame(
-            np.random.default_rng(2).randn(6, 4),
+            np.random.default_rng(2).standard_normal(6, 4),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -85,7 +85,7 @@ class TestDataFramePlots:
             _check_plot_works(df.boxplot, **kwargs)
 
     def test_boxplot_legacy1_series(self):
-        ser = Series(np.random.default_rng(2).randn(6))
+        ser = Series(np.random.default_rng(2).standard_normal(6))
         _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
 
     def test_boxplot_legacy2(self):
@@ -147,7 +147,7 @@ class TestDataFramePlots:
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
         df = DataFrame(
-            np.random.default_rng(2).randn(6, 4),
+            np.random.default_rng(2).standard_normal(6, 4),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -163,7 +163,7 @@ class TestDataFramePlots:
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
         df = DataFrame(
-            np.random.default_rng(2).randn(6, 4),
+            np.random.default_rng(2).standard_normal(6, 4),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -173,7 +173,7 @@ class TestDataFramePlots:
 
     def test_boxplot_axis_limits(self, hist_df):
         df = hist_df.copy()
-        df["age"] = np.random.default_rng(2).randint(1, 20, df.shape[0])
+        df["age"] = np.random.default_rng(2).integers(1, 20, df.shape[0])
         # One full row
         height_ax, weight_ax = df.boxplot(["height", "weight"], by="category")
         _check_ax_limits(df["height"], height_ax)
@@ -182,7 +182,7 @@ class TestDataFramePlots:
 
     def test_boxplot_axis_limits_two_rows(self, hist_df):
         df = hist_df.copy()
-        df["age"] = np.random.default_rng(2).randint(1, 20, df.shape[0])
+        df["age"] = np.random.default_rng(2).integers(1, 20, df.shape[0])
         # Two rows, one partial
         p = df.boxplot(["height", "weight", "age"], by="category")
         height_ax, weight_ax, age_ax = p[0, 0], p[0, 1], p[1, 0]
@@ -196,7 +196,7 @@ class TestDataFramePlots:
         assert dummy_ax._sharey is None
 
     def test_boxplot_empty_column(self):
-        df = DataFrame(np.random.default_rng(2).randn(20, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal(20, 4))
         df.loc[:, 0] = np.nan
         _check_plot_works(df.boxplot, return_type="axes")
 
@@ -217,8 +217,8 @@ class TestDataFramePlots:
         df = DataFrame(
             {
                 "a": date_range("2012-01-01", periods=100),
-                "b": np.random.default_rng(2).randn(100),
-                "c": np.random.default_rng(2).randn(100) + 2,
+                "b": np.random.default_rng(2).standard_normal(100),
+                "c": np.random.default_rng(2).standard_normal(100) + 2,
                 "d": date_range("2012-01-01", periods=100).astype(str),
                 "e": date_range("2012-01-01", periods=100, tz="UTC"),
                 "f": timedelta_range("1 days", periods=100),
@@ -309,8 +309,8 @@ class TestDataFramePlots:
     def test_plot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).randn(10),
-                "b": np.random.default_rng(2).randn(10),
+                "a": np.random.default_rng(2).standard_normal(10),
+                "b": np.random.default_rng(2).standard_normal(10),
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
@@ -323,8 +323,8 @@ class TestDataFramePlots:
     def test_boxplot_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).randn(10),
-                "b": np.random.default_rng(2).randn(10),
+                "a": np.random.default_rng(2).standard_normal(10),
+                "b": np.random.default_rng(2).standard_normal(10),
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
@@ -337,8 +337,8 @@ class TestDataFramePlots:
     def test_boxplot_group_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).randn(10),
-                "b": np.random.default_rng(2).randn(10),
+                "a": np.random.default_rng(2).standard_normal(10),
+                "b": np.random.default_rng(2).standard_normal(10),
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
@@ -353,8 +353,8 @@ class TestDataFramePlots:
     def test_boxplot_group_no_xlabel_ylabel(self, vert):
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).randn(10),
-                "b": np.random.default_rng(2).randn(10),
+                "a": np.random.default_rng(2).standard_normal(10),
+                "b": np.random.default_rng(2).standard_normal(10),
                 "group": np.random.default_rng(2).choice(["group1", "group2"], 10),
             }
         )
@@ -481,7 +481,9 @@ class TestDataFrameGroupByPlots:
     @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
     def test_grouped_box_return_type_arg_duplcate_cats(self, return_type):
         columns2 = "X B C D A".split()
-        df2 = DataFrame(np.random.default_rng(2).randn(6, 5), columns=columns2)
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal(6, 5), columns=columns2
+        )
         categories2 = "A B".split()
         df2["category"] = categories2 * 3
 
@@ -721,7 +723,9 @@ class TestDataFrameGroupByPlots:
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).randn(3, 8), index=["A", "B", "C"], columns=index
+            np.random.default_rng(2).standard_normal(3, 8),
+            index=["A", "B", "C"],
+            columns=index,
         )
 
         col = [("bar", "one"), ("bar", "two")]

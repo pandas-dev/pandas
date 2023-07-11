@@ -376,7 +376,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.default_rng(2).randn(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal(20, 10))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -463,9 +463,9 @@ def test_apply_convert_objects():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.default_rng(2).randn(11),
-            "E": np.random.default_rng(2).randn(11),
-            "F": np.random.default_rng(2).randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -816,7 +816,7 @@ def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
         {
-            "a": Series(np.random.default_rng(2).randn(4)),
+            "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
             "ts": date_range("2016-10-01", periods=4, freq="H"),
         }
@@ -862,7 +862,9 @@ def test_infer_output_shape_columns():
 def test_infer_output_shape_listlike_columns():
     # GH 16353
 
-    df = DataFrame(np.random.default_rng(2).randn(6, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(6, 3), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)
     expected = Series([[1, 2, 3] for t in df.itertuples()])
@@ -911,7 +913,9 @@ def test_infer_output_shape_listlike_columns_with_timestamp():
 def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
-    df = DataFrame(np.random.default_rng(2).randn(4, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(4, 3), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: lst, axis=1)
     expected = Series([lst for t in df.itertuples()])

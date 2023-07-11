@@ -322,7 +322,7 @@ class TestSeriesRank:
     def test_rank_methods_series(self, method, op, value):
         from scipy.stats import rankdata
 
-        xs = np.random.default_rng(2).randn(9)
+        xs = np.random.default_rng(2).standard_normal(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
         np.random.default_rng(2).shuffle(xs)
 

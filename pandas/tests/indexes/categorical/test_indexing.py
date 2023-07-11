@@ -224,7 +224,7 @@ class TestGetIndexer:
         msg = "Reindexing only valid with uniquely valued Index objects"
 
         for n in [1, 2, 5, len(ci)]:
-            finder = oidx[np.random.default_rng(2).randint(0, len(ci), size=n)]
+            finder = oidx[np.random.default_rng(2).integers(0, len(ci), size=n)]
 
             with pytest.raises(InvalidIndexError, match=msg):
                 ci.get_indexer(finder)

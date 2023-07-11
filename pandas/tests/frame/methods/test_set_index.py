@@ -67,7 +67,7 @@ class TestSetIndex:
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
-        df = DataFrame(np.random.default_rng(2).randn(3, 3), columns=columns)
+        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3), columns=columns)
 
         result = df.set_index(df.columns[0])
 
@@ -89,7 +89,7 @@ class TestSetIndex:
         df = DataFrame(
             {
                 "A": [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)],
-                "B": np.random.default_rng(2).randn(1000),
+                "B": np.random.default_rng(2).standard_normal(1000),
             }
         )
 
@@ -372,12 +372,14 @@ class TestSetIndex:
         ci.name = "B"
 
         # with Categorical
-        df = DataFrame({"A": np.random.default_rng(2).randn(10), "B": ci.values})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(10), "B": ci.values}
+        )
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
         # from a CategoricalIndex
-        df = DataFrame({"A": np.random.default_rng(2).randn(10), "B": ci})
+        df = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": ci})
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
@@ -569,7 +571,7 @@ class TestSetIndexInvalid:
         # GH 24984
         df = frame_of_index_cols  # has length 5
 
-        values = np.random.default_rng(2).randint(0, 10, (length,))
+        values = np.random.default_rng(2).integers(0, 10, (length,))
 
         msg = "Length mismatch: Expected 5 rows, received array of length.*"
 

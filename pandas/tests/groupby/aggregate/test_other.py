@@ -30,8 +30,8 @@ def test_agg_partial_failure_raises():
 
     df = DataFrame(
         {
-            "data1": np.random.default_rng(2).randn(5),
-            "data2": np.random.default_rng(2).randn(5),
+            "data1": np.random.default_rng(2).standard_normal(5),
+            "data2": np.random.default_rng(2).standard_normal(5),
             "key1": ["a", "a", "b", "b", "a"],
             "key2": ["one", "two", "one", "two", "one"],
         }
@@ -87,7 +87,7 @@ def test_agg_datetimes_mixed():
 
 def test_agg_period_index():
     prng = period_range("2012-1-1", freq="M", periods=3)
-    df = DataFrame(np.random.default_rng(2).randn(3, 2), index=prng)
+    df = DataFrame(np.random.default_rng(2).standard_normal(3, 2), index=prng)
     rs = df.groupby(level=0).sum()
     assert isinstance(rs.index, PeriodIndex)
 
@@ -175,7 +175,7 @@ def test_aggregate_api_consistency():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.default_rng(2).randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -239,7 +239,7 @@ def test_agg_compat():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.default_rng(2).randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -260,7 +260,7 @@ def test_agg_nested_dicts():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.default_rng(2).randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -284,7 +284,7 @@ def test_agg_nested_dicts():
 
 
 def test_agg_item_by_item_raise_typeerror():
-    df = DataFrame(np.random.default_rng(2).randint(10, size=(20, 10)))
+    df = DataFrame(np.random.default_rng(2).integers(10, size=(20, 10)))
 
     def raiseException(df):
         pprint_thing("----------------------------------------")
@@ -346,9 +346,9 @@ def test_series_agg_multi_pure_python():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.default_rng(2).randn(11),
-            "E": np.random.default_rng(2).randn(11),
-            "F": np.random.default_rng(2).randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 

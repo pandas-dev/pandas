@@ -107,7 +107,7 @@ class TestCategoricalIndexingWithFactor:
         # properly coerce the input indexers
 
         cat = Categorical(
-            np.random.default_rng(2).randint(0, 5, size=150000).astype(np.int8)
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
         ).add_categories([-1000])
         indexer = np.array([100000]).astype(np.int64)
         cat[indexer] = -1000
@@ -133,7 +133,7 @@ class TestCategoricalIndexing:
         # properly coerce the input indexers
 
         c = Categorical(
-            np.random.default_rng(2).randint(0, 5, size=150000).astype(np.int8)
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
         )
         result = c.codes[np.array([100000]).astype(np.int64)]
         expected = c[np.array([100000]).astype(np.int64)].codes

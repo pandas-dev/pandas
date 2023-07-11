@@ -80,8 +80,8 @@ class TestDataFrameTruncate:
         rng = date_range("2011-01-01", "2012-01-01", freq="W")
         ts = DataFrame(
             {
-                "A": np.random.default_rng(2).randn(len(rng)),
-                "B": np.random.default_rng(2).randn(len(rng)),
+                "A": np.random.default_rng(2).standard_normal(len(rng)),
+                "B": np.random.default_rng(2).standard_normal(len(rng)),
             },
             index=rng,
         )
@@ -97,10 +97,10 @@ class TestDataFrameTruncate:
 
         df = DataFrame(
             {
-                3: np.random.default_rng(2).randn(5),
-                20: np.random.default_rng(2).randn(5),
-                2: np.random.default_rng(2).randn(5),
-                0: np.random.default_rng(2).randn(5),
+                3: np.random.default_rng(2).standard_normal(5),
+                20: np.random.default_rng(2).standard_normal(5),
+                2: np.random.default_rng(2).standard_normal(5),
+                0: np.random.default_rng(2).standard_normal(5),
             },
             columns=[3, 20, 2, 0],
         )

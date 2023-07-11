@@ -20,7 +20,9 @@ class TestDataFrameToRecords:
     def test_to_records_timeseries(self):
         index = date_range("1/1/2000", periods=10)
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 3), index=index, columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal(10, 3),
+            index=index,
+            columns=["a", "b", "c"],
         )
 
         result = df.to_records()
@@ -80,12 +82,12 @@ class TestDataFrameToRecords:
         df.to_records()
 
     def test_to_records_index_name(self):
-        df = DataFrame(np.random.default_rng(2).randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3))
         df.index.name = "X"
         rs = df.to_records()
         assert "X" in rs.dtype.fields
 
-        df = DataFrame(np.random.default_rng(2).randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3))
         rs = df.to_records()
         assert "index" in rs.dtype.fields
 

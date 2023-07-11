@@ -695,7 +695,7 @@ def test_rolling_window_as_string(center, expected_data):
 
     npr = np.random.default_rng(2).RandomState(seed=421)
 
-    data = npr.randint(1, high=100, size=len(days))
+    data = npr.integers(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)

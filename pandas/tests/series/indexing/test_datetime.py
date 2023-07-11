@@ -77,7 +77,7 @@ def test_getitem_setitem_datetime_tz(tz_source):
     N = 50
     # testing with timezone, GH #2785
     rng = date_range("1/1/1990", periods=N, freq="H", tz=tzget("US/Eastern"))
-    ts = Series(np.random.default_rng(2).randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     # also test Timestamp tz handling, GH #2789
     result = ts.copy()
@@ -108,7 +108,7 @@ def test_getitem_setitem_datetimeindex():
     N = 50
     # testing with timezone, GH #2785
     rng = date_range("1/1/1990", periods=N, freq="H", tz="US/Eastern")
-    ts = Series(np.random.default_rng(2).randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04:00:00"]
     expected = ts.iloc[4]
@@ -214,7 +214,7 @@ def test_getitem_setitem_datetimeindex():
 def test_getitem_setitem_periodindex():
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
-    ts = Series(np.random.default_rng(2).randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04"]
     expected = ts.iloc[4]
@@ -330,12 +330,14 @@ def test_loc_getitem_over_size_cutoff(monkeypatch):
         d += 3 * sec
 
     # duplicate some values in the list
-    duplicate_positions = np.random.default_rng(2).randint(0, len(dates) - 1, 20)
+    duplicate_positions = np.random.default_rng(2).integers(0, len(dates) - 1, 20)
     for p in duplicate_positions:
         dates[p + 1] = dates[p]
 
     df = DataFrame(
-        np.random.default_rng(2).randn(len(dates), 4), index=dates, columns=list("ABCD")
+        np.random.default_rng(2).standard_normal(len(dates), 4),
+        index=dates,
+        columns=list("ABCD"),
     )
 
     pos = n * 3
@@ -356,7 +358,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     idx = period_range("1/1/2000", freq="T", periods=n)
     assert idx._engine.over_size_threshold
 
-    s = Series(np.random.default_rng(2).randn(len(idx)), index=idx)
+    s = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
     pos = n - 1
     timestamp = idx[pos]

@@ -465,7 +465,8 @@ class TestDataFrameAnalytics:
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = DataFrame(
-            np.random.default_rng(2).randn(5, 3), columns=["foo", "bar", "baz"]
+            np.random.default_rng(2).standard_normal(5, 3),
+            columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "100" below
         df1 = df1.astype({"foo": object})
@@ -473,7 +474,8 @@ class TestDataFrameAnalytics:
         df1.loc[0, "foo"] = "100"
 
         df2 = DataFrame(
-            np.random.default_rng(2).randn(5, 3), columns=["foo", "bar", "baz"]
+            np.random.default_rng(2).standard_normal(5, 3),
+            columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "a" below
         df2 = df2.astype({"foo": object})
@@ -936,7 +938,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_extensionarray_numeric_only_true(self):
         # https://github.com/pandas-dev/pandas/issues/33256
-        arr = np.random.default_rng(2).randint(1000, size=(10, 5))
+        arr = np.random.default_rng(2).integers(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
         expected = DataFrame(arr).mean()
@@ -1124,7 +1126,7 @@ class TestDataFrameAnalytics:
     def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
         # make sure op works on mixed-type frame
         mixed = float_string_frame
-        mixed["_bool_"] = np.random.default_rng(2).randn(len(mixed)) > 0.5
+        mixed["_bool_"] = np.random.default_rng(2).standard_normal(len(mixed)) > 0.5
 
         getattr(mixed, opname)(axis=axis, bool_only=bool_only)
 
@@ -1755,7 +1757,7 @@ def test_prod_sum_min_count_mixed_object():
 def test_reduction_axis_none_returns_scalar(method, numeric_only):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.default_rng(2).randn(4, 4))
+    df = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
     np_arr = df.to_numpy()

@@ -322,7 +322,9 @@ class TestMelt:
         # attempted with column names absent from the dataframe
 
         # Generate data
-        df = DataFrame(np.random.default_rng(2).randn(5, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(5, 4), columns=list("abcd")
+        )
 
         # Try to melt with missing `value_vars` column name
         msg = "The following '{Var}' are not present in the DataFrame: {Col}"
@@ -668,7 +670,7 @@ class TestLreshape:
 
 class TestWideToLong:
     def test_simple(self):
-        x = np.random.default_rng(2).randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A1970": {0: "a", 1: "b", 2: "c"},
@@ -704,7 +706,7 @@ class TestWideToLong:
     def test_separating_character(self):
         # GH14779
 
-        x = np.random.default_rng(2).randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A.1970": {0: "a", 1: "b", 2: "c"},
@@ -728,7 +730,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result, expected)
 
     def test_escapable_characters(self):
-        x = np.random.default_rng(2).randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = DataFrame(
             {
                 "A(quarterly)1970": {0: "a", 1: "b", 2: "c"},

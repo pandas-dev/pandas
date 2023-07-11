@@ -35,7 +35,7 @@ from pandas.core.sorting import (
 def left_right():
     low, high, n = -1 << 10, 1 << 10, 1 << 20
     left = DataFrame(
-        np.random.default_rng(2).randint(low, high, (n, 7)), columns=list("ABCDEFG")
+        np.random.default_rng(2).integers(low, high, (n, 7)), columns=list("ABCDEFG")
     )
     left["left"] = left.sum(axis=1)
 
@@ -63,7 +63,7 @@ class TestSorting:
                 "F": B,
                 "G": A,
                 "H": B,
-                "values": np.random.default_rng(2).randn(2500),
+                "values": np.random.default_rng(2).standard_normal(2500),
             }
         )
 
@@ -99,7 +99,7 @@ class TestSorting:
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2).RandomState(42)
-        arr = rs.randint(-1 << 12, 1 << 12, (1 << 15, 5))
+        arr = rs.integers(-1 << 12, 1 << 12, (1 << 15, 5))
         i = rs.choice(len(arr), len(arr) * 4)
         arr = np.vstack((arr, arr[i]))  # add some duplicate rows
 
@@ -201,10 +201,12 @@ class TestMerge:
     def test_int64_overflow_outer_merge(self):
         # #2690, combinatorial explosion
         df1 = DataFrame(
-            np.random.default_rng(2).randn(1000, 7), columns=list("ABCDEF") + ["G1"]
+            np.random.default_rng(2).standard_normal(1000, 7),
+            columns=list("ABCDEF") + ["G1"],
         )
         df2 = DataFrame(
-            np.random.default_rng(2).randn(1000, 7), columns=list("ABCDEF") + ["G2"]
+            np.random.default_rng(2).standard_normal(1000, 7),
+            columns=list("ABCDEF") + ["G2"],
         )
         result = merge(df1, df2, how="outer")
         assert len(result) == 2000
@@ -248,7 +250,7 @@ class TestMerge:
         # one-2-many/none match
         low, high, n = -1 << 10, 1 << 10, 1 << 11
         left = DataFrame(
-            np.random.default_rng(2).randint(low, high, (n, 7)).astype("int64"),
+            np.random.default_rng(2).integers(low, high, (n, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
@@ -260,7 +262,7 @@ class TestMerge:
         left = concat([left, left], ignore_index=True)
 
         right = DataFrame(
-            np.random.default_rng(2).randint(low, high, (n // 2, 7)).astype("int64"),
+            np.random.default_rng(2).integers(low, high, (n // 2, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
@@ -268,8 +270,8 @@ class TestMerge:
         i = np.random.default_rng(2).choice(len(left), n)
         right = concat([right, right, left.iloc[i]], ignore_index=True)
 
-        left["left"] = np.random.default_rng(2).randn(len(left))
-        right["right"] = np.random.default_rng(2).randn(len(right))
+        left["left"] = np.random.default_rng(2).standard_normal(len(left))
+        right["right"] = np.random.default_rng(2).standard_normal(len(right))
 
         # shuffle left & right frames
         i = np.random.default_rng(2).permutation(len(left))

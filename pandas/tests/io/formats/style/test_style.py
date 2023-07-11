@@ -87,13 +87,13 @@ def blank_value():
 
 @pytest.fixture
 def df():
-    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return df
 
 
 @pytest.fixture
 def styler(df):
-    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return Styler(df)
 
 

@@ -76,7 +76,7 @@ class TestAtAndiAT:
         # as timestamp is not a tuple!
         dates = date_range("1/1/2000", periods=8)
         df = DataFrame(
-            np.random.default_rng(2).randn(8, 4),
+            np.random.default_rng(2).standard_normal(8, 4),
             index=dates,
             columns=["A", "B", "C", "D"],
         )
@@ -136,7 +136,7 @@ class TestAtAndiAT:
 
     def test_frame_at_with_duplicate_axes(self):
         # GH#33041
-        arr = np.random.default_rng(2).randn(6).reshape(3, 2)
+        arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
         df = DataFrame(arr, columns=["A", "A"])
 
         result = df.at[0, "A"]

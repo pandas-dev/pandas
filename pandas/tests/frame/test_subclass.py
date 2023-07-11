@@ -497,7 +497,7 @@ class TestDataFrameSubclassing:
     def test_subclassed_wide_to_long(self):
         # GH 9762
 
-        x = np.random.default_rng(2).randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = tm.SubclassedDataFrame(
             {
                 "A1970": {0: "a", 1: "b", 2: "c"},
@@ -660,10 +660,12 @@ class TestDataFrameSubclassing:
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = tm.SubclassedDataFrame(
-            np.random.default_rng(2).randn(5, 4), index=index, columns=columns
+            np.random.default_rng(2).standard_normal(5, 4), index=index, columns=columns
         )
         df2 = tm.SubclassedDataFrame(
-            np.random.default_rng(2).randn(4, 4), index=index[:4], columns=columns
+            np.random.default_rng(2).standard_normal(4, 4),
+            index=index[:4],
+            columns=columns,
         )
         correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
 

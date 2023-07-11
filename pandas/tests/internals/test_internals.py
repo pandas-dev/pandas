@@ -350,7 +350,7 @@ class TestBlock:
 
     def test_split(self):
         # GH#37799
-        values = np.random.default_rng(2).randn(3, 4)
+        values = np.random.default_rng(2).standard_normal(3, 4)
         blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
         result = blk._split()
 
@@ -463,12 +463,16 @@ class TestBlockManager:
         assert mgr2.iget(idx).dtype == np.object_
 
         mgr2.insert(
-            len(mgr2.items), "quux", np.random.default_rng(2).randn(N).astype(int)
+            len(mgr2.items),
+            "quux",
+            np.random.default_rng(2).standard_normal(N).astype(int),
         )
         idx = mgr2.items.get_loc("quux")
         assert mgr2.iget(idx).dtype == np.int_
 
-        mgr2.iset(mgr2.items.get_loc("quux"), np.random.default_rng(2).randn(N))
+        mgr2.iset(
+            mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
+        )
         assert mgr2.iget(idx).dtype == np.float_
 
     def test_copy(self, mgr):
@@ -702,11 +706,11 @@ class TestBlockManager:
         assert mgr.as_array().dtype == "object"
 
     def test_consolidate_ordering_issues(self, mgr):
-        mgr.iset(mgr.items.get_loc("f"), np.random.default_rng(2).randn(N))
-        mgr.iset(mgr.items.get_loc("d"), np.random.default_rng(2).randn(N))
-        mgr.iset(mgr.items.get_loc("b"), np.random.default_rng(2).randn(N))
-        mgr.iset(mgr.items.get_loc("g"), np.random.default_rng(2).randn(N))
-        mgr.iset(mgr.items.get_loc("h"), np.random.default_rng(2).randn(N))
+        mgr.iset(mgr.items.get_loc("f"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("d"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("b"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("g"), np.random.default_rng(2).standard_normal(N))
+        mgr.iset(mgr.items.get_loc("h"), np.random.default_rng(2).standard_normal(N))
 
         # we have datetime/tz blocks in mgr
         cons = mgr.consolidate()

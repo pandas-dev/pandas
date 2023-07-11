@@ -21,7 +21,7 @@ class TestSlicing:
     def test_string_index_series_name_converted(self):
         # GH#1644
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 4),
+            np.random.default_rng(2).standard_normal(10, 4),
             index=date_range("1/1/2000", periods=10),
         )
 

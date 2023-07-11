@@ -24,7 +24,9 @@ from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 @pytest.fixture(params=["default", "float_string", "mixed_float", "mixed_int"])
 def where_frame(request, float_string_frame, mixed_float_frame, mixed_int_frame):
     if request.param == "default":
-        return DataFrame(np.random.default_rng(2).randn(5, 3), columns=["A", "B", "C"])
+        return DataFrame(
+            np.random.default_rng(2).standard_normal(5, 3), columns=["A", "B", "C"]
+        )
     if request.param == "float_string":
         return float_string_frame
     if request.param == "mixed_float":
@@ -145,7 +147,9 @@ class TestDataFrameIndexingWhere:
 
     def test_where_invalid(self):
         # invalid conditions
-        df = DataFrame(np.random.default_rng(2).randn(5, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(5, 3), columns=["A", "B", "C"]
+        )
         cond = df > 0
 
         err1 = (df + 1).values[0:2, :]
@@ -367,7 +371,7 @@ class TestDataFrameIndexingWhere:
             {
                 "A": date_range("20130102", periods=5),
                 "B": date_range("20130104", periods=5),
-                "C": np.random.default_rng(2).randn(5),
+                "C": np.random.default_rng(2).standard_normal(5),
             }
         )
 
@@ -430,7 +434,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_align(self):
         def create():
-            df = DataFrame(np.random.default_rng(2).randn(10, 3))
+            df = DataFrame(np.random.default_rng(2).standard_normal(10, 3))
             df.iloc[3:5, 0] = np.nan
             df.iloc[4:6, 1] = np.nan
             df.iloc[5:8, 2] = np.nan
@@ -470,7 +474,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_axis(self):
         # GH 9736
-        df = DataFrame(np.random.default_rng(2).randn(2, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(2, 2))
         mask = DataFrame([[False, False], [False, False]])
         ser = Series([0, 1])
 
@@ -526,9 +530,10 @@ class TestDataFrameIndexingWhere:
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
-                DataFrame(np.random.default_rng(2).randn(10, 2)),
+                DataFrame(np.random.default_rng(2).standard_normal(10, 2)),
                 DataFrame(
-                    np.random.default_rng(2).randint(0, 10, size=(10, 2)), dtype="int64"
+                    np.random.default_rng(2).integers(0, 10, size=(10, 2)),
+                    dtype="int64",
                 ),
             ],
             ignore_index=True,

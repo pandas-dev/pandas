@@ -83,9 +83,9 @@ class TestPivotTable:
                     "shiny",
                     "shiny",
                 ],
-                "D": np.random.default_rng(2).randn(11),
-                "E": np.random.default_rng(2).randn(11),
-                "F": np.random.default_rng(2).randn(11),
+                "D": np.random.default_rng(2).standard_normal(11),
+                "E": np.random.default_rng(2).standard_normal(11),
+                "F": np.random.default_rng(2).standard_normal(11),
             }
         )
 
@@ -1070,8 +1070,8 @@ class TestPivotTable:
         dti = date_range("2016-01-01", periods=3, tz="Europe/Amsterdam")
         df = DataFrame(
             {
-                "A": np.random.default_rng(2).randn(3),
-                "B": np.random.default_rng(2).randn(3),
+                "A": np.random.default_rng(2).standard_normal(3),
+                "B": np.random.default_rng(2).standard_normal(3),
                 "C": dti,
             }
         )
@@ -1109,7 +1109,7 @@ class TestPivotTable:
                 "a": ["a", "a", "a", "a", "b", "b", "b", "b"] * 2,
                 "b": [0, 0, 0, 0, 1, 1, 1, 1] * 2,
                 "c": (["foo"] * 4 + ["bar"] * 4) * 2,
-                "value": np.random.default_rng(2).randn(16),
+                "value": np.random.default_rng(2).standard_normal(16),
             }
         )
 
@@ -1149,11 +1149,11 @@ class TestPivotTable:
             dtype=[("Index", object), ("Symbol", object)],
         )
         items = np.empty(n, dtype=dtype)
-        iproduct = np.random.default_rng(2).randint(0, len(products), n)
+        iproduct = np.random.default_rng(2).integers(0, len(products), n)
         items["Index"] = products["Index"][iproduct]
         items["Symbol"] = products["Symbol"][iproduct]
         dr = date_range(date(2000, 1, 1), date(2010, 12, 31))
-        dates = dr[np.random.default_rng(2).randint(0, len(dr), n)]
+        dates = dr[np.random.default_rng(2).integers(0, len(dr), n)]
         items["Year"] = dates.year
         items["Month"] = dates.month
         items["Day"] = dates.day
@@ -1690,7 +1690,7 @@ class TestPivotTable:
     @pytest.mark.parametrize("i", range(1, 367))
     def test_daily(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="D")
-        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         annual = pivot_table(
             DataFrame(ts), index=ts.index.year, columns=ts.index.dayofyear
@@ -1709,7 +1709,7 @@ class TestPivotTable:
     @pytest.mark.parametrize("i", range(1, 13))
     def test_monthly(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="M")
-        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         annual = pivot_table(DataFrame(ts), index=ts.index.year, columns=ts.index.month)
         annual.columns = annual.columns.droplevel(0)

@@ -74,9 +74,9 @@ def test_intercept_builtin_sum():
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
     # see gh-8155
-    rs = np.random.default_rng(2).RandomState(42)
-    df = DataFrame(rs.randint(1, 7, (10, 2)), columns=["jim", "joe"])
-    df["jolie"] = rs.randn(10)
+    rs = np.random.default_rng(2)
+    df = DataFrame(rs.integers(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.standard_normal(10)
 
     gb = df.groupby(keys)
 
@@ -371,11 +371,11 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    arr = np.random.default_rng(2).randn(1000)
+    arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
     df = DataFrame(arr)
 
-    labels = np.random.default_rng(2).randint(0, 50, size=1000).astype(float)
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
@@ -384,7 +384,7 @@ def test_cython_median():
         exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
-    df = DataFrame(np.random.default_rng(2).randn(1000, 5))
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000, 5))
     msg = "using DataFrameGroupBy.median"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         rs = df.groupby(labels).agg(np.median)
@@ -393,7 +393,7 @@ def test_cython_median():
 
 
 def test_median_empty_bins(observed):
-    df = DataFrame(np.random.default_rng(2).randint(0, 44, 500))
+    df = DataFrame(np.random.default_rng(2).integers(0, 44, 500))
 
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
@@ -517,7 +517,9 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
 
 
 def test_idxmin_idxmax_axis1():
-    df = DataFrame(np.random.default_rng(2).randn(10, 4), columns=["A", "B", "C", "D"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "B", "C", "D"]
+    )
     df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
 
     gb = df.groupby("A")
@@ -548,7 +550,9 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    df = DataFrame(np.random.default_rng(2).randn(10, 4), columns=["A", "B", "C", "D"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "B", "C", "D"]
+    )
     df["E"] = "x"
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
     gb = df.groupby(groups)
@@ -691,8 +695,8 @@ def scipy_sem(*args, **kwargs):
     ],
 )
 def test_ops_general(op, targop):
-    df = DataFrame(np.random.default_rng(2).randn(1000))
-    labels = np.random.default_rng(2).randint(0, 50, size=1000).astype(float)
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
     warn = None if op in ("first", "last", "count", "sem") else FutureWarning
@@ -745,7 +749,7 @@ def test_nlargest_mi_grouper():
     iterables = [dts, ["one", "two"]]
 
     idx = MultiIndex.from_product(iterables, names=["first", "second"])
-    s = Series(npr.randn(20), index=idx)
+    s = Series(npr.standard_normal(20), index=idx)
 
     result = s.groupby("first").nlargest(1)
 

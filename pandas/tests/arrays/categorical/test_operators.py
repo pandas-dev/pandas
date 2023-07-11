@@ -345,7 +345,7 @@ class TestCategoricalOps:
         assert not a.equals(b)
 
     def test_numeric_like_ops(self):
-        df = DataFrame({"value": np.random.default_rng(2).randint(0, 10000, 100)})
+        df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 

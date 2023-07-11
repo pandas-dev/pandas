@@ -651,7 +651,7 @@ class TestTableOrient:
     def test_mi_falsey_name(self):
         # GH 16203
         df = DataFrame(
-            np.random.default_rng(2).randn(4, 4),
+            np.random.default_rng(2).standard_normal(4, 4),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
         result = [x["name"] for x in build_table_schema(df)["fields"]]

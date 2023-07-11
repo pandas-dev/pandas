@@ -1543,7 +1543,9 @@ class _TestSQLApi(PandasSQLTest):
         assert constraint_sentence in create_sql
 
     def test_chunksize_read(self):
-        df = DataFrame(np.random.default_rng(2).randn(22, 5), columns=list("abcde"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(22, 5), columns=list("abcde")
+        )
         df.to_sql("test_chunksize", self.conn, index=False)
 
         # reading the query in one time

@@ -54,7 +54,10 @@ def biggie_df_fixture(request):
     """Fixture for a big mixed Dataframe and an empty Dataframe"""
     if request.param == "mixed":
         df = DataFrame(
-            {"A": np.random.default_rng(2).randn(200), "B": tm.makeStringIndex(200)},
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": tm.makeStringIndex(200),
+            },
             index=np.arange(200),
         )
         df.loc[:20, "A"] = np.nan
@@ -284,8 +287,8 @@ def test_to_html_regression_GH6098():
         {
             "clé1": ["a", "a", "b", "b", "a"],
             "clé2": ["1er", "2ème", "1er", "2ème", "1er"],
-            "données1": np.random.default_rng(2).randn(5),
-            "données2": np.random.default_rng(2).randn(5),
+            "données1": np.random.default_rng(2).standard_normal(5),
+            "données2": np.random.default_rng(2).standard_normal(5),
         }
     )
 
@@ -398,7 +401,7 @@ def test_to_html_filename(biggie_df_fixture, tmpdir):
 
 
 def test_to_html_with_no_bold():
-    df = DataFrame({"x": np.random.default_rng(2).randn(5)})
+    df = DataFrame({"x": np.random.default_rng(2).standard_normal(5)})
     html = df.to_html(bold_rows=False)
     result = html[html.find("</thead>")]
     assert "<strong" not in result

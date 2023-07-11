@@ -49,7 +49,7 @@ class TestReindexSetIndex:
             datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
         )
         df = DataFrame(
-            np.random.default_rng(2).randn(24, 1), columns=["a"], index=index
+            np.random.default_rng(2).standard_normal(24, 1), columns=["a"], index=index
         )
         new_index = date_range(
             datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
@@ -161,7 +161,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
-        df = DataFrame(np.random.default_rng(2).randn(N * 10, N))
+        df = DataFrame(np.random.default_rng(2).standard_normal(N * 10, N))
         cols = np.arange(N)
         np.random.default_rng(2).shuffle(cols)
 
@@ -176,7 +176,9 @@ class TestDataFrameSelectReindex:
         # https://github.com/pandas-dev/pandas/pull/51197
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
-        df = DataFrame(np.random.default_rng(2).randn(N * 10, N), dtype="Float64")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(N * 10, N), dtype="Float64"
+        )
         cols = np.arange(N)
         np.random.default_rng(2).shuffle(cols)
 
@@ -366,7 +368,9 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_frame_add_nat(self):
         rng = date_range("1/1/2000 00:00:00", periods=10, freq="10s")
-        df = DataFrame({"A": np.random.default_rng(2).randn(len(rng)), "B": rng})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(len(rng)), "B": rng}
+        )
 
         result = df.reindex(range(15))
         assert np.issubdtype(result["B"].dtype, np.dtype("M8[ns]"))
@@ -429,7 +433,7 @@ class TestDataFrameSelectReindex:
                 "jim": list("B" * 4 + "A" * 2 + "C" * 3),
                 "joe": list("abcdeabcd")[::-1],
                 "jolie": [10, 20, 30] * 3,
-                "joline": np.random.default_rng(2).randint(0, 1000, 9),
+                "joline": np.random.default_rng(2).integers(0, 1000, 9),
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -486,7 +490,7 @@ class TestDataFrameSelectReindex:
                         for x in [2, 3, 3, 2, 3, 2, 3, 2]
                     ]
                 ),
-                "joline": np.random.default_rng(2).randn(20).round(3) * 10,
+                "joline": np.random.default_rng(2).standard_normal(20).round(3) * 10,
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -535,7 +539,7 @@ class TestDataFrameSelectReindex:
                         for x in [2, 3, 3, 2, 3, 2, 3, 2]
                     ]
                 ),
-                "joline": np.random.default_rng(2).randn(20).round(3) * 10,
+                "joline": np.random.default_rng(2).standard_normal(20).round(3) * 10,
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -562,7 +566,7 @@ class TestDataFrameSelectReindex:
                 "jim": list("B" * 4 + "A" * 2 + "C" * 3),
                 "joe": list("abcdeabcd")[::-1],
                 "jolie": [10, 20, 30] * 3,
-                "joline": np.random.default_rng(2).randint(0, 1000, 9),
+                "joline": np.random.default_rng(2).integers(0, 1000, 9),
             }
         )
         icol = ["jim", "joe", "jolie"]
@@ -572,7 +576,7 @@ class TestDataFrameSelectReindex:
 
     def test_non_monotonic_reindex_methods(self):
         dr = date_range("2013-08-01", periods=6, freq="B")
-        data = np.random.default_rng(2).randn(6, 1)
+        data = np.random.default_rng(2).standard_normal(6, 1)
         df = DataFrame(data, index=dr, columns=list("A"))
         df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
         # index is not monotonic increasing or decreasing
@@ -800,7 +804,7 @@ class TestDataFrameSelectReindex:
         assert index_freq == seq_freq
 
     def test_reindex_fill_value(self):
-        df = DataFrame(np.random.default_rng(2).randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
 
         # axis=0
         result = df.reindex(list(range(15)))
@@ -853,7 +857,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_dups(self):
         # GH4746, reindex on duplicate index error messages
-        arr = np.random.default_rng(2).randn(10)
+        arr = np.random.default_rng(2).standard_normal(10)
         df = DataFrame(arr, index=[1, 2, 3, 4, 5, 1, 2, 3, 4, 5])
 
         # set index is ok
@@ -1022,21 +1026,21 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_multi(self):
-        df = DataFrame(np.random.default_rng(2).randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3))
 
         result = df.reindex(index=range(4), columns=range(4))
         expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(np.random.default_rng(2).randint(0, 10, (3, 3)))
+        df = DataFrame(np.random.default_rng(2).integers(0, 10, (3, 3)))
 
         result = df.reindex(index=range(4), columns=range(4))
         expected = df.reindex(list(range(4))).reindex(columns=range(4))
 
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame(np.random.default_rng(2).randint(0, 10, (3, 3)))
+        df = DataFrame(np.random.default_rng(2).integers(0, 10, (3, 3)))
 
         result = df.reindex(index=range(2), columns=range(2))
         expected = df.reindex(range(2)).reindex(columns=range(2))
@@ -1044,7 +1048,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame(
-            np.random.default_rng(2).randn(5, 3) + 1j, columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal(5, 3) + 1j, columns=["a", "b", "c"]
         )
 
         result = df.reindex(index=[0, 1], columns=["a", "b"])

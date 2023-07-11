@@ -218,7 +218,7 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.default_rng(2).rand(30)))
-        s[::3] = np.random.default_rng(2).randn(10)
+        s[::3] = np.random.default_rng(2).standard_normal(10)
 
         vals = s.index.values.astype(float)
 
@@ -743,7 +743,7 @@ class TestSeriesInterpolateData:
     def test_spline_interpolation(self):
         # Explicit cast to float to avoid implicit cast when setting np.nan
         s = Series(np.arange(10) ** 2, dtype="float")
-        s[np.random.default_rng(2).randint(0, 9, 3)] = np.nan
+        s[np.random.default_rng(2).integers(0, 9, 3)] = np.nan
         result1 = s.interpolate(method="spline", order=1)
         expected1 = s.interpolate(method="spline", order=1)
         tm.assert_series_equal(result1, expected1)
@@ -764,7 +764,7 @@ class TestSeriesInterpolateData:
     def test_series_interpolate_method_values(self):
         # GH#1646
         rng = date_range("1/1/2000", "1/20/2000", freq="D")
-        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         ts[::2] = np.nan
 

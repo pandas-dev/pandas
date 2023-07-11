@@ -57,14 +57,14 @@ class TestDataFrameSetItem:
         "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
     )
     def test_setitem_dtype(self, dtype, float_frame):
-        # Use randint since casting negative floats to uints is undefined
-        arr = np.random.default_rng(2).randint(1, 10, len(float_frame))
+        # Use integers since casting negative floats to uints is undefined
+        arr = np.random.default_rng(2).integers(1, 10, len(float_frame))
 
         float_frame[dtype] = np.array(arr, dtype=dtype)
         assert float_frame[dtype].dtype.name == dtype
 
     def test_setitem_list_not_dataframe(self, float_frame):
-        data = np.random.default_rng(2).randn(len(float_frame), 2)
+        data = np.random.default_rng(2).standard_normal(len(float_frame), 2)
         float_frame[["A", "B"]] = data
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
@@ -85,7 +85,8 @@ class TestDataFrameSetItem:
 
         # GH 4107, more descriptive error message
         df = DataFrame(
-            np.random.default_rng(2).randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"]
+            np.random.default_rng(2).integers(0, 2, (4, 4)),
+            columns=["a", "b", "c", "d"],
         )
 
         msg = "Cannot set a DataFrame with multiple columns to the single column gr"
@@ -97,7 +98,7 @@ class TestDataFrameSetItem:
         N = 10
         K = 5
         df = DataFrame(index=range(N))
-        new_col = np.random.default_rng(2).randn(N)
+        new_col = np.random.default_rng(2).standard_normal(N)
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K), index=range(N))
@@ -105,7 +106,7 @@ class TestDataFrameSetItem:
 
     def test_setitem_different_dtype(self):
         df = DataFrame(
-            np.random.default_rng(2).randn(5, 3),
+            np.random.default_rng(2).standard_normal(5, 3),
             index=np.arange(5),
             columns=["c", "b", "a"],
         )
@@ -356,7 +357,7 @@ class TestDataFrameSetItem:
 
     def test_setitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5, name="index")
-        df = DataFrame(np.random.default_rng(2).randn(5, 3), index=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3), index=rng)
 
         df["Index"] = rng
         rs = Index(df["Index"])
@@ -402,7 +403,7 @@ class TestDataFrameSetItem:
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
         cols = Index([1, 2, 3], dtype=dtype)
-        df = DataFrame(np.random.default_rng(2).randn(3, 3), columns=cols)
+        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3), columns=cols)
 
         df[False] = ["a", "b", "c"]
 
@@ -571,7 +572,7 @@ class TestDataFrameSetItem:
 
         cols = MultiIndex.from_product(it)
         index = date_range("20141006", periods=20)
-        vals = np.random.default_rng(2).randint(1, 1000, (len(index), len(cols)))
+        vals = np.random.default_rng(2).integers(1, 1000, (len(index), len(cols)))
         df = DataFrame(vals, columns=cols, index=index)
 
         i, j = df.index.values.copy(), it[-1][:]
@@ -776,7 +777,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_dt64series(self, idx, expected):
         # convert to utc
-        df = DataFrame(np.random.default_rng(2).randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
         df["B"] = idx
         df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
@@ -786,7 +787,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_datetimeindex(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.default_rng(2).randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
 
         # assign to frame
         df["B"] = idx
@@ -795,7 +796,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_object_array_of_tzaware_datetimes(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.default_rng(2).randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
 
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
@@ -844,7 +845,7 @@ class TestDataFrameSetItemWithExpansion:
         df = DataFrame(
             {
                 "value": np.array(
-                    np.random.default_rng(2).randint(0, 10000, 100), dtype="int32"
+                    np.random.default_rng(2).integers(0, 10000, 100), dtype="int32"
                 )
             }
         )

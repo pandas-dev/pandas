@@ -113,8 +113,8 @@ class TestMerge:
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.default_rng(2).randn(50),
-                "data2": np.random.default_rng(2).randn(50),
+                "data1": np.random.default_rng(2).standard_normal(50),
+                "data2": np.random.default_rng(2).standard_normal(50),
             }
         )
 
@@ -128,7 +128,7 @@ class TestMerge:
             {
                 "key1": get_test_data(n=10),
                 "key2": get_test_data(ngroups=4, n=10),
-                "value": np.random.default_rng(2).randn(10),
+                "value": np.random.default_rng(2).standard_normal(10),
             }
         )
 
@@ -137,14 +137,15 @@ class TestMerge:
         return DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "e", "a"],
-                "v1": np.random.default_rng(2).randn(7),
+                "v1": np.random.default_rng(2).standard_normal(7),
             }
         )
 
     @pytest.fixture
     def right(self):
         return DataFrame(
-            {"v2": np.random.default_rng(2).randn(4)}, index=["d", "b", "c", "a"]
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
         )
 
     def test_merge_inner_join_empty(self):
@@ -185,11 +186,12 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "e", "a"],
-                "v1": np.random.default_rng(2).randn(7),
+                "v1": np.random.default_rng(2).standard_normal(7),
             }
         )
         right = DataFrame(
-            {"v2": np.random.default_rng(2).randn(4)}, index=["d", "b", "c", "a"]
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
         )
 
         merged1 = merge(
@@ -212,11 +214,12 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": ["a", "b", "c", "d", "e", "e", "a"],
-                "v1": np.random.default_rng(2).randn(7),
+                "v1": np.random.default_rng(2).standard_normal(7),
             }
         )
         right = DataFrame(
-            {"v2": np.random.default_rng(2).randn(4)}, index=["d", "b", "c", "a"]
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
         )
 
         # inner join
@@ -613,8 +616,8 @@ class TestMerge:
         # GH#2098
 
         d = {
-            "var1": np.random.default_rng(2).randint(0, 10, size=10),
-            "var2": np.random.default_rng(2).randint(0, 10, size=10),
+            "var1": np.random.default_rng(2).integers(0, 10, size=10),
+            "var2": np.random.default_rng(2).integers(0, 10, size=10),
             "var3": [
                 datetime(2012, 1, 12),
                 datetime(2011, 2, 4),

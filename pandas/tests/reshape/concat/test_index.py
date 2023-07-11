@@ -160,7 +160,7 @@ class TestIndexConcat:
 
         # single dtypes
         df = DataFrame(
-            np.random.default_rng(2).randint(0, 10, size=40).reshape(10, 4),
+            np.random.default_rng(2).integers(0, 10, size=40).reshape(10, 4),
             columns=["A", "A", "C", "C"],
         )
 
@@ -176,10 +176,11 @@ class TestIndexConcat:
         df = concat(
             [
                 DataFrame(
-                    np.random.default_rng(2).randn(10, 4), columns=["A", "A", "B", "B"]
+                    np.random.default_rng(2).standard_normal(10, 4),
+                    columns=["A", "A", "B", "B"],
                 ),
                 DataFrame(
-                    np.random.default_rng(2).randint(0, 10, size=20).reshape(10, 2),
+                    np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
                     columns=["A", "C"],
                 ),
             ],
@@ -243,7 +244,7 @@ class TestMultiIndexConcat:
         # when multi-index levels are RangeIndex objects
         # there is a bug in concat with objects of len 1
 
-        df = DataFrame(np.random.default_rng(2).randn(9, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(9, 2))
         df.index = MultiIndex(
             levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
             codes=[np.repeat(np.arange(3), 3), np.tile(np.arange(3), 3)],

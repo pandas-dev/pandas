@@ -128,7 +128,7 @@ def make_data():
     rng = np.random.default_rng(2)
     data = np.empty(100, dtype=object)
     data[:] = [
-        [rng.choice(string.ascii_letters) for _ in range(rng.randint(0, 10))]
+        [rng.choice(string.ascii_letters) for _ in range(rng.integers(0, 10))]
         for _ in range(100)
     ]
     return data

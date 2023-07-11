@@ -326,7 +326,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", ["float32", "float64", "int64", "int32"])
     def test_astype(self, dtype):
-        ser = Series(np.random.default_rng(2).randn(5), name="foo")
+        ser = Series(np.random.default_rng(2).standard_normal(5), name="foo")
         as_typed = ser.astype(dtype)
 
         assert as_typed.dtype == dtype
@@ -490,7 +490,7 @@ class TestAstypeCategorical:
     def test_astype_categorical_to_other(self):
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
         ser = Series(
-            np.random.default_rng(2).RandomState(0).randint(0, 10000, 100)
+            np.random.default_rng(2).RandomState(0).integers(0, 10000, 100)
         ).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
@@ -534,7 +534,7 @@ class TestAstypeCategorical:
     def test_astype_categorical_invalid_conversions(self):
         # invalid conversion (these are NOT a dtype)
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(np.random.default_rng(2).randint(0, 10000, 100)).sort_values()
+        ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
         msg = (

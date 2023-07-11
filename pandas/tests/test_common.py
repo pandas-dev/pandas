@@ -65,7 +65,7 @@ def test_random_state():
 
     # check array-like
     # GH32503
-    state_arr_like = np.random.default_rng(None).randint(
+    state_arr_like = np.random.default_rng(None).integers(
         0, 2**31, size=624, dtype="uint32"
     )
     assert (

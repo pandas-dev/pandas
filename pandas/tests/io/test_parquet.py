@@ -466,7 +466,8 @@ class TestBasic(Base):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
         df = pd.DataFrame(
-            np.random.default_rng(2).randn(2 * len(dates), 3), columns=list("ABC")
+            np.random.default_rng(2).standard_normal(2 * len(dates), 3),
+            columns=list("ABC"),
         )
         index1 = pd.MultiIndex.from_product(
             [["Level1", "Level2"], dates], names=["level", "date"]
@@ -515,7 +516,9 @@ class TestBasic(Base):
     def test_write_column_multiindex(self, engine):
         # Not able to write column multi-indexes with non-string column names.
         mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
-        df = pd.DataFrame(np.random.default_rng(2).randn(4, 3), columns=mi_columns)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal(4, 3), columns=mi_columns
+        )
 
         if engine == "fastparquet":
             self.check_error_on_write(
@@ -532,7 +535,9 @@ class TestBasic(Base):
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             [1, 2, 1, 2, 1, 2, 1, 2],
         ]
-        df = pd.DataFrame(np.random.default_rng(2).randn(8, 8), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal(8, 8), columns=arrays
+        )
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
             self.check_error_on_write(df, engine, ValueError, "Column name")
@@ -549,7 +554,9 @@ class TestBasic(Base):
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        df = pd.DataFrame(np.random.default_rng(2).randn(8, 8), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal(8, 8), columns=arrays
+        )
         df.columns.names = ["ColLevel1", "ColLevel2"]
 
         check_round_trip(df, engine)
@@ -561,7 +568,9 @@ class TestBasic(Base):
 
         # Write column indexes with string column names
         arrays = ["bar", "baz", "foo", "qux"]
-        df = pd.DataFrame(np.random.default_rng(2).randn(8, 4), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal(8, 4), columns=arrays
+        )
         df.columns.name = "StringCol"
 
         check_round_trip(df, engine)
@@ -571,7 +580,9 @@ class TestBasic(Base):
 
         # Write column indexes with string column names
         arrays = [1, 2, 3, 4]
-        df = pd.DataFrame(np.random.default_rng(2).randn(8, 4), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal(8, 4), columns=arrays
+        )
         df.columns.name = "NonStringCol"
         if engine == "fastparquet":
             self.check_error_on_write(
@@ -986,7 +997,7 @@ class TestParquetPyArrow(Base):
     def test_read_parquet_manager(self, pa, using_array_manager):
         # ensure that read_parquet honors the pandas.options.mode.data_manager option
         df = pd.DataFrame(
-            np.random.default_rng(2).randn(10, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal(10, 3), columns=["A", "B", "C"]
         )
 
         with tm.ensure_clean() as path:

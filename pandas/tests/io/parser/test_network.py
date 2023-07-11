@@ -296,7 +296,9 @@ class TestS3:
         # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
-        df = DataFrame(np.random.default_rng(2).randn(100000, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(100000, 4), columns=list("abcd")
+        )
         str_buf = StringIO()
 
         df.to_csv(str_buf)

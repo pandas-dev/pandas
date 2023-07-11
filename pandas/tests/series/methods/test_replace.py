@@ -51,7 +51,7 @@ class TestSeriesReplace:
 
     def test_replace(self):
         N = 100
-        ser = pd.Series(np.random.default_rng(2).randn(N))
+        ser = pd.Series(np.random.default_rng(2).standard_normal(N))
         ser[0:4] = np.nan
         ser[6:10] = 0
 
@@ -67,7 +67,7 @@ class TestSeriesReplace:
         tm.assert_series_equal(rs, ser)
 
         ser = pd.Series(
-            np.fabs(np.random.default_rng(2).randn(N)),
+            np.fabs(np.random.default_rng(2).standard_normal(N)),
             tm.makeDateIndex(N),
             dtype=object,
         )
@@ -285,7 +285,7 @@ class TestSeriesReplace:
     def test_replace2(self):
         N = 100
         ser = pd.Series(
-            np.fabs(np.random.default_rng(2).randn(N)),
+            np.fabs(np.random.default_rng(2).standard_normal(N)),
             tm.makeDateIndex(N),
             dtype=object,
         )

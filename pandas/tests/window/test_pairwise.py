@@ -51,7 +51,7 @@ def pairwise_other_frame():
 
 def test_rolling_cov(series):
     A = series
-    B = A + np.random.default_rng(2).randn(len(A))
+    B = A + np.random.default_rng(2).standard_normal(len(A))
 
     result = A.rolling(window=50, min_periods=25).cov(B)
     tm.assert_almost_equal(result.iloc[-1], np.cov(A[-50:], B[-50:])[0, 1])
@@ -59,7 +59,7 @@ def test_rolling_cov(series):
 
 def test_rolling_corr(series):
     A = series
-    B = A + np.random.default_rng(2).randn(len(A))
+    B = A + np.random.default_rng(2).standard_normal(len(A))
 
     result = A.rolling(window=50, min_periods=25).corr(B)
     tm.assert_almost_equal(result.iloc[-1], np.corrcoef(A[-50:], B[-50:])[0, 1])
@@ -96,7 +96,7 @@ def test_flex_binary_frame(method, frame):
 
     frame2 = frame.copy()
     frame2 = DataFrame(
-        np.random.default_rng(2).randn(*frame2.shape),
+        np.random.default_rng(2).standard_normal(*frame2.shape),
         index=frame2.index,
         columns=frame2.columns,
     )

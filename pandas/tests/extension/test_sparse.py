@@ -30,7 +30,7 @@ def make_data(fill_value):
     if np.isnan(fill_value):
         data = np.random.default_rng(2).uniform(size=100)
     else:
-        data = np.random.default_rng(2).randint(1, 100, size=100)
+        data = np.random.default_rng(2).integers(1, 100, size=100)
         if data[0] == data[1]:
             data[0] += 1
 

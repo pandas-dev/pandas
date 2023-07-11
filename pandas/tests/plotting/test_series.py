@@ -104,7 +104,7 @@ class TestSeriesPlots:
 
     def test_plot_series_bar_ax(self):
         ax = _check_plot_works(
-            Series(np.random.default_rng(2).randn(10)).plot.bar, color="black"
+            Series(np.random.default_rng(2).standard_normal(10)).plot.bar, color="black"
         )
         _check_colors([ax.patches[0]], facecolors=["black"])
 
@@ -327,14 +327,14 @@ class TestSeriesPlots:
         assert result == expected
 
     def test_rotation_default(self):
-        df = DataFrame(np.random.default_rng(2).randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
         # Default rot 0
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(ax=ax)
         _check_ticks_props(axes, xrot=0)
 
     def test_rotation_30(self):
-        df = DataFrame(np.random.default_rng(2).randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(rot=30, ax=ax)
         _check_ticks_props(axes, xrot=30)
@@ -344,7 +344,7 @@ class TestSeriesPlots:
 
         rng = date_range("1/1/2000", "3/1/2000")
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
-        ser = Series(np.random.default_rng(2).randn(len(rng)), rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = ser.plot(ax=ax)
         xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
@@ -368,7 +368,7 @@ class TestSeriesPlots:
         # if sum of values is less than 1.0, pie handle them as rate and draw
         # semicircle.
         series = Series(
-            np.random.default_rng(2).randint(1, 5),
+            np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
         )
@@ -378,7 +378,7 @@ class TestSeriesPlots:
 
     def test_pie_series_no_label(self):
         series = Series(
-            np.random.default_rng(2).randint(1, 5),
+            np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
         )
@@ -387,7 +387,7 @@ class TestSeriesPlots:
 
     def test_pie_series_less_colors_than_elements(self):
         series = Series(
-            np.random.default_rng(2).randint(1, 5),
+            np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
         )
@@ -399,7 +399,7 @@ class TestSeriesPlots:
 
     def test_pie_series_labels_and_colors(self):
         series = Series(
-            np.random.default_rng(2).randint(1, 5),
+            np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
         )
@@ -412,7 +412,7 @@ class TestSeriesPlots:
 
     def test_pie_series_autopct_and_fontsize(self):
         series = Series(
-            np.random.default_rng(2).randint(1, 5),
+            np.random.default_rng(2).integers(1, 5),
             index=["a", "b", "c", "d", "e"],
             name="YLABEL",
         )
@@ -448,8 +448,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend(self):
         # GH 9779
-        df = DataFrame(np.random.default_rng(2).randn(30, 3), columns=list("abc"))
-        s = Series(np.random.default_rng(2).randn(30), name="x")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+        )
+        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
 
         # primary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
@@ -463,8 +465,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_with_axes(self):
         # GH 9779
-        df = DataFrame(np.random.default_rng(2).randn(30, 3), columns=list("abc"))
-        s = Series(np.random.default_rng(2).randn(30), name="x")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+        )
+        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # primary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(ax=ax)
@@ -477,8 +481,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_both(self):
         # GH 9779
-        df = DataFrame(np.random.default_rng(2).randn(30, 3), columns=list("abc"))
-        s = Series(np.random.default_rng(2).randn(30), name="x")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+        )
+        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -492,8 +498,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_both_with_axis(self):
         # GH 9779
-        df = DataFrame(np.random.default_rng(2).randn(30, 3), columns=list("abc"))
-        s = Series(np.random.default_rng(2).randn(30), name="x")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+        )
+        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, ax=ax)
@@ -507,8 +515,10 @@ class TestSeriesPlots:
 
     def test_df_series_secondary_legend_both_with_axis_2(self):
         # GH 9779
-        df = DataFrame(np.random.default_rng(2).randn(30, 3), columns=list("abc"))
-        s = Series(np.random.default_rng(2).randn(30), name="x")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+        )
+        s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
@@ -525,8 +535,8 @@ class TestSeriesPlots:
     )
     def test_secondary_logy(self, input_logy, expected_scale):
         # GH 25545
-        s1 = Series(np.random.default_rng(2).randn(100))
-        s2 = Series(np.random.default_rng(2).randn(100))
+        s1 = Series(np.random.default_rng(2).standard_normal(100))
+        s2 = Series(np.random.default_rng(2).standard_normal(100))
 
         # GH 24980
         ax1 = s1.plot(logy=input_logy)
@@ -536,7 +546,7 @@ class TestSeriesPlots:
         assert ax2.get_yscale() == expected_scale
 
     def test_plot_fails_with_dupe_color_and_style(self):
-        x = Series(np.random.default_rng(2).randn(2))
+        x = Series(np.random.default_rng(2).standard_normal(2))
         _, ax = mpl.pyplot.subplots()
         msg = (
             "Cannot pass 'style' string with a color symbol and 'color' keyword "
@@ -644,7 +654,7 @@ class TestSeriesPlots:
         dr1 = date_range("1/1/2009", periods=4)
         dr2 = date_range("1/2/2009", periods=4)
         index = dr1.append(dr2)
-        values = np.random.default_rng(2).randn(index.size)
+        values = np.random.default_rng(2).standard_normal(index.size)
         s = Series(values, index=index)
         _check_plot_works(s.plot)
 
@@ -671,11 +681,12 @@ class TestSeriesPlots:
     @pytest.mark.parametrize(
         "yerr",
         [
-            Series(np.abs(np.random.default_rng(2).randn(10))),
-            np.abs(np.random.default_rng(2).randn(10)),
-            list(np.abs(np.random.default_rng(2).randn(10))),
+            Series(np.abs(np.random.default_rng(2).standard_normal(10))),
+            np.abs(np.random.default_rng(2).standard_normal(10)),
+            list(np.abs(np.random.default_rng(2).standard_normal(10))),
             DataFrame(
-                np.abs(np.random.default_rng(2).randn(10, 2)), columns=["x", "y"]
+                np.abs(np.random.default_rng(2).standard_normal((10, 2))),
+                columns=["x", "y"],
             ),
         ],
     )
@@ -687,7 +698,7 @@ class TestSeriesPlots:
     @pytest.mark.slow
     def test_errorbar_plot_yerr_0(self):
         s = Series(np.arange(10), name="x")
-        s_err = np.abs(np.random.default_rng(2).randn(10))
+        s_err = np.abs(np.random.default_rng(2).standard_normal(10))
         ax = _check_plot_works(s.plot, xerr=s_err)
         _check_has_errorbars(ax, xerr=1, yerr=0)
 
@@ -695,9 +706,10 @@ class TestSeriesPlots:
     @pytest.mark.parametrize(
         "yerr",
         [
-            Series(np.abs(np.random.default_rng(2).randn(12))),
+            Series(np.abs(np.random.default_rng(2).standard_normal(12))),
             DataFrame(
-                np.abs(np.random.default_rng(2).randn(12, 2)), columns=["x", "y"]
+                np.abs(np.random.default_rng(2).standard_normal((12, 2))),
+                columns=["x", "y"],
             ),
         ],
     )

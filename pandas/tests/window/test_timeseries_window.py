@@ -504,7 +504,7 @@ class TestRollingTS:
         N = 10000
 
         dfp = DataFrame(
-            {"B": np.random.default_rng(2).randn(N)},
+            {"B": np.random.default_rng(2).standard_normal(N)},
             index=date_range("20130101", periods=N, freq="s"),
         )
         expected = dfp.rolling(2, min_periods=1).min()

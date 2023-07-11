@@ -27,7 +27,7 @@ import pandas._testing as tm
 def duplicate_columns_frame():
     """Dataframe with duplicate column names."""
     return DataFrame(
-        np.random.default_rng(2).randn(1500, 4), columns=["a", "a", "b", "b"]
+        np.random.default_rng(2).standard_normal(1500, 4), columns=["a", "a", "b", "b"]
     )
 
 
@@ -48,10 +48,10 @@ def test_info_empty():
 
 def test_info_categorical_column_smoke_test():
     n = 2500
-    df = DataFrame({"int64": np.random.default_rng(2).randint(100, size=n)})
+    df = DataFrame({"int64": np.random.default_rng(2).integers(100, size=n)})
     df["category"] = Series(
         np.array(list("abcdefghij")).take(
-            np.random.default_rng(2).randint(0, 10, size=n)
+            np.random.default_rng(2).integers(0, 10, size=n)
         )
     ).astype("category")
     df.isna()
@@ -91,7 +91,7 @@ def test_info_smoke_test(fixture_func_name, request):
     ],
 )
 def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
-    frame = DataFrame(np.random.default_rng(2).randn(5, num_columns))
+    frame = DataFrame(np.random.default_rng(2).standard_normal(5, num_columns))
     with option_context("display.max_info_columns", max_info_columns):
         io_default = StringIO()
         frame.info(buf=io_default)
@@ -108,7 +108,7 @@ def test_info_verbose_check_header_separator_body():
     buf = StringIO()
     size = 1001
     start = 5
-    frame = DataFrame(np.random.default_rng(2).randn(3, size))
+    frame = DataFrame(np.random.default_rng(2).standard_normal(3, size))
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
@@ -170,7 +170,7 @@ def test_info_verbose_with_counts_spacing(
     size, header_exp, separator_exp, first_line_exp, last_line_exp
 ):
     """Test header column, spacer, first line and last line in verbose mode."""
-    frame = DataFrame(np.random.default_rng(2).randn(3, size))
+    frame = DataFrame(np.random.default_rng(2).standard_normal(3, size))
     with StringIO() as buf:
         frame.info(verbose=True, show_counts=True, buf=buf)
         all_lines = buf.getvalue().splitlines()
@@ -208,7 +208,7 @@ def test_info_memory():
 
 def test_info_wide():
     io = StringIO()
-    df = DataFrame(np.random.default_rng(2).randn(5, 101))
+    df = DataFrame(np.random.default_rng(2).standard_normal(5, 101))
     df.info(buf=io)
 
     io = StringIO()
@@ -247,7 +247,7 @@ def test_info_shows_column_dtypes():
     data = {}
     n = 10
     for i, dtype in enumerate(dtypes):
-        data[i] = np.random.default_rng(2).randint(2, size=n).astype(dtype)
+        data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
     df = DataFrame(data)
     buf = StringIO()
     df.info(buf=buf)
@@ -263,7 +263,7 @@ def test_info_shows_column_dtypes():
 
 
 def test_info_max_cols():
-    df = DataFrame(np.random.default_rng(2).randn(10, 5))
+    df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
     for len_, verbose in [(5, None), (5, False), (12, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
         with option_context("max_info_columns", 4):
@@ -310,7 +310,7 @@ def test_info_memory_usage():
     data = {}
     n = 10
     for i, dtype in enumerate(dtypes):
-        data[i] = np.random.default_rng(2).randint(2, size=n).astype(dtype)
+        data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
     df = DataFrame(data)
     buf = StringIO()
 
@@ -341,7 +341,7 @@ def test_info_memory_usage():
     data = {}
     n = 100
     for i, dtype in enumerate(dtypes):
-        data[i] = np.random.default_rng(2).randint(2, size=n).astype(dtype)
+        data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
     df = DataFrame(data)
     df.columns = dtypes
 
@@ -456,7 +456,9 @@ def test_info_memory_usage_bug_on_multiindex():
         [list(uppercase), date_range("20160101", periods=N)],
         names=["id", "date"],
     )
-    df = DataFrame({"value": np.random.default_rng(2).randn(N * M)}, index=index)
+    df = DataFrame(
+        {"value": np.random.default_rng(2).standard_normal(N * M)}, index=index
+    )
 
     unstacked = df.unstack("id")
     assert df.values.nbytes == unstacked.values.nbytes

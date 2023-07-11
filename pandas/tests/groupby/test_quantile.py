@@ -96,7 +96,7 @@ def test_quantile_array2():
     arr = (
         np.random.default_rng(2)
         .RandomState(0)
-        .randint(0, 5, size=(10, 3), dtype=np.int64)
+        .integers(0, 5, size=(10, 3), dtype=np.int64)
     )
     df = DataFrame(arr, columns=list("ABC"))
     result = df.groupby("A").quantile([0.3, 0.7])

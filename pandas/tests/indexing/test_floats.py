@@ -15,7 +15,7 @@ def gen_obj(klass, index):
         obj = Series(np.arange(len(index)), index=index)
     else:
         obj = DataFrame(
-            np.random.default_rng(2).randn(len(index), len(index)),
+            np.random.default_rng(2).standard_normal(len(index), len(index)),
             index=index,
             columns=index,
         )
@@ -353,7 +353,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.default_rng(2).randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal(5, 2), index=index)
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
@@ -408,7 +408,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.default_rng(2).randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal(5, 2), index=index)
 
         # setitem
         sc = s.copy()

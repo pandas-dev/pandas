@@ -266,7 +266,7 @@ def test_rank(window, method, pct, ascending, test_data):
 
 def test_expanding_corr(series):
     A = series.dropna()
-    B = (A + np.random.default_rng(2).randn(len(A)))[:-5]
+    B = (A + np.random.default_rng(2).standard_normal(len(A)))[:-5]
 
     result = A.expanding().corr(B)
 
@@ -292,7 +292,7 @@ def test_expanding_quantile(series):
 
 def test_expanding_cov(series):
     A = series
-    B = (A + np.random.default_rng(2).randn(len(A)))[:-5]
+    B = (A + np.random.default_rng(2).standard_normal(len(A)))[:-5]
 
     result = A.expanding().cov(B)
 
@@ -353,7 +353,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     ids=["sum", "mean", "max", "min"],
 )
 def test_expanding_min_periods(func, static_comp):
-    ser = Series(np.random.default_rng(2).randn(50))
+    ser = Series(np.random.default_rng(2).standard_normal(50))
 
     msg = "The 'axis' keyword in Series.expanding is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -367,7 +367,7 @@ def test_expanding_min_periods(func, static_comp):
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
-    ser2 = Series(np.random.default_rng(2).randn(20))
+    ser2 = Series(np.random.default_rng(2).standard_normal(20))
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
     assert isna(result[3])
@@ -403,7 +403,7 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
 
 def test_expanding_min_periods_apply(engine_and_raw):
     engine, raw = engine_and_raw
-    ser = Series(np.random.default_rng(2).randn(50))
+    ser = Series(np.random.default_rng(2).standard_normal(50))
 
     result = ser.expanding(min_periods=30).apply(
         lambda x: x.mean(), raw=raw, engine=engine
@@ -418,7 +418,7 @@ def test_expanding_min_periods_apply(engine_and_raw):
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
-    ser2 = Series(np.random.default_rng(2).randn(20))
+    ser2 = Series(np.random.default_rng(2).standard_normal(20))
     result = ser2.expanding(min_periods=5).apply(
         lambda x: x.mean(), raw=raw, engine=engine
     )

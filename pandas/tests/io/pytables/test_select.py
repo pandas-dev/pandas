@@ -41,7 +41,9 @@ def test_select_columns_in_where(setup_path):
 
     # With a DataFrame
     df = DataFrame(
-        np.random.default_rng(2).randn(10, 3), index=index, columns=["A", "B", "C"]
+        np.random.default_rng(2).standard_normal(10, 3),
+        index=index,
+        columns=["A", "B", "C"],
     )
 
     with ensure_clean_store(setup_path) as store:
@@ -53,7 +55,7 @@ def test_select_columns_in_where(setup_path):
         tm.assert_frame_equal(store.select("df", where="columns=['A']"), expected)
 
     # With a Series
-    s = Series(np.random.default_rng(2).randn(10), index=index, name="A")
+    s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
     with ensure_clean_store(setup_path) as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
@@ -61,7 +63,9 @@ def test_select_columns_in_where(setup_path):
 
 def test_select_with_dups(setup_path):
     # single dtypes
-    df = DataFrame(np.random.default_rng(2).randn(10, 4), columns=["A", "A", "B", "B"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "A", "B", "B"]
+    )
     df.index = date_range("20130101 9:30", periods=10, freq="T")
 
     with ensure_clean_store(setup_path) as store:
@@ -83,10 +87,11 @@ def test_select_with_dups(setup_path):
     df = concat(
         [
             DataFrame(
-                np.random.default_rng(2).randn(10, 4), columns=["A", "A", "B", "B"]
+                np.random.default_rng(2).standard_normal(10, 4),
+                columns=["A", "A", "B", "B"],
             ),
             DataFrame(
-                np.random.default_rng(2).randint(0, 10, size=20).reshape(10, 2),
+                np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
                 columns=["A", "C"],
             ),
         ],
@@ -168,7 +173,7 @@ def test_select_dtypes(setup_path):
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.default_rng(2).randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
             }
         )
         _maybe_remove(store, "df")
@@ -179,7 +184,9 @@ def test_select_dtypes(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # bool columns (GH #2849)
-        df = DataFrame(np.random.default_rng(2).randn(5, 2), columns=["A", "B"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(5, 2), columns=["A", "B"]
+        )
         df["object"] = "foo"
         df.loc[4:5, "object"] = "bar"
         df["boolv"] = df["A"] > 0
@@ -277,7 +284,7 @@ def test_select_with_many_inputs(setup_path):
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.default_rng(2).randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
                 "B": range(300),
                 "users": ["a"] * 50
                 + ["b"] * 50
@@ -657,7 +664,7 @@ def test_frame_select_complex2(tmp_path):
 
     selection = read_hdf(pp, "df", where="A=[2,3]")
     hist = DataFrame(
-        np.random.default_rng(2).randn(25, 1),
+        np.random.default_rng(2).standard_normal(25, 1),
         columns=["data"],
         index=MultiIndex.from_tuples(
             [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]

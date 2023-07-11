@@ -133,7 +133,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_group_ohlc(dtype):
-    obj = np.array(np.random.default_rng(2).randn(20), dtype=dtype)
+    obj = np.array(np.random.default_rng(2).standard_normal(20), dtype=dtype)
 
     bins = np.array([6, 12, 20])
     out = np.zeros((3, 4), dtype)

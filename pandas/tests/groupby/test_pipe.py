@@ -17,8 +17,8 @@ def test_pipe():
     df = DataFrame(
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
-            "B": random_state.randn(8),
-            "C": random_state.randn(8),
+            "B": random_state.standard_normal(8),
+            "C": random_state.standard_normal(8),
         }
     )
 

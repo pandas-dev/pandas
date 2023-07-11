@@ -212,10 +212,10 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len):
             df = DataFrame(
                 {
-                    "A": np.random.default_rng(2).randn(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
                     "B": [
                         tm.rands(
-                            np.random.default_rng(2).randint(max_len - 1, max_len + 1)
+                            np.random.default_rng(2).integers(max_len - 1, max_len + 1)
                         )
                         for i in range(10)
                     ],
@@ -327,7 +327,7 @@ class TestDataFrameFormatting:
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
-            df = DataFrame(np.random.default_rng(2).randn(10, 4))
+            df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
             assert "\\" not in repr(df)
 
     def test_expand_frame_repr(self):
@@ -576,7 +576,7 @@ class TestDataFrameFormatting:
         repr(df)
 
         idx = Index(["abc", "\u03c3a", "aegdvg"])
-        ser = Series(np.random.default_rng(2).randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         rs = repr(ser).split("\n")
         line_len = len(rs[0])
         for line in rs[1:]:
@@ -1193,7 +1193,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_wide_columns(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             df = DataFrame(
-                np.random.default_rng(2).randn(5, 3),
+                np.random.default_rng(2).standard_normal(5, 3),
                 columns=["a" * 90, "b" * 90, "c" * 90],
             )
             rep_str = repr(df)
@@ -1281,7 +1281,7 @@ class TestDataFrameFormatting:
     def test_long_series(self):
         n = 1000
         s = Series(
-            np.random.default_rng(2).randint(-50, 50, n),
+            np.random.default_rng(2).integers(-50, 50, n),
             index=[f"s{x:04d}" for x in range(n)],
             dtype="int64",
         )
@@ -1370,7 +1370,10 @@ class TestDataFrameFormatting:
     def test_to_string(self):
         # big mixed
         biggie = DataFrame(
-            {"A": np.random.default_rng(2).randn(200), "B": tm.makeStringIndex(200)},
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": tm.makeStringIndex(200),
+            },
         )
 
         biggie.loc[:20, "A"] = np.nan
@@ -1972,7 +1975,9 @@ c  10  11  12  13  14\
         tuples = list(itertools.product(np.arange(max_L1), ["foo", "bar"]))
         idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).randn(max_L1 * 2, 2), index=idx, columns=["A", "B"]
+            np.random.default_rng(2).standard_normal(max_L1 * 2, 2),
+            index=idx,
+            columns=["A", "B"],
         )
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             reg_repr = df._repr_html_()
@@ -1981,7 +1986,7 @@ c  10  11  12  13  14\
         tuples = list(itertools.product(np.arange(max_L1 + 1), ["foo", "bar"]))
         idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).randn((max_L1 + 1) * 2, 2),
+            np.random.default_rng(2).standard_normal((max_L1 + 1) * 2, 2),
             index=idx,
             columns=["A", "B"],
         )
@@ -2027,7 +2032,7 @@ c  10  11  12  13  14\
 
     def test_info_repr_max_cols(self):
         # GH #6939
-        df = DataFrame(np.random.default_rng(2).randn(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
         with option_context(
             "display.large_repr",
             "info",
@@ -2280,7 +2285,7 @@ class TestSeriesFormatting:
 
     def test_freq_name_separation(self):
         s = Series(
-            np.random.default_rng(2).randn(10),
+            np.random.default_rng(2).standard_normal(10),
             index=date_range("1/1/2000", periods=10),
             name=0,
         )
@@ -2731,7 +2736,7 @@ class TestSeriesFormatting:
         ]
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        s = Series(np.random.default_rng(2).randn(8), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
         with option_context("display.max_rows", 10):
             assert len(str(s).split("\n")) == 10
@@ -2745,7 +2750,7 @@ class TestSeriesFormatting:
             assert len(str(s).split("\n")) == 10
 
         # index
-        s = Series(np.random.default_rng(2).randn(8), None)
+        s = Series(np.random.default_rng(2).standard_normal(8), None)
 
         with option_context("display.max_rows", 10):
             assert len(str(s).split("\n")) == 9

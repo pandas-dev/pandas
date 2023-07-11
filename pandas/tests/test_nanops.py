@@ -34,7 +34,7 @@ def arr_shape():
 
 @pytest.fixture
 def arr_float(arr_shape):
-    return np.random.default_rng(2).randn(*arr_shape)
+    return np.random.default_rng(2).standard_normal(*arr_shape)
 
 
 @pytest.fixture
@@ -44,12 +44,12 @@ def arr_complex(arr_float):
 
 @pytest.fixture
 def arr_int(arr_shape):
-    return np.random.default_rng(2).randint(-10, 10, arr_shape)
+    return np.random.default_rng(2).integers(-10, 10, arr_shape)
 
 
 @pytest.fixture
 def arr_bool(arr_shape):
-    return np.random.default_rng(2).randint(0, 2, arr_shape) == 0
+    return np.random.default_rng(2).integers(0, 2, arr_shape) == 0
 
 
 @pytest.fixture
@@ -64,12 +64,12 @@ def arr_utf(arr_float):
 
 @pytest.fixture
 def arr_date(arr_shape):
-    return np.random.default_rng(2).randint(0, 20000, arr_shape).astype("M8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
 
 
 @pytest.fixture
 def arr_tdelta(arr_shape):
-    return np.random.default_rng(2).randint(0, 20000, arr_shape).astype("m8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
 
 
 @pytest.fixture
@@ -190,18 +190,18 @@ class TestnanopsDataFrame:
 
         arr_shape = (11, 7)
 
-        self.arr_float = np.random.default_rng(2).randn(*arr_shape)
-        self.arr_float1 = np.random.default_rng(2).randn(*arr_shape)
+        self.arr_float = np.random.default_rng(2).standard_normal(*arr_shape)
+        self.arr_float1 = np.random.default_rng(2).standard_normal(*arr_shape)
         self.arr_complex = self.arr_float + self.arr_float1 * 1j
-        self.arr_int = np.random.default_rng(2).randint(-10, 10, arr_shape)
-        self.arr_bool = np.random.default_rng(2).randint(0, 2, arr_shape) == 0
+        self.arr_int = np.random.default_rng(2).integers(-10, 10, arr_shape)
+        self.arr_bool = np.random.default_rng(2).integers(0, 2, arr_shape) == 0
         self.arr_str = np.abs(self.arr_float).astype("S")
         self.arr_utf = np.abs(self.arr_float).astype("U")
         self.arr_date = (
-            np.random.default_rng(2).randint(0, 20000, arr_shape).astype("M8[ns]")
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
         )
         self.arr_tdelta = (
-            np.random.default_rng(2).randint(0, 20000, arr_shape).astype("m8[ns]")
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
         )
 
         self.arr_nan = np.tile(np.nan, arr_shape)

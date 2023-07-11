@@ -276,7 +276,7 @@ class TestDataFramePlotsSubplots:
     def test_subplots_warnings(self, idx):
         # GH 9464
         with tm.assert_produces_warning(None):
-            df = DataFrame(np.random.default_rng(2).randn(5, 4), index=idx)
+            df = DataFrame(np.random.default_rng(2).standard_normal(5, 4), index=idx)
             df.plot(subplots=True, layout=(3, 2))
 
     def test_subplots_multiple_axes(self):
@@ -353,7 +353,7 @@ class TestDataFramePlotsSubplots:
         _, axes = mpl.pyplot.subplots(3, 3, sharex=True, sharey=True)
         mpl.pyplot.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 9),
+            np.random.default_rng(2).standard_normal(10, 9),
             index=date_range(start="2014-07-01", freq="M", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):
@@ -469,7 +469,7 @@ class TestDataFramePlotsSubplots:
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 2),
+            np.random.default_rng(2).standard_normal(10, 2),
             index=date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
@@ -489,7 +489,7 @@ class TestDataFramePlotsSubplots:
     def test_df_subplots_patterns_minorticks_1st_ax_hidden(self):
         # GH 10657
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 2),
+            np.random.default_rng(2).standard_normal(10, 2),
             index=date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
@@ -508,7 +508,7 @@ class TestDataFramePlotsSubplots:
     def test_df_subplots_patterns_minorticks_not_shared(self):
         # GH 10657
         df = DataFrame(
-            np.random.default_rng(2).randn(10, 2),
+            np.random.default_rng(2).standard_normal(10, 2),
             index=date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
@@ -628,7 +628,7 @@ class TestDataFramePlotsSubplots:
         ],
     )
     def test_bar_align_single_column(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).randn(5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5))
         self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.parametrize(
@@ -643,13 +643,13 @@ class TestDataFramePlotsSubplots:
         ],
     )
     def test_bar_barwidth_position(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.parametrize("w", [1, 1.0])
     def test_bar_barwidth_position_int(self, w):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
         ax = df.plot.bar(stacked=True, width=w)
         ticks = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
@@ -670,7 +670,7 @@ class TestDataFramePlotsSubplots:
     )
     def test_bar_barwidth_position_int_width_1(self, kind, kwargs):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
         self._check_bar_alignment(df, kind=kind, width=1, **kwargs)
 
     def _check_bar_alignment(

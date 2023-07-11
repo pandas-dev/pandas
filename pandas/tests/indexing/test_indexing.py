@@ -81,7 +81,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.default_rng(2).randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
@@ -125,7 +125,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.default_rng(2).randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         if indexer_sli is tm.iloc:
             err = ValueError
@@ -279,7 +279,9 @@ class TestFancy:
 
     def test_dups_fancy_indexing_only_missing_label(self):
         # List containing only missing label
-        dfnu = DataFrame(np.random.default_rng(2).randn(5, 3), index=list("AABCD"))
+        dfnu = DataFrame(
+            np.random.default_rng(2).standard_normal(5, 3), index=list("AABCD")
+        )
         with pytest.raises(
             KeyError,
             match=re.escape(
@@ -305,7 +307,8 @@ class TestFancy:
         # GH 5835
         # dups on index and missing values
         df = DataFrame(
-            np.random.default_rng(2).randn(5, 5), columns=["A", "B", "B", "B", "A"]
+            np.random.default_rng(2).standard_normal(5, 5),
+            columns=["A", "B", "B", "B", "A"],
         )
 
         with pytest.raises(KeyError, match="not in index"):
@@ -314,7 +317,7 @@ class TestFancy:
     def test_dups_fancy_indexing3(self):
         # GH 6504, multi-axis indexing
         df = DataFrame(
-            np.random.default_rng(2).randn(9, 2),
+            np.random.default_rng(2).standard_normal(9, 2),
             index=[1, 1, 1, 2, 2, 2, 3, 3, 3],
             columns=["a", "b"],
         )

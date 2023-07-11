@@ -128,9 +128,9 @@ def multiindex_data():
 
     data = {}
     for date in dates:
-        nitems_for_date = nitems - rng.randint(0, 12)
+        nitems_for_date = nitems - rng.integers(0, 12)
         levels = [
-            (item, rng.randint(0, 10000) / 100, rng.randint(0, 10000) / 100)
+            (item, rng.integers(0, 10000) / 100, rng.integers(0, 10000) / 100)
             for item in items[:nitems_for_date]
         ]
         levels.sort(key=lambda x: x[1])

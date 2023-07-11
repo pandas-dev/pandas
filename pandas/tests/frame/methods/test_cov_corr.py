@@ -172,7 +172,8 @@ class TestDataFrameCorr:
     def test_corr_cov_independent_index_column(self, method):
         # GH#14617
         df = DataFrame(
-            np.random.default_rng(2).randn(4 * 10).reshape(10, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal(4 * 10).reshape(10, 4),
+            columns=list("abcd"),
         )
         result = getattr(df, method)()
         assert result.index is not result.columns
@@ -288,7 +289,7 @@ class TestDataFrameCorrWith:
         datetime_frame = datetime_frame.astype(dtype)
 
         a = datetime_frame
-        noise = Series(np.random.default_rng(2).randn(len(a)), index=a.index)
+        noise = Series(np.random.default_rng(2).standard_normal(len(a)), index=a.index)
 
         b = datetime_frame.add(noise, axis=0)
 
@@ -313,10 +314,12 @@ class TestDataFrameCorrWith:
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(
-            np.random.default_rng(2).randn(5, 4), index=index, columns=columns
+            np.random.default_rng(2).standard_normal(5, 4), index=index, columns=columns
         )
         df2 = DataFrame(
-            np.random.default_rng(2).randn(4, 4), index=index[:4], columns=columns
+            np.random.default_rng(2).standard_normal(4, 4),
+            index=index[:4],
+            columns=columns,
         )
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:

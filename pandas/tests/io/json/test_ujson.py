@@ -940,7 +940,7 @@ class TestPandasJSONTests:
         decoded = DatetimeIndex(np.array(ujson.decode(encoded)))
         tm.assert_index_equal(rng, decoded)
 
-        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
         decoded = Series(ujson.decode(ujson.encode(ts, date_unit=date_unit)))
 
         idx_values = decoded.index.values.astype(np.int64)

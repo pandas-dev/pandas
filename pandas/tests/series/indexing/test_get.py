@@ -167,7 +167,7 @@ def test_get_with_default():
 @pytest.mark.parametrize(
     "arr",
     [
-        np.random.default_rng(2).randn(10),
+        np.random.default_rng(2).standard_normal(10),
         tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
     ],
 )

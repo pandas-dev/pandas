@@ -246,8 +246,8 @@ def test_remove_unused_levels_large(first_type, second_type):
     size = 1 << 16
     df = DataFrame(
         {
-            "first": rng.randint(0, 1 << 13, size).astype(first_type),
-            "second": rng.randint(0, 1 << 10, size).astype(second_type),
+            "first": rng.integers(0, 1 << 13, size).astype(first_type),
+            "second": rng.integers(0, 1 << 10, size).astype(second_type),
             "third": rng.rand(size),
         }
     )

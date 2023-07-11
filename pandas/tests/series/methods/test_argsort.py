@@ -46,7 +46,7 @@ class TestSeriesArgsort:
         tm.assert_series_equal(result, expected)
 
     def test_argsort_stable(self):
-        s = Series(np.random.default_rng(2).randint(0, 100, size=10000))
+        s = Series(np.random.default_rng(2).integers(0, 100, size=10000))
         mindexer = s.argsort(kind="mergesort")
         qindexer = s.argsort()
 

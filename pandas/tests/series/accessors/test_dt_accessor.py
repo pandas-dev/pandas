@@ -693,7 +693,7 @@ class TestSeriesDatetimeValues:
         [
             Series(np.arange(5)),
             Series(list("abcde")),
-            Series(np.random.default_rng(2).randn(5)),
+            Series(np.random.default_rng(2).standard_normal(5)),
         ],
     )
     def test_dt_accessor_invalid(self, ser):

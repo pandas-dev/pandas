@@ -14,9 +14,9 @@ class TestSample:
     @pytest.fixture
     def obj(self, frame_or_series):
         if frame_or_series is Series:
-            arr = np.random.default_rng(2).randn(10)
+            arr = np.random.default_rng(2).standard_normal(10)
         else:
-            arr = np.random.default_rng(2).randn(10, 10)
+            arr = np.random.default_rng(2).standard_normal(10, 10)
         return frame_or_series(arr, dtype=None)
 
     @pytest.mark.parametrize("test", list(range(10)))
@@ -26,7 +26,7 @@ class TestSample:
         # Check for stability when receives seed or random state -- run 10
         # times.
 
-        seed = np.random.default_rng(2).randint(0, 100)
+        seed = np.random.default_rng(2).integers(0, 100)
         tm.assert_equal(
             obj.sample(n=4, random_state=seed), obj.sample(n=4, random_state=seed)
         )
@@ -344,7 +344,9 @@ class TestSampleDataFrame:
     def test_sample_is_copy(self):
         # GH#27357, GH#30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
-        df = DataFrame(np.random.default_rng(2).randn(10, 3), columns=["a", "b", "c"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(10, 3), columns=["a", "b", "c"]
+        )
         df2 = df.sample(3)
 
         with tm.assert_produces_warning(None):

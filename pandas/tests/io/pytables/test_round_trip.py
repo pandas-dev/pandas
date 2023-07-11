@@ -183,7 +183,7 @@ def test_get(setup_path):
 
 def test_put_integer(setup_path):
     # non-date, non-string index
-    df = DataFrame(np.random.default_rng(2).randn(50, 100))
+    df = DataFrame(np.random.default_rng(2).standard_normal(50, 100))
     _check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
 
@@ -219,7 +219,7 @@ def test_table_values_dtypes_roundtrip(setup_path):
         # check with mixed dtypes
         df1 = DataFrame(
             {
-                c: Series(np.random.default_rng(2).randint(5), dtype=c)
+                c: Series(np.random.default_rng(2).integers(5), dtype=c)
                 for c in ["float32", "float64", "int32", "int64", "int16", "int8"]
             }
         )
@@ -271,8 +271,8 @@ def test_series(setup_path):
 
 def test_float_index(setup_path):
     # GH #454
-    index = np.random.default_rng(2).randn(10)
-    s = Series(np.random.default_rng(2).randn(10), index=index)
+    index = np.random.default_rng(2).standard_normal(10)
+    s = Series(np.random.default_rng(2).standard_normal(10), index=index)
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
@@ -280,7 +280,7 @@ def test_tuple_index(setup_path):
     # GH #492
     col = np.arange(10)
     idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
-    data = np.random.default_rng(2).randn(30).reshape((3, 10))
+    data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = DataFrame(data, index=idx, columns=col)
 
     with catch_warnings(record=True):
@@ -291,7 +291,7 @@ def test_tuple_index(setup_path):
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_index_types(setup_path):
     with catch_warnings(record=True):
-        values = np.random.default_rng(2).randn(2)
+        values = np.random.default_rng(2).standard_normal(2)
 
         func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
@@ -341,7 +341,7 @@ def test_index_types(setup_path):
 
 def test_timeseries_preepoch(setup_path, request):
     dr = bdate_range("1/1/1940", "1/1/1960")
-    ts = Series(np.random.default_rng(2).randn(len(dr)), index=dr)
+    ts = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
     try:
         _check_roundtrip(ts, tm.assert_series_equal, path=setup_path)
     except OverflowError:
@@ -376,7 +376,7 @@ def test_frame(compression, setup_path):
 
     with ensure_clean_store(setup_path) as store:
         # not consolidated
-        df["foo"] = np.random.default_rng(2).randn(len(df))
+        df["foo"] = np.random.default_rng(2).standard_normal(len(df))
         store["df"] = df
         recons = store["df"]
         assert recons._mgr.is_consolidated()
@@ -407,7 +407,7 @@ def test_empty_series(dtype, setup_path):
 
 def test_can_serialize_dates(setup_path):
     rng = [x.date() for x in bdate_range("1/1/2000", "1/30/2000")]
-    frame = DataFrame(np.random.default_rng(2).randn(len(rng), 4), index=rng)
+    frame = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 4), index=rng)
 
     _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
 
@@ -502,7 +502,10 @@ def test_unicode_index(setup_path):
     # PerformanceWarning
     with catch_warnings(record=True):
         simplefilter("ignore", pd.errors.PerformanceWarning)
-        s = Series(np.random.default_rng(2).randn(len(unicode_values)), unicode_values)
+        s = Series(
+            np.random.default_rng(2).standard_normal(len(unicode_values)),
+            unicode_values,
+        )
         _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 

@@ -239,8 +239,8 @@ def make_data():
     return [
         UserDict(
             [
-                (rng.choice(string.ascii_letters), rng.randint(0, 100))
-                for _ in range(rng.randint(0, 10))
+                (rng.choice(string.ascii_letters), rng.integers(0, 100))
+                for _ in range(rng.integers(0, 10))
             ]
         )
         for _ in range(100)

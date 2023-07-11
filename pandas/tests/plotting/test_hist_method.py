@@ -72,7 +72,7 @@ class TestSeriesPlots:
             ts.hist(by=ts.index, figure=fig)
 
     def test_hist_bins_legacy(self):
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
@@ -120,8 +120,8 @@ class TestSeriesPlots:
             subplot,
         )
 
-        x = Series(np.random.default_rng(2).randn(2))
-        y = Series(np.random.default_rng(2).randn(2))
+        x = Series(np.random.default_rng(2).standard_normal(2))
+        y = Series(np.random.default_rng(2).standard_normal(2))
         subplot(121)
         x.hist()
         subplot(122)
@@ -156,7 +156,7 @@ class TestSeriesPlots:
     )
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
-        ser = Series(np.random.default_rng(2).randint(1, 10))
+        ser = Series(np.random.default_rng(2).integers(1, 10))
         ax = ser.hist(histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
 
@@ -166,7 +166,7 @@ class TestSeriesPlots:
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
         # GH 6279 - Series histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).randn(30), index=index, name="a")
+        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
         s.index.name = "b"
 
         # Use default_axes=True when plotting method generate subplots itself
@@ -178,7 +178,7 @@ class TestSeriesPlots:
     def test_hist_with_legend_raises(self, by):
         # GH 6279 - Series histogram with legend and label raises
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).randn(30), index=index, name="a")
+        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
         s.index.name = "b"
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
@@ -259,9 +259,9 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         df[2] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
@@ -277,15 +277,15 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
-        df = DataFrame(np.random.default_rng(2).randn(10, 1))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 1))
         _check_plot_works(df.hist)
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).randn(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
         df[5] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
@@ -301,9 +301,9 @@ class TestDataFramePlots:
         "kwargs", [{"sharex": True, "sharey": True}, {"figsize": (8, 10)}, {"bins": 5}]
     )
     def test_hist_df_legacy_layout_kwargs(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).randn(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
         df[5] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
@@ -354,14 +354,14 @@ class TestDataFramePlots:
         df = DataFrame(
             {
                 "a": np.random.default_rng(2).rand(10),
-                "b": np.random.default_rng(2).randint(0, 10, 10),
+                "b": np.random.default_rng(2).integers(0, 10, 10),
                 "c": to_datetime(
-                    np.random.default_rng(2).randint(
+                    np.random.default_rng(2).integers(
                         1582800000000000000, 1583500000000000000, 10, dtype=np.int64
                     )
                 ),
                 "d": to_datetime(
-                    np.random.default_rng(2).randint(
+                    np.random.default_rng(2).integers(
                         1582800000000000000, 1583500000000000000, 10, dtype=np.int64
                     ),
                     utc=True,
@@ -389,9 +389,9 @@ class TestDataFramePlots:
         ),
     )
     def test_hist_layout(self, layout_test):
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         df[2] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
@@ -403,9 +403,9 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=3, layout=expected)
 
     def test_hist_layout_error(self):
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         df[2] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
@@ -427,9 +427,9 @@ class TestDataFramePlots:
 
     # GH 9351
     def test_tight_layout(self):
-        df = DataFrame(np.random.default_rng(2).randn(100, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(100, 2))
         df[2] = to_datetime(
-            np.random.default_rng(2).randint(
+            np.random.default_rng(2).integers(
                 812419200000000000,
                 819331200000000000,
                 size=100,
@@ -500,7 +500,7 @@ class TestDataFramePlots:
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(
-            np.random.default_rng(2).randint(1, 10, size=(100, 2)), columns=["a", "b"]
+            np.random.default_rng(2).integers(1, 10, size=(100, 2)), columns=["a", "b"]
         )
         ax = df.hist(histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
@@ -517,7 +517,9 @@ class TestDataFramePlots:
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).randn(30, 2), index=index, columns=["a", "b"]
+            np.random.default_rng(2).standard_normal(30, 2),
+            index=index,
+            columns=["a", "b"],
         )
 
         # Use default_axes=True when plotting method generate subplots itself
@@ -541,14 +543,16 @@ class TestDataFramePlots:
         # GH 6279 - DataFrame histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).randn(30, 2), index=index, columns=["a", "b"]
+            np.random.default_rng(2).standard_normal(30, 2),
+            index=index,
+            columns=["a", "b"],
         )
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
             df.hist(legend=True, by=by, column=column, label="d")
 
     def test_hist_df_kwargs(self):
-        df = DataFrame(np.random.default_rng(2).randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10
@@ -556,7 +560,7 @@ class TestDataFramePlots:
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
         df = DataFrame(
-            np.random.default_rng(2).RandomState(42).randn(10, 4),
+            np.random.default_rng(2).RandomState(42).standard_normal(10, 4),
             columns=["A", "B", "C", "D"],
         )
         df["E"] = ["x", "y"] * 5
@@ -567,7 +571,7 @@ class TestDataFramePlots:
     def test_hist_df_with_nonnumerics_no_bins(self):
         # GH 9853
         df = DataFrame(
-            np.random.default_rng(2).RandomState(42).randn(10, 4),
+            np.random.default_rng(2).RandomState(42).standard_normal(10, 4),
             columns=["A", "B", "C", "D"],
         )
         df["E"] = ["x", "y"] * 5
@@ -577,7 +581,9 @@ class TestDataFramePlots:
 
     def test_hist_secondary_legend(self):
         # GH 9610
-        df = DataFrame(np.random.default_rng(2).randn(30, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+        )
 
         # primary -> secondary
         _, ax = mpl.pyplot.subplots()
@@ -591,7 +597,9 @@ class TestDataFramePlots:
 
     def test_hist_secondary_secondary(self):
         # GH 9610
-        df = DataFrame(np.random.default_rng(2).randn(30, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+        )
         # secondary -> secondary
         _, ax = mpl.pyplot.subplots()
         ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
@@ -604,7 +612,9 @@ class TestDataFramePlots:
 
     def test_hist_secondary_primary(self):
         # GH 9610
-        df = DataFrame(np.random.default_rng(2).randn(30, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+        )
         # secondary -> primary
         _, ax = mpl.pyplot.subplots()
         ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
@@ -652,16 +662,16 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
 
         axes = _grouped_hist(df.A, by=df.C)
@@ -669,32 +679,32 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_axes_shape_no_col(self):
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
         axes = df.hist(by=df.C)
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_single_key(self):
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
         # group by a key with single value
         axes = df.hist(by="D", rot=30)
@@ -707,16 +717,16 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         # make sure kwargs to hist are handled
         xf, yf = 20, 18
         xrot, yrot = 30, 40
@@ -743,16 +753,16 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
         axes = _grouped_hist(df.A, by=df.C, log=True)
         # scale of y must be 'log'
@@ -762,16 +772,16 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
         # propagate attr exception from matplotlib.Axes.hist
         with tm.external_error_raised(AttributeError):
@@ -779,16 +789,16 @@ class TestDataFrameGroupByPlots:
 
     def test_grouped_hist_legacy_figsize_err(self):
         rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.randn(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
-            rs.randint(
+            rs.integers(
                 812419200000000000,
                 819331200000000000,
                 size=10,
                 dtype=np.int64,
             )
         )
-        df["C"] = rs.randint(0, 4, 10)
+        df["C"] = rs.integers(0, 4, 10)
         df["D"] = ["X"] * 10
         msg = "Specify figure size by tuple instead"
         with pytest.raises(ValueError, match=msg):
@@ -952,7 +962,7 @@ class TestDataFrameGroupByPlots:
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         df = DataFrame(
-            np.random.default_rng(2).randint(1, 10, size=(10, 2)), columns=["a", "b"]
+            np.random.default_rng(2).integers(1, 10, size=(10, 2)), columns=["a", "b"]
         )
         ax = df.hist(by="a", histtype=histtype)
         _check_patches_all_filled(ax, filled=expected)
