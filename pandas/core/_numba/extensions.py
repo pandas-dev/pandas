@@ -39,7 +39,7 @@ class IndexType(types.Buffer):
 
     array_priority = 1000
 
-    def __init__(self, dtype, layout, pyclass):
+    def __init__(self, dtype, layout, pyclass) -> None:
         self.pyclass = pyclass
         super().__init__(dtype, 1, layout)
 
@@ -51,7 +51,7 @@ class IndexType(types.Buffer):
     def as_array(self):
         return types.Array(self.dtype, 1, self.layout)
 
-    def copy(self, dtype=None, ndim=1, layout=None):
+    def copy(self, dtype=None, ndim: int = 1, layout=None):
         assert ndim == 1
         if dtype is None:
             dtype = self.dtype
@@ -66,7 +66,7 @@ class SeriesType(types.ArrayCompatible):
 
     array_priority = 1000
 
-    def __init__(self, dtype, index):
+    def __init__(self, dtype, index) -> None:
         assert isinstance(index, IndexType)
         self.dtype = dtype
         self.index = index
@@ -82,7 +82,7 @@ class SeriesType(types.ArrayCompatible):
     def as_array(self):
         return self.values
 
-    def copy(self, dtype=None, ndim=1, layout="C"):
+    def copy(self, dtype=None, ndim: int = 1, layout: str = "C"):
         assert ndim == 1
         assert layout == "C"
         if dtype is None:
@@ -97,7 +97,7 @@ class DataFrameType(types.ArrayCompatible):
 
     array_priority = 1000
 
-    def __init__(self, dtype, index, layout, columns):
+    def __init__(self, dtype, index, layout, columns) -> None:
         assert isinstance(index, IndexType)
         self.dtype = dtype
         self.index = index
@@ -115,11 +115,11 @@ class DataFrameType(types.ArrayCompatible):
     def as_array(self):
         return self.values
 
-    def copy(self, dtype=None, ndim=2, layout="F"):
+    def copy(self, dtype=None, ndim: int = 2, layout: str = "F"):
         assert ndim == 2
         if dtype is None:
             dtype = self.dtype
-        return type(self)(dtype, self.index, layout)
+        return type(self)(dtype, self.index, layout, self.columns)
 
 
 @typeof_impl.register(Index)
@@ -203,14 +203,14 @@ def type_frame_constructor(context):
 # Backend extensions for Index and Series and Frame
 @register_model(IndexType)
 class IndexModel(models.StructModel):
-    def __init__(self, dmm, fe_type):
+    def __init__(self, dmm, fe_type) -> None:
         members = [("data", fe_type.as_array)]
         models.StructModel.__init__(self, dmm, fe_type, members)
 
 
 @register_model(SeriesType)
 class SeriesModel(models.StructModel):
-    def __init__(self, dmm, fe_type):
+    def __init__(self, dmm, fe_type) -> None:
         members = [
             ("index", fe_type.index),
             ("values", fe_type.as_array),
@@ -220,7 +220,7 @@ class SeriesModel(models.StructModel):
 
 @register_model(DataFrameType)
 class DataFrameModel(models.StructModel):
-    def __init__(self, dmm, fe_type):
+    def __init__(self, dmm, fe_type) -> None:
         members = [
             ("index", fe_type.index),
             ("values", fe_type.as_array),

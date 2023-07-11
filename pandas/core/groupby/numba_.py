@@ -14,13 +14,6 @@ import numpy as np
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-
-# Necessary so that everything is registered
-# from pandas.core._numba import extensions
-from pandas.core._numba.extensions import (
-    DataFrameType,
-    SeriesType,
-)
 from pandas.core.util.numba_ import (
     NumbaUtilError,
     jit_user_function,
@@ -135,16 +128,23 @@ def generate_numba_apply_func(
     nopython: bool,
     nogil: bool,
     parallel: bool,
-) -> Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int, Any], np.ndarray]:
+) -> Callable[
+    [pd.DataFrame, np.ndarray, np.ndarray, Any], tuple[list[pd.DataFrame], bool]
+]:
     numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
         numba = import_optional_dependency("numba")
 
+    from pandas.core._numba.extensions import (
+        DataFrameType,
+        SeriesType,
+    )
+
     # Dummy function to give overload something to overload
-    def check_same_indexed(group, group_result):
-        pass
+    def check_same_indexed(group, group_result) -> bool:
+        return True
 
     @numba.core.extending.overload(check_same_indexed)
     def check_same_indexed_numba(group, group_result):
@@ -165,7 +165,7 @@ def generate_numba_apply_func(
         starts: np.ndarray,
         ends: np.ndarray,
         *args: Any,
-    ) -> np.ndarray:
+    ) -> tuple[list[pd.DataFrame], bool]:
         assert len(starts) == len(ends)
         num_groups = len(starts)
 

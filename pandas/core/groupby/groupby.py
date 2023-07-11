@@ -1641,10 +1641,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         results, not_indexed_same = numba_apply_func(sorted_data, starts, ends, *args)
 
-        if results is None:
-            # TODO: Empty DF/Series case, handle somehow
-            pass
-
         return self._wrap_applied_output(
             sorted_data,
             results,
@@ -1660,7 +1656,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, engine=None, engine_kwargs=None, *args, **kwargs) -> NDFrameT:
+    def apply(self, func, *args, engine=None, engine_kwargs=None, **kwargs) -> NDFrameT:
         func = com.is_builtin_func(func)
 
         if isinstance(func, str):
