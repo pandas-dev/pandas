@@ -119,6 +119,22 @@ Some great resources for learning Git:
 * the `NumPy documentation <https://numpy.org/doc/stable/dev/index.html>`_.
 * Matthew Brett's `Pydagogue <https://matthew-brett.github.io/pydagogue/>`_.
 
+Also, the project follows a forking workflow further described on this page whereby
+contributors fork the repository, make changes and then create a pull request.
+So please be sure to read and follow all the instructions in this guide.
+
+If you are new to contributing to projects through forking on GitHub,
+take a look at the `GitHub documentation for contributing to projects <https://docs.github.com/en/get-started/quickstart/contributing-to-projects>`_.
+GitHub provides a quick tutorial using a test repository that may help you become more familiar
+with forking a repository, cloning a fork, creating a feature branch, pushing changes and
+making pull requests.
+
+Below are some useful resources for learning more about forking and pull requests on GitHub:
+
+* the `GitHub documentation for forking a repo <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_.
+* the `GitHub documentation for collaborating with pull requests <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests>`_.
+* the `GitHub documentation for working with forks <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks>`_.
+
 Getting started with Git
 ------------------------
 

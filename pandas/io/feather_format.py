@@ -1,11 +1,7 @@
 """ feather-format compat """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -19,6 +15,11 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
@@ -32,7 +33,7 @@ if TYPE_CHECKING:
 def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     **kwargs,
 ) -> None:
     """
@@ -67,7 +68,7 @@ def read_feather(
     path: FilePath | ReadBuffer[bytes],
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ):
     """

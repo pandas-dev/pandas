@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import functools
 import operator
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 import unicodedata
@@ -66,8 +63,6 @@ if not pa_version_under7p0:
     import pyarrow.compute as pc
 
     from pandas.core.dtypes.dtypes import ArrowDtype
-
-    from pandas.core.arrays.arrow._arrow_utils import fallback_performancewarning
 
     ARROW_CMP_FUNCS = {
         "eq": pc.equal,
@@ -129,6 +124,8 @@ if not pa_version_under7p0:
     }
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -347,9 +344,9 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray or pa.Scalar
         """
-        if is_list_like(value):
-            return cls._box_pa_array(value, pa_type)
-        return cls._box_pa_scalar(value, pa_type)
+        if isinstance(value, pa.Scalar) or not is_list_like(value):
+            return cls._box_pa_scalar(value, pa_type)
+        return cls._box_pa_array(value, pa_type)
 
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
@@ -918,7 +915,6 @@ class ArrowExtensionArray(
             return super().fillna(value=value, method=method, limit=limit)
 
         if method is not None:
-            fallback_performancewarning()
             return super().fillna(value=value, method=method, limit=limit)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
@@ -1060,7 +1056,7 @@ class ArrowExtensionArray(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(
@@ -1131,13 +1127,7 @@ class ArrowExtensionArray(
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignment, with a `fill_value`.
         """
-        # TODO: Remove once we got rid of the (indices < 0) check
-        if not is_array_like(indices):
-            indices_array = np.asanyarray(indices)
-        else:
-            # error: Incompatible types in assignment (expression has type
-            # "Sequence[int]", variable has type "ndarray")
-            indices_array = indices  # type: ignore[assignment]
+        indices_array = np.asanyarray(indices)
 
         if len(self._pa_array) == 0 and (indices_array >= 0).any():
             raise IndexError("cannot do a non-empty take")
@@ -1549,6 +1539,24 @@ class ArrowExtensionArray(
 
         return result.as_py()
 
+    def _explode(self):
+        """
+        See Series.explode.__doc__.
+        """
+        values = self
+        counts = pa.compute.list_value_length(values._pa_array)
+        counts = counts.fill_null(1).to_numpy()
+        fill_value = pa.scalar([None], type=self._pa_array.type)
+        mask = counts == 0
+        if mask.any():
+            values = values.copy()
+            values[mask] = fill_value
+            counts = counts.copy()
+            counts[mask] = 1
+        values = values.fillna(fill_value)
+        values = type(self)(pa.compute.list_flatten(values._pa_array))
+        return values, counts
+
     def __setitem__(self, key, value) -> None:
         """Set one or more values inplace.
 
@@ -1591,10 +1599,10 @@ class ArrowExtensionArray(
                 raise IndexError(
                     f"index {key} is out of bounds for axis 0 with size {n}"
                 )
-            if is_list_like(value):
-                raise ValueError("Length of indexer and values mismatch")
-            elif isinstance(value, pa.Scalar):
+            if isinstance(value, pa.Scalar):
                 value = value.as_py()
+            elif is_list_like(value):
+                raise ValueError("Length of indexer and values mismatch")
             chunks = [
                 *self._pa_array[:key].chunks,
                 pa.array([value], type=self._pa_array.type, from_pandas=True),
@@ -2017,8 +2025,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(
                 f"repeat is not implemented when repeats is {type(repeats).__name__}"
             )
-        elif pa_version_under7p0:
-            raise NotImplementedError("repeat is not implemented for pyarrow < 7")
         else:
             return type(self)(pc.binary_repeat(self._pa_array, repeats))
 
@@ -2073,7 +2079,12 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_join(self, sep: str):
-        return type(self)(pc.binary_join(self._pa_array, sep))
+        if pa.types.is_string(self._pa_array.type):
+            result = self._apply_elementwise(list)
+            result = pa.chunked_array(result, type=pa.list_(pa.string()))
+        else:
+            result = self._pa_array
+        return type(self)(pc.binary_join(result, sep))
 
     def _str_partition(self, sep: str, expand: bool):
         predicate = lambda val: val.partition(sep)
@@ -2177,14 +2188,7 @@ class ArrowExtensionArray(
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removeprefix
-
-            predicate = functools.partial(removeprefix, prefix=prefix)
-        else:
-            predicate = lambda val: val.removeprefix(prefix)
+        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 
@@ -2216,17 +2220,19 @@ class ArrowExtensionArray(
         return type(self)(pa.chunked_array(result))
 
     def _str_get_dummies(self, sep: str = "|"):
-        split = pc.split_pattern(self._pa_array, sep).combine_chunks()
-        uniques = split.flatten().unique()
+        split = pc.split_pattern(self._pa_array, sep)
+        flattened_values = pc.list_flatten(split)
+        uniques = flattened_values.unique()
         uniques_sorted = uniques.take(pa.compute.array_sort_indices(uniques))
-        result_data = []
-        for lst in split.to_pylist():
-            if lst is None:
-                result_data.append([False] * len(uniques_sorted))
-            else:
-                res = pc.is_in(uniques_sorted, pa.array(set(lst)))
-                result_data.append(res.to_pylist())
-        result = type(self)(pa.array(result_data))
+        lengths = pc.list_value_length(split).fill_null(0).to_numpy()
+        n_rows = len(self)
+        n_cols = len(uniques)
+        indices = pc.index_in(flattened_values, uniques_sorted).to_numpy()
+        indices = indices + np.arange(n_rows).repeat(lengths) * n_cols
+        dummies = np.zeros(n_rows * n_cols, dtype=np.bool_)
+        dummies[indices] = True
+        dummies = dummies.reshape((n_rows, n_cols))
+        result = type(self)(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 
     def _str_index(self, sub: str, start: int = 0, end: int | None = None):

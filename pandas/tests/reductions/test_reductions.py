@@ -47,12 +47,9 @@ def get_objs():
     return objs
 
 
-objs = get_objs()
-
-
 class TestReductions:
     @pytest.mark.parametrize("opname", ["max", "min"])
-    @pytest.mark.parametrize("obj", objs)
+    @pytest.mark.parametrize("obj", get_objs())
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):

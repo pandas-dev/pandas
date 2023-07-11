@@ -57,6 +57,38 @@ method_blocklist = {
     },
 }
 
+# These aggregations don't have a kernel implemented for them yet
+_numba_unsupported_methods = [
+    "all",
+    "any",
+    "bfill",
+    "count",
+    "cumcount",
+    "cummax",
+    "cummin",
+    "cumprod",
+    "cumsum",
+    "describe",
+    "diff",
+    "ffill",
+    "first",
+    "head",
+    "last",
+    "median",
+    "nunique",
+    "pct_change",
+    "prod",
+    "quantile",
+    "rank",
+    "sem",
+    "shift",
+    "size",
+    "skew",
+    "tail",
+    "unique",
+    "value_counts",
+]
+
 
 class ApplyDictReturn:
     def setup(self):
@@ -453,9 +485,10 @@ class GroupByMethods:
         ],
         ["direct", "transformation"],
         [1, 5],
+        ["cython", "numba"],
     ]
 
-    def setup(self, dtype, method, application, ncols):
+    def setup(self, dtype, method, application, ncols, engine):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
 
@@ -472,6 +505,19 @@ class GroupByMethods:
             "size",
         ]:
             # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        # Numba currently doesn't support
+        # multiple transform functions or strs for transform,
+        # grouping on multiple columns
+        # and we lack kernels for a bunch of methods
+        if (
+            engine == "numba"
+            and method in _numba_unsupported_methods
+            or ncols > 1
+            or application == "transformation"
+            or dtype == "datetime"
+        ):
             raise NotImplementedError
 
         if method == "describe":
@@ -505,17 +551,30 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transformation":
-            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
-            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
-        else:
-            self.as_group_method = getattr(df.groupby("key")[cols], method)
-            self.as_field_method = getattr(df.groupby(cols)["key"], method)
+        # Not everything supports the engine keyword yet
+        kwargs = {}
+        if engine == "numba":
+            kwargs["engine"] = engine
 
-    def time_dtype_as_group(self, dtype, method, application, ncols):
+        if application == "transformation":
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(
+                method, **kwargs
+            )
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(
+                method, **kwargs
+            )
+        else:
+            self.as_group_method = partial(
+                getattr(df.groupby("key")[cols], method), **kwargs
+            )
+            self.as_field_method = partial(
+                getattr(df.groupby(cols)["key"], method), **kwargs
+            )
+
+    def time_dtype_as_group(self, dtype, method, application, ncols, engine):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application, ncols):
+    def time_dtype_as_field(self, dtype, method, application, ncols, engine):
         self.as_field_method()
 
 
@@ -532,8 +591,12 @@ class GroupByCythonAgg:
         [
             "sum",
             "prod",
-            "min",
-            "max",
+            # TODO: uncomment min/max
+            # Currently, min/max implemented very inefficiently
+            # because it re-uses the Window min/max kernel
+            # so it will time out ASVs
+            # "min",
+            # "max",
             "mean",
             "median",
             "var",
@@ -552,6 +615,22 @@ class GroupByCythonAgg:
 
     def time_frame_agg(self, dtype, method):
         self.df.groupby("key").agg(method)
+
+
+class GroupByNumbaAgg(GroupByCythonAgg):
+    """
+    Benchmarks specifically targeting our numba aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    def setup(self, dtype, method):
+        if method in _numba_unsupported_methods:
+            raise NotImplementedError
+        super().setup(dtype, method)
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method, engine="numba")
 
 
 class GroupByCythonAggEaDtypes:

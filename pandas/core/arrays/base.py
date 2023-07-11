@@ -14,16 +14,17 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -72,12 +73,18 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
@@ -89,6 +96,8 @@ if TYPE_CHECKING:
         TakeIndexer,
         npt,
     )
+
+    from pandas import Index
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -118,6 +127,7 @@ class ExtensionArray:
     fillna
     equals
     insert
+    interpolate
     isin
     isna
     ravel
@@ -155,6 +165,7 @@ class ExtensionArray:
     * take
     * copy
     * _concat_same_type
+    * interpolate
 
     A default repr displaying the type, (truncated) data, length,
     and dtype is provided. It can be customized or replaced by
@@ -753,6 +764,27 @@ class ExtensionArray:
             raise NotImplementedError
         return nargminmax(self, "argmax")
 
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        fill_value,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See DataFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement interpolate"
+        )
+
     def fillna(
         self,
         value: object | ArrayLike | None = None,
@@ -798,10 +830,16 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                npvalues = self.astype(object)
-                func(npvalues, limit=limit, mask=mask)
-                new_values = self._from_sequence(npvalues, dtype=self.dtype)
+                meth = missing.clean_fill_method(method)
+
+                npmask = np.asarray(mask)
+                if meth == "pad":
+                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                    return self.take(indexer, allow_fill=True)
+                else:
+                    # i.e. meth == "backfill"
+                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                    return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -851,6 +889,8 @@ class ExtensionArray:
         If ``periods > len(self)``, then an array of size
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
+
+        For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -886,7 +926,7 @@ class ExtensionArray:
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.
@@ -993,7 +1033,6 @@ class ExtensionArray:
         Returns
         -------
         values : ndarray
-
             An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
@@ -1002,6 +1041,12 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`. If needed, this can be
+        overridden in the ``self._hash_pandas_object()`` method.
         """
         return self.astype(object), np.nan
 
@@ -1449,7 +1494,7 @@ class ExtensionArray:
         """
         Hook for hash_pandas_object.
 
-        Default is likely non-performant.
+        Default is to use the values returned by _values_for_factorize.
 
         Parameters
         ----------
@@ -1463,7 +1508,7 @@ class ExtensionArray:
         """
         from pandas.core.util.hashing import hash_array
 
-        values = self.to_numpy(copy=False)
+        values, _ = self._values_for_factorize()
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )

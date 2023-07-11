@@ -163,3 +163,14 @@ def test_mangle_dupe_cols_already_exists_unnamed_col(all_parsers):
         columns=["Unnamed: 0.1", "Unnamed: 0", "Unnamed: 2.1", "Unnamed: 2"],
     )
     tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+@pytest.mark.parametrize("usecol, engine", [([0, 1, 1], "python"), ([0, 1, 1], "c")])
+def test_mangle_cols_names(all_parsers, usecol, engine):
+    # GH 11823
+    parser = all_parsers
+    data = "1,2,3"
+    names = ["A", "A", "B"]
+    with pytest.raises(ValueError, match="Duplicate names"):
+        parser.read_csv(StringIO(data), names=names, usecols=usecol, engine=engine)

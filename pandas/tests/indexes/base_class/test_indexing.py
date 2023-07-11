@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
+
 import pandas as pd
 from pandas import (
     Index,
@@ -37,23 +39,43 @@ class TestGetIndexerNonUnique:
         tm.assert_numpy_array_equal(np.array([-1], dtype=np.intp), indexes)
         tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), missing)
 
+    @pytest.mark.parametrize(
+        "idx_values,idx_non_unique",
+        [
+            ([np.nan, 100, 200, 100], [np.nan, 100]),
+            ([np.nan, 100.0, 200.0, 100.0], [np.nan, 100.0]),
+        ],
+    )
+    def test_get_indexer_non_unique_int_index(self, idx_values, idx_non_unique):
+        indexes, missing = Index(idx_values).get_indexer_non_unique(Index([np.nan]))
+        tm.assert_numpy_array_equal(np.array([0], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
+        indexes, missing = Index(idx_values).get_indexer_non_unique(
+            Index(idx_non_unique)
+        )
+        tm.assert_numpy_array_equal(np.array([0, 1, 3], dtype=np.intp), indexes)
+        tm.assert_numpy_array_equal(np.array([], dtype=np.intp), missing)
+
 
 class TestGetLoc:
     @pytest.mark.slow  # to_flat_index takes a while
-    def test_get_loc_tuple_monotonic_above_size_cutoff(self):
+    def test_get_loc_tuple_monotonic_above_size_cutoff(self, monkeypatch):
         # Go through the libindex path for which using
         # _bin_search vs ndarray.searchsorted makes a difference
 
-        lev = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        dti = pd.date_range("2016-01-01", periods=100)
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+            lev = list("ABCD")
+            dti = pd.date_range("2016-01-01", periods=10)
 
-        mi = pd.MultiIndex.from_product([lev, range(10**3), dti])
-        oidx = mi.to_flat_index()
+            mi = pd.MultiIndex.from_product([lev, range(5), dti])
+            oidx = mi.to_flat_index()
 
-        loc = len(oidx) // 2
-        tup = oidx[loc]
+            loc = len(oidx) // 2
+            tup = oidx[loc]
 
-        res = oidx.get_loc(tup)
+            res = oidx.get_loc(tup)
         assert res == loc
 
     def test_get_loc_nan_object_dtype_nonmonotonic_nonunique(self):

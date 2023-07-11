@@ -396,4 +396,30 @@ class Putmask:
         self.midx.putmask(self.mask, self.midx_values_different)
 
 
+class Append:
+    params = ["datetime64[ns]", "int64", "string"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N1 = 1000
+        N2 = 500
+        left_level1 = range(N1)
+        right_level1 = range(N1, N1 + N1)
+
+        if dtype == "datetime64[ns]":
+            level2 = date_range(start="2000-01-01", periods=N2)
+        elif dtype == "int64":
+            level2 = range(N2)
+        elif dtype == "string":
+            level2 = tm.makeStringIndex(N2)
+        else:
+            raise NotImplementedError
+
+        self.left = MultiIndex.from_product([left_level1, level2])
+        self.right = MultiIndex.from_product([right_level1, level2])
+
+    def time_append(self, dtype):
+        self.left.append(self.right)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
