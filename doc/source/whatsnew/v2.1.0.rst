@@ -33,6 +33,7 @@ Copy-on-Write improvements
   operating inplace like this will never work, since the selection behaves
   as a temporary copy. This holds true for:
 
+  - DataFrame.update / Series.update
   - DataFrame.fillna / Series.fillna
 
 .. _whatsnew_210.enhancements.enhancement2:
