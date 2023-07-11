@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from functools import partial
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -69,7 +70,7 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar) -> bool:
+def isna(obj: Scalar | Pattern) -> bool:
     ...
 
 
