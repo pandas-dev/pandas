@@ -878,7 +878,7 @@ def read_xml(
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""

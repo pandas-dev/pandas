@@ -1117,7 +1117,7 @@ class DataFrameRenderer:
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
