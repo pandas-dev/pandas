@@ -336,7 +336,7 @@ Grouping with multiple levels is supported.
        ["doo", "doo", "bee", "bee", "bop", "bop", "bop", "bop"],
        ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
-   index = pd.MultiIndex.from_arrays(tuples, names=["first", "second", "third"])
+   index = pd.MultiIndex.from_arrays(arrays, names=["first", "second", "third"])
    s = pd.Series(np.random.randn(8), index=index)
    s
    s.groupby(level=["first", "second"]).sum()
