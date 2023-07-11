@@ -391,9 +391,7 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
     elif dtype.kind == "f":
-        values = np.random.default_rng(2).random_sample(k) - np.random.default_rng(
-            2
-        ).random_sample(1)
+        values = np.random.default_rng(2).random(k) - np.random.default_rng(2).random(1)
         values.sort()
         values = values * (10 ** np.random.default_rng(2).randint(0, 9))
     else:

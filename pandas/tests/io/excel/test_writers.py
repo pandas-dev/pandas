@@ -482,7 +482,7 @@ class TestExcelWriter:
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
         # Test np.float values read come back as float.
-        df = DataFrame(np.random.default_rng(2).random_sample(10), dtype=np_type)
+        df = DataFrame(np.random.default_rng(2).random(10), dtype=np_type)
         df.to_excel(path, "test1")
 
         with ExcelFile(path) as reader:

@@ -152,9 +152,7 @@ class TestiLocBaseIndependent:
     def test_iloc_exceeds_bounds(self):
         # GH6296
         # iloc should allow indexers that exceed the bounds
-        df = DataFrame(
-            np.random.default_rng(2).random_sample((20, 5)), columns=list("ABCDE")
-        )
+        df = DataFrame(np.random.default_rng(2).random((20, 5)), columns=list("ABCDE"))
 
         # lists of positions should raise IndexError!
         msg = "positional indexers are out-of-bounds"

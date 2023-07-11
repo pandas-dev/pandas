@@ -305,7 +305,7 @@ class TestLocBaseIndependent:
         # GH 5678
         # repeated getitems on a dup index returning a ndarray
         df = DataFrame(
-            np.random.default_rng(2).random_sample((20, 5)),
+            np.random.default_rng(2).random((20, 5)),
             index=["ABCDE"[x % 5] for x in range(20)],
         )
         expected = df.loc["A", 0]
