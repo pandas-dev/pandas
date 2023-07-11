@@ -1158,6 +1158,7 @@ and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
 .. ipython:: python
+
    df4 = df.copy()
    df4
 

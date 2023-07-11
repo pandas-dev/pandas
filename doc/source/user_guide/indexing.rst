@@ -1427,6 +1427,7 @@ This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
 .. ipython:: python
+
    df = pd.DataFrame(np.random.randn(8, 4),
                      index=dates, columns=['A', 'B', 'C', 'D'])
    df2 = df.copy()
