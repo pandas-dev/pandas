@@ -59,7 +59,7 @@ def test_constructor_nonhashable_names():
         codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
         names=("foo", "bar"),
     )
-    renamed = [["foor"], ["barr"]]
+    renamed = [["fooo"], ["barr"]]
     with pytest.raises(TypeError, match=msg):
         mi.rename(names=renamed)
 

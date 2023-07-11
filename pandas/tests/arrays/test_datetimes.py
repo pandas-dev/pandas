@@ -753,3 +753,16 @@ class TestDatetimeArray:
         with tm.assert_produces_warning(UserWarning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq="2M")
         tm.assert_index_equal(result, expected)
+
+
+def test_factorize_sort_without_freq():
+    dta = DatetimeArray._from_sequence([0, 2, 1])
+
+    msg = r"call pd.factorize\(obj, sort=True\) instead"
+    with pytest.raises(NotImplementedError, match=msg):
+        dta.factorize(sort=True)
+
+    # Do TimedeltaArray while we're here
+    tda = dta - dta[0]
+    with pytest.raises(NotImplementedError, match=msg):
+        tda.factorize(sort=True)

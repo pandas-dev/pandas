@@ -6,10 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -93,6 +90,12 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -1366,7 +1369,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             removals = [removals]
 
         removals = Index(removals).unique().dropna()
-        new_categories = self.dtype.categories.difference(removals)
+        new_categories = (
+            self.dtype.categories.difference(removals, sort=False)
+            if self.dtype.ordered is True
+            else self.dtype.categories.difference(removals)
+        )
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:

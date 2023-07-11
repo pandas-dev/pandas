@@ -704,7 +704,7 @@ cdef datetime dateutil_parse(
                 #  we get tzlocal, once the deprecation is enforced will get
                 #  timezone.utc, not raise.
                 warnings.warn(
-                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
                     "is deprecated and will raise in a future version. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
                     FutureWarning,

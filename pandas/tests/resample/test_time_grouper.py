@@ -54,7 +54,9 @@ def test_count(test_series):
 def test_numpy_reduction(test_series):
     result = test_series.resample("A", closed="right").prod()
 
-    expected = test_series.groupby(lambda x: x.year).agg(np.prod)
+    msg = "using SeriesGroupBy.prod"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = test_series.groupby(lambda x: x.year).agg(np.prod)
     expected.index = result.index
 
     tm.assert_series_equal(result, expected)

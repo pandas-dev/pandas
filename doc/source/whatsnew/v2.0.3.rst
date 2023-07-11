@@ -43,4 +43,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.0.2..v2.0.3|HEAD
+.. contributors:: v2.0.2..v2.0.3

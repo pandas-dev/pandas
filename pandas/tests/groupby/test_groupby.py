@@ -78,12 +78,21 @@ def test_basic_aggregations(dtype):
     for k, v in grouped:
         assert len(v) == 3
 
-    agged = grouped.aggregate(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate(np.mean)
     assert agged[1] == 1
 
-    tm.assert_series_equal(agged, grouped.agg(np.mean))  # shorthand
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.mean)
+    tm.assert_series_equal(agged, expected)  # shorthand
     tm.assert_series_equal(agged, grouped.mean())
-    tm.assert_series_equal(grouped.agg(np.sum), grouped.sum())
+    result = grouped.sum()
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = grouped.agg(np.sum)
+    tm.assert_series_equal(result, expected)
 
     expected = grouped.apply(lambda x: x * x.sum())
     transformed = grouped.transform(lambda x: x * x.sum())
@@ -91,12 +100,15 @@ def test_basic_aggregations(dtype):
     tm.assert_series_equal(transformed, expected)
 
     value_grouped = data.groupby(data)
-    tm.assert_series_equal(
-        value_grouped.aggregate(np.mean), agged, check_index_type=False
-    )
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = value_grouped.aggregate(np.mean)
+    tm.assert_series_equal(result, agged, check_index_type=False)
 
     # complex agg
-    agged = grouped.aggregate([np.mean, np.std])
+    msg = "using SeriesGroupBy.[mean|std]"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        agged = grouped.aggregate([np.mean, np.std])
 
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
@@ -375,6 +387,8 @@ def test_indices_concatenation_order():
 
     df2 = DataFrame({"a": [3, 2, 2, 2], "b": range(4), "c": range(5, 9)})
 
+    depr_msg = "The behavior of array concatenation with empty entries is deprecated"
+
     # correct result
     result1 = df.groupby("a").apply(f1)
     result2 = df2.groupby("a").apply(f1)
@@ -391,7 +405,8 @@ def test_indices_concatenation_order():
     with pytest.raises(AssertionError, match=msg):
         df.groupby("a").apply(f3)
     with pytest.raises(AssertionError, match=msg):
-        df2.groupby("a").apply(f3)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            df2.groupby("a").apply(f3)
 
 
 def test_attr_wrapper(ts):
@@ -422,14 +437,14 @@ def test_frame_groupby(tsframe):
     grouped = tsframe.groupby(lambda x: x.weekday())
 
     # aggregate
-    aggregated = grouped.aggregate(np.mean)
+    aggregated = grouped.aggregate("mean")
     assert len(aggregated) == 5
     assert len(aggregated.columns) == 4
 
     # by string
     tscopy = tsframe.copy()
     tscopy["weekday"] = [x.weekday() for x in tscopy.index]
-    stragged = tscopy.groupby("weekday").aggregate(np.mean)
+    stragged = tscopy.groupby("weekday").aggregate("mean")
     tm.assert_frame_equal(stragged, aggregated, check_names=False)
 
     # transform
@@ -465,7 +480,7 @@ def test_frame_groupby_columns(tsframe):
         grouped = tsframe.groupby(mapping, axis=1)
 
     # aggregate
-    aggregated = grouped.aggregate(np.mean)
+    aggregated = grouped.aggregate("mean")
     assert len(aggregated) == len(tsframe)
     assert len(aggregated.columns) == 2
 
@@ -490,22 +505,22 @@ def test_frame_set_name_single(df):
     result = df.groupby("A", as_index=False).mean(numeric_only=True)
     assert result.index.name != "A"
 
-    result = grouped[["C", "D"]].agg(np.mean)
+    result = grouped[["C", "D"]].agg("mean")
     assert result.index.name == "A"
 
-    result = grouped.agg({"C": np.mean, "D": np.std})
+    result = grouped.agg({"C": "mean", "D": "std"})
     assert result.index.name == "A"
 
     result = grouped["C"].mean()
     assert result.index.name == "A"
-    result = grouped["C"].agg(np.mean)
+    result = grouped["C"].agg("mean")
     assert result.index.name == "A"
-    result = grouped["C"].agg([np.mean, np.std])
+    result = grouped["C"].agg(["mean", "std"])
     assert result.index.name == "A"
 
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        grouped["C"].agg({"foo": np.mean, "bar": np.std})
+        grouped["C"].agg({"foo": "mean", "bar": "std"})
 
 
 def test_multi_func(df):
@@ -533,14 +548,14 @@ def test_multi_func(df):
     )
     # only verify that it works for now
     grouped = df.groupby(["k1", "k2"])
-    grouped.agg(np.sum)
+    grouped.agg("sum")
 
 
 def test_multi_key_multiple_functions(df):
     grouped = df.groupby(["A", "B"])["C"]
 
-    agged = grouped.agg([np.mean, np.std])
-    expected = DataFrame({"mean": grouped.agg(np.mean), "std": grouped.agg(np.std)})
+    agged = grouped.agg(["mean", "std"])
+    expected = DataFrame({"mean": grouped.agg("mean"), "std": grouped.agg("std")})
     tm.assert_frame_equal(agged, expected)
 
 
@@ -580,7 +595,7 @@ def test_frame_multi_key_function_list():
     )
 
     grouped = data.groupby(["A", "B"])
-    funcs = [np.mean, np.std]
+    funcs = ["mean", "std"]
     agged = grouped.agg(funcs)
     expected = pd.concat(
         [grouped["D"].agg(funcs), grouped["E"].agg(funcs), grouped["F"].agg(funcs)],
@@ -641,7 +656,7 @@ def test_frame_multi_key_function_list_partial_failure():
     )
 
     grouped = data.groupby(["A", "B"])
-    funcs = [np.mean, np.std]
+    funcs = ["mean", "std"]
     msg = re.escape("agg function failed [how->mean,dtype->object]")
     with pytest.raises(TypeError, match=msg):
         grouped.agg(funcs)
@@ -722,11 +737,11 @@ def test_groupby_as_index_agg(df):
 
     # single-key
 
-    result = grouped[["C", "D"]].agg(np.mean)
+    result = grouped[["C", "D"]].agg("mean")
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg({"C": np.mean, "D": np.sum})
+    result2 = grouped.agg({"C": "mean", "D": "sum"})
     expected2 = grouped.mean(numeric_only=True)
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -735,17 +750,17 @@ def test_groupby_as_index_agg(df):
 
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        grouped["C"].agg({"Q": np.sum})
+        grouped["C"].agg({"Q": "sum"})
 
     # multi-key
 
     grouped = df.groupby(["A", "B"], as_index=False)
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped.agg({"C": np.mean, "D": np.sum})
+    result2 = grouped.agg({"C": "mean", "D": "sum"})
     expected2 = grouped.mean()
     expected2["D"] = grouped.sum()["D"]
     tm.assert_frame_equal(result2, expected2)
@@ -754,7 +769,7 @@ def test_groupby_as_index_agg(df):
     expected3 = DataFrame(expected3).rename(columns={"C": "Q"})
     msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result3 = grouped["C"].agg({"Q": np.sum})
+        result3 = grouped["C"].agg({"Q": "sum"})
     tm.assert_frame_equal(result3, expected3)
 
     # GH7115 & GH8112 & GH8582
@@ -817,13 +832,13 @@ def test_as_index_series_return_frame(df):
     grouped = df.groupby("A", as_index=False)
     grouped2 = df.groupby(["A", "B"], as_index=False)
 
-    result = grouped["C"].agg(np.sum)
-    expected = grouped.agg(np.sum).loc[:, ["A", "C"]]
+    result = grouped["C"].agg("sum")
+    expected = grouped.agg("sum").loc[:, ["A", "C"]]
     assert isinstance(result, DataFrame)
     tm.assert_frame_equal(result, expected)
 
-    result2 = grouped2["C"].agg(np.sum)
-    expected2 = grouped2.agg(np.sum).loc[:, ["A", "B", "C"]]
+    result2 = grouped2["C"].agg("sum")
+    expected2 = grouped2.agg("sum").loc[:, ["A", "B", "C"]]
     assert isinstance(result2, DataFrame)
     tm.assert_frame_equal(result2, expected2)
 
@@ -928,7 +943,7 @@ def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
     msg = re.escape("agg function failed [how->mean,dtype->object]")
     with pytest.raises(TypeError, match=msg):
-        grouped.agg(np.mean)
+        grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
         grouped.mean()
 
@@ -937,7 +952,7 @@ def test_raises_on_nuisance(df):
     grouped = df.groupby("A")
     msg = "datetime64 type does not support sum operations"
     with pytest.raises(TypeError, match=msg):
-        grouped.agg(np.sum)
+        grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):
         grouped.sum()
 
@@ -1009,7 +1024,7 @@ def test_raise_on_nuisance_python_multiple(three_group):
     grouped = three_group.groupby(["A", "B"])
     msg = re.escape("agg function failed [how->mean,dtype->object]")
     with pytest.raises(TypeError, match=msg):
-        grouped.agg(np.mean)
+        grouped.agg("mean")
     with pytest.raises(TypeError, match=msg):
         grouped.mean()
 
@@ -1027,13 +1042,13 @@ def test_empty_groups_corner(mframe):
     )
 
     grouped = df.groupby(["k1", "k2"])
-    result = grouped[["v1", "v2"]].agg(np.mean)
+    result = grouped[["v1", "v2"]].agg("mean")
     expected = grouped.mean(numeric_only=True)
     tm.assert_frame_equal(result, expected)
 
     grouped = mframe[3:5].groupby(level=0)
     agged = grouped.apply(lambda x: x.mean())
-    agged_A = grouped["A"].apply(np.mean)
+    agged_A = grouped["A"].apply("mean")
     tm.assert_series_equal(agged["A"], agged_A)
     assert agged.index.name == "first"
 
@@ -1052,8 +1067,8 @@ def test_wrap_aggregated_output_multindex(mframe):
     keys = [np.array([0, 0, 1]), np.array([0, 0, 1])]
     msg = re.escape("agg function failed [how->mean,dtype->object]")
     with pytest.raises(TypeError, match=msg):
-        df.groupby(keys).agg(np.mean)
-    agged = df.drop(columns=("baz", "two")).groupby(keys).agg(np.mean)
+        df.groupby(keys).agg("mean")
+    agged = df.drop(columns=("baz", "two")).groupby(keys).agg("mean")
     assert isinstance(agged.columns, MultiIndex)
 
     def aggfun(ser):
@@ -1201,7 +1216,7 @@ def test_groupby_with_hier_columns():
     result = gb.mean()
     tm.assert_index_equal(result.index, df.index)
 
-    result = df.groupby(level=0).agg(np.mean)
+    result = df.groupby(level=0).agg("mean")
     tm.assert_index_equal(result.columns, columns)
 
     result = df.groupby(level=0).apply(lambda x: x.mean())
@@ -1242,7 +1257,7 @@ def test_groupby_wrong_multi_labels():
 
     grouped = data.groupby(["foo", "bar", "baz", "spam"])
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -1602,7 +1617,7 @@ def test_no_nonsense_name(float_frame):
     s = float_frame["C"].copy()
     s.name = None
 
-    result = s.groupby(float_frame["A"]).agg(np.sum)
+    result = s.groupby(float_frame["A"]).agg("sum")
     assert result.name is None
 
 

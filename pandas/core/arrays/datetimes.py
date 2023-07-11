@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from datetime import (
     datetime,
-    time,
     timedelta,
     tzinfo,
 )
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -75,6 +73,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         DateTimeErrorChoices,
         IntervalClosedType,
@@ -86,8 +86,6 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
-
-_midnight = time(0, 0)
 
 
 def tz_to_dtype(
