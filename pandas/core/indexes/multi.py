@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
 from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Sequence,
-    Tuple,
     cast,
 )
 import warnings
@@ -546,7 +546,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | Hashable = None,
+        names: Sequence[Hashable] | Hashable | None = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -587,7 +587,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         if is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
+        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
 
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
@@ -617,7 +617,7 @@ class MultiIndex(Index):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
             arrs = zip(*tuples)
-            arrays = cast(List[Sequence[Hashable]], arrs)
+            arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 
@@ -797,6 +797,23 @@ class MultiIndex(Index):
     def dtypes(self) -> Series:
         """
         Return the dtypes as a Series for the underlying MultiIndex.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=['number', 'color'])
+        >>> idx
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+        >>> idx.dtypes
+        number     int64
+        color     object
+        dtype: object
         """
         from pandas import Series
 
@@ -2222,18 +2239,50 @@ class MultiIndex(Index):
         errors: IgnoreRaise = "raise",
     ) -> MultiIndex:
         """
-        Make new MultiIndex with passed list of codes deleted.
+        Make a new :class:`pandas.MultiIndex` with the passed list of codes deleted.
 
         Parameters
         ----------
         codes : array-like
-            Must be a list of tuples when level is not specified.
+            Must be a list of tuples when ``level`` is not specified.
         level : int or level name, default None
         errors : str, default 'raise'
 
         Returns
         -------
         MultiIndex
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=["number", "color"])
+        >>> idx
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1,  'green'),
+                    (1, 'purple'),
+                    (2,  'green'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+        >>> idx.drop([(1, 'green'), (2, 'purple')])
+        MultiIndex([(0,  'green'),
+                    (0, 'purple'),
+                    (1, 'purple'),
+                    (2,  'green')],
+                   names=['number', 'color'])
+
+        We can also drop from a specific level.
+
+        >>> idx.drop('green', level='color')
+        MultiIndex([(0, 'purple'),
+                    (1, 'purple'),
+                    (2, 'purple')],
+                   names=['number', 'color'])
+
+        >>> idx.drop([1, 2], level=0)
+        MultiIndex([(0,  'green'),
+                    (0, 'purple')],
+                   names=['number', 'color'])
         """
         if level is not None:
             return self._drop_from_level(codes, level, errors)
@@ -2398,6 +2447,19 @@ class MultiIndex(Index):
         return MultiIndex(
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
+
+    def _recode_for_new_levels(
+        self, new_levels, copy: bool = True
+    ) -> Generator[np.ndarray, None, None]:
+        if len(new_levels) != self.nlevels:
+            raise AssertionError(
+                f"Length of new_levels ({len(new_levels)}) "
+                f"must be same as self.nlevels ({self.nlevels})"
+            )
+        for i in range(self.nlevels):
+            yield recode_for_categories(
+                self.codes[i], self.levels[i], new_levels[i], copy=copy
+            )
 
     def _get_codes_for_sorting(self) -> list[Categorical]:
         """

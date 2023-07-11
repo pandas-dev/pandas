@@ -24,9 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -62,6 +60,11 @@ from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Mapping,
+    )
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
@@ -685,7 +688,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
-    index_label: IndexLabel = None,
+    index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
@@ -974,10 +977,16 @@ class SQLTable(PandasObject):
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
                 if isinstance(ser._values, ArrowExtensionArray):
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings("ignore", category=FutureWarning)
-                        # GH#52459 to_pydatetime will return Index[object]
-                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                    import pyarrow as pa
+
+                    if pa.types.is_date(ser.dtype.pyarrow_dtype):
+                        # GH#53854 to_pydatetime not supported for pyarrow date dtypes
+                        d = ser._values.to_numpy(dtype=object)
+                    else:
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=FutureWarning)
+                            # GH#52459 to_pydatetime will return Index[object]
+                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":

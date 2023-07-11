@@ -5,6 +5,7 @@ from collections import (
     defaultdict,
     namedtuple,
 )
+from collections.abc import Iterator
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -14,7 +15,6 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
 import warnings
 
 import numpy as np
@@ -2575,6 +2575,13 @@ class TestDataFrameConstructors:
             assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
             # TODO: we can check b[0] == 0 if we stop consolidating in
             #  setitem_with_indexer (except for datetimelike?)
+
+    def test_construct_from_dict_ea_series(self):
+        # GH#53744 - default of copy=True should also apply for Series with
+        # extension dtype
+        ser = Series([1, 2, 3], dtype="Int64")
+        df = DataFrame({"a": ser})
+        assert not np.shares_memory(ser.values._data, df["a"].values._data)
 
     def test_from_series_with_name_with_columns(self):
         # GH 7893

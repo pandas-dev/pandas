@@ -1,5 +1,5 @@
 """
-:mod:`pandas.io.xml` is a module for reading XML.
+:mod:``pandas.io.xml`` is a module for reading XML.
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,6 +20,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -30,6 +31,7 @@ from pandas.io.common import (
     file_exists,
     get_handle,
     infer_compression,
+    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -37,6 +39,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from xml.etree.ElementTree import Element
 
     from lxml import etree
@@ -66,26 +69,26 @@ class _XMLFrameParser:
 
     Parameters
     ----------
-    path_or_buffer : a valid JSON str, path object or file-like object
+    path_or_buffer : a valid JSON ``str``, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file.
 
     xpath : str or regex
         The XPath expression to parse required set of nodes for
-        migration to `Data Frame`. `etree` supports limited XPath.
+        migration to :class:`~pandas.DataFrame`. `etree` supports limited XPath.
 
     namespaces : dict
-        The namespaces defined in XML document (`xmlns:namespace='URI')
+        The namespaces defined in XML document (``xmlns:namespace='URI'``)
         as dicts with key being namespace and value the URI.
 
     elems_only : bool
-        Parse only the child elements at the specified `xpath`.
+        Parse only the child elements at the specified ``xpath``.
 
     attrs_only : bool
-        Parse only the attributes at the specified `xpath`.
+        Parse only the attributes at the specified ``xpath``.
 
     names : list
-        Column names for Data Frame of parsed XML data.
+        Column names for :class:`~pandas.DataFrame`of parsed XML data.
 
     dtype : dict
         Data type for data or columns. E.g. {{'a': np.float64,
@@ -802,6 +805,22 @@ def _parse(
 
     p: _EtreeFrameParser | _LxmlFrameParser
 
+    if isinstance(path_or_buffer, str) and not any(
+        [
+            is_file_like(path_or_buffer),
+            file_exists(path_or_buffer),
+            is_url(path_or_buffer),
+            is_fsspec_url(path_or_buffer),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
@@ -878,7 +897,7 @@ def read_xml(
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
@@ -893,6 +912,10 @@ def read_xml(
         object implementing a ``read()`` function. The string can be any valid XML
         string or a path. The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
+
+        .. deprecated:: 2.1.0
+            Passing xml literal strings is deprecated.
+            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
@@ -1049,6 +1072,7 @@ def read_xml(
 
     Examples
     --------
+    >>> import io
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
     ... <data xmlns="http://example.com">
     ...  <row>
@@ -1068,7 +1092,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml)
+    >>> df = pd.read_xml(io.StringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1082,7 +1106,7 @@ def read_xml(
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml, xpath=".//row")
+    >>> df = pd.read_xml(io.StringIO(xml), xpath=".//row")
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1108,7 +1132,7 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(xml,
+    >>> df = pd.read_xml(io.StringIO(xml),
     ...                  xpath="//doc:row",
     ...                  namespaces={{"doc": "https://example.com"}})
     >>> df

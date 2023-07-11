@@ -749,10 +749,10 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    if dtype.kind == "f" and isinstance(dtype, np.dtype):
+    if lib.is_np_dtype(dtype, "f"):
         checker = nan_checker
 
-    elif (isinstance(dtype, np.dtype) and dtype.kind in "mM") or isinstance(
+    elif (lib.is_np_dtype(dtype, "mM")) or isinstance(
         dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type
