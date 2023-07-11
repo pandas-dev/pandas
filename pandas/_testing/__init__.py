@@ -391,9 +391,11 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
     elif dtype.kind == "f":
-        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values = np.random.default_rng(2).random_sample(k) - np.random.default_rng(
+            2
+        ).random_sample(1)
         values.sort()
-        values = values * (10 ** np.random.randint(0, 9))
+        values = values * (10 ** np.random.default_rng(2).randint(0, 9))
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
@@ -486,7 +488,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 # make series
 def make_rand_series(name=None, dtype=np.float64) -> Series:
     index = makeStringIndex(_N)
-    data = np.random.randn(_N)
+    data = np.random.default_rng(2).randn(_N)
     with np.errstate(invalid="ignore"):
         data = data.astype(dtype, copy=False)
     return Series(data, index=index, name=name)
@@ -509,21 +511,27 @@ def makeObjectSeries(name=None) -> Series:
 
 def getSeriesData() -> dict[str, Series]:
     index = makeStringIndex(_N)
-    return {c: Series(np.random.randn(_N), index=index) for c in getCols(_K)}
+    return {
+        c: Series(np.random.default_rng(2).randn(_N), index=index) for c in getCols(_K)
+    }
 
 
 def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
     return Series(
-        np.random.randn(nper), index=makeDateIndex(nper, freq=freq), name=name
+        np.random.default_rng(2).randn(nper),
+        index=makeDateIndex(nper, freq=freq),
+        name=name,
     )
 
 
 def makePeriodSeries(nper=None, name=None) -> Series:
     if nper is None:
         nper = _N
-    return Series(np.random.randn(nper), index=makePeriodIndex(nper), name=name)
+    return Series(
+        np.random.default_rng(2).randn(nper), index=makePeriodIndex(nper), name=name
+    )
 
 
 def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
@@ -786,11 +794,8 @@ def makeCustomDataframe(
     return DataFrame(data, index, columns, dtype=dtype)
 
 
-def _create_missing_idx(nrows, ncols, density: float, random_state=None):
-    if random_state is None:
-        random_state = np.random
-    else:
-        random_state = np.random.RandomState(random_state)
+def _create_missing_idx(nrows, ncols, density: float):
+    random_state = np.random.default_rng(2)
 
     # below is cribbed from scipy.sparse
     size = round((1 - density) * nrows * ncols)
@@ -813,9 +818,9 @@ def _create_missing_idx(nrows, ncols, density: float, random_state=None):
     return i.tolist(), j.tolist()
 
 
-def makeMissingDataframe(density: float = 0.9, random_state=None) -> DataFrame:
+def makeMissingDataframe(density: float = 0.9) -> DataFrame:
     df = makeDataFrame()
-    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
+    i, j = _create_missing_idx(*df.shape, density=density)
     df.iloc[i, j] = np.nan
     return df
 
