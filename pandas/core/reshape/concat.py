@@ -626,7 +626,6 @@ class _Concatenator:
             # stack blocks
             if self.bm_axis == 0:
                 name = com.consensus_name_attr(self.objs)
-                cons = sample._constructor
 
                 arrs = [ser._values for ser in self.objs]
 

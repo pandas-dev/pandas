@@ -186,7 +186,7 @@ def concatenate_managers(
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, copy=copy)
+            values = _concatenate_join_units(join_units)
             fastpath = False
 
         if fastpath:
@@ -454,7 +454,7 @@ class JoinUnit:
             return self.block.values
 
 
-def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike:
+def _concatenate_join_units(join_units: list[JoinUnit]) -> ArrayLike:
     """
     Concatenate values from several join units along axis=1.
     """

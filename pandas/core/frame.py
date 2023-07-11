@@ -359,7 +359,8 @@ suffixes : list-like, default is ("_x", "_y")
     `right` should be left as-is, with no suffix. At least one of the
     values must not be None.
 copy : bool, default True
-    If False, avoid copy if possible.
+    If False, avoid copy if possible. If CoW is used, then the copy will be set
+    to False. If merge finally work on axis 0, then copy operation may be needed.
 indicator : bool or str, default False
     If True, adds a column to the output DataFrame called "_merge" with
     information on the source of each row. The column can be given a different
