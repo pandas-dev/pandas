@@ -183,7 +183,6 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
