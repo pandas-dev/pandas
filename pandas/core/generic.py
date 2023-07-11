@@ -85,10 +85,8 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import (
-    PY311,
-    PYPY,
-)
+from pandas.compat import PYPY
+from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -7093,8 +7091,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not PYPY and using_copy_on_write():
-                refcount = 2 if PY311 else 3
-                if sys.getrefcount(self) <= refcount:
+                if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
