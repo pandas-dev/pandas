@@ -68,6 +68,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
+    "sphinx_remove_toctrees",
     "nbsphinx",
 ]
 
@@ -477,6 +478,8 @@ ipython_execlines = [
     'pd.options.display.encoding="utf8"',
 ]
 
+
+remove_from_toctrees = ["reference/*"]
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)

@@ -90,6 +90,7 @@ dependencies:
   - sphinx
   - sphinx-design
   - sphinx-copybutton
+  - sphinx-remove-toctrees
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz
