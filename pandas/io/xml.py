@@ -805,6 +805,22 @@ def _parse(
 
     p: _EtreeFrameParser | _LxmlFrameParser
 
+    if isinstance(path_or_buffer, str) and not any(
+        [
+            is_file_like(path_or_buffer),
+            file_exists(path_or_buffer),
+            is_url(path_or_buffer),
+            is_fsspec_url(path_or_buffer),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
@@ -1126,22 +1142,6 @@ def read_xml(
     2  triangle      180    3.0
     """
     check_dtype_backend(dtype_backend)
-
-    if isinstance(path_or_buffer, str) and not any(
-        [
-            is_file_like(path_or_buffer),
-            file_exists(path_or_buffer),
-            is_url(path_or_buffer),
-            is_fsspec_url(path_or_buffer),
-        ]
-    ):
-        warnings.warn(
-            "Passing literal xml to 'read_xml' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     return _parse(
         path_or_buffer=path_or_buffer,
