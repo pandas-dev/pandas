@@ -21,23 +21,6 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
-function invgrep {
-    # grep with inverse exist status and formatting for azure-pipelines
-    #
-    # This function works exactly as grep, but with opposite exit status:
-    # - 0 (success) when no patterns are found
-    # - 1 (fail) when the patterns are found
-    #
-    # This is useful for the CI, as we want to fail if one of the patterns
-    # that we want to avoid is found by grep.
-    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
-    return $((! $EXIT_STATUS))
-}
-
-if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    INVGREP_PREPEND="##[error]"
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
@@ -105,51 +88,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.Timestamp.strptime \
-        pandas.Timestamp.time \
-        pandas.Timestamp.timetuple \
-        pandas.Timestamp.timetz \
-        pandas.Timestamp.to_datetime64 \
-        pandas.Timestamp.toordinal \
-        pandas.Timestamp.tzname \
-        pandas.Timestamp.utcoffset \
-        pandas.Timestamp.utctimetuple \
-        pandas.Timestamp.weekday \
-        pandas.arrays.TimedeltaArray \
-        pandas.Period.asfreq \
-        pandas.Period.now \
-        pandas.arrays.PeriodArray \
-        pandas.CategoricalDtype.categories \
-        pandas.CategoricalDtype.ordered \
-        pandas.Categorical.dtype \
-        pandas.Categorical.categories \
-        pandas.Categorical.ordered \
-        pandas.Categorical.codes \
-        pandas.Categorical.__array__ \
-        pandas.SparseDtype \
-        pandas.DatetimeTZDtype.unit \
-        pandas.DatetimeTZDtype.tz \
-        pandas.PeriodDtype.freq \
-        pandas.IntervalDtype.subtype \
-        pandas_dtype \
-        pandas.api.types.is_bool \
-        pandas.api.types.is_complex \
-        pandas.api.types.is_float \
-        pandas.api.types.is_integer \
-        pandas.api.types.pandas_dtype \
-        pandas.read_clipboard \
-        pandas.ExcelFile \
-        pandas.ExcelFile.parse \
-        pandas.DataFrame.to_html \
         pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.put \
-        pandas.HDFStore.append \
-        pandas.HDFStore.get \
-        pandas.HDFStore.select \
-        pandas.HDFStore.info \
-        pandas.HDFStore.keys \
-        pandas.HDFStore.groups \
-        pandas.HDFStore.walk \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -162,30 +101,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.__iter__ \
-        pandas.core.resample.Resampler.groups \
-        pandas.core.resample.Resampler.indices \
-        pandas.core.resample.Resampler.get_group \
-        pandas.core.resample.Resampler.ffill \
-        pandas.core.resample.Resampler.asfreq \
-        pandas.core.resample.Resampler.count \
-        pandas.core.resample.Resampler.nunique \
-        pandas.core.resample.Resampler.max \
-        pandas.core.resample.Resampler.mean \
-        pandas.core.resample.Resampler.median \
-        pandas.core.resample.Resampler.min \
-        pandas.core.resample.Resampler.ohlc \
-        pandas.core.resample.Resampler.prod \
-        pandas.core.resample.Resampler.size \
-        pandas.core.resample.Resampler.sem \
-        pandas.core.resample.Resampler.std \
-        pandas.core.resample.Resampler.sum \
-        pandas.core.resample.Resampler.var \
-        pandas.core.resample.Resampler.quantile \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
@@ -194,57 +109,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.asof_locs \
-        pandas.Index.get_slice_bound \
-        pandas.RangeIndex \
-        pandas.RangeIndex.start \
-        pandas.RangeIndex.stop \
-        pandas.RangeIndex.step \
-        pandas.RangeIndex.from_range \
-        pandas.CategoricalIndex.codes \
-        pandas.CategoricalIndex.categories \
-        pandas.CategoricalIndex.ordered \
-        pandas.CategoricalIndex.reorder_categories \
-        pandas.CategoricalIndex.set_categories \
-        pandas.CategoricalIndex.as_ordered \
-        pandas.CategoricalIndex.as_unordered \
-        pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.values \
-        pandas.IntervalIndex.to_tuples \
-        pandas.MultiIndex.dtypes \
-        pandas.MultiIndex.drop \
         pandas.DatetimeIndex.snap \
-        pandas.DatetimeIndex.as_unit \
-        pandas.DatetimeIndex.to_pydatetime \
-        pandas.DatetimeIndex.to_series \
-        pandas.DatetimeIndex.mean \
-        pandas.DatetimeIndex.std \
-        pandas.TimedeltaIndex \
-        pandas.core.window.rolling.Rolling.max \
-        pandas.core.window.rolling.Rolling.cov \
-        pandas.core.window.rolling.Rolling.skew \
-        pandas.core.window.rolling.Rolling.apply \
-        pandas.core.window.rolling.Window.mean \
-        pandas.core.window.rolling.Window.sum \
-        pandas.core.window.rolling.Window.var \
-        pandas.core.window.rolling.Window.std \
-        pandas.core.window.expanding.Expanding.count \
-        pandas.core.window.expanding.Expanding.sum \
-        pandas.core.window.expanding.Expanding.mean \
-        pandas.core.window.expanding.Expanding.median \
-        pandas.core.window.expanding.Expanding.min \
-        pandas.core.window.expanding.Expanding.max \
-        pandas.core.window.expanding.Expanding.corr \
-        pandas.core.window.expanding.Expanding.cov \
-        pandas.core.window.expanding.Expanding.skew \
-        pandas.core.window.expanding.Expanding.apply \
-        pandas.core.window.expanding.Expanding.quantile \
-        pandas.core.window.ewm.ExponentialMovingWindow.mean \
-        pandas.core.window.ewm.ExponentialMovingWindow.sum \
-        pandas.core.window.ewm.ExponentialMovingWindow.std \
-        pandas.core.window.ewm.ExponentialMovingWindow.var \
-        pandas.core.window.ewm.ExponentialMovingWindow.corr \
-        pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.io.formats.style.Styler \
@@ -280,6 +145,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.factorize \
         pandas.api.extensions.ExtensionArray.fillna \
         pandas.api.extensions.ExtensionArray.insert \
+        pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
@@ -292,14 +158,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.columns \
-        pandas.DataFrame.backfill \
         pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
-        pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
-        pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

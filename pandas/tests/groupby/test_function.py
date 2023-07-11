@@ -57,8 +57,14 @@ def test_intercept_builtin_sum():
     s = Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(builtins.sum)
-    result2 = grouped.apply(builtins.sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = grouped.agg(builtins.sum)
+    msg = "using np.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
@@ -68,8 +74,9 @@ def test_intercept_builtin_sum():
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
     # see gh-8155
-    df = DataFrame(np.random.randint(1, 50, (1000, 2)), columns=["jim", "joe"])
-    df["jolie"] = np.random.randn(1000)
+    rs = np.random.RandomState(42)
+    df = DataFrame(rs.randint(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.randn(10)
 
     gb = df.groupby(keys)
 
@@ -77,7 +84,10 @@ def test_builtins_apply(keys, f):
 
     warn = None if f is not sum else FutureWarning
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        warn, match=msg, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        # Also warns on deprecation GH#53425
         result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
@@ -369,11 +379,15 @@ def test_cython_median():
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    exp = df.groupby(labels).agg(np.nanmedian)
+    msg = "using DataFrameGroupBy.median"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
     df = DataFrame(np.random.randn(1000, 5))
-    rs = df.groupby(labels).agg(np.median)
+    msg = "using DataFrameGroupBy.median"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = df.groupby(labels).agg(np.median)
     xp = df.groupby(labels).median()
     tm.assert_frame_equal(rs, xp)
 
@@ -681,7 +695,10 @@ def test_ops_general(op, targop):
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
-    expected = df.groupby(labels).agg(targop)
+    warn = None if op in ("first", "last", "count", "sem") else FutureWarning
+    msg = f"using DataFrameGroupBy.{op}"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1588,6 +1605,13 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
+    elif dtype == bool and groupby_func == "quantile":
+        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#51424
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+        tm.assert_series_equal(result, expected)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)

@@ -14,6 +14,13 @@ runs:
         micromamba list
       shell: bash -el {0}
 
+    - name: Uninstall existing Pandas installation
+      run: |
+        if pip list | grep -q ^pandas; then
+          pip uninstall -y pandas || true
+        fi
+      shell: bash -el {0}
+
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then

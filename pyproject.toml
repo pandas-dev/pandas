@@ -242,6 +242,8 @@ select = [
   "PGH",
   # Ruff-specific rules
   "RUF",
+  # flake8-bandit: exec-builtin
+  "S102"
 ]
 
 ignore = [
@@ -311,6 +313,8 @@ ignore = [
   "B904",
   # Magic number
   "PLR2004",
+  # comparison-with-itself
+  "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
   # ambiguous-unicode-character-string
@@ -324,7 +328,9 @@ ignore = [
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
   # explicit-f-string-type-conversion
-  "RUF010"
+  "RUF010",
+  # mutable-class-default
+  "RUF012"
 ]
 
 exclude = [
@@ -334,7 +340,6 @@ exclude = [
   ".eggs/*.py",
   # vendored files
   "pandas/util/version/*",
-  "versioneer.py",
   # exclude asv benchmark environments from linting
   "env",
 ]
@@ -448,7 +453,6 @@ disable = [
   "super-init-not-called",
   "try-except-raise",
   "unnecessary-lambda",
-  "unspecified-encoding",
   "unused-argument",
   "unused-variable",
   "using-constant-test"
@@ -456,7 +460,7 @@ disable = [
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion = "7.0"
+minversion = "7.3.2"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
@@ -486,6 +490,7 @@ filterwarnings = [
   "ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
   "ignore:tostring:DeprecationWarning:tables",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",

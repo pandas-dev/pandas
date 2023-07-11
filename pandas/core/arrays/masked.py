@@ -3,9 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Iterator,
     Literal,
-    Sequence,
     overload,
 )
 import warnings
@@ -83,6 +81,10 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
     from pandas import Series
     from pandas.core.arrays import BooleanArray
     from pandas._typing import (
@@ -920,7 +922,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(

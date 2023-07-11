@@ -8,6 +8,12 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import (
     partial,
@@ -18,12 +24,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -96,6 +97,7 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
+from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     BaseMaskedArray,
     Categorical,
@@ -684,9 +686,9 @@ class GroupByPlot(PandasObject):
 
 _KeysArgType = Union[
     Hashable,
-    List[Hashable],
+    list[Hashable],
     Callable[[Hashable], Hashable],
-    List[Callable[[Hashable], Hashable]],
+    list[Callable[[Hashable], Hashable]],
     Mapping[Hashable, Hashable],
 ]
 
@@ -753,6 +755,19 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2  7  8  9
         >>> df.groupby(by=["a"]).groups
         {1: [0, 1], 7: [2]}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').groups
+        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
         return self.grouper.groups
 
@@ -794,6 +809,20 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         eagle   7  8  9
         >>> df.groupby(by=["a"]).indices
         {1: array([0, 1]), 7: array([2])}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').indices
+        defaultdict(<class 'list'>, {Timestamp('2023-01-01 00:00:00'): [0, 1],
+        Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
         return self.grouper.indices
 
@@ -965,6 +994,21 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').get_group('2023-01-01')
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
         """
         inds = self._get_index(name)
         if not len(inds):
@@ -1032,6 +1076,27 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         (7,)
            a  b  c
         2  7  8  9
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> for x, y in ser.resample('MS'):
+        ...     print(f'{x}\\n{y}\\n')
+        2023-01-01 00:00:00
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
+        2023-02-01 00:00:00
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
         """
         keys = self.keys
         level = self.level
@@ -1519,11 +1584,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         aggregator = executor.generate_shared_aggregator(
             func, dtype_mapping, **get_jit_arguments(engine_kwargs)
         )
-        result = sorted_df._mgr.apply(
+        res_mgr = sorted_df._mgr.apply(
             aggregator, start=starts, end=ends, **aggregator_kwargs
         )
-        result.axes[1] = self.grouper.result_index
-        result = df._constructor(result)
+        res_mgr.axes[1] = self.grouper.result_index
+        result = df._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
 
         if data.ndim == 1:
             result = result.squeeze("columns")
@@ -1657,7 +1722,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
     )
     def apply(self, func, *args, engine=None, engine_kwargs=None, **kwargs) -> NDFrameT:
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[orig_func]
+            warn_alias_replacement(self, orig_func, alias)
 
         if isinstance(func, str):
             if hasattr(self, func):
@@ -1865,7 +1934,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         # optimized transforms
+        orig_func = func
         func = com.get_cython_func(func) or func
+        if orig_func != func:
+            warn_alias_replacement(self, orig_func, func)
 
         if not isinstance(func, str):
             return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
@@ -2152,6 +2224,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1   0   2
         7   1   1
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').count()
+        2023-01-01    2
+        2023-02-01    2
+        Freq: MS, dtype: int64
         """
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -2335,6 +2422,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                  a    b
         dog    3.0  4.0
         mouse  7.0  3.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3, 4, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
         """
         result = self._cython_agg_general(
             "median",
@@ -2751,6 +2852,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a
         1    1.5  4.5
         2    0.5  2.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
@@ -2807,6 +2922,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         1    2
         7    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        dtype: int64
+        >>> ser.resample('MS').size()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         result = self.grouper.size()
 
@@ -3259,6 +3388,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             open high  low close open high  low close
         CAC  2.3  4.5  1.0   1.0  9.0  9.4  1.0   1.0
         SPX  1.2  8.9  1.2   2.0  3.4  8.8  3.4   8.2
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').ohlc()
+                    open  high  low  close
+        2023-01-01     1     3    1      2
+        2023-02-01     4     5    3      5
         """
         if self.obj.ndim == 1:
             obj = self._selected_obj
@@ -4080,6 +4223,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_bool_dtype(vals.dtype):
+                # GH#51424 deprecate to match Series/DataFrame behavior
+                warnings.warn(
+                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
+                    "deprecated and will raise in a future version, matching "
+                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
+                    "calling quantile instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                out = np.asarray(vals)
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the
