@@ -367,9 +367,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        For Series:
+
         >>> ser = pd.Series([1, 2, 3])
         >>> ser.attrs = {"A": [10, 20, 30]}
         >>> ser.attrs
+        {'A': [10, 20, 30]}
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.attrs = {"A": [10, 20, 30]}
+        >>> df.attrs
         {'A': [10, 20, 30]}
         """
         if self._attrs is None:
@@ -7500,6 +7509,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.bfill`.
         """
         warnings.warn(
             "DataFrame.backfill/Series.backfill is deprecated. Use "
