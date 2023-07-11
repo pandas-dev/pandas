@@ -9,12 +9,10 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import re
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
-    Pattern,
-    Sequence,
     cast,
 )
 import warnings
@@ -49,6 +47,11 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         BaseBuffer,
         DtypeBackend,

@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -92,6 +89,12 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -2413,7 +2416,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: Hashable | Mapping | Series | DataFrame | None = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
@@ -2788,7 +2791,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @doc(DataFrame.hist.__doc__)
     def hist(
         self,
-        column: IndexLabel = None,
+        column: IndexLabel | None = None,
         by=None,
         grid: bool = True,
         xlabelsize: int | None = None,

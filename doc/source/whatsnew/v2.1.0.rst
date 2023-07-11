@@ -253,6 +253,7 @@ Deprecations
 - Deprecated 'fill_method' and 'limit' keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`, explicitly call ``ffill`` or ``bfill`` before calling ``pct_change`` instead (:issue:`53491`)
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
 - Deprecated 'quantile' keyword in :meth:`Rolling.quantile` and :meth:`Expanding.quantile`, renamed as 'q' instead (:issue:`52550`)
+- Deprecated :func:`concat` behavior when any of the objects being concatenated have length 0; in the past the dtypes of empty objects were ignored when determining the resulting dtype, in a future version they will not (:issue:`39122`)
 - Deprecated :meth:`.DataFrameGroupBy.apply` and methods on the objects returned by :meth:`.DataFrameGroupBy.resample` operating on the grouping column(s); select the columns to operate on after groupby to either explicitly include or exclude the groupings and avoid the ``FutureWarning`` (:issue:`7155`)
 - Deprecated :meth:`.Groupby.all` and :meth:`.GroupBy.any` with datetime64 or :class:`PeriodDtype` values, matching the :class:`Series` and :class:`DataFrame` deprecations (:issue:`34479`)
 - Deprecated :meth:`Categorical.to_list`, use ``obj.tolist()`` instead (:issue:`51254`)
@@ -359,6 +360,7 @@ Performance improvements
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a pyarrow timestamp or duration dtype to numpy (:issue:`53326`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
+- Performance improvement in various :class:`MultiIndex` set and indexing operations (:issue:`53955`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
 -
@@ -446,6 +448,7 @@ Indexing
 
 Missing
 ^^^^^^^
+- Bug in :meth:`DataFrame.interpolate` failing to fill across multiblock data when ``method`` is "pad", "ffill", "bfill", or "backfill" (:issue:`53898`)
 - Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with complex dtype incorrectly failing to fill ``NaN`` entries (:issue:`53635`)
@@ -503,9 +506,11 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.groups` with a datetime key in conjunction with another key produced incorrect number of group keys (:issue:`51158`)
 - Bug in :meth:`GroupBy.quantile` may implicitly sort the result index with ``sort=False`` (:issue:`53009`)
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)
+- Bug in :meth:`Resampler.ohlc` with empty object returning a :class:`Series` instead of empty :class:`DataFrame` (:issue:`42902`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` after performing column selection when using ``dropna="any"`` or ``dropna="all"`` would not subset columns (:issue:`53518`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` raised after performing column selection when using ``dropna="any"`` or ``dropna="all"`` resulted in rows being dropped (:issue:`53518`)
 - Bug in :meth:`SeriesGroupBy.sum` and :meth:`DataFrameGroupby.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` (:issue:`53606`)
+-
 
 Reshaping
 ^^^^^^^^^
@@ -523,6 +528,7 @@ Reshaping
 - Bug in :meth:`DataFrame.stack` sorting index lexicographically in rare cases (:issue:`53824`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
+- Bug when joining empty :class:`DataFrame` objects, where the joined index would be a :class:`RangeIndex` instead of the joined index type (:issue:`52777`)
 -
 
 Sparse
@@ -564,6 +570,7 @@ Other
 - Bug in :meth:`Series.align`, :meth:`DataFrame.align`, :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, incorrectly failing to raise with method="asfreq" (:issue:`53620`)
 - Bug in :meth:`Series.map` when giving a callable to an empty series, the returned series had ``object`` dtype. It now keeps the original dtype (:issue:`52384`)
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
+- Bug in :meth:`period_range` the default behavior when freq was not passed as an argument was incorrect(:issue:`53687`)
 - Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
 
 .. ***DO NOT USE THIS SECTION***

@@ -14,9 +14,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -77,6 +75,11 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -958,7 +961,7 @@ class ExtensionArray:
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.

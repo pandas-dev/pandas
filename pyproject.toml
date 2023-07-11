@@ -239,6 +239,8 @@ select = [
   "PGH",
   # Ruff-specific rules
   "RUF",
+  # flake8-bandit: exec-builtin
+  "S102"
 ]
 
 ignore = [
@@ -308,6 +310,8 @@ ignore = [
   "B904",
   # Magic number
   "PLR2004",
+  # comparison-with-itself
+  "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
   # ambiguous-unicode-character-string
@@ -321,7 +325,9 @@ ignore = [
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
   # explicit-f-string-type-conversion
-  "RUF010"
+  "RUF010",
+  # mutable-class-default
+  "RUF012"
 ]
 
 exclude = [
