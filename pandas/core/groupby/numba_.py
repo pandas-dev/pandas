@@ -174,6 +174,7 @@ def generate_numba_apply_func(
 
         values = df.values
         index = df.index._data
+        columns = df.columns
 
         for i in numba.prange(num_groups):
             # TODO: Use iloc once that is supported
@@ -181,6 +182,7 @@ def generate_numba_apply_func(
             group = pd.DataFrame(
                 values[starts[i] : ends[i]],
                 index=pd.Index(index[starts[i] : ends[i]]),
+                columns=columns,
             )
             group_result = numba_func(group, *args)
 

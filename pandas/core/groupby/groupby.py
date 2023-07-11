@@ -1631,6 +1631,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         #         "object dtype or that has no common numeric dtype"
         #     )
 
+        # if columns are all string, convert
+        # to a numpy string dtype which numba can recognized
+        col_vals = df.columns.values
+        if not lib.is_string_array(col_vals) and not col_vals.dtype.kind == "i":
+            raise ValueError(
+                "apply with numba engine only support string or integer column names"
+            )
+
         results, not_indexed_same = numba_apply_func(sorted_data, starts, ends, *args)
 
         if results is None:

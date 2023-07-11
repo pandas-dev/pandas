@@ -77,7 +77,6 @@ class TestEngine:
         gb = df.groupby("a", group_keys=group_keys, as_index=as_index)
         result = gb.apply(lambda group: group, engine="numba")
         expected = gb.apply(lambda group: group, engine="python")
-        # TODO: Fix column anmes by exposing them to numba
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("group_keys", [True, False])
@@ -85,7 +84,7 @@ class TestEngine:
     def test_cython_vs_numba_apply_transform(self, group_keys, as_index):
         def f(group):
             new_values = (group.values - group.values.mean()) / group.values.std()
-            return DataFrame(new_values, index=group.index)
+            return DataFrame(new_values, index=group.index, columns=group.columns)
 
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         gb = df.groupby("a", group_keys=group_keys, as_index=as_index)
@@ -106,20 +105,27 @@ class TestEngine:
         else:
             tm.assert_series_equal(result, expected)
 
+    # @pytest.mark.xfail(reason="column names are incorrect")
     @pytest.mark.parametrize("group_keys", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
     def test_cython_vs_numba_apply_reduce_axis_0(self, group_keys, as_index):
         def f(group):
             vals = group.values.sum(axis=0)
-            return Series(vals, index=Index(np.arange(group.values.shape[1])))
+            # TODO: Don't need to convert the columns to a ndarray manually after
+            # https://github.com/numba/numba/issues/6803 is resolved
+            cols_array = np.empty(len(group.columns), dtype=group.columns._dtype)
+            for i, v in enumerate(group.columns):
+                cols_array[i] = v
+            return Series(vals, index=Index(cols_array))
 
-        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
-        gb = df.groupby("a", group_keys=group_keys, as_index=as_index)
+        # TODO: No way to preserve string names of DF when doing row-wise reduction
+        # since our implementation of Index in numba doesn't support string arrays
+        df = DataFrame({0: [3, 2, 3, 2], 2: range(4), 1: range(1, 5)})
+        gb = df.groupby(0, group_keys=group_keys, as_index=as_index)
+
         result = gb.apply(f, engine="numba")
         expected = gb.apply(lambda group: group.sum(axis=0))
 
-        # TODO: Fix column names, needs to be exposed via the numba
-        # wrappers
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("group_keys", [True, False])
@@ -134,3 +140,31 @@ class TestEngine:
         result = gb.apply(f, engine="numba")
         expected = gb.apply(lambda group: group.sum(axis=1))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("group_keys", [True, False])
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_cython_vs_numba_expand_cols(self, group_keys, as_index):
+        # Example from https://pandas.pydata.org/docs/user_guide/groupby.html#flexible-apply
+        import numba
+
+        def f(group):
+            demeaned = group.values - group.values.mean()
+            new_vals = np.concatenate(
+                (group.values.astype(np.float64), demeaned), axis=1
+            )
+            # TODO: Can remove use of typed.List once that
+            # becomes the default list container in numba
+            new_cols = numba.typed.List(["original", "demeaned"])
+            return DataFrame(new_vals, index=group.index, columns=new_cols)
+
+        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
+        gb = df.groupby("a", group_keys=group_keys, as_index=as_index)["c"]
+        result = gb.apply(f, engine="numba")
+        expected = gb.apply(
+            lambda group: DataFrame(
+                {"original": group, "demeaned": group - group.mean()}
+            )
+        )
+        # In this case, numba will cast the int column to float64
+        # since all cols need to have the same dtype
+        tm.assert_frame_equal(result, expected, check_dtype=False)

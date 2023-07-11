@@ -5,8 +5,9 @@ pandas Index/Series/DataFrame
 Mostly vendored from https://github.com/numba/numba/blob/main/numba/tests/pdlike_usecase.py
 """
 
-import operator
+from __future__ import annotations
 
+import numba
 from numba.core import (
     cgutils,
     types,
@@ -17,7 +18,6 @@ from numba.core.extending import (
     box,
     lower_builtin,
     make_attribute_wrapper,
-    overload,
     register_model,
     type_callable,
     typeof_impl,
@@ -97,27 +97,26 @@ class DataFrameType(types.ArrayCompatible):
 
     array_priority = 1000
 
-    def __init__(self, dtype, index, layout):
+    def __init__(self, dtype, index, layout, columns):
         assert isinstance(index, IndexType)
         self.dtype = dtype
         self.index = index
         self.layout = layout
-        # TODO: Don't hardcode fortran order?
         self.values = types.Array(self.dtype, 2, layout)
-        name = f"dataframe({dtype}, {index}, {layout})"
+        self.columns = columns
+        name = f"dataframe({dtype}, {index}, {layout}, {columns})"
         super().__init__(name)
 
     @property
     def key(self):
-        return self.dtype, self.index, self.layout
+        return self.dtype, self.index, self.layout, self.columns
 
     @property
     def as_array(self):
         return self.values
 
-    def copy(self, dtype=None, ndim=1, layout="C"):
+    def copy(self, dtype=None, ndim=2, layout="F"):
         assert ndim == 2
-        # assert layout == 'C'
         if dtype is None:
             dtype = self.dtype
         return type(self)(dtype, self.index, layout)
@@ -143,8 +142,14 @@ def typeof_series(val, c):
 def typeof_df(val, c):
     index = typeof_impl(val.index, c)
     arrty = typeof_impl(val.values, c)
+    dtype = val.columns.dtype
+    if dtype == object:
+        dtype = types.unicode_type
+    else:
+        dtype = numba.from_dtype(dtype)
+    colty = types.ListType(dtype)
     assert arrty.ndim == 2
-    return DataFrameType(arrty.dtype, index, arrty.layout)
+    return DataFrameType(arrty.dtype, index, arrty.layout, colty)
 
 
 @type_callable("__array_wrap__")
@@ -182,11 +187,15 @@ def type_index_constructor(context):
 
 @type_callable(DataFrame)
 def type_frame_constructor(context):
-    def typer(data, index):
+    def typer(data, index, columns=None):
         if isinstance(index, IndexType) and isinstance(data, types.Array):
-            # assert data.layout == 'F'
             assert data.ndim == 2
-            return DataFrameType(data.dtype, index, data.layout)
+            if columns is None:
+                columns = types.ListType(types.int64)
+            assert isinstance(columns, types.ListType) and (
+                columns.dtype is types.unicode_type or types.Integer
+            )
+            return DataFrameType(data.dtype, index, data.layout, columns)
 
     return typer
 
@@ -215,6 +224,7 @@ class DataFrameModel(models.StructModel):
         members = [
             ("index", fe_type.index),
             ("values", fe_type.as_array),
+            ("columns", fe_type.columns),
         ]
         models.StructModel.__init__(self, dmm, fe_type, members)
 
@@ -226,6 +236,7 @@ make_attribute_wrapper(SeriesType, "values", "values")
 
 make_attribute_wrapper(DataFrameType, "index", "index")
 make_attribute_wrapper(DataFrameType, "values", "values")
+make_attribute_wrapper(DataFrameType, "columns", "columns")
 
 
 def make_index(context, builder, typ, **kwargs):
@@ -285,12 +296,14 @@ def index_constructor(context, builder, sig, args):
     return impl_ret_borrowed(context, builder, sig.return_type, index._getvalue())
 
 
-@lower_builtin(DataFrame, types.Array, IndexType)
+# TODO: Support arbitrary iterables?
+@lower_builtin(DataFrame, types.Array, IndexType, types.ListType)
 def pdframe_constructor(context, builder, sig, args):
-    data, index = args
+    data, index, columns = args
     df = make_dataframe(context, builder, sig.return_type)
     df.index = index
     df.values = data
+    df.columns = columns
     return impl_ret_borrowed(context, builder, sig.return_type, df._getvalue())
 
 
@@ -323,13 +336,23 @@ def unbox_series(typ, obj, c):
 @unbox(DataFrameType)
 def unbox_df(typ, obj, c):
     """
-    Convert a Series object to a native structure.
+    Convert a DataFrame object to a native structure.
     """
+    # TODO: Check refcounting!!!
     index = c.pyapi.object_getattr_string(obj, "index")
     values = c.pyapi.object_getattr_string(obj, "values")
+    columns_index = c.pyapi.object_getattr_string(obj, "columns")
+
+    columns_list = c.pyapi.call_method(columns_index, "tolist")
+
+    typed_list = c.pyapi.unserialize(c.pyapi.serialize_object(numba.typed.List))
+
     df = make_dataframe(c.context, c.builder, typ)
     df.index = c.unbox(typ.index, index).value
     df.values = c.unbox(typ.values, values).value
+    # Convert to numba typed list
+    columns_typed_list = c.pyapi.call_function_objargs(typed_list, (columns_list,))
+    df.columns = c.unbox(typ.columns, columns_typed_list).value
 
     return NativeValue(df._getvalue())
 
@@ -367,26 +390,12 @@ def box_df(typ, val, c):
     """
     df = make_dataframe(c.context, c.builder, typ, value=val)
     classobj = c.pyapi.unserialize(c.pyapi.serialize_object(DataFrame))
+    indexclassobj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
     indexobj = c.box(typ.index, df.index)
     arrayobj = c.box(typ.as_array, df.values)
-    dfobj = c.pyapi.call_function_objargs(classobj, (arrayobj, indexobj))
+
+    columnsobj = c.box(typ.columns, df.columns)
+    columns_index = c.pyapi.call_function_objargs(indexclassobj, (columnsobj,))
+
+    dfobj = c.pyapi.call_function_objargs(classobj, (arrayobj, indexobj, columns_index))
     return dfobj
-
-
-@overload(operator.getitem)
-def series_getitem(series, idx):
-    if isinstance(series, SeriesType):
-        return lambda series, idx: series.values[idx]
-
-
-@overload(len)
-def series_len(series):
-    """
-    len(Series)
-    """
-    if isinstance(series, SeriesType):
-
-        def len_impl(series):
-            return len(series.values)
-
-        return len_impl
