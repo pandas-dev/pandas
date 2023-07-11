@@ -259,6 +259,8 @@ class TestApi(Base):
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
         "JsonReader",
+        "NaTType",
+        "NAType",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
