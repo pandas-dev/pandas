@@ -767,7 +767,7 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
-        .. warning::
+        .. note::
 
             If a :class:`DataFrame` is passed, then `format` has no effect.
 
