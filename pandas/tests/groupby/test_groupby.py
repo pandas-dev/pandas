@@ -390,10 +390,8 @@ def test_indices_concatenation_order():
     depr_msg = "The behavior of array concatenation with empty entries is deprecated"
 
     # correct result
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result1 = df.groupby("a").apply(f1)
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-        result2 = df2.groupby("a").apply(f1)
+    result1 = df.groupby("a").apply(f1)
+    result2 = df2.groupby("a").apply(f1)
     tm.assert_frame_equal(result1, result2)
 
     # should fail (not the same number of levels)
