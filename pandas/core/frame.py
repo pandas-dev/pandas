@@ -1297,6 +1297,14 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         io.formats.style.Styler : Helps style a DataFrame or Series according to the
             data with HTML and CSS.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+        >>> df.style  # doctest: +SKIP
+
+        Please see
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         from pandas.io.formats.style import Styler
 
