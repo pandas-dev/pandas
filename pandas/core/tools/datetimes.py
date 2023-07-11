@@ -7,9 +7,6 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    List,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -82,6 +79,8 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
 
@@ -93,13 +92,13 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike]
+ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
-DatetimeDictArg = Union[List[Scalar], Tuple[Scalar, ...], AnyArrayLike]
+DatetimeDictArg = Union[list[Scalar], tuple[Scalar, ...], AnyArrayLike]
 
 
 class YearMonthDayDict(TypedDict, total=True):
@@ -261,7 +260,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: bool = False, name: Hashable = None
+    dt_array: ArrayLike, utc: bool = False, name: Hashable | None = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -353,7 +352,7 @@ def _return_parsed_timezone_results(
 def _convert_listlike_datetimes(
     arg,
     format: str | None,
-    name: Hashable = None,
+    name: Hashable | None = None,
     utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",

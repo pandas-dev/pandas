@@ -11,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
-    Hashable,
-    Sequence,
     overload,
 )
 import warnings
@@ -60,6 +57,12 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Hashable,
+        Sequence,
+    )
+
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
@@ -530,7 +533,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
