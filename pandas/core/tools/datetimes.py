@@ -706,7 +706,8 @@ def to_datetime(
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime. If a :class:`DataFrame` is provided, the
         method expects minimally the following columns: :const:`"year"`,
-        :const:`"month"`, :const:`"day"`.
+        :const:`"month"`, :const:`"day"`. The column "year"
+        must be specified in 4-digit format.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
@@ -765,6 +766,11 @@ def to_datetime(
           time string (not necessarily in exactly the same format);
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
+
+        .. warning::
+
+            If a :class:`DataFrame` is passed, then `format` has no effect.
+
     exact : bool, default True
         Control how `format` is used:
 
