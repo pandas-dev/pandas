@@ -62,10 +62,10 @@ class TestFrameLegend:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "area", "hist"])
     def test_df_legend_labels(self, kind):
-        df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
-        df2 = DataFrame(np.random.rand(3, 3), columns=["d", "e", "f"])
-        df3 = DataFrame(np.random.rand(3, 3), columns=["g", "h", "i"])
-        df4 = DataFrame(np.random.rand(3, 3), columns=["j", "k", "l"])
+        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
+        df2 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["d", "e", "f"])
+        df3 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["g", "h", "i"])
+        df4 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["j", "k", "l"])
 
         ax = df.plot(kind=kind, legend=True)
         _check_legend_labels(ax, labels=df.columns)
@@ -82,9 +82,9 @@ class TestFrameLegend:
 
     @td.skip_if_no_scipy
     def test_df_legend_labels_secondary_y(self):
-        df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
-        df2 = DataFrame(np.random.rand(3, 3), columns=["d", "e", "f"])
-        df3 = DataFrame(np.random.rand(3, 3), columns=["g", "h", "i"])
+        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
+        df2 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["d", "e", "f"])
+        df3 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["g", "h", "i"])
         # Secondary Y
         ax = df.plot(legend=True, secondary_y="b")
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
@@ -97,9 +97,15 @@ class TestFrameLegend:
     def test_df_legend_labels_time_series(self):
         # Time Series
         ind = date_range("1/1/2014", periods=3)
-        df = DataFrame(np.random.randn(3, 3), columns=["a", "b", "c"], index=ind)
-        df2 = DataFrame(np.random.randn(3, 3), columns=["d", "e", "f"], index=ind)
-        df3 = DataFrame(np.random.randn(3, 3), columns=["g", "h", "i"], index=ind)
+        df = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["a", "b", "c"], index=ind
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["d", "e", "f"], index=ind
+        )
+        df3 = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["g", "h", "i"], index=ind
+        )
         ax = df.plot(legend=True, secondary_y="b")
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
         ax = df2.plot(legend=False, ax=ax)
@@ -111,9 +117,15 @@ class TestFrameLegend:
     def test_df_legend_labels_time_series_scatter(self):
         # Time Series
         ind = date_range("1/1/2014", periods=3)
-        df = DataFrame(np.random.randn(3, 3), columns=["a", "b", "c"], index=ind)
-        df2 = DataFrame(np.random.randn(3, 3), columns=["d", "e", "f"], index=ind)
-        df3 = DataFrame(np.random.randn(3, 3), columns=["g", "h", "i"], index=ind)
+        df = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["a", "b", "c"], index=ind
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["d", "e", "f"], index=ind
+        )
+        df3 = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["g", "h", "i"], index=ind
+        )
         # scatter
         ax = df.plot.scatter(x="a", y="b", label="data1")
         _check_legend_labels(ax, labels=["data1"])
@@ -125,7 +137,9 @@ class TestFrameLegend:
     @td.skip_if_no_scipy
     def test_df_legend_labels_time_series_no_mutate(self):
         ind = date_range("1/1/2014", periods=3)
-        df = DataFrame(np.random.randn(3, 3), columns=["a", "b", "c"], index=ind)
+        df = DataFrame(
+            np.random.default_rng(2).randn(3, 3), columns=["a", "b", "c"], index=ind
+        )
         # ensure label args pass through and
         # index name does not mutate
         # column names don't mutate
@@ -164,7 +178,7 @@ class TestFrameLegend:
 
     def test_legend_name(self):
         multi = DataFrame(
-            np.random.randn(4, 4),
+            np.random.default_rng(2).randn(4, 4),
             columns=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
         )
         multi.columns.names = ["group", "individual"]
@@ -173,7 +187,7 @@ class TestFrameLegend:
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")
 
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).randn(5, 5))
         ax = df.plot(legend=True, ax=ax)
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")
@@ -199,13 +213,13 @@ class TestFrameLegend:
         ],
     )
     def test_no_legend(self, kind):
-        df = DataFrame(np.random.rand(3, 3), columns=["a", "b", "c"])
+        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
         ax = df.plot(kind=kind, legend=False)
         _check_legend_labels(ax, visible=False)
 
     def test_missing_markers_legend(self):
         # 14958
-        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"])
+        df = DataFrame(np.random.default_rng(2).randn(8, 3), columns=["A", "B", "C"])
         ax = df.plot(y=["A"], marker="x", linestyle="solid")
         df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
         df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)

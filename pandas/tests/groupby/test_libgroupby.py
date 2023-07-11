@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 class GroupVarTestMixin:
     def test_group_var_generic_1d(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2).RandomState(1234)
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -35,7 +35,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2).RandomState(1234)
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
@@ -51,7 +51,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2).RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -66,7 +66,7 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2).RandomState(1234)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
@@ -109,7 +109,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
     rtol = 1e-5
 
     def test_group_var_large_inputs(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2).RandomState(1234)
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
@@ -133,7 +133,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_group_ohlc(dtype):
-    obj = np.array(np.random.randn(20), dtype=dtype)
+    obj = np.array(np.random.default_rng(2).randn(20), dtype=dtype)
 
     bins = np.array([6, 12, 20])
     out = np.zeros((3, 4), dtype)

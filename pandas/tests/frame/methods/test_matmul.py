@@ -15,10 +15,14 @@ class TestMatMul:
     def test_matmul(self):
         # matmul test is for GH#10259
         a = DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
+            np.random.default_rng(2).randn(3, 4),
+            index=["a", "b", "c"],
+            columns=["p", "q", "r", "s"],
         )
         b = DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["one", "two"]
+            np.random.default_rng(2).randn(4, 2),
+            index=["p", "q", "r", "s"],
+            columns=["one", "two"],
         )
 
         # DataFrame @ DataFrame
@@ -65,8 +69,12 @@ class TestMatMul:
         tm.assert_frame_equal(result, expected)
 
         # unaligned
-        df = DataFrame(np.random.randn(3, 4), index=[1, 2, 3], columns=range(4))
-        df2 = DataFrame(np.random.randn(5, 3), index=range(5), columns=[1, 2, 3])
+        df = DataFrame(
+            np.random.default_rng(2).randn(3, 4), index=[1, 2, 3], columns=range(4)
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).randn(5, 3), index=range(5), columns=[1, 2, 3]
+        )
 
         with pytest.raises(ValueError, match="aligned"):
             operator.matmul(df, df2)
@@ -74,8 +82,8 @@ class TestMatMul:
     def test_matmul_message_shapes(self):
         # GH#21581 exception message should reflect original shapes,
         #  not transposed shapes
-        a = np.random.rand(10, 4)
-        b = np.random.rand(5, 3)
+        a = np.random.default_rng(2).rand(10, 4)
+        b = np.random.default_rng(2).rand(5, 3)
 
         df = DataFrame(b)
 

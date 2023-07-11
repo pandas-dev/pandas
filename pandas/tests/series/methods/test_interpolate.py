@@ -134,7 +134,7 @@ class TestSeriesInterpolateData:
 
     @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        ser = Series(np.sort(np.random.uniform(size=100)))
+        ser = Series(np.sort(np.random.default_rng(2).uniform(size=100)))
 
         # interpolate at new_index
         new_index = ser.index.union(
@@ -217,8 +217,8 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
-        s = Series(np.nan, index=np.sort(np.random.rand(30)))
-        s[::3] = np.random.randn(10)
+        s = Series(np.nan, index=np.sort(np.random.default_rng(2).rand(30)))
+        s[::3] = np.random.default_rng(2).randn(10)
 
         vals = s.index.values.astype(float)
 
@@ -743,7 +743,7 @@ class TestSeriesInterpolateData:
     def test_spline_interpolation(self):
         # Explicit cast to float to avoid implicit cast when setting np.nan
         s = Series(np.arange(10) ** 2, dtype="float")
-        s[np.random.randint(0, 9, 3)] = np.nan
+        s[np.random.default_rng(2).randint(0, 9, 3)] = np.nan
         result1 = s.interpolate(method="spline", order=1)
         expected1 = s.interpolate(method="spline", order=1)
         tm.assert_series_equal(result1, expected1)
@@ -764,7 +764,7 @@ class TestSeriesInterpolateData:
     def test_series_interpolate_method_values(self):
         # GH#1646
         rng = date_range("1/1/2000", "1/20/2000", freq="D")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).randn(len(rng)), index=rng)
 
         ts[::2] = np.nan
 

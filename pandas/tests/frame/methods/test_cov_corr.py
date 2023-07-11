@@ -66,8 +66,8 @@ class TestDataFrameCov:
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
     def test_cov_ddof(self, test_ddof):
         # GH#34611
-        np_array1 = np.random.rand(10)
-        np_array2 = np.random.rand(10)
+        np_array1 = np.random.default_rng(2).rand(10)
+        np_array2 = np.random.default_rng(2).rand(10)
         df = DataFrame({0: np_array1, 1: np_array2})
         result = df.cov(ddof=test_ddof)
         expected_np = np.cov(np_array1, np_array2, ddof=test_ddof)
@@ -171,14 +171,16 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["cov", "corr"])
     def test_corr_cov_independent_index_column(self, method):
         # GH#14617
-        df = DataFrame(np.random.randn(4 * 10).reshape(10, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).randn(4 * 10).reshape(10, 4), columns=list("abcd")
+        )
         result = getattr(df, method)()
         assert result.index is not result.columns
         assert result.index.equals(result.columns)
 
     def test_corr_invalid_method(self):
         # GH#22298
-        df = DataFrame(np.random.normal(size=(10, 2)))
+        df = DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
@@ -286,7 +288,7 @@ class TestDataFrameCorrWith:
         datetime_frame = datetime_frame.astype(dtype)
 
         a = datetime_frame
-        noise = Series(np.random.randn(len(a)), index=a.index)
+        noise = Series(np.random.default_rng(2).randn(len(a)), index=a.index)
 
         b = datetime_frame.add(noise, axis=0)
 
@@ -310,8 +312,12 @@ class TestDataFrameCorrWith:
         # non time-series data
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
-        df1 = DataFrame(np.random.randn(5, 4), index=index, columns=columns)
-        df2 = DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
+        df1 = DataFrame(
+            np.random.default_rng(2).randn(5, 4), index=index, columns=columns
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).randn(4, 4), index=index[:4], columns=columns
+        )
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
@@ -371,16 +377,24 @@ class TestDataFrameCorrWith:
                 df.corrwith(s, numeric_only=numeric_only)
 
     def test_corrwith_index_intersection(self):
-        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 2)), columns=["a", "b"]
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 3)), columns=["a", "b", "c"]
+        )
 
         result = df1.corrwith(df2, drop=True).index.sort_values()
         expected = df1.columns.intersection(df2.columns).sort_values()
         tm.assert_index_equal(result, expected)
 
     def test_corrwith_index_union(self):
-        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 2)), columns=["a", "b"]
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 3)), columns=["a", "b", "c"]
+        )
 
         result = df1.corrwith(df2, drop=False).index.sort_values()
         expected = df1.columns.union(df2.columns).sort_values()
@@ -406,7 +420,7 @@ class TestDataFrameCorrWith:
     @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
         # GH#21925
-        df = DataFrame(np.random.random(size=(100, 3)))
+        df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
@@ -414,7 +428,7 @@ class TestDataFrameCorrWith:
     @td.skip_if_no_scipy
     def test_corrwith_kendall(self):
         # GH#21925
-        df = DataFrame(np.random.random(size=(100, 3)))
+        df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)

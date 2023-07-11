@@ -71,9 +71,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).randn(8),
+                "D": np.random.default_rng(2).randn(8),
+                "E": np.random.default_rng(2).randn(8),
             }
         )
 
@@ -90,9 +90,9 @@ class TestSelection:
         df = DataFrame(
             {
                 0: list("abcd") * 2,
-                2: np.random.randn(8),
-                4: np.random.randn(8),
-                6: np.random.randn(8),
+                2: np.random.default_rng(2).randn(8),
+                4: np.random.default_rng(2).randn(8),
+                6: np.random.default_rng(2).randn(8),
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
@@ -117,9 +117,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).randn(8),
+                "D": np.random.default_rng(2).randn(8),
+                "E": np.random.default_rng(2).randn(8),
             }
         )
 
@@ -134,7 +134,13 @@ class TestSelection:
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).randint(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
@@ -178,7 +184,7 @@ class TestGrouping:
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
         date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
-        df = DataFrame(np.random.randint(0, 100, 225), index=date_index)
+        df = DataFrame(np.random.default_rng(2).randint(0, 100, 225), index=date_index)
 
         # Check string level
         expected = (
@@ -434,7 +440,7 @@ class TestGrouping:
 
     def test_groupby_grouper_f_sanity_checked(self):
         dates = date_range("01-Jan-2013", periods=12, freq="MS")
-        ts = Series(np.random.randn(12), index=dates)
+        ts = Series(np.random.default_rng(2).randn(12), index=dates)
 
         # GH51979
         # simple check that the passed function doesn't operates on the whole index
@@ -866,7 +872,13 @@ class TestGetGroup:
     def test_get_group_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).randint(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
@@ -964,7 +976,12 @@ class TestIteration:
         k1 = np.array(["b", "b", "b", "a", "a", "a"])
         k2 = np.array(["1", "2", "1", "2", "1", "2"])
         df = DataFrame(
-            {"v1": np.random.randn(6), "v2": np.random.randn(6), "k1": k1, "k2": k2},
+            {
+                "v1": np.random.default_rng(2).randn(6),
+                "v2": np.random.default_rng(2).randn(6),
+                "k1": k1,
+                "k2": k2,
+            },
             index=["one", "two", "three", "four", "five", "six"],
         )
 

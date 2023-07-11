@@ -527,13 +527,13 @@ class TestFactorize:
 
 class TestUnique:
     def test_ints(self):
-        arr = np.random.randint(0, 100, size=50)
+        arr = np.random.default_rng(2).randint(0, 100, size=50)
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
 
     def test_objects(self):
-        arr = np.random.randint(0, 100, size=50).astype("O")
+        arr = np.random.default_rng(2).randint(0, 100, size=50).astype("O")
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
@@ -878,7 +878,7 @@ class TestUnique:
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
-    values = index_or_series_or_array(np.random.randint(0, 20, 30))
+    values = index_or_series_or_array(np.random.default_rng(2).randint(0, 20, 30))
     result = algos.nunique_ints(values)
     expected = len(algos.unique(values))
     assert result == expected
@@ -1175,9 +1175,7 @@ class TestIsin:
 
 class TestValueCounts:
     def test_value_counts(self):
-        np.random.seed(1234)
-
-        arr = np.random.randn(4)
+        arr = np.random.default_rng(2).randn(4)
         factor = cut(arr, 4)
 
         # assert isinstance(factor, n)
@@ -1862,8 +1860,8 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.intp)
-    b = np.random.randint(0, 1000, 100).astype(np.intp)
+    a = np.random.default_rng(2).randint(0, 1000, 100).astype(np.intp)
+    b = np.random.default_rng(2).randint(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 

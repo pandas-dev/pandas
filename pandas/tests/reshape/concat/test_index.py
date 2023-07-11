@@ -80,12 +80,12 @@ class TestIndexConcat:
 
     def test_concat_rename_index(self):
         a = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).rand(3, 3),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_a"),
         )
         b = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).rand(3, 3),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_b"),
         )
@@ -160,7 +160,7 @@ class TestIndexConcat:
 
         # single dtypes
         df = DataFrame(
-            np.random.randint(0, 10, size=40).reshape(10, 4),
+            np.random.default_rng(2).randint(0, 10, size=40).reshape(10, 4),
             columns=["A", "A", "C", "C"],
         )
 
@@ -175,9 +175,12 @@ class TestIndexConcat:
         # multi dtypes
         df = concat(
             [
-                DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
                 DataFrame(
-                    np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                    np.random.default_rng(2).randn(10, 4), columns=["A", "A", "B", "B"]
+                ),
+                DataFrame(
+                    np.random.default_rng(2).randint(0, 10, size=20).reshape(10, 2),
+                    columns=["A", "C"],
                 ),
             ],
             axis=1,
@@ -240,7 +243,7 @@ class TestMultiIndexConcat:
         # when multi-index levels are RangeIndex objects
         # there is a bug in concat with objects of len 1
 
-        df = DataFrame(np.random.randn(9, 2))
+        df = DataFrame(np.random.default_rng(2).randn(9, 2))
         df.index = MultiIndex(
             levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
             codes=[np.repeat(np.arange(3), 3), np.tile(np.arange(3), 3)],

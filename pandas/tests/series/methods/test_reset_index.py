@@ -18,7 +18,7 @@ import pandas._testing as tm
 class TestResetIndex:
     def test_reset_index_dti_round_trip(self):
         dti = date_range(start="1/1/2001", end="6/1/2001", freq="D")._with_freq(None)
-        d1 = DataFrame({"v": np.random.rand(len(dti))}, index=dti)
+        d1 = DataFrame({"v": np.random.default_rng(2).rand(len(dti))}, index=dti)
         d2 = d1.reset_index()
         assert d2.dtypes.iloc[0] == np.dtype("M8[ns]")
         d3 = d2.set_index("index")
@@ -56,7 +56,7 @@ class TestResetIndex:
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
-        s = Series(np.random.randn(6), index=index)
+        s = Series(np.random.default_rng(2).randn(6), index=index)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
 

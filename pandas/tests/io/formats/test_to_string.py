@@ -18,7 +18,7 @@ from pandas import (
 def test_repr_embedded_ndarray():
     arr = np.empty(10, dtype=[("err", object)])
     for i in range(len(arr)):
-        arr["err"][i] = np.random.randn(i)
+        arr["err"][i] = np.random.default_rng(2).randn(i)
 
     df = DataFrame(arr)
     repr(df["err"])

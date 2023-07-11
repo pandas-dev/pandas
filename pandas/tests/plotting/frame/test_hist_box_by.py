@@ -17,10 +17,9 @@ pytest.importorskip("matplotlib")
 
 @pytest.fixture
 def hist_df():
-    np.random.seed(0)
-    df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
-    df["C"] = np.random.choice(["a", "b", "c"], 30)
-    df["D"] = np.random.choice(["a", "b", "c"], 30)
+    df = DataFrame(np.random.default_rng(2).randn(30, 2), columns=["A", "B"])
+    df["C"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
+    df["D"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
     return df
 
 

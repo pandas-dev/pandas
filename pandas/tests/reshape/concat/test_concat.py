@@ -40,8 +40,8 @@ class TestConcatenate:
         d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
         d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
 
-        s1 = Series(np.random.randn(10), d1)
-        s2 = Series(np.random.randn(10), d2)
+        s1 = Series(np.random.default_rng(2).randn(10), d1)
+        s2 = Series(np.random.default_rng(2).randn(10), d2)
 
         s1 = s1.to_period()
         s2 = s2.to_period()
@@ -52,8 +52,8 @@ class TestConcatenate:
         assert result.index[0] == s1.index[0]
 
     def test_concat_copy(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.randn(4, 3))
-        df2 = DataFrame(np.random.randint(0, 10, size=4).reshape(4, 1))
+        df = DataFrame(np.random.default_rng(2).randn(4, 3))
+        df2 = DataFrame(np.random.default_rng(2).randint(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
         # These are actual copies.
@@ -86,7 +86,7 @@ class TestConcatenate:
                     assert arr.base is not None
 
         # Float block was consolidated.
-        df4 = DataFrame(np.random.randn(4, 1))
+        df4 = DataFrame(np.random.default_rng(2).randn(4, 1))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
@@ -107,8 +107,8 @@ class TestConcatenate:
 
     def test_concat_with_group_keys(self):
         # axis=0
-        df = DataFrame(np.random.randn(3, 4))
-        df2 = DataFrame(np.random.randn(4, 4))
+        df = DataFrame(np.random.default_rng(2).randn(3, 4))
+        df2 = DataFrame(np.random.default_rng(2).randn(4, 4))
 
         result = concat([df, df2], keys=[0, 1])
         exp_index = MultiIndex.from_arrays(
@@ -123,8 +123,8 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
         # axis=1
-        df = DataFrame(np.random.randn(4, 3))
-        df2 = DataFrame(np.random.randn(4, 4))
+        df = DataFrame(np.random.default_rng(2).randn(4, 3))
+        df2 = DataFrame(np.random.default_rng(2).randn(4, 4))
 
         result = concat([df, df2], keys=[0, 1], axis=1)
         expected = DataFrame(np.c_[df.values, df2.values], columns=exp_index)
@@ -135,7 +135,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_specific_levels(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4))
         pieces = [df.iloc[:, [0, 1]], df.iloc[:, [2]], df.iloc[:, [3]]]
         level = ["three", "two", "one", "zero"]
         result = concat(
@@ -156,10 +156,10 @@ class TestConcatenate:
         constructor = dict if mapping == "dict" else non_dict_mapping_subclass
         frames = constructor(
             {
-                "foo": DataFrame(np.random.randn(4, 3)),
-                "bar": DataFrame(np.random.randn(4, 3)),
-                "baz": DataFrame(np.random.randn(4, 3)),
-                "qux": DataFrame(np.random.randn(4, 3)),
+                "foo": DataFrame(np.random.default_rng(2).randn(4, 3)),
+                "bar": DataFrame(np.random.default_rng(2).randn(4, 3)),
+                "baz": DataFrame(np.random.default_rng(2).randn(4, 3)),
+                "qux": DataFrame(np.random.default_rng(2).randn(4, 3)),
             }
         )
 
@@ -179,8 +179,8 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
-        df = DataFrame(np.random.randn(1, 3))
-        df2 = DataFrame(np.random.randn(1, 4))
+        df = DataFrame(np.random.default_rng(2).randn(1, 3))
+        df2 = DataFrame(np.random.default_rng(2).randn(1, 4))
 
         levels = [["foo", "baz"], ["one", "two"]]
         names = ["first", "second"]
@@ -221,8 +221,8 @@ class TestConcatenate:
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406
-        df = DataFrame(np.random.randn(1, 3), index=["a"])
-        df2 = DataFrame(np.random.randn(1, 4), index=["b"])
+        df = DataFrame(np.random.default_rng(2).randn(1, 3), index=["a"])
+        df2 = DataFrame(np.random.default_rng(2).randn(1, 4), index=["b"])
 
         msg = "Values not found in passed level"
         with pytest.raises(ValueError, match=msg):
@@ -260,8 +260,8 @@ class TestConcatenate:
         )
         tm.assert_frame_equal(appended, expected)
 
-        df = DataFrame(np.random.randn(1, 3), index=["a"])
-        df2 = DataFrame(np.random.randn(1, 4), index=["b"])
+        df = DataFrame(np.random.default_rng(2).randn(1, 3), index=["a"])
+        df2 = DataFrame(np.random.default_rng(2).randn(1, 4), index=["b"])
         result = concat([df, df2], keys=["one", "two"], names=["first", "second"])
         assert result.index.names == ("first", "second")
 
@@ -360,7 +360,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
     def test_concat_single_with_key(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4))
 
         result = concat([df], keys=["foo"])
         expected = concat([df, df], keys=["foo", "bar"])
@@ -371,7 +371,7 @@ class TestConcatenate:
             concat([])
 
     def test_concat_exclude_none(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4))
 
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)
@@ -499,8 +499,12 @@ class TestConcatenate:
     def test_concat_duplicate_indices_raise(self):
         # GH 45888: test raise for concat DataFrames with duplicate indices
         # https://github.com/pandas-dev/pandas/issues/36263
-        df1 = DataFrame(np.random.randn(5), index=[0, 1, 2, 3, 3], columns=["a"])
-        df2 = DataFrame(np.random.randn(5), index=[0, 1, 2, 2, 4], columns=["b"])
+        df1 = DataFrame(
+            np.random.default_rng(2).randn(5), index=[0, 1, 2, 3, 3], columns=["a"]
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).randn(5), index=[0, 1, 2, 2, 4], columns=["b"]
+        )
         msg = "Reindexing only valid with uniquely valued Index objects"
         with pytest.raises(InvalidIndexError, match=msg):
             concat([df1, df2], axis=1)

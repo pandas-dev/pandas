@@ -40,7 +40,7 @@ def get_objs():
         tm.makeStringIndex(10, name="a"),
     ]
 
-    arr = np.random.randn(10)
+    arr = np.random.default_rng(2).randn(10)
     series = [Series(arr, index=idx, name="a") for idx in indexes]
 
     objs = indexes + series
@@ -548,7 +548,7 @@ class TestSeriesReductions:
     #  intended long-term to be series-specific
 
     def test_sum_inf(self):
-        s = Series(np.random.randn(10))
+        s = Series(np.random.default_rng(2).randn(10))
         s2 = s.copy()
 
         s[5:8] = np.inf
@@ -556,7 +556,7 @@ class TestSeriesReductions:
 
         assert np.isinf(s.sum())
 
-        arr = np.random.randn(100, 100).astype("f4")
+        arr = np.random.default_rng(2).randn(100, 100).astype("f4")
         arr[:, 2] = np.inf
 
         msg = "use_inf_as_na option is deprecated"
@@ -1156,7 +1156,7 @@ class TestDatetime64SeriesReductions:
 
     def test_min_max(self):
         rng = date_range("1/1/2000", "12/31/2000")
-        rng2 = rng.take(np.random.permutation(len(rng)))
+        rng2 = rng.take(np.random.default_rng(2).permutation(len(rng)))
 
         the_min = rng2.min()
         the_max = rng2.max()
@@ -1171,7 +1171,9 @@ class TestDatetime64SeriesReductions:
     def test_min_max_series(self):
         rng = date_range("1/1/2000", periods=10, freq="4h")
         lvls = ["A", "A", "A", "B", "B", "B", "C", "C", "C", "C"]
-        df = DataFrame({"TS": rng, "V": np.random.randn(len(rng)), "L": lvls})
+        df = DataFrame(
+            {"TS": rng, "V": np.random.default_rng(2).randn(len(rng)), "L": lvls}
+        )
 
         result = df.TS.max()
         exp = Timestamp(df.TS.iat[-1])

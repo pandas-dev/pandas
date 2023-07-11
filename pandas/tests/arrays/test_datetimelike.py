@@ -152,7 +152,7 @@ class SharedTests:
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
-        np.random.shuffle(data)
+        np.random.default_rng(2).shuffle(data)
 
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")

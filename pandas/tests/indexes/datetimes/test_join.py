@@ -26,7 +26,7 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             10,
             10,
-            data_gen_f=lambda *args, **kwargs: np.random.randn(),
+            data_gen_f=lambda *args, **kwargs: np.random.default_rng(2).randn(),
             r_idx_type="i",
             c_idx_type="dt",
         )
@@ -45,7 +45,7 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             10,
             10,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).randint(2),
             c_idx_type="p",
             r_idx_type="dt",
         )

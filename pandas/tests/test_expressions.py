@@ -17,12 +17,16 @@ from pandas.core.computation import expressions as expr
 
 @pytest.fixture
 def _frame():
-    return DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
+    return DataFrame(
+        np.random.default_rng(2).randn(10001, 4), columns=list("ABCD"), dtype="float64"
+    )
 
 
 @pytest.fixture
 def _frame2():
-    return DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
+    return DataFrame(
+        np.random.default_rng(2).randn(100, 4), columns=list("ABCD"), dtype="float64"
+    )
 
 
 @pytest.fixture
@@ -52,20 +56,24 @@ def _mixed2(_frame2):
 @pytest.fixture
 def _integer():
     return DataFrame(
-        np.random.randint(1, 100, size=(10001, 4)), columns=list("ABCD"), dtype="int64"
+        np.random.default_rng(2).randint(1, 100, size=(10001, 4)),
+        columns=list("ABCD"),
+        dtype="int64",
     )
 
 
 @pytest.fixture
 def _integer_randint(_integer):
     # randint to get a case with zeros
-    return _integer * np.random.randint(0, 2, size=np.shape(_integer))
+    return _integer * np.random.default_rng(2).randint(0, 2, size=np.shape(_integer))
 
 
 @pytest.fixture
 def _integer2():
     return DataFrame(
-        np.random.randint(1, 100, size=(101, 4)), columns=list("ABCD"), dtype="int64"
+        np.random.default_rng(2).randint(1, 100, size=(101, 4)),
+        columns=list("ABCD"),
+        dtype="int64",
     )
 
 
@@ -184,8 +192,8 @@ class TestExpressions:
         #     self.run_binary(df.iloc[:, i], binary_comp, flex)
 
     def test_invalid(self):
-        array = np.random.randn(1_000_001)
-        array2 = np.random.randn(100)
+        array = np.random.default_rng(2).randn(1_000_001)
+        array2 = np.random.default_rng(2).randn(100)
 
         # no op
         result = expr._can_use_numexpr(operator.add, None, array, array, "evaluate")
@@ -291,7 +299,12 @@ class TestExpressions:
         "op_str,opname", [("/", "truediv"), ("//", "floordiv"), ("**", "pow")]
     )
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
-        df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).rand(10) > 0.5,
+                "b": np.random.default_rng(2).rand(10) > 0.5,
+            }
+        )
 
         msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
@@ -320,7 +333,12 @@ class TestExpressions:
     )
     def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
         n = 10
-        df = DataFrame({"a": np.random.rand(n) > 0.5, "b": np.random.rand(n) > 0.5})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).rand(n) > 0.5,
+                "b": np.random.default_rng(2).rand(n) > 0.5,
+            }
+        )
 
         subs = {"+": "|", "*": "&", "-": "^"}
         sub_funcs = {"|": "or_", "&": "and_", "^": "xor"}

@@ -66,13 +66,16 @@ def test_append(setup_path):
             uint_data = DataFrame(
                 {
                     "u08": Series(
-                        np.random.randint(0, high=255, size=5), dtype=np.uint8
+                        np.random.default_rng(2).randint(0, high=255, size=5),
+                        dtype=np.uint8,
                     ),
                     "u16": Series(
-                        np.random.randint(0, high=65535, size=5), dtype=np.uint16
+                        np.random.default_rng(2).randint(0, high=65535, size=5),
+                        dtype=np.uint16,
                     ),
                     "u32": Series(
-                        np.random.randint(0, high=2**30, size=5), dtype=np.uint32
+                        np.random.default_rng(2).randint(0, high=2**30, size=5),
+                        dtype=np.uint32,
                     ),
                     "u64": Series(
                         [2**58, 2**59, 2**60, 2**61, 2**62],
@@ -126,7 +129,7 @@ def test_append_series(setup_path):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # multi-index
-        mi = DataFrame(np.random.randn(5, 1), columns=["A"])
+        mi = DataFrame(np.random.default_rng(2).randn(5, 1), columns=["A"])
         mi["B"] = np.arange(len(mi))
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
@@ -141,9 +144,9 @@ def test_append_some_nans(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             {
-                "A": Series(np.random.randn(20)).astype("int32"),
-                "A1": np.random.randn(20),
-                "A2": np.random.randn(20),
+                "A": Series(np.random.default_rng(2).randn(20)).astype("int32"),
+                "A1": np.random.default_rng(2).randn(20),
+                "A2": np.random.default_rng(2).randn(20),
                 "B": "foo",
                 "C": "bar",
                 "D": Timestamp("2001-01-01").as_unit("ns"),
@@ -186,7 +189,10 @@ def test_append_some_nans(setup_path):
 def test_append_all_nans(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            {"A1": np.random.randn(20), "A2": np.random.randn(20)},
+            {
+                "A1": np.random.default_rng(2).randn(20),
+                "A2": np.random.default_rng(2).randn(20),
+            },
             index=np.arange(20),
         )
         df.loc[0:15, :] = np.nan
@@ -219,8 +225,8 @@ def test_append_all_nans(setup_path):
             # nan some entire rows (string are still written!)
             df = DataFrame(
                 {
-                    "A1": np.random.randn(20),
-                    "A2": np.random.randn(20),
+                    "A1": np.random.default_rng(2).randn(20),
+                    "A2": np.random.default_rng(2).randn(20),
                     "B": "foo",
                     "C": "bar",
                 },
@@ -243,8 +249,8 @@ def test_append_all_nans(setup_path):
             # written!)
             df = DataFrame(
                 {
-                    "A1": np.random.randn(20),
-                    "A2": np.random.randn(20),
+                    "A1": np.random.default_rng(2).randn(20),
+                    "A2": np.random.default_rng(2).randn(20),
                     "B": "foo",
                     "C": "bar",
                     "D": Timestamp("2001-01-01").as_unit("ns"),
@@ -299,7 +305,7 @@ def test_append_with_different_block_ordering(setup_path):
     # GH 4096; using same frames, but different block orderings
     with ensure_clean_store(setup_path) as store:
         for i in range(10):
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+            df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=list("AB"))
             df["index"] = range(10)
             df["index"] += i * 10
             df["int64"] = Series([1] * len(df), dtype="int64")
@@ -319,7 +325,9 @@ def test_append_with_different_block_ordering(setup_path):
     # test a different ordering but with more fields (like invalid
     # combinations)
     with ensure_clean_store(setup_path) as store:
-        df = DataFrame(np.random.randn(10, 2), columns=list("AB"), dtype="float64")
+        df = DataFrame(
+            np.random.default_rng(2).randn(10, 2), columns=list("AB"), dtype="float64"
+        )
         df["int64"] = Series([1] * len(df), dtype="int64")
         df["int16"] = Series([1] * len(df), dtype="int16")
         store.append("df", df)
@@ -592,9 +600,11 @@ def test_append_with_data_columns(setup_path):
 
     with ensure_clean_store(setup_path) as store:
         # doc example part 2
-        np.random.seed(1234)
+
         index = date_range("1/1/2000", periods=8)
-        df_dc = DataFrame(np.random.randn(8, 3), index=index, columns=["A", "B", "C"])
+        df_dc = DataFrame(
+            np.random.default_rng(2).randn(8, 3), index=index, columns=["A", "B", "C"]
+        )
         df_dc["string"] = "foo"
         df_dc.loc[df_dc.index[4:6], "string"] = np.nan
         df_dc.loc[df_dc.index[7:9], "string"] = "bar"
@@ -672,7 +682,7 @@ def test_append_misc_empty_frame(setup_path):
             store.select("df")
 
         # repeated append of 0/non-zero frames
-        df = DataFrame(np.random.rand(10, 3), columns=list("ABC"))
+        df = DataFrame(np.random.default_rng(2).rand(10, 3), columns=list("ABC"))
         store.append("df", df)
         tm.assert_frame_equal(store.select("df"), df)
         store.append("df", df_empty)

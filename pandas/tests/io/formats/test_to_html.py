@@ -54,7 +54,7 @@ def biggie_df_fixture(request):
     """Fixture for a big mixed Dataframe and an empty Dataframe"""
     if request.param == "mixed":
         df = DataFrame(
-            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
+            {"A": np.random.default_rng(2).randn(200), "B": tm.makeStringIndex(200)},
             index=np.arange(200),
         )
         df.loc[:20, "A"] = np.nan
@@ -72,7 +72,7 @@ def justify(request):
 
 @pytest.mark.parametrize("col_space", [30, 50])
 def test_to_html_with_col_space(col_space):
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     # check that col_space affects HTML generation
     # and be very brittle about it.
     result = df.to_html(col_space=col_space)
@@ -84,7 +84,9 @@ def test_to_html_with_col_space(col_space):
 
 
 def test_to_html_with_column_specific_col_space_raises():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     msg = (
         "Col_space length\\(\\d+\\) should match "
@@ -102,7 +104,9 @@ def test_to_html_with_column_specific_col_space_raises():
 
 
 def test_to_html_with_column_specific_col_space():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     result = df.to_html(col_space={"a": "2em", "b": 23})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
@@ -280,8 +284,8 @@ def test_to_html_regression_GH6098():
         {
             "clé1": ["a", "a", "b", "b", "a"],
             "clé2": ["1er", "2ème", "1er", "2ème", "1er"],
-            "données1": np.random.randn(5),
-            "données2": np.random.randn(5),
+            "données1": np.random.default_rng(2).randn(5),
+            "données2": np.random.default_rng(2).randn(5),
         }
     )
 
@@ -394,7 +398,7 @@ def test_to_html_filename(biggie_df_fixture, tmpdir):
 
 
 def test_to_html_with_no_bold():
-    df = DataFrame({"x": np.random.randn(5)})
+    df = DataFrame({"x": np.random.default_rng(2).randn(5)})
     html = df.to_html(bold_rows=False)
     result = html[html.find("</thead>")]
     assert "<strong" not in result
@@ -808,7 +812,7 @@ def test_to_html_round_column_headers():
 @pytest.mark.parametrize("unit", ["100px", "10%", "5em", 150])
 def test_to_html_with_col_space_units(unit):
     # GH 25941
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     result = df.to_html(col_space=unit)
     result = result.split("tbody")[0]
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]

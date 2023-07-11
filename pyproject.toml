@@ -240,7 +240,9 @@ select = [
   # Ruff-specific rules
   "RUF",
   # flake8-bandit: exec-builtin
-  "S102"
+  "S102",
+  # numpy-legacy-random
+  "NPY002"
 ]
 
 ignore = [

@@ -372,13 +372,13 @@ class TestStata:
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+            df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=list("AB"))
             df.to_stata(path)
 
     def test_write_preserves_original(self):
         # 9795
-        np.random.seed(423)
-        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+
+        df = DataFrame(np.random.default_rng(2).randn(5, 4), columns=list("abcd"))
         df.loc[2, "a":"c"] = np.nan
         df_copy = df.copy()
         with tm.ensure_clean() as path:
@@ -1978,7 +1978,7 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
     if use_dict:
         compression_arg = {"method": compression}
 
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=list("AB"))
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         df.to_stata(path, version=version, compression=compression_arg)
@@ -2016,7 +2016,7 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
 def test_compression_dict(method, file_ext):
     file_name = f"test.{file_ext}"
     archive_name = "test.dta"
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(np.random.default_rng(2).randn(10, 2), columns=list("AB"))
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         compression = {"method": method, "archive_name": archive_name}

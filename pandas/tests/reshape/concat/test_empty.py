@@ -14,7 +14,7 @@ import pandas._testing as tm
 
 class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
-        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4), columns=list("abcd"))
 
         dfcopy = df[:5].copy()
         dfcopy["foo"] = "bar"

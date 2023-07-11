@@ -976,7 +976,7 @@ class TestPandasContainer:
         read_json(StringIO(s))
 
     def test_doc_example(self):
-        dfj2 = DataFrame(np.random.randn(5, 2), columns=list("AB"))
+        dfj2 = DataFrame(np.random.default_rng(2).randn(5, 2), columns=list("AB"))
         dfj2["date"] = Timestamp("20130101")
         dfj2["ints"] = range(5)
         dfj2["bools"] = True
@@ -1171,14 +1171,14 @@ class TestPandasContainer:
 
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4))
         df.loc[:8] = np.nan
 
         sdf = df.astype("Sparse")
         expected = df.to_json()
         assert expected == sdf.to_json()
 
-        s = Series(np.random.randn(10))
+        s = Series(np.random.default_rng(2).randn(10))
         s.loc[:8] = np.nan
         ss = s.astype("Sparse")
 

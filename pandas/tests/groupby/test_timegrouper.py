@@ -732,10 +732,10 @@ class TestGroupBy:
     def test_groupby_with_timezone_selection(self):
         # GH 11616
         # Test that column selection returns output in correct timezone.
-        np.random.seed(42)
+
         df = DataFrame(
             {
-                "factor": np.random.randint(0, 3, size=60),
+                "factor": np.random.default_rng(2).randint(0, 3, size=60),
                 "time": date_range("01/01/2000 00:00", periods=60, freq="s", tz="UTC"),
             }
         )

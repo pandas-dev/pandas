@@ -99,8 +99,8 @@ class TestNumericComparisons:
     def test_compare_invalid(self):
         # GH#8058
         # ops testing
-        a = Series(np.random.randn(5), name=0)
-        b = Series(np.random.randn(5))
+        a = Series(np.random.default_rng(2).randn(5), name=0)
+        b = Series(np.random.default_rng(2).randn(5))
         b.name = pd.Timestamp("2000-01-01")
         tm.assert_series_equal(a / b, 1 / (b / a))
 
@@ -109,7 +109,7 @@ class TestNumericComparisons:
         box = box_with_array
         xbox = box if box is not Index else np.ndarray
 
-        obj = Series(np.random.randn(51))
+        obj = Series(np.random.default_rng(2).randn(51))
         obj = tm.box_expected(obj, box, transpose=False)
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 50)
@@ -459,7 +459,7 @@ class TestDivisionByZero:
     def test_rdiv_zero_compat(self):
         # GH#8674
         zero_array = np.array([0] * 5)
-        data = np.random.randn(5)
+        data = np.random.default_rng(2).randn(5)
         expected = Series([0.0] * 5)
 
         result = zero_array / Series(data)
@@ -535,7 +535,7 @@ class TestDivisionByZero:
 
     def test_df_div_zero_series_does_not_commute(self):
         # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame(np.random.randn(10, 5))
+        df = pd.DataFrame(np.random.default_rng(2).randn(10, 5))
         ser = df[0]
         res = ser / df
         res2 = df / ser
@@ -602,7 +602,7 @@ class TestDivisionByZero:
     def test_df_mod_zero_series_does_not_commute(self):
         # GH#3590, modulo as ints
         # not commutative with series
-        df = pd.DataFrame(np.random.randn(10, 5))
+        df = pd.DataFrame(np.random.default_rng(2).randn(10, 5))
         ser = df[0]
         res = ser % df
         res2 = df % ser
@@ -770,7 +770,7 @@ class TestMultiplicationDivision:
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
     def test_ops_np_scalar(self, other):
-        vals = np.random.randn(5, 3)
+        vals = np.random.default_rng(2).randn(5, 3)
         f = lambda x: pd.DataFrame(
             x, index=list("ABCDE"), columns=["jim", "joe", "jolie"]
         )
@@ -912,7 +912,7 @@ class TestAdditionSubtraction:
     # TODO: This came from series.test.test_operators, needs cleanup
     def test_datetime64_with_index(self):
         # arithmetic integer ops with an index
-        ser = Series(np.random.randn(5))
+        ser = Series(np.random.default_rng(2).randn(5))
         expected = ser - ser.index.to_series()
         result = ser - ser.index
         tm.assert_series_equal(result, expected)
@@ -933,7 +933,8 @@ class TestAdditionSubtraction:
             result = ser - ser.index.to_period()
 
         df = pd.DataFrame(
-            np.random.randn(5, 2), index=pd.date_range("20130101", periods=5)
+            np.random.default_rng(2).randn(5, 2),
+            index=pd.date_range("20130101", periods=5),
         )
         df["date"] = pd.Timestamp("20130102")
         df["expected"] = df["date"] - df.index.to_series()
@@ -944,7 +945,7 @@ class TestAdditionSubtraction:
     def test_frame_operators(self, float_frame):
         frame = float_frame
 
-        garbage = np.random.random(4)
+        garbage = np.random.default_rng(2).random(4)
         colSeries = Series(garbage, index=np.array(frame.columns))
 
         idSum = frame + frame
@@ -1177,7 +1178,9 @@ class TestObjectDtypeEquivalence:
     )
     def test_operators_reverse_object(self, op):
         # GH#56
-        arr = Series(np.random.randn(10), index=np.arange(10), dtype=object)
+        arr = Series(
+            np.random.default_rng(2).randn(10), index=np.arange(10), dtype=object
+        )
 
         result = op(1.0, arr)
         expected = op(1.0, arr.astype(float))
@@ -1284,13 +1287,13 @@ class TestNumericArithmeticUnsorted:
         # check that we return NotImplemented when operating with Series
         # or DataFrame
         index = RangeIndex(5)
-        other = Series(np.random.randn(5))
+        other = Series(np.random.default_rng(2).randn(5))
 
         expected = op(Series(index), other)
         result = op(index, other)
         tm.assert_series_equal(result, expected)
 
-        other = pd.DataFrame(np.random.randn(2, 5))
+        other = pd.DataFrame(np.random.default_rng(2).randn(2, 5))
         expected = op(pd.DataFrame([index, index]), other)
         result = op(index, other)
         tm.assert_frame_equal(result, expected)
@@ -1409,7 +1412,9 @@ def test_dataframe_div_silenced():
         columns=list("ABCD"),
     )
     pdf2 = pd.DataFrame(
-        np.random.randn(10, 4), index=list("abcdefghjk"), columns=list("ABCX")
+        np.random.default_rng(2).randn(10, 4),
+        index=list("abcdefghjk"),
+        columns=list("ABCX"),
     )
     with tm.assert_produces_warning(None):
         pdf1.div(pdf2, fill_value=0)
@@ -1444,7 +1449,7 @@ def test_integer_array_add_list_like(
 def test_sub_multiindex_swapped_levels():
     # GH 9952
     df = pd.DataFrame(
-        {"a": np.random.randn(6)},
+        {"a": np.random.default_rng(2).randn(6)},
         index=pd.MultiIndex.from_product(
             [["a", "b"], [0, 1, 2]], names=["levA", "levB"]
         ),

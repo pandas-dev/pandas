@@ -305,7 +305,8 @@ class TestLocBaseIndependent:
         # GH 5678
         # repeated getitems on a dup index returning a ndarray
         df = DataFrame(
-            np.random.random_sample((20, 5)), index=["ABCDE"[x % 5] for x in range(20)]
+            np.random.default_rng(2).random_sample((20, 5)),
+            index=["ABCDE"[x % 5] for x in range(20)],
         )
         expected = df.loc["A", 0]
         result = df.loc[:, 0].loc["A"]
@@ -432,7 +433,9 @@ class TestLocBaseIndependent:
     def test_loc_to_fail(self):
         # GH3449
         df = DataFrame(
-            np.random.random((3, 3)), index=["a", "b", "c"], columns=["e", "f", "g"]
+            np.random.default_rng(2).random((3, 3)),
+            index=["a", "b", "c"],
+            columns=["e", "f", "g"],
         )
 
         msg = (
@@ -517,7 +520,7 @@ class TestLocBaseIndependent:
         # a boolean index should index like a boolean numpy array
 
         df = DataFrame(
-            np.random.random(size=(5, 10)),
+            np.random.default_rng(2).random(size=(5, 10)),
             index=["alpha_0", "alpha_1", "alpha_2", "beta_0", "beta_1"],
         )
 
@@ -535,7 +538,7 @@ class TestLocBaseIndependent:
 
     def test_loc_general(self):
         df = DataFrame(
-            np.random.rand(4, 4),
+            np.random.default_rng(2).rand(4, 4),
             columns=["A", "B", "C", "D"],
             index=["A", "B", "C", "D"],
         )
@@ -778,7 +781,11 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(df, expected)
 
     def test_loc_setitem_frame(self):
-        df = DataFrame(np.random.randn(4, 4), index=list("abcd"), columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).randn(4, 4),
+            index=list("abcd"),
+            columns=list("ABCD"),
+        )
 
         result = df.iloc[0, 0]
 
@@ -1020,7 +1027,7 @@ class TestLocBaseIndependent:
         df = pd.concat(
             [
                 DataFrame(
-                    np.random.randn(length, len(columns)),
+                    np.random.default_rng(2).randn(length, len(columns)),
                     index=np.arange(length),
                     columns=columns,
                 ),
@@ -1091,7 +1098,7 @@ class TestLocBaseIndependent:
             assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).randn(10, 4))
         if using_copy_on_write:
             assert df[0] is not df.loc[:, 0]
         else:
@@ -1240,8 +1247,8 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_str_to_small_float_conversion_type(self):
         # GH#20388
-        np.random.seed(13)
-        col_data = [str(np.random.random() * 1e-12) for _ in range(5)]
+
+        col_data = [str(np.random.default_rng(2).random() * 1e-12) for _ in range(5)]
         result = DataFrame(col_data, columns=["A"])
         expected = DataFrame(col_data, columns=["A"], dtype=object)
         tm.assert_frame_equal(result, expected)
@@ -1262,7 +1269,7 @@ class TestLocBaseIndependent:
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         mask = (rng.hour == 9) & (rng.minute == 30)
 
-        obj = DataFrame(np.random.randn(len(rng), 3), index=rng)
+        obj = DataFrame(np.random.default_rng(2).randn(len(rng), 3), index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.loc[time(9, 30)]
@@ -1357,7 +1364,7 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_timedelta_0seconds(self):
         # GH#10583
-        df = DataFrame(np.random.normal(size=(10, 4)))
+        df = DataFrame(np.random.default_rng(2).normal(size=(10, 4)))
         df.index = timedelta_range(start="0s", periods=10, freq="s")
         expected = df.loc[Timedelta("0s") :, :]
         result = df.loc["0s":, :]
@@ -1460,7 +1467,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_time_key(self, using_array_manager):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
-        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        df = DataFrame(np.random.default_rng(2).randn(len(index), 5), index=index)
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         ainds = [24, 72, 120, 168]
@@ -1528,7 +1535,7 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_2d_to_1d_raises(self):
-        data = np.random.randn(2, 2)
+        data = np.random.default_rng(2).randn(2, 2)
         # float64 dtype to avoid upcast when trying to set float data
         ser = Series(range(2), dtype="float64")
 
@@ -1595,7 +1602,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_single_column_mixed(self):
         df = DataFrame(
-            np.random.randn(5, 3),
+            np.random.default_rng(2).randn(5, 3),
             index=["a", "b", "c", "d", "e"],
             columns=["foo", "bar", "baz"],
         )
@@ -1607,7 +1614,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_cast2(self):
         # GH#7704
         # dtype conversion on setting
-        df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
+        df = DataFrame(np.random.default_rng(2).rand(30, 3), columns=tuple("ABC"))
         df["event"] = np.nan
         df.loc[10, "event"] = "foo"
         result = df.dtypes
@@ -2403,7 +2410,7 @@ class TestLabelSlicing:
 
     def test_loc_getitem_slice_floats_inexact(self):
         index = [52195.504153, 52196.303147, 52198.369883]
-        df = DataFrame(np.random.rand(3, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).rand(3, 2), index=index)
 
         s1 = df.loc[52195.1:52196.5]
         assert len(s1) == 2
@@ -2416,7 +2423,9 @@ class TestLabelSlicing:
 
     def test_loc_getitem_float_slice_floatindex(self, float_numpy_dtype):
         dtype = float_numpy_dtype
-        ser = Series(np.random.rand(10), index=np.arange(10, 20, dtype=dtype))
+        ser = Series(
+            np.random.default_rng(2).rand(10), index=np.arange(10, 20, dtype=dtype)
+        )
 
         assert len(ser.loc[12.0:]) == 8
         assert len(ser.loc[12.5:]) == 7
@@ -2737,7 +2746,9 @@ class TestLocListlike:
 )
 def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_columns):
     # gh-14836
-    df = DataFrame(np.random.rand(3, 3), columns=columns, index=list("ABC"))
+    df = DataFrame(
+        np.random.default_rng(2).rand(3, 3), columns=columns, index=list("ABC")
+    )
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]
 
@@ -2746,7 +2757,7 @@ def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_col
 
 def test_loc_setitem_float_intindex():
     # GH 8720
-    rand_data = np.random.randn(8, 4)
+    rand_data = np.random.default_rng(2).randn(8, 4)
     result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))
@@ -2804,7 +2815,7 @@ def test_loc_with_positional_slice_raises():
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
     dti = date_range("2016-01-01", periods=3)
-    df = DataFrame(np.random.random((3, 2)), index=dti)
+    df = DataFrame(np.random.default_rng(2).random((3, 2)), index=dti)
 
     ser = df[0]
 
@@ -2833,7 +2844,7 @@ def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 
     df = DataFrame(
-        np.random.randn(5, 3),
+        np.random.default_rng(2).randn(5, 3),
         columns=["a", "b", "c"],
         index=date_range("2012", freq="H", periods=5),
     )
@@ -2854,7 +2865,7 @@ def test_loc_datetimelike_mismatched_dtypes():
 def test_loc_with_period_index_indexer():
     # GH#4125
     idx = pd.period_range("2002-01", "2003-12", freq="M")
-    df = DataFrame(np.random.randn(24, 10), index=idx)
+    df = DataFrame(np.random.default_rng(2).randn(24, 10), index=idx)
     tm.assert_frame_equal(df, df.loc[idx])
     tm.assert_frame_equal(df, df.loc[list(idx)])
     tm.assert_frame_equal(df, df.loc[list(idx)])
@@ -2864,7 +2875,7 @@ def test_loc_with_period_index_indexer():
 
 def test_loc_setitem_multiindex_timestamp():
     # GH#13831
-    vals = np.random.randn(8, 6)
+    vals = np.random.default_rng(2).randn(8, 6)
     idx = date_range("1/1/2000", periods=8)
     cols = ["A", "B", "C", "D", "E", "F"]
     exp = DataFrame(vals, index=idx, columns=cols)
@@ -3039,7 +3050,7 @@ class TestLocSeries:
             ts2.loc[d1:d2] = 0
 
     def test_loc_getitem_setitem_integer_slice_keyerrors(self):
-        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser = Series(np.random.default_rng(2).randn(10), index=list(range(0, 20, 2)))
 
         # this is OK
         cp = ser.copy()
@@ -3103,7 +3114,7 @@ class TestLocSeries:
 
     def test_loc_setitem_listlike_of_ints(self):
         # integer indexes, be careful
-        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser = Series(np.random.default_rng(2).randn(10), index=list(range(0, 20, 2)))
         inds = [0, 4, 6]
         arr_inds = np.array([0, 4, 6])
 
