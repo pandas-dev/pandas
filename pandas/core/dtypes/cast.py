@@ -490,6 +490,7 @@ def _maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
+    result: ArrayLike
 
     if dtype is not None:
         try:
