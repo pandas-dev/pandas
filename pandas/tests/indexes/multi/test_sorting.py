@@ -248,7 +248,7 @@ def test_remove_unused_levels_large(first_type, second_type):
         {
             "first": rng.integers(0, 1 << 13, size).astype(first_type),
             "second": rng.integers(0, 1 << 10, size).astype(second_type),
-            "third": rng.rand(size),
+            "third": rng.random(size),
         }
     )
     df = df.groupby(["first", "second"]).sum()

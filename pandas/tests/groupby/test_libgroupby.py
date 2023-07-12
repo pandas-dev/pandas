@@ -22,7 +22,7 @@ class GroupVarTestMixin:
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(15, 1).astype(self.dtype)
+        values = 10 * prng.random((15, 1)).astype(self.dtype)
         labels = np.tile(np.arange(5), (3,)).astype("intp")
 
         expected_out = (
@@ -39,7 +39,7 @@ class GroupVarTestMixin:
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
-        values = 10 * prng.rand(5, 1).astype(self.dtype)
+        values = 10 * prng.random((5, 1)).astype(self.dtype)
         labels = np.zeros(5, dtype="intp")
 
         expected_out = np.array([[values.std(ddof=1) ** 2]])
@@ -55,7 +55,7 @@ class GroupVarTestMixin:
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
         expected_out = np.std(values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
@@ -70,7 +70,7 @@ class GroupVarTestMixin:
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         values[:, 1] = np.nan
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
@@ -113,7 +113,7 @@ class TestGroupVarFloat64(GroupVarTestMixin):
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
-        values = (prng.rand(10**6) + 10**12).astype(self.dtype)
+        values = (prng.random(10**6) + 10**12).astype(self.dtype)
         values.shape = (10**6, 1)
         labels = np.zeros(10**6, dtype="intp")
 
