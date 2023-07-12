@@ -250,7 +250,7 @@ Other API changes
 Deprecate alias ``M`` in favour of ``ME`` for offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead (:issue:`9586`)
+The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
 
 For example:
 
@@ -261,13 +261,13 @@ For example:
     In [7]: pd.date_range('2020-01-01', periods=3, freq='M')
     Out [7]:
     DatetimeIndex(['2020-01-31', '2020-02-29', '2020-03-31'],
-                  dtype='datetime64[ns]', freq='ME')
+                  dtype='datetime64[ns]', freq='M')
 
 *Future behavior*:
 
 .. ipython:: python
 
-   pd.date_range('2020-01-01', periods=3, freq='ME')
+    pd.date_range('2020-01-01', periods=3, freq='ME')
 
 Deprecations
 ~~~~~~~~~~~~
