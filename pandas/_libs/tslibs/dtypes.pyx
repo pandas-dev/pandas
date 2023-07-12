@@ -144,9 +144,9 @@ _period_code_map = {
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
     "H": PeriodDtypeCode.H,        # Hourly
-    "T": PeriodDtypeCode.T,        # Minutely
+    "min": PeriodDtypeCode.T,        # Minutely
     "S": PeriodDtypeCode.S,        # Secondly
-    "L": PeriodDtypeCode.L,       # Millisecondly
+    "ms": PeriodDtypeCode.L,       # Millisecondly
     "U": PeriodDtypeCode.U,       # Microsecondly
     "N": PeriodDtypeCode.N,       # Nanosecondly
 }
@@ -177,9 +177,9 @@ _attrname_to_abbrevs = {
     "month": "M",
     "day": "D",
     "hour": "H",
-    "minute": "T",
+    "minute": "min",
     "second": "S",
-    "millisecond": "L",
+    "millisecond": "ms",
     "microsecond": "U",
     "nanosecond": "N",
 }
@@ -284,6 +284,7 @@ class Resolution(Enum):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
+                freq = freq.replace("T", "min").replace("L", "ms")
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
@@ -293,7 +294,6 @@ class Resolution(Enum):
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
-            attr_name = _abbrev_to_attrnames[split_freq[0]]
             if split_freq[0] in {"T", "L"}:
                 warnings.warn(
                     f"Code freq={split_freq[0]} is deprecated "
@@ -301,6 +301,8 @@ class Resolution(Enum):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
+                split_freq[0] = split_freq[0].replace("T", "min").replace("L", "ms")
+            attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
 

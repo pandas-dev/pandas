@@ -21,10 +21,10 @@ from pandas._libs.tslibs import (
         ("2h 20.5min", offsets.Second(8430)),
         ("1.5min", offsets.Second(90)),
         ("0.5S", offsets.Milli(500)),
-        ("15l500u", offsets.Micro(15500)),
-        ("10s75L", offsets.Milli(10075)),
+        ("15ms500u", offsets.Micro(15500)),
+        ("10s75ms", offsets.Milli(10075)),
         ("1s0.25ms", offsets.Micro(1000250)),
-        ("1s0.25L", offsets.Micro(1000250)),
+        ("1s0.25ms", offsets.Micro(1000250)),
         ("2800N", offsets.Nano(2800)),
         ("2SM", offsets.SemiMonthEnd(2)),
         ("2SM-16", offsets.SemiMonthEnd(2, day_of_month=16)),
@@ -119,7 +119,7 @@ def test_to_offset_whitespace(freqstr, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("00H 00T 01S", 1), ("-00H 03T 14S", -194)]
+    "freqstr,expected", [("00H 00min 01S", 1), ("-00H 03min 14S", -194)]
 )
 def test_to_offset_leading_zero(freqstr, expected):
     result = to_offset(freqstr)
