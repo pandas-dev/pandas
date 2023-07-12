@@ -247,6 +247,9 @@ Other API changes
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
 
+Deprecations
+~~~~~~~~~~~~
+
 Deprecate alias ``M`` in favour of ``ME`` for offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -269,8 +272,8 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='ME')
 
-Deprecations
-~~~~~~~~~~~~
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated 'downcast' keyword in :meth:`Index.fillna` (:issue:`53956`)
 - Deprecated 'fill_method' and 'limit' keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`, explicitly call ``ffill`` or ``bfill`` before calling ``pct_change`` instead (:issue:`53491`)
