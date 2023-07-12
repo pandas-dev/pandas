@@ -479,7 +479,7 @@ ipython_execlines = [
 ]
 
 
-remove_from_toctrees = ["reference/*"]
+remove_from_toctrees = ["reference/api/*"]
 
 # Add custom Documenter to handle attributes/methods of an AccessorProperty
 # eg pandas.Series.str and pandas.Series.dt (see GH9322)
