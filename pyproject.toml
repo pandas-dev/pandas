@@ -278,8 +278,6 @@ ignore = [
   # "B301",  # not yet implemented
   # Only works with python >=3.10
   "B905",
-  # allow explicit re-exporting imports in py files
-  "PLC0414",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
