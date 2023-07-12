@@ -1731,6 +1731,20 @@ def test_update_series(using_copy_on_write):
         tm.assert_series_equal(view, expected)
 
 
+def test_update_chained_assignment(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    ser2 = Series([100.0], index=[1])
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].update(ser2)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            df[["a"]].update(ser2.to_frame())
+        tm.assert_frame_equal(df, df_orig)
+
+
 def test_inplace_arithmetic_series():
     ser = Series([1, 2, 3])
     data = get_array(ser)

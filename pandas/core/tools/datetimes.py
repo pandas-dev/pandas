@@ -54,7 +54,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -68,6 +71,7 @@ from pandas.arrays import (
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
@@ -402,6 +406,25 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
+    elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp:
+        # TODO: Combine with above if DTI/DTA supports Arrow timestamps
+        if utc:
+            # pyarrow uses UTC, not lowercase utc
+            if isinstance(arg, Index):
+                arg_array = cast(ArrowExtensionArray, arg.array)
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg_array = arg_array._dt_tz_convert("UTC")
+                else:
+                    arg_array = arg_array._dt_tz_localize("UTC")
+                arg = Index(arg_array)
+            else:
+                # ArrowExtensionArray
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg = arg._dt_tz_convert("UTC")
+                else:
+                    arg = arg._dt_tz_localize("UTC")
+        return arg
+
     elif lib.is_np_dtype(arg_dtype, "M"):
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
@@ -706,7 +729,8 @@ def to_datetime(
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime. If a :class:`DataFrame` is provided, the
         method expects minimally the following columns: :const:`"year"`,
-        :const:`"month"`, :const:`"day"`.
+        :const:`"month"`, :const:`"day"`. The column "year"
+        must be specified in 4-digit format.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
@@ -765,6 +789,11 @@ def to_datetime(
           time string (not necessarily in exactly the same format);
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
+
+        .. note::
+
+            If a :class:`DataFrame` is passed, then `format` has no effect.
+
     exact : bool, default True
         Control how `format` is used:
 
