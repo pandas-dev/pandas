@@ -141,7 +141,7 @@ def test_unsortedindex_doc_examples():
         {
             "jim": [0, 0, 1, 1],
             "joe": ["x", "x", "z", "y"],
-            "jolie": np.random.default_rng(2).rand(4),
+            "jolie": np.random.default_rng(2).random(4),
         }
     )
 

@@ -347,7 +347,7 @@ class TestDataFrameReshape:
                 "state": ["IL", "MI", "NC"],
                 "index": ["a", "b", "c"],
                 "some_categories": Series(["a", "b", "c"]).astype("category"),
-                "A": np.random.default_rng(2).rand(3),
+                "A": np.random.default_rng(2).random(3),
                 "B": 1,
                 "C": "foo",
                 "D": pd.Timestamp("20010102"),

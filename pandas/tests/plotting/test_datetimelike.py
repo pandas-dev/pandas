@@ -918,10 +918,10 @@ class TestTSPlot:
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="M")
         high = DataFrame(
-            np.random.default_rng(2).rand(len(idxh), 3), index=idxh, columns=[0, 1, 2]
+            np.random.default_rng(2).random(len(idxh), 3), index=idxh, columns=[0, 1, 2]
         )
         low = DataFrame(
-            np.random.default_rng(2).rand(len(idxl), 3), index=idxl, columns=[0, 1, 2]
+            np.random.default_rng(2).random(len(idxl), 3), index=idxl, columns=[0, 1, 2]
         )
 
         _, ax = mpl.pyplot.subplots()
@@ -970,10 +970,10 @@ class TestTSPlot:
         idxh = date_range("1/1/1999", periods=52, freq="W")
         idxl = date_range("1/1/1999", periods=12, freq="M")
         high = DataFrame(
-            np.random.default_rng(2).rand(len(idxh), 3), index=idxh, columns=[0, 1, 2]
+            np.random.default_rng(2).random(len(idxh), 3), index=idxh, columns=[0, 1, 2]
         )
         low = DataFrame(
-            np.random.default_rng(2).rand(len(idxl), 3), index=idxl, columns=[0, 1, 2]
+            np.random.default_rng(2).random(len(idxl), 3), index=idxl, columns=[0, 1, 2]
         )
         _, ax = mpl.pyplot.subplots()
         high.plot(kind=kind1, stacked=True, ax=ax)

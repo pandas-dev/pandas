@@ -231,7 +231,7 @@ def test_expanding_sem(frame_or_series):
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_expanding_skew_kurt_numerical_stability(method):
     # GH: 6929
-    s = Series(np.random.default_rng(2).rand(10))
+    s = Series(np.random.default_rng(2).random(10))
     expected = getattr(s.expanding(3), method)()
     s = s + 5000
     result = getattr(s.expanding(3), method)()
@@ -246,7 +246,7 @@ def test_expanding_skew_kurt_numerical_stability(method):
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
     if test_data == "default":
-        ser = Series(data=np.random.default_rng(2).rand(length))
+        ser = Series(data=np.random.default_rng(2).random(length))
     elif test_data == "duplicates":
         ser = Series(data=np.random.default_rng(2).choice(3, length))
     elif test_data == "nans":
@@ -625,7 +625,7 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     engine, raw = engine_and_raw
 
-    df = DataFrame(np.random.default_rng(2).rand(20, 3))
+    df = DataFrame(np.random.default_rng(2).random(20, 3))
 
     expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 

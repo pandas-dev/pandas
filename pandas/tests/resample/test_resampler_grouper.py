@@ -273,7 +273,7 @@ def test_apply_with_mutated_index():
     # GH 15169
     index = date_range("1-1-2015", "12-31-15", freq="D")
     df = DataFrame(
-        data={"col1": np.random.default_rng(2).rand(len(index))}, index=index
+        data={"col1": np.random.default_rng(2).random(len(index))}, index=index
     )
 
     def f(x):

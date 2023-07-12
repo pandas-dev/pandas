@@ -357,7 +357,7 @@ class TestExcelWriter:
             col_df.to_excel(path)
 
     def test_excel_sheet_by_name_raise(self, path):
-        gt = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        gt = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         gt.to_excel(path)
 
         with ExcelFile(path) as xl:
@@ -567,7 +567,7 @@ class TestExcelWriter:
         frame.to_excel(path, "test1", index=False)
 
         # test index_label
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(path, "test1", index_label=["test"], merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -576,7 +576,7 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(
             path,
             "test1",
@@ -590,7 +590,7 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(path, "test1", index_label="test", merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -1120,7 +1120,7 @@ class TestExcelWriter:
     def test_bytes_io(self, engine):
         # see gh-7074
         with BytesIO() as bio:
-            df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+            df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
 
             # Pass engine explicitly, as there is no file path to infer from.
             with ExcelWriter(bio, engine=engine) as writer:

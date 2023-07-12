@@ -424,7 +424,7 @@ class TestBlockManager:
 
     def test_iget(self):
         cols = Index(list("abc"))
-        values = np.random.default_rng(2).rand(3, 3)
+        values = np.random.default_rng(2).random(3, 3)
         block = new_block(
             values=values.copy(),
             placement=BlockPlacement(np.arange(3, dtype=np.intp)),

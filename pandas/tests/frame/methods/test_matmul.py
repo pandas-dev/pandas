@@ -86,8 +86,8 @@ class TestMatMul:
     def test_matmul_message_shapes(self):
         # GH#21581 exception message should reflect original shapes,
         #  not transposed shapes
-        a = np.random.default_rng(2).rand(10, 4)
-        b = np.random.default_rng(2).rand(5, 3)
+        a = np.random.default_rng(2).random((10, 4))
+        b = np.random.default_rng(2).random((5, 3))
 
         df = DataFrame(b)
 

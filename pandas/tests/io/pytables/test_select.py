@@ -185,7 +185,7 @@ def test_select_dtypes(setup_path):
 
         # bool columns (GH #2849)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=["A", "B"]
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["A", "B"]
         )
         df["object"] = "foo"
         df.loc[4:5, "object"] = "bar"
@@ -206,8 +206,8 @@ def test_select_dtypes(setup_path):
         # integer index
         df = DataFrame(
             {
-                "A": np.random.default_rng(2).rand(20),
-                "B": np.random.default_rng(2).rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
             }
         )
         _maybe_remove(store, "df_int")
@@ -219,8 +219,8 @@ def test_select_dtypes(setup_path):
         # float index
         df = DataFrame(
             {
-                "A": np.random.default_rng(2).rand(20),
-                "B": np.random.default_rng(2).rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
                 "index": np.arange(20, dtype="f8"),
             }
         )

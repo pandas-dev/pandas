@@ -535,7 +535,7 @@ class TestDivisionByZero:
 
     def test_df_div_zero_series_does_not_commute(self):
         # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
         ser = df[0]
         res = ser / df
         res2 = df / ser
@@ -602,7 +602,7 @@ class TestDivisionByZero:
     def test_df_mod_zero_series_does_not_commute(self):
         # GH#3590, modulo as ints
         # not commutative with series
-        df = pd.DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
         ser = df[0]
         res = ser % df
         res2 = df % ser
@@ -933,7 +933,7 @@ class TestAdditionSubtraction:
             result = ser - ser.index.to_period()
 
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2),
+            np.random.default_rng(2).standard_normal((5, 2)),
             index=pd.date_range("20130101", periods=5),
         )
         df["date"] = pd.Timestamp("20130102")

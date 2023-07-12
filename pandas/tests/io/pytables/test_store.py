@@ -624,7 +624,7 @@ def test_coordinates(setup_path):
     # pass array/mask as the coordinates
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 2),
+            np.random.default_rng(2).standard_normal((1000, 2)),
             index=date_range("20000101", periods=1000),
         )
         store.append("df", df)
@@ -664,7 +664,7 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # list
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         store.append("df2", df)
         result = store.select("df2", where=[0, 3, 5])
         expected = df.iloc[[0, 3, 5]]
@@ -688,8 +688,8 @@ def test_start_stop_table(setup_path):
         # table
         df = DataFrame(
             {
-                "A": np.random.default_rng(2).rand(20),
-                "B": np.random.default_rng(2).rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
             }
         )
         store.append("df", df)
@@ -725,8 +725,8 @@ def test_start_stop_fixed(setup_path):
         # fixed, GH 8287
         df = DataFrame(
             {
-                "A": np.random.default_rng(2).rand(20),
-                "B": np.random.default_rng(2).rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
             },
             index=date_range("20130101", periods=20),
         )
@@ -903,7 +903,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     # BUG: 7212
 
     df = DataFrame(
-        np.random.default_rng(2).rand(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random(4, 5), index=list("abcd"), columns=list("ABCDE")
     )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
@@ -942,7 +942,7 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
 
     for index in types_should_fail:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2), columns=index(2)
+            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
         )
         path = tmp_path / setup_path
         with catch_warnings(record=True):
@@ -952,7 +952,7 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
 
     for index in types_should_run:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2), columns=index(2)
+            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
         )
         path = tmp_path / setup_path
         with catch_warnings(record=True):

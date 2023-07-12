@@ -305,8 +305,8 @@ class TestExpressions:
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).rand(10) > 0.5,
-                "b": np.random.default_rng(2).rand(10) > 0.5,
+                "a": np.random.default_rng(2).random(10) > 0.5,
+                "b": np.random.default_rng(2).random(10) > 0.5,
             }
         )
 
@@ -339,8 +339,8 @@ class TestExpressions:
         n = 10
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).rand(n) > 0.5,
-                "b": np.random.default_rng(2).rand(n) > 0.5,
+                "a": np.random.default_rng(2).random(n) > 0.5,
+                "b": np.random.default_rng(2).random(n) > 0.5,
             }
         )
 

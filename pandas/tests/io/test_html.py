@@ -157,7 +157,7 @@ class TestReadHtml:
             tm.makeCustomDataframe(
                 4,
                 3,
-                data_gen_f=lambda *args: np.random.default_rng(2).rand(),
+                data_gen_f=lambda *args: np.random.default_rng(2).random(),
                 c_idx_names=False,
                 r_idx_names=False,
             )

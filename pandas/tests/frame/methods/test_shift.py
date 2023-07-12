@@ -270,7 +270,7 @@ class TestDataFrameShift:
     def test_shift_other_axis(self):
         # shift other axis
         # GH#6371
-        df = DataFrame(np.random.default_rng(2).rand(10, 5))
+        df = DataFrame(np.random.default_rng(2).random(10, 5))
         expected = pd.concat(
             [DataFrame(np.nan, index=df.index, columns=[0]), df.iloc[:, 0:-1]],
             ignore_index=True,
@@ -281,7 +281,7 @@ class TestDataFrameShift:
 
     def test_shift_named_axis(self):
         # shift named axis
-        df = DataFrame(np.random.default_rng(2).rand(10, 5))
+        df = DataFrame(np.random.default_rng(2).random(10, 5))
         expected = pd.concat(
             [DataFrame(np.nan, index=df.index, columns=[0]), df.iloc[:, 0:-1]],
             ignore_index=True,
@@ -650,7 +650,7 @@ class TestDataFrameShift:
 
     def test_shift_axis1_many_periods(self):
         # GH#44978 periods > len(columns)
-        df = DataFrame(np.random.default_rng(2).rand(5, 3))
+        df = DataFrame(np.random.default_rng(2).random(5, 3))
         shifted = df.shift(6, axis=1, fill_value=None)
 
         expected = df * np.nan

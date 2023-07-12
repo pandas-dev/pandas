@@ -89,14 +89,14 @@ class TestDataFramePlots:
         _check_plot_works(plotting._core.boxplot, data=ser, return_type="dict")
 
     def test_boxplot_legacy2(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             _check_plot_works(df.boxplot, by="X")
 
     def test_boxplot_legacy2_with_ax(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         # When ax is supplied and required number of axes is 1,
@@ -107,7 +107,7 @@ class TestDataFramePlots:
         assert ax_axes is axes
 
     def test_boxplot_legacy2_with_ax_return_type(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         fig, ax = mpl.pyplot.subplots()
@@ -116,7 +116,7 @@ class TestDataFramePlots:
         assert ax_axes is axes["A"]
 
     def test_boxplot_legacy2_with_multi_col(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         # Multiple columns with an ax argument should use same figure
@@ -128,7 +128,7 @@ class TestDataFramePlots:
         assert axes["Col1"].get_figure() is fig
 
     def test_boxplot_legacy2_by_none(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=["Col1", "Col2"])
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=["Col1", "Col2"])
         df["X"] = Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
         df["Y"] = Series(["A"] * 10)
         # When by is None, check that all relevant lines are present in the
@@ -202,7 +202,7 @@ class TestDataFramePlots:
 
     def test_figsize(self):
         df = DataFrame(
-            np.random.default_rng(2).rand(10, 5), columns=["A", "B", "C", "D", "E"]
+            np.random.default_rng(2).random(10, 5), columns=["A", "B", "C", "D", "E"]
         )
         result = df.boxplot(return_type="axes", figsize=(12, 8))
         assert result.figure.bbox_inches.width == 12
@@ -240,7 +240,7 @@ class TestDataFramePlots:
     )
     def test_color_kwd(self, colors_kwd, expected):
         # GH: 26214
-        df = DataFrame(np.random.default_rng(2).rand(10, 2))
+        df = DataFrame(np.random.default_rng(2).random(10, 2))
         result = df.boxplot(color=colors_kwd, return_type="dict")
         for k, v in expected.items():
             assert result[k][0].get_color() == v
@@ -270,7 +270,7 @@ class TestDataFramePlots:
     )
     def test_colors_in_theme(self, scheme, expected):
         # GH: 40769
-        df = DataFrame(np.random.default_rng(2).rand(10, 2))
+        df = DataFrame(np.random.default_rng(2).random(10, 2))
         import matplotlib.pyplot as plt
 
         plt.style.use(scheme)
@@ -284,7 +284,7 @@ class TestDataFramePlots:
     )
     def test_color_kwd_errors(self, dict_colors, msg):
         # GH: 26214
-        df = DataFrame(np.random.default_rng(2).rand(10, 2))
+        df = DataFrame(np.random.default_rng(2).random(10, 2))
         with pytest.raises(ValueError, match=msg):
             df.boxplot(color=dict_colors, return_type="dict")
 
@@ -381,7 +381,7 @@ class TestDataFrameGroupByPlots:
     def test_boxplot_legacy2(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(
-            np.random.default_rng(2).rand(10, 3), index=MultiIndex.from_tuples(tuples)
+            np.random.default_rng(2).random(10, 3), index=MultiIndex.from_tuples(tuples)
         )
         grouped = df.groupby(level=1)
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -392,7 +392,7 @@ class TestDataFrameGroupByPlots:
     def test_boxplot_legacy2_return_type(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(
-            np.random.default_rng(2).rand(10, 3), index=MultiIndex.from_tuples(tuples)
+            np.random.default_rng(2).random(10, 3), index=MultiIndex.from_tuples(tuples)
         )
         grouped = df.groupby(level=1)
         axes = _check_plot_works(grouped.boxplot, subplots=False, return_type="axes")
@@ -405,7 +405,7 @@ class TestDataFrameGroupByPlots:
     def test_boxplot_legacy3(self, subplots, warn, axes_num, layout):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(
-            np.random.default_rng(2).rand(10, 3), index=MultiIndex.from_tuples(tuples)
+            np.random.default_rng(2).random(10, 3), index=MultiIndex.from_tuples(tuples)
         )
         msg = "DataFrame.groupby with axis=1 is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -693,8 +693,8 @@ class TestDataFrameGroupByPlots:
         df = DataFrame(
             {
                 "cat": np.random.default_rng(2).choice(list("abcde"), 100),
-                "v": np.random.default_rng(2).rand(100),
-                "v1": np.random.default_rng(2).rand(100),
+                "v": np.random.default_rng(2).random(100),
+                "v1": np.random.default_rng(2).random(100),
             }
         )
         grouped = df.groupby("cat")

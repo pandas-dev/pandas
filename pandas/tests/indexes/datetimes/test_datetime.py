@@ -139,7 +139,7 @@ class TestDatetimeIndex:
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(
-            np.random.default_rng(2).rand(100),
+            np.random.default_rng(2).random(100),
             index=date_range("1/1/2000", periods=100),
         )
         monthly_group = df.groupby(lambda x: (x.year, x.month))

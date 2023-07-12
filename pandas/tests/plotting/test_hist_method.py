@@ -72,7 +72,7 @@ class TestSeriesPlots:
             ts.hist(by=ts.index, figure=fig)
 
     def test_hist_bins_legacy(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         ax = df.hist(bins=2)[0][0]
         assert len(ax.patches) == 2
 
@@ -259,7 +259,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df[2] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
@@ -283,7 +283,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_hist_df_legacy_layout3(self):
         # make sure layout is handled
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
         df[5] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
@@ -301,7 +301,7 @@ class TestDataFramePlots:
         "kwargs", [{"sharex": True, "sharey": True}, {"figsize": (8, 10)}, {"bins": 5}]
     )
     def test_hist_df_legacy_layout_kwargs(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
         df[5] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
@@ -353,7 +353,7 @@ class TestDataFramePlots:
         # gh-10444, GH32590
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).rand(10),
+                "a": np.random.default_rng(2).random(10),
                 "b": np.random.default_rng(2).integers(0, 10, 10),
                 "c": to_datetime(
                     np.random.default_rng(2).integers(
@@ -389,7 +389,7 @@ class TestDataFramePlots:
         ),
     )
     def test_hist_layout(self, layout_test):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df[2] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
@@ -403,7 +403,7 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=3, layout=expected)
 
     def test_hist_layout_error(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df[2] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,
@@ -552,7 +552,7 @@ class TestDataFramePlots:
             df.hist(legend=True, by=by, column=column, label="d")
 
     def test_hist_df_kwargs(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.hist(bins=5, ax=ax)
         assert len(ax.patches) == 10

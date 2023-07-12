@@ -95,7 +95,7 @@ class TestXS:
 
     def test_xs_duplicates(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2),
+            np.random.default_rng(2).standard_normal((5, 2)),
             index=["b", "b", "c", "b", "a"],
         )
 

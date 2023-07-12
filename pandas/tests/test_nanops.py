@@ -34,7 +34,7 @@ def arr_shape():
 
 @pytest.fixture
 def arr_float(arr_shape):
-    return np.random.default_rng(2).standard_normal(*arr_shape)
+    return np.random.default_rng(2).standard_normal(arr_shape)
 
 
 @pytest.fixture
@@ -190,8 +190,8 @@ class TestnanopsDataFrame:
 
         arr_shape = (11, 7)
 
-        self.arr_float = np.random.default_rng(2).standard_normal(*arr_shape)
-        self.arr_float1 = np.random.default_rng(2).standard_normal(*arr_shape)
+        self.arr_float = np.random.default_rng(2).standard_normal(arr_shape)
+        self.arr_float1 = np.random.default_rng(2).standard_normal(arr_shape)
         self.arr_complex = self.arr_float + self.arr_float1 * 1j
         self.arr_int = np.random.default_rng(2).integers(-10, 10, arr_shape)
         self.arr_bool = np.random.default_rng(2).integers(0, 2, arr_shape) == 0

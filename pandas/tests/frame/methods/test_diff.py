@@ -285,7 +285,7 @@ class TestDataFrameDiff:
 
     def test_diff_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/35559
-        arr = np.random.default_rng(2).standard_normal(5, 2)
+        arr = np.random.default_rng(2).standard_normal((5, 2))
         arr.flags.writeable = False
         df = DataFrame(arr)
         result = df.diff()

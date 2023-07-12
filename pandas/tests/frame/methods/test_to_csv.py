@@ -418,7 +418,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv_w_some_infs(self, float_frame):
         # test roundtrip with inf, -inf, nan, as full columns and mix
         float_frame["G"] = np.nan
-        f = lambda x: [np.inf, np.nan][np.random.default_rng(2).rand() < 0.5]
+        f = lambda x: [np.inf, np.nan][np.random.default_rng(2).random() < 0.5]
         float_frame["H"] = float_frame.index.map(f)
 
         with tm.ensure_clean() as path:

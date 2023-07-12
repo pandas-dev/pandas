@@ -239,7 +239,7 @@ class TestiLocBaseIndependent:
             tm.assert_frame_equal(result, expected)
 
         dfl = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("AB")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
         check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
@@ -1131,7 +1131,9 @@ class TestiLocBaseIndependent:
 
     def test_iloc_getitem_with_duplicates(self):
         df = DataFrame(
-            np.random.default_rng(2).rand(3, 3), columns=list("ABC"), index=list("aab")
+            np.random.default_rng(2).random(3, 3),
+            columns=list("ABC"),
+            index=list("aab"),
         )
 
         result = df.iloc[0]

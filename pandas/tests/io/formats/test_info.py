@@ -91,7 +91,7 @@ def test_info_smoke_test(fixture_func_name, request):
     ],
 )
 def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
-    frame = DataFrame(np.random.default_rng(2).standard_normal(5, num_columns))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((5, num_columns)))
     with option_context("display.max_info_columns", max_info_columns):
         io_default = StringIO()
         frame.info(buf=io_default)
@@ -263,7 +263,7 @@ def test_info_shows_column_dtypes():
 
 
 def test_info_max_cols():
-    df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
     for len_, verbose in [(5, None), (5, False), (12, True)]:
         # For verbose always      ^ setting  ^ summarize ^ full output
         with option_context("max_info_columns", 4):

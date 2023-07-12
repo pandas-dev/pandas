@@ -160,7 +160,7 @@ class TestDataFrameEval:
     def test_eval_resolvers_as_list(self):
         # GH 14095
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((10, 2)), columns=list("ab")
         )
         dict1 = {"a": 1}
         dict2 = {"b": 2}
@@ -170,7 +170,7 @@ class TestDataFrameEval:
     def test_eval_resolvers_combined(self):
         # GH 34966
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((10, 2)), columns=list("ab")
         )
         dict1 = {"c": 2}
 
@@ -194,7 +194,7 @@ class TestDataFrameQueryWithMultiIndex:
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = MultiIndex.from_arrays([a, b], names=["color", "food"])
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
         ind = Series(
             df.index.get_level_values("color").values, index=index, name="color"
         )
@@ -244,7 +244,7 @@ class TestDataFrameQueryWithMultiIndex:
         a = np.random.default_rng(2).choice(["red", "green"], size=10)
         b = np.random.default_rng(2).choice(["eggs", "ham"], size=10)
         index = MultiIndex.from_arrays([a, b])
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
         ind = Series(df.index.get_level_values(0).values, index=index)
 
         res1 = df.query('ilevel_0 == "red"', parser=parser, engine=engine)
@@ -333,7 +333,7 @@ class TestDataFrameQueryWithMultiIndex:
         b = np.arange(10)
         index = MultiIndex.from_arrays([a, b])
         index.names = [None, "rating"]
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)), index=index)
         res = df.query("rating == 1", parser=parser, engine=engine)
         ind = Series(
             df.index.get_level_values("rating").values, index=index, name="rating"
@@ -424,8 +424,8 @@ class TestDataFrameQueryNumExprPandas:
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates2"] = date_range("1/1/2013", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates1"] = pd.NaT
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates3"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
         expec = df[(df.dates1 < "20130101") & ("20130101" < df.dates3)]
         tm.assert_frame_equal(res, expec)
@@ -462,7 +462,7 @@ class TestDataFrameQueryNumExprPandas:
         d["dates1"] = date_range("1/1/2012", periods=n)
         d["dates3"] = date_range("1/1/2014", periods=n)
         df = DataFrame(d)
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates1"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
         res = df.query("dates1 < 20130101 < dates3", engine=engine, parser=parser)
@@ -670,7 +670,7 @@ class TestDataFrameQueryNumExprPandas:
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(np.random.default_rng(2).rand(10, 2), columns=list("ab"))
+        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=list("ab"))
         with pytest.raises(
             UndefinedVariableError, match="local variable 'c' is not defined"
         ):
@@ -712,8 +712,8 @@ class TestDataFrameQueryNumExprPandas:
         n = 10
         df = DataFrame(
             {
-                "a": np.random.default_rng(2).rand(n),
-                "b": np.random.default_rng(2).rand(n),
+                "a": np.random.default_rng(2).random(n),
+                "b": np.random.default_rng(2).random(n),
             }
         )
         df.loc[::2, 0] = np.inf
@@ -742,8 +742,8 @@ class TestDataFrameQueryNumExprPandas:
         n = 10
         df = DataFrame(
             {
-                "a": 2 * np.random.default_rng(2).rand(n),
-                "b": np.random.default_rng(2).rand(n),
+                "a": 2 * np.random.default_rng(2).random(n),
+                "b": np.random.default_rng(2).random(n),
             }
         )
         expected = df[df["a"].astype("int") == 0]
@@ -753,7 +753,7 @@ class TestDataFrameQueryNumExprPandas:
         df = DataFrame(
             {
                 "a": np.where(
-                    np.random.default_rng(2).rand(n) < 0.5,
+                    np.random.default_rng(2).random(n) < 0.5,
                     np.nan,
                     np.random.default_rng(2).standard_normal(n),
                 ),
@@ -792,8 +792,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates2"] = date_range("1/1/2013", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates1"] = pd.NaT
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates3"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates3"] = pd.NaT
         res = df.query(
             "(dates1 < 20130101) & (20130101 < dates3)", engine=engine, parser=parser
         )
@@ -835,7 +835,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
-        df.loc[np.random.default_rng(2).rand(n) > 0.5, "dates1"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT
         return_value = df.set_index("dates1", inplace=True, drop=True)
         assert return_value is None
         msg = r"'BoolOp' nodes are not implemented"

@@ -365,7 +365,7 @@ class TestDataFrameConstructors:
         if typ == "int":
             dtypes = MIXED_INT_DTYPES
             arrays = [
-                np.array(np.random.default_rng(2).rand(10), dtype=d) for d in dtypes
+                np.array(np.random.default_rng(2).random(10), dtype=d) for d in dtypes
             ]
         elif typ == "float":
             dtypes = MIXED_FLOAT_DTYPES
@@ -386,8 +386,8 @@ class TestDataFrameConstructors:
 
     def test_constructor_complex_dtypes(self):
         # GH10952
-        a = np.random.default_rng(2).rand(10).astype(np.complex64)
-        b = np.random.default_rng(2).rand(10).astype(np.complex128)
+        a = np.random.default_rng(2).random(10).astype(np.complex64)
+        b = np.random.default_rng(2).random(10).astype(np.complex128)
 
         df = DataFrame({"a": a, "b": b})
         assert a.dtype == df.a.dtype
@@ -707,13 +707,15 @@ class TestDataFrameConstructors:
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(
-                np.random.default_rng(2).rand(2, 3), columns=["A", "B", "C"], index=[1]
+                np.random.default_rng(2).random(2, 3),
+                columns=["A", "B", "C"],
+                index=[1],
             )
 
         msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(
-                np.random.default_rng(2).rand(2, 3), columns=["A", "B"], index=[1, 2]
+                np.random.default_rng(2).random(2, 3), columns=["A", "B"], index=[1, 2]
             )
 
         # gh-26429
@@ -953,7 +955,7 @@ class TestDataFrameConstructors:
 
     def test_nested_dict_frame_constructor(self):
         rng = pd.period_range("1/1/2000", periods=5)
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5), columns=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)), columns=rng)
 
         data = {}
         for col in df.columns:
@@ -2760,7 +2762,7 @@ class TestDataFrameConstructorWithDtypeCoercion:
         # GH#40110 make DataFrame behavior with arraylike floating data and
         #  inty dtype match Series behavior
 
-        arr = np.random.default_rng(2).standard_normal(10, 5)
+        arr = np.random.default_rng(2).standard_normal((10, 5))
 
         # GH#49599 in 2.0 we raise instead of either
         #  a) silently ignoring dtype and returningfloat (the old Series behavior) or
@@ -2992,7 +2994,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
         assert all(isinstance(arr, DatetimeArray) for arr in df._mgr.arrays)
 
     def test_construction_from_ndarray_with_eadtype_mismatched_columns(self):
-        arr = np.random.default_rng(2).standard_normal(10, 2)
+        arr = np.random.default_rng(2).standard_normal((10, 2))
         dtype = pd.array([2.0]).dtype
         msg = r"len\(arrays\) must match len\(columns\)"
         with pytest.raises(ValueError, match=msg):

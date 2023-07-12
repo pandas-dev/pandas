@@ -102,7 +102,7 @@ def lhs(request):
     nan_df1[nan_df1 > 0.5] = np.nan
 
     opts = (
-        DataFrame(np.random.default_rng(2).standard_normal(10, 5)),
+        DataFrame(np.random.default_rng(2).standard_normal((10, 5))),
         Series(np.random.default_rng(2).standard_normal(5)),
         Series([1, 2, np.nan, np.nan, 5]),
         nan_df1,
@@ -366,7 +366,7 @@ class TestEval:
         # ~ ##
         # frame
         # float always raises
-        lhs = DataFrame(np.random.default_rng(2).standard_normal(5, 2))
+        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
         if engine == "numexpr":
             msg = "couldn't find matching opcode for 'invert_dd'"
             with pytest.raises(NotImplementedError, match=msg):
@@ -456,7 +456,7 @@ class TestEval:
         expr = "-lhs"
 
         # float
-        lhs = DataFrame(np.random.default_rng(2).standard_normal(5, 2))
+        lhs = DataFrame(np.random.default_rng(2).standard_normal((5, 2)))
         expect = -lhs
         result = pd.eval(expr, engine=engine, parser=parser)
         tm.assert_frame_equal(expect, result)
@@ -1103,7 +1103,7 @@ class TestOperations:
         assert x == 1
 
     def test_single_variable(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         df2 = self.eval("df", local_dict={"df": df})
         tm.assert_frame_equal(df, df2)
 
@@ -1145,7 +1145,7 @@ class TestOperations:
 
     def test_assignment_column_multiple_raise(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # multiple assignees
         with pytest.raises(SyntaxError, match="invalid syntax"):
@@ -1153,7 +1153,7 @@ class TestOperations:
 
     def test_assignment_column_invalid_assign(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # invalid assignees
         msg = "left hand side of an assignment must be a single name"
@@ -1162,7 +1162,7 @@ class TestOperations:
 
     def test_assignment_column_invalid_assign_function_call(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         msg = "cannot assign to function call"
         with pytest.raises(SyntaxError, match=msg):
@@ -1170,7 +1170,7 @@ class TestOperations:
 
     def test_assignment_single_assign_existing(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # single assignment - existing variable
         expected = df.copy()
@@ -1180,7 +1180,7 @@ class TestOperations:
 
     def test_assignment_single_assign_new(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # single assignment - new variable
         expected = df.copy()
@@ -1190,7 +1190,7 @@ class TestOperations:
 
     def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         df = df.copy()
         a = 1  # noqa: F841
@@ -1202,7 +1202,7 @@ class TestOperations:
 
     def test_assignment_single_assign_name(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
 
         a = 1  # noqa: F841
@@ -1214,7 +1214,7 @@ class TestOperations:
 
     def test_assignment_multiple_raises(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # multiple assignment
         df.eval("c = a + b", inplace=True)
@@ -1224,7 +1224,7 @@ class TestOperations:
 
     def test_assignment_explicit(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
         # explicit targets
         self.eval("c = df.a + df.b", local_dict={"df": df}, target=df, inplace=True)
@@ -1245,7 +1245,7 @@ class TestOperations:
     def test_assignment_not_inplace(self):
         # see gh-9297
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("ab")
         )
 
         actual = df.eval("c = a + b", inplace=False)
@@ -1873,7 +1873,7 @@ def test_inf(engine, parser):
 def test_query_token(engine, column):
     # See: https://github.com/pandas-dev/pandas/pull/42826
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 2), columns=[column, "b"]
+        np.random.default_rng(2).standard_normal((5, 2)), columns=[column, "b"]
     )
     expected = df[df[column] > 5]
     query_string = f"`{column}` > 5"

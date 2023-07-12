@@ -37,7 +37,7 @@ class TestGetitem:
 
     def test_getitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5)
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5), columns=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)), columns=rng)
 
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
@@ -131,7 +131,7 @@ class TestGetitemListLike:
         else:
             # MultiIndex columns
             frame = DataFrame(
-                np.random.default_rng(2).standard_normal(8, 3),
+                np.random.default_rng(2).standard_normal((8, 3)),
                 columns=Index(
                     [("foo", "bar"), ("baz", "qux"), ("peek", "aboo")],
                     name=("sth", "sth2"),

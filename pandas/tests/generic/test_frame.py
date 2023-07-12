@@ -84,7 +84,7 @@ class TestDataFrame:
     def test_metadata_propagation_indiv_resample(self):
         # resample
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 2),
+            np.random.default_rng(2).standard_normal((1000, 2)),
             index=date_range("20130101", periods=1000, freq="s"),
         )
         result = df.resample("1T")
@@ -189,7 +189,7 @@ class TestDataFrame2:
     def test_unexpected_keyword(self):
         # GH8597
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=["jim", "joe"]
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["jim", "joe"]
         )
         ca = pd.Categorical([0, 0, 2, 2, 3, np.nan])
         ts = df["joe"].copy()

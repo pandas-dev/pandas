@@ -698,7 +698,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(left, right)
 
     def test_reindex_name_remains(self):
-        s = Series(np.random.default_rng(2).rand(10))
+        s = Series(np.random.default_rng(2).random(10))
         df = DataFrame(s, index=np.arange(len(s)))
         i = Series(np.arange(10), name="iname")
 
@@ -708,7 +708,7 @@ class TestDataFrameSelectReindex:
         df = df.reindex(Index(np.arange(10), name="tmpname"))
         assert df.index.name == "tmpname"
 
-        s = Series(np.random.default_rng(2).rand(10))
+        s = Series(np.random.default_rng(2).random(10))
         df = DataFrame(s.T, index=np.arange(len(s)))
         i = Series(np.arange(10), name="iname")
         df = df.reindex(columns=i)

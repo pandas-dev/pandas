@@ -752,7 +752,7 @@ class TestKeyErrorsWithMultiIndex:
             ],
             names=["one", "two", "three"],
         )
-        df = DataFrame(np.random.default_rng(2).rand(4, 3), index=mi)
+        df = DataFrame(np.random.default_rng(2).random(4, 3), index=mi)
         msg = r"\('b', '1', slice\(None, None, None\)\)"
         with pytest.raises(KeyError, match=msg):
             df.loc[("b", "1", slice(None)), :]

@@ -217,7 +217,7 @@ class TestSeriesInterpolateData:
         tm.assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
-        s = Series(np.nan, index=np.sort(np.random.default_rng(2).rand(30)))
+        s = Series(np.nan, index=np.sort(np.random.default_rng(2).random(30)))
         s[::3] = np.random.default_rng(2).standard_normal(10)
 
         vals = s.index.values.astype(float)

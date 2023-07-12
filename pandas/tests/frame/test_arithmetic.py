@@ -206,7 +206,7 @@ class TestFrameComparisons:
                 "stringcol": list(tm.rands(10)),
             }
         )
-        df.loc[np.random.default_rng(2).rand(len(df)) > 0.5, "dates2"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(len(df)) > 0.5, "dates2"] = pd.NaT
         left_f = getattr(operator, left)
         right_f = getattr(operator, right)
 
@@ -268,7 +268,7 @@ class TestFrameComparisons:
 
     def test_df_float_none_comparison(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 3),
+            np.random.default_rng(2).standard_normal((8, 3)),
             index=range(8),
             columns=["A", "B", "C"],
         )
@@ -707,7 +707,7 @@ class TestFrameFlexArithmetic:
     @pytest.mark.parametrize("op", ["__add__", "__mul__", "__sub__", "__truediv__"])
     def test_arithmetic_with_duplicate_columns(self, op):
         # operations
-        df = DataFrame({"A": np.arange(10), "B": np.random.default_rng(2).rand(10)})
+        df = DataFrame({"A": np.arange(10), "B": np.random.default_rng(2).random(10)})
         expected = getattr(df, op)(df)
         expected.columns = ["A", "A"]
         df.columns = ["A", "A"]
@@ -1015,7 +1015,7 @@ class TestFrameArithmetic:
         added = DataFrame((df.values.T + val2).T, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val2, axis="index"), added)
 
-        val3 = np.random.default_rng(2).rand(*df.shape)
+        val3 = np.random.default_rng(2).random(*df.shape)
         added = DataFrame(df.values + val3, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val3), added)
 

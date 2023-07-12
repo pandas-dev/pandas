@@ -530,7 +530,7 @@ class TestDataFrameIndexingWhere:
         # Multiple dtypes (=> multiple Blocks)
         df = pd.concat(
             [
-                DataFrame(np.random.default_rng(2).standard_normal(10, 2)),
+                DataFrame(np.random.default_rng(2).standard_normal((10, 2))),
                 DataFrame(
                     np.random.default_rng(2).integers(0, 10, size=(10, 2)),
                     dtype="int64",

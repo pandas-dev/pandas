@@ -635,7 +635,7 @@ class TestFillNA:
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
-        data = np.random.default_rng(2).rand(20, 5)
+        data = np.random.default_rng(2).random(20, 5)
         df = DataFrame(index=range(20), columns=cols, data=data)
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):

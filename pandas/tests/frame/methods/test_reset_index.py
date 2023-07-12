@@ -312,7 +312,7 @@ class TestResetIndex:
             {
                 "A": ["a", "b", "c"],
                 "B": [0, 1, np.nan],
-                "C": np.random.default_rng(2).rand(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         rs = df.set_index(["A", "B"]).reset_index()
@@ -322,7 +322,7 @@ class TestResetIndex:
             {
                 "A": [np.nan, "b", "c"],
                 "B": [0, 1, 2],
-                "C": np.random.default_rng(2).rand(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         rs = df.set_index(["A", "B"]).reset_index()
@@ -336,7 +336,7 @@ class TestResetIndex:
             {
                 "A": ["a", "b", "c"],
                 "B": [np.nan, np.nan, np.nan],
-                "C": np.random.default_rng(2).rand(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         rs = df.set_index(["A", "B"]).reset_index()
@@ -602,7 +602,7 @@ class TestResetIndex:
         tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 3),
+            np.random.default_rng(2).standard_normal((8, 3)),
             columns=["A", "B", "C"],
             index=index,
         )

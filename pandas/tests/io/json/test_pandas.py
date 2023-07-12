@@ -977,7 +977,7 @@ class TestPandasContainer:
 
     def test_doc_example(self):
         dfj2 = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 2), columns=list("AB")
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
         dfj2["date"] = Timestamp("20130101")
         dfj2["ints"] = range(5)

@@ -372,7 +372,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
 def test_indexing_unordered():
     # GH 2437
     rng = date_range(start="2011-01-01", end="2011-01-15")
-    ts = Series(np.random.default_rng(2).rand(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).random(len(rng)), index=rng)
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
@@ -418,7 +418,7 @@ def test_indexing_unordered2():
 
 def test_indexing():
     idx = date_range("2001-1-1", periods=20, freq="M")
-    ts = Series(np.random.default_rng(2).rand(len(idx)), index=idx)
+    ts = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
     # getting
 
@@ -470,7 +470,7 @@ def test_getitem_str_year_with_datetimeindex():
 def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
     df = DataFrame(
-        np.random.default_rng(2).rand(5, 5),
+        np.random.default_rng(2).random(5, 5),
         columns=["open", "high", "low", "close", "volume"],
         index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
     )

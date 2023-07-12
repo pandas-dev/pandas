@@ -62,10 +62,10 @@ class TestFrameLegend:
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", ["line", "bar", "barh", "kde", "area", "hist"])
     def test_df_legend_labels(self, kind):
-        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
-        df2 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["d", "e", "f"])
-        df3 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["g", "h", "i"])
-        df4 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["j", "k", "l"])
+        df = DataFrame(np.random.default_rng(2).random(3, 3), columns=["a", "b", "c"])
+        df2 = DataFrame(np.random.default_rng(2).random(3, 3), columns=["d", "e", "f"])
+        df3 = DataFrame(np.random.default_rng(2).random(3, 3), columns=["g", "h", "i"])
+        df4 = DataFrame(np.random.default_rng(2).random(3, 3), columns=["j", "k", "l"])
 
         ax = df.plot(kind=kind, legend=True)
         _check_legend_labels(ax, labels=df.columns)
@@ -82,9 +82,9 @@ class TestFrameLegend:
 
     @td.skip_if_no_scipy
     def test_df_legend_labels_secondary_y(self):
-        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
-        df2 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["d", "e", "f"])
-        df3 = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["g", "h", "i"])
+        df = DataFrame(np.random.default_rng(2).random(3, 3), columns=["a", "b", "c"])
+        df2 = DataFrame(np.random.default_rng(2).random(3, 3), columns=["d", "e", "f"])
+        df3 = DataFrame(np.random.default_rng(2).random(3, 3), columns=["g", "h", "i"])
         # Secondary Y
         ax = df.plot(legend=True, secondary_y="b")
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
@@ -227,14 +227,14 @@ class TestFrameLegend:
         ],
     )
     def test_no_legend(self, kind):
-        df = DataFrame(np.random.default_rng(2).rand(3, 3), columns=["a", "b", "c"])
+        df = DataFrame(np.random.default_rng(2).random(3, 3), columns=["a", "b", "c"])
         ax = df.plot(kind=kind, legend=False)
         _check_legend_labels(ax, visible=False)
 
     def test_missing_markers_legend(self):
         # 14958
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((8, 3)), columns=["A", "B", "C"]
         )
         ax = df.plot(y=["A"], marker="x", linestyle="solid")
         df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)

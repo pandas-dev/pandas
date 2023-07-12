@@ -466,7 +466,7 @@ class TestJoin:
 
     def test_join_float64_float32(self):
         a = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2),
+            np.random.default_rng(2).standard_normal((10, 2)),
             columns=["a", "b"],
             dtype=np.float64,
         )

@@ -37,13 +37,13 @@ class TestPeriodIndex:
 
     def test_getitem_periodindex_quarter_string(self):
         pi = PeriodIndex(["2Q05", "3Q05", "4Q05", "1Q06", "2Q06"], freq="Q")
-        ser = Series(np.random.default_rng(2).rand(len(pi)), index=pi).cumsum()
+        ser = Series(np.random.default_rng(2).random(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
         assert ser["05Q4"] == ser.iloc[2]
 
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
-        s = Series(np.random.default_rng(2).rand(len(pi)), index=pi)
+        s = Series(np.random.default_rng(2).random(len(pi)), index=pi)
         res = s["2010"]
         exp = s[0:12]
         tm.assert_series_equal(res, exp)
@@ -69,7 +69,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.default_rng(2).rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/02":], s[1:])
         tm.assert_series_equal(s["2013/01/02":"2013/01/05"], s[1:5])
@@ -99,7 +99,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.default_rng(2).rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/01 09:05":"2013/01/01 09:10"], s[300:660])
         tm.assert_series_equal(s["2013/01/01 10:00":"2013/01/01 10:05"], s[3600:3960])

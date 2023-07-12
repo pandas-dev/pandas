@@ -524,7 +524,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
         # this is OK
         df.iloc[:8:2]
@@ -533,7 +533,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_integer_slice_keyerrors(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 5), index=range(0, 20, 2)
+            np.random.default_rng(2).standard_normal((10, 5)), index=range(0, 20, 2)
         )
 
         # this is OK

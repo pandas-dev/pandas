@@ -731,7 +731,7 @@ class TestStyler:
 
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
-        df = DataFrame(np.random.default_rng(2).rand(4, 4), columns=col, index=idx)
+        df = DataFrame(np.random.default_rng(2).random(4, 4), columns=col, index=idx)
 
         with ctx:
             df.style.map(lambda x: "color: red;", subset=slice_).to_html()

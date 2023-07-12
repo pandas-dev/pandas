@@ -645,8 +645,8 @@ class TestMisc:
     def test_float_index_to_mixed(self):
         df = DataFrame(
             {
-                0.0: np.random.default_rng(2).rand(10),
-                1.0: np.random.default_rng(2).rand(10),
+                0.0: np.random.default_rng(2).random(10),
+                1.0: np.random.default_rng(2).random(10),
             }
         )
         df["a"] = 10

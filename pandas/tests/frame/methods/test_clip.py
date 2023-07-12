@@ -30,7 +30,7 @@ class TestDataFrameClip:
 
     def test_dataframe_clip(self):
         # GH#2747
-        df = DataFrame(np.random.default_rng(2).standard_normal(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
 
         for lb, ub in [(-1, 1), (1, -1)]:
             clipped_df = df.clip(lb, ub)
@@ -60,7 +60,7 @@ class TestDataFrameClip:
     def test_clip_against_series(self, inplace):
         # GH#6966
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         lb = Series(np.random.default_rng(2).standard_normal(1000))
         ub = lb + 1
 
@@ -107,8 +107,8 @@ class TestDataFrameClip:
 
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
-        df = DataFrame(np.random.default_rng(2).standard_normal(1000, 2))
-        lb = DataFrame(np.random.default_rng(2).standard_normal(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         ub = lb + 1
 
         clipped_df = df.clip(lb, ub, axis=axis)

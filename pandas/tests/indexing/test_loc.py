@@ -538,7 +538,7 @@ class TestLocBaseIndependent:
 
     def test_loc_general(self):
         df = DataFrame(
-            np.random.default_rng(2).rand(4, 4),
+            np.random.default_rng(2).random(4, 4),
             columns=["A", "B", "C", "D"],
             index=["A", "B", "C", "D"],
         )
@@ -1618,7 +1618,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_cast2(self):
         # GH#7704
         # dtype conversion on setting
-        df = DataFrame(np.random.default_rng(2).rand(30, 3), columns=tuple("ABC"))
+        df = DataFrame(np.random.default_rng(2).random(30, 3), columns=tuple("ABC"))
         df["event"] = np.nan
         df.loc[10, "event"] = "foo"
         result = df.dtypes
@@ -2414,7 +2414,7 @@ class TestLabelSlicing:
 
     def test_loc_getitem_slice_floats_inexact(self):
         index = [52195.504153, 52196.303147, 52198.369883]
-        df = DataFrame(np.random.default_rng(2).rand(3, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).random(3, 2), index=index)
 
         s1 = df.loc[52195.1:52196.5]
         assert len(s1) == 2
@@ -2428,7 +2428,7 @@ class TestLabelSlicing:
     def test_loc_getitem_float_slice_floatindex(self, float_numpy_dtype):
         dtype = float_numpy_dtype
         ser = Series(
-            np.random.default_rng(2).rand(10), index=np.arange(10, 20, dtype=dtype)
+            np.random.default_rng(2).random(10), index=np.arange(10, 20, dtype=dtype)
         )
 
         assert len(ser.loc[12.0:]) == 8
@@ -2751,7 +2751,7 @@ class TestLocListlike:
 def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_columns):
     # gh-14836
     df = DataFrame(
-        np.random.default_rng(2).rand(3, 3), columns=columns, index=list("ABC")
+        np.random.default_rng(2).random(3, 3), columns=columns, index=list("ABC")
     )
     expected = df.iloc[:, expected_columns]
     result = df.loc[["A", "B", "C"], column_key]

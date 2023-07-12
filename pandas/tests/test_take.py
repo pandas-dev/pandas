@@ -124,7 +124,7 @@ class TestTake:
         tm.assert_almost_equal(result, expected)
 
     def test_2d_other_dtypes(self):
-        arr = np.random.default_rng(2).standard_normal(10, 5).astype(np.float32)
+        arr = np.random.default_rng(2).standard_normal((10, 5)).astype(np.float32)
 
         indexer = [1, 2, 3, -1]
 

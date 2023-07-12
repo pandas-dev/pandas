@@ -84,7 +84,9 @@ class TestMultiLevel:
             names=["one", "two", "three"],
         )
         df = DataFrame(
-            [np.random.default_rng(2).rand(4)], columns=["a", "b", "c", "d"], index=midx
+            [np.random.default_rng(2).random(4)],
+            columns=["a", "b", "c", "d"],
+            index=midx,
         )
         # should work
         df.groupby(level="three")

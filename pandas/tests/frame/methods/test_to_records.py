@@ -78,7 +78,7 @@ class TestDataFrameToRecords:
         all(x in frame for x in ["Type", "Subject", "From"])
 
     def test_to_records_floats(self):
-        df = DataFrame(np.random.default_rng(2).rand(10, 10))
+        df = DataFrame(np.random.default_rng(2).random(10, 10))
         df.to_records()
 
     def test_to_records_index_name(self):

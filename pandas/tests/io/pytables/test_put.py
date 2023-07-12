@@ -223,7 +223,7 @@ def test_store_index_types(setup_path, format, index):
 
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2), columns=list("AB")
+            np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
         )
         df.index = index(len(df))
 
@@ -354,7 +354,7 @@ def test_store_periodindex(tmp_path, setup_path, format):
     # GH 7796
     # test of PeriodIndex in HDFStore
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 1),
+        np.random.default_rng(2).standard_normal((5, 1)),
         index=pd.period_range("20220101", freq="M", periods=5),
     )
 

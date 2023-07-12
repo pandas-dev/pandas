@@ -45,8 +45,8 @@ class TestSeriesCov:
     @pytest.mark.parametrize("dtype", ["float64", "Float64"])
     def test_cov_ddof(self, test_ddof, dtype):
         # GH#34611
-        np_array1 = np.random.default_rng(2).rand(10)
-        np_array2 = np.random.default_rng(2).rand(10)
+        np_array1 = np.random.default_rng(2).random(10)
+        np_array2 = np.random.default_rng(2).random(10)
 
         s1 = Series(np_array1, dtype=dtype)
         s2 = Series(np_array2, dtype=dtype)

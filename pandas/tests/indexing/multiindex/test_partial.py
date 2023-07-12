@@ -105,7 +105,7 @@ class TestMultiIndexPartial:
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
             levels=[["a", "b"], ["x", "y"], ["p", "q"]],
         )
-        df = DataFrame(np.random.default_rng(2).rand(3, 2), index=idx)
+        df = DataFrame(np.random.default_rng(2).random(3, 2), index=idx)
 
         result = df.loc[("a", "y"), :]
         expected = df.loc[("a", "y")]

@@ -407,7 +407,7 @@ class TestDataFrameFormatting:
     def test_repr_truncates_terminal_size_full(self, monkeypatch):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
-        df = DataFrame(np.random.default_rng(2).rand(1, 7))
+        df = DataFrame(np.random.default_rng(2).random(1, 7))
 
         monkeypatch.setattr(
             "pandas.io.formats.format.get_terminal_size", lambda: terminal_size
@@ -2032,7 +2032,7 @@ c  10  11  12  13  14\
 
     def test_info_repr_max_cols(self):
         # GH #6939
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
         with option_context(
             "display.large_repr",
             "info",
@@ -2215,7 +2215,7 @@ c  10  11  12  13  14\
         https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
         """
         formatter = fmt.DataFrameFormatter(
-            DataFrame(np.random.default_rng(2).rand(length, 3)),
+            DataFrame(np.random.default_rng(2).random(length, 3)),
             max_rows=max_rows,
             min_rows=min_rows,
         )

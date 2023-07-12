@@ -46,7 +46,7 @@ def _index_freq():
 
 @pytest.fixture
 def _static_values(index):
-    return np.random.default_rng(2).rand(len(index))
+    return np.random.default_rng(2).random(len(index))
 
 
 @pytest.fixture(params=["s", "ms", "us", "ns"])
@@ -94,7 +94,7 @@ def test_custom_grouper_df(index, unit):
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(
-        np.random.default_rng(2).rand(len(dti), 10), index=dti, dtype="float64"
+        np.random.default_rng(2).random(len(dti), 10), index=dti, dtype="float64"
     )
     r = df.groupby(b).agg("sum")
 
@@ -341,7 +341,7 @@ def test_resample_basic_from_daily(unit):
         start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D", name="index"
     ).as_unit(unit)
 
-    s = Series(np.random.default_rng(2).rand(len(dti)), dti)
+    s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to weekly
     result = s.resample("w-sun").last()
@@ -456,7 +456,7 @@ def test_resample_upsample(unit):
         start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D", name="index"
     ).as_unit(unit)
 
-    s = Series(np.random.default_rng(2).rand(len(dti)), dti)
+    s = Series(np.random.default_rng(2).random(len(dti)), dti)
 
     # to minutely, by padding
     result = s.resample("Min").ffill()
@@ -657,7 +657,7 @@ def test_resample_reresample(unit):
     dti = date_range(
         start=datetime(2005, 1, 1), end=datetime(2005, 1, 10), freq="D"
     ).as_unit(unit)
-    s = Series(np.random.default_rng(2).rand(len(dti)), dti)
+    s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8H").mean()
     assert len(result) == 22

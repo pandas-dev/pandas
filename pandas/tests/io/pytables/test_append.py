@@ -129,7 +129,7 @@ def test_append_series(setup_path):
         tm.assert_series_equal(result, expected, check_index_type=True)
 
         # multi-index
-        mi = DataFrame(np.random.default_rng(2).standard_normal(5, 1), columns=["A"])
+        mi = DataFrame(np.random.default_rng(2).standard_normal((5, 1)), columns=["A"])
         mi["B"] = np.arange(len(mi))
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
@@ -308,7 +308,7 @@ def test_append_with_different_block_ordering(setup_path):
     with ensure_clean_store(setup_path) as store:
         for i in range(10):
             df = DataFrame(
-                np.random.default_rng(2).standard_normal(10, 2), columns=list("AB")
+                np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
             )
             df["index"] = range(10)
             df["index"] += i * 10
@@ -330,7 +330,7 @@ def test_append_with_different_block_ordering(setup_path):
     # combinations)
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 2),
+            np.random.default_rng(2).standard_normal((10, 2)),
             columns=list("AB"),
             dtype="float64",
         )
@@ -609,7 +609,7 @@ def test_append_with_data_columns(setup_path):
 
         index = date_range("1/1/2000", periods=8)
         df_dc = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 3),
+            np.random.default_rng(2).standard_normal((8, 3)),
             index=index,
             columns=["A", "B", "C"],
         )
@@ -690,7 +690,7 @@ def test_append_misc_empty_frame(setup_path):
             store.select("df")
 
         # repeated append of 0/non-zero frames
-        df = DataFrame(np.random.default_rng(2).rand(10, 3), columns=list("ABC"))
+        df = DataFrame(np.random.default_rng(2).random(10, 3), columns=list("ABC"))
         store.append("df", df)
         tm.assert_frame_equal(store.select("df"), df)
         store.append("df", df_empty)

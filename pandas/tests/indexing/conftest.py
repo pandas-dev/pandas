@@ -12,7 +12,7 @@ from pandas import (
 
 @pytest.fixture
 def series_ints():
-    return Series(np.random.default_rng(2).rand(4), index=np.arange(0, 8, 2))
+    return Series(np.random.default_rng(2).random(4), index=np.arange(0, 8, 2))
 
 
 @pytest.fixture
@@ -27,7 +27,7 @@ def frame_ints():
 @pytest.fixture
 def series_uints():
     return Series(
-        np.random.default_rng(2).rand(4),
+        np.random.default_rng(2).random(4),
         index=Index(np.arange(0, 8, 2, dtype=np.uint64)),
     )
 
@@ -74,7 +74,8 @@ def frame_ts():
 @pytest.fixture
 def series_floats():
     return Series(
-        np.random.default_rng(2).rand(4), index=Index(range(0, 8, 2), dtype=np.float64)
+        np.random.default_rng(2).random(4),
+        index=Index(range(0, 8, 2), dtype=np.float64),
     )
 
 
@@ -121,6 +122,6 @@ def frame_multi():
 @pytest.fixture
 def series_multi():
     return Series(
-        np.random.default_rng(2).rand(4),
+        np.random.default_rng(2).random(4),
         index=MultiIndex.from_product([[1, 2], [3, 4]]),
     )
