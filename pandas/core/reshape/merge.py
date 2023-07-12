@@ -3,14 +3,16 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Sequence,
+)
 import datetime
 from functools import partial
 import string
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Literal,
-    Sequence,
     cast,
     final,
 )
@@ -143,10 +145,12 @@ def merge(
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
+    left_df = _validate_operand(left)
+    right_df = _validate_operand(right)
     if how == "cross":
         return _cross_merge(
-            left,
-            right,
+            left_df,
+            right_df,
             on=on,
             left_on=left_on,
             right_on=right_on,
@@ -160,8 +164,8 @@ def merge(
         )
     else:
         op = _MergeOperation(
-            left,
-            right,
+            left_df,
+            right_df,
             how=how,
             on=on,
             left_on=left_on,
@@ -177,8 +181,8 @@ def merge(
 
 
 def _cross_merge(
-    left: DataFrame | Series,
-    right: DataFrame | Series,
+    left: DataFrame,
+    right: DataFrame,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,

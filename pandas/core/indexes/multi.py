@@ -1,19 +1,19 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
 from functools import wraps
 from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Sequence,
-    Tuple,
     cast,
 )
 import warnings
@@ -546,7 +546,7 @@ class MultiIndex(Index):
         cls,
         tuples: Iterable[tuple[Hashable, ...]],
         sortorder: int | None = None,
-        names: Sequence[Hashable] | Hashable = None,
+        names: Sequence[Hashable] | Hashable | None = None,
     ) -> MultiIndex:
         """
         Convert list of tuples to MultiIndex.
@@ -587,7 +587,7 @@ class MultiIndex(Index):
             raise TypeError("Input must be a list / sequence of tuple-likes.")
         if is_iterator(tuples):
             tuples = list(tuples)
-        tuples = cast(Collection[Tuple[Hashable, ...]], tuples)
+        tuples = cast(Collection[tuple[Hashable, ...]], tuples)
 
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
@@ -617,7 +617,7 @@ class MultiIndex(Index):
             arrays = list(lib.to_object_array_tuples(tuples).T)
         else:
             arrs = zip(*tuples)
-            arrays = cast(List[Sequence[Hashable]], arrs)
+            arrays = cast(list[Sequence[Hashable]], arrs)
 
         return cls.from_arrays(arrays, sortorder=sortorder, names=names)
 

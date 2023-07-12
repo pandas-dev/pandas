@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypedDict,
     overload,
 )
@@ -66,6 +63,11 @@ from pandas.io.parsers.python_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
     from types import TracebackType
 
     from pandas._typing import (
@@ -911,7 +913,7 @@ def read_csv(
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy"] | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     if infer_datetime_format is not lib.no_default:
@@ -1244,7 +1246,7 @@ def read_table(
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: str | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
     if infer_datetime_format is not lib.no_default:
