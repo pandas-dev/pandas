@@ -888,7 +888,7 @@ class TestIsin:
     def test_invalid(self):
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
-            r"you passed a \[int\]"
+            r"you passed a `int`"
         )
         with pytest.raises(TypeError, match=msg):
             algos.isin(1, 1)

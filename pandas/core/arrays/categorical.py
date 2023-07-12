@@ -2581,7 +2581,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             values_type = type(values).__name__
             raise TypeError(
                 "only list-like objects are allowed to be passed "
-                f"to isin(), you passed a [{values_type}]"
+                f"to isin(), you passed a `{values_type}`"
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
