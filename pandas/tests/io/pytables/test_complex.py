@@ -16,7 +16,7 @@ from pandas.io.pytables import read_hdf
 
 def test_complex_fixed(tmp_path, setup_path):
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5).astype(np.complex64),
+        np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
@@ -27,7 +27,7 @@ def test_complex_fixed(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5).astype(np.complex128),
+        np.random.default_rng(2).random((4, 5)).astype(np.complex128),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
@@ -39,7 +39,7 @@ def test_complex_fixed(tmp_path, setup_path):
 
 def test_complex_table(tmp_path, setup_path):
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5).astype(np.complex64),
+        np.random.default_rng(2).random((4, 5)).astype(np.complex64),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
@@ -50,7 +50,7 @@ def test_complex_table(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5).astype(np.complex128),
+        np.random.default_rng(2).random((4, 5)).astype(np.complex128),
         index=list("abcd"),
         columns=list("ABCDE"),
     )

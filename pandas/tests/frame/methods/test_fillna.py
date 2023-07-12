@@ -135,7 +135,7 @@ class TestFillNA:
 
     def test_fillna_limit_and_value(self):
         # limit and value
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
         df.iloc[2:7, 0] = np.nan
         df.iloc[3:5, 2] = np.nan
 

@@ -409,7 +409,7 @@ class TestJoin:
 
         index = lexsorted_two_level_string_multiindex
         to_join = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3),
+            np.random.default_rng(2).standard_normal((10, 3)),
             index=index,
             columns=["j_one", "j_two", "j_three"],
         )
@@ -653,7 +653,8 @@ class TestJoin:
 
     def test_join_many_mixed(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 4), columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((8, 4)),
+            columns=["A", "B", "C", "D"],
         )
         df["key"] = ["foo", "bar"] * 4
         df1 = df.loc[:, ["A", "B"]]

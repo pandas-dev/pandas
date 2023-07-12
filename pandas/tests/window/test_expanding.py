@@ -625,7 +625,7 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     engine, raw = engine_and_raw
 
-    df = DataFrame(np.random.default_rng(2).random(20, 3))
+    df = DataFrame(np.random.default_rng(2).random((20, 3)))
 
     expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 

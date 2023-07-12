@@ -693,7 +693,7 @@ def test_rolling_window_as_string(center, expected_data):
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
 
-    npr = np.random.default_rng(2).RandomState(seed=421)
+    npr = np.random.default_rng(2)
 
     data = npr.integers(1, high=100, size=len(days))
     df = DataFrame({"DateCol": days, "metric": data})

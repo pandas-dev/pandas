@@ -98,7 +98,7 @@ class TestSorting:
 
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
-        rs = np.random.default_rng(2).RandomState(42)
+        rs = np.random.default_rng(2)
         arr = rs.integers(-1 << 12, 1 << 12, (1 << 15, 5))
         i = rs.choice(len(arr), len(arr) * 4)
         arr = np.vstack((arr, arr[i]))  # add some duplicate rows

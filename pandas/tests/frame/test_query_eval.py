@@ -541,7 +541,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_query(self, engine, parser):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )
 
         tm.assert_frame_equal(
@@ -1118,7 +1118,7 @@ class TestDataFrameEvalWithFrame:
     @pytest.fixture
     def frame(self):
         return DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
 
     def test_simple_expr(self, frame, parser, engine):

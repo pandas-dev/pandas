@@ -307,7 +307,7 @@ class TestFancy:
         # GH 5835
         # dups on index and missing values
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 5),
+            np.random.default_rng(2).standard_normal((5, 5)),
             columns=["A", "B", "B", "B", "A"],
         )
 

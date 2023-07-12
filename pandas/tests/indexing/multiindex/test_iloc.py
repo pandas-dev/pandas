@@ -17,7 +17,7 @@ def simple_multiindex_dataframe():
     random data by default.
     """
 
-    data = np.random.default_rng(2).standard_normal(3, 3)
+    data = np.random.default_rng(2).standard_normal((3, 3))
     return DataFrame(
         data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
     )

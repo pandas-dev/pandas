@@ -98,17 +98,17 @@ class TestFrameLegend:
         # Time Series
         ind = date_range("1/1/2014", periods=3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["a", "b", "c"],
             index=ind,
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["d", "e", "f"],
             index=ind,
         )
         df3 = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["g", "h", "i"],
             index=ind,
         )
@@ -124,17 +124,17 @@ class TestFrameLegend:
         # Time Series
         ind = date_range("1/1/2014", periods=3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["a", "b", "c"],
             index=ind,
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["d", "e", "f"],
             index=ind,
         )
         df3 = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["g", "h", "i"],
             index=ind,
         )
@@ -150,7 +150,7 @@ class TestFrameLegend:
     def test_df_legend_labels_time_series_no_mutate(self):
         ind = date_range("1/1/2014", periods=3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=["a", "b", "c"],
             index=ind,
         )
@@ -201,7 +201,7 @@ class TestFrameLegend:
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot(legend=True, ax=ax)
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")

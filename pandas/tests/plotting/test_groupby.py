@@ -21,26 +21,20 @@ class TestDataFrameGroupByPlots:
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
         weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
-        gender = (
-            np.random.default_rng(2).RandomState(42).choice(["male", "female"], size=n)
-        )
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
 
         weight.groupby(gender).plot()
 
     def test_series_groupby_plotting_nominally_works_hist(self):
         n = 10
         height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = (
-            np.random.default_rng(2).RandomState(42).choice(["male", "female"], size=n)
-        )
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         height.groupby(gender).hist()
 
     def test_series_groupby_plotting_nominally_works_alpha(self):
         n = 10
         height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = (
-            np.random.default_rng(2).RandomState(42).choice(["male", "female"], size=n)
-        )
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         # Regression test for GH8733
         height.groupby(gender).plot(alpha=0.5)
 

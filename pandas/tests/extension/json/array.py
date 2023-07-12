@@ -239,7 +239,7 @@ def make_data():
     return [
         UserDict(
             [
-                (rng.choice(string.ascii_letters), rng.integers(0, 100))
+                (rng.choice(list(string.ascii_letters)), rng.integers(0, 100))
                 for _ in range(rng.integers(0, 10))
             ]
         )

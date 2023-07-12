@@ -1458,7 +1458,7 @@ def test_resample_group_info(n, k, unit):
     # GH10914
 
     # use a fixed seed to always have the same uniques
-    prng = np.random.default_rng(2).RandomState(1234)
+    prng = np.random.default_rng(2)
 
     dr = date_range(start="2015-08-27", periods=n // 10, freq="T").as_unit(unit)
     ts = Series(prng.integers(0, n // k, n).astype("int64"), index=prng.choice(dr, n))

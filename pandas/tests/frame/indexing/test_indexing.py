@@ -224,7 +224,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_boolean_iadd(self):
-        arr = np.random.default_rng(2).standard_normal(5, 5)
+        arr = np.random.default_rng(2).standard_normal((5, 5))
 
         df = DataFrame(arr.copy(), columns=["A", "B", "C", "D", "E"])
 
@@ -726,7 +726,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         result = df.loc[1.5:4]
         expected = df.reindex([1.5, 2, 3, 4])
@@ -754,7 +754,7 @@ class TestDataFrameIndexing:
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         # positional slicing only via iloc!
         msg = (

@@ -166,7 +166,9 @@ def test_append_with_diff_col_name_types_raises_value_error(setup_path):
 
 def test_invalid_complib(setup_path):
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     with tm.ensure_clean(setup_path) as path:
         msg = r"complib only supports \[.*\] compression."
@@ -204,7 +206,9 @@ def test_unsuppored_hdf_file_error(datapath):
 
 def test_read_hdf_errors(setup_path, tmp_path):
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
 
     path = tmp_path / setup_path

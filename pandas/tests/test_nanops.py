@@ -1007,7 +1007,7 @@ class TestNanvarFixedValues:
 
     @property
     def prng(self):
-        return np.random.default_rng(2).RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNanskewFixedValues:
@@ -1058,7 +1058,7 @@ class TestNanskewFixedValues:
 
     @property
     def prng(self):
-        return np.random.default_rng(2).RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNankurtFixedValues:
@@ -1109,7 +1109,7 @@ class TestNankurtFixedValues:
 
     @property
     def prng(self):
-        return np.random.default_rng(2).RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestDatetime64NaNOps:

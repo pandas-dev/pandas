@@ -489,9 +489,7 @@ class TestAstypeString:
 class TestAstypeCategorical:
     def test_astype_categorical_to_other(self):
         cat = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
-        ser = Series(
-            np.random.default_rng(2).RandomState(0).integers(0, 10000, 100)
-        ).sort_values()
+        ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
         expected = ser

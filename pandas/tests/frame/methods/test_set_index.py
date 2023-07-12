@@ -67,7 +67,9 @@ class TestSetIndex:
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)), columns=columns
+        )
 
         result = df.set_index(df.columns[0])
 

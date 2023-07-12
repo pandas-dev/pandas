@@ -106,7 +106,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).RandomState(42).standard_normal(100, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -131,7 +131,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).RandomState(42).standard_normal(100, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot

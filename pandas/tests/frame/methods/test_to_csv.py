@@ -74,7 +74,7 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv2__") as path:
             # duplicate index
             df = DataFrame(
-                np.random.default_rng(2).standard_normal(3, 3),
+                np.random.default_rng(2).standard_normal((3, 3)),
                 index=["a", "a", "b"],
                 columns=["x", "y", "z"],
             )
@@ -84,7 +84,7 @@ class TestDataFrameToCSV:
 
             midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
             df = DataFrame(
-                np.random.default_rng(2).standard_normal(3, 3),
+                np.random.default_rng(2).standard_normal((3, 3)),
                 index=midx,
                 columns=["x", "y", "z"],
             )

@@ -128,7 +128,9 @@ class TestRank:
     def test_rank_does_not_mutate(self):
         # GH#18521
         # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 3), dtype="float64")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), dtype="float64"
+        )
         expected = df.copy()
         df.rank()
         result = df

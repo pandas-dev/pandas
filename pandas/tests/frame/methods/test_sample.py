@@ -37,29 +37,25 @@ class TestSample:
         )
 
         tm.assert_equal(
-            obj.sample(n=4, random_state=np.random.default_rng(2).RandomState(test)),
-            obj.sample(n=4, random_state=np.random.default_rng(2).RandomState(test)),
+            obj.sample(n=4, random_state=np.random.default_rng(test)),
+            obj.sample(n=4, random_state=np.random.default_rng(test)),
         )
 
         tm.assert_equal(
-            obj.sample(
-                frac=0.7, random_state=np.random.default_rng(2).RandomState(test)
-            ),
-            obj.sample(
-                frac=0.7, random_state=np.random.default_rng(2).RandomState(test)
-            ),
+            obj.sample(frac=0.7, random_state=np.random.default_rng(test)),
+            obj.sample(frac=0.7, random_state=np.random.default_rng(test)),
         )
 
         tm.assert_equal(
             obj.sample(
                 frac=2,
                 replace=True,
-                random_state=np.random.default_rng(2).RandomState(test),
+                random_state=np.random.default_rng(test),
             ),
             obj.sample(
                 frac=2,
                 replace=True,
-                random_state=np.random.default_rng(2).RandomState(test),
+                random_state=np.random.default_rng(test),
             ),
         )
 
@@ -345,7 +341,7 @@ class TestSampleDataFrame:
         # GH#27357, GH#30784: ensure the result of sample is an actual copy and
         # doesn't track the parent dataframe / doesn't give SettingWithCopy warnings
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )
         df2 = df.sample(3)
 

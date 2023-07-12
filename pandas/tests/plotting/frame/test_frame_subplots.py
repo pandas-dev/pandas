@@ -333,7 +333,7 @@ class TestDataFramePlotsSubplots:
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
         _, axes = mpl.pyplot.subplots(2, 2)
         df = DataFrame(
-            np.random.default_rng(2).random(10, 4),
+            np.random.default_rng(2).random((10, 4)),
             index=list(string.ascii_letters[:10]),
         )
         with warnings.catch_warnings():
@@ -653,13 +653,13 @@ class TestDataFramePlotsSubplots:
         ],
     )
     def test_bar_barwidth_position(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.parametrize("w", [1, 1.0])
     def test_bar_barwidth_position_int(self, w):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot.bar(stacked=True, width=w)
         ticks = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
@@ -680,7 +680,7 @@ class TestDataFramePlotsSubplots:
     )
     def test_bar_barwidth_position_int_width_1(self, kind, kwargs):
         # GH 12979
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         self._check_bar_alignment(df, kind=kind, width=1, **kwargs)
 
     def _check_bar_alignment(

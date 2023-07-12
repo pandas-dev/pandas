@@ -90,7 +90,7 @@ class TestFrameComparisons:
     def test_frame_in_list(self):
         # GH#12689 this should raise at the DataFrame level, not blocks
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4), columns=list("ABCD")
+            np.random.default_rng(2).standard_normal((6, 4)), columns=list("ABCD")
         )
         msg = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg):
@@ -1810,7 +1810,9 @@ class TestFrameArithmeticUnsorted:
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
         )
 
         align = DataFrame._align_for_op
@@ -1828,7 +1830,9 @@ class TestFrameArithmeticUnsorted:
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
         )
 
         align = DataFrame._align_for_op
@@ -1844,7 +1848,9 @@ class TestFrameArithmeticUnsorted:
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
         )
 
         align = DataFrame._align_for_op

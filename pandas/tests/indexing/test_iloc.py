@@ -639,7 +639,7 @@ class TestiLocBaseIndependent:
         # multi axis slicing issue with single block
         # surfaced in GH 6059
 
-        arr = np.random.default_rng(2).standard_normal(6, 4)
+        arr = np.random.default_rng(2).standard_normal((6, 4))
         index = date_range("20130101", periods=6)
         columns = list("ABCD")
         df = DataFrame(arr, index=index, columns=columns)
@@ -664,7 +664,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
         # related
-        arr = np.random.default_rng(2).standard_normal(6, 4)
+        arr = np.random.default_rng(2).standard_normal((6, 4))
         index = list(range(0, 12, 2))
         columns = list(range(0, 8, 2))
         df = DataFrame(arr, index=index, columns=columns)
@@ -1060,7 +1060,7 @@ class TestiLocBaseIndependent:
 
     def test_iloc_getitem_float_duplicates(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             index=[0.1, 0.2, 0.2],
             columns=list("abc"),
         )

@@ -192,7 +192,7 @@ class TestFromRecords:
 
     def test_from_records_with_index_data(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
         )
 
         data = np.random.default_rng(2).standard_normal(10)
@@ -202,7 +202,7 @@ class TestFromRecords:
 
     def test_from_records_bad_index_column(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
         )
 
         # should pass

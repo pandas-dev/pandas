@@ -403,7 +403,7 @@ class TestDataFrameSetItem:
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
         cols = Index([1, 2, 3], dtype=dtype)
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3), columns=cols)
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)), columns=cols)
 
         df[False] = ["a", "b", "c"]
 

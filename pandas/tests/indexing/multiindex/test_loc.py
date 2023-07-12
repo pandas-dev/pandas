@@ -76,7 +76,7 @@ class TestMultiIndexLoc:
     def test_loc_getitem_multiindex_missing_label_raises(self):
         # GH#21593
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -155,7 +155,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_labels(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[["i", "i", "j"], ["A", "A", "B"]],
             index=[["i", "i", "j"], ["X", "X", "Y"]],
         )
@@ -182,7 +182,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_ints(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -192,7 +192,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_missing_label_raises(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -204,7 +204,7 @@ class TestMultiIndexLoc:
     def test_loc_multiindex_list_missing_label(self, key, pos):
         # GH 27148 - lists with missing labels _do_ raise
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )

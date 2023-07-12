@@ -763,7 +763,7 @@ def test_start_stop_fixed(setup_path):
 
 
 def test_select_filter_corner(setup_path):
-    df = DataFrame(np.random.default_rng(2).standard_normal(50, 100))
+    df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
@@ -903,7 +903,9 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     # BUG: 7212
 
     df = DataFrame(
-        np.random.default_rng(2).random(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)

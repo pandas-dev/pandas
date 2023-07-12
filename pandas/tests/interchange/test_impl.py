@@ -176,7 +176,7 @@ def test_missing_from_masked():
 
     df2 = df.__dataframe__()
 
-    rng = np.random.default_rng(2).RandomState(42)
+    rng = np.random.default_rng(2)
     dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
         null_idx = df.index[

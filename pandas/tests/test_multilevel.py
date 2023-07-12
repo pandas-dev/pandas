@@ -176,7 +176,7 @@ class TestMultiLevel:
         )
 
         series = Series(np.random.default_rng(2).standard_normal(6), index=index)
-        frame = DataFrame(np.random.default_rng(2).standard_normal(6, 4), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar", 0)]
         result2 = series.loc[("foo", "bar", 0)]
@@ -201,7 +201,7 @@ class TestMultiLevel:
         )
 
         series = Series(np.random.default_rng(2).standard_normal(6), index=index)
-        frame = DataFrame(np.random.default_rng(2).standard_normal(6, 4), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar")]
         result2 = series.loc[("foo", "bar")]

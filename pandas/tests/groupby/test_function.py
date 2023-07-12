@@ -743,7 +743,7 @@ def test_nlargest():
 
 def test_nlargest_mi_grouper():
     # see gh-21411
-    npr = np.random.default_rng(2).RandomState(123456789)
+    npr = np.random.default_rng(2)
 
     dts = date_range("20180101", periods=10)
     iterables = [dts, ["one", "two"]]

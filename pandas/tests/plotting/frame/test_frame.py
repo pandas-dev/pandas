@@ -269,7 +269,7 @@ class TestDataFramePlots:
 
     def test_implicit_label(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["a", "b", "c"]
         )
         ax = df.plot(x="a", y="b")
         _check_text_labels(ax.xaxis.get_label(), "a")
@@ -432,7 +432,7 @@ class TestDataFramePlots:
 
     def test_negative_log(self):
         df = -DataFrame(
-            np.random.default_rng(2).random(6, 4),
+            np.random.default_rng(2).random((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -453,7 +453,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("mult", [1, -1])
     def test_line_area_stacked(self, kind, mult):
         df = mult * DataFrame(
-            np.random.default_rng(2).random(6, 4), columns=["w", "x", "y", "z"]
+            np.random.default_rng(2).random((6, 4)), columns=["w", "x", "y", "z"]
         )
 
         ax1 = _check_plot_works(df.plot, kind=kind, stacked=False)
@@ -478,7 +478,7 @@ class TestDataFramePlots:
 
     def test_line_area_stacked_mixed(self):
         mixed_df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["w", "x", "y", "z"],
         )
@@ -495,7 +495,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("kind", ["line", "area"])
     def test_line_area_stacked_positive_idx(self, kind):
         df = DataFrame(
-            np.random.default_rng(2).random(6, 4), columns=["w", "x", "y", "z"]
+            np.random.default_rng(2).random((6, 4)), columns=["w", "x", "y", "z"]
         )
         # Use an index with strictly positive values, preventing
         #  matplotlib from warning about ignoring xlim
@@ -590,7 +590,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
         df = DataFrame(
-            np.random.default_rng(2).random(6, 4), columns=["x", "y", "z", "four"]
+            np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
         )
 
         neg_df = -df
@@ -620,14 +620,14 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         ax = df.plot.bar(stacked=stacked, linewidth=2)
         for r in ax.patches:
             assert r.get_linewidth() == 2
 
     def test_bar_linewidth_subplots(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # subplots
         axes = df.plot.bar(linewidth=2, subplots=True)
         _check_axes_shape(axes, axes_num=5, layout=(5, 1))
@@ -640,7 +640,7 @@ class TestDataFramePlots:
     )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_barwidth(self, meth, dim, stacked):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         width = 0.9
 
@@ -655,7 +655,7 @@ class TestDataFramePlots:
         "meth, dim", [("bar", "get_width"), ("barh", "get_height")]
     )
     def test_barh_barwidth_subplots(self, meth, dim):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         width = 0.9
 
@@ -740,7 +740,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("x, y", [("x", "y"), (1, 2)])
     def test_plot_scatter(self, x, y):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -749,7 +749,7 @@ class TestDataFramePlots:
 
     def test_plot_scatter_error(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -762,7 +762,7 @@ class TestDataFramePlots:
 
     def test_plot_scatter_shape(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["x", "y", "z", "four"],
         )
@@ -932,7 +932,7 @@ class TestDataFramePlots:
     )
     def test_plot_bar(self, kwargs):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -1037,7 +1037,7 @@ class TestDataFramePlots:
 
     def test_boxplot_return_type_invalid(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -1048,7 +1048,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("return_type", ["dict", "axes", "both"])
     def test_boxplot_return_type_invalid_type(self, return_type):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -1329,7 +1329,7 @@ class TestDataFramePlots:
         fig = plt.gcf()
         fig.clf()
         fig.add_subplot(111)
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
         ax = df.plot(style=markers)
         for idx, line in enumerate(ax.get_lines()[: len(markers)]):
             assert line.get_marker() == markers[idx]
@@ -1397,7 +1397,7 @@ class TestDataFramePlots:
     )
     def test_partially_invalid_plot_data_numeric(self, kind):
         df = DataFrame(
-            np.random.default_rng(2).RandomState(42).standard_normal((10, 2)),
+            np.random.default_rng(2).standard_normal((10, 2)),
             dtype=object,
         )
         df[np.random.default_rng(2).random(df.shape[0]) > 0.5] = "a"
@@ -1745,7 +1745,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar"])
     def test_errorbar_with_partial_columns_kind(self, kind):
-        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal(10, 3)))
+        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
         df_err = DataFrame(
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )
@@ -1754,7 +1754,7 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_errorbar_with_partial_columns_dti(self):
-        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal(10, 3)))
+        df = DataFrame(np.abs(np.random.default_rng(2).standard_normal((10, 3))))
         df_err = DataFrame(
             np.abs(np.random.default_rng(2).standard_normal((10, 2))), columns=[0, 2]
         )

@@ -71,13 +71,15 @@ class TestTSPlot:
         idx = date_range("1/1/1987", freq="MS", periods=100)
         idx = DatetimeIndex(idx.values, freq=None)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         _check_plot_works(df.plot)
 
         # axes freq
         idx = idx[0:40].union(idx[45:99])
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 3), index=idx
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
         )
         _check_plot_works(df2.plot)
 
@@ -85,7 +87,9 @@ class TestTSPlot:
         # N > 1
         idx = date_range("2008-1-1 00:15:00", freq="15T", periods=10)
         idx = DatetimeIndex(idx.values, freq=None)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         _check_plot_works(df.plot)
 
     def test_is_error_nozeroindex(self):
@@ -209,7 +213,7 @@ class TestTSPlot:
     def test_line_plot_period_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 3),
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
             columns=["A", "B", "C"],
         )
@@ -224,7 +228,7 @@ class TestTSPlot:
         # #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=100)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 3),
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
             columns=["A", "B", "C"],
         )
@@ -237,7 +241,7 @@ class TestTSPlot:
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 3),
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
             index=idx,
             columns=["A", "B", "C"],
         )
@@ -1047,7 +1051,7 @@ class TestTSPlot:
         # date
         idx = [date(2000, 1, 1), date(2000, 1, 5), date(2000, 1, 20)]
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 3),
+            np.random.default_rng(2).standard_normal((len(idx), 3)),
             Index(idx, dtype=object),
         )
         _check_plot_works(df.plot)
@@ -1056,7 +1060,7 @@ class TestTSPlot:
         # np.datetime64
         idx = date_range("1/1/2000", periods=10)
         idx = idx[[0, 2, 5, 9]].astype(object)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 3), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), idx)
         _, ax = mpl.pyplot.subplots()
         _check_plot_works(df.plot, ax=ax)
 
@@ -1524,9 +1528,7 @@ class TestTSPlot:
 
     def test_matplotlib_scatter_datetime64(self):
         # https://github.com/matplotlib/matplotlib/issues/11391
-        df = DataFrame(
-            np.random.default_rng(2).RandomState(0).rand(10, 2), columns=["x", "y"]
-        )
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=["x", "y"])
         df["time"] = date_range("2018-01-01", periods=10, freq="D")
         _, ax = mpl.pyplot.subplots()
         ax.scatter(x="time", y="y", data=df)

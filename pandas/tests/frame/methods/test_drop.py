@@ -160,7 +160,7 @@ class TestDataFrameDrop:
         # inplace cache issue
         # GH#5628
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((10, 3)), columns=list("abc")
         )
         expected = df[~(df.b > 0)]
         return_value = df.drop(labels=df[df.b > 0].index, inplace=True)

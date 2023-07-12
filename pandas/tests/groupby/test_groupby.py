@@ -1211,7 +1211,7 @@ def test_groupby_with_hier_columns():
         [("A", "cat"), ("B", "dog"), ("B", "cat"), ("A", "dog")]
     )
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(8, 4), index=index, columns=columns
+        np.random.default_rng(2).standard_normal((8, 4)), index=index, columns=columns
     )
 
     result = df.groupby(level=0).mean()
@@ -2563,7 +2563,7 @@ def test_groupby_numerical_stability_cumsum():
 
 def test_groupby_cumsum_skipna_false():
     # GH#46216 don't propagate np.nan above the diagonal
-    arr = np.random.default_rng(2).standard_normal(5, 5)
+    arr = np.random.default_rng(2).standard_normal((5, 5))
     df = DataFrame(arr)
     for i in range(5):
         df.iloc[i, i] = np.nan

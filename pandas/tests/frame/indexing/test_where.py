@@ -434,7 +434,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_align(self):
         def create():
-            df = DataFrame(np.random.default_rng(2).standard_normal(10, 3))
+            df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
             df.iloc[3:5, 0] = np.nan
             df.iloc[4:6, 1] = np.nan
             df.iloc[5:8, 2] = np.nan

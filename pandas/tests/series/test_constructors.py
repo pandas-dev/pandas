@@ -177,7 +177,7 @@ class TestSeriesConstructors:
             ValueError,
             match=r"Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead",
         ):
-            Series(np.random.default_rng(2).standard_normal(3, 3), index=np.arange(3))
+            Series(np.random.default_rng(2).standard_normal((3, 3)), index=np.arange(3))
 
         mixed.name = "Series"
         rs = Series(mixed).name

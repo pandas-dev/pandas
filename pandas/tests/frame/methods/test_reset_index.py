@@ -250,7 +250,7 @@ class TestResetIndex:
         assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
-        vals = np.random.default_rng(2).standard_normal(3, 3).astype(object)
+        vals = np.random.default_rng(2).standard_normal((3, 3)).astype(object)
         idx = ["x", "y", "z"]
         full = np.hstack(([[x] for x in idx], vals))
         df = DataFrame(

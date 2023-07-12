@@ -12,7 +12,7 @@ def test_pipe():
     # Test the pipe method of DataFrameGroupBy.
     # Issue #17871
 
-    random_state = np.random.default_rng(2).RandomState(1234567890)
+    random_state = np.random.default_rng(2)
 
     df = DataFrame(
         {

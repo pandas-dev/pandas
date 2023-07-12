@@ -65,7 +65,7 @@ class TestDataFrameMissingData:
         assert return_value is None
 
     def test_dropna(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(6, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 4)))
         df.iloc[:2, 2] = np.nan
 
         dropped = df.dropna(axis=1)

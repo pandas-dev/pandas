@@ -59,7 +59,7 @@ def test_transform():
         return arr - arr.mean(axis=0)
 
     people = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 5),
+        np.random.default_rng(2).standard_normal((5, 5)),
         columns=["a", "b", "c", "d", "e"],
         index=["Joe", "Steve", "Wes", "Jim", "Travis"],
     )

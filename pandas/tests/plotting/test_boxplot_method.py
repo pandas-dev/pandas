@@ -73,7 +73,7 @@ class TestDataFramePlots:
     )
     def test_boxplot_legacy1(self, kwargs, warn):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -147,7 +147,7 @@ class TestDataFramePlots:
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -163,7 +163,7 @@ class TestDataFramePlots:
         # API change in https://github.com/pandas-dev/pandas/pull/7096
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 4),
+            np.random.default_rng(2).standard_normal((6, 4)),
             index=list(string.ascii_letters[:6]),
             columns=["one", "two", "three", "four"],
         )
@@ -420,9 +420,7 @@ class TestDataFrameGroupByPlots:
         n = 10
         weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
         height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = (
-            np.random.default_rng(2).RandomState(42).choice(["male", "female"], size=n)
-        )
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         df = DataFrame({"height": height, "weight": weight, "gender": gender})
         gb = df.groupby("gender")
 
@@ -439,9 +437,7 @@ class TestDataFrameGroupByPlots:
         n = 10
         weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
         height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender = (
-            np.random.default_rng(2).RandomState(42).choice(["male", "female"], size=n)
-        )
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         df = DataFrame({"height": height, "weight": weight, "gender": gender})
         # now works with GH 5610 as gender is excluded
         df.groupby("gender").hist()

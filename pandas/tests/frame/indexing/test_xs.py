@@ -348,7 +348,7 @@ class TestXSWithMultiIndex:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        obj = DataFrame(np.random.default_rng(2).standard_normal(6, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
         if frame_or_series is Series:
             obj = obj[0]
 

@@ -403,7 +403,7 @@ class TestCategoricalIndex:
     def test_ix_categorical_index(self):
         # GH 12531
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             index=list("ABC"),
             columns=list("XYZ"),
         )
@@ -428,7 +428,7 @@ class TestCategoricalIndex:
     def test_ix_categorical_index_non_unique(self):
         # non-unique
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             index=list("ABA"),
             columns=list("XYX"),
         )

@@ -45,7 +45,9 @@ def test_tseries_indices_series(setup_path):
 def test_tseries_indices_frame(setup_path):
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         store["a"] = df
         result = store["a"]
 
@@ -54,7 +56,7 @@ def test_tseries_indices_frame(setup_path):
         tm.assert_class_equal(result.index, df.index, obj="dataframe index")
 
         idx = tm.makePeriodIndex(10)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 3), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), idx)
         store["a"] = df
         result = store["a"]
 

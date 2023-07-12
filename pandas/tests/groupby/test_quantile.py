@@ -93,11 +93,7 @@ def test_quantile_array():
 
 def test_quantile_array2():
     # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
-    arr = (
-        np.random.default_rng(2)
-        .RandomState(0)
-        .integers(0, 5, size=(10, 3), dtype=np.int64)
-    )
+    arr = np.random.default_rng(2).integers(0, 5, size=(10, 3), dtype=np.int64)
     df = DataFrame(arr, columns=list("ABC"))
     result = df.groupby("A").quantile([0.3, 0.7])
     expected = DataFrame(

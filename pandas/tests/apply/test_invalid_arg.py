@@ -93,7 +93,7 @@ def test_series_nested_renamer(renamer):
 
 def test_apply_dict_depr():
     tsdf = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         columns=["A", "B", "C"],
         index=date_range("1/1/2000", periods=10),
     )

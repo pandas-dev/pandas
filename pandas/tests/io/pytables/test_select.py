@@ -41,7 +41,7 @@ def test_select_columns_in_where(setup_path):
 
     # With a DataFrame
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         index=index,
         columns=["A", "B", "C"],
     )
@@ -664,7 +664,7 @@ def test_frame_select_complex2(tmp_path):
 
     selection = read_hdf(pp, "df", where="A=[2,3]")
     hist = DataFrame(
-        np.random.default_rng(2).standard_normal(25, 1),
+        np.random.default_rng(2).standard_normal((25, 1)),
         columns=["data"],
         index=MultiIndex.from_tuples(
             [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]

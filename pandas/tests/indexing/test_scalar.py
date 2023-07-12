@@ -76,7 +76,7 @@ class TestAtAndiAT:
         # as timestamp is not a tuple!
         dates = date_range("1/1/2000", periods=8)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 4),
+            np.random.default_rng(2).standard_normal((8, 4)),
             index=dates,
             columns=["A", "B", "C", "D"],
         )

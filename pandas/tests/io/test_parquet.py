@@ -569,7 +569,7 @@ class TestBasic(Base):
         # Write column indexes with string column names
         arrays = ["bar", "baz", "foo", "qux"]
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(8, 4), columns=arrays
+            np.random.default_rng(2).standard_normal((8, 4)), columns=arrays
         )
         df.columns.name = "StringCol"
 
@@ -581,7 +581,7 @@ class TestBasic(Base):
         # Write column indexes with string column names
         arrays = [1, 2, 3, 4]
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(8, 4), columns=arrays
+            np.random.default_rng(2).standard_normal((8, 4)), columns=arrays
         )
         df.columns.name = "NonStringCol"
         if engine == "fastparquet":
@@ -997,7 +997,7 @@ class TestParquetPyArrow(Base):
     def test_read_parquet_manager(self, pa, using_array_manager):
         # ensure that read_parquet honors the pandas.options.mode.data_manager option
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(10, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
         )
 
         with tm.ensure_clean() as path:

@@ -560,7 +560,7 @@ class TestDataFramePlots:
     def test_hist_df_with_nonnumerics(self):
         # GH 9853
         df = DataFrame(
-            np.random.default_rng(2).RandomState(42).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             columns=["A", "B", "C", "D"],
         )
         df["E"] = ["x", "y"] * 5
@@ -571,7 +571,7 @@ class TestDataFramePlots:
     def test_hist_df_with_nonnumerics_no_bins(self):
         # GH 9853
         df = DataFrame(
-            np.random.default_rng(2).RandomState(42).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             columns=["A", "B", "C", "D"],
         )
         df["E"] = ["x", "y"] * 5
@@ -661,7 +661,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        rs = np.random.default_rng(2).RandomState(42)
+        rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
@@ -678,8 +678,8 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_axes_shape_no_col(self):
-        rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        rs = np.random.default_rng(2)
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -694,8 +694,8 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_single_key(self):
-        rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        rs = np.random.default_rng(2)
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -716,8 +716,8 @@ class TestDataFrameGroupByPlots:
 
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        rs = np.random.default_rng(2)
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -752,7 +752,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy_grouped_hist(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        rs = np.random.default_rng(2).RandomState(42)
+        rs = np.random.default_rng(2)
         df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
@@ -771,8 +771,8 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy_external_err(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        rs = np.random.default_rng(2)
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -788,8 +788,8 @@ class TestDataFrameGroupByPlots:
             _grouped_hist(df.A, by=df.C, foo="bar")
 
     def test_grouped_hist_legacy_figsize_err(self):
-        rs = np.random.default_rng(2).RandomState(42)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        rs = np.random.default_rng(2)
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -808,7 +808,7 @@ class TestDataFrameGroupByPlots:
         n = 10
         weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
         height = Series(np.random.default_rng(2).normal(60, 10, size=n))
-        gender_int = np.random.default_rng(2).RandomState(42).choice([0, 1], size=n)
+        gender_int = np.random.default_rng(2).choice([0, 1], size=n)
         df_int = DataFrame({"height": height, "weight": weight, "gender": gender_int})
         gb = df_int.groupby("gender")
         axes = gb.hist()

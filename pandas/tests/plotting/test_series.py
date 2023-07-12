@@ -327,14 +327,14 @@ class TestSeriesPlots:
         assert result == expected
 
     def test_rotation_default(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(ax=ax)
         _check_ticks_props(axes, xrot=0)
 
     def test_rotation_30(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         _, ax = mpl.pyplot.subplots()
         axes = df.plot(rot=30, ax=ax)
         _check_ticks_props(axes, xrot=30)

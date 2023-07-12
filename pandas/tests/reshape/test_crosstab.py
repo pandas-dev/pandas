@@ -867,7 +867,7 @@ class TestCrosstab:
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
 def test_categoricals(a_dtype, b_dtype):
     # https://github.com/pandas-dev/pandas/issues/37465
-    g = np.random.default_rng(2).RandomState(25982704)
+    g = np.random.default_rng(2)
     a = Series(g.integers(0, 3, size=100)).astype(a_dtype)
     b = Series(g.integers(0, 2, size=100)).astype(b_dtype)
     result = crosstab(a, b, margins=True, dropna=False)

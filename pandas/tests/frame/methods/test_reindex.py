@@ -1026,7 +1026,7 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
     def test_reindex_multi(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
 
         result = df.reindex(index=range(4), columns=range(4))
         expected = df.reindex(list(range(4))).reindex(columns=range(4))

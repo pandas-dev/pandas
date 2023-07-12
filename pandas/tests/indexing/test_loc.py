@@ -2761,7 +2761,7 @@ def test_loc_getitem_label_list_integer_labels(columns, column_key, expected_col
 
 def test_loc_setitem_float_intindex():
     # GH 8720
-    rand_data = np.random.default_rng(2).standard_normal(8, 4)
+    rand_data = np.random.default_rng(2).standard_normal((8, 4))
     result = DataFrame(rand_data)
     result.loc[:, 0.5] = np.nan
     expected_data = np.hstack((rand_data, np.array([np.nan] * 8).reshape(8, 1)))

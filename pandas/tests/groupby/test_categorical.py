@@ -679,7 +679,7 @@ def test_datetime():
 
 
 def test_categorical_index():
-    s = np.random.default_rng(2).RandomState(12345)
+    s = np.random.default_rng(2)
     levels = ["foo", "bar", "baz", "qux"]
     codes = s.integers(0, 4, size=20)
     cats = Categorical.from_codes(codes, levels, ordered=True)
