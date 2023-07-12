@@ -393,8 +393,8 @@ Datetimelike
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in constructing a :class:`Series` or :class:`DataFrame` from a datetime or timedelta scalar always inferring nanosecond resolution instead of inferring from the input (:issue:`52212`)
+- Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`54097`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
-- Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`??`)
 
 Timedelta
 ^^^^^^^^^

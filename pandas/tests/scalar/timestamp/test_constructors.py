@@ -26,7 +26,7 @@ from pandas import (
 
 class TestTimestampConstructors:
     def test_construct_from_time_unit(self):
-        # only passing a time component, no date
+        # GH#54097 only passing a time component, no date
         ts = Timestamp("01:01:01.111")
         assert ts.unit == "ms"
 
