@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Tuple,
     cast,
 )
 
@@ -39,7 +38,7 @@ class ODSWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format=None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
@@ -118,7 +117,7 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(Tuple[int, int], freeze_panes)
+            freeze_panes = cast(tuple[int, int], freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):

@@ -7,6 +7,11 @@ from abc import (
 )
 import codecs
 from collections import defaultdict
+from collections.abc import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import dataclasses
 import functools
 import gzip
@@ -29,10 +34,7 @@ from typing import (
     AnyStr,
     DefaultDict,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -291,9 +293,9 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     mode: str = "r",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOArgs:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -653,11 +655,11 @@ def get_handle(
     mode: str,
     *,
     encoding: str | None = None,
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors: str | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOHandles[str] | IOHandles[bytes]:
     """
     Get file handle for given path/buffer and mode.

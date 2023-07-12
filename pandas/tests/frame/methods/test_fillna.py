@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -51,7 +50,7 @@ class TestFillNA:
         df = DataFrame(arr, copy=False)
 
         if using_copy_on_write:
-            with tm.assert_produces_warning(ChainedAssignmentError):
+            with tm.raises_chained_assignment_error():
                 df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:

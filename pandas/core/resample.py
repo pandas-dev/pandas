@@ -5,7 +5,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
     final,
@@ -63,6 +62,7 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -86,6 +86,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AnyArrayLike,
         Axis,
@@ -1459,6 +1461,23 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         maybe_warn_args_and_kwargs(type(self), "ohlc", args, kwargs)
         nv.validate_resampler_func("ohlc", args, kwargs)
+
+        ax = self.ax
+        obj = self._obj_with_exclusions
+        if len(ax) == 0:
+            # GH#42902
+            obj = obj.copy()
+            obj.index = _asfreq_compat(obj.index, self.freq)
+            if obj.ndim == 1:
+                obj = obj.to_frame()
+                obj = obj.reindex(["open", "high", "low", "close"], axis=1)
+            else:
+                mi = MultiIndex.from_product(
+                    [obj.columns, ["open", "high", "low", "close"]]
+                )
+                obj = obj.reindex(mi, axis=1)
+            return obj
+
         return self._downsample("ohlc")
 
     @doc(SeriesGroupBy.nunique)
