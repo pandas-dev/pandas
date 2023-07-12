@@ -5099,9 +5099,9 @@ class Index(IndexOpsMixin, PandasObject):
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
-            from pandas.core.arrays.numpy_ import PandasArray
+            from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
-            array = PandasArray(array)
+            array = NumpyExtensionArray(array)
         return array
 
     @property

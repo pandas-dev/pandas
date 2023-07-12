@@ -125,7 +125,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
-        pandas.arrays.PandasArray \
+        pandas.arrays.NumpyExtensionArray \
         pandas.api.extensions.ExtensionArray._accumulate \
         pandas.api.extensions.ExtensionArray._concat_same_type \
         pandas.api.extensions.ExtensionArray._formatter \

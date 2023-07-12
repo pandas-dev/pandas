@@ -2065,7 +2065,7 @@ def create_block_manager_from_column_arrays(
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
     # assert all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
-    # assert all(type(x) is not PandasArray for x in arrays)
+    # assert all(type(x) is not NumpyExtensionArray for x in arrays)
     # assert all(x.ndim == 1 for x in arrays)
     # assert all(len(x) == len(axes[1]) for x in arrays)
     # assert len(arrays) == len(axes[0])
