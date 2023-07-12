@@ -1497,7 +1497,7 @@ However, a more performant approach, that does not count all unique values first
 
 .. ipython:: python
 
-   v = s.values
+   v = s.to_numpy()
    is_constant = v.shape[0] == 0 or (s[0] == s).all()
 
 This approach assumes that the series does not contain missing values.
@@ -1505,14 +1505,14 @@ For the case that we would drop NA values, we can simply remove those values fir
 
 .. ipython:: python
 
-   v = s.dropna().values
+   v = s.dropna().to_numpy()
    is_constant = v.shape[0] == 0 or (s[0] == s).all()
 
 If missing values are considered distinct from any other value, then one could use:
 
 .. ipython:: python
 
-   v = s.values
+   v = s.to_numpy()
    is_constant = v.shape[0] == 0 or (s[0] == s).all() or not pd.notna(v).any()
 
 (Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)
