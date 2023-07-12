@@ -6,9 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
     Literal,
-    Sequence,
     cast,
     final,
 )
@@ -117,6 +115,11 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
@@ -156,10 +159,34 @@ class Block(PandasObject):
 
     __slots__ = ()
     is_numeric = False
-    is_object = False
-    is_extension = False
-    _can_consolidate = True
-    _validate_ndim = True
+
+    @final
+    @cache_readonly
+    def _validate_ndim(self) -> bool:
+        """
+        We validate dimension for blocks that can hold 2D values, which for now
+        means numpy dtypes or DatetimeTZDtype.
+        """
+        dtype = self.dtype
+        return not isinstance(dtype, ExtensionDtype) or isinstance(
+            dtype, DatetimeTZDtype
+        )
+
+    @final
+    @cache_readonly
+    def is_object(self) -> bool:
+        return self.values.dtype == _dtype_obj
+
+    @final
+    @cache_readonly
+    def is_extension(self) -> bool:
+        return not lib.is_np_dtype(self.values.dtype)
+
+    @final
+    @cache_readonly
+    def _can_consolidate(self) -> bool:
+        # We _could_ consolidate for DatetimeTZDtype but don't for now.
+        return not self.is_extension
 
     @final
     @cache_readonly
@@ -1396,7 +1423,6 @@ class Block(PandasObject):
         self,
         *,
         method: InterpolateOptions,
-        axis: AxisInt,
         index: Index,
         inplace: bool = False,
         limit: int | None = None,
@@ -1427,27 +1453,12 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
-            # split improves performance in ndarray.copy()
-            return self.split_and_operate(
-                type(self).interpolate,
-                method=method,
-                axis=axis,
-                index=index,
-                inplace=inplace,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                downcast=downcast,
-                **kwargs,
-            )
-
         copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
         # Dispatch to the EA method.
         new_values = self.array_values.interpolate(
             method=method,
-            axis=axis,
+            axis=self.ndim - 1,
             index=index,
             limit=limit,
             limit_direction=limit_direction,
@@ -1901,8 +1912,8 @@ class EABackedBlock(Block):
         using_cow: bool = False,
     ) -> list[Block]:
         values = self.values
-        if values.ndim == 2 and axis == 0:
-            # NDArrayBackedExtensionArray.fillna assumes axis=1
+        if values.ndim == 2 and axis == 1:
+            # NDArrayBackedExtensionArray.fillna assumes axis=0
             new_values = values.T.fillna(method=method, limit=limit).T
         else:
             new_values = values.fillna(method=method, limit=limit)
@@ -1920,10 +1931,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     ExtensionArrays are limited to 1-D.
     """
-
-    _can_consolidate = False
-    _validate_ndim = False
-    is_extension = True
 
     values: ExtensionArray
 
@@ -2188,10 +2195,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
 
         return kind in "fciub"
 
-    @cache_readonly
-    def is_object(self) -> bool:  # type: ignore[override]
-        return self.values.dtype.kind == "O"
-
 
 class NumericBlock(NumpyBlock):
     # this Block type is kept for backwards-compatibility
@@ -2211,12 +2214,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-
-    # error: Signature of "is_extension" incompatible with supertype "Block"
-    @cache_readonly
-    def is_extension(self) -> bool:  # type: ignore[override]
-        # i.e. datetime64tz, PeriodDtype
-        return not isinstance(self.dtype, np.dtype)
 
     @property
     def is_view(self) -> bool:
@@ -2255,9 +2252,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-    is_extension = True
-    _validate_ndim = True
-    _can_consolidate = False
 
     # Don't use values_for_json from DatetimeLikeBlock since it is
     # an invalid optimization here(drop the tz)

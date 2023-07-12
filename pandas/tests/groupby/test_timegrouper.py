@@ -725,7 +725,7 @@ class TestGroupBy:
         # 32-bit under 1.9-dev indexing issue
 
         df = DataFrame({"A": range(2), "B": [Timestamp("2000-01-1")] * 2})
-        result = df.groupby("A")["B"].transform(min)
+        result = df.groupby("A")["B"].transform("min")
         expected = Series([Timestamp("2000-01-1")] * 2, name="B")
         tm.assert_series_equal(result, expected)
 
@@ -918,11 +918,11 @@ class TestGroupBy:
             lambda values, index: np.nanmean(values), engine="numba"
         )
 
-        expected = gb["Quantity"].aggregate(np.nanmean)
+        expected = gb["Quantity"].aggregate("mean")
         tm.assert_series_equal(result, expected)
 
         result_df = gb[["Quantity"]].aggregate(
             lambda values, index: np.nanmean(values), engine="numba"
         )
-        expected_df = gb[["Quantity"]].aggregate(np.nanmean)
+        expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)
