@@ -1843,7 +1843,10 @@ class Timedelta(_Timedelta):
                              NPY_DATETIMEUNIT.NPY_FR_W,
                              NPY_DATETIMEUNIT.NPY_FR_GENERIC]):
                 err = npy_unit_to_abbrev(reso)
-                raise ValueError(f" cannot construct a Timedelta from a unit {err}")
+                raise ValueError(
+                    "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
+                    "represent unambiguous timedelta values durations."
+                    "Allowed unites are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'")
 
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
