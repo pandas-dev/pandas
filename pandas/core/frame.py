@@ -12,6 +12,13 @@ from __future__ import annotations
 
 import collections
 from collections import abc
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import functools
 from inspect import signature
 from io import StringIO
@@ -23,12 +30,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Iterator,
     Literal,
-    Mapping,
-    Sequence,
     cast,
     overload,
 )
@@ -962,13 +964,6 @@ class DataFrame(NDFrame, OpsMixin):
         -------
         bool
 
-        See Also
-        --------
-        Index._is_homogeneous_type : Whether the object has a single
-            dtype.
-        MultiIndex._is_homogeneous_type : Whether all the levels of a
-            MultiIndex have the same dtype.
-
         Examples
         --------
         >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
@@ -984,12 +979,8 @@ class DataFrame(NDFrame, OpsMixin):
         ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
-        if isinstance(self._mgr, ArrayManager):
-            return len({arr.dtype for arr in self._mgr.arrays}) == 1
-        if self._mgr.any_extension_types:
-            return len({block.dtype for block in self._mgr.blocks}) == 1
-        else:
-            return not self._is_mixed_type
+        # The "<" part of "<=" here is for empty DataFrame cases
+        return len({arr.dtype for arr in self._mgr.arrays}) <= 1
 
     @property
     def _can_fast_transpose(self) -> bool:
@@ -2573,7 +2564,7 @@ class DataFrame(NDFrame, OpsMixin):
         version: int | None = 114,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
@@ -2768,7 +2759,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str] | None = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> str | None:
         if "showindex" in kwargs:
@@ -2820,7 +2811,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression: str | None = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -3189,7 +3180,7 @@ class DataFrame(NDFrame, OpsMixin):
         parser: XMLParsers | None = "lxml",
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render a DataFrame to an XML document.
@@ -4959,7 +4950,7 @@ class DataFrame(NDFrame, OpsMixin):
         if row_indexer is not None and col_indexer is not None:
             # Fastpath. By doing two 'take's at once we avoid making an
             #  unnecessary copy.
-            # We only get here with `not self._is_mixed_type`, which (almost)
+            # We only get here with `self._can_fast_transpose`, which (almost)
             #  ensures that self.values is cheap. It may be worth making this
             #  condition more specific.
             indexer = row_indexer, col_indexer
@@ -5090,12 +5081,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop(
         self,
-        labels: IndexLabel = None,
+        labels: IndexLabel | None = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel = None,
-        columns: IndexLabel = None,
-        level: Level = None,
+        index: IndexLabel | None = None,
+        columns: IndexLabel | None = None,
+        level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
     ) -> DataFrame | None:
@@ -5300,7 +5291,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None = None,
         copy: bool | None = None,
         inplace: bool = False,
-        level: Level = None,
+        level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
@@ -5815,7 +5806,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame:
         ...
 
@@ -5829,7 +5820,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> None:
         ...
 
@@ -5843,20 +5834,20 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         ...
 
     def reset_index(
         self,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         *,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -6152,7 +6143,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel = None,
+        subset: IndexLabel | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6589,7 +6580,7 @@ class DataFrame(NDFrame, OpsMixin):
         kind: SortKind = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
-        key: ValueKeyFunc = None,
+        key: ValueKeyFunc | None = None,
     ) -> DataFrame | None:
         """
         Sort by the values along either axis.
@@ -6868,14 +6859,14 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
-        key: IndexKeyFunc = None,
+        key: IndexKeyFunc | None = None,
     ) -> DataFrame | None:
         """
         Sort object by labels (along an axis).
@@ -7643,7 +7634,11 @@ class DataFrame(NDFrame, OpsMixin):
         return False
 
     def _align_for_op(
-        self, other, axis: AxisInt, flex: bool | None = False, level: Level = None
+        self,
+        other,
+        axis: AxisInt,
+        flex: bool | None = False,
+        level: Level | None = None,
     ):
         """
         Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -8863,7 +8858,7 @@ class DataFrame(NDFrame, OpsMixin):
             it can contain any of the other types (except list). If an array is
             passed, it must be the same length as the data and will be used in
             the same manner as column values.
-        aggfunc : function, list of functions, dict, default numpy.mean
+        aggfunc : function, list of functions, dict, default "mean"
             If a list of functions is passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves).
@@ -8938,7 +8933,7 @@ class DataFrame(NDFrame, OpsMixin):
         This first example aggregates values by taking the sum.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc=np.sum)
+        ...                        columns=['C'], aggfunc="sum")
         >>> table
         C        large  small
         A   B
@@ -8950,7 +8945,7 @@ class DataFrame(NDFrame, OpsMixin):
         We can also fill missing values using the `fill_value` parameter.
 
         >>> table = pd.pivot_table(df, values='D', index=['A', 'B'],
-        ...                        columns=['C'], aggfunc=np.sum, fill_value=0)
+        ...                        columns=['C'], aggfunc="sum", fill_value=0)
         >>> table
         C        large  small
         A   B
@@ -8962,7 +8957,7 @@ class DataFrame(NDFrame, OpsMixin):
         The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': np.mean, 'E': np.mean})
+        ...                        aggfunc={'D': "mean", 'E': "mean"})
         >>> table
                         D         E
         A   C
@@ -8975,8 +8970,8 @@ class DataFrame(NDFrame, OpsMixin):
         value column.
 
         >>> table = pd.pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                        aggfunc={'D': np.mean,
-        ...                                 'E': [min, max, np.mean]})
+        ...                        aggfunc={'D': "mean",
+        ...                                 'E': ["min", "max", "mean"]})
         >>> table
                           D   E
                        mean max      mean  min
@@ -9397,7 +9392,7 @@ class DataFrame(NDFrame, OpsMixin):
         value_vars=None,
         var_name=None,
         value_name: Hashable = "value",
-        col_level: Level = None,
+        col_level: Level | None = None,
         ignore_index: bool = True,
     ) -> DataFrame:
         return melt(
@@ -9577,7 +9572,7 @@ class DataFrame(NDFrame, OpsMixin):
     Aggregate different functions over the columns and rename the index of the resulting
     DataFrame.
 
-    >>> df.agg(x=('A', max), y=('B', 'min'), z=('C', np.mean))
+    >>> df.agg(x=('A', 'max'), y=('B', 'min'), z=('C', 'mean'))
          A    B    C
     x  7.0  NaN  NaN
     y  NaN  2.0  NaN
@@ -10850,17 +10845,7 @@ class DataFrame(NDFrame, OpsMixin):
         if len(frame._get_axis(axis)) == 0:
             result = self._constructor_sliced(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type or frame._mgr.any_extension_types:
-                # the or any_extension_types is really only hit for single-
-                # column frames with an extension array
-                result = notna(frame).sum(axis=axis)
-            else:
-                # GH13407
-                series_counts = notna(frame).sum(axis=axis)
-                counts = series_counts._values
-                result = self._constructor_sliced(
-                    counts, index=frame._get_agg_axis(axis), copy=False
-                )
+            result = notna(frame).sum(axis=axis)
 
         return result.astype("int64").__finalize__(self, method="count")
 

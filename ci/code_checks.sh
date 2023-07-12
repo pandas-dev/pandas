@@ -110,12 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas_object \
         pandas.api.interchange.from_dataframe \
         pandas.DatetimeIndex.snap \
-        pandas.core.window.ewm.ExponentialMovingWindow.mean \
-        pandas.core.window.ewm.ExponentialMovingWindow.sum \
-        pandas.core.window.ewm.ExponentialMovingWindow.std \
-        pandas.core.window.ewm.ExponentialMovingWindow.var \
-        pandas.core.window.ewm.ExponentialMovingWindow.corr \
-        pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.io.formats.style.Styler \

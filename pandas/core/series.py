@@ -3,6 +3,12 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import operator
 import sys
 from textwrap import dedent
@@ -11,11 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,
@@ -1383,7 +1385,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return
         cacher = getattr(self, "_cacher", None)
         if cacher is not None:
-            assert self.ndim == 1
             ref: DataFrame = cacher[1]()
 
             # we are trying to reference a dead referent, hence
@@ -1406,10 +1407,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     # ----------------------------------------------------------------------
     # Unsorted
-
-    @property
-    def _is_mixed_type(self) -> bool:
-        return False
 
     def repeat(self, repeats: int | Sequence[int], axis: None = None) -> Series:
         """
@@ -1507,7 +1504,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def reset_index(
         self,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         *,
         drop: bool = False,
         name: Level = lib.no_default,
@@ -1819,7 +1816,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: IO[str] | None = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> str | None:
         """
@@ -2096,7 +2093,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         by=None,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -3100,7 +3097,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
@@ -3210,7 +3207,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         other: Series | Hashable,
         func: Callable[[Hashable, Hashable], Hashable],
-        fill_value: Hashable = None,
+        fill_value: Hashable | None = None,
     ) -> Series:
         """
         Combine the Series with a Series or scalar according to `func`.
@@ -3485,7 +3482,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         ignore_index: bool = False,
-        key: ValueKeyFunc = None,
+        key: ValueKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort by the values.
@@ -3729,14 +3726,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
-        key: IndexKeyFunc = None,
+        key: IndexKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort Series by index labels.
@@ -4325,7 +4322,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(
-        self, level: IndexLabel = -1, fill_value: Hashable = None, sort: bool = True
+        self,
+        level: IndexLabel = -1,
+        fill_value: Hashable | None = None,
+        sort: bool = True,
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
@@ -4971,11 +4971,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def drop(
         self,
-        labels: IndexLabel = None,
+        labels: IndexLabel | None = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel = None,
-        columns: IndexLabel = None,
+        index: IndexLabel | None = None,
+        columns: IndexLabel | None = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
