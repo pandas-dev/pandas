@@ -90,7 +90,7 @@ Other enhancements
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - :meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
-- :meth:`arrays.BaseMaskedArray.take` handle non-na float as fill value (triggered by `ufloat` NaN from `uncertainties` package) (:pull:`53970`)
+- :meth:`arrays.BaseMaskedArray.take` handle non-na float as fill value (triggered by ``ufloat`` NaN from ``uncertainties`` package) (:pull:`53970`)
 - Add :meth:`diff()` and :meth:`round()` for :class:`Index` (:issue:`19708`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
@@ -554,7 +554,7 @@ Other
 - Bug in :meth:`Series.map` when giving a callable to an empty series, the returned series had ``object`` dtype. It now keeps the original dtype (:issue:`52384`)
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
 - Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
-- Change tests/extension/test_boolean.py to use pd.NA instead of np.nan (following similar patterns in ../test_integer.py and ../test_float.py), updating :func:`make_data`, :func:`data_missing`, :func:`data_missing_for_sorting`, :func:`data_for_grouping`, :func:`_check_op` (:pull:`53970`)
+- Change ``~tests/extension/test_boolean.py`` to use pd.NA instead of np.nan (following similar patterns in ``~tests/extension/test_integer.py`` and ``~tests/extension/test_float.py``), updating :func:`make_data`, :func:`data_missing`, :func:`data_missing_for_sorting`, :func:`data_for_grouping`, :func:`_check_op` (:pull:`53970`)
 
 .. ***DO NOT USE THIS SECTION***
 
