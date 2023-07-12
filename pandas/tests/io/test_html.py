@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import partial
 from io import (
     BytesIO,
@@ -7,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import threading
-from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -1567,7 +1567,7 @@ class TestReadHtml:
 
         result = self.read_html(StringIO(gh_13141_data), extract_links=arg)[0]
         expected = DataFrame([data_exp, foot_exp], columns=head_exp)
-        expected = expected.fillna(np.nan, downcast=False)
+        expected = expected.fillna(np.nan)
         tm.assert_frame_equal(result, expected)
 
     def test_extract_links_bad(self, spam_data):

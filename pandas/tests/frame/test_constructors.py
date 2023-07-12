@@ -5,6 +5,7 @@ from collections import (
     defaultdict,
     namedtuple,
 )
+from collections.abc import Iterator
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -14,7 +15,6 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
 import warnings
 
 import numpy as np
