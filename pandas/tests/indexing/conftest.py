@@ -18,7 +18,7 @@ def series_ints():
 @pytest.fixture
 def frame_ints():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=np.arange(0, 8, 2),
         columns=np.arange(0, 12, 3),
     )
@@ -35,7 +35,7 @@ def series_uints():
 @pytest.fixture
 def frame_uints():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=Index(range(0, 8, 2), dtype=np.uint64),
         columns=Index(range(0, 12, 3), dtype=np.uint64),
     )
@@ -49,7 +49,7 @@ def series_labels():
 @pytest.fixture
 def frame_labels():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=list("abcd"),
         columns=list("ABCD"),
     )
@@ -66,7 +66,7 @@ def series_ts():
 @pytest.fixture
 def frame_ts():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=date_range("20130101", periods=4),
     )
 
@@ -82,7 +82,7 @@ def series_floats():
 @pytest.fixture
 def frame_floats():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=Index(range(0, 8, 2), dtype=np.float64),
         columns=Index(range(0, 12, 3), dtype=np.float64),
     )
@@ -96,7 +96,7 @@ def series_mixed():
 @pytest.fixture
 def frame_mixed():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4), index=[2, 4, "null", 8]
+        np.random.default_rng(2).standard_normal((4, 4)), index=[2, 4, "null", 8]
     )
 
 
@@ -113,7 +113,7 @@ def series_empty():
 @pytest.fixture
 def frame_multi():
     return DataFrame(
-        np.random.default_rng(2).standard_normal(4, 4),
+        np.random.default_rng(2).standard_normal((4, 4)),
         index=MultiIndex.from_product([[1, 2], [3, 4]]),
         columns=MultiIndex.from_product([[5, 6], [7, 8]]),
     )

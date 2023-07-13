@@ -278,7 +278,7 @@ class TestDataFramePlots:
     def test_donot_overwrite_index_name(self):
         # GH 8494
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(2, 2), columns=["a", "b"]
+            np.random.default_rng(2).standard_normal((2, 2)), columns=["a", "b"]
         )
         df.index.name = "NAME"
         df.plot(y="b", label="LABEL")
@@ -719,7 +719,7 @@ class TestDataFramePlots:
     def test_bar_categorical(self, idx):
         # GH 13019
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 5),
+            np.random.default_rng(2).standard_normal((6, 5)),
             index=idx(list("ABCDEF")),
             columns=idx(list("abcde")),
         )
@@ -943,7 +943,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_bar_int_col(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 15),
+            np.random.default_rng(2).standard_normal((10, 15)),
             index=list(string.ascii_letters[:10]),
             columns=range(15),
         )
@@ -1058,7 +1058,7 @@ class TestDataFramePlots:
 
     @td.skip_if_no_scipy
     def test_kde_df(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(100, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
         ax = _check_plot_works(df.plot, kind="kde")
         expected = [pprint_thing(c) for c in df.columns]
         _check_legend_labels(ax, labels=expected)
@@ -1094,7 +1094,7 @@ class TestDataFramePlots:
         _check_plot_works(df.plot, kind="kde")
 
     def test_hist_df(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(100, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
 
         ax = _check_plot_works(df.plot.hist)
         expected = [pprint_thing(c) for c in df.columns]
@@ -1145,7 +1145,7 @@ class TestDataFramePlots:
         # GH 33173
 
         df = DataFrame(
-            dict(zip(["A", "B"], np.random.default_rng(2).standard_normal(2, 100)))
+            dict(zip(["A", "B"], np.random.default_rng(2).standard_normal((2, 100))))
         )
 
         ax1 = _check_plot_works(df.plot, kind="hist", weights=weights)
@@ -1312,7 +1312,7 @@ class TestDataFramePlots:
         )
 
     def test_plot_int_columns(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(100, 4)).cumsum()
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 4))).cumsum()
         _check_plot_works(df.plot, legend=True)
 
     @pytest.mark.parametrize(
@@ -2278,7 +2278,7 @@ class TestDataFramePlots:
         # GH: 15912
         index = MultiIndex.from_product([[2012, 2013], [1, 2]])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2),
+            np.random.default_rng(2).standard_normal((4, 2)),
             columns=["A", "B"],
             index=index,
         )

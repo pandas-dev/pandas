@@ -782,7 +782,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_frame(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=list("abcd"),
             columns=list("ABCD"),
         )
@@ -1539,7 +1539,7 @@ class TestLocBaseIndependent:
         tm.assert_series_equal(ser, expected)
 
     def test_loc_setitem_2d_to_1d_raises(self):
-        data = np.random.default_rng(2).standard_normal(2, 2)
+        data = np.random.default_rng(2).standard_normal((2, 2))
         # float64 dtype to avoid upcast when trying to set float data
         ser = Series(range(2), dtype="float64")
 
@@ -2879,7 +2879,7 @@ def test_loc_with_period_index_indexer():
 
 def test_loc_setitem_multiindex_timestamp():
     # GH#13831
-    vals = np.random.default_rng(2).standard_normal(8, 6)
+    vals = np.random.default_rng(2).standard_normal((8, 6))
     idx = date_range("1/1/2000", periods=8)
     cols = ["A", "B", "C", "D", "E", "F"]
     exp = DataFrame(vals, index=idx, columns=cols)

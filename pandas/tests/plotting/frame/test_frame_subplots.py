@@ -363,7 +363,7 @@ class TestDataFramePlotsSubplots:
         _, axes = mpl.pyplot.subplots(3, 3, sharex=True, sharey=True)
         mpl.pyplot.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 9),
+            np.random.default_rng(2).standard_normal((10, 9)),
             index=date_range(start="2014-07-01", freq="M", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):

@@ -86,7 +86,7 @@ class TestConcatenate:
                     assert arr.base is not None
 
         # Float block was consolidated.
-        df4 = DataFrame(np.random.default_rng(2).standard_normal(4, 1))
+        df4 = DataFrame(np.random.default_rng(2).standard_normal((4, 1)))
         result = concat([df, df2, df3, df4], axis=1, copy=False)
         for arr in result._mgr.arrays:
             if arr.dtype.kind == "f":
@@ -108,7 +108,7 @@ class TestConcatenate:
     def test_concat_with_group_keys(self):
         # axis=0
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 4)))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((4, 4)))
 
         result = concat([df, df2], keys=[0, 1])
         exp_index = MultiIndex.from_arrays(
@@ -124,7 +124,7 @@ class TestConcatenate:
 
         # axis=1
         df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((4, 4)))
 
         result = concat([df, df2], keys=[0, 1], axis=1)
         expected = DataFrame(np.c_[df.values, df2.values], columns=exp_index)

@@ -29,7 +29,7 @@ def frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
     index = MultiIndex(levels=levels, codes=codes)
-    return DataFrame(np.random.default_rng(2).standard_normal(6, 2), index=index)
+    return DataFrame(np.random.default_rng(2).standard_normal((6, 2)), index=index)
 
 
 class TestMultiIndexLoc:
@@ -233,7 +233,7 @@ class TestMultiIndexLoc:
         attribute_values = ["Value" + str(i) for i in range(5)]
 
         index = MultiIndex.from_product([attributes, attribute_values])
-        df = 0.1 * np.random.default_rng(2).standard_normal(10, 1 * 5) + 0.5
+        df = 0.1 * np.random.default_rng(2).standard_normal((10, 1 * 5)) + 0.5
         df = DataFrame(df, columns=index)
         result = df[attributes]
         tm.assert_frame_equal(result, df)
@@ -291,13 +291,13 @@ class TestMultiIndexLoc:
         # loc should treat integer slices like label slices
 
         index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
-        df = DataFrame(np.random.default_rng(2).standard_normal(6, 6), index, index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 6)), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
         index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
-        df = DataFrame(np.random.default_rng(2).standard_normal(6, 6), index, index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 6)), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]
         tm.assert_frame_equal(result, expected)
@@ -476,7 +476,7 @@ def test_loc_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
     # empty indexer
     multi_index = MultiIndex.from_product((["foo", "bar", "baz"], ["alpha", "beta"]))
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 6),
+        np.random.default_rng(2).standard_normal((5, 6)),
         index=range(5),
         columns=multi_index,
     )

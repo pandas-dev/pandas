@@ -46,7 +46,7 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode_level_names(self, frame_or_series):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
-        obj = DataFrame(np.random.default_rng(2).standard_normal(2, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((2, 4)), index=index)
         obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
@@ -264,7 +264,7 @@ NaT   4"""
 
     def test_very_wide_info_repr(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 20),
+            np.random.default_rng(2).standard_normal((10, 20)),
             columns=tm.rands_array(10, 20),
         )
         repr(df)

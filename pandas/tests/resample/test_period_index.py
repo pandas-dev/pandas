@@ -664,7 +664,7 @@ class TestPeriodIndex:
         # when the frequency is evenly divisible, sometimes extra bins
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(9, 3),
+            np.random.default_rng(2).standard_normal((9, 3)),
             index=date_range("2000-1-1", periods=9),
         )
         result = df.resample("5D").mean()

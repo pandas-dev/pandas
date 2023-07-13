@@ -108,8 +108,8 @@ class TestDataFrameToCSV:
 
     def test_to_csv_from_csv3(self):
         with tm.ensure_clean("__tmp_to_csv_from_csv3__") as path:
-            df1 = DataFrame(np.random.default_rng(2).standard_normal(3, 1))
-            df2 = DataFrame(np.random.default_rng(2).standard_normal(3, 1))
+            df1 = DataFrame(np.random.default_rng(2).standard_normal((3, 1)))
+            df2 = DataFrame(np.random.default_rng(2).standard_normal((3, 1)))
 
             df1.to_csv(path)
             df2.to_csv(path, mode="a", header=False)

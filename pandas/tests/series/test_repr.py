@@ -158,7 +158,7 @@ class TestSeriesRepr:
     def test_repr_bool_fails(self, capsys):
         s = Series(
             [
-                DataFrame(np.random.default_rng(2).standard_normal(2, 2))
+                DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
                 for i in range(5)
             ]
         )

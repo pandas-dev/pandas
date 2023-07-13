@@ -1859,7 +1859,7 @@ def test_prod_sum_min_count_mixed_object():
 def test_reduction_axis_none_returns_scalar(method, numeric_only):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)))
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
     np_arr = df.to_numpy()

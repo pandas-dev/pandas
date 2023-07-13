@@ -95,7 +95,7 @@ class TestDataFrameSortValues:
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=[1, 2, 3, 4],
             columns=["A", "B", "C", "D"],
         )
@@ -646,7 +646,7 @@ class TestDataFrameSortValues:
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=[1, 2, 3, 4],
             columns=["A", "B", "C", "D"],
         )

@@ -244,7 +244,7 @@ class TestMultiIndexConcat:
         # when multi-index levels are RangeIndex objects
         # there is a bug in concat with objects of len 1
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(9, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((9, 2)))
         df.index = MultiIndex(
             levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
             codes=[np.repeat(np.arange(3), 3), np.tile(np.arange(3), 3)],

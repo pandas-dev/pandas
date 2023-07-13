@@ -2458,14 +2458,14 @@ class TestDataFrameConstructors:
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
 
         multi = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=[np.array(x) for x in index_lists],
         )
         assert isinstance(multi.index, MultiIndex)
         assert not isinstance(multi.columns, MultiIndex)
 
         multi = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4), columns=index_lists
+            np.random.default_rng(2).standard_normal((4, 4)), columns=index_lists
         )
         assert isinstance(multi.columns, MultiIndex)
 

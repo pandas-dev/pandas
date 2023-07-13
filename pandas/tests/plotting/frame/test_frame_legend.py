@@ -192,7 +192,7 @@ class TestFrameLegend:
 
     def test_legend_name(self):
         multi = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             columns=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
         )
         multi.columns.names = ["group", "individual"]

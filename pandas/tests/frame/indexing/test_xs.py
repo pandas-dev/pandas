@@ -154,7 +154,7 @@ class TestXSWithMultiIndex:
 
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 8),
+            np.random.default_rng(2).standard_normal((3, 8)),
             index=["A", "B", "C"],
             columns=index,
         )
@@ -187,7 +187,7 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_xs_level_eq_2(self):
-        arr = np.random.default_rng(2).standard_normal(3, 5)
+        arr = np.random.default_rng(2).standard_normal((3, 5))
         index = MultiIndex(
             levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
@@ -277,7 +277,7 @@ class TestXSWithMultiIndex:
     )
     def test_xs_named_levels_axis_eq_1(self, key, level, exp_arr, exp_index):
         # see GH#2903
-        arr = np.random.default_rng(2).standard_normal(4, 4)
+        arr = np.random.default_rng(2).standard_normal((4, 4))
         index = MultiIndex(
             levels=[["a", "b"], ["bar", "foo", "hello", "world"]],
             codes=[[0, 0, 1, 1], [0, 1, 2, 3]],

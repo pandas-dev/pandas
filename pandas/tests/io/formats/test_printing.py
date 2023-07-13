@@ -155,7 +155,7 @@ class TestTableSchemaRepr:
         # GH 15996
         midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(5, len(midx)), columns=midx
+            np.random.default_rng(2).standard_normal((5, len(midx))), columns=midx
         )
 
         opt = pd.option_context("display.html.table_schema", True)

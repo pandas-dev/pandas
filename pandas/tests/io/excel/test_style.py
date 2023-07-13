@@ -38,7 +38,7 @@ def assert_equal_cell_styles(cell1, cell2):
 def test_styler_to_excel_unstyled(engine):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
     pytest.importorskip(engine)
-    df = DataFrame(np.random.default_rng(2).standard_normal(2, 2))
+    df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
             df.to_excel(writer, sheet_name="dataframe")

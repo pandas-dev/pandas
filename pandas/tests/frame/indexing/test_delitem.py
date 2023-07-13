@@ -16,7 +16,7 @@ class TestDataFrameDelItem:
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([["A", "B"], [1, 2]])
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 4), columns=midx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), columns=midx)
         assert len(df.columns) == 4
         assert ("A",) in df.columns
         assert "A" in df.columns

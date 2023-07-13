@@ -1295,7 +1295,7 @@ class TestNumericArithmeticUnsorted:
         result = op(index, other)
         tm.assert_series_equal(result, expected)
 
-        other = pd.DataFrame(np.random.default_rng(2).standard_normal(2, 5))
+        other = pd.DataFrame(np.random.default_rng(2).standard_normal((2, 5)))
         expected = op(pd.DataFrame([index, index]), other)
         result = op(index, other)
         tm.assert_frame_equal(result, expected)

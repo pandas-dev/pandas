@@ -60,7 +60,9 @@ class TestTSPlot:
 
     def test_fontsize_set_correctly(self):
         # For issue #8765
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 9), index=range(10))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 9)), index=range(10)
+        )
         _, ax = mpl.pyplot.subplots()
         df.plot(fontsize=2, ax=ax)
         for label in ax.get_xticklabels() + ax.get_yticklabels():

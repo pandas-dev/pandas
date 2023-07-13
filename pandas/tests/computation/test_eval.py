@@ -795,7 +795,7 @@ class TestAlignment:
         tm.assert_frame_equal(res, df < 2)
 
         df3 = DataFrame(
-            np.random.default_rng(2).standard_normal(*df.shape),
+            np.random.default_rng(2).standard_normal(df.shape),
             index=df.index,
             columns=df.columns,
         )
@@ -985,7 +985,7 @@ class TestAlignment:
         with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 10000))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 10000)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
         with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
@@ -1092,7 +1092,7 @@ class TestOperations:
         assert res == exp
 
     def test_4d_ndarray_fails(self):
-        x = np.random.default_rng(2).standard_normal(3, 4, 5, 6)
+        x = np.random.default_rng(2).standard_normal((3, 4, 5, 6))
         y = Series(np.random.default_rng(2).standard_normal(10))
         msg = "N-dimensional objects, where N > 2, are not supported with eval"
         with pytest.raises(NotImplementedError, match=msg):

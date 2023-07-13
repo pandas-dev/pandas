@@ -1057,7 +1057,7 @@ class TestDataFrameIndexing:
 
     def test_iloc_col(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 10), columns=range(0, 20, 2)
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
 
         result = df.iloc[:, 1]
@@ -1080,7 +1080,7 @@ class TestDataFrameIndexing:
 
     def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 10), columns=range(0, 20, 2)
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
         )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]

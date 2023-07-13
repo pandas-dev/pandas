@@ -96,7 +96,7 @@ def test_flex_binary_frame(method, frame):
 
     frame2 = frame.copy()
     frame2 = DataFrame(
-        np.random.default_rng(2).standard_normal(*frame2.shape),
+        np.random.default_rng(2).standard_normal(frame2.shape),
         index=frame2.index,
         columns=frame2.columns,
     )

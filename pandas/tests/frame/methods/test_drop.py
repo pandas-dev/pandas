@@ -305,7 +305,7 @@ class TestDataFrameDrop:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         result = df.drop("a", axis=1)
         expected = df.drop([("a", "", "")], axis=1)
@@ -440,7 +440,7 @@ class TestDataFrameDrop:
             [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
         )
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(6, 3), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=index)
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")

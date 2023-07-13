@@ -491,7 +491,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_box_return_type_arg_duplcate_cats(self, return_type):
         columns2 = "X B C D A".split()
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(6, 5), columns=columns2
+            np.random.default_rng(2).standard_normal((6, 5)), columns=columns2
         )
         categories2 = "A B".split()
         df2["category"] = categories2 * 3
@@ -732,7 +732,7 @@ class TestDataFrameGroupByPlots:
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 8),
+            np.random.default_rng(2).standard_normal((3, 8)),
             index=["A", "B", "C"],
             columns=index,
         )

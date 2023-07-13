@@ -576,7 +576,7 @@ class TestDataFrameSelectReindex:
 
     def test_non_monotonic_reindex_methods(self):
         dr = date_range("2013-08-01", periods=6, freq="B")
-        data = np.random.default_rng(2).standard_normal(6, 1)
+        data = np.random.default_rng(2).standard_normal((6, 1))
         df = DataFrame(data, index=dr, columns=list("A"))
         df_rev = DataFrame(data, index=dr[[3, 4, 5] + [0, 1, 2]], columns=list("A"))
         # index is not monotonic increasing or decreasing

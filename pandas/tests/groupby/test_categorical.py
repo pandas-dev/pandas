@@ -211,7 +211,7 @@ def test_basic():  # TODO: split this test
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.default_rng(2).standard_normal(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
 
     result = data.groupby(cats, observed=False).mean()
 
@@ -646,7 +646,7 @@ def test_datetime():
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.default_rng(2).standard_normal(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
     result = data.groupby(cats, observed=False).mean()
 
     expected = data.groupby(np.asarray(cats), observed=False).mean()

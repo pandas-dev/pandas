@@ -317,7 +317,7 @@ class TestFancy:
     def test_dups_fancy_indexing3(self):
         # GH 6504, multi-axis indexing
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(9, 2),
+            np.random.default_rng(2).standard_normal((9, 2)),
             index=[1, 1, 1, 2, 2, 2, 3, 3, 3],
             columns=["a", "b"],
         )

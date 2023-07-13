@@ -376,7 +376,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.default_rng(2).standard_normal(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 10)))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -863,7 +863,7 @@ def test_infer_output_shape_listlike_columns():
     # GH 16353
 
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(6, 3), columns=["A", "B", "C"]
+        np.random.default_rng(2).standard_normal((6, 3)), columns=["A", "B", "C"]
     )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)

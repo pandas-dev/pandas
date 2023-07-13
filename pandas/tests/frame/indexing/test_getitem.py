@@ -94,7 +94,7 @@ class TestGetitemListLike:
     def test_getitem_list_duplicates(self):
         # GH#1943
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4), columns=list("AABC")
+            np.random.default_rng(2).standard_normal((4, 4)), columns=list("AABC")
         )
         df.columns.name = "foo"
 
@@ -427,7 +427,7 @@ class TestGetitemSlice:
 
         start, end = values[[5, 15]]
 
-        data = np.random.default_rng(2).standard_normal(20, 3)
+        data = np.random.default_rng(2).standard_normal((20, 3))
         if frame_or_series is not DataFrame:
             data = data[:, 0]
 

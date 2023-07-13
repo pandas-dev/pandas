@@ -435,7 +435,7 @@ class TestiLocBaseIndependent:
 
     def test_iloc_setitem(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=np.arange(0, 8, 2),
             columns=np.arange(0, 12, 3),
         )

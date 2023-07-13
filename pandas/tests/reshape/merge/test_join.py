@@ -340,7 +340,7 @@ class TestJoin:
         )
         c = Series(np.random.default_rng(2).standard_normal(30))
         a["c"] = c
-        d = DataFrame(np.random.default_rng(2).standard_normal(30, 1), columns=["q"])
+        d = DataFrame(np.random.default_rng(2).standard_normal((30, 1)), columns=["q"])
 
         # it works!
         a.join(d)
@@ -623,7 +623,7 @@ class TestJoin:
 
     def test_join_many(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 6), columns=list("abcdef")
+            np.random.default_rng(2).standard_normal((10, 6)), columns=list("abcdef")
         )
         df_list = [df[["a", "b"]], df[["c", "d"]], df[["e", "f"]]]
 
@@ -687,16 +687,16 @@ class TestJoin:
 
         # GH 4975, invalid join on dups
         w = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2), columns=["x", "y"]
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
         )
         x = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2), columns=["x", "y"]
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
         )
         y = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2), columns=["x", "y"]
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
         )
         z = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2), columns=["x", "y"]
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
         )
 
         dta = x.merge(y, left_index=True, right_index=True).merge(

@@ -319,7 +319,7 @@ class TestDataFrameCorrWith:
             columns=columns,
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=index[:4],
             columns=columns,
         )

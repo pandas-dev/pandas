@@ -385,7 +385,7 @@ class TestDataFrameReshape:
     def test_stack_ints(self):
         columns = MultiIndex.from_tuples(list(itertools.product(range(3), repeat=3)))
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 27), columns=columns
+            np.random.default_rng(2).standard_normal((30, 27)), columns=columns
         )
 
         tm.assert_frame_equal(df.stack(level=[1, 2]), df.stack(level=1).stack(level=1))
@@ -411,7 +411,9 @@ class TestDataFrameReshape:
             ],
             names=["exp", "animal", "hair_length"],
         )
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 4), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=columns
+        )
 
         animal_hair_stacked = df.stack(level=["animal", "hair_length"])
         exp_hair_stacked = df.stack(level=["exp", "hair_length"])
@@ -455,7 +457,9 @@ class TestDataFrameReshape:
             ],
             names=["exp", "animal", "hair_length"],
         )
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 4), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=columns
+        )
 
         exp_animal_stacked = df.stack(level=["exp", "animal"])
         animal_hair_stacked = df.stack(level=["animal", "hair_length"])
@@ -1963,7 +1967,7 @@ Thu,Lunch,Yes,51.51,17"""
 
         index = MultiIndex(levels, codes)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 2)), index=index)
 
         result = df.unstack()
         assert len(result.columns) == 4

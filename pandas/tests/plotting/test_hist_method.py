@@ -582,7 +582,7 @@ class TestDataFramePlots:
     def test_hist_secondary_legend(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
         )
 
         # primary -> secondary
@@ -598,7 +598,7 @@ class TestDataFramePlots:
     def test_hist_secondary_secondary(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
         )
         # secondary -> secondary
         _, ax = mpl.pyplot.subplots()
@@ -613,7 +613,7 @@ class TestDataFramePlots:
     def test_hist_secondary_primary(self):
         # GH 9610
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((30, 4)), columns=list("abcd")
         )
         # secondary -> primary
         _, ax = mpl.pyplot.subplots()

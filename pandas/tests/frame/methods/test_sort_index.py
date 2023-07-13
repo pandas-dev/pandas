@@ -56,7 +56,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_reorder_on_ops(self):
         # GH#15687
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(8, 2),
+            np.random.default_rng(2).standard_normal((8, 2)),
             index=MultiIndex.from_product(
                 [["a", "b"], ["big", "small"], ["red", "blu"]],
                 names=["letter", "size", "color"],
@@ -217,7 +217,7 @@ class TestDataFrameSortIndex:
 
     def test_sort_index_inplace(self):
         frame = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=[1, 2, 3, 4],
             columns=["A", "B", "C", "D"],
         )

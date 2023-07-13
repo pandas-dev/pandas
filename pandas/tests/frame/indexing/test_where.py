@@ -474,7 +474,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_axis(self):
         # GH 9736
-        df = DataFrame(np.random.default_rng(2).standard_normal(2, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
         mask = DataFrame([[False, False], [False, False]])
         ser = Series([0, 1])
 

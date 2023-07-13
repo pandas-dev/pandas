@@ -20,7 +20,7 @@ class TestMatMul:
             columns=["p", "q", "r", "s"],
         )
         b = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 2),
+            np.random.default_rng(2).standard_normal((4, 2)),
             index=["p", "q", "r", "s"],
             columns=["one", "two"],
         )

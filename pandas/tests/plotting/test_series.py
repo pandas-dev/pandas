@@ -449,7 +449,7 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
         )
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
 
@@ -466,7 +466,7 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend_with_axes(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
         )
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # primary -> secondary (with passing ax)
@@ -482,7 +482,7 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend_both(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
         )
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (without passing ax)
@@ -499,7 +499,7 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend_both_with_axis(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
         )
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)
@@ -516,7 +516,7 @@ class TestSeriesPlots:
     def test_df_series_secondary_legend_both_with_axis_2(self):
         # GH 9779
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((30, 3)), columns=list("abc")
         )
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)

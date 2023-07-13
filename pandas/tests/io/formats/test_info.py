@@ -108,7 +108,7 @@ def test_info_verbose_check_header_separator_body():
     buf = StringIO()
     size = 1001
     start = 5
-    frame = DataFrame(np.random.default_rng(2).standard_normal(3, size))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
     frame.info(verbose=True, buf=buf)
 
     res = buf.getvalue()
@@ -170,7 +170,7 @@ def test_info_verbose_with_counts_spacing(
     size, header_exp, separator_exp, first_line_exp, last_line_exp
 ):
     """Test header column, spacer, first line and last line in verbose mode."""
-    frame = DataFrame(np.random.default_rng(2).standard_normal(3, size))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
     with StringIO() as buf:
         frame.info(verbose=True, show_counts=True, buf=buf)
         all_lines = buf.getvalue().splitlines()
@@ -208,7 +208,7 @@ def test_info_memory():
 
 def test_info_wide():
     io = StringIO()
-    df = DataFrame(np.random.default_rng(2).standard_normal(5, 101))
+    df = DataFrame(np.random.default_rng(2).standard_normal((5, 101)))
     df.info(buf=io)
 
     io = StringIO()

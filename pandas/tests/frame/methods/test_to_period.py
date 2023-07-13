@@ -42,7 +42,7 @@ class TestToPeriod:
         )
 
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 4), index=idx, columns=idx
+            np.random.default_rng(2).standard_normal((4, 4)), index=idx, columns=idx
         )
         obj = tm.get_obj(obj, frame_or_series)
         expected = obj.copy()

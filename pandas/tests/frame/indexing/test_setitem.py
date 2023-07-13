@@ -777,7 +777,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_dt64series(self, idx, expected):
         # convert to utc
-        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
         df["B"] = idx
         df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
@@ -787,7 +787,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_datetimeindex(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
 
         # assign to frame
         df["B"] = idx
@@ -796,7 +796,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_object_array_of_tzaware_datetimes(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.default_rng(2).standard_normal(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
 
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
