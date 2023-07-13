@@ -242,7 +242,8 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 
 Other API changes
 ^^^^^^^^^^^^^^^^^
-- :class:`arrays.PandasArray` has been renamed ``NumpyExtensionArray``; importing ``PandasArray`` still works until the next major version (:issue:`53694`)
+- :class:`arrays.PandasArray` has been renamed ``NumpyExtensionArray`` and the attached dtype name changed from ``PandasDtype`` to ``NumpyEADtype``; importing ``PandasArray`` still works until the next major version (:issue:`53694`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
