@@ -69,14 +69,11 @@ def test_constructor_not_string_type_raises(array, chunked):
         ArrowStringArray(arr)
 
 
-@skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 def test_constructor_not_string_type_value_dictionary_raises(chunked):
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
-    array = pa
-
-    arr = array.array([1, 2, 3], array.dictionary(array.int32(), array.int32()))
+    arr = pa.array([1, 2, 3], pa.dictionary(pa.int32(), pa.int32()))
     if chunked:
         arr = pa.chunked_array(arr)
 
