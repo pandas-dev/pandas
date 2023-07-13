@@ -533,7 +533,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Bug in :class:`ArrowStringArray` constructor raises value error on dictionary on values with string type (:issue:`54074`)
+- Bug in :class:`ArrowStringArray` constructor raises ``ValueError`` with dictionary types of strings (:issue:`54074`)
 - Bug in :class:`DataFrame` constructor not copying :class:`Series` with extension dtype when given in dict (:issue:`53744`)
 - Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
