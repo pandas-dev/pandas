@@ -2457,9 +2457,14 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
+
         if isinstance(origin, Timestamp) and origin.tz != index_tz:
-            if first.utcoffset() != origin.utcoffset():
-                raise ValueError("The origin must have the same timezone as the index.")
+            if origin.dst() != first.dst():
+                if origin.utcoffset() != first.utcoffset():
+                    raise ValueError(
+                        "The origin must have the same timezone as the index."
+                    )
+
         elif isinstance(origin, Timestamp):
             if origin <= first:
                 first = origin
