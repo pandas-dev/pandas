@@ -897,7 +897,7 @@ def test_period_index_frequency_ME_error_message():
     msg = "Invalid frequency: 2ME"
 
     with pytest.raises(ValueError, match=msg):
-        PeriodIndex(["2020-01", "2020-01-02"], freq="2ME")
+        PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
 
 
 def test_resample_frequency_ME_error_message(series_and_frame):
