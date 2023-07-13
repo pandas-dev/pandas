@@ -45,7 +45,7 @@ def test_series_getitem_duplicates_multiindex(level0_value):
         codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
         names=["tag", "day"],
     )
-    arr = np.random.default_rng(2).standard_normal(len(index), 1)
+    arr = np.random.default_rng(2).standard_normal((len(index), 1))
     df = DataFrame(arr, index=index, columns=["val"])
 
     # confirm indexing on missing value raises KeyError

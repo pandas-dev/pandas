@@ -343,7 +343,7 @@ def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(1000, 3),
+        np.random.default_rng(2).standard_normal((1000, 3)),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=["A", "B", "C"],
     )

@@ -120,7 +120,7 @@ class TestSeriesMisc:
     def test_ndarray_compat(self):
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 3),
+            np.random.default_rng(2).standard_normal((1000, 3)),
             columns=["A", "B", "C"],
             index=date_range("1/1/2000", periods=1000),
         )

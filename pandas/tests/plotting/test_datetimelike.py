@@ -289,7 +289,9 @@ class TestTSPlot:
         import pandas.plotting._matplotlib.converter as conv
 
         idx = date_range("2012-6-22 21:59:51.960928", freq="L", periods=500)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 2), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
+        )
 
         _, ax = mpl.pyplot.subplots()
         df.plot(ax=ax)
@@ -305,7 +307,9 @@ class TestTSPlot:
 
     def test_irreg_hf(self):
         idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 2), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
+        )
 
         irreg = df.iloc[[0, 1, 3, 4]]
         _, ax = mpl.pyplot.subplots()
@@ -318,7 +322,7 @@ class TestTSPlot:
     def test_irreg_hf_object(self):
         idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), 2), index=idx
+            np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
         )
         _, ax = mpl.pyplot.subplots()
         df2.index = df2.index.astype(object)
@@ -1295,7 +1299,7 @@ class TestTSPlot:
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_format_date_axis(self):
         rng = date_range("1/1/2012", periods=12, freq="M")
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 3), rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(ax=ax)
         xaxis = ax.get_xaxis()
@@ -1423,7 +1427,7 @@ class TestTSPlot:
         expected_labels = [f"00:00:00.0000000{i:0>2d}" for i in np.arange(10)]
 
         rng = timedelta_range("0", periods=10, freq="ns")
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 3), rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         df.plot(fontsize=2, ax=ax)
         mpl.pyplot.draw()
@@ -1447,7 +1451,7 @@ class TestTSPlot:
         ]
 
         rng = timedelta_range("0", periods=10, freq="1 d")
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 3), rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(fontsize=2, ax=ax)
         mpl.pyplot.draw()

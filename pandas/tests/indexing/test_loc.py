@@ -1027,7 +1027,7 @@ class TestLocBaseIndependent:
         df = pd.concat(
             [
                 DataFrame(
-                    np.random.default_rng(2).standard_normal(length, len(columns)),
+                    np.random.default_rng(2).standard_normal((length, len(columns))),
                     index=np.arange(length),
                     columns=columns,
                 ),
@@ -1270,7 +1270,7 @@ class TestLocBaseIndependent:
         mask = (rng.hour == 9) & (rng.minute == 30)
 
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal(len(rng), 3), index=rng
+            np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )
         obj = tm.get_obj(obj, frame_or_series)
 
@@ -1470,7 +1470,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_time_key(self, using_array_manager):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(index), 5), index=index
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
         )
         akey = time(12, 0, 0)
         bkey = slice(time(13, 0, 0), time(14, 0, 0))

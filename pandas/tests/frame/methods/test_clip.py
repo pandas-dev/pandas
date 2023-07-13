@@ -124,11 +124,11 @@ class TestDataFrameClip:
     def test_clip_against_unordered_columns(self):
         # GH#20911
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 4),
+            np.random.default_rng(2).standard_normal((1000, 4)),
             columns=["A", "B", "C", "D"],
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 4),
+            np.random.default_rng(2).standard_normal((1000, 4)),
             columns=["D", "A", "B", "C"],
         )
         df3 = DataFrame(df2.values - 1, columns=["B", "D", "C", "A"])

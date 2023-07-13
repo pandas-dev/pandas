@@ -427,7 +427,7 @@ class TestDataFramePlots:
 
     # GH 9351
     def test_tight_layout(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(100, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 2)))
         df[2] = to_datetime(
             np.random.default_rng(2).integers(
                 812419200000000000,

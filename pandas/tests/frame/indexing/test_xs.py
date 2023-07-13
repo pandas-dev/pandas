@@ -170,7 +170,7 @@ class TestXSWithMultiIndex:
         ids = list("abcde")
         index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(index), 3),
+            np.random.default_rng(2).standard_normal((len(index), 3)),
             index,
             ["X", "Y", "Z"],
         )

@@ -179,8 +179,8 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(1, 3))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(1, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1, 3)))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((1, 4)))
 
         levels = [["foo", "baz"], ["one", "two"]]
         names = ["first", "second"]
@@ -221,8 +221,8 @@ class TestConcatenate:
 
     def test_concat_keys_levels_no_overlap(self):
         # GH #1406
-        df = DataFrame(np.random.default_rng(2).standard_normal(1, 3), index=["a"])
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(1, 4), index=["b"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((1, 3)), index=["a"])
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((1, 4)), index=["b"])
 
         msg = "Values not found in passed level"
         with pytest.raises(ValueError, match=msg):
@@ -260,8 +260,8 @@ class TestConcatenate:
         )
         tm.assert_frame_equal(appended, expected)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(1, 3), index=["a"])
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(1, 4), index=["b"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((1, 3)), index=["a"])
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((1, 4)), index=["b"])
         result = concat([df, df2], keys=["one", "two"], names=["first", "second"])
         assert result.index.names == ("first", "second")
 

@@ -201,11 +201,11 @@ class TestMerge:
     def test_int64_overflow_outer_merge(self):
         # #2690, combinatorial explosion
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 7),
+            np.random.default_rng(2).standard_normal((1000, 7)),
             columns=list("ABCDEF") + ["G1"],
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 7),
+            np.random.default_rng(2).standard_normal((1000, 7)),
             columns=list("ABCDEF") + ["G2"],
         )
         result = merge(df1, df2, how="outer")

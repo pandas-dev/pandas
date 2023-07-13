@@ -634,7 +634,7 @@ class TestDataFrameQueryNumExprPandas:
         skip_if_no_pandas_parser(parser)
         cols = list("abc")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(100, len(cols)), columns=cols
+            np.random.default_rng(2).standard_normal((100, len(cols))), columns=cols
         )
         res = df.query(
             "a < b < c and a not in b not in c", engine=engine, parser=parser

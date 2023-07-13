@@ -627,7 +627,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_float32_nanrep(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(1, 4).astype(np.float32)
+            np.random.default_rng(2).standard_normal((1, 4)).astype(np.float32)
         )
         df[1] = np.nan
 
@@ -652,12 +652,12 @@ class TestDataFrameToCSV:
             return [f"{name}{i:03d}" for i in range(5)]
 
         df_float = DataFrame(
-            np.random.default_rng(2).standard_normal(100, 5),
+            np.random.default_rng(2).standard_normal((100, 5)),
             dtype="float64",
             columns=create_cols("float"),
         )
         df_int = DataFrame(
-            np.random.default_rng(2).standard_normal(100, 5).astype("int64"),
+            np.random.default_rng(2).standard_normal((100, 5)).astype("int64"),
             dtype="int64",
             columns=create_cols("int"),
         )
@@ -700,7 +700,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_dups_cols(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 30),
+            np.random.default_rng(2).standard_normal((1000, 30)),
             columns=list(range(15)) + list(range(15)),
             dtype="float64",
         )
@@ -712,9 +712,9 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, df)
 
         df_float = DataFrame(
-            np.random.default_rng(2).standard_normal(1000, 3), dtype="float64"
+            np.random.default_rng(2).standard_normal((1000, 3)), dtype="float64"
         )
-        df_int = DataFrame(np.random.default_rng(2).standard_normal(1000, 3)).astype(
+        df_int = DataFrame(np.random.default_rng(2).standard_normal((1000, 3))).astype(
             "int64"
         )
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
@@ -770,7 +770,7 @@ class TestDataFrameToCSV:
         # Issue #8621
         chunksize = 100
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(1, chunksize + 10),
+            np.random.default_rng(2).standard_normal((1, chunksize + 10)),
             columns=None,
             index=None,
         )

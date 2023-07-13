@@ -85,7 +85,7 @@ class TestDataFrameMask:
 
     def test_mask_dtype_bool_conversion(self):
         # GH#3733
-        df = DataFrame(data=np.random.default_rng(2).standard_normal(100, 50))
+        df = DataFrame(data=np.random.default_rng(2).standard_normal((100, 50)))
         df = df.where(df > 0)  # create nans
         bools = df > 0
         mask = isna(df)

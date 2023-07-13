@@ -556,7 +556,7 @@ class TestSeriesReductions:
 
         assert np.isinf(s.sum())
 
-        arr = np.random.default_rng(2).standard_normal(100, 100).astype("f4")
+        arr = np.random.default_rng(2).standard_normal((100, 100)).astype("f4")
         arr[:, 2] = np.inf
 
         msg = "use_inf_as_na option is deprecated"

@@ -335,7 +335,7 @@ def test_loc_getitem_over_size_cutoff(monkeypatch):
         dates[p + 1] = dates[p]
 
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(len(dates), 4),
+        np.random.default_rng(2).standard_normal((len(dates), 4)),
         index=dates,
         columns=list("ABCD"),
     )

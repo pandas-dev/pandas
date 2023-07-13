@@ -64,7 +64,7 @@ class TestDataFrameSetItem:
         assert float_frame[dtype].dtype.name == dtype
 
     def test_setitem_list_not_dataframe(self, float_frame):
-        data = np.random.default_rng(2).standard_normal(len(float_frame), 2)
+        data = np.random.default_rng(2).standard_normal((len(float_frame), 2))
         float_frame[["A", "B"]] = data
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 

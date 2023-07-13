@@ -264,7 +264,7 @@ class TestiLocBaseIndependent:
     def test_iloc_non_integer_raises(self, index, columns, index_vals, column_vals):
         # GH 25753
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(index), len(columns)),
+            np.random.default_rng(2).standard_normal((len(index), len(columns))),
             index=index,
             columns=columns,
         )
@@ -979,7 +979,7 @@ class TestiLocBaseIndependent:
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
         idx = Index([])
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal(len(idx), len(idx)),
+            np.random.default_rng(2).standard_normal((len(idx), len(idx))),
             index=idx,
             columns=idx,
         )

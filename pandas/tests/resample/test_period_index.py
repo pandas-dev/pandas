@@ -631,7 +631,7 @@ class TestPeriodIndex:
     )
     def test_default_right_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 2), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 2)), idx)
 
         resampled = df.resample(to_freq).mean()
         tm.assert_frame_equal(
@@ -644,7 +644,7 @@ class TestPeriodIndex:
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(idx), 2), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 2)), idx)
 
         resampled = df.resample(to_freq).mean()
         tm.assert_frame_equal(

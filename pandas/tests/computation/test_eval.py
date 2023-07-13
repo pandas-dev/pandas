@@ -971,7 +971,7 @@ class TestAlignment:
             tm.assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(1000, 10))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
         if engine == "numexpr":
             seen = PerformanceWarning

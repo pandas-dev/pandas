@@ -297,7 +297,7 @@ class TestS3:
         import s3fs
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(100000, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((100000, 4)), columns=list("abcd")
         )
         str_buf = StringIO()
 

@@ -384,7 +384,7 @@ def test_cython_median():
         exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
-    df = DataFrame(np.random.default_rng(2).standard_normal(1000, 5))
+    df = DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
     msg = "using DataFrameGroupBy.median"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         rs = df.groupby(labels).agg(np.median)

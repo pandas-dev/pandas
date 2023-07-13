@@ -200,7 +200,7 @@ class TestBetweenTime:
     def test_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(len(index), 5), index=index
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
         )
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]

@@ -48,7 +48,9 @@ class TestAtTime:
     def test_at_time_midnight(self, frame_or_series):
         # midnight, everything
         rng = date_range("1/1/2000", "1/31/2000")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 3), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         result = ts.at_time(time(0, 0))
@@ -97,7 +99,7 @@ class TestAtTime:
     def test_at_time_axis(self, axis):
         # issue 8839
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), len(rng)))
+        ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
         ts.index, ts.columns = rng, rng
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]

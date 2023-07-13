@@ -1231,7 +1231,9 @@ class TestFrameArithmeticUnsorted:
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 3), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
+        )
 
         result = ts + ts[::2]
         expected = ts + ts

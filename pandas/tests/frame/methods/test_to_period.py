@@ -18,7 +18,7 @@ class TestToPeriod:
 
         dr = date_range("1/1/2000", "1/1/2001", freq="D")
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal(len(dr), K),
+            np.random.default_rng(2).standard_normal((len(dr), K)),
             index=dr,
             columns=["A", "B", "C", "D", "E"],
         )
@@ -56,7 +56,7 @@ class TestToPeriod:
 
     def test_to_period_columns(self):
         dr = date_range("1/1/2000", "1/1/2001")
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(dr), 5), index=dr)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr)
         df["mix"] = "a"
 
         df = df.T
@@ -70,7 +70,7 @@ class TestToPeriod:
 
     def test_to_period_invalid_axis(self):
         dr = date_range("1/1/2000", "1/1/2001")
-        df = DataFrame(np.random.default_rng(2).standard_normal(len(dr), 5), index=dr)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(dr), 5)), index=dr)
         df["mix"] = "a"
 
         msg = "No axis named 2 for object type DataFrame"
