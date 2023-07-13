@@ -132,12 +132,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.argsort \
-        pandas.api.extensions.ExtensionArray.astype \
-        pandas.api.extensions.ExtensionArray.copy \
-        pandas.api.extensions.ExtensionArray.view \
         pandas.api.extensions.ExtensionArray.dropna \
         pandas.api.extensions.ExtensionArray.equals \
         pandas.api.extensions.ExtensionArray.factorize \
@@ -150,8 +145,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
         pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.dtype \
-        pandas.api.extensions.ExtensionArray.nbytes \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
