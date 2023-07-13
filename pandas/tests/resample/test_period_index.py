@@ -897,7 +897,7 @@ def test_period_index_frequency_ME_error_message():
     msg = "Invalid frequency: 2ME"
 
     with pytest.raises(ValueError, match=msg):
-        PeriodIndex([Period("2013-01", "2ME"), Period("2013-12", "2ME")])
+        PeriodIndex(["2020-01", "2020-01-02"], freq="2ME")
 
 
 def test_resample_frequency_ME_error_message(series_and_frame):
@@ -908,14 +908,10 @@ def test_resample_frequency_ME_error_message(series_and_frame):
         obj.resample("2ME")
 
 
-def test_asfreq_resample_frequency_M_deprecated(series_and_frame):
-    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
-
-    obj = series_and_frame
-    expected = obj.to_timestamp().resample("2ME").asfreq()
-    with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = obj.to_timestamp().resample("2M").asfreq()
-    tm.assert_almost_equal(result, expected)
+def test_period_range_frequency_ME_error_message():
+    msg = "Invalid frequency: 2ME"
+    with pytest.raises(ValueError, match=msg):
+        period_range("Jan-2000", "Dec-2000", freq="2ME")
 
 
 def test_resample_from_period_deprecated():
