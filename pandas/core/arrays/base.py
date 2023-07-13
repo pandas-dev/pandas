@@ -1535,7 +1535,9 @@ class ExtensionArray:
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1547,6 +1549,15 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
+
+            .. versionadded:: 2.1
+
+               This parameter is not required in the _reduce signature to keep backward
+               compatibility, but will become required in the future. If the parameter
+               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -1565,7 +1576,11 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        return meth(skipna=skipna, **kwargs)
+        result = meth(skipna=skipna, **kwargs)
+        if keepdims:
+            result = np.array([result])
+
+        return result
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class

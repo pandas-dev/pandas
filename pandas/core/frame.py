@@ -20,6 +20,7 @@ from collections.abc import (
     Sequence,
 )
 import functools
+from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -10893,7 +10894,18 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, **kwds)
+                sign = signature(values._reduce)
+                if "keepdims" in sign.parameters:
+                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                else:
+                    warnings.warn(
+                        f"{type(values)}._reduce will require a `keepdims` parameter "
+                        "in the future",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    result = values._reduce(name, skipna=skipna, **kwds)
+                    return np.array([result])
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -10934,11 +10946,11 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
-        if out_dtype is not None:
+        if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any():
+        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
+        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
             out = out.astype(np.float64)
@@ -11199,10 +11211,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        # indices will always be np.ndarray since axis is not N
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -11229,10 +11240,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        assert isinstance(indices, (np.ndarray, ExtensionArray))  # for mypy
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]

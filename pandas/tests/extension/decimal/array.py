@@ -235,24 +235,29 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if skipna:
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if skipna and self.isna().any():
             # If we don't have any NAs, we can ignore skipna
-            if self.isna().any():
-                other = self[~self.isna()]
-                return other._reduce(name, **kwargs)
-
-        if name == "sum" and len(self) == 0:
+            other = self[~self.isna()]
+            result = other._reduce(name, **kwargs)
+        elif name == "sum" and len(self) == 0:
             # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
-            return decimal.Decimal(0)
+            result = decimal.Decimal(0)
+        else:
+            try:
+                op = getattr(self.data, name)
+            except AttributeError as err:
+                raise NotImplementedError(
+                    f"decimal does not support the {name} operation"
+                ) from err
+            result = op(axis=0)
 
-        try:
-            op = getattr(self.data, name)
-        except AttributeError as err:
-            raise NotImplementedError(
-                f"decimal does not support the {name} operation"
-            ) from err
-        return op(axis=0)
+        if keepdims:
+            return type(self)([result])
+        else:
+            return result
 
     def _cmp_method(self, other, op):
         # For use with OpsMixin

@@ -32,6 +32,10 @@ from pandas._typing import (
     Shape,
     npt,
 )
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -1081,21 +1085,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # ------------------------------------------------------------------
     # Reductions
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
-            return getattr(self, name)(skipna=skipna, **kwargs)
+            result = getattr(self, name)(skipna=skipna, **kwargs)
+        else:
+            # median, skew, kurt, sem
+            data = self._data
+            mask = self._mask
+            op = getattr(nanops, f"nan{name}")
+            axis = kwargs.pop("axis", None)
+            result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
 
-        data = self._data
-        mask = self._mask
+        if keepdims:
+            if isna(result):
+                return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
+            else:
+                result = result.reshape(1)
+                mask = np.zeros(1, dtype=bool)
+                return self._maybe_mask_result(result, mask)
 
-        # median, skew, kurt, sem
-        op = getattr(nanops, f"nan{name}")
-        result = op(data, axis=0, skipna=skipna, mask=mask, **kwargs)
-
-        if np.isnan(result):
+        if isna(result):
             return libmissing.NA
-
-        return result
+        else:
+            return result
 
     def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
         if isinstance(result, np.ndarray):
@@ -1107,6 +1121,32 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return self._maybe_mask_result(result, mask)
         return result
+
+    def _wrap_na_result(self, *, name, axis, mask_size):
+        mask = np.ones(mask_size, dtype=bool)
+
+        float_dtyp = "float32" if self.dtype == "Float32" else "float64"
+        if name in ["mean", "median", "var", "std", "skew"]:
+            np_dtype = float_dtyp
+        elif name in ["min", "max"] or self.dtype.itemsize == 8:
+            np_dtype = self.dtype.numpy_dtype.name
+        else:
+            is_windows_or_32bit = is_platform_windows() or not IS64
+            int_dtyp = "int32" if is_windows_or_32bit else "int64"
+            uint_dtyp = "uint32" if is_windows_or_32bit else "uint64"
+            np_dtype = {"b": int_dtyp, "i": int_dtyp, "u": uint_dtyp, "f": float_dtyp}[
+                self.dtype.kind
+            ]
+
+        value = np.array([1], dtype=np_dtype)
+        return self._maybe_mask_result(value, mask=mask)
+
+    def _wrap_min_count_reduction_result(
+        self, name: str, result, *, skipna, min_count, axis
+    ):
+        if min_count == 0 and isinstance(result, np.ndarray):
+            return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
+        return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
     def sum(
         self,
@@ -1125,7 +1165,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result("sum", result, skipna=skipna, axis=axis)
+        return self._wrap_min_count_reduction_result(
+            "sum", result, skipna=skipna, min_count=min_count, axis=axis
+        )
 
     def prod(
         self,
@@ -1136,6 +1178,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         **kwargs,
     ):
         nv.validate_prod((), kwargs)
+
         result = masked_reductions.prod(
             self._data,
             self._mask,
@@ -1143,7 +1186,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             axis=axis,
         )
-        return self._wrap_reduction_result("prod", result, skipna=skipna, axis=axis)
+        return self._wrap_min_count_reduction_result(
+            "prod", result, skipna=skipna, min_count=min_count, axis=axis
+        )
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_mean((), kwargs)
@@ -1183,23 +1228,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)
-        return masked_reductions.min(
+        result = masked_reductions.min(
             self._data,
             self._mask,
             skipna=skipna,
             axis=axis,
         )
+        return self._wrap_reduction_result("min", result, skipna=skipna, axis=axis)
 
     def max(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_max((), kwargs)
-        return masked_reductions.max(
+        result = masked_reductions.max(
             self._data,
             self._mask,
             skipna=skipna,
             axis=axis,
         )
+        return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def any(self, *, skipna: bool = True, **kwargs):
+    def any(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
         Return whether any element is truthy.
 
@@ -1218,6 +1265,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             If `skipna` is False, the result will still be True if there is
             at least one element that is truthy, otherwise NA will be returned
             if there are NA's present.
+        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -1261,7 +1309,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
         <NA>
         """
-        kwargs.pop("axis", None)
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
@@ -1280,7 +1327,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             else:
                 return self.dtype.na_value
 
-    def all(self, *, skipna: bool = True, **kwargs):
+    def all(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         """
         Return whether all elements are truthy.
 
@@ -1299,6 +1346,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             If `skipna` is False, the result will still be False if there is
             at least one element that is falsey, otherwise NA will be returned
             if there are NA's present.
+        axis : int, optional, default 0
         **kwargs : any, default None
             Additional keywords have no effect but might be accepted for
             compatibility with NumPy.
@@ -1342,7 +1390,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
         False
         """
-        kwargs.pop("axis", None)
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
@@ -1352,7 +1399,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
-        result = values.all()
+        result = values.all(axis=axis)
 
         if skipna:
             return result
