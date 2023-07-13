@@ -670,7 +670,7 @@ class BaseBlockManager(DataManager):
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
-        ref_inplace_op: bool = False
+        ref_inplace_op: bool = False,
     ) -> list[Block]:
         """
         Slice/take blocks along axis=0.
@@ -716,7 +716,9 @@ class BaseBlockManager(DataManager):
                     #  views instead of copies
                     blocks = [
                         blk.getitem_block_columns(
-                            slice(ml, ml + 1), new_mgr_locs=BlockPlacement(i), ref_inplace_op=ref_inplace_op
+                            slice(ml, ml + 1),
+                            new_mgr_locs=BlockPlacement(i),
+                            ref_inplace_op=ref_inplace_op,
                         )
                         for i, ml in enumerate(slobj)
                     ]
