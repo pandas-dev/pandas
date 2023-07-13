@@ -5501,12 +5501,32 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Iterable[int] = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        suffix: str | None = None,
     ) -> DataFrame:
         axis = self._get_axis_number(axis)
+
+        if is_list_like(periods):
+            if axis == 1:
+                raise ValueError('If `periods` contains multiple shifts, `axis` cannot be 1.')
+            if len(periods) == 0:
+                raise ValueError('If `periods` is an iterable, it cannot be empty.')
+            from pandas.core.reshape.concat import concat
+            result = []
+            for period in periods:
+                if not isinstance(period, int):
+                    raise TypeError(
+                        f"Value {period} in periods must be integer, but is type {type(period)}."
+                    )
+                result.append(
+                    super()
+                    .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
+                    .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+                )
+            return concat(result, axis=1) if result else self
 
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832

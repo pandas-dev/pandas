@@ -15,6 +15,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Iterable,
     Literal,
     NoReturn,
     cast,
@@ -10521,10 +10522,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Iterable = 1,
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        suffix: str | None = None,
     ) -> Self:
         """
         Shift index by desired number of periods with an optional time `freq`.
@@ -10538,8 +10540,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        periods : int
+        periods : int or Iterable
             Number of periods to shift. Can be positive or negative.
+            If an iterable of ints, the data will be shifted once by each int.
+            This is equivalent to shifting by one value at a time and
+            concatenating all resulting frames. The resulting columns will have
+            the shift suffixed to their column names. For multiple periods,
+            axis must not be 1.
         freq : DateOffset, tseries.offsets, timedelta, or str, optional
             Offset to use from the tseries module or time rule (e.g. 'EOM').
             If `freq` is specified then the index values are shifted but the
@@ -10556,6 +10563,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For numeric data, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
+        suffix: str, optional
+            If str and periods is an iterable, this is added after the column
+            name and before the shift value for each shifted column name.
 
         Returns
         -------
@@ -10621,6 +10631,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-06    15    18    22
         2020-01-07    30    33    37
         2020-01-08    45    48    52
+
+        >>> df['Col1'].shift(periods=[1, 2])
+                    Col1_0  Col1_1  Col1_2
+        2020-01-01      10     NaN     NaN
+        2020-01-02      20    10.0     NaN
+        2020-01-03      15    20.0    10.0
+        2020-01-04      30    15.0    20.0
+        2020-01-05      45    30.0    15.0
         """
         axis = self._get_axis_number(axis)
 
@@ -10633,6 +10651,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if periods == 0:
             return self.copy(deep=None)
+
+        if is_list_like(periods) and len(self.shape) == 1:
+            return self.to_frame().shift(
+                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+                )
 
         if freq is None:
             # when freq is None, data is shifted, index is not
