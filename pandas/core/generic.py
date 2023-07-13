@@ -811,6 +811,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_mgr.blocks[0].refs.add_reference(
                 new_mgr.blocks[0]  # type: ignore[arg-type]
             )
+            if not using_copy_on_write() and copy is not False:
+                new_mgr = new_mgr.copy(deep=True)
+
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         elif (copy or copy is None) and self._mgr.is_single_block:

@@ -914,7 +914,7 @@ class Block(PandasObject):
                     nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
                     if (nb is self or using_cow) and not inplace:
                         nb = nb.copy()
-                    elif inplace and has_ref and nb.refs.has_reference():
+                    elif inplace and has_ref and nb.refs.has_reference() and using_cow:
                         # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
