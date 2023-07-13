@@ -9229,6 +9229,12 @@ class DataFrame(NDFrame, OpsMixin):
                     "removed in a future version of pandas"
                 )
 
+            if sort is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify sort with v3=True, this argument will be "
+                    "removed in a future version of pandas"
+                )
+
             if (
                 isinstance(level, (tuple, list))
                 and not all(lev in self.columns.names for lev in level)

@@ -1140,8 +1140,12 @@ class TestDataFrameReshape:
         df = DataFrame([sorted(data)], columns=midx)
         result = df.stack([0, 1], v3=v3)
 
-        s_cidx = pd.CategoricalIndex(sorted(labels), ordered=ordered)
-        expected = Series(data, index=MultiIndex.from_product([[0], s_cidx, cidx2]))
+        labels = labels if v3 else sorted(labels)
+        s_cidx = pd.CategoricalIndex(labels, ordered=ordered)
+        expected_data = sorted(data) if v3 else data
+        expected = Series(
+            expected_data, index=MultiIndex.from_product([[0], s_cidx, cidx2])
+        )
 
         tm.assert_series_equal(result, expected)
 
@@ -1451,7 +1455,8 @@ def test_stack_sort_false(v3):
             levels=[["B", "A"], ["x", "y"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
         ),
     )
-    result = df.stack(level=0, sort=False, v3=v3)
+    kwargs = {} if v3 else {"sort": False}
+    result = df.stack(level=0, v3=v3, **kwargs)
     if v3:
         expected = DataFrame(
             {
@@ -1474,7 +1479,8 @@ def test_stack_sort_false(v3):
         data,
         columns=MultiIndex.from_arrays([["B", "B", "A", "A"], ["x", "y", "x", "y"]]),
     )
-    result = df.stack(level=0, sort=False, v3=v3)
+    kwargs = {} if v3 else {"sort": False}
+    result = df.stack(level=0, v3=v3, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1482,7 +1488,8 @@ def test_stack_sort_false_multi_level(v3):
     # GH 15105
     idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
     df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=["cat", "dog"], columns=idx)
-    result = df.stack([0, 1], sort=False, v3=v3)
+    kwargs = {} if v3 else {"sort": False}
+    result = df.stack([0, 1], v3=v3, **kwargs)
     expected_index = MultiIndex.from_tuples(
         [
             ("cat", "weight", "kg"),
@@ -2083,7 +2090,8 @@ Thu,Lunch,Yes,51.51,17"""
         # deep check for 1-row case
         columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(columns=columns, data=[range(4)])
-        df_stacked = df.stack(stack_lev, sort=sort, v3=v3)
+        kwargs = {} if v3 else {"sort": sort}
+        df_stacked = df.stack(stack_lev, v3=v3, **kwargs)
         for row in df.index:
             for col in df.columns:
                 expected = df.loc[row, col]
@@ -2115,7 +2123,8 @@ Thu,Lunch,Yes,51.51,17"""
         stack_lev = 1
         columns = MultiIndex(levels=levels, codes=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(columns=columns, data=[range(4)], index=[1, 0, 2, 3])
-        result = df.stack(stack_lev, sort=True, v3=v3)
+        kwargs = {} if v3 else {"sort": True}
+        result = df.stack(stack_lev, v3=v3, **kwargs)
         expected_index = MultiIndex(
             levels=[[0, 1, 2, 3], [0, 1]],
             codes=[[1, 1, 0, 0, 2, 2, 3, 3], [1, 0, 1, 0, 1, 0, 1, 0]],
