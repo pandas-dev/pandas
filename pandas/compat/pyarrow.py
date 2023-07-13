@@ -21,3 +21,4 @@ except ImportError:
     pa_version_under9p0 = True
     pa_version_under10p0 = True
     pa_version_under11p0 = True
+    pa_version_under12p0 = True
