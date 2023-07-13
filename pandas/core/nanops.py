@@ -1094,7 +1094,6 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
-@disallow("O")
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1140,7 +1139,6 @@ def nanargmax(
     return result
 
 
-@disallow("O")
 def nanargmin(
     values: np.ndarray,
     *,
