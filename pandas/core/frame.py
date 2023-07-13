@@ -4162,7 +4162,9 @@ class DataFrame(NDFrame, OpsMixin):
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
         if using_copy_on_write():
-            self._iset_item_mgr(loc, value._values, inplace=inplace, refs=value._references)
+            self._iset_item_mgr(
+                loc, value._values, inplace=inplace, refs=value._references
+            )
         else:
             self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
