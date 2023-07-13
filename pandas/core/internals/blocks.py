@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import weakref
 from functools import wraps
 import re
 from typing import (
@@ -13,6 +12,7 @@ from typing import (
     cast,
     final,
 )
+import weakref
 
 import numpy as np
 
@@ -838,7 +838,9 @@ class Block(PandasObject):
                     # many unnecessary copies
                     for b in result:
                         ref = weakref.ref(b)
-                        b.refs.referenced_blocks.pop(b.refs.referenced_blocks.index(ref))
+                        b.refs.referenced_blocks.pop(
+                            b.refs.referenced_blocks.index(ref)
+                        )
 
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
