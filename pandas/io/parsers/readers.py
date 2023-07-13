@@ -416,14 +416,14 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
     .. versionadded:: 1.2
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, defaults to NumPy backed DataFrame
-    Back-end data type to use for the :class:`~pandas.DataFrame`. For
-    ``'numpy_nullable'``, have NumPy arrays, nullable ``dtypes`` are used for all
-    ``dtypes`` that have a
-    nullable implementation when ``'numpy_nullable'`` is set, pyarrow is used for all
-    dtypes if ``'pyarrow'`` is set.
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    Back-end data type applied to the resultant :class:`DataFrame`
+    (still experimental). Behaviour is as follows:
 
-    The ``dtype_backends`` are still experimental.
+    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+      (default).
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+      DataFrame.
 
     .. versionadded:: 2.0
 
@@ -1319,13 +1319,14 @@ def read_fwf(
     infer_nrows : int, default 100
         The number of rows to consider when letting the parser determine the
         `colspecs`.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
