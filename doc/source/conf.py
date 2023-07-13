@@ -376,14 +376,6 @@ header = f"""\
    os.chdir(r'{os.path.dirname(os.path.dirname(__file__))}')
 """
 
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    message=(
-        "Matplotlib is currently using agg, which is a "
-        "non-GUI backend, so cannot show the figure."
-    ),
-)
 
 html_context = {
     "redirects": dict(moved_api_pages),
