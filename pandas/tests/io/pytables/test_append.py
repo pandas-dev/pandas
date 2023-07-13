@@ -690,7 +690,7 @@ def test_append_misc_empty_frame(setup_path):
             store.select("df")
 
         # repeated append of 0/non-zero frames
-        df = DataFrame(np.random.default_rng(2).random(10, 3), columns=list("ABC"))
+        df = DataFrame(np.random.default_rng(2).random((10, 3)), columns=list("ABC"))
         store.append("df", df)
         tm.assert_frame_equal(store.select("df"), df)
         store.append("df", df_empty)

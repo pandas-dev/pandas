@@ -25,7 +25,7 @@ from pandas._testing._hypothesis import OPTIONAL_ONE_OF_ALL
 def where_frame(request, float_string_frame, mixed_float_frame, mixed_int_frame):
     if request.param == "default":
         return DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["A", "B", "C"]
         )
     if request.param == "float_string":
         return float_string_frame
@@ -148,7 +148,7 @@ class TestDataFrameIndexingWhere:
     def test_where_invalid(self):
         # invalid conditions
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["A", "B", "C"]
         )
         cond = df > 0
 

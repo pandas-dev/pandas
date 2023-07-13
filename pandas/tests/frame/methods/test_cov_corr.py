@@ -314,7 +314,9 @@ class TestDataFrameCorrWith:
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 4), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((5, 4)),
+            index=index,
+            columns=columns,
         )
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal(4, 4),

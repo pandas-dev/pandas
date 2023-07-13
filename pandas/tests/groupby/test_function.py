@@ -518,7 +518,7 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
 
 def test_idxmin_idxmax_axis1():
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "B", "C", "D"]
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
     )
     df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
 
@@ -551,7 +551,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "B", "C", "D"]
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
     )
     df["E"] = "x"
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]

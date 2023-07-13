@@ -287,7 +287,7 @@ class TestDataFrameColor:
 
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
-        DataFrame(np.random.default_rng(2).random(10, 2)).plot(color=colors)
+        DataFrame(np.random.default_rng(2).random((10, 2))).plot(color=colors)
         assert len(colors) == 3
 
     def test_line_colors_and_styles_subplots(self):
@@ -362,7 +362,7 @@ class TestDataFrameColor:
         from matplotlib.collections import PolyCollection
 
         custom_colors = "rgcby"
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
 
         ax = df.plot.area(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
@@ -379,7 +379,7 @@ class TestDataFrameColor:
         from matplotlib import cm
         from matplotlib.collections import PolyCollection
 
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.area(colormap="jet")
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         _check_colors(ax.get_lines(), linecolors=jet_colors)
@@ -395,7 +395,7 @@ class TestDataFrameColor:
         from matplotlib import cm
         from matplotlib.collections import PolyCollection
 
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         jet_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         # When stacked=False, alpha is set to 0.5
         ax = df.plot.area(colormap=cm.jet, stacked=False)
@@ -443,7 +443,7 @@ class TestDataFrameColor:
     @td.skip_if_no_scipy
     def test_kde_colors(self):
         custom_colors = "rgcby"
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
 
         ax = df.plot.kde(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
@@ -593,7 +593,7 @@ class TestDataFrameColor:
         colors = list("rgbk")
         plt.rcParams["axes.prop_cycle"] = cycler.cycler("color", colors)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         ax = df.plot()
 
         expected = _unpack_cycler(plt.rcParams)[:3]
@@ -651,7 +651,7 @@ class TestDataFrameColor:
 
     def test_invalid_colormap(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 2), columns=["A", "B"]
+            np.random.default_rng(2).standard_normal((3, 2)), columns=["A", "B"]
         )
         msg = "(is not a valid value)|(is not a known colormap)"
         with pytest.raises((ValueError, KeyError), match=msg):

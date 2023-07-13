@@ -20,7 +20,7 @@ class TestDataFrameShift:
     def test_shift_axis1_with_valid_fill_value_one_array(self):
         # Case with axis=1 that does not go through the "len(arrays)>1" path
         #  in DataFrame.shift
-        data = np.random.default_rng(2).standard_normal(5, 3)
+        data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         res = df.shift(axis=1, periods=1, fill_value=12345)
         expected = df.T.shift(periods=1, fill_value=12345).T
@@ -650,7 +650,7 @@ class TestDataFrameShift:
 
     def test_shift_axis1_many_periods(self):
         # GH#44978 periods > len(columns)
-        df = DataFrame(np.random.default_rng(2).random(5, 3))
+        df = DataFrame(np.random.default_rng(2).random((5, 3)))
         shifted = df.shift(6, axis=1, fill_value=None)
 
         expected = df * np.nan

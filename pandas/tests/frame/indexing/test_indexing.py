@@ -245,7 +245,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_ix_mixed_integer(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 3),
+            np.random.default_rng(2).standard_normal((4, 3)),
             index=[1, 10, "C", "E"],
             columns=[1, 2, 3],
         )
@@ -604,13 +604,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result2, expected)
 
     def test_ix_multi_take(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, :]
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
         # GH#1321
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, df.columns == 1]
         xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
@@ -710,7 +710,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(cp, expected)
 
     def test_getitem_setitem_boolean_multi(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
 
         # get
         k1 = np.array([True, False, True])
@@ -813,7 +813,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_single_column_mixed_datetime(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["foo", "bar", "baz"],
         )
@@ -944,7 +944,7 @@ class TestDataFrameIndexing:
     def test_getitem_setitem_ix_duplicates(self):
         # #1201
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["foo", "foo", "bar", "baz", "bar"],
         )
 
@@ -963,7 +963,7 @@ class TestDataFrameIndexing:
     def test_getitem_ix_boolean_duplicates_multiple(self):
         # #1201
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["foo", "foo", "bar", "baz", "bar"],
         )
 
@@ -1012,7 +1012,7 @@ class TestDataFrameIndexing:
 
     def test_iloc_row(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4), index=range(0, 20, 2)
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
 
         result = df.iloc[1]
@@ -1035,7 +1035,7 @@ class TestDataFrameIndexing:
 
     def test_iloc_row_slice_view(self, using_copy_on_write, request):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4), index=range(0, 20, 2)
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
         )
         original = df.copy()
 

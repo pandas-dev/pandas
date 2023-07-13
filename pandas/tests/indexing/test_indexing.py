@@ -280,7 +280,7 @@ class TestFancy:
     def test_dups_fancy_indexing_only_missing_label(self):
         # List containing only missing label
         dfnu = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), index=list("AABCD")
+            np.random.default_rng(2).standard_normal((5, 3)), index=list("AABCD")
         )
         with pytest.raises(
             KeyError,

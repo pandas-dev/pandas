@@ -135,7 +135,7 @@ def series():
 def frame():
     """Make mocked frame as fixture."""
     return DataFrame(
-        np.random.default_rng(2).standard_normal(100, 10),
+        np.random.default_rng(2).standard_normal((100, 10)),
         index=bdate_range(datetime(2009, 1, 1), periods=100),
     )
 

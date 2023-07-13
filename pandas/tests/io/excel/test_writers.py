@@ -615,7 +615,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_excel_roundtrip_indexname(self, merge_cells, path):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         df.index.name = "foo"
 
         df.to_excel(path, merge_cells=merge_cells)

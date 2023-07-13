@@ -336,7 +336,7 @@ class TestMultiIndexSetItem:
 
     def test_frame_setitem_multi_column(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             columns=[["a", "a", "b", "b"], [0, 1, 0, 1]],
         )
 

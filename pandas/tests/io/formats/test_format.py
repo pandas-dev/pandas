@@ -327,7 +327,7 @@ class TestDataFrameFormatting:
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
-            df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+            df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
             assert "\\" not in repr(df)
 
     def test_expand_frame_repr(self):
@@ -1193,7 +1193,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_wide_columns(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             df = DataFrame(
-                np.random.default_rng(2).standard_normal(5, 3),
+                np.random.default_rng(2).standard_normal((5, 3)),
                 columns=["a" * 90, "b" * 90, "c" * 90],
             )
             rep_str = repr(df)

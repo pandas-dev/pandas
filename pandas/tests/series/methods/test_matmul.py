@@ -17,7 +17,7 @@ class TestMatmul:
             np.random.default_rng(2).standard_normal(4), index=["p", "q", "r", "s"]
         )
         b = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 4),
+            np.random.default_rng(2).standard_normal((3, 4)),
             index=["1", "2", "3"],
             columns=["p", "q", "r", "s"],
         ).T

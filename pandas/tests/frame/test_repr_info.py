@@ -345,7 +345,7 @@ NaT   4"""
 
     def test_frame_to_string_with_periodindex(self):
         index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
-        frame = DataFrame(np.random.default_rng(2).standard_normal(3, 4), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), index=index)
 
         # it works!
         frame.to_string()

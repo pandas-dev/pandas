@@ -106,7 +106,7 @@ class TestDataFrameSetItem:
 
     def test_setitem_different_dtype(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=np.arange(5),
             columns=["c", "b", "a"],
         )
@@ -357,7 +357,7 @@ class TestDataFrameSetItem:
 
     def test_setitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5, name="index")
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3), index=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), index=rng)
 
         df["Index"] = rng
         rs = Index(df["Index"])

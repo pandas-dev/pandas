@@ -517,7 +517,7 @@ class TestBasic(Base):
         # Not able to write column multi-indexes with non-string column names.
         mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(4, 3), columns=mi_columns
+            np.random.default_rng(2).standard_normal((4, 3)), columns=mi_columns
         )
 
         if engine == "fastparquet":

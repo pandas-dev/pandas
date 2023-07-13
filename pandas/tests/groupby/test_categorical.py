@@ -710,7 +710,7 @@ def test_describe_categorical_columns():
         categories=["foo", "bar", "baz", "qux"],
         ordered=True,
     )
-    df = DataFrame(np.random.default_rng(2).standard_normal(20, 4), columns=cats)
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)
     result = df.groupby([1, 2, 3, 4] * 5).describe()
 
     tm.assert_index_equal(result.stack().columns, cats)

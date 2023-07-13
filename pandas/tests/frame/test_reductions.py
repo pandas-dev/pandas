@@ -465,7 +465,7 @@ class TestDataFrameAnalytics:
     def test_numeric_only_flag(self, meth):
         # GH 9201
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "100" below
@@ -474,7 +474,7 @@ class TestDataFrameAnalytics:
         df1.loc[0, "foo"] = "100"
 
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             columns=["foo", "bar", "baz"],
         )
         # Cast to object to avoid implicit cast when setting entry to "a" below

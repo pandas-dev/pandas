@@ -774,7 +774,7 @@ class TestDataFrameQuantile:
         # previous behavior incorrect retained an invalid _item_cache entry
         interpolation, method = interp_method
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
         )
         df["D"] = df["A"] * 2
         ser = df["A"]

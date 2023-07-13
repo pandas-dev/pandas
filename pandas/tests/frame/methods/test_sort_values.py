@@ -601,7 +601,7 @@ class TestDataFrameSortValues:
     def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 3), columns=["A", "B", "C"]
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
         )
         df["D"] = df["A"] * 2
         ser = df["A"]

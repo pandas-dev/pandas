@@ -659,7 +659,7 @@ def test_apply_category_equalness(val):
 def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
-    df = DataFrame(np.random.default_rng(2).random(10, 2))
+    df = DataFrame(np.random.default_rng(2).random((10, 2)))
     result = df.apply(np.fft.fft, axis=0).shape
     assert result == (10, 2)
 
@@ -914,7 +914,7 @@ def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(4, 3), columns=["A", "B", "C"]
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
     )
 
     result = df.apply(lambda x: lst, axis=1)

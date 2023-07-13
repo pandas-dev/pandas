@@ -770,7 +770,7 @@ class TestMultiplicationDivision:
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
     def test_ops_np_scalar(self, other):
-        vals = np.random.default_rng(2).standard_normal(5, 3)
+        vals = np.random.default_rng(2).standard_normal((5, 3))
         f = lambda x: pd.DataFrame(
             x, index=list("ABCDE"), columns=["jim", "joe", "jolie"]
         )
@@ -1414,7 +1414,7 @@ def test_dataframe_div_silenced():
         columns=list("ABCD"),
     )
     pdf2 = pd.DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4),
+        np.random.default_rng(2).standard_normal((10, 4)),
         index=list("abcdefghjk"),
         columns=list("ABCX"),
     )

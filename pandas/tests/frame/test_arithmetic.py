@@ -291,8 +291,8 @@ class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
     @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_bool_flex_frame(self, op):
-        data = np.random.default_rng(2).standard_normal(5, 3)
-        other_data = np.random.default_rng(2).standard_normal(5, 3)
+        data = np.random.default_rng(2).standard_normal((5, 3))
+        other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         other = DataFrame(other_data)
         ndim_5 = np.ones(df.shape + (1, 3))
@@ -323,7 +323,7 @@ class TestFrameFlexComparisons:
     def test_bool_flex_series(self, box):
         # Series
         # list/tuple
-        data = np.random.default_rng(2).standard_normal(5, 3)
+        data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         idx_ser = box(np.random.default_rng(2).standard_normal(5))
         col_ser = box(np.random.default_rng(2).standard_normal(3))
@@ -363,7 +363,7 @@ class TestFrameFlexComparisons:
         col_ser = Series(np.random.default_rng(2).standard_normal(3))
 
     def test_bool_flex_frame_na(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         # NA
         df.loc[0, 0] = np.nan
         rs = df.eq(df)

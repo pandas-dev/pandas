@@ -637,7 +637,7 @@ def test_resample_dup_index():
     # GH 4812
     # dup columns with resample raising
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(4, 12),
+        np.random.default_rng(2).standard_normal((4, 12)),
         index=[2000, 2000, 2000, 2000],
         columns=[Period(year=2000, month=i + 1, freq="M") for i in range(12)],
     )
@@ -732,7 +732,7 @@ def test_asfreq_non_unique(unit):
 def test_resample_axis1(unit):
     rng = date_range("1/1/2000", "2/29/2000").as_unit(unit)
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(3, len(rng)),
+        np.random.default_rng(2).standard_normal((3, len(rng))),
         columns=rng,
         index=["a", "b", "c"],
     )

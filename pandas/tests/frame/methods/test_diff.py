@@ -156,7 +156,7 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(res, exp)
 
     def test_diff_mixed_dtype(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["A"] = np.array([1, 2, 3, 4, 5], dtype=object)
 
         result = df.diff()

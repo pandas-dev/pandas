@@ -688,7 +688,7 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-        data = np.random.default_rng(2).standard_normal(3, 4)
+        data = np.random.default_rng(2).standard_normal((3, 4))
 
         columns = MultiIndex.from_tuples([("red", i) for i in gen])
         df = DataFrame(data, index=list("def"), columns=columns)

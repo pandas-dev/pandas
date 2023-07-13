@@ -406,7 +406,7 @@ class TestiLocBaseIndependent:
 
     def test_iloc_getitem_slice_dups(self):
         df1 = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             columns=["A", "A", "B", "B"],
         )
         df2 = DataFrame(
@@ -553,7 +553,7 @@ class TestiLocBaseIndependent:
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             index=range(0, 20, 2),
             columns=range(0, 8, 2),
         )
@@ -603,7 +603,7 @@ class TestiLocBaseIndependent:
     def test_iloc_getitem_labelled_frame(self):
         # try with labelled frame
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             index=list("abcdefghij"),
             columns=list("ABCD"),
         )
@@ -679,7 +679,7 @@ class TestiLocBaseIndependent:
 
     def test_iloc_setitem_series(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             index=list("abcdefghij"),
             columns=list("ABCD"),
         )
@@ -1078,7 +1078,7 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(df.loc[0.2, "a"], expect)
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4, 3),
+            np.random.default_rng(2).standard_normal((4, 3)),
             index=[1, 0.2, 0.2, 1],
             columns=list("abc"),
         )

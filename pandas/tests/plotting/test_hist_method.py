@@ -277,7 +277,7 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_hist_df_legacy_layout2(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 1))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
         _check_plot_works(df.hist)
 
     @pytest.mark.slow
@@ -517,7 +517,7 @@ class TestDataFramePlots:
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 2),
+            np.random.default_rng(2).standard_normal((30, 2)),
             index=index,
             columns=["a", "b"],
         )
@@ -543,7 +543,7 @@ class TestDataFramePlots:
         # GH 6279 - DataFrame histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 2),
+            np.random.default_rng(2).standard_normal((30, 2)),
             index=index,
             columns=["a", "b"],
         )
@@ -662,7 +662,7 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,
@@ -753,7 +753,7 @@ class TestDataFrameGroupByPlots:
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
         rs = np.random.default_rng(2)
-        df = DataFrame(rs.standard_normal(10, 1), columns=["A"])
+        df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
                 812419200000000000,

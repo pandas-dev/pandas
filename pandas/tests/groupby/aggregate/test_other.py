@@ -87,7 +87,7 @@ def test_agg_datetimes_mixed():
 
 def test_agg_period_index():
     prng = period_range("2012-1-1", freq="M", periods=3)
-    df = DataFrame(np.random.default_rng(2).standard_normal(3, 2), index=prng)
+    df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)), index=prng)
     rs = df.groupby(level=0).sum()
     assert isinstance(rs.index, PeriodIndex)
 

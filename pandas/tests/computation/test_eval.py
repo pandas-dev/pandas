@@ -624,7 +624,7 @@ class TestEval:
     )
     def test_disallow_scalar_bool_ops(self, ex, engine, parser):
         x, a, b = np.random.default_rng(2).standard_normal(3), 1, 2  # noqa: F841
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 2))  # noqa: F841
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))  # noqa: F841
 
         msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
         with pytest.raises(NotImplementedError, match=msg):
@@ -990,7 +990,7 @@ class TestAlignment:
         with tm.assert_produces_warning(False):
             pd.eval("df + s", engine=engine, parser=parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 10))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 10)))
         s = Series(np.random.default_rng(2).standard_normal(10000))
 
         is_python_engine = engine == "python"
@@ -1108,19 +1108,19 @@ class TestOperations:
         tm.assert_frame_equal(df, df2)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))  # noqa: F841
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
     def test_lhs_expression_subscript(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         result = self.eval("(df + 1)[df > 2]", local_dict={"df": df})
         expected = (df + 1)[df > 2]
         tm.assert_frame_equal(result, expected)
 
     def test_attr_expression(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((5, 3)), columns=list("abc")
         )
         expr1 = "df.a < df.b"
         expec1 = df.a < df.b
@@ -1135,9 +1135,9 @@ class TestOperations:
 
     def test_assignment_fails(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=list("abc")
+            np.random.default_rng(2).standard_normal((5, 3)), columns=list("abc")
         )
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         expr1 = "df = df2"
         msg = "cannot assign without a target object"
         with pytest.raises(ValueError, match=msg):
@@ -1451,7 +1451,7 @@ class TestOperations:
         tm.assert_frame_equal(r, e)
 
     def test_date_boolean(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["dates1"] = date_range("1/1/2012", periods=5)
         res = self.eval(
             "df.dates1 < 20130101",
@@ -1525,7 +1525,7 @@ class TestOperations:
         ],
     )
     def test_fails_and_or_not(self, expr, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         if parser == "python":
             msg = "'BoolOp' nodes are not implemented"
             if "not" in expr:
@@ -1549,7 +1549,7 @@ class TestOperations:
 
     @pytest.mark.parametrize("char", ["|", "&"])
     def test_fails_ampersand_pipe(self, char, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))  # noqa: F841
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))  # noqa: F841
         ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
         if parser == "python":
             msg = "cannot evaluate scalar only bool ops"

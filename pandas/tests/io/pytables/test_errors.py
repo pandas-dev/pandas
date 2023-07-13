@@ -115,7 +115,7 @@ def test_invalid_terms(tmp_path, setup_path):
     # from the docs
     path = tmp_path / setup_path
     dfq = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4),
+        np.random.default_rng(2).standard_normal((10, 4)),
         columns=list("ABCD"),
         index=date_range("20130101", periods=10),
     )
@@ -128,7 +128,7 @@ def test_invalid_terms(tmp_path, setup_path):
     # catch the invalid reference
     path = tmp_path / setup_path
     dfq = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4),
+        np.random.default_rng(2).standard_normal((10, 4)),
         columns=list("ABCD"),
         index=date_range("20130101", periods=10),
     )
@@ -146,7 +146,7 @@ def test_invalid_terms(tmp_path, setup_path):
 
 
 def test_append_with_diff_col_name_types_raises_value_error(setup_path):
-    df = DataFrame(np.random.default_rng(2).standard_normal(10, 1))
+    df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
     df2 = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
     df3 = DataFrame({(1, 2): np.random.default_rng(2).standard_normal(10)})
     df4 = DataFrame({("1", 2): np.random.default_rng(2).standard_normal(10)})

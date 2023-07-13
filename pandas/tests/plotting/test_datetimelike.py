@@ -695,7 +695,7 @@ class TestTSPlot:
 
     def test_secondary_frame(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["a", "b", "c"]
         )
         axes = df.plot(secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"
@@ -704,7 +704,7 @@ class TestTSPlot:
 
     def test_secondary_bar_frame(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3), columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((5, 3)), columns=["a", "b", "c"]
         )
         axes = df.plot(kind="bar", secondary_y=["a", "c"], subplots=True)
         assert axes[0].get_yaxis().get_ticks_position() == "right"

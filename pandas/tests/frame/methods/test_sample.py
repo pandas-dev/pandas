@@ -16,7 +16,7 @@ class TestSample:
         if frame_or_series is Series:
             arr = np.random.default_rng(2).standard_normal(10)
         else:
-            arr = np.random.default_rng(2).standard_normal(10, 10)
+            arr = np.random.default_rng(2).standard_normal((10, 10))
         return frame_or_series(arr, dtype=None)
 
     @pytest.mark.parametrize("test", list(range(10)))

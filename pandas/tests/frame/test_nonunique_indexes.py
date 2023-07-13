@@ -21,7 +21,7 @@ class TestDataFrameNonuniqueIndexes:
     def test_setattr_columns_vs_construct_with_columns(self):
         # assignment
         # GH 3687
-        arr = np.random.default_rng(2).standard_normal(3, 2)
+        arr = np.random.default_rng(2).standard_normal((3, 2))
         idx = list(range(2))
         df = DataFrame(arr, columns=["A", "A"])
         df.columns = idx
@@ -164,7 +164,7 @@ class TestDataFrameNonuniqueIndexes:
     def test_column_dups_indexes(self):
         # check column dups with index equal and not equal to df's index
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["A", "B", "A"],
         )

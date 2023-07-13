@@ -97,7 +97,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_tick_props(self):
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3),
+            np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
 
@@ -116,7 +116,7 @@ class TestDataFramePlots:
     )
     def test_plot_other_args(self, kwargs):
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3),
+            np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
         _check_plot_works(df.plot, **kwargs)
@@ -124,7 +124,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_visible_ax(self):
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3),
+            np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
         # We have to redo it here because _check_plot_works does two plots,
@@ -148,7 +148,7 @@ class TestDataFramePlots:
     @pytest.mark.slow
     def test_plot_title(self):
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3),
+            np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
         _check_plot_works(df.plot, title="blah")
@@ -157,7 +157,8 @@ class TestDataFramePlots:
     def test_plot_multiindex(self):
         tuples = zip(string.ascii_letters[:10], range(10))
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3), index=MultiIndex.from_tuples(tuples)
+            np.random.default_rng(2).random((10, 3)),
+            index=MultiIndex.from_tuples(tuples),
         )
         ax = _check_plot_works(df.plot, use_index=True)
         _check_ticks_props(ax, xrot=0)
@@ -665,7 +666,7 @@ class TestDataFramePlots:
                 assert getattr(r, dim)() == width
 
     def test_bar_bottom_left_bottom(self):
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.bar(stacked=False, bottom=1)
         result = [p.get_y() for p in ax.patches]
         assert result == [1] * 25
@@ -675,7 +676,7 @@ class TestDataFramePlots:
         assert result == [-1, -2, -3, -4, -5]
 
     def test_bar_bottom_left_left(self):
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         ax = df.plot.barh(stacked=False, left=np.array([1, 1, 1, 1, 1]))
         result = [p.get_x() for p in ax.patches]
         assert result == [1] * 25
@@ -685,7 +686,7 @@ class TestDataFramePlots:
         assert result == [1, 2, 3, 4, 5]
 
     def test_bar_bottom_left_subplots(self):
-        df = DataFrame(np.random.default_rng(2).random(5, 5))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)))
         axes = df.plot.bar(subplots=True, bottom=-1)
         for ax in axes:
             result = [p.get_y() for p in ax.patches]
@@ -1065,13 +1066,13 @@ class TestDataFramePlots:
 
     @td.skip_if_no_scipy
     def test_kde_df_rot(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ax = df.plot(kind="kde", rot=20, fontsize=5)
         _check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
     @td.skip_if_no_scipy
     def test_kde_df_subplots(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = _check_plot_works(
             df.plot,
             default_axes=True,
@@ -1082,7 +1083,7 @@ class TestDataFramePlots:
 
     @td.skip_if_no_scipy
     def test_kde_df_logy(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = df.plot(kind="kde", logy=True, subplots=True)
         _check_ax_scales(axes, yaxis="log")
 
@@ -1132,7 +1133,7 @@ class TestDataFramePlots:
         tm.assert_almost_equal(rects[-2].get_height(), 10.0)
 
     def test_hist_df_orientation(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         # if horizontal, yticklabels are rotated
         axes = df.plot.hist(rot=50, fontsize=8, orientation="horizontal")
         _check_ticks_props(axes, xrot=0, yrot=50, ylabelsize=8)
@@ -1524,7 +1525,7 @@ class TestDataFramePlots:
 
     def test_pie_df_err(self):
         df = DataFrame(
-            np.random.default_rng(2).random(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1535,7 +1536,7 @@ class TestDataFramePlots:
     @pytest.mark.parametrize("y", ["Y", 2])
     def test_pie_df(self, y):
         df = DataFrame(
-            np.random.default_rng(2).random(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1544,7 +1545,7 @@ class TestDataFramePlots:
 
     def test_pie_df_subplots(self):
         df = DataFrame(
-            np.random.default_rng(2).random(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1561,7 +1562,7 @@ class TestDataFramePlots:
 
     def test_pie_df_labels_colors(self):
         df = DataFrame(
-            np.random.default_rng(2).random(5, 3),
+            np.random.default_rng(2).random((5, 3)),
             columns=["X", "Y", "Z"],
             index=["a", "b", "c", "d", "e"],
         )
@@ -1827,7 +1828,7 @@ class TestDataFramePlots:
 
     def test_table(self):
         df = DataFrame(
-            np.random.default_rng(2).random(10, 3),
+            np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
         _check_plot_works(df.plot, table=True)
@@ -2158,7 +2159,7 @@ class TestDataFramePlots:
 
         axes = _get_boxed_grid()
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 4),
+            np.random.default_rng(2).standard_normal((10, 4)),
             index=ts.index,
             columns=list("ABCD"),
         )

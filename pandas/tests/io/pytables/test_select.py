@@ -64,7 +64,7 @@ def test_select_columns_in_where(setup_path):
 def test_select_with_dups(setup_path):
     # single dtypes
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(10, 4), columns=["A", "A", "B", "B"]
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
     )
     df.index = date_range("20130101 9:30", periods=10, freq="T")
 
@@ -87,7 +87,7 @@ def test_select_with_dups(setup_path):
     df = concat(
         [
             DataFrame(
-                np.random.default_rng(2).standard_normal(10, 4),
+                np.random.default_rng(2).standard_normal((10, 4)),
                 columns=["A", "A", "B", "B"],
             ),
             DataFrame(

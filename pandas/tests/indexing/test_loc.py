@@ -1098,7 +1098,7 @@ class TestLocBaseIndependent:
             assert (sliced_df["a"] == 4).all()
 
         # These should not return copies
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         if using_copy_on_write:
             assert df[0] is not df.loc[:, 0]
         else:
@@ -1606,7 +1606,7 @@ class TestLocBaseIndependent:
 
     def test_loc_setitem_single_column_mixed(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["foo", "bar", "baz"],
         )
@@ -2848,7 +2848,7 @@ def test_loc_datetimelike_mismatched_dtypes():
     # GH#32650 dont mix and match datetime/timedelta/period dtypes
 
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 3),
+        np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
         index=date_range("2012", freq="H", periods=5),
     )

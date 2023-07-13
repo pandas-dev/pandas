@@ -52,7 +52,7 @@ class TestConcatenate:
         assert result.index[0] == s1.index[0]
 
     def test_concat_copy(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(0, 10, size=4).reshape(4, 1))
         df3 = DataFrame({5: "foo"}, index=range(4))
 
@@ -107,7 +107,7 @@ class TestConcatenate:
 
     def test_concat_with_group_keys(self):
         # axis=0
-        df = DataFrame(np.random.default_rng(2).standard_normal(3, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 4)))
         df2 = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
 
         result = concat([df, df2], keys=[0, 1])
@@ -123,7 +123,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
         # axis=1
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         df2 = DataFrame(np.random.default_rng(2).standard_normal(4, 4))
 
         result = concat([df, df2], keys=[0, 1], axis=1)
@@ -135,7 +135,7 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_specific_levels(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         pieces = [df.iloc[:, [0, 1]], df.iloc[:, [2]], df.iloc[:, [3]]]
         level = ["three", "two", "one", "zero"]
         result = concat(
@@ -156,10 +156,10 @@ class TestConcatenate:
         constructor = dict if mapping == "dict" else non_dict_mapping_subclass
         frames = constructor(
             {
-                "foo": DataFrame(np.random.default_rng(2).standard_normal(4, 3)),
-                "bar": DataFrame(np.random.default_rng(2).standard_normal(4, 3)),
-                "baz": DataFrame(np.random.default_rng(2).standard_normal(4, 3)),
-                "qux": DataFrame(np.random.default_rng(2).standard_normal(4, 3)),
+                "foo": DataFrame(np.random.default_rng(2).standard_normal((4, 3))),
+                "bar": DataFrame(np.random.default_rng(2).standard_normal((4, 3))),
+                "baz": DataFrame(np.random.default_rng(2).standard_normal((4, 3))),
+                "qux": DataFrame(np.random.default_rng(2).standard_normal((4, 3))),
             }
         )
 
@@ -360,7 +360,7 @@ class TestConcatenate:
         tm.assert_series_equal(result.dtypes, df.dtypes)
 
     def test_concat_single_with_key(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
         result = concat([df], keys=["foo"])
         expected = concat([df, df], keys=["foo", "bar"])
@@ -371,7 +371,7 @@ class TestConcatenate:
             concat([])
 
     def test_concat_exclude_none(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
         pieces = [df[:5], None, None, df[5:]]
         result = concat(pieces)

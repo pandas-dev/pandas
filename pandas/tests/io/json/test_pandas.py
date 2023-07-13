@@ -1173,7 +1173,7 @@ class TestPandasContainer:
 
     def test_sparse(self):
         # GH4377 df.to_json segfaults with non-ndarray blocks
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         df.loc[:8] = np.nan
 
         sdf = df.astype("Sparse")

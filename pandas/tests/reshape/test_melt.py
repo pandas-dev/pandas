@@ -323,7 +323,7 @@ class TestMelt:
 
         # Generate data
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
         )
 
         # Try to melt with missing `value_vars` column name

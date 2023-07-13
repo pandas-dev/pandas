@@ -32,7 +32,9 @@ class TestAtTime:
 
     def test_at_time(self, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time(rng[1])
         assert (rs.index.hour == rng[1].hour).all()

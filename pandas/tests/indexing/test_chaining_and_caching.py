@@ -400,7 +400,7 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_sorting(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ser = df.iloc[:, 0].sort_values()
 
         tm.assert_series_equal(ser, df.iloc[:, 0].sort_values())

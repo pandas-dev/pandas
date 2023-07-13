@@ -75,7 +75,7 @@ def test_iloc_getitem_multiple_items():
 
 def test_iloc_getitem_labels():
     # this is basically regular indexing
-    arr = np.random.default_rng(2).standard_normal(4, 3)
+    arr = np.random.default_rng(2).standard_normal((4, 3))
     df = DataFrame(
         arr,
         columns=[["i", "i", "j"], ["A", "A", "B"]],

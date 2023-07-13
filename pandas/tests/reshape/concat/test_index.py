@@ -176,7 +176,7 @@ class TestIndexConcat:
         df = concat(
             [
                 DataFrame(
-                    np.random.default_rng(2).standard_normal(10, 4),
+                    np.random.default_rng(2).standard_normal((10, 4)),
                     columns=["A", "A", "B", "B"],
                 ),
                 DataFrame(

@@ -18,7 +18,7 @@ import pandas._testing as tm
 class TestDataFrameInsert:
     def test_insert(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=np.arange(5),
             columns=["c", "b", "a"],
         )
@@ -74,7 +74,7 @@ class TestDataFrameInsert:
         tm.assert_frame_equal(df, exp)
 
     def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.default_rng(2).standard_normal(4, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         ser = df[0]
 
         if using_array_manager:

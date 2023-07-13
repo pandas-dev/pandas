@@ -55,7 +55,7 @@ def test_drop_with_non_unique_datetime_index_and_invalid_keys():
 
     # define dataframe with unique datetime index
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(5, 3),
+        np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
         index=pd.date_range("2012", freq="H", periods=5),
     )

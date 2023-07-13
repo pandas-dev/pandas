@@ -22,7 +22,9 @@ class TestBetweenTime:
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         strings = [
@@ -69,7 +71,9 @@ class TestBetweenTime:
 
     def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         stime = time(0, 0)
@@ -103,7 +107,9 @@ class TestBetweenTime:
 
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
         stime = time(22, 0)
         etime = time(9, 0)
@@ -209,7 +215,9 @@ class TestBetweenTime:
     def test_between_time_incorrect_arg_inclusive(self):
         # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
 
         stime = time(0, 0)
         etime = time(1, 0)

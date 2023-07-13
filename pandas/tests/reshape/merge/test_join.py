@@ -336,7 +336,7 @@ class TestJoin:
     def test_join_unconsolidated(self):
         # GH #331
         a = DataFrame(
-            np.random.default_rng(2).standard_normal(30, 2), columns=["a", "b"]
+            np.random.default_rng(2).standard_normal((30, 2)), columns=["a", "b"]
         )
         c = Series(np.random.default_rng(2).standard_normal(30))
         a["c"] = c
@@ -471,7 +471,7 @@ class TestJoin:
             dtype=np.float64,
         )
         b = DataFrame(
-            np.random.default_rng(2).standard_normal(10, 1),
+            np.random.default_rng(2).standard_normal((10, 1)),
             columns=["c"],
             dtype=np.float32,
         )
@@ -669,7 +669,7 @@ class TestJoin:
         df = concat(
             [
                 DataFrame(
-                    np.random.default_rng(2).standard_normal(10, 4),
+                    np.random.default_rng(2).standard_normal((10, 4)),
                     columns=["A", "A", "B", "B"],
                 ),
                 DataFrame(

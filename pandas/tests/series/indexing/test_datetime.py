@@ -470,7 +470,7 @@ def test_getitem_str_year_with_datetimeindex():
 def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
     df = DataFrame(
-        np.random.default_rng(2).random(5, 5),
+        np.random.default_rng(2).random((5, 5)),
         columns=["open", "high", "low", "close", "volume"],
         index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
     )

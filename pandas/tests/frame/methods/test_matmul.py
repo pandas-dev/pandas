@@ -15,7 +15,7 @@ class TestMatMul:
     def test_matmul(self):
         # matmul test is for GH#10259
         a = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 4),
+            np.random.default_rng(2).standard_normal((3, 4)),
             index=["a", "b", "c"],
             columns=["p", "q", "r", "s"],
         )
@@ -70,12 +70,12 @@ class TestMatMul:
 
         # unaligned
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(3, 4),
+            np.random.default_rng(2).standard_normal((3, 4)),
             index=[1, 2, 3],
             columns=range(4),
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=range(5),
             columns=[1, 2, 3],
         )

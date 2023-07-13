@@ -804,7 +804,7 @@ class TestDataFrameSelectReindex:
         assert index_freq == seq_freq
 
     def test_reindex_fill_value(self):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
         # axis=0
         result = df.reindex(list(range(15)))
@@ -1048,7 +1048,8 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 3) + 1j, columns=["a", "b", "c"]
+            np.random.default_rng(2).standard_normal((5, 3)) + 1j,
+            columns=["a", "b", "c"],
         )
 
         result = df.reindex(index=[0, 1], columns=["a", "b"])

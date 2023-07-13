@@ -399,7 +399,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_query_with_attribute_access(self, engine, parser):
         skip_if_no_pandas_parser(parser)
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
@@ -410,7 +410,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(res, expec)
 
     def test_date_query_no_attribute_access(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
@@ -496,7 +496,7 @@ class TestDataFrameQueryNumExprPandas:
         skip_if_no_pandas_parser(parser)
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(20, 2), columns=list("ab")
+            np.random.default_rng(2).standard_normal((20, 2)), columns=list("ab")
         )
 
         a, b = 1, 2  # noqa: F841
@@ -587,8 +587,8 @@ class TestDataFrameQueryNumExprPandas:
     def test_nested_scope(self, engine, parser):
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         expected = df[(df > 0) & (df2 > 0)]
 
         result = df.query("(@df > 0) & (@df2 > 0)", engine=engine, parser=parser)
@@ -608,7 +608,7 @@ class TestDataFrameQueryNumExprPandas:
         tm.assert_frame_equal(result, expected)
 
     def test_nested_raises_on_local_self_reference(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
 
         # can't reference ourself b/c we're a local so @ is necessary
         with pytest.raises(UndefinedVariableError, match="name 'df' is not defined"):
@@ -618,7 +618,7 @@ class TestDataFrameQueryNumExprPandas:
         skip_if_no_pandas_parser(parser)
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(100, 10),
+            np.random.default_rng(2).standard_normal((100, 10)),
             columns=list("abcdefghij"),
         )
         b = 1
@@ -670,7 +670,7 @@ class TestDataFrameQueryNumExprPandas:
         engine, parser = self.engine, self.parser
         skip_if_no_pandas_parser(parser)
 
-        df = DataFrame(np.random.default_rng(2).random(10, 2), columns=list("ab"))
+        df = DataFrame(np.random.default_rng(2).random((10, 2)), columns=list("ab"))
         with pytest.raises(
             UndefinedVariableError, match="local variable 'c' is not defined"
         ):
@@ -776,7 +776,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         return "python"
 
     def test_date_query_no_attribute_access(self, engine, parser):
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["dates1"] = date_range("1/1/2012", periods=5)
         df["dates2"] = date_range("1/1/2013", periods=5)
         df["dates3"] = date_range("1/1/2014", periods=5)
@@ -848,8 +848,8 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         result = pd.eval("x + 1", engine=engine, parser=parser)
         assert result == 2
 
-        df = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
-        df2 = DataFrame(np.random.default_rng(2).standard_normal(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
+        df2 = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
 
         # don't have the pandas parser
         msg = r"The '@' prefix is only supported by the pandas parser"
@@ -930,7 +930,7 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 
 class TestDataFrameQueryStrings:
     def test_str_query_method(self, parser, engine):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 1), columns=["b"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings == "a"]
 
@@ -971,7 +971,7 @@ class TestDataFrameQueryStrings:
             tm.assert_frame_equal(res, df[~df.strings.isin(["a"])])
 
     def test_str_list_query_method(self, parser, engine):
-        df = DataFrame(np.random.default_rng(2).standard_normal(10, 1), columns=["b"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)), columns=["b"])
         df["strings"] = Series(list("aabbccddee"))
         expect = df[df.strings.isin(["a", "b"])]
 

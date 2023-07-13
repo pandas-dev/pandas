@@ -381,7 +381,7 @@ class TestStata:
         # 9795
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(5, 4), columns=list("abcd")
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
         )
         df.loc[2, "a":"c"] = np.nan
         df_copy = df.copy()

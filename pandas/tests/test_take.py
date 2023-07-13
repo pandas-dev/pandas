@@ -165,7 +165,7 @@ class TestTake:
         assert result.dtype == np.object_
 
     def test_2d_float32(self):
-        arr = np.random.default_rng(2).standard_normal(4, 3).astype(np.float32)
+        arr = np.random.default_rng(2).standard_normal((4, 3)).astype(np.float32)
         indexer = [0, 2, -1, 1, -1]
 
         # axis=0
