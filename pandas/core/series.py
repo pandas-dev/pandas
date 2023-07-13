@@ -18,7 +18,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Union,
     cast,
     overload,
 )
@@ -3459,7 +3458,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3473,7 +3472,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3482,11 +3481,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        axis: Axis = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: bool = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> Series | None:
+        ...
+
     def sort_values(
         self,
         *,
         axis: Axis = 0,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = True,
+        ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -3647,7 +3660,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[Union[bool, int]], ascending)
+            ascending = cast(Sequence[bool], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
