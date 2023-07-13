@@ -240,7 +240,7 @@ html_theme_options = {
     "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "analytics": {"google_analytics_id": "UA-27880019-2"},
+    "analytics": {"google_analytics_id": "G-5RE31C1RNW"},
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
@@ -594,14 +594,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
-        else:
-            return MethodDocumenter.format_name(self).removesuffix(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):
