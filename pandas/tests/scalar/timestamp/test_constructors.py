@@ -25,6 +25,11 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_time_unit(self):
+        # GH#54097 only passing a time component, no date
+        ts = Timestamp("01:01:01.111")
+        assert ts.unit == "ms"
+
     def test_weekday_but_no_day_raises(self):
         # GH#52659
         msg = "Parsing datetimes with weekday but no day information is not supported"
