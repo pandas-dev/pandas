@@ -890,8 +890,7 @@ def test_apply_multi_level_name(category):
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
         expected_index = pd.CategoricalIndex([1, 2, 3], categories=[1, 2, 3], name="B")
-        # GH#40669 - summing an empty frame gives float dtype
-        expected_values = [20.0, 25.0, 0.0]
+        expected_values = [20, 25, 0]
     else:
         expected_index = Index([1, 2], name="B")
         expected_values = [20, 25]
