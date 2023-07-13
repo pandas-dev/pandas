@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import functools
 import operator
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 import unicodedata
@@ -127,6 +124,8 @@ if not pa_version_under7p0:
     }
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -1057,7 +1056,7 @@ class ArrowExtensionArray(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(
@@ -1509,7 +1508,9 @@ class ArrowExtensionArray(
 
         return result
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1533,12 +1534,16 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
-        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+        pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
-        if pc.is_null(result).as_py():
+        if keepdims:
+            result = pa.array([pa_result.as_py()], type=pa_result.type)
+            return type(self)(result)
+
+        if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
-
-        return result.as_py()
+        else:
+            return pa_result.as_py()
 
     def _explode(self):
         """
@@ -2189,14 +2194,7 @@ class ArrowExtensionArray(
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removeprefix
-
-            predicate = functools.partial(removeprefix, prefix=prefix)
-        else:
-            predicate = lambda val: val.removeprefix(prefix)
+        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 

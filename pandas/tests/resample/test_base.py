@@ -5,6 +5,7 @@ import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     NaT,
     PeriodIndex,
     Series,
@@ -100,15 +101,8 @@ def test_raises_on_non_datetimelike_index():
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series_dti, resample_method, request):
+def test_resample_empty_series(freq, empty_series_dti, resample_method):
     # GH12771 & GH12868
-
-    if resample_method == "ohlc" and isinstance(empty_series_dti.index, PeriodIndex):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason=f"GH13083: {resample_method} fails for PeriodIndex"
-            )
-        )
 
     ser = empty_series_dti
     if freq == "M" and isinstance(ser.index, TimedeltaIndex):
@@ -123,12 +117,19 @@ def test_resample_empty_series(freq, empty_series_dti, resample_method, request)
     rs = ser.resample(freq)
     result = getattr(rs, resample_method)()
 
-    expected = ser.copy()
-    expected.index = _asfreq_compat(ser.index, freq)
+    if resample_method == "ohlc":
+        expected = DataFrame(
+            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+        )
+        expected.index = _asfreq_compat(ser.index, freq)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+    else:
+        expected = ser.copy()
+        expected.index = _asfreq_compat(ser.index, freq)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts
@@ -203,7 +204,15 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
 
     rs = df.resample(freq, group_keys=False)
     result = getattr(rs, resample_method)()
-    if resample_method != "size":
+    if resample_method == "ohlc":
+        # TODO: no tests with len(df.columns) > 0
+        mi = MultiIndex.from_product([df.columns, ["open", "high", "low", "close"]])
+        expected = DataFrame(
+            [], index=df.index[:0].copy(), columns=mi, dtype=np.float64
+        )
+        expected.index = _asfreq_compat(df.index, freq)
+
+    elif resample_method != "size":
         expected = df.copy()
     else:
         # GH14962

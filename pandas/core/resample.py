@@ -5,7 +5,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
     final,
@@ -63,6 +62,7 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -86,6 +86,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AnyArrayLike,
         Axis,
@@ -1459,6 +1461,23 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         maybe_warn_args_and_kwargs(type(self), "ohlc", args, kwargs)
         nv.validate_resampler_func("ohlc", args, kwargs)
+
+        ax = self.ax
+        obj = self._obj_with_exclusions
+        if len(ax) == 0:
+            # GH#42902
+            obj = obj.copy()
+            obj.index = _asfreq_compat(obj.index, self.freq)
+            if obj.ndim == 1:
+                obj = obj.to_frame()
+                obj = obj.reindex(["open", "high", "low", "close"], axis=1)
+            else:
+                mi = MultiIndex.from_product(
+                    [obj.columns, ["open", "high", "low", "close"]]
+                )
+                obj = obj.reindex(mi, axis=1)
+            return obj
+
         return self._downsample("ohlc")
 
     @doc(SeriesGroupBy.nunique)
@@ -1778,7 +1797,13 @@ class DatetimeIndexResampler(Resampler):
         # we may have a different kind that we were asked originally
         # convert if needed
         if self.kind == "period" and not isinstance(result.index, PeriodIndex):
-            result.index = result.index.to_period(self.freq)
+            if isinstance(result.index, MultiIndex):
+                # GH 24103 - e.g. groupby resample
+                if not isinstance(result.index.levels[-1], PeriodIndex):
+                    new_level = result.index.levels[-1].to_period(self.freq)
+                    result.index = result.index.set_levels(new_level, level=-1)
+            else:
+                result.index = result.index.to_period(self.freq)
         return result
 
 
