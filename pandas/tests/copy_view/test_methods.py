@@ -895,6 +895,8 @@ def test_head_tail(method, using_copy_on_write):
     df2._mgr._verify_integrity()
 
     if using_copy_on_write:
+        # We are explicitly deviating for CoW here to make an eager copy (avoids
+        # tracking references for very cheap ops)
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
         assert not np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
