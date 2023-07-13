@@ -47,7 +47,6 @@ import_datetime()
 
 import datetime as dt
 
-from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
 
@@ -1881,9 +1880,6 @@ class Timestamp(_Timestamp):
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
             unit = None
-
-        elif checknull_with_nat_and_na(ts_input):
-            return NaT
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "

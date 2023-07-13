@@ -902,7 +902,7 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     assert result == expected
 
 
-@pytest.mark.parametrize("na_value", [None, np.nan, NA])
+@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
 def test_timestamp_constructor_na_value(na_value):
     result = Timestamp(na_value)
     expected = NaT
