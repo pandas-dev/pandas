@@ -5511,15 +5511,18 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(periods):
             if axis == 1:
-                raise ValueError('If `periods` contains multiple shifts, `axis` cannot be 1.')
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
             if len(periods) == 0:
-                raise ValueError('If `periods` is an iterable, it cannot be empty.')
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
+
             result = []
             for period in periods:
                 if not isinstance(period, int):
                     raise TypeError(
-                        f"Value {period} in periods must be integer, but is type {type(period)}."
+                        f"Periods must be integer, but {period} is {type(period)}."
                     )
                 result.append(
                     super()

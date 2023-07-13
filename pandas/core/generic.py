@@ -15,7 +15,6 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterable,
     Literal,
     NoReturn,
     cast,
@@ -198,6 +197,7 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Iterator,
         Mapping,
         Sequence,
@@ -10655,7 +10655,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if is_list_like(periods) and len(self.shape) == 1:
             return self.to_frame().shift(
                 periods=periods, freq=freq, axis=axis, fill_value=fill_value
-                )
+            )
 
         if freq is None:
             # when freq is None, data is shifted, index is not

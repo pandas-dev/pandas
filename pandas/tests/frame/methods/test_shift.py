@@ -678,22 +678,22 @@ class TestDataFrameShift:
         tm.assert_frame_equal(expected, shifted)
 
         # test pd.Series
-        s: pd.Series = df['a']
-        tm.assert_frame_equal(s.shift(shifts), df[['a']].shift(shifts))
+        s: Series = df["a"]
+        tm.assert_frame_equal(s.shift(shifts), df[["a"]].shift(shifts))
 
         # test suffix
-        columns = df[['a']].shift(shifts, suffix='_suffix').columns
-        assert columns.tolist() == ['a_suffix_0', 'a_suffix_1', 'a_suffix_2']
+        columns = df[["a"]].shift(shifts, suffix="_suffix").columns
+        assert columns.tolist() == ["a_suffix_0", "a_suffix_1", "a_suffix_2"]
 
         # check bad inputs when doing multiple shifts
         msg = "If `periods` contains multiple shifts, `axis` cannot be 1."
         with pytest.raises(ValueError, match=msg):
             df.shift([1, 2], axis=1)
-        
-        msg = f"Value s in periods must be integer, but is type <class 'str'>."
-        with pytest.raises(TypeError, match=msg):
-            df.shift(['s'])
 
-        msg = f"If `periods` is an iterable, it cannot be empty."
+        msg = "Periods must be integer, but s is <class 'str'>."
+        with pytest.raises(TypeError, match=msg):
+            df.shift(["s"])
+
+        msg = "If `periods` is an iterable, it cannot be empty."
         with pytest.raises(ValueError, match=msg):
             df.shift([])
