@@ -364,7 +364,7 @@ def test_median_duplicate_columns():
     # GH 14233
 
     df = DataFrame(
-        np.random.default_rng(2).standard_normal(20, 3),
+        np.random.default_rng(2).standard_normal((20, 3)),
         columns=list("aaa"),
         index=date_range("2012-01-01", periods=20, freq="s"),
     )

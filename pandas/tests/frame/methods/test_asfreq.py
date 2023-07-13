@@ -82,7 +82,7 @@ class TestAsFreq:
         rng = date_range("1/1/2000 09:30", periods=20)
         norm = date_range("1/1/2000", periods=20)
 
-        vals = np.random.default_rng(2).standard_normal(20, 3)
+        vals = np.random.default_rng(2).standard_normal((20, 3))
 
         obj = DataFrame(vals, index=rng)
         expected = DataFrame(vals, index=norm)

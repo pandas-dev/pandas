@@ -1015,7 +1015,7 @@ class TestFrameArithmetic:
         added = DataFrame((df.values.T + val2).T, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val2, axis="index"), added)
 
-        val3 = np.random.default_rng(2).random(*df.shape)
+        val3 = np.random.default_rng(2).random(df.shape)
         added = DataFrame(df.values + val3, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val3), added)
 

@@ -1131,7 +1131,7 @@ class TestiLocBaseIndependent:
 
     def test_iloc_getitem_with_duplicates(self):
         df = DataFrame(
-            np.random.default_rng(2).random(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=list("aab"),
         )

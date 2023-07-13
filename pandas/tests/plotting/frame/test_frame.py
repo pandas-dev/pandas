@@ -564,7 +564,7 @@ class TestDataFramePlots:
 
     @pytest.mark.parametrize("kwargs", [{}, {"secondary_y": True}])
     def test_line_lim(self, kwargs):
-        df = DataFrame(np.random.default_rng(2).random(6, 3), columns=["x", "y", "z"])
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=["x", "y", "z"])
         ax = df.plot(**kwargs)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
@@ -572,7 +572,7 @@ class TestDataFramePlots:
         assert xmax >= lines[0].get_data()[0][-1]
 
     def test_line_lim_subplots(self):
-        df = DataFrame(np.random.default_rng(2).random(6, 3), columns=["x", "y", "z"])
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=["x", "y", "z"])
         axes = df.plot(secondary_y=True, subplots=True)
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
         for ax in axes:
@@ -610,7 +610,7 @@ class TestDataFramePlots:
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
-        df = DataFrame(np.random.default_rng(2).random(4, 2), columns=["x", "y"])
+        df = DataFrame(np.random.default_rng(2).random((4, 2)), columns=["x", "y"])
         fig, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharey=True)
 
         df.plot(ax=ax1, kind="area")
@@ -1582,7 +1582,7 @@ class TestDataFramePlots:
             _check_colors(ax.patches, facecolors=color_args)
 
     def test_pie_df_nan(self):
-        df = DataFrame(np.random.default_rng(2).random(4, 4))
+        df = DataFrame(np.random.default_rng(2).random((4, 4)))
         for i in range(4):
             df.iloc[i, i] = np.nan
         _, axes = mpl.pyplot.subplots(ncols=4)
@@ -1809,7 +1809,7 @@ class TestDataFramePlots:
         _check_has_errorbars(axes, xerr=0, yerr=1)
 
     def test_errorbar_asymmetrical(self):
-        err = np.random.default_rng(2).random(3, 2, 5)
+        err = np.random.default_rng(2).random((3, 2, 5))
 
         # each column is [0, 1, 2, 3, 4], [3, 4, 5, 6, 7]...
         df = DataFrame(np.arange(15).reshape(3, 5)).T

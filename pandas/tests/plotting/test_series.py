@@ -661,7 +661,7 @@ class TestSeriesPlots:
     def test_errorbar_asymmetrical(self):
         # GH9536
         s = Series(np.arange(10), name="x")
-        err = np.random.default_rng(2).random(2, 10)
+        err = np.random.default_rng(2).random((2, 10))
 
         ax = s.plot(yerr=err, xerr=err)
 
@@ -674,7 +674,7 @@ class TestSeriesPlots:
             f"with the shape \\(2, {len(s)}\\)"
         )
         with pytest.raises(ValueError, match=msg):
-            s.plot(yerr=np.random.default_rng(2).random(2, 11))
+            s.plot(yerr=np.random.default_rng(2).random((2, 11)))
 
     @pytest.mark.slow
     @pytest.mark.parametrize("kind", ["line", "bar"])

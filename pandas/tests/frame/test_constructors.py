@@ -707,7 +707,7 @@ class TestDataFrameConstructors:
         msg = r"Shape of passed values is \(2, 3\), indices imply \(1, 3\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(
-                np.random.default_rng(2).random(2, 3),
+                np.random.default_rng(2).random((2, 3)),
                 columns=["A", "B", "C"],
                 index=[1],
             )
@@ -715,7 +715,9 @@ class TestDataFrameConstructors:
         msg = r"Shape of passed values is \(2, 3\), indices imply \(2, 2\)"
         with pytest.raises(ValueError, match=msg):
             DataFrame(
-                np.random.default_rng(2).random(2, 3), columns=["A", "B"], index=[1, 2]
+                np.random.default_rng(2).random((2, 3)),
+                columns=["A", "B"],
+                index=[1, 2],
             )
 
         # gh-26429

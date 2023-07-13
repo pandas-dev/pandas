@@ -407,7 +407,7 @@ class TestDataFrameFormatting:
     def test_repr_truncates_terminal_size_full(self, monkeypatch):
         # GH 22984 ensure entire window is filled
         terminal_size = (80, 24)
-        df = DataFrame(np.random.default_rng(2).random(1, 7))
+        df = DataFrame(np.random.default_rng(2).random((1, 7)))
 
         monkeypatch.setattr(
             "pandas.io.formats.format.get_terminal_size", lambda: terminal_size

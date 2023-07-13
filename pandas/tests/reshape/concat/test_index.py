@@ -80,12 +80,12 @@ class TestIndexConcat:
 
     def test_concat_rename_index(self):
         a = DataFrame(
-            np.random.default_rng(2).random(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_a"),
         )
         b = DataFrame(
-            np.random.default_rng(2).random(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_b"),
         )

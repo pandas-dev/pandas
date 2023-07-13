@@ -190,7 +190,9 @@ class TestDataFrameNonuniqueIndexes:
         df["that"] = 1.0
         check(df, expected)
 
-        df = DataFrame(np.random.default_rng(2).random(5, 2), columns=["that", "that"])
+        df = DataFrame(
+            np.random.default_rng(2).random((5, 2)), columns=["that", "that"]
+        )
         expected = DataFrame(1, index=range(5), columns=["that", "that"])
 
         df["that"] = 1

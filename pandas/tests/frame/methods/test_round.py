@@ -196,7 +196,7 @@ class TestDataFrameRound:
     def test_round_nonunique_categorical(self):
         # See GH#21809
         idx = pd.CategoricalIndex(["low"] * 3 + ["hi"] * 3)
-        df = DataFrame(np.random.default_rng(2).random(6, 3), columns=list("abc"))
+        df = DataFrame(np.random.default_rng(2).random((6, 3)), columns=list("abc"))
 
         expected = df.round(3)
         expected.index = idx

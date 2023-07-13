@@ -420,7 +420,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_query_with_NaT(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates2"] = date_range("1/1/2013", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
@@ -432,7 +432,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_date_index_query(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
@@ -444,7 +444,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3)).astype(
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
             {0: object}
         )
         df["dates1"] = date_range("1/1/2012", periods=n)
@@ -788,7 +788,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_query_with_NaT(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates2"] = date_range("1/1/2013", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
@@ -802,7 +802,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_index_query(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         return_value = df.set_index("dates1", inplace=True, drop=True)
@@ -816,7 +816,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
     def test_date_index_query_with_NaT(self, engine, parser):
         n = 10
         # Cast to object to avoid implicit cast when setting entry to pd.NaT below
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3)).astype(
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3))).astype(
             {0: object}
         )
         df["dates1"] = date_range("1/1/2012", periods=n)
@@ -832,7 +832,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_date_index_query_with_NaT_duplicates(self, engine, parser):
         n = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(n, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((n, 3)))
         df["dates1"] = date_range("1/1/2012", periods=n)
         df["dates3"] = date_range("1/1/2014", periods=n)
         df.loc[np.random.default_rng(2).random(n) > 0.5, "dates1"] = pd.NaT

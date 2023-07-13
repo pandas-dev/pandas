@@ -165,8 +165,8 @@ class TestSample:
         "func_str,arg",
         [
             ("np.array", [2, 3, 1, 0]),
-            ("np.random.default_rng(2).MT19937", 3),
-            ("np.random.default_rng(2).PCG64", 11),
+            ("np.random.MT19937", 3),
+            ("np.random.PCG64", 11),
         ],
     )
     def test_sample_random_state(self, func_str, arg, frame_or_series):
