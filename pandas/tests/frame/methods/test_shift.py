@@ -679,7 +679,8 @@ class TestDataFrameShift:
 
         # test pd.Series
         s: Series = df["a"]
-        tm.assert_frame_equal(s.shift(shifts), df[["a"]].shift(shifts))
+        df_one_column: DataFrame = df[["a"]]
+        tm.assert_frame_equal(s.shift(shifts), df_one_column.shift(shifts))
 
         # test suffix
         columns = df[["a"]].shift(shifts, suffix="_suffix").columns
