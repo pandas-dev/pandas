@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -12,7 +13,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.compat.pyarrow import pa_version_under12p0
 from pandas.tests.copy_view.util import get_array
 
 
