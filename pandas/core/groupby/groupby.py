@@ -4866,6 +4866,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=None,
+        suffix: str | None = None,
     ):
         """
         Shift each group by periods observations.
@@ -4887,6 +4888,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         fill_value : optional
             The scalar value to use for newly introduced missing values.
+        suffix : str, optional
+            An optional suffix to append when there are multiple periods.
 
         Returns
         -------
