@@ -59,7 +59,7 @@ ecosystem (as well as improving interoperability with it).
 ### Immediate User Benefit 1: pyarrow strings
 
 Currently, when users pass string data into pandas constructors without specifying a data type, the resulting data type
-is `object`, which has horrendous memory and performance implications.
+is `object`, which has significantly much worse memory usage and performance as compared to pyarrow strings.
 With pyarrow string support available since 1.2.0, requiring pyarrow for 3.0 will allow pandas to default
 the inferred type to the more efficient pyarrow string type.
 
