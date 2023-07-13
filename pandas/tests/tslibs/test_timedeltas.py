@@ -79,7 +79,7 @@ def test_unsupported_td64_unit_raises(unit):
         ValueError,
         match="Units 'M', 'Y', and 'y' are no longer supported, as they do not "
         "represent unambiguous timedelta values durations."
-        "Allowed unites are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'",
+        "Allowed units are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'",
     ):
         Timedelta(np.timedelta64(1, unit))
 
