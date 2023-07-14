@@ -22,9 +22,9 @@ pandas documentation
 `Q&A Support <https://stackoverflow.com/questions/tagged/pandas>`__ |
 `Mailing List <https://groups.google.com/g/pydata>`__
 
-:mod:`pandas` is an open source, BSD-licensed library providing high-performance,
-easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
-programming language.
+:mod:`Pandas` is a great resource for all data manipulation needs, licensed under BSD, that offers high-performance, user-friendly data structures and analysis tools for `Python <https://www.python.org/>`__
+
+
 
 {% if not single_doc or single_doc == "index.rst" -%}
 .. grid:: 1 2 2 2
