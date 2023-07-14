@@ -717,7 +717,7 @@ def test_date_parser_int_bug(all_parsers):
         StringIO(data),
         index_col=0,
         parse_dates=[0],
-        date_parser=lambda x: datetime.fromtimestamp(int(x)),
+        date_parser=lambda x: datetime.fromtimestamp(int(x), tz=timezone.utc),
     )
     expected = DataFrame(
         [

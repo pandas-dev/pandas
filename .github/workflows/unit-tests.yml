@@ -315,7 +315,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macOS-latest, windows-latest]
+        # TODO: Disable macOS for now, Github Actions bug where python is not
+        # symlinked correctly to 3.12
+        # xref https://github.com/actions/setup-python/issues/701
+        #os: [ubuntu-22.04, macOS-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
 
     timeout-minutes: 180
 

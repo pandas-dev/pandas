@@ -1068,9 +1068,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         def _contains_slice(x: object) -> bool:
             # Check if object is a slice or a tuple containing a slice
             if isinstance(x, tuple):
-                for v in x:
-                    if isinstance(v, slice):
-                        return True
+                return any(isinstance(v, slice) for v in key)
             elif isinstance(x, slice):
                 return True
             return False
@@ -1439,11 +1437,7 @@ class _LocIndexer(_LocationIndexer):
 
         # Slices are not valid keys passed in by the user,
         # even though they are hashable in Python 3.12
-        contains_slice = False
-        if isinstance(key, tuple):
-            for v in key:
-                if isinstance(v, slice):
-                    contains_slice = True
+        contains_slice = any(isinstance(v, slice) for v in key)
 
         if is_scalar(key) or (
             isinstance(labels, MultiIndex) and is_hashable(key) and not contains_slice
