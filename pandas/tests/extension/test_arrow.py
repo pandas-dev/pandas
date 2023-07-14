@@ -3121,6 +3121,13 @@ def test_iter_temporal(pa_type):
     assert result == expected
 
 
+def test_groupby_series_size_returns_pa_int(data):
+    ser = pd.Series(data[:3], index=["a", "a", "b"])
+    result = ser.groupby(level=0).size()
+    expected = pd.Series([2, 1], dtype="int64[pyarrow]", index=["a", "b"])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )

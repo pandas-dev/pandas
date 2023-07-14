@@ -99,6 +99,7 @@ from pandas.core import (
 from pandas.core._numba import executor
 from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
     ExtensionArray,
@@ -2890,12 +2891,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self.grouper.size()
+        result_dtype = result.dtype
+        if isinstance(self.obj, Series):
+            if isinstance(self.obj.array, ArrowExtensionArray):
+                result_dtype = "int64[pyarrow]"
+            elif isinstance(self.obj.array, BaseMaskedArray):
+                result_dtype = "Int64"
+        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
-            result = self._obj_1d_constructor(result, name=self.obj.name)
+            result = self._obj_1d_constructor(
+                result, name=self.obj.name, dtype=result_dtype
+            )
         else:
-            result = self._obj_1d_constructor(result)
+            result = self._obj_1d_constructor(result, dtype=result_dtype)
 
         with com.temp_setattr(self, "as_index", True):
             # size already has the desired behavior in GH#49519, but this makes the
