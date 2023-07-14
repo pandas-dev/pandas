@@ -450,6 +450,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 unique1d = unique
 
 
+_MINIMUM_COMP_ARR_LEN = 1_000_000
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -467,12 +470,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not is_list_like(comps):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(comps).__name__}]"
+            f"to isin(), you passed a `{type(comps).__name__}`"
         )
     if not is_list_like(values):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(values).__name__}]"
+            f"to isin(), you passed a `{type(values).__name__}`"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
@@ -518,7 +521,7 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
     # in1d is faster for small sizes
     if (
-        len(comps_array) > 1_000_000
+        len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
     ):
@@ -1319,7 +1322,7 @@ def searchsorted(
     arr: ArrayLike,
     value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
-    sorter: NumpySorter = None,
+    sorter: NumpySorter | None = None,
 ) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
@@ -1441,8 +1444,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
         arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if not isinstance(dtype, np.dtype):
-        # i.e ExtensionDtype
+    if not isinstance(arr, np.ndarray):
+        # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
             if axis != 0:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
