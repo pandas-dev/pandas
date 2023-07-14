@@ -8,8 +8,6 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Sequence,
 )
 
 import numpy as np
@@ -77,6 +75,11 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -469,7 +472,11 @@ def dict_to_mgr(
                 x.copy()
                 if isinstance(x, ExtensionArray)
                 else x.copy(deep=True)
-                if isinstance(x, Index)
+                if (
+                    isinstance(x, Index)
+                    or isinstance(x, ABCSeries)
+                    and is_1d_only_ea_dtype(x.dtype)
+                )
                 else x
                 for x in arrays
             ]

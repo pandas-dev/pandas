@@ -846,7 +846,7 @@ Enhancements
      df.pivot_table(values='Quantity',
                     index=pd.Grouper(freq='M', key='Date'),
                     columns=pd.Grouper(freq='M', key='PayDay'),
-                    aggfunc=np.sum)
+                    aggfunc="sum")
 
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)

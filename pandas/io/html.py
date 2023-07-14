@@ -9,14 +9,13 @@ from __future__ import annotations
 from collections import abc
 import numbers
 import re
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
-    Pattern,
-    Sequence,
     cast,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -24,6 +23,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -36,6 +36,8 @@ from pandas.core.series import Series
 from pandas.io.common import (
     file_exists,
     get_handle,
+    is_file_like,
+    is_fsspec_url,
     is_url,
     stringify_path,
     urlopen,
@@ -45,6 +47,11 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
         BaseBuffer,
         DtypeBackend,
@@ -1023,6 +1030,10 @@ def read_html(
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
 
+        .. deprecated:: 2.1.0
+            Passing html literal strings is deprecated.
+            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
+
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
         returned. Unless the HTML is extremely simple you will probably need to
@@ -1110,13 +1121,14 @@ def read_html(
 
         .. versionadded:: 1.5.0
 
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -1177,6 +1189,22 @@ def read_html(
     check_dtype_backend(dtype_backend)
 
     io = stringify_path(io)
+
+    if isinstance(io, str) and not any(
+        [
+            is_file_like(io),
+            file_exists(io),
+            is_url(io),
+            is_fsspec_url(io),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal html to 'read_html' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return _parse(
         flavor=flavor,

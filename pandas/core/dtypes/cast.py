@@ -10,8 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
-    Sized,
     TypeVar,
     cast,
     overload,
@@ -82,6 +80,11 @@ from pandas.core.dtypes.missing import (
 from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Sequence,
+        Sized,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -1001,11 +1004,16 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "numpy_nullable"
-        Nullable dtype implementation to use.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        * "numpy_nullable" returns numpy-backed nullable types
-        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1325,7 +1333,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if isinstance(dtype, np.dtype) and dtype.kind in "iu":
+    if lib.is_np_dtype(dtype, "iu"):
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1502,7 +1510,7 @@ def construct_1d_arraylike_from_scalar(
         if length and dtype.kind in "iu" and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
-        elif isinstance(dtype, np.dtype) and dtype.kind in "US":
+        elif lib.is_np_dtype(dtype, "US"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
             dtype = np.dtype("object")

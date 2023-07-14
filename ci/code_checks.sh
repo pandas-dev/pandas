@@ -21,23 +21,6 @@ BASE_DIR="$(dirname $0)/.."
 RET=0
 CHECK=$1
 
-function invgrep {
-    # grep with inverse exist status and formatting for azure-pipelines
-    #
-    # This function works exactly as grep, but with opposite exit status:
-    # - 0 (success) when no patterns are found
-    # - 1 (fail) when the patterns are found
-    #
-    # This is useful for the CI, as we want to fail if one of the patterns
-    # that we want to avoid is found by grep.
-    grep -n "$@" | sed "s/^/$INVGREP_PREPEND/" | sed "s/$/$INVGREP_APPEND/" ; EXIT_STATUS=${PIPESTATUS[0]}
-    return $((! $EXIT_STATUS))
-}
-
-if [[ "$GITHUB_ACTIONS" == "true" ]]; then
-    INVGREP_PREPEND="##[error]"
-fi
-
 ### CODE ###
 if [[ -z "$CHECK" || "$CHECK" == "code" ]]; then
 
@@ -105,12 +88,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.read_clipboard \
-        pandas.ExcelFile \
-        pandas.ExcelFile.parse \
-        pandas.io.formats.style.Styler.to_html \
-        pandas.HDFStore.groups \
-        pandas.HDFStore.walk \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -123,30 +100,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
-        pandas.core.resample.Resampler.__iter__ \
-        pandas.core.resample.Resampler.groups \
-        pandas.core.resample.Resampler.indices \
-        pandas.core.resample.Resampler.get_group \
-        pandas.core.resample.Resampler.ffill \
-        pandas.core.resample.Resampler.asfreq \
-        pandas.core.resample.Resampler.count \
-        pandas.core.resample.Resampler.nunique \
-        pandas.core.resample.Resampler.max \
-        pandas.core.resample.Resampler.mean \
-        pandas.core.resample.Resampler.median \
-        pandas.core.resample.Resampler.min \
-        pandas.core.resample.Resampler.ohlc \
-        pandas.core.resample.Resampler.prod \
-        pandas.core.resample.Resampler.size \
-        pandas.core.resample.Resampler.sem \
-        pandas.core.resample.Resampler.std \
-        pandas.core.resample.Resampler.sum \
-        pandas.core.resample.Resampler.var \
-        pandas.core.resample.Resampler.quantile \
-        pandas.describe_option \
-        pandas.reset_option \
-        pandas.get_option \
-        pandas.set_option \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
@@ -155,70 +108,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_pandas_object \
         pandas_object \
         pandas.api.interchange.from_dataframe \
-        pandas.Index.asof_locs \
-        pandas.Index.get_slice_bound \
-        pandas.RangeIndex \
-        pandas.RangeIndex.start \
-        pandas.RangeIndex.stop \
-        pandas.RangeIndex.step \
-        pandas.RangeIndex.from_range \
-        pandas.CategoricalIndex.codes \
-        pandas.CategoricalIndex.categories \
-        pandas.CategoricalIndex.ordered \
-        pandas.CategoricalIndex.reorder_categories \
-        pandas.CategoricalIndex.set_categories \
-        pandas.CategoricalIndex.as_ordered \
-        pandas.CategoricalIndex.as_unordered \
-        pandas.CategoricalIndex.equals \
-        pandas.IntervalIndex.values \
-        pandas.IntervalIndex.to_tuples \
-        pandas.MultiIndex.dtypes \
-        pandas.MultiIndex.drop \
         pandas.DatetimeIndex.snap \
-        pandas.DatetimeIndex.as_unit \
-        pandas.DatetimeIndex.to_pydatetime \
-        pandas.DatetimeIndex.to_series \
-        pandas.DatetimeIndex.mean \
-        pandas.DatetimeIndex.std \
-        pandas.TimedeltaIndex \
-        pandas.core.window.rolling.Rolling.max \
-        pandas.core.window.rolling.Rolling.cov \
-        pandas.core.window.rolling.Rolling.skew \
-        pandas.core.window.rolling.Rolling.apply \
-        pandas.core.window.rolling.Window.mean \
-        pandas.core.window.rolling.Window.sum \
-        pandas.core.window.rolling.Window.var \
-        pandas.core.window.rolling.Window.std \
-        pandas.core.window.expanding.Expanding.count \
-        pandas.core.window.expanding.Expanding.sum \
-        pandas.core.window.expanding.Expanding.mean \
-        pandas.core.window.expanding.Expanding.median \
-        pandas.core.window.expanding.Expanding.min \
-        pandas.core.window.expanding.Expanding.max \
-        pandas.core.window.expanding.Expanding.corr \
-        pandas.core.window.expanding.Expanding.cov \
-        pandas.core.window.expanding.Expanding.skew \
-        pandas.core.window.expanding.Expanding.apply \
-        pandas.core.window.expanding.Expanding.quantile \
-        pandas.core.window.ewm.ExponentialMovingWindow.mean \
-        pandas.core.window.ewm.ExponentialMovingWindow.sum \
-        pandas.core.window.ewm.ExponentialMovingWindow.std \
-        pandas.core.window.ewm.ExponentialMovingWindow.var \
-        pandas.core.window.ewm.ExponentialMovingWindow.corr \
-        pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler \
-        pandas.io.formats.style.Styler.from_custom_template \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.PandasArray \
@@ -230,37 +122,25 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.argsort \
-        pandas.api.extensions.ExtensionArray.astype \
-        pandas.api.extensions.ExtensionArray.copy \
-        pandas.api.extensions.ExtensionArray.view \
         pandas.api.extensions.ExtensionArray.dropna \
         pandas.api.extensions.ExtensionArray.equals \
         pandas.api.extensions.ExtensionArray.factorize \
         pandas.api.extensions.ExtensionArray.fillna \
         pandas.api.extensions.ExtensionArray.insert \
+        pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.isin \
         pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
         pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.dtype \
-        pandas.api.extensions.ExtensionArray.nbytes \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.columns \
-        pandas.DataFrame.backfill \
-        pandas.DataFrame.ffill \
         pandas.DataFrame.pad \
-        pandas.DataFrame.swapaxes \
-        pandas.DataFrame.attrs \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
-        pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

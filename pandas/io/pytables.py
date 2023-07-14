@@ -19,10 +19,7 @@ from typing import (
     Any,
     Callable,
     Final,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -105,6 +102,11 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
     from types import TracebackType
 
     from tables import (
@@ -1476,6 +1478,17 @@ class HDFStore:
         -------
         list
             List of objects.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> print(store.groups())  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        [/data (Group) ''
+          children := ['axis0' (Array), 'axis1' (Array), 'block0_values' (Array),
+          'block0_items' (Array)]]
         """
         _tables()
         self._check_if_open()
@@ -1520,6 +1533,18 @@ class HDFStore:
             Names (strings) of the groups contained in `path`.
         leaves : list
             Names (strings) of the pandas objects contained in `path`.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df1, format='table')  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
+        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        >>> for group in store.walk():  # doctest: +SKIP
+        ...     print(group)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         _tables()
         self._check_if_open()
