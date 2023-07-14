@@ -24,6 +24,9 @@ import pandas._testing as tm
 from pandas.core.arrays import period_array
 
 
+@pytest.mark.filterwarnings(
+    "ignore:(Series|DataFrame).fillna with 'method' is deprecated:FutureWarning"
+)
 class TestSeriesFillNA:
     def test_fillna_nat(self):
         series = Series([0, 1, 2, NaT._value], dtype="M8[ns]")
@@ -172,13 +175,16 @@ class TestSeriesFillNA:
         # GH#15277
         # infer int64 from float64
         ser = Series([1.0, np.nan])
-        result = ser.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna(0, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         ser = Series([1.0, np.nan])
-        result = ser.fillna({1: 0}, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna({1: 0}, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
@@ -191,15 +197,21 @@ class TestSeriesFillNA:
 
         ser = Series(arr)
 
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         expected = Series(np.arange(5), dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2, 2, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2, 4, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
@@ -207,14 +219,20 @@ class TestSeriesFillNA:
         ser[2] = 2.5
 
         expected = Series([0, 1, 2.5, 3, 4], dtype=np.float64)
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2.5, 2.5, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2.5, 4, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
@@ -846,6 +864,9 @@ class TestSeriesFillNA:
         tm.assert_categorical_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
+)
 class TestFillnaPad:
     def test_fillna_bug(self):
         ser = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
@@ -934,7 +955,7 @@ class TestFillnaPad:
             [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
         )
 
-        filled = data.fillna(method="bfill")
+        filled = data.bfill()
 
         expected = Series(
             [
@@ -965,7 +986,7 @@ class TestFillnaPad:
         )
         expected = Series(arr)
 
-        filled = ser.fillna(method="pad")
+        filled = ser.ffill()
 
         tm.assert_series_equal(filled, expected)
 

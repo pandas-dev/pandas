@@ -60,19 +60,19 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
     Parameters
     ----------
-    data  : array-like (1-dimensional), optional
+    data : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with.
-    unit : unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
-        Which is an integer/float number.
+    unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
+        The unit of ``data``.
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
-        'infer' can be passed in order to set the frequency of the index as the
-        inferred frequency upon creation.
+        ``'infer'`` can be passed in order to set the frequency of the index as
+        the inferred frequency upon creation.
     dtype : numpy.dtype or str, default None
-        Valid NumPy dtypes are timedelta64[ns]’, timedelta64[us]’,
-        timedelta64[ms]’, and timedelta64[s]’.
-    copy  : bool
-        Make a copy of input ndarray.
+        Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
+        ``timedelta64[ms]``, and ``timedelta64[s]``.
+    copy : bool
+        Make a copy of input array.
     name : object
         Name to be stored in the index.
 
@@ -107,6 +107,22 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     -----
     To learn more about the frequency strings, please see `this link
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.
+
+    Examples
+    --------
+    >>> pd.TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'])
+    TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq=None)
+
+    >>> pd.TimedeltaIndex([1, 2, 4, 8], unit='D')
+    TimedeltaIndex(['1 days', '2 days', '4 days', '8 days'],
+                   dtype='timedelta64[ns]', freq=None)
+
+    We can also let pandas infer the frequency when possible.
+
+    >>> pd.TimedeltaIndex(range(5), unit='D', freq='infer')
+    TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                   dtype='timedelta64[ns]', freq='D')
     """
 
     _typ = "timedeltaindex"

@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -136,22 +137,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
 
 
 @contextmanager

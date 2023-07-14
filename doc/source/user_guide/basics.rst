@@ -675,7 +675,7 @@ matching index:
 Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
+The :meth:`~Series.value_counts` Series method computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
 
 .. ipython:: python
@@ -684,7 +684,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    data
    s = pd.Series(data)
    s.value_counts()
-   pd.value_counts(data)
 
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
@@ -733,7 +732,6 @@ normally distributed data into equal-size quartiles like so:
    arr = np.random.randn(30)
    factor = pd.qcut(arr, [0, 0.25, 0.5, 0.75, 1])
    factor
-   pd.value_counts(factor)
 
 We can also pass infinite values to define the bins:
 
@@ -883,8 +881,8 @@ statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
-   df.apply(np.mean)
-   df.apply(np.mean, axis=1)
+   df.apply(lambda x: np.mean(x))
+   df.apply(lambda x: np.mean(x), axis=1)
    df.apply(lambda x: x.max() - x.min())
    df.apply(np.cumsum)
    df.apply(np.exp)
@@ -988,7 +986,7 @@ output:
 
 .. ipython:: python
 
-   tsdf.agg(np.sum)
+   tsdf.agg(lambda x: np.sum(x))
 
    tsdf.agg("sum")
 
@@ -1377,12 +1375,12 @@ These methods require that the indexes are **ordered** increasing or
 decreasing.
 
 Note that the same result could have been achieved using
-:ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
+:ref:`ffill <missing_data.fillna>` (except for ``method='nearest'``) or
 :ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 
-   ts2.reindex(ts.index).fillna(method="ffill")
+   ts2.reindex(ts.index).ffill()
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonically
 increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`

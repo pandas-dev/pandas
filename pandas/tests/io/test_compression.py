@@ -18,10 +18,6 @@ import pandas._testing as tm
 
 import pandas.io.common as icom
 
-_compression_to_extension = {
-    value: key for key, value in icom.extension_to_compression.items()
-}
-
 
 @pytest.mark.parametrize(
     "obj",
@@ -84,11 +80,11 @@ def test_compression_size_fh(obj, method, compression_only):
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, compression_only
+    write_method, write_kwargs, read_method, compression_only, compression_to_extension
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
@@ -104,11 +100,16 @@ def test_dataframe_compression_defaults_to_infer(
     ],
 )
 def test_series_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, read_kwargs, compression_only
+    write_method,
+    write_kwargs,
+    read_method,
+    read_kwargs,
+    compression_only,
+    compression_to_extension,
 ):
     # GH22004
     input = pd.Series([0, 5, -2, 10], name="X")
-    extension = _compression_to_extension[compression_only]
+    extension = compression_to_extension[compression_only]
     with tm.ensure_clean("compressed" + extension) as path:
         getattr(input, write_method)(path, **write_kwargs)
         if "squeeze" in read_kwargs:
@@ -176,7 +177,7 @@ def test_gzip_reproducibility_file_name():
     with tm.ensure_clean() as path:
         path = Path(path)
         df.to_csv(path, compression=compression_options)
-        time.sleep(2)
+        time.sleep(0.1)
         output = path.read_bytes()
         df.to_csv(path, compression=compression_options)
         assert output == path.read_bytes()
@@ -195,12 +196,13 @@ def test_gzip_reproducibility_file_object():
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     output = buffer.getvalue()
-    time.sleep(2)
+    time.sleep(0.1)
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     assert output == buffer.getvalue()
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma():
     """Tests if import pandas works when lzma is not present."""
     # https://github.com/pandas-dev/pandas/issues/27575
@@ -214,6 +216,7 @@ def test_with_missing_lzma():
     subprocess.check_output([sys.executable, "-c", code], stderr=subprocess.PIPE)
 
 
+@pytest.mark.single_cpu
 def test_with_missing_lzma_runtime():
     """Tests if RuntimeError is hit when calling lzma without
     having the module available.

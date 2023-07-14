@@ -75,7 +75,9 @@ def test_transform():
 
     # GH 9700
     df = DataFrame({"a": range(5, 10), "b": range(5)})
-    result = df.groupby("a").transform(max)
+    msg = "using DataFrameGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("a").transform(max)
     expected = DataFrame({"b": range(5)})
     tm.assert_frame_equal(result, expected)
 
@@ -88,7 +90,9 @@ def test_transform_fast():
     values = np.repeat(grp.mean().values, ensure_platform_int(grp.count().values))
     expected = Series(values, index=df.index, name="val")
 
-    result = grp.transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grp.transform(np.mean)
     tm.assert_series_equal(result, expected)
 
     result = grp.transform("mean")
@@ -132,14 +136,18 @@ def test_transform_fast():
 
 def test_transform_broadcast(tsframe, ts):
     grouped = ts.groupby(lambda x: x.month)
-    result = grouped.transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
 
     tm.assert_index_equal(result.index, ts.index)
     for _, gp in grouped:
         assert_fp_equal(result.reindex(gp.index), gp.mean())
 
     grouped = tsframe.groupby(lambda x: x.month)
-    result = grouped.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     for _, gp in grouped:
         agged = gp.mean(axis=0)
@@ -151,7 +159,9 @@ def test_transform_broadcast(tsframe, ts):
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
-    result = grouped.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
     for _, gp in grouped:
@@ -348,7 +358,10 @@ def test_transform_multiple(ts):
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
     grouped.transform(lambda x: x * 2)
-    grouped.transform(np.mean)
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped.transform(np.mean)
 
 
 def test_dispatch_transform(tsframe):
@@ -356,9 +369,13 @@ def test_dispatch_transform(tsframe):
 
     grouped = df.groupby(lambda x: x.month)
 
-    filled = grouped.fillna(method="pad")
+    msg = "DataFrameGroupBy.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        filled = grouped.fillna(method="pad")
+    msg = "Series.fillna with 'method' is deprecated"
     fillit = lambda x: x.fillna(method="pad")
-    expected = df.groupby(lambda x: x.month).transform(fillit)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby(lambda x: x.month).transform(fillit)
     tm.assert_frame_equal(filled, expected)
 
 
@@ -404,11 +421,24 @@ def test_transform_transformation_func(transformation_func):
         test_op = lambda x: x.transform(transformation_func)
         mock_op = lambda x: getattr(x, transformation_func)()
 
-    result = test_op(df.groupby("A"))
+    msg = "The default fill_method='pad' in DataFrame.pct_change is deprecated"
+    groupby_msg = (
+        "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    )
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=groupby_msg):
+            result = test_op(df.groupby("A"))
+    else:
+        result = test_op(df.groupby("A"))
+
     # pass the group in same order as iterating `for ... in df.groupby(...)`
     # but reorder to match df's index since this is a transform
     groups = [df[["B"]].iloc[4:6], df[["B"]].iloc[6:], df[["B"]].iloc[:4]]
-    expected = concat([mock_op(g) for g in groups]).sort_index()
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = concat([mock_op(g) for g in groups]).sort_index()
+    else:
+        expected = concat([mock_op(g) for g in groups]).sort_index()
     # sort_index does not preserve the freq
     expected = expected.set_axis(df.index)
 
@@ -447,11 +477,15 @@ def test_transform_nuisance_raises(df):
 
 def test_transform_function_aliases(df):
     result = df.groupby("A").transform("mean", numeric_only=True)
-    expected = df.groupby("A")[["C", "D"]].transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
-    expected = df.groupby("A")["C"].transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("A")["C"].transform(np.mean)
     tm.assert_series_equal(result, expected)
 
 
@@ -479,12 +513,14 @@ def test_transform_length():
     def nsum(x):
         return np.nansum(x)
 
-    results = [
-        df.groupby("col1").transform(sum)["col2"],
-        df.groupby("col1")["col2"].transform(sum),
-        df.groupby("col1").transform(nsum)["col2"],
-        df.groupby("col1")["col2"].transform(nsum),
-    ]
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        results = [
+            df.groupby("col1").transform(sum)["col2"],
+            df.groupby("col1")["col2"].transform(sum),
+            df.groupby("col1").transform(nsum)["col2"],
+            df.groupby("col1")["col2"].transform(nsum),
+        ]
     for result in results:
         tm.assert_series_equal(result, expected, check_names=False)
 
@@ -496,7 +532,9 @@ def test_transform_coercion():
     df = DataFrame({"A": ["a", "a", "b", "b"], "B": [0, 1, 3, 4]})
     g = df.groupby("A")
 
-    expected = g.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = g.transform(np.mean)
 
     result = g.transform(lambda x: np.mean(x, axis=0))
     tm.assert_frame_equal(result, expected)
@@ -567,7 +605,9 @@ def test_groupby_transform_with_int():
 def test_groupby_transform_with_nan_group():
     # GH 9941
     df = DataFrame({"a": range(10), "b": [1, 1, 2, 3, np.nan, 4, 4, 5, 5, 5]})
-    result = df.groupby(df.b)["a"].transform(max)
+    msg = "using SeriesGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(df.b)["a"].transform(max)
     expected = Series([1.0, 1.0, 2.0, 3.0, np.nan, 6.0, 6.0, 9.0, 9.0, 9.0], name="a")
     tm.assert_series_equal(result, expected)
 
@@ -680,6 +720,36 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
     tm.assert_series_equal(expected, result)
 
 
+@pytest.fixture
+def frame():
+    floating = Series(np.random.randn(10))
+    floating_missing = floating.copy()
+    floating_missing.iloc[2:7] = np.nan
+    strings = list("abcde") * 2
+    strings_missing = strings[:]
+    strings_missing[5] = np.nan
+
+    df = DataFrame(
+        {
+            "float": floating,
+            "float_missing": floating_missing,
+            "int": [1, 1, 1, 1, 2] * 2,
+            "datetime": date_range("1990-1-1", periods=10),
+            "timedelta": pd.timedelta_range(1, freq="s", periods=10),
+            "string": strings,
+            "string_missing": strings_missing,
+            "cat": Categorical(strings),
+        },
+    )
+    return df
+
+
+@pytest.fixture
+def frame_mi(frame):
+    frame.index = MultiIndex.from_product([range(5), range(2)])
+    return frame
+
+
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "op, args, targop",
@@ -690,100 +760,114 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
         ("shift", (1,), lambda x: x.shift()),
     ],
 )
-def test_cython_transform_frame(op, args, targop):
-    s = Series(np.random.randn(1000))
-    s_missing = s.copy()
-    s_missing.iloc[2:10] = np.nan
-    labels = np.random.randint(0, 50, size=1000).astype(float)
-    strings = list("qwertyuiopasdfghjklz")
-    strings_missing = strings[:]
-    strings_missing[5] = np.nan
-    df = DataFrame(
-        {
-            "float": s,
-            "float_missing": s_missing,
-            "int": [1, 1, 1, 1, 2] * 200,
-            "datetime": date_range("1990-1-1", periods=1000),
-            "timedelta": pd.timedelta_range(1, freq="s", periods=1000),
-            "string": strings * 50,
-            "string_missing": strings_missing * 50,
-        },
-        columns=[
-            "float",
-            "float_missing",
-            "int",
-            "datetime",
-            "timedelta",
-            "string",
-            "string_missing",
-        ],
-    )
-    df["cat"] = df["string"].astype("category")
+@pytest.mark.parametrize("df_fix", ["frame", "frame_mi"])
+@pytest.mark.parametrize(
+    "gb_target",
+    [
+        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"level": 0},
+        {"by": "string"},
+        # {"by": 'string_missing'}]:
+        # {"by": ['int','string']}]:
+        # TODO: remove or enable commented-out code
+    ],
+)
+def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
+    df = request.getfixturevalue(df_fix)
+    gb = df.groupby(group_keys=False, **gb_target)
 
-    df2 = df.copy()
-    df2.index = MultiIndex.from_product([range(100), range(10)])
+    if op != "shift" and "int" not in gb_target:
+        # numeric apply fastpath promotes dtype so have
+        # to apply separately and concat
+        i = gb[["int"]].apply(targop)
+        f = gb[["float", "float_missing"]].apply(targop)
+        expected = concat([f, i], axis=1)
+    else:
+        expected = gb.apply(targop)
 
-    # DataFrame - Single and MultiIndex,
-    # group by values, index level, columns
-    for df in [df, df2]:
-        for gb_target in [
-            {"by": labels},
-            {"level": 0},
-            {"by": "string"},
-        ]:  # {"by": 'string_missing'}]:
-            # {"by": ['int','string']}]:
-            # TODO: remove or enable commented-out code
+    expected = expected.sort_index(axis=1)
+    if op == "shift":
+        depr_msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            expected["string_missing"] = expected["string_missing"].fillna(
+                np.nan, downcast=False
+            )
+            expected["string"] = expected["string"].fillna(np.nan, downcast=False)
 
-            gb = df.groupby(group_keys=False, **gb_target)
+    result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
+    tm.assert_frame_equal(result, expected)
+    result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
+    tm.assert_frame_equal(result, expected)
 
-            if op != "shift" and "int" not in gb_target:
-                # numeric apply fastpath promotes dtype so have
-                # to apply separately and concat
-                i = gb[["int"]].apply(targop)
-                f = gb[["float", "float_missing"]].apply(targop)
-                expected = concat([f, i], axis=1)
-            else:
-                expected = gb.apply(targop)
 
-            expected = expected.sort_index(axis=1)
-            if op == "shift":
-                expected["string_missing"] = expected["string_missing"].fillna(
-                    np.nan, downcast=False
-                )
-                expected["string"] = expected["string"].fillna(np.nan, downcast=False)
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "op, args, targop",
+    [
+        ("cumprod", (), lambda x: x.cumprod()),
+        ("cumsum", (), lambda x: x.cumsum()),
+        ("shift", (-1,), lambda x: x.shift(-1)),
+        ("shift", (1,), lambda x: x.shift()),
+    ],
+)
+@pytest.mark.parametrize("df_fix", ["frame", "frame_mi"])
+@pytest.mark.parametrize(
+    "gb_target",
+    [
+        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"level": 0},
+        {"by": "string"},
+        # {"by": 'string_missing'}]:
+        # {"by": ['int','string']}]:
+        # TODO: remove or enable commented-out code
+    ],
+)
+@pytest.mark.parametrize(
+    "column",
+    [
+        "float",
+        "float_missing",
+        "int",
+        "datetime",
+        "timedelta",
+        "string",
+        "string_missing",
+    ],
+)
+def test_cython_transform_frame_column(
+    request, op, args, targop, df_fix, gb_target, column
+):
+    df = request.getfixturevalue(df_fix)
+    gb = df.groupby(group_keys=False, **gb_target)
+    c = column
+    if (
+        c not in ["float", "int", "float_missing"]
+        and op != "shift"
+        and not (c == "timedelta" and op == "cumsum")
+    ):
+        msg = "|".join(
+            [
+                "does not support .* operations",
+                ".* is not supported for object dtype",
+                "is not implemented for this dtype",
+            ]
+        )
+        with pytest.raises(TypeError, match=msg):
+            gb[c].transform(op)
+        with pytest.raises(TypeError, match=msg):
+            getattr(gb[c], op)()
+    else:
+        expected = gb[c].apply(targop)
+        expected.name = c
+        if c in ["string_missing", "string"]:
+            depr_msg = "The 'downcast' keyword in fillna is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                expected = expected.fillna(np.nan, downcast=False)
 
-            result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
-            result = getattr(gb[expected.columns], op)(*args).sort_index(axis=1)
-            tm.assert_frame_equal(result, expected)
-            # individual columns
-            for c in df:
-                if (
-                    c not in ["float", "int", "float_missing"]
-                    and op != "shift"
-                    and not (c == "timedelta" and op == "cumsum")
-                ):
-                    msg = "|".join(
-                        [
-                            "does not support .* operations",
-                            ".* is not supported for object dtype",
-                            "is not implemented for this dtype",
-                        ]
-                    )
-                    with pytest.raises(TypeError, match=msg):
-                        gb[c].transform(op)
-                    with pytest.raises(TypeError, match=msg):
-                        getattr(gb[c], op)()
-                else:
-                    expected = gb[c].apply(targop)
-                    expected.name = c
-                    if c in ["string_missing", "string"]:
-                        expected = expected.fillna(np.nan, downcast=False)
-
-                    res = gb[c].transform(op, *args)
-                    tm.assert_series_equal(expected, res)
-                    res2 = getattr(gb[c], op)(*args)
-                    tm.assert_series_equal(expected, res2)
+        res = gb[c].transform(op, *args)
+        tm.assert_series_equal(expected, res)
+        res2 = getattr(gb[c], op)(*args)
+        tm.assert_series_equal(expected, res2)
 
 
 def test_transform_with_non_scalar_group():
@@ -791,16 +875,16 @@ def test_transform_with_non_scalar_group():
     cols = MultiIndex.from_tuples(
         [
             ("syn", "A"),
-            ("mis", "A"),
+            ("foo", "A"),
             ("non", "A"),
             ("syn", "C"),
-            ("mis", "C"),
+            ("foo", "C"),
             ("non", "C"),
             ("syn", "T"),
-            ("mis", "T"),
+            ("foo", "T"),
             ("non", "T"),
             ("syn", "G"),
-            ("mis", "G"),
+            ("foo", "G"),
             ("non", "G"),
         ]
     )
@@ -969,9 +1053,14 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
     else:
         expected = expected.to_frame("vals")
 
-    result = gb.pct_change(
-        periods=periods, fill_method=fill_method, limit=limit, freq=freq
+    msg = (
+        "The 'fill_method' and 'limit' keywords in "
+        f"{type(gb).__name__}.pct_change are deprecated"
     )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.pct_change(
+            periods=periods, fill_method=fill_method, limit=limit, freq=freq
+        )
     tm.assert_equal(result, expected)
 
 
@@ -1019,7 +1108,9 @@ def test_any_all_np_func(func):
 
     exp = Series([True, np.nan, True], name="val")
 
-    res = df.groupby("key")["val"].transform(func)
+    msg = "using SeriesGroupBy.[any|all]"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = df.groupby("key")["val"].transform(func)
     tm.assert_series_equal(res, exp)
 
 
@@ -1049,7 +1140,10 @@ def test_groupby_transform_timezone_column(func):
     # GH 24198
     ts = pd.to_datetime("now", utc=True).tz_convert("Asia/Singapore")
     result = DataFrame({"end_time": [ts], "id": [1]})
-    result["max_end_time"] = result.groupby("id").end_time.transform(func)
+    warn = FutureWarning if not isinstance(func, str) else None
+    msg = "using SeriesGroupBy.[min|max]"
+    with tm.assert_produces_warning(warn, match=msg):
+        result["max_end_time"] = result.groupby("id").end_time.transform(func)
     expected = DataFrame([[ts, 1, ts]], columns=["end_time", "id", "max_end_time"])
     tm.assert_frame_equal(result, expected)
 
@@ -1408,7 +1502,12 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         # ngroup/cumcount always returns a Series as it counts the groups, not values
         expected = expected["B"].rename(None)
 
-    result = gb.transform(transformation_func, *args)
+    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    if transformation_func == "pct_change" and not dropna:
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = gb.transform("pct_change", *args)
+    else:
+        result = gb.transform(transformation_func, *args)
 
     tm.assert_equal(result, expected)
 

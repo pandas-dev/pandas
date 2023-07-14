@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
 )
@@ -20,6 +19,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
@@ -48,6 +48,8 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas import (
         DataFrame,
         Index,
@@ -275,21 +277,52 @@ class StringMethods(NoNewAttributesMixin):
             if isinstance(result.dtype, ArrowDtype):
                 import pyarrow as pa
 
+                from pandas.compat import pa_version_under11p0
+
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-                max_len = pa.compute.max(
-                    result._pa_array.combine_chunks().value_lengths()
-                ).as_py()
-                if result.isna().any():
+                value_lengths = pa.compute.list_value_length(result._pa_array)
+                max_len = pa.compute.max(value_lengths).as_py()
+                min_len = pa.compute.min(value_lengths).as_py()
+                if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
-                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                    result = ArrowExtensionArray(
+                        result._pa_array.fill_null([None] * max_len)
+                    )
+                if min_len < max_len:
+                    # append nulls to each scalar list element up to max_len
+                    if not pa_version_under11p0:
+                        result = ArrowExtensionArray(
+                            pa.compute.list_slice(
+                                result._pa_array,
+                                start=0,
+                                stop=max_len,
+                                return_fixed_size_list=True,
+                            )
+                        )
+                    else:
+                        all_null = np.full(max_len, fill_value=None, dtype=object)
+                        values = result.to_numpy()
+                        new_values = []
+                        for row in values:
+                            if len(row) < max_len:
+                                nulls = all_null[: max_len - len(row)]
+                                row = np.append(row, nulls)
+                            new_values.append(row)
+                        pa_type = result._pa_array.type
+                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
                 if name is not None:
                     labels = name
                 else:
                     labels = range(max_len)
+                result = (
+                    pa.compute.list_flatten(result._pa_array)
+                    .to_numpy()
+                    .reshape(len(result), max_len)
+                )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, (zip(*result.tolist())))
+                    for label, res in zip(labels, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -3335,7 +3368,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: list, sep: str):
+def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
