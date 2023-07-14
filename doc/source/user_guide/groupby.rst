@@ -878,7 +878,7 @@ will be broadcast across the group.
     grouped.transform("sum")
 
 In addition to string aliases, the :meth:`~.DataFrameGroupBy.transform` method can
-also except User-Defined functions (UDFs). The UDF must:
+also accept User-Defined Functions (UDFs). The UDF must:
 
 * Return a result that is either the same size as the group chunk or
   broadcastable to the size of the group chunk (e.g., a scalar,
@@ -1363,7 +1363,7 @@ implementation headache).
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Categorical variables represented as instance of pandas's ``Categorical`` class
+Categorical variables represented as instances of pandas's ``Categorical`` class
 can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
@@ -1496,7 +1496,7 @@ You can also select multiple rows from each group by specifying multiple nth val
    # get the first, 4th, and last date index for each month
    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
-You may also use a slices or lists of slices.
+You may also use slices or lists of slices.
 
 .. ipython:: python
 

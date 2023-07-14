@@ -53,10 +53,8 @@ def test_contains(any_string_dtype):
         np.array(["Foo", "xYz", "fOOomMm__fOo", "MMM_"], dtype=object),
         dtype=any_string_dtype,
     )
-    with tm.maybe_produces_warning(
-        PerformanceWarning, any_string_dtype == "string[pyarrow]"
-    ):
-        result = values.str.contains("FOO|mmm", case=False)
+
+    result = values.str.contains("FOO|mmm", case=False)
     expected = Series(np.array([True, False, True, True]), dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -172,10 +170,7 @@ def test_contains_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, any_string_dtype == "string[pyarrow]"
-    ):
-        result = s.str.contains("a", case=False)
+    result = s.str.contains("a", case=False)
     expected = Series(
         [True, False, False, True, True, False, np.nan, True, False, True],
         dtype=expected_dtype,
@@ -196,10 +191,7 @@ def test_contains_moar(any_string_dtype):
     )
     tm.assert_series_equal(result, expected)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, any_string_dtype == "string[pyarrow]"
-    ):
-        result = s.str.contains("ba", case=False)
+    result = s.str.contains("ba", case=False)
     expected = Series(
         [False, False, False, True, True, False, np.nan, True, False, False],
         dtype=expected_dtype,
@@ -723,10 +715,7 @@ def test_match_na_kwarg(any_string_dtype):
 
 def test_match_case_kwarg(any_string_dtype):
     values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
-    with tm.maybe_produces_warning(
-        PerformanceWarning, any_string_dtype == "string[pyarrow]"
-    ):
-        result = values.str.match("ab", case=False)
+    result = values.str.match("ab", case=False)
     expected_dtype = np.bool_ if any_string_dtype == "object" else "boolean"
     expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
@@ -769,10 +758,7 @@ def test_fullmatch_case_kwarg(any_string_dtype):
 
     expected = Series([True, True, False, False], dtype=expected_dtype)
 
-    with tm.maybe_produces_warning(
-        PerformanceWarning, any_string_dtype == "string[pyarrow]"
-    ):
-        result = ser.str.fullmatch("ab", case=False)
+    result = ser.str.fullmatch("ab", case=False)
     tm.assert_series_equal(result, expected)
 
     with tm.maybe_produces_warning(

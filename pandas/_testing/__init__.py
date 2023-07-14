@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
@@ -109,6 +108,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         Dtype,
         Frequency,
