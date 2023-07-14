@@ -72,7 +72,7 @@ class TestDatetimeIndexRendering:
         repr(dr)
 
         dr = DatetimeIndex(
-            ["2012-01-01 00:00:00","2012-01-01 01:00:00"], freq=str(60)+'T'
+            ["2012-01-01 00:00:00","2012-01-01 01:00:00"], freq=str(60) + "T"
         )
         repr(dr)
 
