@@ -49,7 +49,9 @@ class TestReindexSetIndex:
             datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
         )
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(24, 1), columns=["a"], index=index
+            np.random.default_rng(2).standard_normal((24, 1)),
+            columns=["a"],
+            index=index,
         )
         new_index = date_range(
             datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
@@ -161,7 +163,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_copies(self):
         # based on asv time_reindex_axis1
         N = 10
-        df = DataFrame(np.random.default_rng(2).standard_normal(N * 10, N))
+        df = DataFrame(np.random.default_rng(2).standard_normal((N * 10, N)))
         cols = np.arange(N)
         np.random.default_rng(2).shuffle(cols)
 

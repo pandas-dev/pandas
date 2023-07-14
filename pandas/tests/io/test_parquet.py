@@ -466,7 +466,7 @@ class TestBasic(Base):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal(2 * len(dates), 3),
+            np.random.default_rng(2).standard_normal((2 * len(dates), 3)),
             columns=list("ABC"),
         )
         index1 = pd.MultiIndex.from_product(

@@ -389,7 +389,7 @@ class TestMultiIndexSetItem:
         )
 
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal(len(index), 4),
+            np.random.default_rng(2).standard_normal((len(index), 4)),
             index=index,
             columns=["a", "b", "c", "d"],
         )

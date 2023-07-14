@@ -1175,16 +1175,16 @@ class TestIsin:
 
 class TestValueCounts:
     def test_value_counts(self):
-        arr = np.random.default_rng(2).standard_normal(4)
+        arr = np.random.default_rng(1234).standard_normal(4)
         factor = cut(arr, 4)
 
         # assert isinstance(factor, n)
         msg = "pandas.value_counts is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(factor)
-        breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
+        breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
         index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index, name="count")
+        expected = Series([1, 0, 2, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):

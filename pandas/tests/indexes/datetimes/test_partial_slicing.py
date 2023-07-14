@@ -127,7 +127,7 @@ class TestSlicing:
         expected = s[s.index.year == 2005]
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(np.random.default_rng(2).random(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         result = df.loc["2005"]
         expected = df[df.index.year == 2005]
         tm.assert_frame_equal(result, expected)
@@ -158,7 +158,7 @@ class TestSlicing:
         s = Series(np.arange(len(dti)), index=dti)
         assert len(s["2001Q1"]) == 90
 
-        df = DataFrame(np.random.default_rng(2).random(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         assert len(df.loc["1Q01"]) == 90
 
     def test_slice_month(self):
@@ -166,7 +166,7 @@ class TestSlicing:
         s = Series(np.arange(len(dti)), index=dti)
         assert len(s["2005-11"]) == 30
 
-        df = DataFrame(np.random.default_rng(2).random(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         assert len(df.loc["2005-11"]) == 30
 
         tm.assert_series_equal(s["2005-11"], s["11-2005"])
@@ -361,7 +361,7 @@ class TestSlicing:
         # GH 4294
         # partial slice on a series mi
         ser = DataFrame(
-            np.random.default_rng(2).random(1000, 1000),
+            np.random.default_rng(2).random((1000, 1000)),
             index=date_range("2000-1-1", periods=1000),
         ).stack()
 

@@ -270,7 +270,7 @@ class TestDataFrameShift:
     def test_shift_other_axis(self):
         # shift other axis
         # GH#6371
-        df = DataFrame(np.random.default_rng(2).random(10, 5))
+        df = DataFrame(np.random.default_rng(2).random((10, 5)))
         expected = pd.concat(
             [DataFrame(np.nan, index=df.index, columns=[0]), df.iloc[:, 0:-1]],
             ignore_index=True,
@@ -281,7 +281,7 @@ class TestDataFrameShift:
 
     def test_shift_named_axis(self):
         # shift named axis
-        df = DataFrame(np.random.default_rng(2).random(10, 5))
+        df = DataFrame(np.random.default_rng(2).random((10, 5)))
         expected = pd.concat(
             [DataFrame(np.nan, index=df.index, columns=[0]), df.iloc[:, 0:-1]],
             ignore_index=True,
@@ -399,7 +399,7 @@ class TestDataFrameShift:
         # GH#9092; verify that position-based shifting works
         # in the presence of duplicate columns
         column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
-        data = np.random.default_rng(2).standard_normal(20, 5)
+        data = np.random.default_rng(2).standard_normal((20, 5))
 
         shifted = []
         for columns in column_lists:

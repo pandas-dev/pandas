@@ -61,7 +61,7 @@ def test_random_state():
     assert com.random_state(state2).uniform() == np.random.RandomState(10).uniform()
 
     # check with no arg random state
-    assert com.random_state() is np.random.default_rng(2)
+    assert com.random_state() is np.random
 
     # check array-like
     # GH32503

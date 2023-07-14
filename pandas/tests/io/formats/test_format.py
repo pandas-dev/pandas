@@ -2215,7 +2215,7 @@ c  10  11  12  13  14\
         https://pandas.pydata.org/docs/dev/user_guide/options.html#frequently-used-options
         """
         formatter = fmt.DataFrameFormatter(
-            DataFrame(np.random.default_rng(2).random(length, 3)),
+            DataFrame(np.random.default_rng(2).random((length, 3))),
             max_rows=max_rows,
             min_rows=min_rows,
         )

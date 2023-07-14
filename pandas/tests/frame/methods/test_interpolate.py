@@ -430,7 +430,7 @@ class TestDataFrameInterpolate:
         # GH 9687
         periods = 5
         idx = date_range(start="2014-01-01", periods=periods)
-        data = np.random.default_rng(2).random(periods, periods)
+        data = np.random.default_rng(2).random((periods, periods))
         data[data < 0.5] = np.nan
         expected = DataFrame(index=idx, columns=idx, data=data)
 

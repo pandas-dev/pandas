@@ -1544,7 +1544,7 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_chunksize_read(self):
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(22, 5), columns=list("abcde")
+            np.random.default_rng(2).standard_normal((22, 5)), columns=list("abcde")
         )
         df.to_sql("test_chunksize", self.conn, index=False)
 

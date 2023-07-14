@@ -205,7 +205,7 @@ class TestMerge:
             columns=list("ABCDEF") + ["G1"],
         )
         df2 = DataFrame(
-            np.random.default_rng(2).standard_normal((1000, 7)),
+            np.random.default_rng(3).standard_normal((1000, 7)),
             columns=list("ABCDEF") + ["G2"],
         )
         result = merge(df1, df2, how="outer")
@@ -262,23 +262,23 @@ class TestMerge:
         left = concat([left, left], ignore_index=True)
 
         right = DataFrame(
-            np.random.default_rng(2).integers(low, high, (n // 2, 7)).astype("int64"),
+            np.random.default_rng(3).integers(low, high, (n // 2, 7)).astype("int64"),
             columns=list("ABCDEFG"),
         )
 
         # add duplicates & overlap with left to the right frame
-        i = np.random.default_rng(2).choice(len(left), n)
+        i = np.random.default_rng(4).choice(len(left), n)
         right = concat([right, right, left.iloc[i]], ignore_index=True)
 
         left["left"] = np.random.default_rng(2).standard_normal(len(left))
         right["right"] = np.random.default_rng(2).standard_normal(len(right))
 
         # shuffle left & right frames
-        i = np.random.default_rng(2).permutation(len(left))
+        i = np.random.default_rng(5).permutation(len(left))
         left = left.iloc[i].copy()
         left.index = np.arange(len(left))
 
-        i = np.random.default_rng(2).permutation(len(right))
+        i = np.random.default_rng(6).permutation(len(right))
         right = right.iloc[i].copy()
         right.index = np.arange(len(right))
 

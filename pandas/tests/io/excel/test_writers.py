@@ -773,7 +773,7 @@ class TestExcelWriter:
             {
                 "A": [None, 2, 3],
                 "B": [10, 20, 30],
-                "C": np.random.default_rng(2).sample(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         df = df.set_index(["A", "B"])
