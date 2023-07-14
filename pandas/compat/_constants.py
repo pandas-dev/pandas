@@ -18,7 +18,7 @@ PY311 = sys.version_info >= (3, 11)
 PY312 = sys.version_info >= (3, 12)
 PYPY = platform.python_implementation() == "PyPy"
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
-
+REF_COUNT = 2 if PY311 else 3
 
 __all__ = [
     "IS64",

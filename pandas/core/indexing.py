@@ -4,8 +4,6 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
     cast,
     final,
 )
@@ -75,6 +73,11 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,

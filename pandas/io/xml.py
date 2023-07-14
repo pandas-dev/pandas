@@ -10,8 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,6 +20,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -30,6 +31,7 @@ from pandas.io.common import (
     file_exists,
     get_handle,
     infer_compression,
+    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -37,6 +39,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from xml.etree.ElementTree import Element
 
     from lxml import etree
@@ -802,6 +805,22 @@ def _parse(
 
     p: _EtreeFrameParser | _LxmlFrameParser
 
+    if isinstance(path_or_buffer, str) and not any(
+        [
+            is_file_like(path_or_buffer),
+            file_exists(path_or_buffer),
+            is_url(path_or_buffer),
+            is_fsspec_url(path_or_buffer),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
@@ -878,7 +897,7 @@ def read_xml(
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
@@ -893,6 +912,10 @@ def read_xml(
         object implementing a ``read()`` function. The string can be any valid XML
         string or a path. The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
+
+        .. deprecated:: 2.1.0
+            Passing xml literal strings is deprecated.
+            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
         The XPath to parse required set of nodes for migration to DataFrame.
@@ -991,13 +1014,14 @@ def read_xml(
 
     {storage_options}
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -1049,6 +1073,7 @@ def read_xml(
 
     Examples
     --------
+    >>> import io
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
     ... <data xmlns="http://example.com">
     ...  <row>
@@ -1068,7 +1093,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml)
+    >>> df = pd.read_xml(io.StringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1082,7 +1107,7 @@ def read_xml(
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml, xpath=".//row")
+    >>> df = pd.read_xml(io.StringIO(xml), xpath=".//row")
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1108,7 +1133,7 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(xml,
+    >>> df = pd.read_xml(io.StringIO(xml),
     ...                  xpath="//doc:row",
     ...                  namespaces={{"doc": "https://example.com"}})
     >>> df

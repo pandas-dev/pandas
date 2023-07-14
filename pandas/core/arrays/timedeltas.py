@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -67,6 +66,8 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,

@@ -160,7 +160,7 @@ class TestEval:
             [
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')bool(\]|')",
+                r"(`|')bool(`|')",
                 "argument of type 'bool' is not iterable",
             ]
         )
@@ -205,7 +205,7 @@ class TestEval:
             [
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')float(\]|')",
+                r"(`|')float(`|')",
                 "argument of type 'float' is not iterable",
             ]
         )
