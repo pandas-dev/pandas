@@ -14,6 +14,46 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_210.enhancements.reduction_extension_dtypes:
+
+DataFrame reductions preserve extension dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, the results of DataFrame reductions
+(:meth:`DataFrame.sum` :meth:`DataFrame.mean` etc.) had numpy dtypes, even when the DataFrames
+were of extension dtypes. Pandas can now keep the dtypes when doing reductions over Dataframe
+columns with a common dtype (:issue:`52788`).
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
+    In [2]: df.sum()
+    Out[2]:
+    a    5
+    b    9
+    dtype: int64
+    In [3]: df = df.astype("int64[pyarrow]")
+    In [4]: df.sum()
+    Out[4]:
+    a    5
+    b    9
+    dtype: int64
+
+*New Behavior*
+
+.. ipython:: python
+
+    df = pd.DataFrame({"a": [1, 1, 2, 1], "b": [np.nan, 2.0, 3.0, 4.0]}, dtype="Int64")
+    df.sum()
+    df = df.astype("int64[pyarrow]")
+    df.sum()
+
+Notice that the dtype is now a masked dtype and pyarrow dtype, respectively, while previously it was a numpy integer dtype.
+
+To allow Dataframe reductions to preserve extension dtypes, :meth:`ExtensionArray._reduce` has gotten a new keyword parameter ``keepdims``. Calling :meth:`ExtensionArray._reduce` with ``keepdims=True`` should return an array of length 1 along the reduction axis. In order to maintain backward compatibility, the parameter is not required, but will it become required in the future. If the parameter is not found in the signature, DataFrame reductions can not preserve extension dtypes. Also, if the parameter is not found, a ``FutureWarning`` will be emitted and type checkers like mypy may complain about the signature not being compatible with :meth:`ExtensionArray._reduce`.
+
 .. _whatsnew_210.enhancements.cow:
 
 Copy-on-Write improvements
@@ -114,6 +154,7 @@ Other enhancements
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Performance improvement in :func:`read_csv` (:issue:`52632`) with ``engine="c"``
 - :meth:`Categorical.from_codes` has gotten a ``validate`` parameter (:issue:`50975`)
+- :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrameGroupby.agg` and :meth:`DataFrameGroupby.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine="numba"`` (:issue:`53486`)
 - :meth:`Series.explode` now supports pyarrow-backed list types (:issue:`53602`)
@@ -171,7 +212,7 @@ If installed, we now require:
 +=================+=================+==========+=========+
 | numpy           | 1.21.6          |    X     |    X    |
 +-----------------+-----------------+----------+---------+
-| mypy (dev)      | 1.2             |          |    X    |
+| mypy (dev)      | 1.4.1           |          |    X    |
 +-----------------+-----------------+----------+---------+
 | beautifulsoup4  | 4.11.1          |          |    X    |
 +-----------------+-----------------+----------+---------+
@@ -393,6 +434,7 @@ Datetimelike
 - Bug in :meth:`Timestamp.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsDatetime`` (:issue:`51494`)
 - Bug in :meth:`arrays.DatetimeArray.map` and :meth:`DatetimeIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in constructing a :class:`Series` or :class:`DataFrame` from a datetime or timedelta scalar always inferring nanosecond resolution instead of inferring from the input (:issue:`52212`)
+- Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`54097`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
 
 Timedelta
@@ -512,11 +554,11 @@ Groupby/resample/rolling
 - Bug in :meth:`GroupBy.groups` with a datetime key in conjunction with another key produced incorrect number of group keys (:issue:`51158`)
 - Bug in :meth:`GroupBy.quantile` may implicitly sort the result index with ``sort=False`` (:issue:`53009`)
 - Bug in :meth:`GroupBy.var` failing to raise ``TypeError`` when called with datetime64, timedelta64 or :class:`PeriodDtype` values (:issue:`52128`, :issue:`53045`)
+- Bug in :meth:`DataFrameGroupby.resample` with ``kind="period"`` raising ``AttributeError`` (:issue:`24103`)
 - Bug in :meth:`Resampler.ohlc` with empty object returning a :class:`Series` instead of empty :class:`DataFrame` (:issue:`42902`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` after performing column selection when using ``dropna="any"`` or ``dropna="all"`` would not subset columns (:issue:`53518`)
 - Bug in :meth:`SeriesGroupBy.nth` and :meth:`DataFrameGroupBy.nth` raised after performing column selection when using ``dropna="any"`` or ``dropna="all"`` resulted in rows being dropped (:issue:`53518`)
 - Bug in :meth:`SeriesGroupBy.sum` and :meth:`DataFrameGroupby.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` (:issue:`53606`)
--
 
 Reshaping
 ^^^^^^^^^
@@ -530,8 +572,7 @@ Reshaping
 - Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax`, where the axis dtype would be lost for empty frames (:issue:`53265`)
 - Bug in :meth:`DataFrame.merge` not merging correctly when having ``MultiIndex`` with single level (:issue:`52331`)
 - Bug in :meth:`DataFrame.stack` losing extension dtypes when columns is a :class:`MultiIndex` and frame contains mixed dtypes (:issue:`45740`)
-- Bug in :meth:`DataFrame.stack` sorting columns lexicographically in rare cases (:issue:`53786`)
-- Bug in :meth:`DataFrame.stack` sorting index lexicographically in rare cases (:issue:`53824`)
+- Bug in :meth:`DataFrame.stack` sorting columns lexicographically (:issue:`53786`)
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
 - Bug when joining empty :class:`DataFrame` objects, where the joined index would be a :class:`RangeIndex` instead of the joined index type (:issue:`52777`)
@@ -545,13 +586,13 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :class:`ArrowStringArray` constructor raises ``ValueError`` with dictionary types of strings (:issue:`54074`)
 - Bug in :class:`DataFrame` constructor not copying :class:`Series` with extension dtype when given in dict (:issue:`53744`)
 - Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
--
 
 Styler
 ^^^^^^
