@@ -60,5 +60,5 @@ dependencies:
   - zstandard>=0.17.0
 
   - pip:
-    - adbc_driver_postgresql>=0.5.1
-    - adbc_driver_sqlite>=0.5.1
+    - adbc_driver_postgresql>=0.6.0
+    - adbc_driver_sqlite>=0.6.0

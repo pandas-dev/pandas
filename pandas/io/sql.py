@@ -45,7 +45,10 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_list_like,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas import get_option
@@ -2047,7 +2050,7 @@ class ADBCDatabase(PandasSQL):
 
     def execute(self, sql: str | Select | TextClause, params=None):
         with self.con.cursor() as cur:
-            return cur(sql)
+            return cur.execute(sql)
 
     def read_table(
         self,
@@ -2081,13 +2084,37 @@ class ADBCDatabase(PandasSQL):
         SQLDatabase.read_query
 
         """
+        if index_col:
+            raise NotImplementedError("'index_col' is not implemented for ADBC drivers")
+        if coerce_float is not True:
+            raise NotImplementedError(
+                "'coerce_float' is not implemented for ADBC drivers"
+            )
+        if parse_dates:
+            raise NotImplementedError(
+                "'parse_dates' is not implemented for ADBC drivers"
+            )
+        if columns:
+            raise NotImplementedError("'columns' is not implemented for ADBC drivers")
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+
         if schema:
             stmt = f"SELECT * FROM {schema}.{table_name}"
         else:
             stmt = f"SELECT * FROM {table_name}"
 
+        if dtype_backend == "pyarrow":
+            mapping = ArrowDtype
+        elif dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping().get
+        else:
+            mapping = None
+
         with self.con.cursor() as cur:
-            return cur(stmt).fetch_arrow_table().to_pandas()
+            return cur(stmt).fetch_arrow_table().to_pandas(types_mapper=mapping)
 
     def read_query(
         self,
@@ -2118,8 +2145,34 @@ class ADBCDatabase(PandasSQL):
         read_sql
 
         """
+        if index_col:
+            raise NotImplementedError("'index_col' is not implemented for ADBC drivers")
+        if coerce_float is not True:
+            raise NotImplementedError(
+                "'coerce_float' is not implemented for ADBC drivers"
+            )
+        if parse_dates:
+            raise NotImplementedError(
+                "'parse_dates' is not implemented for ADBC drivers"
+            )
+        if params:
+            raise NotImplementedError("'params' is not implemented for ADBC drivers")
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+        if dtype:
+            raise NotImplementedError("'dtype' is not implemented for ADBC drivers")
+
+        if dtype_backend == "pyarrow":
+            mapping = ArrowDtype
+        elif dtype_backend == "numpy_nullable":
+            from pandas.io._util import _arrow_dtype_mapping
+
+            mapping = _arrow_dtype_mapping().get
+        else:
+            mapping = None
+
         with self.con.cursor() as cur:
-            return cur(sql).fetch_arrow_table().to_pandas()
+            return cur(sql).fetch_arrow_table().to_pandas(types_mapper=mapping)
 
     read_sql = read_query
 
@@ -2155,6 +2208,23 @@ class ADBCDatabase(PandasSQL):
             supports this). If specified, this overwrites the default
             schema of the SQLDatabase object.
         """
+        if index:
+            raise NotImplementedError("'index' is not implemented for ADBC drivers")
+        if index_label:
+            raise NotImplementedError(
+                "'index_label' is not implemented for ADBC drivers"
+            )
+        if schema:
+            raise NotImplementedError("'shcema' is not implemented for ADBC drivers")
+        if chunksize:
+            raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
+        if dtype:
+            raise NotImplementedError("'dtype' is not implemented for ADBC drivers")
+        if method:
+            raise NotImplementedError("'method' is not implemented for ADBC drivers")
+        if engine != "auto":
+            raise NotImplementedError("'auto' is not implemented for ADBC drivers")
+
         if schema:
             table_name = f"{schema}.{name}"
         else:

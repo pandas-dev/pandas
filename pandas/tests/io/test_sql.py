@@ -593,21 +593,6 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes(conn, request):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="int8/datetime not implemented yet in pg adbc driver",
-                strict=True,
-            )
-        )
-    elif conn == "sqlite_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="timestamp not implemented yet in sqlite adbc driver",
-                strict=True,
-            )
-        )
-
     # GH 52046
     pytest.importorskip("pyarrow")
     df = DataFrame(
@@ -622,27 +607,23 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         }
     )
 
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="date/timedelta not implemented in ADBC",
+                strict=True,
+            )
+        )
+
     conn = request.getfixturevalue(conn)
 
-    with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
+    with tm.assert_produces_warning(UserWarning, match="time 'timedelta'"):
         df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.skip("int8/datetime not implemented yet in adbc driver")
-        )
-    elif conn == "sqlite_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="timestamp not implemented yet in sqlite adbc driver",
-                strict=True,
-            )
-        )
-
     # GH 52046
     pytest.importorskip("pyarrow")
     df = DataFrame(
@@ -664,6 +645,10 @@ def test_to_sql(conn, method, test_frame1, request):
         request.node.add_marker(
             pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
         )
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="segfault when not 'index=False'", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
@@ -679,6 +664,10 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
         request.node.add_marker(
             pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
         )
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="segfault when not 'index=False'", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
@@ -693,6 +682,10 @@ def test_to_sql_exist_fail(conn, test_frame1, request):
     if conn == "sqlite_adbc_conn":
         request.node.add_marker(
             pytest.mark.xfail(reason="syntax error with CREATE TABLE", strict=True)
+        )
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="segfault when not 'index=False'", strict=True)
         )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
