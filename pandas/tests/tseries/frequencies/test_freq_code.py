@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("M", "D"), ("S", "S"), ("T", "S"), ("H", "S")],
+    [("D", "D"), ("W", "D"), ("M", "D"), ("S", "S"), ("min", "S"), ("H", "S")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -32,9 +32,9 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("M", "month"),
         ("D", "day"),
         ("H", "hour"),
-        ("T", "minute"),
+        ("min", "minute"),
         ("S", "second"),
-        ("L", "millisecond"),
+        ("ms", "millisecond"),
         ("U", "microsecond"),
         ("N", "nanosecond"),
     ],
@@ -49,7 +49,7 @@ def test_get_attrname_from_abbrev(freqstr, expected):
         assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
+@pytest.mark.parametrize("freq", ["D", "H", "min", "S", "ms", "U", "N"])
 def test_get_freq_roundtrip2(freq):
     msg = f"Code freq={freq} is deprecated and will be removed in a future version."
 
@@ -67,12 +67,12 @@ def test_get_freq_roundtrip2(freq):
 @pytest.mark.parametrize(
     "args,expected",
     [
-        ((1.5, "T"), (90, "S")),
-        ((62.4, "T"), (3744, "S")),
+        ((1.5, "min"), (90, "S")),
+        ((62.4, "min"), (3744, "S")),
         ((1.04, "H"), (3744, "S")),
         ((1, "D"), (1, "D")),
         ((0.342931, "H"), (1234551600, "U")),
-        ((1.2345, "D"), (106660800, "L")),
+        ((1.2345, "D"), (106660800, "ms")),
     ],
 )
 def test_resolution_bumping(args, expected):
@@ -114,7 +114,7 @@ def test_compatibility(freqstr, expected):
 
 
 @pytest.mark.parametrize("freq", ["T", "L"])
-def test_to_datetime_mixed_offsets_with_utcFalse_deprecated(freq):
+def test_units_t_l_deprecated_from__attrname_to_abbrevs(freq):
     # GH 52536
     msg = f"Code freq={freq} is deprecated and will be removed in a future version."
 

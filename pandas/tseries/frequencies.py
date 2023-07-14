@@ -271,13 +271,13 @@ class _FrequencyInferer:
             return _maybe_add_count("H", delta / pph)
         elif _is_multiple(delta, ppm):
             # Minutes
-            return _maybe_add_count("T", delta / ppm)
+            return _maybe_add_count("min", delta / ppm)
         elif _is_multiple(delta, pps):
             # Seconds
             return _maybe_add_count("S", delta / pps)
         elif _is_multiple(delta, (pps // 1000)):
             # Milliseconds
-            return _maybe_add_count("L", delta / (pps // 1000))
+            return _maybe_add_count("ms", delta / (pps // 1000))
         elif _is_multiple(delta, (pps // 1_000_000)):
             # Microseconds
             return _maybe_add_count("U", delta / (pps // 1_000_000))
