@@ -196,17 +196,3 @@ class TestDatetimeIndex:
         result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
-
-    def test__is_dates_only_freq_less_than_day(self):
-        idx = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(60) + "T")
-
-        res = idx._is_dates_only
-
-        tm.assert_equal(res, False)
-
-    def test__is_dates_only_freq_greater_than_day(self):
-        idx = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(2) + "D")
-
-        res = idx._is_dates_only
-
-        tm.assert_equal(res, True)

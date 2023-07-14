@@ -68,6 +68,16 @@ class TestDatetimeIndexRendering:
         dr = pd.date_range(start="1/1/2012", periods=3)
         repr(dr)
 
+        dr = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(60) + "T")
+        repr(dr)
+
+        dr = DatetimeIndex(["2012-01-01 00:00:00","2012-01-01 01:00:00"],
+                               freq=str(60)+'T')
+        repr(dr)
+
+        dr = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(36) + "H")
+        repr(dr)
+
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_dti_representation(self, method):
         idxs = []
