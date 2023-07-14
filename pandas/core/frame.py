@@ -5522,7 +5522,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             shifted_dataframes = []
             for period in periods:
-                if not isinstance(int, period):
+                if not isinstance(period, int):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
