@@ -149,7 +149,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.pad \
-        pandas.DataFrame.swapaxes \
         pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.__dataframe__
