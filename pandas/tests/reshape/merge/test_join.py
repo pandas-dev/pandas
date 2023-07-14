@@ -605,7 +605,7 @@ class TestJoin:
     def test_mixed_type_join_with_suffix(self):
         # GH #916
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(20, 6),
+            np.random.default_rng(2).standard_normal((20, 6)),
             columns=["a", "b", "c", "d", "e", "f"],
         )
         df.insert(0, "id", 0)

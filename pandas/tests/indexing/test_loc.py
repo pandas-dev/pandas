@@ -1618,7 +1618,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_cast2(self):
         # GH#7704
         # dtype conversion on setting
-        df = DataFrame(np.random.default_rng(2).random(30, 3), columns=tuple("ABC"))
+        df = DataFrame(np.random.default_rng(2).random((30, 3)), columns=tuple("ABC"))
         df["event"] = np.nan
         df.loc[10, "event"] = "foo"
         result = df.dtypes

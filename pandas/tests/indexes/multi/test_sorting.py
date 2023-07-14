@@ -241,7 +241,7 @@ def test_remove_unused_levels_large(first_type, second_type):
     # because tests should be deterministic (and this test in particular
     # checks that levels are removed, which is not the case for every
     # random input):
-    rng = np.random.default_rng(2)  # seed is arbitrary value that works
+    rng = np.random.default_rng(10)  # seed is arbitrary value that works
 
     size = 1 << 16
     df = DataFrame(

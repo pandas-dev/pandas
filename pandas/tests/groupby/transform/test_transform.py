@@ -225,7 +225,7 @@ def test_transform_axis_ts(tsframe):
     r = len(base.index)
     c = len(base.columns)
     tso = DataFrame(
-        np.random.default_rng(2).standard_normal(r, c),
+        np.random.default_rng(2).standard_normal((r, c)),
         index=base.index,
         columns=base.columns,
         dtype="float64",

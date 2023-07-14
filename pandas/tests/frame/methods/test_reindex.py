@@ -179,7 +179,7 @@ class TestDataFrameSelectReindex:
         # also ensure to honor copy keyword for ExtensionDtypes
         N = 10
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(N * 10, N), dtype="Float64"
+            np.random.default_rng(2).standard_normal((N * 10, N)), dtype="Float64"
         )
         cols = np.arange(N)
         np.random.default_rng(2).shuffle(cols)

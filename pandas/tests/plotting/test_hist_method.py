@@ -661,7 +661,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_legacy(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
 
-        rs = np.random.default_rng(2)
+        rs = np.random.default_rng(10)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(
@@ -678,7 +678,7 @@ class TestDataFrameGroupByPlots:
         _check_axes_shape(axes, axes_num=4, layout=(2, 2))
 
     def test_grouped_hist_legacy_axes_shape_no_col(self):
-        rs = np.random.default_rng(2)
+        rs = np.random.default_rng(10)
         df = DataFrame(rs.standard_normal((10, 1)), columns=["A"])
         df["B"] = to_datetime(
             rs.integers(

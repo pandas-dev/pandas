@@ -94,7 +94,7 @@ def test_custom_grouper_df(index, unit):
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(
-        np.random.default_rng(2).random(len(dti), 10), index=dti, dtype="float64"
+        np.random.default_rng(2).random((len(dti), 10)), index=dti, dtype="float64"
     )
     r = df.groupby(b).agg("sum")
 

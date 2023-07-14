@@ -36,7 +36,7 @@ def test_pipe():
     result = df.groupby("A").pipe(f).pipe(square)
 
     index = Index(["bar", "foo"], dtype="object", name="A")
-    expected = pd.Series([8.99110003361, 8.17516964785], name="B", index=index)
+    expected = pd.Series([3.749306591013693, 6.717707873081384], name="B", index=index)
 
     tm.assert_series_equal(expected, result)
 

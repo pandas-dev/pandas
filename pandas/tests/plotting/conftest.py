@@ -32,7 +32,7 @@ def mpl_cleanup():
 @pytest.fixture
 def hist_df():
     n = 50
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(10)
     gender = rng.choice(["Male", "Female"], size=n)
     classroom = rng.choice(["A", "B", "C"], size=n)
 

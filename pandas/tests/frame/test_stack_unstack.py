@@ -1947,11 +1947,11 @@ Thu,Lunch,Yes,51.51,17"""
         df = DataFrame(
             {
                 "A": np.random.default_rng(2).integers(100, size=NUM_ROWS),
-                "B": np.random.default_rng(2).integers(300, size=NUM_ROWS),
-                "C": np.random.default_rng(2).integers(-7, 7, size=NUM_ROWS),
-                "D": np.random.default_rng(2).integers(-19, 19, size=NUM_ROWS),
-                "E": np.random.default_rng(2).integers(3000, size=NUM_ROWS),
-                "F": np.random.default_rng(2).standard_normal(NUM_ROWS),
+                "B": np.random.default_rng(3).integers(300, size=NUM_ROWS),
+                "C": np.random.default_rng(4).integers(-7, 7, size=NUM_ROWS),
+                "D": np.random.default_rng(5).integers(-19, 19, size=NUM_ROWS),
+                "E": np.random.default_rng(6).integers(3000, size=NUM_ROWS),
+                "F": np.random.default_rng(7).standard_normal(NUM_ROWS),
             }
         )
 

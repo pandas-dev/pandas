@@ -385,7 +385,7 @@ class TestDataFramePlots:
         # GH 9012
         # period-array conversions
         df = DataFrame(
-            np.random.default_rng(2).random(21, 2),
+            np.random.default_rng(2).random((21, 2)),
             index=bdate_range(datetime(2000, 1, 1), datetime(2000, 1, 31)),
             columns=["a", "b"],
         )
@@ -2241,7 +2241,7 @@ class TestDataFramePlots:
         # GH: 12565
         df = (
             DataFrame(
-                np.random.default_rng(2).standard_normal(15, 2), columns=list("AB")
+                np.random.default_rng(2).standard_normal((15, 2)), columns=list("AB")
             )
             .assign(C=lambda df: df.B.cumsum())
             .assign(D=lambda df: df.C * 1.1)

@@ -131,7 +131,7 @@ class TestDataFramePlots:
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
+        df = DataFrame(np.random.default_rng(10).standard_normal((100, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -468,7 +468,7 @@ class TestDataFramePlots:
         assert len(color_after) == len(color_before)
 
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(48, 4), columns=list("ABCD")
+            np.random.default_rng(2).standard_normal((48, 4)), columns=list("ABCD")
         )
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))

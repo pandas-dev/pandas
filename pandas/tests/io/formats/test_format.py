@@ -1975,7 +1975,7 @@ c  10  11  12  13  14\
         tuples = list(itertools.product(np.arange(max_L1), ["foo", "bar"]))
         idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(max_L1 * 2, 2),
+            np.random.default_rng(2).standard_normal((max_L1 * 2, 2)),
             index=idx,
             columns=["A", "B"],
         )
@@ -1986,7 +1986,7 @@ c  10  11  12  13  14\
         tuples = list(itertools.product(np.arange(max_L1 + 1), ["foo", "bar"]))
         idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((max_L1 + 1) * 2, 2),
+            np.random.default_rng(2).standard_normal(((max_L1 + 1) * 2, 2)),
             index=idx,
             columns=["A", "B"],
         )

@@ -873,7 +873,7 @@ def test_categoricals(a_dtype, b_dtype):
     result = crosstab(a, b, margins=True, dropna=False)
     columns = Index([0, 1, "All"], dtype="object", name="col_0")
     index = Index([0, 1, 2, "All"], dtype="object", name="row_0")
-    values = [[18, 16, 34], [18, 16, 34], [16, 16, 32], [52, 48, 100]]
+    values = [[10, 18, 28], [23, 16, 39], [17, 16, 33], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     tm.assert_frame_equal(result, expected)
 
@@ -882,7 +882,7 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
+    values = [[10, 18, 28], [0, 0, 0], [40, 32, 72], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]

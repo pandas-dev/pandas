@@ -599,103 +599,13 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "center, expected_data",
-    [
-        (
-            True,
-            (
-                [88.0] * 7
-                + [97.0] * 9
-                + [98.0]
-                + [99.0] * 21
-                + [95.0] * 16
-                + [93.0] * 5
-                + [89.0] * 5
-                + [96.0] * 21
-                + [94.0] * 14
-                + [90.0] * 13
-                + [88.0] * 2
-                + [90.0] * 9
-                + [96.0] * 21
-                + [95.0] * 6
-                + [91.0]
-                + [87.0] * 6
-                + [92.0] * 21
-                + [83.0] * 2
-                + [86.0] * 10
-                + [87.0] * 5
-                + [98.0] * 21
-                + [97.0] * 14
-                + [93.0] * 7
-                + [87.0] * 4
-                + [86.0] * 4
-                + [95.0] * 21
-                + [85.0] * 14
-                + [83.0] * 2
-                + [76.0] * 5
-                + [81.0] * 2
-                + [98.0] * 21
-                + [95.0] * 14
-                + [91.0] * 7
-                + [86.0]
-                + [93.0] * 3
-                + [95.0] * 29
-                + [77.0] * 2
-            ),
-        ),
-        (
-            False,
-            (
-                [np.nan] * 2
-                + [88.0] * 16
-                + [97.0] * 9
-                + [98.0]
-                + [99.0] * 21
-                + [95.0] * 16
-                + [93.0] * 5
-                + [89.0] * 5
-                + [96.0] * 21
-                + [94.0] * 14
-                + [90.0] * 13
-                + [88.0] * 2
-                + [90.0] * 9
-                + [96.0] * 21
-                + [95.0] * 6
-                + [91.0]
-                + [87.0] * 6
-                + [92.0] * 21
-                + [83.0] * 2
-                + [86.0] * 10
-                + [87.0] * 5
-                + [98.0] * 21
-                + [97.0] * 14
-                + [93.0] * 7
-                + [87.0] * 4
-                + [86.0] * 4
-                + [95.0] * 21
-                + [85.0] * 14
-                + [83.0] * 2
-                + [76.0] * 5
-                + [81.0] * 2
-                + [98.0] * 21
-                + [95.0] * 14
-                + [91.0] * 7
-                + [86.0]
-                + [93.0] * 3
-                + [95.0] * 20
-            ),
-        ),
-    ],
-)
-def test_rolling_window_as_string(center, expected_data):
+@pytest.mark.parametrize("center", [True, False])
+def test_rolling_window_as_string(center):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
 
-    npr = np.random.default_rng(2)
-
-    data = npr.integers(1, high=100, size=len(days))
+    data = np.ones(len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)
@@ -705,6 +615,9 @@ def test_rolling_window_as_string(center, expected_data):
 
     index = days.rename("DateCol")
     index = index._with_freq(None)
+    expected_data = np.ones(len(days), dtype=np.float64)
+    if not center:
+        expected_data[:2] = np.nan
     expected = Series(expected_data, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 

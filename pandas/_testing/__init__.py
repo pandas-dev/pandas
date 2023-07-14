@@ -510,8 +510,8 @@ def makeObjectSeries(name=None) -> Series:
 def getSeriesData() -> dict[str, Series]:
     index = makeStringIndex(_N)
     return {
-        c: Series(np.random.default_rng(2).standard_normal(_N), index=index)
-        for c in getCols(_K)
+        c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
+        for i, c in enumerate(getCols(_K))
     }
 
 

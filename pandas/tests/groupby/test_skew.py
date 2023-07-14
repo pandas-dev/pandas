@@ -12,7 +12,7 @@ def test_groupby_skew_equivalence():
     ncols = 2
     nan_frac = 0.05
 
-    arr = np.random.default_rng(2).standard_normal(nrows, ncols)
+    arr = np.random.default_rng(2).standard_normal((nrows, ncols))
     arr[np.random.default_rng(2).random(nrows) < nan_frac] = np.nan
 
     df = pd.DataFrame(arr)

@@ -135,7 +135,7 @@ def test_corr_sanity():
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
-    df = DataFrame(np.random.default_rng(2).random(30, 2))
+    df = DataFrame(np.random.default_rng(2).random((30, 2)))
     res = df[0].rolling(5, center=True).corr(df[1])
     assert all(np.abs(np.nan_to_num(x)) <= 1 for x in res)
 
