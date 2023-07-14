@@ -1218,7 +1218,7 @@ class ArrowExtensionArray(
             else:
                 result = result.to_numpy(dtype=dtype)
             return result
-        elif pa.types.is_time(pa_type):
+        elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
             result = np.array(list(self), dtype=dtype)
