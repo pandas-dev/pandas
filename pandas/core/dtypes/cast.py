@@ -10,8 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
-    Sized,
     TypeVar,
     cast,
     overload,
@@ -82,6 +80,11 @@ from pandas.core.dtypes.missing import (
 from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Sequence,
+        Sized,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -1001,11 +1004,16 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "numpy_nullable"
-        Nullable dtype implementation to use.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        * "numpy_nullable" returns numpy-backed nullable types
-        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
 
     Returns
     -------

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import partial
 from io import (
     BytesIO,
@@ -7,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import threading
-from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np

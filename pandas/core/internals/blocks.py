@@ -6,9 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
     Literal,
-    Sequence,
     cast,
     final,
 )
@@ -117,6 +115,11 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
@@ -156,10 +159,34 @@ class Block(PandasObject):
 
     __slots__ = ()
     is_numeric = False
-    is_object = False
-    is_extension = False
-    _can_consolidate = True
-    _validate_ndim = True
+
+    @final
+    @cache_readonly
+    def _validate_ndim(self) -> bool:
+        """
+        We validate dimension for blocks that can hold 2D values, which for now
+        means numpy dtypes or DatetimeTZDtype.
+        """
+        dtype = self.dtype
+        return not isinstance(dtype, ExtensionDtype) or isinstance(
+            dtype, DatetimeTZDtype
+        )
+
+    @final
+    @cache_readonly
+    def is_object(self) -> bool:
+        return self.values.dtype == _dtype_obj
+
+    @final
+    @cache_readonly
+    def is_extension(self) -> bool:
+        return not lib.is_np_dtype(self.values.dtype)
+
+    @final
+    @cache_readonly
+    def _can_consolidate(self) -> bool:
+        # We _could_ consolidate for DatetimeTZDtype but don't for now.
+        return not self.is_extension
 
     @final
     @cache_readonly
@@ -342,8 +369,7 @@ class Block(PandasObject):
         result = func(self.values)
 
         if self.values.ndim == 1:
-            # TODO(EA2D): special case not needed with 2D EAs
-            res_values = np.array([[result]])
+            res_values = result
         else:
             res_values = result.reshape(-1, 1)
 
@@ -1094,11 +1120,8 @@ class Block(PandasObject):
                     #  test_iloc_setitem_custom_object
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
 
-            if using_cow and self.refs.has_reference():
-                values = values.copy()
-                self = self.make_block_same_class(
-                    values.T if values.ndim == 2 else values
-                )
+            self = self._maybe_copy(using_cow, inplace=True)
+            values = cast(np.ndarray, self.values.T)
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
                 # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                 casted = casted[0, ...]
@@ -1141,14 +1164,10 @@ class Block(PandasObject):
         try:
             casted = np_can_hold_element(values.dtype, new)
 
-            if using_cow and self.refs.has_reference():
-                # Do this here to avoid copying twice
-                values = values.copy()
-                self = self.make_block_same_class(values)
+            self = self._maybe_copy(using_cow, inplace=True)
+            values = cast(np.ndarray, self.values)
 
             putmask_without_repeat(values.T, mask, casted)
-            if using_cow:
-                return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
             if self.ndim == 1 or self.shape[0] == 1:
@@ -1782,10 +1801,6 @@ class EABackedBlock(Block):
         if new is lib.no_default:
             new = self.fill_value
 
-        values = self.values
-        if values.ndim == 2:
-            values = values.T
-
         orig_new = new
         orig_mask = mask
         new = self._maybe_squeeze_arg(new)
@@ -1796,9 +1811,10 @@ class EABackedBlock(Block):
                 return [self.copy(deep=False)]
             return [self]
 
-        if using_cow and self.refs.has_reference():
-            values = values.copy()
-            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
+        self = self._maybe_copy(using_cow, inplace=True)
+        values = self.values
+        if values.ndim == 2:
+            values = values.T
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -1904,10 +1920,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     ExtensionArrays are limited to 1-D.
     """
-
-    _can_consolidate = False
-    _validate_ndim = False
-    is_extension = True
 
     values: ExtensionArray
 
@@ -2172,10 +2184,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
 
         return kind in "fciub"
 
-    @cache_readonly
-    def is_object(self) -> bool:  # type: ignore[override]
-        return self.values.dtype.kind == "O"
-
 
 class NumericBlock(NumpyBlock):
     # this Block type is kept for backwards-compatibility
@@ -2195,12 +2203,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-
-    # error: Signature of "is_extension" incompatible with supertype "Block"
-    @cache_readonly
-    def is_extension(self) -> bool:  # type: ignore[override]
-        # i.e. datetime64tz, PeriodDtype
-        return not isinstance(self.dtype, np.dtype)
 
     @property
     def is_view(self) -> bool:
@@ -2239,9 +2241,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-    is_extension = True
-    _validate_ndim = True
-    _can_consolidate = False
 
     # Don't use values_for_json from DatetimeLikeBlock since it is
     # an invalid optimization here(drop the tz)
