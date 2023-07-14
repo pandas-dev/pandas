@@ -706,11 +706,10 @@ class TestToDatetime:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "fmt, utc, expected",
+        "fmt, expected",
         [
             pytest.param(
                 "%Y-%m-%d %H:%M:%S%z",
-                False,
                 Index(
                     [
                         Timestamp("2000-01-01 09:00:00+0100", tz="UTC+01:00"),
@@ -722,7 +721,6 @@ class TestToDatetime:
             ),
             pytest.param(
                 "%Y-%d-%m %H:%M:%S%z",
-                False,
                 Index(
                     [
                         Timestamp("2000-01-01 09:00:00+0100", tz="UTC+01:00"),
@@ -734,7 +732,7 @@ class TestToDatetime:
             ),
         ],
     )
-    def test_to_datetime_mixed_offsets_with_none_tz(self, fmt, utc, expected):
+    def test_to_datetime_mixed_offsets_with_none_tz(self, fmt, expected):
         # https://github.com/pandas-dev/pandas/issues/50071
         msg = "parsing datetimes with mixed time zones will raise a warning"
 
@@ -742,7 +740,7 @@ class TestToDatetime:
             result = to_datetime(
                 ["2000-01-01 09:00:00+01:00", "2000-01-02 02:00:00+02:00", None],
                 format=fmt,
-                utc=utc,
+                utc=False,
             )
         tm.assert_index_equal(result, expected)
 
