@@ -10522,7 +10522,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int | Iterable = 1,
+        periods: int | Iterable[int] = 1,
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
@@ -10656,6 +10656,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.to_frame().shift(
                 periods=periods, freq=freq, axis=axis, fill_value=fill_value
             )
+        periods = cast(int, periods)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

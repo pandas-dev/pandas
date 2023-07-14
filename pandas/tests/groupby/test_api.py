@@ -192,6 +192,8 @@ def test_frame_consistency(groupby_func):
         exclude_expected = {"numeric_only"}
     elif groupby_func in ("quantile",):
         exclude_expected = {"method", "axis"}
+    elif groupby_func in ("shift",):
+        exclude_expected = {"suffix"}
 
     # Ensure excluded arguments are actually in the signatures
     assert result & exclude_result == exclude_result
@@ -252,6 +254,8 @@ def test_series_consistency(request, groupby_func):
         exclude_expected = {"args", "kwargs"}
     elif groupby_func in ("quantile",):
         exclude_result = {"numeric_only"}
+    elif groupby_func in ("shift",):
+        exclude_expected = {"suffix"}
 
     # Ensure excluded arguments are actually in the signatures
     assert result & exclude_result == exclude_result

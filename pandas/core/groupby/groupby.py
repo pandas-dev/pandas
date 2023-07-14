@@ -4866,7 +4866,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=None,
-        suffix: str | None = None,
     ):
         """
         Shift each group by periods observations.
@@ -4875,8 +4874,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        periods : int, default 1
-            Number of periods to shift.
+        periods : int | Iterable[int], default 1
+            Number of periods to shift. If a list of values, shift each group by
+            each period.
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
@@ -4888,8 +4888,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         fill_value : optional
             The scalar value to use for newly introduced missing values.
-        suffix : str, optional
-            An optional suffix to append when there are multiple periods.
 
         Returns
         -------
@@ -4938,6 +4936,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
          catfish    NaN  NaN
         goldfish    5.0  8.0
         """
+        if is_list_like(periods):
+            raise NotImplementedError(
+                "shift with multiple periods is not implemented yet for groupby."
+            )
+
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "shift")

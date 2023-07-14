@@ -5510,6 +5510,8 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
+            # periods is not necessarily a list, but otherwise mypy complains.
+            periods = cast(list, periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -5518,18 +5520,20 @@ class DataFrame(NDFrame, OpsMixin):
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
 
-            result = []
+            shifted_dataframes = []
             for period in periods:
-                if not isinstance(period, int):
+                if not isinstance(int, period):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
-                result.append(
+                period = cast(int, period)
+                shifted_dataframes.append(
                     super()
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(result, axis=1) if result else self
+            return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
+        periods = cast(int, periods)
 
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
