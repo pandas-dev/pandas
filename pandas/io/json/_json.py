@@ -12,9 +12,7 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
     TypeVar,
     overload,
 )
@@ -69,6 +67,10 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+    )
     from types import TracebackType
 
     from pandas._typing import (
@@ -143,7 +145,7 @@ def to_json(
     compression: CompressionOptions = "infer",
     index: bool | None = None,
     indent: int = 0,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
     if orient in ["records", "values"] and index is True:
@@ -516,7 +518,7 @@ def read_json(
     chunksize: int | None = None,
     compression: CompressionOptions = "infer",
     nrows: int | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
 ) -> DataFrame | Series | JsonReader:
@@ -660,13 +662,14 @@ def read_json(
 
         .. versionadded:: 1.2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -826,7 +829,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         chunksize: int | None,
         compression: CompressionOptions,
         nrows: int | None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         encoding_errors: str | None = "strict",
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         engine: JSONEngine = "ujson",

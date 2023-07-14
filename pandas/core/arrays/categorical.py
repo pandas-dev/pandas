@@ -6,10 +6,7 @@ import operator
 from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -93,6 +90,12 @@ from pandas.core.strings.object_array import ObjectStringArrayMixin
 from pandas.io.formats import console
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -1366,7 +1369,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             removals = [removals]
 
         removals = Index(removals).unique().dropna()
-        new_categories = self.dtype.categories.difference(removals)
+        new_categories = (
+            self.dtype.categories.difference(removals, sort=False)
+            if self.dtype.ordered is True
+            else self.dtype.categories.difference(removals)
+        )
         not_included = removals.difference(self.dtype.categories)
 
         if len(not_included) != 0:
@@ -2312,6 +2319,15 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Reductions
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims:
+            return type(self)(result, dtype=self.dtype)
+        else:
+            return result
+
     def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.
@@ -2574,7 +2590,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             values_type = type(values).__name__
             raise TypeError(
                 "only list-like objects are allowed to be passed "
-                f"to isin(), you passed a [{values_type}]"
+                f"to isin(), you passed a `{values_type}`"
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))

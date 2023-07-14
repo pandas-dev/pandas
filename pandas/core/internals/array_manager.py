@@ -7,7 +7,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
 )
 
@@ -90,6 +89,8 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -346,10 +347,6 @@ class BaseArrayManager(DataManager):
 
     def to_native_types(self, **kwargs) -> Self:
         return self.apply(to_native_types, **kwargs)
-
-    @property
-    def is_mixed_type(self) -> bool:
-        return True
 
     @property
     def any_extension_types(self) -> bool:
