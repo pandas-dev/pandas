@@ -771,9 +771,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Interchange axes and swap values axes appropriately.
 
+        .. deprecated:: 2.1.0
+                 ``swapaxes`` will be deprecated.
+                 Please use ``transpose`` instead.
+
         Returns
         -------
         same as input
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.transpose`.
         """
         warnings.warn(
             # GH#51946
