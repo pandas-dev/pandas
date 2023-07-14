@@ -19,6 +19,7 @@ from pandas.compat._constants import (
     ISMUSL,
     PY310,
     PY311,
+    PY312,
     PYPY,
 )
 import pandas.compat.compressors
@@ -164,5 +165,6 @@ __all__ = [
     "ISMUSL",
     "PY310",
     "PY311",
+    "PY312",
     "PYPY",
 ]

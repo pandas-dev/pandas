@@ -230,9 +230,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]]
+        datetime_series[[5, [None, None]]]
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]] = 2
+        datetime_series[[5, [None, None]]] = 2
 
 
 def test_slice(string_series, object_series, using_copy_on_write):

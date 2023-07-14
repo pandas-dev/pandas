@@ -1019,7 +1019,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif key_is_scalar:
             return self._get_value(key)
 
-        if is_hashable(key):
+        if is_hashable(key) and not isinstance(key, slice):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets
