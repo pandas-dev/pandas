@@ -10563,7 +10563,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For numeric data, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
-        suffix: str, optional
+        suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
 
@@ -10632,7 +10632,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-07    30    33    37
         2020-01-08    45    48    52
 
-        >>> df['Col1'].shift(periods=[1, 2])
+        >>> df['Col1'].shift(periods=[0, 1, 2])
                     Col1_0  Col1_1  Col1_2
         2020-01-01      10     NaN     NaN
         2020-01-02      20    10.0     NaN
