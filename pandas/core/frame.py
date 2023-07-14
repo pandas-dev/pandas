@@ -2108,7 +2108,6 @@ class DataFrame(NDFrame, OpsMixin):
         Example taken from `Google BigQuery documentation
         <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
 
-        >>> import pandas_gbq   # doctest: +SKIP
         # TODO: Set project_id to your Google Cloud Platform project ID.
         >>> project_id = "my-project"  # doctest: +SKIP
         # TODO: Set table_id to the full destination table ID (including the

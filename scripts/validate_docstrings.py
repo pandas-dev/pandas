@@ -301,10 +301,7 @@ def pandas_validate(func_name: str):
             )
         examples_source_code = "".join(doc.examples_source_code)
         for wrong_import in ("numpy", "pandas"):
-            if (
-                f"import {wrong_import}" in examples_source_code
-                and "import pandas_gbq" not in examples_source_code
-            ):
+            if f"import {wrong_import}" in examples_source_code:
                 result["errors"].append(
                     pandas_error("EX04", imported_library=wrong_import)
                 )
