@@ -36,6 +36,7 @@ if TYPE_CHECKING:
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         NpDtype,
         Scalar,
         Self,
@@ -232,13 +233,12 @@ class PandasArray(  # type: ignore[misc]
         self,
         *,
         method: FillnaOptions,
-        axis: int,
         limit: int | None,
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
         """
-        ffill or bfill
+        ffill or bfill along axis=0.
         """
         if copy:
             out_data = self._ndarray.copy()
@@ -247,9 +247,9 @@ class PandasArray(  # type: ignore[misc]
 
         meth = missing.clean_fill_method(method)
         missing.pad_or_backfill_inplace(
-            out_data,
+            out_data.T,
             method=meth,
-            axis=axis,
+            axis=0,
             limit=limit,
             limit_area=limit_area,
         )
@@ -261,21 +261,20 @@ class PandasArray(  # type: ignore[misc]
     def interpolate(
         self,
         *,
-        method,
+        method: InterpolateOptions,
         axis: int,
         index: Index,
         limit,
         limit_direction,
         limit_area,
-        fill_value,
-        inplace: bool,
+        copy: bool,
         **kwargs,
     ) -> Self:
         """
         See NDFrame.interpolate.__doc__.
         """
-        # NB: we return type(self) even if inplace=True
-        if inplace:
+        # NB: we return type(self) even if copy=False
+        if not copy:
             out_data = self._ndarray
         else:
             out_data = self._ndarray.copy()
@@ -289,10 +288,9 @@ class PandasArray(  # type: ignore[misc]
             limit=limit,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            fill_value=fill_value,
             **kwargs,
         )
-        if inplace:
+        if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
 
