@@ -34,7 +34,7 @@ def to_pickle(
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> None:
     """
     Pickle (serialize) object to file.
@@ -115,7 +115,7 @@ def to_pickle(
 def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ):
     """
     Load pickled pandas object (or any object) from file.

@@ -18,10 +18,7 @@ import string
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
-import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
@@ -168,14 +165,6 @@ class TestMissing(base.BaseMissingTests):
         result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning,
-            fillna_method is not None and data_missing.dtype.storage == "pyarrow",
-            check_stacklevel=False,
-        ):
-            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestNoReduce(base.BaseNoReduceTests):

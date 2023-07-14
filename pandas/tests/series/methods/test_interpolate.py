@@ -290,21 +290,25 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="slinear")
         tm.assert_series_equal(result, expected)
 
-        result = s.interpolate(method="slinear", downcast="infer")
+        msg = "The 'downcast' keyword in Series.interpolate is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="slinear", downcast="infer")
         tm.assert_series_equal(result, expected)
         # nearest
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="nearest")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="nearest", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="nearest", downcast="infer")
         tm.assert_series_equal(result, expected)
         # zero
         expected = Series([1, 3, 3, 12, 12, 25])
         result = s.interpolate(method="zero")
         tm.assert_series_equal(result, expected.astype("float"))
 
-        result = s.interpolate(method="zero", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="zero", downcast="infer")
         tm.assert_series_equal(result, expected)
         # quadratic
         # GH #15662.
@@ -312,7 +316,8 @@ class TestSeriesInterpolateData:
         result = s.interpolate(method="quadratic")
         tm.assert_series_equal(result, expected)
 
-        result = s.interpolate(method="quadratic", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.interpolate(method="quadratic", downcast="infer")
         tm.assert_series_equal(result, expected)
         # cubic
         expected = Series([1.0, 3.0, 6.8, 12.0, 18.2, 25.0])
@@ -361,7 +366,7 @@ class TestSeriesInterpolateData:
         # GH#36624
         ser = Series([1, 3, np.nan, 12, np.nan, 25])
 
-        msg = "Cannot pass both fill_value and method"
+        msg = "'fill_value' is not a valid keyword for Series.interpolate"
         msg2 = "Series.interpolate with method=pad"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):

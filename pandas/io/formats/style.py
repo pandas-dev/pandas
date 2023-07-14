@@ -11,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
-    Hashable,
-    Sequence,
     overload,
 )
 import warnings
@@ -60,6 +57,12 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Hashable,
+        Sequence,
+    )
+
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
@@ -238,6 +241,16 @@ class Styler(StylerRenderer):
     Any, or all, or these classes can be renamed by using the ``css_class_names``
     argument in ``Styler.set_table_classes``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1.0, 2.0, 3.0], [4, 5, 6]], index=['a', 'b'],
+    ...                   columns=['A', 'B', 'C'])
+    >>> pd.io.formats.style.Styler(df, precision=2,
+    ...                            caption="My table")  # doctest: +SKIP
+
+    Please see:
+    `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
     """
 
     def __init__(
@@ -520,7 +533,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -3489,6 +3502,19 @@ class Styler(StylerRenderer):
         MyStyler : subclass of Styler
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
+
+        Examples
+        --------
+        >>> from pandas.io.formats.style import Styler  # doctest: +SKIP
+        >>> from IPython.display import HTML  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2]})  # doctest: +SKIP
+        >>> path = "path/to/template"  # doctest: +SKIP
+        >>> file = "template.tpl"  # doctest: +SKIP
+        >>> EasyStyler = Styler.from_custom_template(path, file)  # doctest: +SKIP
+        >>> HTML(EasyStyler(df).to_html(table_title="Another Title"))  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 

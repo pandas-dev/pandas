@@ -890,9 +890,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
-    return (isinstance(tipo, np.dtype) and tipo.kind == "M") or isinstance(
-        tipo, DatetimeTZDtype
-    )
+    return lib.is_np_dtype(tipo, "M") or isinstance(tipo, DatetimeTZDtype)
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
@@ -1329,9 +1327,7 @@ def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     -----
     Checks only for dtype objects, not dtype-castable strings or types.
     """
-    return isinstance(dtype, ExtensionDtype) or (
-        isinstance(dtype, np.dtype) and dtype.kind in "mM"
-    )
+    return isinstance(dtype, ExtensionDtype) or (lib.is_np_dtype(dtype, "mM"))
 
 
 def is_complex_dtype(arr_or_dtype) -> bool:

@@ -7,10 +7,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -51,6 +48,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -640,7 +643,8 @@ class _Concatenator:
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
 
-                result = cons(mgr, name=name, fastpath=True)
+                result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
+                result._name = name
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
