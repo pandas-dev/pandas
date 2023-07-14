@@ -2124,7 +2124,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...                   }
         ...                   )
 
-        >>> pandas_gbq.to_gbq(df, table_id, project_id=project_id)  # doctest: +SKIP
+        >>> df.to_gbq(table_id, project_id=project_id)  # doctest: +SKIP
         """
         from pandas.io import gbq
 
