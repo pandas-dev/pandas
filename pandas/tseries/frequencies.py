@@ -68,7 +68,7 @@ _offset_to_period_map = {
     "MS": "M",
     "D": "D",
     "B": "B",
-    "T": "T",
+    "min": "min",
     "S": "S",
     "L": "L",
     "U": "U",
@@ -483,23 +483,23 @@ def is_subperiod(source, target) -> bool:
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
-        return source in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "M", "H", "min", "S", "L", "U", "N"}
     elif _is_quarterly(target):
-        return source in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "M", "H", "min", "S", "L", "U", "N"}
     elif _is_monthly(target):
-        return source in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif _is_weekly(target):
-        return source in {target, "D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return source in {target, "D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif target == "B":
-        return source in {"B", "H", "T", "S", "L", "U", "N"}
+        return source in {"B", "H", "min", "S", "L", "U", "N"}
     elif target == "C":
-        return source in {"C", "H", "T", "S", "L", "U", "N"}
+        return source in {"C", "H", "min", "S", "L", "U", "N"}
     elif target == "D":
-        return source in {"D", "H", "T", "S", "L", "U", "N"}
+        return source in {"D", "H", "min", "S", "L", "U", "N"}
     elif target == "H":
-        return source in {"H", "T", "S", "L", "U", "N"}
-    elif target == "T":
-        return source in {"T", "S", "L", "U", "N"}
+        return source in {"H", "min", "S", "L", "U", "N"}
+    elif target == "min":
+        return source in {"min", "S", "L", "U", "N"}
     elif target == "S":
         return source in {"S", "L", "U", "N"}
     elif target == "L":
@@ -541,23 +541,23 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "min", "S", "L", "U", "N"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "M", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "min", "S", "L", "U", "N"}
     elif _is_monthly(source):
-        return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif _is_weekly(source):
-        return target in {source, "D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return target in {source, "D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif source == "B":
-        return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif source == "C":
-        return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif source == "D":
-        return target in {"D", "C", "B", "H", "T", "S", "L", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "L", "U", "N"}
     elif source == "H":
-        return target in {"H", "T", "S", "L", "U", "N"}
-    elif source == "T":
-        return target in {"T", "S", "L", "U", "N"}
+        return target in {"H", "min", "S", "L", "U", "N"}
+    elif source == "min":
+        return target in {"min", "S", "L", "U", "N"}
     elif source == "S":
         return target in {"S", "L", "U", "N"}
     elif source == "L":
