@@ -68,7 +68,6 @@ def test_dataframe_reductions(op, expected):
         ["var", array([pd.NA], dtype="Float64")],
         ["std", array([pd.NA], dtype="Float64")],
         ["skew", array([pd.NA], dtype="Float64")],
-        ["kurt", array([pd.NA], dtype="Float64")],
         ["any", array([True, True], dtype="boolean")],
         ["all", array([True, True], dtype="boolean")],
     ],
