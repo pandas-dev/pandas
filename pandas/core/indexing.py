@@ -1068,7 +1068,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         def _contains_slice(x: object) -> bool:
             # Check if object is a slice or a tuple containing a slice
             if isinstance(x, tuple):
-                return any(isinstance(v, slice) for v in key)
+                return any(isinstance(v, slice) for v in x)
             elif isinstance(x, slice):
                 return True
             return False
