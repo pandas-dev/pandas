@@ -1437,7 +1437,9 @@ class _LocIndexer(_LocationIndexer):
 
         # Slices are not valid keys passed in by the user,
         # even though they are hashable in Python 3.12
-        contains_slice = any(isinstance(v, slice) for v in key)
+        contains_slice = False
+        if isinstance(key, tuple):
+            contains_slice = any(isinstance(v, slice) for v in key)
 
         if is_scalar(key) or (
             isinstance(labels, MultiIndex) and is_hashable(key) and not contains_slice
