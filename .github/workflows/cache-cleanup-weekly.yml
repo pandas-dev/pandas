@@ -1,0 +1,32 @@
+name: Purge caches once a week
+on:
+  schedule:
+    # 4:10 UTC on Sunday
+    - cron: "10 4 * * 0"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'pandas-dev'
+    permissions:
+      actions: write
+    steps:
+      - name: Clean Cache
+        run: |
+          gh extension install actions/gh-actions-cache
+
+          REPO=${{ github.repository }}
+
+          echo "Fetching list of cache key"
+          allCaches=$(gh actions-cache list -L 100 -R $REPO | cut -f 1 )
+
+          ## Setting this to not fail the workflow while deleting cache keys.
+          set +e
+          echo "Deleting caches..."
+          for cacheKey in $allCaches
+          do
+              gh actions-cache delete $cacheKey -R $REPO --confirm
+          done
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
