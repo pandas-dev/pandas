@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under13p0,
 )
 import pandas.util._test_decorators as td
 
@@ -1006,14 +1007,15 @@ class TestParquetPyArrow(Base):
 
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        # pyarrow infers datetimes as us instead of ns
-        expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[us][pyarrow]"
-        )
-        expected["datetime_tz"] = expected["datetime_tz"].astype(
-            pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
-        )
+        if pa_version_under13p0:
+            # pyarrow infers datetimes as us instead of ns
+            expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "timestamp[us][pyarrow]"
+            )
+            expected["datetime_tz"] = expected["datetime_tz"].astype(
+                pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
+            )
 
         check_round_trip(
             df,

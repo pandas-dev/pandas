@@ -12,6 +12,7 @@ runs:
       run: |
         micromamba info
         micromamba list
+        pip list --pre
       shell: bash -el {0}
 
     - name: Uninstall existing Pandas installation

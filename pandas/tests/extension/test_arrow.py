@@ -1706,7 +1706,11 @@ def test_to_numpy_with_defaults(data):
     result = data.to_numpy()
 
     pa_type = data._pa_array.type
-    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+    if (
+        pa.types.is_duration(pa_type)
+        or pa.types.is_timestamp(pa_type)
+        or pa.types.is_date(pa_type)
+    ):
         expected = np.array(list(data))
     else:
         expected = np.array(data._pa_array)
@@ -2969,7 +2973,7 @@ def test_date32_repr():
     # GH48238
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
-    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+    assert repr(ser) == "0    2020-01-01\ndtype: date32[day][pyarrow]"
 
 
 @pytest.mark.xfail(
