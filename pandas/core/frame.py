@@ -2106,29 +2106,25 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         Example taken from `Google BigQuery documentation
-        <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`__
+        <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
 
-        >>> import pandas_gbq
-
+        >>> import pandas_gbq   # doctest: +SKIP
         # TODO: Set project_id to your Google Cloud Platform project ID.
-        # project_id = "my-project"
-
+        >>> project_id = "my-project"  # doctest: +SKIP
         # TODO: Set table_id to the full destination table ID (including the
-        #       dataset ID).
-        # table_id = 'my_dataset.my_table'
+        # dataset ID).
+        >>> table_id = 'my_dataset.my_table'  # doctest: +SKIP
+        >>> df = pd.DataFrame({
+        ...                   "my_string": ["a", "b", "c"],
+        ...                   "my_int64": [1, 2, 3],
+        ...                   "my_float64": [4.0, 5.0, 6.0],
+        ...                   "my_bool1": [True, False, True],
+        ...                   "my_bool2": [False, True, False],
+        ...                   "my_dates": pd.date_range("now", periods=3),
+        ...                   }
+        ...                   )
 
-        >>> df = pandas.DataFrame(
-        ...    {
-        ...        "my_string": ["a", "b", "c"],
-        ...        "my_int64": [1, 2, 3],
-        ...        "my_float64": [4.0, 5.0, 6.0],
-        ...        "my_bool1": [True, False, True],
-        ...        "my_bool2": [False, True, False],
-        ...        "my_dates": pandas.date_range("now", periods=3),
-        ...    }
-        ... )
-
-        >>> pandas_gbq.to_gbq(df, table_id, project_id=project_id)  #doctests: +SKIP
+        >>> pandas_gbq.to_gbq(df, table_id, project_id=project_id)  # doctest: +SKIP
         """
         from pandas.io import gbq
 

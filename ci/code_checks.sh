@@ -151,7 +151,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DataFrame.pad \
         pandas.DataFrame.swapaxes \
         pandas.DataFrame.plot \
-        pandas.DataFrame.to_gbq \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
