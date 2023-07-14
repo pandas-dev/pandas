@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from functools import reduce
 from itertools import product
 import operator
@@ -9,6 +10,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY312
 from pandas.errors import (
     NumExprClobberingError,
     PerformanceWarning,
@@ -699,9 +701,17 @@ class TestEval:
 
     def test_true_false_logic(self):
         # GH 25823
-        assert pd.eval("not True") == -2
-        assert pd.eval("not False") == -1
-        assert pd.eval("True and not True") == 0
+        # This behavior is deprecated in Python 3.12
+        if PY312:
+            context_mgr = tm.assert_produces_warning(
+                DeprecationWarning, check_stacklevel=False
+            )
+        else:
+            context_mgr = contextlib.nullcontext()
+        with context_mgr:
+            assert pd.eval("not True") == -2
+            assert pd.eval("not False") == -1
+            assert pd.eval("True and not True") == 0
 
     def test_and_logic_string_match(self):
         # GH 25823

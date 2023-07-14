@@ -1019,6 +1019,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif key_is_scalar:
             return self._get_value(key)
 
+        # Convert generator to list before going through hashable part
+        # (We will iterate through the generator there to check for slices)
+        if is_iterator(key):
+            key = list(key)
+
         if is_hashable(key) and not isinstance(key, slice):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
@@ -1038,9 +1043,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(key, slice):
             # Do slice check before somewhat-costly is_bool_indexer
             return self._getitem_slice(key)
-
-        if is_iterator(key):
-            key = list(key)
 
         if com.is_bool_indexer(key):
             key = check_bool_indexer(self.index, key)
