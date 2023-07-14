@@ -772,8 +772,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Interchange axes and swap values axes appropriately.
 
         .. deprecated:: 2.1.0
-                 ``swapaxes`` will be deprecated.
-                 Please use ``transpose`` instead.
+            ``swapaxes`` is deprecated and will be removed.
+            Please use ``transpose`` instead.
 
         Returns
         -------
