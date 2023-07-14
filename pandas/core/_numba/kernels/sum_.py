@@ -14,6 +14,7 @@ from typing import (
 )
 
 import numba
+from numba.extending import register_jitable
 import numpy as np
 
 if TYPE_CHECKING:
@@ -156,13 +157,16 @@ def sliding_sum(
     return output, na_pos
 
 
-@numba.extending.register_jitable
+# Mypy/pyright don't like the fact that the decorator is untyped
+@register_jitable  # type: ignore[misc]
 def grouped_kahan_sum(
     values: np.ndarray,
     result_dtype: np.dtype,
     labels: npt.NDArray[np.intp],
     ngroups: int,
-) -> np.ndarray:
+) -> tuple[
+    np.ndarray, npt.NDArray[np.int64], np.ndarray, npt.NDArray[np.int64], np.ndarray
+]:
     N = len(labels)
 
     nobs_arr = np.zeros(ngroups, dtype=np.int64)
@@ -214,7 +218,7 @@ def grouped_sum(
     labels: npt.NDArray[np.intp],
     ngroups: int,
     min_periods: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     na_pos = []
 
     output, nobs_arr, comp_arr, consecutive_counts, prev_vals = grouped_kahan_sum(

@@ -87,7 +87,7 @@ def grouped_min_max(
     ngroups: int,
     min_periods: int,
     is_max: bool,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
     N = len(labels)
     nobs = np.zeros(ngroups, dtype=np.int64)
     na_pos = []

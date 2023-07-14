@@ -160,7 +160,13 @@ def generate_shared_aggregator(
     # Cannot do this in numba nopython mode
     # (you'll run into type-unification error when you cast int -> float)
     def looper_wrapper(
-        values, start=None, end=None, labels=None, ngroups=None, min_periods=0, **kwargs
+        values,
+        start=None,
+        end=None,
+        labels=None,
+        ngroups=None,
+        min_periods: int = 0,
+        **kwargs,
     ):
         result_dtype = dtype_mapping[values.dtype]
         column_looper = make_looper(
