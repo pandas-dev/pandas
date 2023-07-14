@@ -4,9 +4,11 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-from typing import (
+from collections.abc import (
     Iterable,
     Sequence,
+)
+from typing import (
     TypeVar,
     overload,
 )

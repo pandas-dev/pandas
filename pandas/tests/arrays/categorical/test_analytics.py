@@ -9,6 +9,7 @@ from pandas.compat import PYPY
 from pandas import (
     Categorical,
     CategoricalDtype,
+    DataFrame,
     Index,
     NaT,
     Series,
@@ -55,6 +56,19 @@ class TestCategoricalAnalytics:
         assert _max == "a"
         assert np.minimum.reduce(obj) == "d"
         assert np.maximum.reduce(obj) == "a"
+
+    def test_min_max_reduce(self):
+        # GH52788
+        cat = Categorical(["a", "b", "c", "d"], ordered=True)
+        df = DataFrame(cat)
+
+        result_max = df.agg("max")
+        expected_max = Series(Categorical(["d"], dtype=cat.dtype))
+        tm.assert_series_equal(result_max, expected_max)
+
+        result_min = df.agg("min")
+        expected_min = Series(Categorical(["a"], dtype=cat.dtype))
+        tm.assert_series_equal(result_min, expected_min)
 
     @pytest.mark.parametrize(
         "categories,expected",
