@@ -135,7 +135,7 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
     if lib.is_np_dtype(dtype, "M"):
         # Selecting the first char of resolution string:
         # dtype.str -> '<M8[ns]'
-        resolution = re.findall(r"\[(.*)\]", typing.cast(np.dtype, dtype).str)[0][:1]
+        resolution = re.findall(r"\[(.*)\]", dtype.str)[0][:1]
         return ArrowCTypes.TIMESTAMP.format(resolution=resolution, tz="")
 
     raise NotImplementedError(

@@ -52,14 +52,10 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.3.0
-cpplint
 flake8==6.0.0
-isort>=5.2.1
-mypy==1.2
+mypy==1.4.1
+tokenize-rt
 pre-commit>=2.15.0
-pyupgrade
-ruff==0.0.215
 gitpython
 gitdb
 natsort

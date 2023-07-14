@@ -14,7 +14,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas.compat import is_ci_environment
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     EmptyDataError,
@@ -247,6 +246,19 @@ df_kml = DataFrame(
 )
 
 
+@td.skip_if_no("lxml")
+def test_literal_xml_deprecation():
+    # GH 53809
+    msg = (
+        "Passing literal xml to 'read_xml' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        read_xml(xml_default_nmsp)
+
+
 @pytest.fixture(params=["rb", "r"])
 def mode(request):
     return request.param
@@ -297,53 +309,16 @@ def test_parser_consistency_file(xml_books):
 
 
 @pytest.mark.network
-@pytest.mark.slow
-@tm.network(
-    url=(
-        "https://data.cityofchicago.org/api/views/"
-        "8pix-ypme/rows.xml?accessType=DOWNLOAD"
-    ),
-    check_before_test=True,
-)
-def test_parser_consistency_url(parser):
-    url = (
-        "https://data.cityofchicago.org/api/views/"
-        "8pix-ypme/rows.xml?accessType=DOWNLOAD"
+@pytest.mark.single_cpu
+def test_parser_consistency_url(parser, httpserver):
+    httpserver.serve_content(content=xml_default_nmsp)
+
+    df_xpath = read_xml(StringIO(xml_default_nmsp), parser=parser)
+    df_iter = read_xml(
+        BytesIO(xml_default_nmsp.encode()),
+        parser=parser,
+        iterparse={"row": ["shape", "degrees", "sides"]},
     )
-
-    with tm.ensure_clean(filename="cta.xml") as path:
-        (read_xml(url, xpath=".//row/row", parser=parser).to_xml(path, index=False))
-
-        df_xpath = read_xml(path, parser=parser)
-        df_iter = read_xml(
-            path,
-            parser=parser,
-            iterparse={
-                "row": [
-                    "_id",
-                    "_uuid",
-                    "_position",
-                    "_address",
-                    "stop_id",
-                    "direction_id",
-                    "stop_name",
-                    "station_name",
-                    "station_descriptive_name",
-                    "map_id",
-                    "ada",
-                    "red",
-                    "blue",
-                    "g",
-                    "brn",
-                    "p",
-                    "pexp",
-                    "y",
-                    "pnk",
-                    "o",
-                    "location",
-                ]
-            },
-        )
 
     tm.assert_frame_equal(df_xpath, df_iter)
 
@@ -391,6 +366,11 @@ def test_file_buffered_reader_string(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         xml_obj = f.read()
 
+    if mode == "rb":
+        xml_obj = StringIO(xml_obj.decode())
+    elif mode == "r":
+        xml_obj = StringIO(xml_obj)
+
     df_str = read_xml(xml_obj, parser=parser)
 
     df_expected = DataFrame(
@@ -411,6 +391,11 @@ def test_file_buffered_reader_no_xml_declaration(xml_books, parser, mode):
         next(f)
         xml_obj = f.read()
 
+    if mode == "rb":
+        xml_obj = StringIO(xml_obj.decode())
+    elif mode == "r":
+        xml_obj = StringIO(xml_obj)
+
     df_str = read_xml(xml_obj, parser=parser)
 
     df_expected = DataFrame(
@@ -429,7 +414,7 @@ def test_file_buffered_reader_no_xml_declaration(xml_books, parser, mode):
 def test_string_charset(parser):
     txt = "<中文標籤><row><c1>1</c1><c2>2</c2></row></中文標籤>"
 
-    df_str = read_xml(txt, parser=parser)
+    df_str = read_xml(StringIO(txt), parser=parser)
 
     df_expected = DataFrame({"c1": 1, "c2": 2}, index=[0])
 
@@ -487,47 +472,59 @@ def test_empty_string_lxml(val):
         ]
     )
     with pytest.raises(XMLSyntaxError, match=msg):
-        read_xml(val, parser="lxml")
+        if isinstance(val, str):
+            read_xml(StringIO(val), parser="lxml")
+        else:
+            read_xml(BytesIO(val), parser="lxml")
 
 
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_etree(val):
     with pytest.raises(ParseError, match="no element found"):
-        read_xml(val, parser="etree")
+        if isinstance(val, str):
+            read_xml(StringIO(val), parser="etree")
+        else:
+            read_xml(BytesIO(val), parser="etree")
 
 
 @td.skip_if_no("lxml")
 def test_wrong_file_path_lxml():
-    from lxml.etree import XMLSyntaxError
-
+    msg = (
+        "Passing literal xml to 'read_xml' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
     filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(
-        XMLSyntaxError,
-        match=("Start tag expected, '<' not found"),
+        FutureWarning,
+        match=msg,
     ):
         read_xml(filename, parser="lxml")
 
 
 def test_wrong_file_path_etree():
+    msg = (
+        "Passing literal xml to 'read_xml' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
     filename = os.path.join("data", "html", "books.xml")
 
     with pytest.raises(
-        ParseError,
-        match=("not well-formed"),
+        FutureWarning,
+        match=msg,
     ):
         read_xml(filename, parser="etree")
 
 
 @pytest.mark.network
-@tm.network(
-    url="https://www.w3schools.com/xml/books.xml",
-    check_before_test=True,
-)
+@pytest.mark.single_cpu
 @td.skip_if_no("lxml")
-def test_url():
-    url = "https://www.w3schools.com/xml/books.xml"
-    df_url = read_xml(url, xpath=".//book[count(*)=4]")
+def test_url(httpserver, xml_file):
+    with open(xml_file, encoding="utf-8") as f:
+        httpserver.serve_content(content=f.read())
+        df_url = read_xml(httpserver.url, xpath=".//book[count(*)=4]")
 
     df_expected = DataFrame(
         {
@@ -536,7 +533,6 @@ def test_url():
             "author": ["Giada De Laurentiis", "J K. Rowling", "Erik T. Ray"],
             "year": [2005, 2005, 2003],
             "price": [30.00, 29.99, 39.95],
-            "cover": [None, None, "paperback"],
         }
     )
 
@@ -544,11 +540,11 @@ def test_url():
 
 
 @pytest.mark.network
-@tm.network(url="https://www.w3schools.com/xml/python.xml", check_before_test=True)
-def test_wrong_url(parser):
-    with pytest.raises(HTTPError, match=("HTTP Error 404: Not Found")):
-        url = "https://www.w3schools.com/xml/python.xml"
-        read_xml(url, xpath=".//book[count(*)=4]", parser=parser)
+@pytest.mark.single_cpu
+def test_wrong_url(parser, httpserver):
+    httpserver.serve_content("NOT FOUND", code=404)
+    with pytest.raises(HTTPError, match=("HTTP Error 404: NOT FOUND")):
+        read_xml(httpserver.url, xpath=".//book[count(*)=4]", parser=parser)
 
 
 # XPATH
@@ -580,7 +576,7 @@ def test_bad_xpath_lxml(xml_books):
 
 def test_default_namespace(parser):
     df_nmsp = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//ns:row",
         namespaces={"ns": "http://example.com"},
         parser=parser,
@@ -606,7 +602,7 @@ def test_default_namespace(parser):
 
 def test_prefix_namespace(parser):
     df_nmsp = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser=parser,
@@ -630,14 +626,14 @@ def test_prefix_namespace(parser):
 @td.skip_if_no("lxml")
 def test_consistency_default_namespace():
     df_lxml = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//ns:row",
         namespaces={"ns": "http://example.com"},
         parser="lxml",
     )
 
     df_etree = read_xml(
-        xml_default_nmsp,
+        StringIO(xml_default_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="etree",
@@ -649,14 +645,14 @@ def test_consistency_default_namespace():
 @td.skip_if_no("lxml")
 def test_consistency_prefix_namespace():
     df_lxml = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="lxml",
     )
 
     df_etree = read_xml(
-        xml_prefix_nmsp,
+        StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
         namespaces={"doc": "http://example.com"},
         parser="etree",
@@ -693,7 +689,7 @@ def test_none_namespace_prefix(key):
         TypeError, match=("empty namespace prefix is not supported in XPath")
     ):
         read_xml(
-            xml_default_nmsp,
+            StringIO(xml_default_nmsp),
             xpath=".//kml:Placemark",
             namespaces={key: "http://www.opengis.net/kml/2.2"},
             parser="lxml",
@@ -782,7 +778,7 @@ def test_empty_attrs_only(parser):
         ValueError,
         match=("xpath does not return any nodes or attributes"),
     ):
-        read_xml(xml, xpath="./row", attrs_only=True, parser=parser)
+        read_xml(StringIO(xml), xpath="./row", attrs_only=True, parser=parser)
 
 
 def test_empty_elems_only(parser):
@@ -797,7 +793,7 @@ def test_empty_elems_only(parser):
         ValueError,
         match=("xpath does not return any nodes or attributes"),
     ):
-        read_xml(xml, xpath="./row", elems_only=True, parser=parser)
+        read_xml(StringIO(xml), xpath="./row", elems_only=True, parser=parser)
 
 
 @td.skip_if_no("lxml")
@@ -822,8 +818,8 @@ def test_attribute_centric_xml():
       </Stations>
 </TrainSchedule>"""
 
-    df_lxml = read_xml(xml, xpath=".//station")
-    df_etree = read_xml(xml, xpath=".//station", parser="etree")
+    df_lxml = read_xml(StringIO(xml), xpath=".//station")
+    df_etree = read_xml(StringIO(xml), xpath=".//station", parser="etree")
 
     df_iter_lx = read_xml_iterparse(xml, iterparse={"station": ["Name", "coords"]})
     df_iter_et = read_xml_iterparse(
@@ -875,7 +871,10 @@ def test_repeat_names(parser):
   </shape>
 </shapes>"""
     df_xpath = read_xml(
-        xml, xpath=".//shape", parser=parser, names=["type_dim", "shape", "type_edge"]
+        StringIO(xml),
+        xpath=".//shape",
+        parser=parser,
+        names=["type_dim", "shape", "type_edge"],
     )
 
     df_iter = read_xml_iterparse(
@@ -917,7 +916,9 @@ def test_repeat_values_new_names(parser):
     <family>ellipse</family>
   </shape>
 </shapes>"""
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser, names=["name", "group"])
+    df_xpath = read_xml(
+        StringIO(xml), xpath=".//shape", parser=parser, names=["name", "group"]
+    )
 
     df_iter = read_xml_iterparse(
         xml,
@@ -960,7 +961,7 @@ def test_repeat_elements(parser):
   </shape>
 </shapes>"""
     df_xpath = read_xml(
-        xml,
+        StringIO(xml),
         xpath=".//shape",
         parser=parser,
         names=["name", "family", "degrees", "sides"],
@@ -1195,8 +1196,8 @@ def test_style_charset():
 
 </xsl:stylesheet>"""
 
-    df_orig = read_xml(xml)
-    df_style = read_xml(xml, stylesheet=xsl)
+    df_orig = read_xml(StringIO(xml))
+    df_style = read_xml(StringIO(xml), stylesheet=xsl)
 
     tm.assert_frame_equal(df_orig, df_style)
 
@@ -1328,30 +1329,18 @@ def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
 @td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
-    from lxml.etree import XMLSyntaxError
-
+    msg = (
+        "Passing literal xml to 'read_xml' is deprecated and "
+        "will be removed in a future version. To read from a "
+        "literal string, wrap it in a 'StringIO' object."
+    )
     kml = os.path.join("data", "xml", "cta_rail_lines.kml")
 
-    with pytest.raises(
-        XMLSyntaxError, match=("Document is empty|Start tag expected, '<' not found")
-    ):
+    with pytest.raises(FutureWarning, match=msg):
         read_xml(kml, stylesheet=val)
 
 
 # ITERPARSE
-
-
-def test_string_error(parser):
-    with pytest.raises(
-        ParserError, match=("iterparse is designed for large XML files")
-    ):
-        read_xml(
-            xml_default_nmsp,
-            parser=parser,
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
-
-
 def test_file_like_iterparse(xml_books, parser, mode):
     with open(xml_books, mode, encoding="utf-8" if mode == "r" else None) as f:
         if mode == "r" and parser == "lxml":
@@ -1429,17 +1418,18 @@ def test_file_io_iterparse(xml_books, parser, mode):
 
 
 @pytest.mark.network
-@tm.network(url="https://www.w3schools.com/xml/books.xml", check_before_test=True)
-def test_url_path_error(parser):
-    url = "https://www.w3schools.com/xml/books.xml"
-    with pytest.raises(
-        ParserError, match=("iterparse is designed for large XML files")
-    ):
-        read_xml(
-            url,
-            parser=parser,
-            iterparse={"row": ["shape", "degrees", "sides", "date"]},
-        )
+@pytest.mark.single_cpu
+def test_url_path_error(parser, httpserver, xml_file):
+    with open(xml_file, encoding="utf-8") as f:
+        httpserver.serve_content(content=f.read())
+        with pytest.raises(
+            ParserError, match=("iterparse is designed for large XML files")
+        ):
+            read_xml(
+                httpserver.url,
+                parser=parser,
+                iterparse={"row": ["shape", "degrees", "sides", "date"]},
+            )
 
 
 def test_compression_error(parser, compression_only):
@@ -1532,7 +1522,7 @@ def test_comment(parser):
 </shapes>
 <!-- comment after root -->"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1568,7 +1558,7 @@ def test_dtd(parser):
   </shape>
 </shapes>"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1604,7 +1594,7 @@ def test_processing_instruction(parser):
   </shape>
 </shapes>"""
 
-    df_xpath = read_xml(xml, xpath=".//shape", parser=parser)
+    df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
         xml, parser=parser, iterparse={"shape": ["name", "type"]}
@@ -1641,17 +1631,248 @@ def test_empty_data(xml_books, parser):
         )
 
 
-@pytest.mark.network
 @td.skip_if_no("lxml")
-@tm.network(
-    url="https://www.w3schools.com/xml/cdcatalog_with_xsl.xml", check_before_test=True
-)
 def test_online_stylesheet():
-    xml = "https://www.w3schools.com/xml/cdcatalog_with_xsl.xml"
-    xsl = "https://www.w3schools.com/xml/cdcatalog.xsl"
+    xml = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog>
+  <cd>
+    <title>Empire Burlesque</title>
+    <artist>Bob Dylan</artist>
+    <country>USA</country>
+    <company>Columbia</company>
+    <price>10.90</price>
+    <year>1985</year>
+  </cd>
+  <cd>
+    <title>Hide your heart</title>
+    <artist>Bonnie Tyler</artist>
+    <country>UK</country>
+    <company>CBS Records</company>
+    <price>9.90</price>
+    <year>1988</year>
+  </cd>
+  <cd>
+    <title>Greatest Hits</title>
+    <artist>Dolly Parton</artist>
+    <country>USA</country>
+    <company>RCA</company>
+    <price>9.90</price>
+    <year>1982</year>
+  </cd>
+  <cd>
+    <title>Still got the blues</title>
+    <artist>Gary Moore</artist>
+    <country>UK</country>
+    <company>Virgin records</company>
+    <price>10.20</price>
+    <year>1990</year>
+  </cd>
+  <cd>
+    <title>Eros</title>
+    <artist>Eros Ramazzotti</artist>
+    <country>EU</country>
+    <company>BMG</company>
+    <price>9.90</price>
+    <year>1997</year>
+  </cd>
+  <cd>
+    <title>One night only</title>
+    <artist>Bee Gees</artist>
+    <country>UK</country>
+    <company>Polydor</company>
+    <price>10.90</price>
+    <year>1998</year>
+  </cd>
+  <cd>
+    <title>Sylvias Mother</title>
+    <artist>Dr.Hook</artist>
+    <country>UK</country>
+    <company>CBS</company>
+    <price>8.10</price>
+    <year>1973</year>
+  </cd>
+  <cd>
+    <title>Maggie May</title>
+    <artist>Rod Stewart</artist>
+    <country>UK</country>
+    <company>Pickwick</company>
+    <price>8.50</price>
+    <year>1990</year>
+  </cd>
+  <cd>
+    <title>Romanza</title>
+    <artist>Andrea Bocelli</artist>
+    <country>EU</country>
+    <company>Polydor</company>
+    <price>10.80</price>
+    <year>1996</year>
+  </cd>
+  <cd>
+    <title>When a man loves a woman</title>
+    <artist>Percy Sledge</artist>
+    <country>USA</country>
+    <company>Atlantic</company>
+    <price>8.70</price>
+    <year>1987</year>
+  </cd>
+  <cd>
+    <title>Black angel</title>
+    <artist>Savage Rose</artist>
+    <country>EU</country>
+    <company>Mega</company>
+    <price>10.90</price>
+    <year>1995</year>
+  </cd>
+  <cd>
+    <title>1999 Grammy Nominees</title>
+    <artist>Many</artist>
+    <country>USA</country>
+    <company>Grammy</company>
+    <price>10.20</price>
+    <year>1999</year>
+  </cd>
+  <cd>
+    <title>For the good times</title>
+    <artist>Kenny Rogers</artist>
+    <country>UK</country>
+    <company>Mucik Master</company>
+    <price>8.70</price>
+    <year>1995</year>
+  </cd>
+  <cd>
+    <title>Big Willie style</title>
+    <artist>Will Smith</artist>
+    <country>USA</country>
+    <company>Columbia</company>
+    <price>9.90</price>
+    <year>1997</year>
+  </cd>
+  <cd>
+    <title>Tupelo Honey</title>
+    <artist>Van Morrison</artist>
+    <country>UK</country>
+    <company>Polydor</company>
+    <price>8.20</price>
+    <year>1971</year>
+  </cd>
+  <cd>
+    <title>Soulsville</title>
+    <artist>Jorn Hoel</artist>
+    <country>Norway</country>
+    <company>WEA</company>
+    <price>7.90</price>
+    <year>1996</year>
+  </cd>
+  <cd>
+    <title>The very best of</title>
+    <artist>Cat Stevens</artist>
+    <country>UK</country>
+    <company>Island</company>
+    <price>8.90</price>
+    <year>1990</year>
+  </cd>
+  <cd>
+    <title>Stop</title>
+    <artist>Sam Brown</artist>
+    <country>UK</country>
+    <company>A and M</company>
+    <price>8.90</price>
+    <year>1988</year>
+  </cd>
+  <cd>
+    <title>Bridge of Spies</title>
+    <artist>T`Pau</artist>
+    <country>UK</country>
+    <company>Siren</company>
+    <price>7.90</price>
+    <year>1987</year>
+  </cd>
+  <cd>
+    <title>Private Dancer</title>
+    <artist>Tina Turner</artist>
+    <country>UK</country>
+    <company>Capitol</company>
+    <price>8.90</price>
+    <year>1983</year>
+  </cd>
+  <cd>
+    <title>Midt om natten</title>
+    <artist>Kim Larsen</artist>
+    <country>EU</country>
+    <company>Medley</company>
+    <price>7.80</price>
+    <year>1983</year>
+  </cd>
+  <cd>
+    <title>Pavarotti Gala Concert</title>
+    <artist>Luciano Pavarotti</artist>
+    <country>UK</country>
+    <company>DECCA</company>
+    <price>9.90</price>
+    <year>1991</year>
+  </cd>
+  <cd>
+    <title>The dock of the bay</title>
+    <artist>Otis Redding</artist>
+    <country>USA</country>
+    <COMPANY>Stax Records</COMPANY>
+    <PRICE>7.90</PRICE>
+    <YEAR>1968</YEAR>
+  </cd>
+  <cd>
+    <title>Picture book</title>
+    <artist>Simply Red</artist>
+    <country>EU</country>
+    <company>Elektra</company>
+    <price>7.20</price>
+    <year>1985</year>
+  </cd>
+  <cd>
+    <title>Red</title>
+    <artist>The Communards</artist>
+    <country>UK</country>
+    <company>London</company>
+    <price>7.80</price>
+    <year>1987</year>
+  </cd>
+  <cd>
+    <title>Unchain my heart</title>
+    <artist>Joe Cocker</artist>
+    <country>USA</country>
+    <company>EMI</company>
+    <price>8.20</price>
+    <year>1987</year>
+  </cd>
+</catalog>
+"""
+    xsl = """\
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="/">
+<html>
+<body>
+  <h2>My CD Collection</h2>
+  <table border="1">
+    <tr bgcolor="#9acd32">
+      <th style="text-align:left">Title</th>
+      <th style="text-align:left">Artist</th>
+    </tr>
+    <xsl:for-each select="catalog/cd">
+    <tr>
+      <td><xsl:value-of select="title"/></td>
+      <td><xsl:value-of select="artist"/></td>
+    </tr>
+    </xsl:for-each>
+  </table>
+</body>
+</html>
+</xsl:template>
+</xsl:stylesheet>
+"""
 
     df_xsl = read_xml(
-        xml,
+        StringIO(xml),
         xpath=".//tr[td and position() <= 6]",
         names=["title", "artist"],
         stylesheet=xsl,
@@ -1740,32 +1961,15 @@ def test_unsuported_compression(parser):
 
 
 @pytest.mark.network
+@pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
 @td.skip_if_no("lxml")
-@pytest.mark.skipif(
-    is_ci_environment(),
-    reason="2022.1.17: Hanging on the CI min versions build.",
-)
-@tm.network
-def test_s3_parser_consistency():
-    # Python Software Foundation (2019 IRS-990 RETURN)
-    s3 = "s3://irs-form-990/201923199349319487_public.xml"
+def test_s3_parser_consistency(s3_public_bucket_with_data, s3so):
+    s3 = f"s3://{s3_public_bucket_with_data.name}/books.xml"
 
-    df_lxml = read_xml(
-        s3,
-        xpath=".//irs:Form990PartVIISectionAGrp",
-        namespaces={"irs": "http://www.irs.gov/efile"},
-        parser="lxml",
-        storage_options={"anon": True},
-    )
+    df_lxml = read_xml(s3, parser="lxml", storage_options=s3so)
 
-    df_etree = read_xml(
-        s3,
-        xpath=".//irs:Form990PartVIISectionAGrp",
-        namespaces={"irs": "http://www.irs.gov/efile"},
-        parser="etree",
-        storage_options={"anon": True},
-    )
+    df_etree = read_xml(s3, parser="etree", storage_options=s3so)
 
     tm.assert_frame_equal(df_lxml, df_etree)
 
@@ -1808,7 +2012,7 @@ def test_read_xml_nullable_dtypes(parser, string_storage, dtype_backend):
         string_array_na = ArrowStringArray(pa.array(["x", None]))
 
     with pd.option_context("mode.string_storage", string_storage):
-        result = read_xml(data, parser=parser, dtype_backend=dtype_backend)
+        result = read_xml(StringIO(data), parser=parser, dtype_backend=dtype_backend)
 
     expected = DataFrame(
         {
