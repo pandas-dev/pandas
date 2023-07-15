@@ -10065,11 +10065,13 @@ class DataFrame(NDFrame, OpsMixin):
             the order of the join key depends on the join type (how keyword).
         validate : str, optional
             If specified, checks if join is of specified type.
+
             * "one_to_one" or "1:1": check if join keys are unique in both left
-            and right datasets.
+               and right datasets.
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
+
             .. versionadded:: 1.5.0
 
         Returns
