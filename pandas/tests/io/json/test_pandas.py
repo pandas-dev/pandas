@@ -956,25 +956,35 @@ class TestPandasContainer:
         result = read_json(StringIO(json), date_unit=None)
         tm.assert_frame_equal(result, df)
 
-    def test_date_unit_day(self, datetime_frame):
+    def test_date_unit_day(self, datetime_frame: DataFrame):
         # a different test is implemented for unit="D"
-        # since it needs some handling of the df that unit
+        # since it needs some handling of the df, because unit
         # is not autodetected by the read_json method
         df = datetime_frame
-        df["date"] = Timestamp("20130102 20:43:42")
+        df["date"] = Timestamp("20130102 20:43:42").as_unit("ns")
         dl = df.columns.get_loc("date")
 
         df.iloc[1, dl] = Timestamp("19710102 20:43:42")
         df.iloc[2, dl] = Timestamp("21460101 20:43:42")
         df.iloc[4, dl] = pd.NaT
 
-        json = df.to_json(date_format="epoch", date_unit="D")
+        jsonStr = df.to_json(date_format="epoch", date_unit="D")
 
         # remove time part since it doesn't get serialized
         # so it won't be equal in the deserialized df
         df["date"] = pd.to_datetime(df["date"].dt.date)
 
-        result = read_json(json, date_unit="D")
+        parsed = json.loads(jsonStr)
+        jsonDate = Series(parsed["date"].values(), index=df.index)
+        dfDate = (
+            df["date"].map(lambda d: d.timestamp() if not pd.isna(d) else None)
+            / 60
+            / 60
+            / 24
+        )
+        tm.assert_series_equal(jsonDate, dfDate, check_names=False)
+
+        result = read_json(StringIO(jsonStr), date_unit="D")
         tm.assert_frame_equal(result, df)
 
     def test_weird_nested_json(self):
