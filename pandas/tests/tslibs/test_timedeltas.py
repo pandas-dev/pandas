@@ -72,6 +72,15 @@ def test_delta_to_nanoseconds_td64_MY_raises():
         delta_to_nanoseconds(td)
 
 
+@pytest.mark.parametrize("unit", ["Y", "M"])
+def test_unsupported_td64_unit_raises(unit):
+    # GH 52806
+    with pytest.raises(
+        ValueError, match=f"cannot construct a Timedelta from a unit {unit}"
+    ):
+        Timedelta(np.timedelta64(1, unit))
+
+
 def test_huge_nanoseconds_overflow():
     # GH 32402
     assert delta_to_nanoseconds(Timedelta(1e10)) == 1e10
