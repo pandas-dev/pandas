@@ -619,6 +619,7 @@ indices_dict = {
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
+    "mixed-int-string": Index([0, "a", 1, "b", 2, "c"]),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
     "nullable_int": Index(np.arange(100), dtype="Int64"),
     "nullable_uint": Index(np.arange(100), dtype="UInt16"),
