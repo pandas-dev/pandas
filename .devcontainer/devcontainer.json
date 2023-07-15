@@ -11,6 +11,9 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
+				"editor.tabSize": 4,
+				"editor.insertSpaces": true,
+				"editor.detectIndentation": false,
 				"terminal.integrated.defaultProfile.linux": "bash",
 				"python.formatting.provider": "black",
 				"python.linting.enabled": true,
