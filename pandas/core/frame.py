@@ -128,11 +128,11 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
     TimedeltaArray,
-    BaseMaskedArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
