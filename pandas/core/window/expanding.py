@@ -276,7 +276,7 @@ class Expanding(RollingAndExpandingMixin):
     def sum(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().sum(
