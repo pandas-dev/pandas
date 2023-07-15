@@ -1193,3 +1193,9 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+
+def test_safe_cast(self):
+    dfr = pd.DataFrame({"col1": np.random.randint(0, 100, size=100)})
+    with pytest.raises(TypeError, match=r"cannot safely cast non-equivalent"):
+        (dfr / 10).astype("UInt32").dtypes
