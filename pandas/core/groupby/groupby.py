@@ -341,6 +341,19 @@ min_count : int, default {mc}
     The required number of valid values to perform the operation. If fewer
     than ``min_count`` non-NA values are present the result will be NA.
 
+engine : str, default None {e}
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
+
+engine_kwargs : dict, default None {ek}
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+      applied to the function
+
 Returns
 -------
 Series or DataFrame
@@ -2231,7 +2244,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def mean(
         self,
         numeric_only: bool = False,
-        engine: str = "cython",
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         """
@@ -2402,7 +2415,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def std(
         self,
         ddof: int = 1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
     ):
@@ -2511,7 +2524,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def var(
         self,
         ddof: int = 1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
     ):
@@ -2913,6 +2926,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="sum",
         no=False,
         mc=0,
+        e=None,
+        ek=None,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -2952,7 +2967,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -3030,6 +3045,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="min",
         no=False,
         mc=-1,
+        e=None,
+        ek=None,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3069,7 +3086,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -3096,6 +3113,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fname="max",
         no=False,
         mc=-1,
+        e=None,
+        ek=None,
         example=dedent(
             """\
         For SeriesGroupBy:
@@ -3135,7 +3154,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         numeric_only: bool = False,
         min_count: int = -1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
