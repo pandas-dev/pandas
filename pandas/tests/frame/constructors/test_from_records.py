@@ -1,6 +1,6 @@
+from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
-from typing import Iterator
 
 import numpy as np
 import pytest

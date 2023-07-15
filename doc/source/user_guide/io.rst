@@ -1568,8 +1568,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   df.to_csv("tmp2.csv", sep=":")
+   df.to_csv("tmp2.csv", sep=":", index=False)
    pd.read_csv("tmp2.csv", sep=None, engine="python")
 
 .. ipython:: python
@@ -1597,8 +1596,8 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   table = pd.read_csv("tmp.csv", sep="|")
+   df.to_csv("tmp.csv", index=False)
+   table = pd.read_csv("tmp.csv")
    table
 
 
@@ -1607,8 +1606,8 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", chunksize=4) as reader:
-       reader
+   with pd.read_csv("tmp.csv", chunksize=4) as reader:
+       print(reader)
        for chunk in reader:
            print(chunk)
 
@@ -1620,8 +1619,8 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", iterator=True) as reader:
-       reader.get_chunk(5)
+   with pd.read_csv("tmp.csv", iterator=True) as reader:
+       print(reader.get_chunk(5))
 
 .. ipython:: python
    :suppress:
@@ -2927,6 +2926,7 @@ Read an XML string:
 
 .. ipython:: python
 
+    from io import StringIO
    xml = """<?xml version="1.0" encoding="UTF-8"?>
    <bookstore>
      <book category="cooking">
@@ -2949,7 +2949,7 @@ Read an XML string:
      </book>
    </bookstore>"""
 
-   df = pd.read_xml(xml)
+   df = pd.read_xml(StringIO(xml))
    df
 
 Read a URL with no options:
@@ -2969,7 +2969,7 @@ as a string:
        f.write(xml)
 
    with open(file_path, "r") as f:
-       df = pd.read_xml(f.read())
+       df = pd.read_xml(StringIO(f.read()))
    df
 
 Read in the content of the "books.xml" as instance of ``StringIO`` or
@@ -3060,7 +3060,7 @@ For example, below XML contains a namespace with prefix, ``doc``, and URI at
      </doc:row>
    </doc:data>"""
 
-   df = pd.read_xml(xml,
+   df = pd.read_xml(StringIO(xml),
                     xpath="//doc:row",
                     namespaces={"doc": "https://example.com"})
    df
@@ -3090,7 +3090,7 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
     </row>
    </data>"""
 
-   df = pd.read_xml(xml,
+   df = pd.read_xml(StringIO(xml),
                     xpath="//pandas:row",
                     namespaces={"pandas": "https://example.com"})
    df
@@ -3125,7 +3125,7 @@ However, if XPath does not reference node names such as default, ``/*``, then
         </row>
       </data>"""
 
-      df = pd.read_xml(xml, xpath="./row")
+      df = pd.read_xml(StringIO(xml), xpath="./row")
       df
 
    shows the attribute ``sides`` on ``shape`` element was not parsed as
@@ -3226,7 +3226,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(xml, stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`

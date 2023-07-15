@@ -393,6 +393,18 @@ _chained_assignment_msg = (
 )
 
 
+_chained_assignment_method_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment using an inplace method.\n"
+    "When using the Copy-on-Write mode, such inplace method never works "
+    "to update the original DataFrame or Series, because the intermediate "
+    "object on which we are setting values always behaves as a copy.\n\n"
+    "For example, when doing 'df[col].method(value, inplace=True)', try "
+    "using 'df.method({col: value}, inplace=True)' instead, to perform "
+    "the operation inplace on the original object.\n\n"
+)
+
+
 class NumExprClobberingError(NameError):
     """
     Exception raised when trying to use a built-in numexpr name as a variable name.
