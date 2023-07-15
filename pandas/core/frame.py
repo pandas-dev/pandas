@@ -132,6 +132,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     PeriodArray,
     TimedeltaArray,
+    BaseMaskedArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.construction import (
@@ -3628,7 +3629,9 @@ class DataFrame(NDFrame, OpsMixin):
                     masked_arrays = self._mgr.arrays
                 else:
                     masked_arrays = list(self._iter_column_arrays())
-                new_values = transpose_homogenous_masked_arrays(masked_arrays)
+                new_values = transpose_homogenous_masked_arrays(
+                    cast(list[BaseMaskedArray], masked_arrays)
+                )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
                 dtyp = dtypes[0]
