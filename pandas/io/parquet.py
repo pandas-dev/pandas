@@ -588,7 +588,7 @@ def read_parquet(
     True
     >>> restored_bar = pd.read_parquet(BytesIO(df_parquet_bytes), columns=["bar"])
     >>> restored_bar
-    bar
+        bar
     0    5
     1    6
     2    7
