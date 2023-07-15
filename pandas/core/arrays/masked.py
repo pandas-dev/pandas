@@ -99,7 +99,7 @@ if TYPE_CHECKING:
 
 from pandas.compat.numpy import function as nv
 
-_BaseMaskedArrayT = TypeVar("_BaseMaskedArrayT", bound="BaseMaskedArray")
+BaseMaskedArrayT = TypeVar("BaseMaskedArrayT", bound="BaseMaskedArray")
 
 
 class BaseMaskedArray(OpsMixin, ExtensionArray):
@@ -1467,7 +1467,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._maybe_mask_result(res_values, result_mask)
 
 
-def transpose_homogenous_masked_arrays(masked_arrays) -> list[BaseMaskedArray]:
+def transpose_homogenous_masked_arrays(
+    masked_arrays: list[BaseMaskedArrayT],
+) -> list[BaseMaskedArrayT]:
     """Transpose masked arrays in a list, but faster.
 
     Input should be a list of 1-dim masked arrays of equal length and all have the

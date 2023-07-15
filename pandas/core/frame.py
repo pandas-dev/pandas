@@ -3627,7 +3627,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if isinstance(self._mgr, ArrayManager):
                     masked_arrays = self._mgr.arrays
                 else:
-                    masked_arrays = [*self._iter_column_arrays()]
+                    masked_arrays = list(self._iter_column_arrays())
                 new_values = transpose_homogenous_masked_arrays(masked_arrays)
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
