@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
+    Iterable,
     Iterator,
     Mapping,
     Sequence,
@@ -4862,7 +4863,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Iterable[int] = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=None,
@@ -4889,6 +4890,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         fill_value : optional
             The scalar value to use for newly introduced missing values.
+
+        suffix : str, optional
+            A string to add to each shifted column if there are multiple periods.
+            Ignored otherwise.
 
         Returns
         -------
@@ -4968,6 +4973,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     ).add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
             return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
+        periods = cast(int, periods)
 
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
