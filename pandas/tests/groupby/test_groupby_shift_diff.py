@@ -156,10 +156,16 @@ def test_multindex_empty_shift_with_fill():
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")
 def test_group_shift_with_multiple_periods():
     df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
-    with pytest.raises(
-        NotImplementedError,
-        match=r"shift with multiple periods is not implemented yet for groupby.",
-    ):
-        df.groupby("a")["b"].shift([1, 2])
+
+    shifted_df = df.groupby("b")[["a"]].shift([0, 1])
+    expected_df = DataFrame(
+        {"a_0": [1, 2, 3, 3, 2], "a_1": [np.nan, 1.0, np.nan, 3.0, 2.0]}
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)
+
+    # series
+    shifted_series = df.groupby("b")["a"].shift([0, 1])
+    tm.assert_frame_equal(shifted_series, expected_df)

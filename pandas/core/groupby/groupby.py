@@ -4866,6 +4866,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=None,
+        suffix: str | None = None,
     ):
         """
         Shift each group by periods observations.
@@ -4936,16 +4937,37 @@ class GroupBy(BaseGroupBy[NDFrameT]):
          catfish    NaN  NaN
         goldfish    5.0  8.0
         """
-        if is_list_like(periods):
-            raise NotImplementedError(
-                "shift with multiple periods is not implemented yet for groupby."
-            )
-
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, "shift")
         else:
             axis = 0
+
+        if is_list_like(periods):
+            # periods is not necessarily a list, but otherwise mypy complains.
+            periods = cast(list, periods)
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
+
+            shifted_dataframes = []
+            for period in periods:
+                if not isinstance(period, int):
+                    raise TypeError(
+                        f"Periods must be integer, but {period} is {type(period)}."
+                    )
+                shifted_dataframes.append(
+                    DataFrame(
+                        self.shift(
+                            periods=period, freq=freq, axis=axis, fill_value=fill_value
+                        )
+                    ).add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+                )
+            return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
 
         if freq is not None or axis != 0:
             f = lambda x: x.shift(periods, freq, axis, fill_value)
