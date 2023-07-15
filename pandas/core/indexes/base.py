@@ -48,6 +48,7 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     DropKeep,
     Dtype,
     DtypeObj,
@@ -3663,7 +3664,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def symmetric_difference(
-        self, other, result_name: str = None, sort: bool | None = None
+        self, other, result_name: Hashable | None = None, sort: bool | None = None
     ):
         """
         Compute the symmetric difference of two Index objects.
@@ -7295,7 +7296,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return -1
         return super().argmax(skipna=skipna)
 
-    def min(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -7358,7 +7359,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def max(self, axis: Axis | None = None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 

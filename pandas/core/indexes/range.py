@@ -855,7 +855,7 @@ class RangeIndex(Index):
 
     # error: Return type "Index" of "delete" incompatible with return type
     #  "RangeIndex" in supertype "Index"
-    def delete(self, loc) -> Index:  # type: ignore[override]
+    def delete(self, loc: int | list[int]) -> Index:  # type: ignore[override]
         # In some cases we can retain RangeIndex, see also
         #  DatetimeTimedeltaMixin._get_delete_Freq
         if is_integer(loc):
