@@ -4865,7 +4865,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         periods: int = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
-        fill_value=None,
+        fill_value=lib.no_default,
     ):
         """
         Shift each group by periods observations.
