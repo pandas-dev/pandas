@@ -118,7 +118,7 @@ the missing value type chosen:
 
 .. ipython:: python
 
-   s = pd.Series([1., 2., 3.])
+   s = pd.Series([1.0, 2.0, 3.0])
    s.loc[0] = None
    s
 
@@ -779,8 +779,8 @@ operands is ``NA``.
 
 .. ipython:: python
 
-   pd.NA ** 0
-   1 ** pd.NA
+   pd.NA**0
+   1**pd.NA
 
 In equality and comparison operations, ``pd.NA`` also propagates. This deviates
 from the behaviour of ``np.nan``, where comparisons with ``np.nan`` always

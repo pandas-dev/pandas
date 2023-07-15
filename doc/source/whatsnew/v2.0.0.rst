@@ -76,7 +76,7 @@ Below is a possibly non-exhaustive list of changes:
 
    .. ipython:: python
 
-       idx = pd.date_range(start='1/1/2018', periods=3, freq='M')
+       idx = pd.date_range(start="1/1/2018", periods=3, freq="M")
        idx.array.year
        idx.year
 
@@ -87,9 +87,8 @@ Below is a possibly non-exhaustive list of changes:
    .. ipython:: python
 
        from scipy import sparse
-       A = sparse.coo_matrix(
-           ([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4)
-       )
+
+       A = sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(3, 4))
        ser = pd.Series.sparse.from_coo(A)
        ser.index.dtypes
 
@@ -154,10 +153,13 @@ When this keyword is set to ``"pyarrow"``, then these functions will return pyar
 .. ipython:: python
 
     import io
-    data = io.StringIO("""a,b,c,d,e,f,g,h,i
+
+    data = io.StringIO(
+        """a,b,c,d,e,f,g,h,i
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
-    """)
+    """
+    )
     df = pd.read_csv(data, dtype_backend="pyarrow")
     df.dtypes
 
@@ -459,7 +461,7 @@ and the index will be named after the original object (:issue:`49497`).
 
 .. ipython:: python
 
-    pd.Series(['quetzal', 'quetzal', 'elk'], name='animal').value_counts()
+    pd.Series(["quetzal", "quetzal", "elk"], name="animal").value_counts()
 
 Likewise for other ``value_counts`` methods (for example, :meth:`DataFrame.value_counts`).
 
@@ -712,7 +714,7 @@ In the past, :func:`to_datetime` guessed the format for each element independent
 .. ipython:: python
     :okwarning:
 
-     ser = pd.Series(['13-01-2000', '12-01-2000'])
+     ser = pd.Series(["13-01-2000", "12-01-2000"])
      pd.to_datetime(ser)
 
 Note that this affects :func:`read_csv` as well.

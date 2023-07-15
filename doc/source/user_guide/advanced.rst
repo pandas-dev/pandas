@@ -811,9 +811,7 @@ values **not** in the categories, similarly to how you can reindex **any** panda
 
 .. ipython:: python
 
-   df3 = pd.DataFrame(
-       {"A": np.arange(3), "B": pd.Series(list("abc")).astype("category")}
-   )
+   df3 = pd.DataFrame({"A": np.arange(3), "B": pd.Series(list("abc")).astype("category")})
    df3 = df3.set_index("B")
    df3
 
@@ -1116,7 +1114,7 @@ index can be somewhat complicated. For example, the following does not work:
 
 ::
 
-    s.loc['c':'e' + 1]
+    s.loc['c' : 'e' + 1]
 
 A very common use case is to limit a time series to start and end at two
 specific dates. To enable this, we made the design choice to make label-based

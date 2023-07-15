@@ -8,7 +8,7 @@ What's new in 0.23.0 (May 15, 2018)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a major release from 0.22.0 and includes a number of API changes,
@@ -52,15 +52,19 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 
 .. ipython:: python
 
-   df = pd.DataFrame({'foo': [1, 2, 3, 4],
-                      'bar': ['a', 'b', 'c', 'd'],
-                      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
-                      'qux': pd.Categorical(['a', 'b', 'c', 'c'])},
-                     index=pd.Index(range(4), name='idx'))
+   df = pd.DataFrame(
+       {
+           "foo": [1, 2, 3, 4],
+           "bar": ["a", "b", "c", "d"],
+           "baz": pd.date_range("2018-01-01", freq="d", periods=4),
+           "qux": pd.Categorical(["a", "b", "c", "c"]),
+       },
+       index=pd.Index(range(4), name="idx"),
+   )
    df
    df.dtypes
-   df.to_json('test.json', orient='table')
-   new_df = pd.read_json('test.json', orient='table')
+   df.to_json("test.json", orient="table")
+   new_df = pd.read_json("test.json", orient="table")
    new_df
    new_df.dtypes
 
@@ -69,10 +73,10 @@ Please note that the string ``index`` is not supported with the round trip forma
 .. ipython:: python
    :okwarning:
 
-   df.index.name = 'index'
+   df.index.name = "index"
 
-   df.to_json('test.json', orient='table')
-   new_df = pd.read_json('test.json', orient='table')
+   df.to_json("test.json", orient="table")
+   new_df = pd.read_json("test.json", orient="table")
    new_df
    new_df.dtypes
 
@@ -80,7 +84,8 @@ Please note that the string ``index`` is not supported with the round trip forma
    :suppress:
 
    import os
-   os.remove('test.json')
+
+   os.remove("test.json")
 
 
 .. _whatsnew_0230.enhancements.assign_dependent:
@@ -95,9 +100,9 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': [1, 2, 3]})
+    df = pd.DataFrame({"A": [1, 2, 3]})
     df
-    df.assign(B=df.A, C=lambda x: x['A'] + x['B'])
+    df.assign(B=df.A, C=lambda x: x["A"] + x["B"])
 
 .. warning::
 
@@ -140,21 +145,29 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
 
 .. ipython:: python
 
-   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+   left_index = pd.Index(["K0", "K0", "K1", "K2"], name="key1")
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                        'B': ['B0', 'B1', 'B2', 'B3'],
-                        'key2': ['K0', 'K1', 'K0', 'K1']},
-                       index=left_index)
+   left = pd.DataFrame(
+       {
+           "A": ["A0", "A1", "A2", "A3"],
+           "B": ["B0", "B1", "B2", "B3"],
+           "key2": ["K0", "K1", "K0", "K1"],
+       },
+       index=left_index,
+   )
 
-   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+   right_index = pd.Index(["K0", "K1", "K2", "K2"], name="key1")
 
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3'],
-                         'key2': ['K0', 'K0', 'K0', 'K1']},
-                        index=right_index)
+   right = pd.DataFrame(
+       {
+           "C": ["C0", "C1", "C2", "C3"],
+           "D": ["D0", "D1", "D2", "D3"],
+           "key2": ["K0", "K0", "K0", "K1"],
+       },
+       index=right_index,
+   )
 
-   left.merge(right, on=['key1', 'key2'])
+   left.merge(right, on=["key1", "key2"])
 
 .. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
 
@@ -171,17 +184,17 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
 .. ipython:: python
 
    # Build MultiIndex
-   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
-                                    ('b', 2), ('b', 1), ('b', 1)])
-   idx.names = ['first', 'second']
+   idx = pd.MultiIndex.from_tuples(
+       [("a", 1), ("a", 2), ("a", 2), ("b", 2), ("b", 1), ("b", 1)]
+   )
+   idx.names = ["first", "second"]
 
    # Build DataFrame
-   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
-                           index=idx)
+   df_multi = pd.DataFrame({"A": np.arange(6, 0, -1)}, index=idx)
    df_multi
 
    # Sort by 'second' (index) and 'A' (column)
-   df_multi.sort_values(by=['second', 'A'])
+   df_multi.sort_values(by=["second", "A"])
 
 
 .. _whatsnew_023.enhancements.extension:
@@ -254,44 +267,38 @@ number of groups. We have added a keyword ``observed`` to control this behavior,
 
 .. ipython:: python
 
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
+   cat1 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
    df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-   df['C'] = ['foo', 'bar'] * 2
+   df["C"] = ["foo", "bar"] * 2
    df
 
 To show all values, the previous behavior:
 
 .. ipython:: python
 
-   df.groupby(['A', 'B', 'C'], observed=False).count()
+   df.groupby(["A", "B", "C"], observed=False).count()
 
 
 To show only observed values:
 
 .. ipython:: python
 
-   df.groupby(['A', 'B', 'C'], observed=True).count()
+   df.groupby(["A", "B", "C"], observed=True).count()
 
 For pivoting operations, this behavior is *already* controlled by the ``dropna`` keyword:
 
 .. ipython:: python
 
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
+   cat1 = pd.Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)
    df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
    df
 
 .. ipython:: python
 
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=True)
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=False)
+   pd.pivot_table(df, values="values", index=["A", "B"], dropna=True)
+   pd.pivot_table(df, values="values", index=["A", "B"], dropna=False)
 
 
 .. _whatsnew_0230.enhancements.window_raw:
@@ -335,27 +342,26 @@ outside the existing valid values while preserving those inside.  (:issue:`16284
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan,
-                    np.nan, 13, np.nan, np.nan])
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
    ser
 
 Fill one consecutive inside value in both directions
 
 .. ipython:: python
 
-   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+   ser.interpolate(limit_direction="both", limit_area="inside", limit=1)
 
 Fill all consecutive outside values backward
 
 .. ipython:: python
 
-   ser.interpolate(limit_direction='backward', limit_area='outside')
+   ser.interpolate(limit_direction="backward", limit_area="outside")
 
 Fill all consecutive outside values in both directions
 
 .. ipython:: python
 
-   ser.interpolate(limit_direction='both', limit_area='outside')
+   ser.interpolate(limit_direction="both", limit_area="outside")
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
@@ -366,9 +372,9 @@ The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtyp
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
-   pd.get_dummies(df, columns=['c']).dtypes
-   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
+   df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
+   pd.get_dummies(df, columns=["c"]).dtypes
+   pd.get_dummies(df, columns=["c"], dtype=bool).dtypes
 
 
 .. _whatsnew_0230.enhancements.timedelta_mod:
@@ -439,7 +445,7 @@ Current behavior:
 
 .. ipython:: python
 
-    s.rank(na_option='top')
+    s.rank(na_option="top")
 
 These bugs were squashed:
 
@@ -461,10 +467,10 @@ In v.0.23 ``join`` will default to None (meaning no alignment), but this default
 .. ipython:: python
    :okwarning:
 
-    s = pd.Series(['a', 'b', 'c', 'd'])
-    t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
+    s = pd.Series(["a", "b", "c", "d"])
+    t = pd.Series(["b", "d", "e", "c"], index=[1, 3, 4, 2])
     s.str.cat(t)
-    s.str.cat(t, join='left', na_rep='-')
+    s.str.cat(t, join="left", na_rep="-")
 
 Furthermore, :meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
@@ -481,10 +487,10 @@ Supplying the string ``'category'`` performs column-wise conversion, with only l
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    df = df.astype('category')
-    df['A'].dtype
-    df['B'].dtype
+    df = pd.DataFrame({"A": list("abca"), "B": list("bccd")})
+    df = df.astype("category")
+    df["A"].dtype
+    df["B"].dtype
 
 
 Supplying a ``CategoricalDtype`` will make the categories in each column consistent with the supplied dtype:
@@ -492,11 +498,12 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
 .. ipython:: python
 
     from pandas.api.types import CategoricalDtype
-    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
-    cdt = CategoricalDtype(categories=list('abcd'), ordered=True)
+
+    df = pd.DataFrame({"A": list("abca"), "B": list("bccd")})
+    cdt = CategoricalDtype(categories=list("abcd"), ordered=True)
     df = df.astype(cdt)
-    df['A'].dtype
-    df['B'].dtype
+    df["A"].dtype
+    df["B"].dtype
 
 
 .. _whatsnew_0230.enhancements.other:
@@ -617,10 +624,7 @@ New behavior (for Python >= 3.6):
 
 .. ipython:: python
 
-    pd.Series({'Income': 2000,
-               'Expenses': -1500,
-               'Taxes': -200,
-               'Net result': 300})
+    pd.Series({"Income": 2000, "Expenses": -1500, "Taxes": -200, "Net result": 300})
 
 Notice that the Series is now ordered by insertion order. This new behavior is
 used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
@@ -631,10 +635,9 @@ If you wish to retain the old behavior while using Python >= 3.6, you can use
 
 .. ipython:: python
 
-    pd.Series({'Income': 2000,
-               'Expenses': -1500,
-               'Taxes': -200,
-               'Net result': 300}).sort_index()
+    pd.Series(
+        {"Income": 2000, "Expenses": -1500, "Taxes": -200, "Net result": 300}
+    ).sort_index()
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
@@ -733,8 +736,7 @@ where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :iss
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
-                      columns=['A', 'B', 'C'])
+    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=["A", "B", "C"])
     df
 
 Previous behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
@@ -774,7 +776,7 @@ To have expanded columns, you can use ``result_type='expand'``
 
 .. ipython:: python
 
-    df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
 
 To broadcast the result across the original columns (the old behaviour for
 list-likes of the correct length), you can use ``result_type='broadcast'``.
@@ -782,13 +784,13 @@ The shape must match the original columns.
 
 .. ipython:: python
 
-    df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type="broadcast")
 
 Returning a ``Series`` allows one to control the exact return structure and column names:
 
 .. ipython:: python
 
-    df.apply(lambda x: pd.Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+    df.apply(lambda x: pd.Series([1, 2, 3], index=["D", "E", "F"]), axis=1)
 
 .. _whatsnew_0230.api_breaking.concat:
 
@@ -801,7 +803,7 @@ The current behavior is the same as the previous (sorting), but now a warning is
 .. ipython:: python
    :okwarning:
 
-   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
    df2 = pd.DataFrame({"a": [4, 5]})
 
    pd.concat([df1, df2])
@@ -909,8 +911,8 @@ New behavior:
 
 .. ipython:: python
 
-    s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract(r'.*(\d\d).*')
+    s = pd.Series(["number 10", "12 eggs"])
+    extracted = s.str.extract(r".*(\d\d).*")
     extracted
     type(extracted)
 
@@ -918,8 +920,8 @@ To restore previous behavior, simply set ``expand`` to ``False``:
 
 .. ipython:: python
 
-    s = pd.Series(['number 10', '12 eggs'])
-    extracted = s.str.extract(r'.*(\d\d).*', expand=False)
+    s = pd.Series(["number 10", "12 eggs"])
+    extracted = s.str.extract(r".*(\d\d).*", expand=False)
     extracted
     type(extracted)
 

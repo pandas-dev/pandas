@@ -4769,7 +4769,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             return multi_join_idx, lidx, ridx
 
-        jl = list(overlap)[0]
+        jl = next(iter(overlap))
 
         # Case where only one index is multi
         # make the indices into mi's that match

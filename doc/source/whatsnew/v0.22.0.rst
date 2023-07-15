@@ -238,7 +238,7 @@ may be easiest to exclude pandas 0.21 from your requirements. Otherwise, all you
 
 With setuptools, in your ``setup.py`` use::
 
-    install_requires=['pandas!=0.21.*', ...]
+    install_requires = ['pandas!=0.21.*', ...]
 
 With conda, use
 

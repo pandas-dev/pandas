@@ -45,6 +45,7 @@ which is similar to a NumPy array. To construct these from the main pandas data 
    .. ipython:: python
 
       import pyarrow as pa
+
       data = list("abc")
       ser_sd = pd.Series(data, dtype="string[pyarrow]")
       ser_ad = pd.Series(data, dtype=pd.ArrowDtype(pa.string()))
@@ -58,6 +59,7 @@ into :class:`ArrowDtype` to use in the ``dtype`` parameter.
 .. ipython:: python
 
    import pyarrow as pa
+
    list_str_type = pa.list_(pa.string())
    ser = pd.Series([["hello"], ["there"]], dtype=pd.ArrowDtype(list_str_type))
    ser
@@ -65,12 +67,14 @@ into :class:`ArrowDtype` to use in the ``dtype`` parameter.
 .. ipython:: python
 
    from datetime import time
+
    idx = pd.Index([time(12, 30), None], dtype=pd.ArrowDtype(pa.time64("us")))
    idx
 
 .. ipython:: python
 
    from decimal import Decimal
+
    decimal_type = pd.ArrowDtype(pa.decimal128(3, scale=2))
    data = [[Decimal("3.19"), None], [None, Decimal("-1.23")]]
    df = pd.DataFrame(data, dtype=decimal_type)
@@ -131,6 +135,7 @@ The following are just some examples of operations that are accelerated by nativ
 .. ipython:: python
 
    import pyarrow as pa
+
    ser = pd.Series([-1.545, 0.211, None], dtype="float32[pyarrow]")
    ser.mean()
    ser + ser
@@ -148,6 +153,7 @@ The following are just some examples of operations that are accelerated by nativ
 .. ipython:: python
 
    from datetime import datetime
+
    pa_type = pd.ArrowDtype(pa.timestamp("ns"))
    ser_dt = pd.Series([datetime(2022, 1, 1), None], dtype=pa_type)
    ser_dt.dt.strftime("%Y-%m")
@@ -166,10 +172,13 @@ functions provide an ``engine`` keyword that can dispatch to PyArrow to accelera
 .. ipython:: python
 
    import io
-   data = io.StringIO("""a,b,c
+
+   data = io.StringIO(
+       """a,b,c
       1,2.5,True
       3,4.5,False
-   """)
+   """
+   )
    df = pd.read_csv(data, engine="pyarrow")
    df
 
@@ -180,10 +189,13 @@ PyArrow-backed data by specifying the parameter ``dtype_backend="pyarrow"``. A r
 .. ipython:: python
 
     import io
-    data = io.StringIO("""a,b,c,d,e,f,g,h,i
+
+    data = io.StringIO(
+        """a,b,c,d,e,f,g,h,i
         1,2.5,True,a,,,,,
         3,4.5,False,b,6,7.5,True,a,
-    """)
+    """
+    )
     df_pyarrow = pd.read_csv(data, dtype_backend="pyarrow")
     df_pyarrow.dtypes
 

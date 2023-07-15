@@ -320,9 +320,7 @@ which can be specified. These are computed from the starting point specified by 
 
 .. ipython:: python
 
-   pd.to_datetime(
-       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s"
-   )
+   pd.to_datetime([1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s")
 
    pd.to_datetime(
        [1349720105100, 1349720105200, 1349720105300, 1349720105400, 1349720105500],
@@ -574,7 +572,7 @@ Dates and strings that parse to timestamps can be passed as indexing parameters:
 
    ts["1/31/2011"]
 
-   ts[datetime.datetime(2011, 12, 25):]
+   ts[datetime.datetime(2011, 12, 25) :]
 
    ts["10/31/2011":"12/31/2011"]
 
@@ -708,9 +706,7 @@ If the timestamp string is treated as a slice, it can be used to index ``DataFra
 
 .. ipython:: python
 
-    dft_minute = pd.DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index
-    )
+    dft_minute = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]}, index=series_minute.index)
     dft_minute.loc["2011-12-31 23"]
 
 
@@ -744,16 +740,14 @@ These ``Timestamp`` and ``datetime`` objects have exact ``hours, minutes,`` and 
 
 .. ipython:: python
 
-   dft[datetime.datetime(2013, 1, 1): datetime.datetime(2013, 2, 28)]
+   dft[datetime.datetime(2013, 1, 1) : datetime.datetime(2013, 2, 28)]
 
 With no defaults.
 
 .. ipython:: python
 
    dft[
-       datetime.datetime(2013, 1, 1, 10, 12, 0): datetime.datetime(
-           2013, 2, 28, 10, 12, 0
-       )
+       datetime.datetime(2013, 1, 1, 10, 12, 0) : datetime.datetime(2013, 2, 28, 10, 12, 0)
    ]
 
 Truncating & fancy indexing
@@ -1478,6 +1472,7 @@ An example of how holidays and holiday calendars are defined:
         MO,
     )
 
+
     class ExampleCalendar(AbstractHolidayCalendar):
         rules = [
             USMemorialDay,
@@ -1489,6 +1484,7 @@ An example of how holidays and holiday calendars are defined:
                 offset=pd.DateOffset(weekday=MO(2)),
             ),
         ]
+
 
     cal = ExampleCalendar()
     cal.holidays(datetime.datetime(2012, 1, 1), datetime.datetime(2012, 12, 31))
@@ -1761,10 +1757,12 @@ We can instead only resample those groups where we have points as follows:
     from functools import partial
     from pandas.tseries.frequencies import to_offset
 
+
     def round(t, freq):
         # round a Timestamp to a specified freq
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
+
 
     ts.groupby(partial(round, freq="3T")).sum()
 
@@ -1950,19 +1948,19 @@ We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index
 
 .. ipython:: python
 
-   ts.resample('17min', origin='end').sum()
+   ts.resample("17min", origin="end").sum()
 
 Besides, in contrast with the ``'start_day'`` option, ``end_day`` is supported. This will set the origin as the ceiling midnight of the largest ``Timestamp``.
 
 .. ipython:: python
 
-   ts.resample('17min', origin='end_day').sum()
+   ts.resample("17min", origin="end_day").sum()
 
 The above result uses ``2000-10-02 00:29:00`` as the last bin's right edge since the following computation.
 
 .. ipython:: python
 
-   ceil_mid = rng.max().ceil('D')
+   ceil_mid = rng.max().ceil("D")
    freq = pd.offsets.Minute(17)
    bin_res = ceil_mid - freq * ((ceil_mid - rng.max()) // freq)
    bin_res
@@ -2144,7 +2142,7 @@ You can pass in dates and strings to ``Series`` and ``DataFrame`` with ``PeriodI
 
    ps["2011-01"]
 
-   ps[datetime.datetime(2011, 12, 25):]
+   ps[datetime.datetime(2011, 12, 25) :]
 
    ps["10/31/2011":"12/31/2011"]
 
@@ -2302,8 +2300,10 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s = pd.Series([20121231, 20141130, 99991231])
    s
 
+
    def conv(x):
        return pd.Period(year=x // 10000, month=x // 100 % 100, day=x % 100, freq="D")
+
 
    s.apply(conv)
    s.apply(conv)[2]

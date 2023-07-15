@@ -19,6 +19,7 @@ Data is often stored in so-called "stacked" or "record" format. In a "record" or
 
    import pandas._testing as tm
 
+
    def unpivot(frame):
        N, K = frame.shape
        data = {
@@ -27,6 +28,7 @@ Data is often stored in so-called "stacked" or "record" format. In a "record" or
            "date": np.tile(np.asarray(frame.index), K),
        }
        return pd.DataFrame(data, columns=["date", "variable", "value"])
+
 
    df = unpivot(tm.makeTimeDataFrame(3))
    df
@@ -404,7 +406,8 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
    pd.pivot_table(df, values="D", index=["B"], columns=["A", "C"], aggfunc="sum")
    pd.pivot_table(
-       df, values=["D", "E"],
+       df,
+       values=["D", "E"],
        index=["B"],
        columns=["A", "C"],
        aggfunc="sum",
@@ -447,11 +450,7 @@ rows and columns:
 .. ipython:: python
 
    table = df.pivot_table(
-       index=["A", "B"],
-       columns="C",
-       values=["D", "E"],
-       margins=True,
-       aggfunc="std"
+       index=["A", "B"], columns="C", values=["D", "E"], margins=True, aggfunc="std"
    )
    table
 
@@ -755,7 +754,7 @@ handling of NaN:
 .. ipython:: python
    :okexcept:
 
-   ser = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
+   ser = pd.Series(["A", "A", np.nan, "B", 3.14, np.inf])
    pd.factorize(ser, sort=True)
    np.unique(ser, return_inverse=True)[::-1]
 

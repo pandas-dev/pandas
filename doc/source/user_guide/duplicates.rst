@@ -129,9 +129,10 @@ This applies to both row and column labels for a :class:`DataFrame`
 .. ipython:: python
    :okexcept:
 
-   pd.DataFrame([[0, 1, 2], [3, 4, 5]], columns=["A", "B", "C"],).set_flags(
-       allows_duplicate_labels=False
-   )
+   pd.DataFrame(
+       [[0, 1, 2], [3, 4, 5]],
+       columns=["A", "B", "C"],
+   ).set_flags(allows_duplicate_labels=False)
 
 This attribute can be checked or set with :attr:`~DataFrame.flags.allows_duplicate_labels`,
 which indicates whether that object can have duplicate labels.

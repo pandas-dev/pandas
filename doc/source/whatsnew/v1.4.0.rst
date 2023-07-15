@@ -27,8 +27,8 @@ library. Running the script ``setting_with_copy_warning.py``
 
     import pandas as pd
 
-    df = pd.DataFrame({'a': [1, 2, 3]})
-    df[:2].loc[:, 'a'] = 5
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df[:2].loc[:, "a"] = 5
 
 with pandas 1.3 resulted in::
 
@@ -154,8 +154,10 @@ respectively. Previously, negative arguments returned empty frames.
 
 .. ipython:: python
 
-    df = pd.DataFrame([["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"],
-                       ["h", "h0"], ["h", "h1"]], columns=["A", "B"])
+    df = pd.DataFrame(
+        [["g", "g0"], ["g", "g1"], ["g", "g2"], ["g", "g3"], ["h", "h0"], ["h", "h1"]],
+        columns=["A", "B"],
+    )
     df.groupby("A").head(-1)
 
 
@@ -189,13 +191,11 @@ library to produce a tight representation of :class:`DataFrame` objects
 
     df = pd.DataFrame.from_records(
         [[1, 3], [2, 4]],
-        index=pd.MultiIndex.from_tuples([("a", "b"), ("a", "c")],
-                                        names=["n1", "n2"]),
-        columns=pd.MultiIndex.from_tuples([("x", 1), ("y", 2)],
-                                          names=["z1", "z2"]),
+        index=pd.MultiIndex.from_tuples([("a", "b"), ("a", "c")], names=["n1", "n2"]),
+        columns=pd.MultiIndex.from_tuples([("x", 1), ("y", 2)], names=["z1", "z2"]),
     )
     df
-    df.to_dict(orient='tight')
+    df.to_dict(orient="tight")
 
 .. _whatsnew_140.enhancements.other:
 
@@ -436,7 +436,8 @@ This inconsistency has been removed, pandas now tests up to equality.
     def func(x):
         return x.copy()
 
-    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
     df
 
 *Previous behavior*:
@@ -692,8 +693,8 @@ be removed in a future version. Use :func:`pandas.concat` instead (:issue:`35407
 
     pd.concat([pd.Series([1, 2]), pd.Series([3, 4])])
 
-    df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list('AB'))
-    df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list('AB'))
+    df1 = pd.DataFrame([[1, 2], [3, 4]], columns=list("AB"))
+    df2 = pd.DataFrame([[5, 6], [7, 8]], columns=list("AB"))
     pd.concat([df1, df2])
 
 

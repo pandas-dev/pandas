@@ -59,7 +59,7 @@ Window functions have been refactored to be methods on ``Series/DataFrame`` obje
 .. ipython:: python
 
    np.random.seed(1234)
-   df = pd.DataFrame({'A': range(10), 'B': np.random.randn(10)})
+   df = pd.DataFrame({"A": range(10), "B": np.random.randn(10)})
    df
 
 Previous behavior:
@@ -111,14 +111,13 @@ They provide getitem accessors
 
 .. ipython:: python
 
-   r['A'].mean()
+   r["A"].mean()
 
 And multiple aggregations
 
 .. ipython:: python
 
-   r.agg({'A': ['mean', 'std'],
-          'B': ['mean', 'std']})
+   r.agg({"A": ["mean", "std"], "B": ["mean", "std"]})
 
 .. _whatsnew_0180.enhancements.rename:
 
@@ -131,13 +130,12 @@ argument for altering the Series or axis *name*, in addition to their old behavi
 .. ipython:: python
 
    s = pd.Series(np.random.randn(5))
-   s.rename('newname')
+   s.rename("newname")
 
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(5, 2))
-   (df.rename_axis("indexname")
-      .rename_axis("columns_name", axis="columns"))
+   (df.rename_axis("indexname").rename_axis("columns_name", axis="columns"))
 
 The new functionality works well in method chains. Previously these methods only accepted functions or dicts mapping a *label* to a new label.
 This continues to work as before for function or dict-like values.
@@ -211,13 +209,13 @@ Extracting a regular expression with one group returns a Series if
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=False)
+   pd.Series(["a1", "b2", "c3"]).str.extract(r"[ab](\d)", expand=False)
 
 It returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
-   pd.Series(['a1', 'b2', 'c3']).str.extract(r'[ab](\d)', expand=True)
+   pd.Series(["a1", "b2", "c3"]).str.extract(r"[ab](\d)", expand=True)
 
 Calling on an ``Index`` with a regex with exactly one capture group
 returns an ``Index`` if ``expand=False``.
@@ -284,8 +282,8 @@ A new, friendlier ``ValueError`` is added to protect against the mistake of supp
 
 .. ipython:: python
 
-    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ')
-    pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
+    pd.Series(["a", "b", np.nan, "c"]).str.cat(sep=" ")
+    pd.Series(["a", "b", np.nan, "c"]).str.cat(sep=" ", na_rep="?")
 
 .. code-block:: ipython
 
@@ -304,33 +302,33 @@ Naive datetimes
 
 .. ipython:: python
 
-   dr = pd.date_range('20130101 09:12:56.1234', periods=3)
+   dr = pd.date_range("20130101 09:12:56.1234", periods=3)
    dr
-   dr.round('s')
+   dr.round("s")
 
    # Timestamp scalar
    dr[0]
-   dr[0].round('10s')
+   dr[0].round("10s")
 
 Tz-aware are rounded, floored and ceiled in local times
 
 .. ipython:: python
 
-   dr = dr.tz_localize('US/Eastern')
+   dr = dr.tz_localize("US/Eastern")
    dr
-   dr.round('s')
+   dr.round("s")
 
 Timedeltas
 
 .. ipython:: python
 
-   t = pd.timedelta_range('1 days 2 hr 13 min 45 us', periods=3, freq='d')
+   t = pd.timedelta_range("1 days 2 hr 13 min 45 us", periods=3, freq="d")
    t
-   t.round('10min')
+   t.round("10min")
 
    # Timedelta scalar
    t[0]
-   t[0].round('2h')
+   t[0].round("2h")
 
 
 In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available through the ``.dt`` accessor of ``Series``.
@@ -339,7 +337,7 @@ In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available throug
 
    s = pd.Series(dr)
    s
-   s.dt.round('D')
+   s.dt.round("D")
 
 Formatting of integers in FloatIndex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -373,7 +371,7 @@ New behavior:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3], index=np.arange(3.))
+   s = pd.Series([1, 2, 3], index=np.arange(3.0))
    s
    s.index
    print(s.to_csv(path_or_buf=None, header=False))
@@ -410,11 +408,10 @@ New behavior:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': [0, 1, 1],
-                      'b': pd.Series([100, 200, 300], dtype='uint32')})
+   df = pd.DataFrame({"a": [0, 1, 1], "b": pd.Series([100, 200, 300], dtype="uint32")})
    df.dtypes
-   ix = df['a'] == 1
-   df.loc[ix, 'b'] = df.loc[ix, 'b']
+   ix = df["a"] == 1
+   df.loc[ix, "b"] = df.loc[ix, "b"]
    df.dtypes
 
 When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
@@ -447,11 +444,13 @@ New behavior:
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
-                     columns=list('abc'),
-                     index=[[4,4,8], [8,10,12]])
+   df = pd.DataFrame(
+       np.array(range(1, 10)).reshape(3, 3),
+       columns=list("abc"),
+       index=[[4, 4, 8], [8, 10, 12]],
+   )
    df
-   df.loc[4, 'c'] = np.array([0., 1.])
+   df.loc[4, "c"] = np.array([0.0, 1.0])
    df
 
 .. _whatsnew_0180.enhancements.xarray:
@@ -562,7 +561,7 @@ are now also defined for ``NaT`` (:issue:`11564`).
 .. ipython:: python
 
    pd.NaT / pd.NaT
-   pd.Timedelta('1s') / pd.NaT
+   pd.Timedelta("1s") / pd.NaT
 
 ``NaT`` may represent either a ``datetime64[ns]`` null or a ``timedelta64[ns]`` null.
 Given the ambiguity, it is treated as a ``timedelta64[ns]``, which allows more operations
@@ -573,7 +572,7 @@ to succeed.
    pd.NaT + pd.NaT
 
    # same as
-   pd.Timedelta('1s') + pd.Timedelta('1s')
+   pd.Timedelta("1s") + pd.Timedelta("1s")
 
 as opposed to
 
@@ -593,21 +592,21 @@ the ``dtype`` information is respected.
 
 .. ipython:: python
 
-   pd.Series([pd.NaT], dtype='<m8[ns]') + pd.Series([pd.NaT], dtype='<m8[ns]')
+   pd.Series([pd.NaT], dtype="<m8[ns]") + pd.Series([pd.NaT], dtype="<m8[ns]")
 
 ``Timedelta`` division by ``floats`` now works.
 
 .. ipython:: python
 
-   pd.Timedelta('1s') / 2.0
+   pd.Timedelta("1s") / 2.0
 
 Subtraction by ``Timedelta`` in a ``Series`` by a ``Timestamp`` works (:issue:`11925`)
 
 .. ipython:: python
 
-   ser = pd.Series(pd.timedelta_range('1 day', periods=3))
+   ser = pd.Series(pd.timedelta_range("1 day", periods=3))
    ser
-   pd.Timestamp('2012-01-01') - ser
+   pd.Timestamp("2012-01-01") - ser
 
 
 ``NaT.isoformat()`` now returns ``'NaT'``. This change allows
@@ -669,10 +668,22 @@ New signature
 
 .. ipython:: python
 
-   pd.Series([0,1]).rank(axis=0, method='average', numeric_only=False,
-                         na_option='keep', ascending=True, pct=False)
-   pd.DataFrame([0,1]).rank(axis=0, method='average', numeric_only=False,
-                            na_option='keep', ascending=True, pct=False)
+   pd.Series([0, 1]).rank(
+       axis=0,
+       method="average",
+       numeric_only=False,
+       na_option="keep",
+       ascending=True,
+       pct=False,
+   )
+   pd.DataFrame([0, 1]).rank(
+       axis=0,
+       method="average",
+       numeric_only=False,
+       na_option="keep",
+       ascending=True,
+       pct=False,
+   )
 
 
 Bug in QuarterBegin with n=0
@@ -687,7 +698,7 @@ forward to the next anchor point.
 
 .. ipython:: python
 
-   d = pd.Timestamp('2014-02-01')
+   d = pd.Timestamp("2014-02-01")
    d
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
    d + pd.offsets.QuarterBegin(n=0, startingMonth=1)
@@ -707,7 +718,7 @@ other anchored offsets like ``MonthBegin`` and ``YearBegin``.
 
 .. ipython:: python
 
-   d = pd.Timestamp('2014-02-15')
+   d = pd.Timestamp("2014-02-15")
    d + pd.offsets.QuarterBegin(n=0, startingMonth=2)
 
 .. _whatsnew_0180.breaking.resample:
@@ -720,10 +731,11 @@ Like the change in the window functions API :ref:`above <whatsnew_0180.enhanceme
 .. ipython:: python
 
    np.random.seed(1234)
-   df = pd.DataFrame(np.random.rand(10,4),
-                     columns=list('ABCD'),
-                     index=pd.date_range('2010-01-01 09:00:00',
-                                         periods=10, freq='s'))
+   df = pd.DataFrame(
+       np.random.rand(10, 4),
+       columns=list("ABCD"),
+       index=pd.date_range("2010-01-01 09:00:00", periods=10, freq="s"),
+   )
    df
 
 
@@ -764,7 +776,7 @@ yields a ``Resampler``.
 .. ipython:: python
    :okwarning:
 
-   r = df.resample('2s')
+   r = df.resample("2s")
    r
 
 Downsampling
@@ -785,19 +797,19 @@ Furthermore, resample now supports ``getitem`` operations to perform the resampl
 
 .. ipython:: python
 
-   r[['A','C']].mean()
+   r[["A", "C"]].mean()
 
 and ``.aggregate`` type operations.
 
 .. ipython:: python
 
-   r.agg({'A' : 'mean', 'B' : 'sum'})
+   r.agg({"A": "mean", "B": "sum"})
 
 These accessors can of course, be combined
 
 .. ipython:: python
 
-   r[['A','B']].agg(['mean','sum'])
+   r[["A", "B"]].agg(["mean", "sum"])
 
 Upsampling
 """"""""""
@@ -810,8 +822,9 @@ performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 
 .. ipython:: python
 
-   s = pd.Series(np.arange(5, dtype='int64'),
-                 index=pd.date_range('2010-01-01', periods=5, freq='Q'))
+   s = pd.Series(
+       np.arange(5, dtype="int64"), index=pd.date_range("2010-01-01", periods=5, freq="Q")
+   )
    s
 
 Previously
@@ -839,7 +852,7 @@ New API
 
 .. ipython:: python
 
-   s.resample('M').ffill()
+   s.resample("M").ffill()
 
 .. note::
 
@@ -893,7 +906,7 @@ Previous API will work but with deprecations
 
    .. ipython:: python
 
-      df.resample('2s').min()
+      df.resample("2s").min()
 
    The good news is the return dimensions will differ between the new API and the old API, so this should loudly raise
    an exception.
@@ -902,7 +915,7 @@ Previous API will work but with deprecations
 
    .. ipython:: python
 
-      df.resample('2s').mean().min()
+      df.resample("2s").mean().min()
 
 Changes to eval
 ^^^^^^^^^^^^^^^
@@ -912,13 +925,13 @@ in an inplace change to the ``DataFrame``. (:issue:`9297`, :issue:`8664`, :issue
 
 .. ipython:: python
 
-   df = pd.DataFrame({'a': np.linspace(0, 10, 5), 'b': range(5)})
+   df = pd.DataFrame({"a": np.linspace(0, 10, 5), "b": range(5)})
    df
 
 .. ipython:: python
    :suppress:
 
-   df.eval('c = a + b', inplace=True)
+   df.eval("c = a + b", inplace=True)
 
 .. code-block:: ipython
 
@@ -941,9 +954,9 @@ assignment should be done inplace or return a copy.
 .. ipython:: python
 
    df
-   df.eval('d = c - b', inplace=False)
+   df.eval("d = c - b", inplace=False)
    df
-   df.eval('d = c - b', inplace=True)
+   df.eval("d = c - b", inplace=True)
    df
 
 .. warning::
@@ -956,8 +969,8 @@ The ``inplace`` keyword parameter was also added the ``query`` method.
 
 .. ipython:: python
 
-   df.query('a > 5')
-   df.query('a > 5', inplace=True)
+   df.query("a > 5")
+   df.query("a > 5", inplace=True)
    df
 
 .. warning::
@@ -972,10 +985,13 @@ assignments are valid for multi-line expressions.
 .. ipython:: python
 
    df
-   df.eval("""
+   df.eval(
+       """
    e = d + a
    f = e - 22
-   g = f / 2.0""", inplace=True)
+   g = f / 2.0""",
+       inplace=True,
+   )
    df
 
 
@@ -987,7 +1003,7 @@ Other API changes
 
   .. ipython:: python
 
-     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
+     s = pd.Series(range(10), pd.date_range("2015-01-01", freq="H", periods=10))
      s.between_time("7:00am", "9:00am")
 
   This will now raise.
@@ -1071,7 +1087,7 @@ In 0.18.0, this deprecation warning is removed and these will now raise a ``Type
 
    s = pd.Series([1, 2, 3], index=[4, 5, 6])
    s
-   s2 = pd.Series([1, 2, 3], index=list('abc'))
+   s2 = pd.Series([1, 2, 3], index=list("abc"))
    s2
 
 Previous behavior:
@@ -1160,7 +1176,7 @@ Float indexing on a ``Float64Index`` is unchanged.
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3], index=np.arange(3.))
+   s = pd.Series([1, 2, 3], index=np.arange(3.0))
    s[1.0]
    s[1.0:2.5]
 

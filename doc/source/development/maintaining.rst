@@ -138,6 +138,7 @@ create a file ``t.py`` in your pandas directory, which contains
 .. code-block:: python
 
     import pandas as pd
+
     assert pd.Series([1, 1]).sum() == 2
 
 and then run::

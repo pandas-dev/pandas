@@ -658,7 +658,7 @@ Arithmetic operations with scalars operate element-wise:
 
    df * 5 + 2
    1 / df
-   df ** 4
+   df**4
 
 .. _dsintro.boolean:
 

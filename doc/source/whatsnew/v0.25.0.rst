@@ -41,14 +41,18 @@ output columns when applying multiple aggregation functions to specific columns 
 
 .. ipython:: python
 
-   animals = pd.DataFrame({'kind': ['cat', 'dog', 'cat', 'dog'],
-                           'height': [9.1, 6.0, 9.5, 34.0],
-                           'weight': [7.9, 7.5, 9.9, 198.0]})
+   animals = pd.DataFrame(
+       {
+           "kind": ["cat", "dog", "cat", "dog"],
+           "height": [9.1, 6.0, 9.5, 34.0],
+           "weight": [7.9, 7.5, 9.9, 198.0],
+       }
+   )
    animals
    animals.groupby("kind").agg(
-       min_height=pd.NamedAgg(column='height', aggfunc='min'),
-       max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='weight', aggfunc="mean"),
+       min_height=pd.NamedAgg(column="height", aggfunc="min"),
+       max_height=pd.NamedAgg(column="height", aggfunc="max"),
+       average_weight=pd.NamedAgg(column="weight", aggfunc="mean"),
    )
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
@@ -59,9 +63,9 @@ what the arguments to the function are, but plain tuples are accepted as well.
 .. ipython:: python
 
    animals.groupby("kind").agg(
-       min_height=('height', 'min'),
-       max_height=('height', 'max'),
-       average_weight=('weight', 'mean'),
+       min_height=("height", "min"),
+       max_height=("height", "max"),
+       average_weight=("weight", "mean"),
    )
 
 Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
@@ -93,14 +97,11 @@ You can now provide multiple lambda functions to a list-like aggregation in
 
 .. ipython:: python
 
-   animals.groupby('kind').height.agg([
-       lambda x: x.iloc[0], lambda x: x.iloc[-1]
-   ])
+   animals.groupby("kind").height.agg([lambda x: x.iloc[0], lambda x: x.iloc[-1]])
 
-   animals.groupby('kind').agg([
-       lambda x: x.iloc[0] - x.iloc[1],
-       lambda x: x.iloc[0] + x.iloc[1]
-   ])
+   animals.groupby("kind").agg(
+       [lambda x: x.iloc[0] - x.iloc[1], lambda x: x.iloc[0] + x.iloc[1]]
+   )
 
 Previously, these raised a ``SpecificationError``.
 
@@ -117,7 +118,7 @@ The repr now looks like this:
 
 .. ipython:: python
 
-   pd.MultiIndex.from_product([['a', 'abc'], range(500)])
+   pd.MultiIndex.from_product([["a", "abc"], range(500)])
 
 Previously, outputting a :class:`MultiIndex` printed all the ``levels`` and
 ``codes`` of the ``MultiIndex``, which was visually unappealing and made
@@ -194,15 +195,14 @@ Here is a typical usecase. You have comma separated string in a column.
 
 .. ipython:: python
 
-    df = pd.DataFrame([{'var1': 'a,b,c', 'var2': 1},
-                       {'var1': 'd,e,f', 'var2': 2}])
+    df = pd.DataFrame([{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}])
     df
 
 Creating a long form ``DataFrame`` is now straightforward using chained operations
 
 .. ipython:: python
 
-    df.assign(var1=df.var1.str.split(',')).explode('var1')
+    df.assign(var1=df.var1.str.split(",")).explode("var1")
 
 .. _whatsnew_0250.enhancements.other:
 
@@ -253,7 +253,7 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
 .. ipython:: python
 
-    df = pd.DataFrame([0], index=pd.DatetimeIndex(['2019-01-01'], tz='US/Pacific'))
+    df = pd.DataFrame([0], index=pd.DatetimeIndex(["2019-01-01"], tz="US/Pacific"))
     df
 
 *Previous behavior*:
@@ -269,7 +269,7 @@ is respected in indexing. (:issue:`24076`, :issue:`16785`)
 
 .. ipython:: python
 
-    df['2019-01-01 12:00:00+04:00':'2019-01-01 13:00:00+04:00']
+    df["2019-01-01 12:00:00+04:00":"2019-01-01 13:00:00+04:00"]
 
 
 .. _whatsnew_0250.api_breaking.multi_indexing:
@@ -301,8 +301,7 @@ would be reassigned as -1. (:issue:`19387`)
 .. ipython:: python
     :okexcept:
 
-    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]],
-                  codes=[[0, -1, 1, 2, 3, 4]])
+    pd.MultiIndex(levels=[[np.nan, None, pd.NaT, 128, 2]], codes=[[0, -1, 1, 2, 3, 4]])
     pd.MultiIndex(levels=[[1, 2]], codes=[[0, -2]])
 
 
@@ -322,6 +321,7 @@ Now every group is evaluated only a single time.
 
     df = pd.DataFrame({"a": ["x", "y"], "b": [1, 2]})
     df
+
 
     def func(group):
         print(group.name)
@@ -420,9 +420,9 @@ of ``object`` dtype. :attr:`Series.str` will now infer the dtype data *within* t
 .. ipython:: python
     :okexcept:
 
-    s = pd.Series(np.array(['a', 'ba', 'cba'], 'S'), dtype=object)
+    s = pd.Series(np.array(["a", "ba", "cba"], "S"), dtype=object)
     s
-    s.str.startswith(b'a')
+    s.str.startswith(b"a")
 
 .. _whatsnew_0250.api_breaking.groupby_categorical:
 
@@ -434,7 +434,7 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 .. ipython:: python
 
    cat = pd.Categorical(["foo", "bar", "bar", "qux"], ordered=True)
-   df = pd.DataFrame({'payload': [-1, -2, -1, -2], 'col': cat})
+   df = pd.DataFrame({"payload": [-1, -2, -1, -2], "col": cat})
    df
    df.dtypes
 
@@ -442,14 +442,14 @@ Previously, columns that were categorical, but not the groupby key(s) would be c
 
 .. code-block:: python
 
-   In [5]: df.groupby('payload').first().col.dtype
-   Out[5]: dtype('O')
+   In[5]: df.groupby("payload").first().col.dtype
+   Out[5]: dtype("O")
 
 *New Behavior*:
 
 .. ipython:: python
 
-   df.groupby('payload').first().col.dtype
+   df.groupby("payload").first().col.dtype
 
 
 .. _whatsnew_0250.api_breaking.incompatible_index_unions:
@@ -583,18 +583,18 @@ this would previously return ``True`` for any ``Interval`` overlapping an ``Inte
 
 .. code-block:: python
 
-   In [4]: pd.Interval(1, 2, closed='neither') in ii
+   In[4]: pd.Interval(1, 2, closed="neither") in ii
    Out[4]: True
 
-   In [5]: pd.Interval(-10, 10, closed='both') in ii
+   In[5]: pd.Interval(-10, 10, closed="both") in ii
    Out[5]: True
 
 *New behavior*:
 
 .. ipython:: python
 
-   pd.Interval(1, 2, closed='neither') in ii
-   pd.Interval(-10, 10, closed='both') in ii
+   pd.Interval(1, 2, closed="neither") in ii
+   pd.Interval(-10, 10, closed="both") in ii
 
 The :meth:`~IntervalIndex.get_loc` method now only returns locations for exact matches to ``Interval`` queries, as opposed to the previous behavior of
 returning locations for overlapping matches.  A ``KeyError`` will be raised if an exact match is not found.
@@ -603,10 +603,10 @@ returning locations for overlapping matches.  A ``KeyError`` will be raised if a
 
 .. code-block:: python
 
-   In [6]: ii.get_loc(pd.Interval(1, 5))
+   In[6]: ii.get_loc(pd.Interval(1, 5))
    Out[6]: array([0, 1])
 
-   In [7]: ii.get_loc(pd.Interval(2, 6))
+   In[7]: ii.get_loc(pd.Interval(2, 6))
    Out[7]: array([0, 1, 2])
 
 *New behavior*:
@@ -627,7 +627,7 @@ These indexing changes extend to querying a :class:`Series` or :class:`DataFrame
 
 .. ipython:: python
 
-   s = pd.Series(list('abc'), index=ii)
+   s = pd.Series(list("abc"), index=ii)
    s
 
 Selecting from a ``Series`` or ``DataFrame`` using ``[]`` (``__getitem__``) or ``loc`` now only returns exact matches for ``Interval`` queries.
@@ -708,8 +708,8 @@ when both are :class:`Series` (:issue:`23293`).
 
 .. ipython:: python
 
-   s1 = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
-   s2 = pd.Series([3, 4, 5], index=['d', 'c', 'b'])
+   s1 = pd.Series([1, 2, 3], index=["a", "b", "c"])
+   s2 = pd.Series([3, 4, 5], index=["d", "c", "b"])
    s1
    s2
 
@@ -746,7 +746,7 @@ consistent with NumPy and the rest of pandas (:issue:`21801`).
 
 .. ipython:: python
 
-   cat = pd.Categorical(['b', None, 'a'], categories=['a', 'b'], ordered=True)
+   cat = pd.Categorical(["b", None, "a"], categories=["a", "b"], ordered=True)
 
 *Previous behavior*
 
@@ -782,9 +782,9 @@ This change applies only when pandas is running on Python>=3.6 (:issue:`27309`).
 .. ipython:: python
 
    data = [
-       {'name': 'Joe', 'state': 'NY', 'age': 18},
-       {'name': 'Jane', 'state': 'KY', 'age': 19, 'hobby': 'Minecraft'},
-       {'name': 'Jean', 'state': 'OK', 'age': 20, 'finances': 'good'}
+       {"name": "Joe", "state": "NY", "age": 18},
+       {"name": "Jane", "state": "KY", "age": 19, "hobby": "Minecraft"},
+       {"name": "Jean", "state": "OK", "age": 20, "finances": "good"},
    ]
 
 *Previous Behavior*:

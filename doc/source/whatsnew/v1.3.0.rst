@@ -185,13 +185,13 @@ The PyArrow backed StringArray requires pyarrow 1.0.0 or greater to be installed
 
 .. ipython:: python
 
-   pd.Series(['abc', None, 'def'], dtype=pd.StringDtype(storage="pyarrow"))
+   pd.Series(["abc", None, "def"], dtype=pd.StringDtype(storage="pyarrow"))
 
 You can use the alias ``"string[pyarrow]"`` as well.
 
 .. ipython:: python
 
-   s = pd.Series(['abc', None, 'def'], dtype="string[pyarrow]")
+   s = pd.Series(["abc", None, "def"], dtype="string[pyarrow]")
    s
 
 You can also create a PyArrow backed string array using pandas options.
@@ -199,7 +199,7 @@ You can also create a PyArrow backed string array using pandas options.
 .. ipython:: python
 
     with pd.option_context("string_storage", "pyarrow"):
-        s = pd.Series(['abc', None, 'def'], dtype="string")
+        s = pd.Series(["abc", None, "def"], dtype="string")
     s
 
 The usual string accessor methods work. Where appropriate, the return type of the Series
@@ -208,7 +208,7 @@ or columns of a DataFrame will also have string dtype.
 .. ipython:: python
 
    s.str.upper()
-   s.str.split('b', expand=True).dtypes
+   s.str.split("b", expand=True).dtypes
 
 String accessor methods returning integers will return a value with :class:`Int64Dtype`
 
@@ -302,8 +302,8 @@ As an example of this, given:
 
 .. ipython:: python
 
-        dtype = pd.CategoricalDtype(['bad', 'neutral', 'good'], ordered=True)
-        cat = pd.Categorical(['good', 'good', 'bad', 'bad'], dtype=dtype)
+        dtype = pd.CategoricalDtype(["bad", "neutral", "good"], ordered=True)
+        cat = pd.Categorical(["good", "good", "bad", "bad"], dtype=dtype)
         original = pd.Series(cat)
         unique = original.unique()
 
@@ -370,7 +370,7 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
 .. ipython:: python
 
-    df = pd.DataFrame({'key': [1, 1], 'a': [True, False], 'b': [True, True]})
+    df = pd.DataFrame({"key": [1, 1], "a": [True, False], "b": [True, True]})
     df
 
 *Previous behavior*:
@@ -387,7 +387,7 @@ values as measured by ``np.allclose``. Now no such casting occurs.
 
 .. ipython:: python
 
-    df.groupby('key').agg(lambda x: x.sum())
+    df.groupby("key").agg(lambda x: x.sum())
 
 .. _whatsnew_130.notable_bug_fixes.groupby_reductions_float_result:
 
@@ -399,7 +399,7 @@ Now, these methods will always return a float dtype. (:issue:`41137`)
 
 .. ipython:: python
 
-    df = pd.DataFrame({'a': [True], 'b': [1], 'c': [1.0]})
+    df = pd.DataFrame({"a": [True], "b": [1], "c": [1.0]})
 
 *Previous behavior*:
 
@@ -593,8 +593,8 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
 
 .. ipython:: python
 
-   index = pd.MultiIndex.from_tuples([('idx1', 'idx2')], names=['label1', 'label2'])
-   df = pd.DataFrame({'a': [1], 'b': [2]}, index=index)
+   index = pd.MultiIndex.from_tuples([("idx1", "idx2")], names=["label1", "label2"])
+   df = pd.DataFrame({"a": [1], "b": [2]}, index=index)
    df
 
 *Previous behavior*:
@@ -611,7 +611,7 @@ with a :class:`MultiIndex` in the result. This can lead to a perceived duplicati
 
 .. ipython:: python
 
-    df.groupby('label1').rolling(1).sum()
+    df.groupby("label1").rolling(1).sum()
 
 
 .. ---------------------------------------------------------------------------

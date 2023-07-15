@@ -748,7 +748,7 @@ If running under Jupyter Notebook, the plot will appear on :meth:`~Series.plot`.
 
 .. ipython:: python
 
-   plt.show();
+   plt.show()
 
 On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all
 of the columns with labels:

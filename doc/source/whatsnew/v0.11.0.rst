@@ -74,12 +74,16 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 
 .. ipython:: python
 
-   df1 = pd.DataFrame(np.random.randn(8, 1), columns=['A'], dtype='float32')
+   df1 = pd.DataFrame(np.random.randn(8, 1), columns=["A"], dtype="float32")
    df1
    df1.dtypes
-   df2 = pd.DataFrame({'A': pd.Series(np.random.randn(8), dtype='float16'),
-                       'B': pd.Series(np.random.randn(8)),
-                       'C': pd.Series(range(8), dtype='uint8')})
+   df2 = pd.DataFrame(
+       {
+           "A": pd.Series(np.random.randn(8), dtype="float16"),
+           "B": pd.Series(np.random.randn(8)),
+           "C": pd.Series(range(8), dtype="uint8"),
+       }
+   )
    df2
    df2.dtypes
 
@@ -101,7 +105,7 @@ Conversion
 
 .. ipython:: python
 
-   df3.astype('float32').dtypes
+   df3.astype("float32").dtypes
 
 Mixed conversion
 
@@ -290,16 +294,17 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.random.randn(6, 2), pd.date_range('20010102', periods=6),
-                     columns=['A', ' B'])
-   df['timestamp'] = pd.Timestamp('20010103')
+   df = pd.DataFrame(
+       np.random.randn(6, 2), pd.date_range("20010102", periods=6), columns=["A", " B"]
+   )
+   df["timestamp"] = pd.Timestamp("20010103")
    df
 
    # datetime64[ns] out of the box
    df.dtypes.value_counts()
 
    # use the traditional nan, which is mapped to NaT internally
-   df.loc[df.index[2:4], ['A', 'timestamp']] = np.nan
+   df.loc[df.index[2:4], ["A", "timestamp"]] = np.nan
    df
 
 Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
@@ -307,12 +312,13 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT
 .. ipython:: python
 
    import datetime
+
    s = pd.Series([datetime.datetime(2001, 1, 2, 0, 0) for i in range(3)])
    s.dtype
    s[1] = np.nan
    s
    s.dtype
-   s = s.astype('O')
+   s = s.astype("O")
    s
    s.dtype
 
@@ -346,9 +352,9 @@ Enhancements
 
       .. ipython:: python
 
-          df = pd.DataFrame({'A': range(5), 'B': range(5)})
-          df.to_hdf('store.h5', 'table', append=True)
-          pd.read_hdf('store.h5', 'table', where=['index > 2'])
+          df = pd.DataFrame({"A": range(5), "B": range(5)})
+          df.to_hdf("store.h5", "table", append=True)
+          pd.read_hdf("store.h5", "table", where=["index > 2"])
 
       .. ipython:: python
           :suppress:
@@ -356,7 +362,7 @@ Enhancements
 
           import os
 
-          os.remove('store.h5')
+          os.remove("store.h5")
 
     - provide dotted attribute access to ``get`` from stores, e.g. ``store.df == store['df']``
 
@@ -370,12 +376,12 @@ Enhancements
     .. ipython:: python
        :okexcept:
 
-        idx = pd.date_range("2001-10-1", periods=5, freq='M')
+        idx = pd.date_range("2001-10-1", periods=5, freq="M")
         ts = pd.Series(np.random.rand(len(idx)), index=idx)
-        ts['2001']
+        ts["2001"]
 
-        df = pd.DataFrame({'A': ts})
-        df['2001']
+        df = pd.DataFrame({"A": ts})
+        df["2001"]
 
   - ``Squeeze`` to possibly remove length 1 dimensions from an object.
 

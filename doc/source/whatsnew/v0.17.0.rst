@@ -362,7 +362,7 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
 
 .. ipython:: python
 
-   df = pd.DataFrame({u"国籍": ["UK", u"日本"], u"名前": ["Alice", u"しのぶ"]})
+   df = pd.DataFrame({"国籍": ["UK", "日本"], "名前": ["Alice", "しのぶ"]})
    df
 
 .. ipython:: python
@@ -782,9 +782,7 @@ Previous behavior:
 
 .. ipython:: python
 
-   df_with_missing = pd.DataFrame(
-       {"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]}
-   )
+   df_with_missing = pd.DataFrame({"col1": [0, np.nan, 2], "col2": [1, np.nan, np.nan]})
 
    df_with_missing
 

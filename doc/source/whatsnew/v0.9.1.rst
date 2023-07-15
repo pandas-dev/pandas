@@ -40,15 +40,15 @@ New features
 
     .. ipython:: python
 
-        df = pd.DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
+        df = pd.DataFrame(np.random.randn(6, 3), columns=["A", "B", "C"])
 
         df.loc[2:4] = np.nan
 
         df.rank()
 
-        df.rank(na_option='top')
+        df.rank(na_option="top")
 
-        df.rank(na_option='bottom')
+        df.rank(na_option="bottom")
 
 
   - DataFrame has new ``where`` and ``mask`` methods to select values according to a
@@ -59,11 +59,11 @@ New features
 
         .. ipython:: python
 
-            df = pd.DataFrame(np.random.randn(5, 3), columns=['A', 'B', 'C'])
+            df = pd.DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
 
             df
 
-            df[df['A'] > 0]
+            df[df["A"] > 0]
 
         If a DataFrame is sliced with a DataFrame based boolean condition (with the same size as the original DataFrame),
         then a DataFrame the same size (index and columns) as the original is returned, with
@@ -140,7 +140,7 @@ API changes
 
     .. ipython:: python
 
-        p = pd.Period('2012')
+        p = pd.Period("2012")
 
         p.end_time
 
@@ -152,10 +152,8 @@ API changes
 
         import io
 
-        data = ('A,B,C\n'
-                '00001,001,5\n'
-                '00002,002,6')
-        pd.read_csv(io.StringIO(data), converters={'A': lambda x: x.strip()})
+        data = "A,B,C\n" "00001,001,5\n" "00002,002,6"
+        pd.read_csv(io.StringIO(data), converters={"A": lambda x: x.strip()})
 
 
 See the :ref:`full release notes

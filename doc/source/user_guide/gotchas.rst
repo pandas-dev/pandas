@@ -144,7 +144,7 @@ Using the Python ``in`` operator on a :class:`Series` tests for membership in th
 
     s = pd.Series(range(5), index=list("abcde"))
     2 in s
-    'b' in s
+    "b" in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
 dictionary tests keys, not values, and :class:`Series` are dict-like.
@@ -197,6 +197,7 @@ Here is a similar example with :meth:`DataFrame.apply`:
        s.pop("a")
        return s
 
+
    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
    try:
        df.apply(f, axis="columns")
@@ -226,7 +227,8 @@ not apply to the container being iterated over.
        s.pop("a")
        return s
 
-   df = pd.DataFrame({"a": [1, 2, 3], 'b': [4, 5, 6]})
+
+   df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
    df.apply(f, axis="columns")
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions

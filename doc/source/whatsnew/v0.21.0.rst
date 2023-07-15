@@ -8,7 +8,7 @@ Version 0.21.0 (October 27, 2017)
 .. ipython:: python
    :suppress:
 
-   from pandas import * # noqa F401, F403
+   from pandas import *  # noqa F401, F403
 
 
 This is a major release from 0.20.3 and includes a number of API changes, deprecations, new features,
@@ -69,9 +69,9 @@ to native types, but not any coercive conversions. For example:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1, 2, 3],
-                      'B': np.array([1, 2, 3], dtype='object'),
-                      'C': ['1', '2', '3']})
+   df = pd.DataFrame(
+       {"A": [1, 2, 3], "B": np.array([1, 2, 3], dtype="object"), "C": ["1", "2", "3"]}
+   )
    df.dtypes
    df.infer_objects().dtypes
 
@@ -82,7 +82,7 @@ using the :func:`to_numeric` function (or :func:`to_datetime`, :func:`to_timedel
 .. ipython:: python
 
    df = df.infer_objects()
-   df['C'] = pd.to_numeric(df['C'], errors='coerce')
+   df["C"] = pd.to_numeric(df["C"], errors="coerce")
    df.dtypes
 
 .. _whatsnew_0210.enhancements.attribute_access:
@@ -126,12 +126,11 @@ For example:
 
 .. ipython:: python
 
-    df = pd.DataFrame(np.arange(8).reshape(2, 4),
-                      columns=['A', 'B', 'C', 'D'])
+    df = pd.DataFrame(np.arange(8).reshape(2, 4), columns=["A", "B", "C", "D"])
     df
-    df.drop(['B', 'C'], axis=1)
+    df.drop(["B", "C"], axis=1)
     # the following is now equivalent
-    df.drop(columns=['B', 'C'])
+    df.drop(columns=["B", "C"])
 
 .. _whatsnew_0210.enhancements.rename_reindex_axis:
 
@@ -147,22 +146,22 @@ Here's ``rename``:
 .. ipython:: python
 
    df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-   df.rename(str.lower, axis='columns')
-   df.rename(id, axis='index')
+   df.rename(str.lower, axis="columns")
+   df.rename(id, axis="index")
 
 And ``reindex``:
 
 .. ipython:: python
 
-   df.reindex(['A', 'B', 'C'], axis='columns')
-   df.reindex([0, 1, 3], axis='index')
+   df.reindex(["A", "B", "C"], axis="columns")
+   df.reindex([0, 1, 3], axis="index")
 
 The "index, columns" style continues to work as before.
 
 .. ipython:: python
 
    df.rename(index=id, columns=str.lower)
-   df.reindex(index=[0, 1, 3], columns=['A', 'B', 'C'])
+   df.reindex(index=[0, 1, 3], columns=["A", "B", "C"])
 
 We *highly* encourage using named arguments to avoid confusion when using either
 style.
@@ -183,8 +182,8 @@ when converting string data to a ``Categorical`` (:issue:`14711`,
 
    from pandas.api.types import CategoricalDtype
 
-   s = pd.Series(['a', 'b', 'c', 'a'])  # strings
-   dtype = CategoricalDtype(categories=['a', 'b', 'c', 'd'], ordered=True)
+   s = pd.Series(["a", "b", "c", "a"])  # strings
+   dtype = CategoricalDtype(categories=["a", "b", "c", "d"], ordered=True)
    s.astype(dtype)
 
 One place that deserves special mention is in :meth:`read_csv`. Previously, with
@@ -198,8 +197,8 @@ be strings.
 
 .. ipython:: python
 
-   data = 'A,B\na,1\nb,2\nc,3'
-   pd.read_csv(StringIO(data), dtype={'B': 'category'}).B.cat.categories
+   data = "A,B\na,1\nb,2\nc,3"
+   pd.read_csv(StringIO(data), dtype={"B": "category"}).B.cat.categories
 
 Notice the "object" dtype.
 
@@ -208,7 +207,7 @@ timedeltas, we can automatically convert to the correct type
 
 .. ipython:: python
 
-   dtype = {'B': CategoricalDtype([1, 2, 3])}
+   dtype = {"B": CategoricalDtype([1, 2, 3])}
    pd.read_csv(StringIO(data), dtype=dtype).B.cat.categories
 
 The values have been correctly interpreted as integers.
@@ -242,23 +241,28 @@ First we set the data:
 .. ipython:: python
 
    import numpy as np
+
    n = 1000
-   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-                      'Product': np.random.choice(['Product_1',
-                                                   'Product_2',
-                                                   'Product_3'
-                                                   ], n),
-                      'Revenue': (np.random.random(n) * 50 + 10).round(2),
-                      'Quantity': np.random.randint(1, 10, size=n)})
+   df = pd.DataFrame(
+       {
+           "Store": np.random.choice(["Store_1", "Store_2"], n),
+           "Product": np.random.choice(["Product_1", "Product_2", "Product_3"], n),
+           "Revenue": (np.random.random(n) * 50 + 10).round(2),
+           "Quantity": np.random.randint(1, 10, size=n),
+       }
+   )
    df.head(2)
 
 Now, to find prices per store/product, we can simply do:
 
 .. ipython:: python
 
-   (df.groupby(['Store', 'Product'])
-      .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
-      .unstack().round(2))
+   (
+       df.groupby(["Store", "Product"])
+       .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
+       .unstack()
+       .round(2)
+   )
 
 See the :ref:`documentation <groupby.pipe>` for more.
 
@@ -275,7 +279,7 @@ as in :meth:`DataFrame.rename`.
 
 .. ipython:: python
 
-   c = pd.Categorical(['a', 'a', 'b'])
+   c = pd.Categorical(["a", "a", "b"])
    c.rename_categories({"a": "eh", "b": "bee"})
 
 .. warning::
@@ -535,7 +539,7 @@ Furthermore this will now correctly box the results of iteration for :func:`Data
 
 .. ipython:: python
 
-   d = {'a': [1], 'b': ['b']}
+   d = {"a": [1], "b": ["b"]}
    df = pd.DataFrame(d)
 
 Previously:
@@ -549,7 +553,7 @@ New behavior:
 
 .. ipython:: python
 
-   type(df.to_dict()['a'][0])
+   type(df.to_dict()["a"][0])
 
 
 .. _whatsnew_0210.api_breaking.loc_with_index:
@@ -593,7 +597,7 @@ Previously behavior:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3], index=['a', 'b', 'c'])
+   s = pd.Series([1, 2, 3], index=["a", "b", "c"])
    s
 
 .. code-block:: ipython
@@ -639,11 +643,11 @@ New behavior:
 
 .. ipython:: python
 
-   pi = pd.period_range('2017-01', periods=12, freq='M')
+   pi = pd.period_range("2017-01", periods=12, freq="M")
 
    s = pd.Series(np.arange(12), index=pi)
 
-   resampled = s.resample('2Q').mean()
+   resampled = s.resample("2Q").mean()
 
    resampled
 
@@ -675,13 +679,13 @@ New behavior:
 
 .. ipython:: python
 
-   pi = pd.period_range(start='2000-01-01', freq='D', periods=10)
+   pi = pd.period_range(start="2000-01-01", freq="D", periods=10)
 
    s = pd.Series(np.arange(10), index=pi)
 
-   s.resample('H').ohlc()
+   s.resample("H").ohlc()
 
-   s.resample('M').ohlc()
+   s.resample("M").ohlc()
 
 
 .. _whatsnew_0210.api_breaking.pandas_eval:
@@ -765,7 +769,7 @@ non-datetime-like item being assigned (:issue:`14145`).
 
 .. ipython:: python
 
-   s = pd.Series([pd.Timestamp('2011-01-01'), pd.Timestamp('2012-01-01')])
+   s = pd.Series([pd.Timestamp("2011-01-01"), pd.Timestamp("2012-01-01")])
 
 .. code-block:: python
 
@@ -810,7 +814,7 @@ length 2+ levels, so a :class:`MultiIndex` is always returned from all of the
 
 .. ipython:: python
 
-   pd.MultiIndex.from_tuples([('a',), ('b',)])
+   pd.MultiIndex.from_tuples([("a",), ("b",)])
 
 .. _whatsnew_0210.api.utc_localization_with_series:
 
@@ -823,7 +827,7 @@ Previous behavior
 
 .. ipython:: python
 
-   s = pd.Series(['20130101 00:00:00'] * 3)
+   s = pd.Series(["20130101 00:00:00"] * 3)
 
 .. code-block:: ipython
 
@@ -970,7 +974,7 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': [1, 2, 3]}, index=['foo', 'bar', 'baz'])
+   df = pd.DataFrame({"A": [1, 2, 3]}, index=["foo", "bar", "baz"])
 
 .. code-block:: ipython
 
@@ -983,7 +987,7 @@ The :meth:`Series.select` and :meth:`DataFrame.select` methods are deprecated in
 
 .. ipython:: python
 
-   df.loc[df.index.map(lambda x: x in ['bar', 'baz'])]
+   df.loc[df.index.map(lambda x: x in ["bar", "baz"])]
 
 
 .. _whatsnew_0210.deprecations.argmin_min:

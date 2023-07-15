@@ -50,7 +50,7 @@ marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` 
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, np.nan], dtype='Int64')
+   s = pd.Series([1, 2, np.nan], dtype="Int64")
    s
 
 
@@ -68,7 +68,7 @@ Operations on these dtypes will propagate ``NaN`` as other pandas operations.
    s.iloc[1:3]
 
    # operate with other dtypes
-   s + s.iloc[1:3].astype('Int8')
+   s + s.iloc[1:3].astype("Int8")
 
    # coerce when needed
    s + 0.01
@@ -77,7 +77,7 @@ These dtypes can operate as part of a ``DataFrame``.
 
 .. ipython:: python
 
-   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   df = pd.DataFrame({"A": s, "B": [1, 1, 3], "C": list("aab")})
    df
    df.dtypes
 
@@ -86,15 +86,15 @@ These dtypes can be merged, reshaped, and casted.
 
 .. ipython:: python
 
-   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
-   df['A'].astype(float)
+   pd.concat([df[["A"]], df[["B", "C"]]], axis=1).dtypes
+   df["A"].astype(float)
 
 Reduction and groupby operations such as ``sum`` work.
 
 .. ipython:: python
 
    df.sum()
-   df.groupby('B').A.sum()
+   df.groupby("B").A.sum()
 
 .. warning::
 
@@ -113,7 +113,7 @@ Accessing the values in a Series or Index
 
 .. ipython:: python
 
-   idx = pd.period_range('2000', periods=4)
+   idx = pd.period_range("2000", periods=4)
    idx.array
    pd.Series(idx).array
 
@@ -166,8 +166,8 @@ See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
 
 .. ipython:: python
 
-   pd.array([1, 2, np.nan], dtype='Int64')
-   pd.array(['a', 'b', 'c'], dtype='category')
+   pd.array([1, 2, np.nan], dtype="Int64")
+   pd.array(["a", "b", "c"], dtype="category")
 
 Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
 will return a new :class:`arrays.PandasArray`, which is just a thin (no-copy)
@@ -252,19 +252,21 @@ See the :ref:`Merge, join, and concatenate
 
 .. ipython:: python
 
-   index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
-                                          ('K1', 'X2')],
-                                          names=['key', 'X'])
+   index_left = pd.MultiIndex.from_tuples(
+       [("K0", "X0"), ("K0", "X1"), ("K1", "X2")], names=["key", "X"]
+   )
 
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
-                        'B': ['B0', 'B1', 'B2']}, index=index_left)
+   left = pd.DataFrame(
+       {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=index_left
+   )
 
-   index_right = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
-                                           ('K2', 'Y2'), ('K2', 'Y3')],
-                                           names=['key', 'Y'])
+   index_right = pd.MultiIndex.from_tuples(
+       [("K0", "Y0"), ("K1", "Y1"), ("K2", "Y2"), ("K2", "Y3")], names=["key", "Y"]
+   )
 
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3']}, index=index_right)
+   right = pd.DataFrame(
+       {"C": ["C0", "C1", "C2", "C3"], "D": ["D0", "D1", "D2", "D3"]}, index=index_right
+   )
 
    left.join(right)
 
@@ -272,8 +274,9 @@ For earlier versions this can be done using the following.
 
 .. ipython:: python
 
-   pd.merge(left.reset_index(), right.reset_index(),
-            on=['key'], how='inner').set_index(['key', 'X', 'Y'])
+   pd.merge(left.reset_index(), right.reset_index(), on=["key"], how="inner").set_index(
+       ["key", "X", "Y"]
+   )
 
 .. _whatsnew_0240.enhancements.read_html:
 
@@ -286,7 +289,9 @@ value. (:issue:`17054`)
 
 .. ipython:: python
 
-    result = pd.read_html(StringIO("""
+    result = pd.read_html(
+        StringIO(
+            """
       <table>
         <thead>
           <tr>
@@ -298,7 +303,9 @@ value. (:issue:`17054`)
             <td colspan="2">1</td><td>2</td>
           </tr>
         </tbody>
-      </table>"""))
+      </table>"""
+        )
+    )
 
 *Previous behavior*:
 
@@ -325,13 +332,16 @@ convenient way to apply users' predefined styling functions, and can help reduce
 
 .. ipython:: python
 
-    df = pd.DataFrame({'N': [1250, 1500, 1750], 'X': [0.25, 0.35, 0.50]})
+    df = pd.DataFrame({"N": [1250, 1500, 1750], "X": [0.25, 0.35, 0.50]})
+
 
     def format_and_align(styler):
-        return (styler.format({'N': '{:,}', 'X': '{:.1%}'})
-                      .set_properties(**{'text-align': 'right'}))
+        return styler.format({"N": "{:,}", "X": "{:.1%}"}).set_properties(
+            **{"text-align": "right"}
+        )
 
-    df.style.pipe(format_and_align).set_caption('Summary of results.')
+
+    df.style.pipe(format_and_align).set_caption("Summary of results.")
 
 Similar methods already exist for other classes in pandas, including :meth:`DataFrame.pipe`,
 :meth:`GroupBy.pipe() <pandas.core.groupby.GroupBy.pipe>`, and :meth:`Resampler.pipe() <pandas.core.resample.Resampler.pipe>`.
@@ -351,11 +361,12 @@ Example:
 
 .. ipython:: python
 
-    mi = pd.MultiIndex.from_product([list('AB'), list('CD'), list('EF')],
-                                    names=['AB', 'CD', 'EF'])
-    df = pd.DataFrame(list(range(len(mi))), index=mi, columns=['N'])
+    mi = pd.MultiIndex.from_product(
+        [list("AB"), list("CD"), list("EF")], names=["AB", "CD", "EF"]
+    )
+    df = pd.DataFrame(list(range(len(mi))), index=mi, columns=["N"])
     df
-    df.rename_axis(index={'CD': 'New'})
+    df.rename_axis(index={"CD": "New"})
 
 See the :ref:`Advanced documentation on renaming<advanced.index_names>` for more details.
 
@@ -583,9 +594,9 @@ missing indicator, ``np.nan``. (:issue:`20377`)
 
 .. ipython:: python
 
-   data = 'a,b,c\n1,,3\n4,5,6'
-   df = pd.read_csv(StringIO(data), engine='python', dtype=str, na_filter=True)
-   df.loc[0, 'b']
+   data = "a,b,c\n1,,3\n4,5,6"
+   df = pd.read_csv(StringIO(data), engine="python", dtype=str, na_filter=True)
+   df.loc[0, "b"]
 
 Notice how we now instead output ``np.nan`` itself instead of a stringified form of it.
 
@@ -634,8 +645,7 @@ Parsing datetime strings with different UTC offsets will now create an Index of
 
 .. ipython:: python
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                          "2015-11-18 16:30:00+06:30"])
+    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
     idx
     idx[0]
     idx[1]
@@ -645,8 +655,7 @@ that the dates have been converted to UTC
 
 .. ipython:: python
 
-    pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                    "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 
 .. _whatsnew_0240.api_breaking.read_csv_mixed_tz:
@@ -676,11 +685,12 @@ Parsing mixed-timezones with :func:`read_csv`
 .. ipython:: python
 
    import io
+
    content = """\
    a
    2000-01-01T00:00:00+05:00
    2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+   df = pd.read_csv(io.StringIO(content), parse_dates=["a"])
    df.a
 
 As can be seen, the ``dtype`` is object; each value in the column is a string.
@@ -732,7 +742,7 @@ is the case with :attr:`Period.end_time`, for example
 
 .. ipython:: python
 
-   p = pd.Period('2017-01-01', 'D')
+   p = pd.Period("2017-01-01", "D")
    pi = pd.PeriodIndex([p])
 
    pd.Series(pi).dt.end_time[0]
@@ -749,8 +759,7 @@ from an :class:`numpy.ndarray` of :class:`Timestamp` objects to a :class:`arrays
 
 .. ipython:: python
 
-   ser = pd.Series([pd.Timestamp('2000', tz='UTC'),
-                    pd.Timestamp('2000', tz='UTC')])
+   ser = pd.Series([pd.Timestamp("2000", tz="UTC"), pd.Timestamp("2000", tz="UTC")])
 
 *Previous behavior*:
 
@@ -803,7 +812,7 @@ Finally, a ``Series.sparse`` accessor was added to provide sparse-specific metho
 
 .. ipython:: python
 
-   s = pd.Series([0, 0, 1, 1, 1], dtype='Sparse[int]')
+   s = pd.Series([0, 0, 1, 1, 1], dtype="Sparse[int]")
    s.sparse.density
 
 .. _whatsnew_0240.api_breaking.get_dummies:
@@ -834,7 +843,7 @@ then all the columns are dummy-encoded, and a :class:`SparseDataFrame` was retur
 .. ipython:: python
    :suppress:
 
-   df = pd.DataFrame({"A": [1, 2], "B": ['a', 'b'], "C": ['a', 'a']})
+   df = pd.DataFrame({"A": [1, 2], "B": ["a", "b"], "C": ["a", "a"]})
 
 *New behavior*
 
@@ -843,7 +852,7 @@ Now, the return type is consistently a :class:`DataFrame`.
 .. ipython:: python
 
    type(pd.get_dummies(df, sparse=True))
-   type(pd.get_dummies(df[['B', 'C']], sparse=True))
+   type(pd.get_dummies(df[["B", "C"]], sparse=True))
 
 .. note::
 
@@ -862,10 +871,10 @@ Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with
 .. ipython:: python
     :okexcept:
 
-    df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+    df = pd.DataFrame({"a": [1, 2], "b": [0.5, 0.75]}, index=["A", "A"])
     df
 
-    df.to_dict(orient='index')
+    df.to_dict(orient="index")
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -903,7 +912,7 @@ where addition could fail to be monotone or associative.  (:issue:`21427`)
 
 .. ipython:: python
 
-    ts = pd.Timestamp('2018-06-11 18:01:14')
+    ts = pd.Timestamp("2018-06-11 18:01:14")
     tic = pd.offsets.Hour(n=2)
     ts + tic + tic + tic == ts + (tic + tic + tic)
 
@@ -934,8 +943,8 @@ instead of an integer (:issue:`21314`)
 
 .. ipython:: python
 
-    june = pd.Period('June 2018')
-    april = pd.Period('April 2018')
+    june = pd.Period("June 2018")
+    april = pd.Period("April 2018")
     june - april
 
 Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
@@ -954,7 +963,7 @@ an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 .. ipython:: python
 
-    pi = pd.period_range('June 2018', freq='M', periods=3)
+    pi = pd.period_range("June 2018", freq="M", periods=3)
     pi - pi[0]
 
 
@@ -1108,8 +1117,8 @@ broadcast.  (:issue:`23000`)
 
 .. ipython:: python
 
-   df + arr[[0], :]   # 1 row, 2 columns
-   df + arr[:, [1]]   # 1 column, 3 rows
+   df + arr[[0], :]  # 1 row, 2 columns
+   df + arr[:, [1]]  # 1 column, 3 rows
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -1368,13 +1377,13 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
     :okexcept:
     :okwarning:
 
-    ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    ts = pd.Timestamp("1994-05-06 12:15:16", freq=pd.offsets.Hour())
     ts + 2 * ts.freq
 
-    tdi = pd.timedelta_range('1D', periods=2)
+    tdi = pd.timedelta_range("1D", periods=2)
     tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
 
-    dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    dti = pd.date_range("2001-01-01", periods=2, freq="7D")
     dti + pd.Index([1 * dti.freq, 2 * dti.freq])
 
 
@@ -1416,13 +1425,13 @@ the integer values are UTC, and then converting to the final timezone:
 
 .. ipython:: python
 
-   pd.to_datetime([946684800000000000], utc=True).tz_convert('US/Central')
+   pd.to_datetime([946684800000000000], utc=True).tz_convert("US/Central")
 
 The old behavior can be retained with by localizing directly to the final timezone:
 
 .. ipython:: python
 
-   pd.to_datetime([946684800000000000]).tz_localize('US/Central')
+   pd.to_datetime([946684800000000000]).tz_localize("US/Central")
 
 .. _whatsnew_0240.deprecations.tz_aware_array:
 
@@ -1446,7 +1455,7 @@ timezone attached
 
 .. ipython:: python
 
-   ser = pd.Series(pd.date_range('2000', periods=2, tz="CET"))
+   ser = pd.Series(pd.date_range("2000", periods=2, tz="CET"))
    ser
 
 The default behavior remains the same, but issues a warning
@@ -1472,7 +1481,7 @@ the ``dtype``
 
 .. ipython:: python
 
-   np.asarray(ser, dtype='datetime64[ns]')
+   np.asarray(ser, dtype="datetime64[ns]")
 
 *Future behavior*
 

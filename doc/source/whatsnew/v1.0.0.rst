@@ -68,7 +68,7 @@ We've added :meth:`~DataFrame.to_markdown` for creating a markdown table (:issue
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=['a', 'a', 'b'])
+   df = pd.DataFrame({"A": [1, 2, 3], "B": [1, 2, 3]}, index=["a", "a", "b"])
    print(df.to_markdown())
 
 Experimental new features
@@ -145,13 +145,13 @@ The ``'string'`` extension type solves several issues with object-dtype NumPy ar
 
 .. ipython:: python
 
-   pd.Series(['abc', None, 'def'], dtype=pd.StringDtype())
+   pd.Series(["abc", None, "def"], dtype=pd.StringDtype())
 
 You can use the alias ``"string"`` as well.
 
 .. ipython:: python
 
-   s = pd.Series(['abc', None, 'def'], dtype="string")
+   s = pd.Series(["abc", None, "def"], dtype="string")
    s
 
 The usual string accessor methods work. Where appropriate, the return type
@@ -160,7 +160,7 @@ of the Series or columns of a DataFrame will also have string dtype.
 .. ipython:: python
 
    s.str.upper()
-   s.str.split('b', expand=True).dtypes
+   s.str.split("b", expand=True).dtypes
 
 String accessor methods returning integers will return a value with :class:`Int64Dtype`
 
@@ -208,9 +208,9 @@ Example:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'x': ['abc', None, 'def'],
-                      'y': [1, 2, np.nan],
-                      'z': [True, False, True]})
+   df = pd.DataFrame(
+       {"x": ["abc", None, "def"], "y": [1, 2, np.nan], "z": [True, False, True]}
+   )
    df
    df.dtypes
 
@@ -283,7 +283,7 @@ For backwards compatibility, you can still *access* the names via the levels.
 
 .. ipython:: python
 
-   mi = pd.MultiIndex.from_product([[1, 2], ['a', 'b']], names=['x', 'y'])
+   mi = pd.MultiIndex.from_product([[1, 2], ["a", "b"]], names=["x", "y"])
    mi.levels[0].name
 
 However, it is no longer possible to *update* the names of the ``MultiIndex``
@@ -427,9 +427,9 @@ Extended verbose info output for :class:`~pandas.DataFrame`
 
 .. ipython:: python
 
-   df = pd.DataFrame({"int_col": [1, 2, 3],
-                      "text_col": ["a", "b", "c"],
-                      "float_col": [0.0, 0.1, 0.2]})
+   df = pd.DataFrame(
+       {"int_col": [1, 2, 3], "text_col": ["a", "b", "c"], "float_col": [0.0, 0.1, 0.2]}
+   )
    df.info(verbose=True)
 
 :meth:`pandas.array` inference changes
@@ -645,8 +645,9 @@ scalar values in the result are instances of the extension dtype's scalar type.
 
 .. ipython:: python
 
-   df = pd.DataFrame({"A": ['a', 'b']}, dtype='category',
-                     index=pd.date_range('2000', periods=2))
+   df = pd.DataFrame(
+       {"A": ["a", "b"]}, dtype="category", index=pd.date_range("2000", periods=2)
+   )
    df
 
 
@@ -662,7 +663,7 @@ scalar values in the result are instances of the extension dtype's scalar type.
 
 .. ipython:: python
 
-   df.resample("2D").agg(lambda x: 'a').A.dtype
+   df.resample("2D").agg(lambda x: "a").A.dtype
 
 This fixes an inconsistency between ``resample`` and ``groupby``.
 This also fixes a potential bug, where the **values** of the result might change
@@ -682,7 +683,7 @@ depending on how the results are cast back to the original dtype.
 
 .. ipython:: python
 
-   df.resample("2D").agg(lambda x: 'c')
+   df.resample("2D").agg(lambda x: "c")
 
 
 .. _whatsnew_100.api_breaking.python:

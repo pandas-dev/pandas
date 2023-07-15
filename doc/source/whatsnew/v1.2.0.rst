@@ -152,8 +152,8 @@ The keyword ``position`` has been added to set the position.
 .. ipython:: python
    :okwarning:
 
-   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-   table = data.to_latex(position='ht')
+   data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+   table = data.to_latex(position="ht")
    print(table)
 
 Usage of the keyword ``caption`` has been extended.
@@ -164,8 +164,8 @@ to add a short caption macro.
 .. ipython:: python
    :okwarning:
 
-   data = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-   table = data.to_latex(caption=('the full long caption', 'short caption'))
+   data = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+   table = data.to_latex(caption=("the full long caption", "short caption"))
    print(table)
 
 .. _whatsnew_120.read_csv_table_precision_default:
@@ -245,9 +245,9 @@ example where the index name is preserved:
 
 .. ipython:: python
 
-    idx = pd.Index(range(5), name='abc')
+    idx = pd.Index(range(5), name="abc")
     ser = pd.Series(range(5, 10), index=idx)
-    pd.concat({'x': ser[1:], 'y': ser[:-1]}, axis=1)
+    pd.concat({"x": ser[1:], "y": ser[:-1]}, axis=1)
 
 The same is true for :class:`MultiIndex`, but the logic is applied separately on a
 level-by-level basis.
@@ -261,9 +261,9 @@ GroupBy supports EWM operations directly
 
 .. ipython:: python
 
-    df = pd.DataFrame({'A': ['a', 'b', 'a', 'b'], 'B': range(4)})
+    df = pd.DataFrame({"A": ["a", "b", "a", "b"], "B": range(4)})
     df
-    df.groupby('A').ewm(com=1.0).mean()
+    df.groupby("A").ewm(com=1.0).mean()
 
 Additionally ``mean`` supports execution via `Numba <https://numba.pydata.org/>`__ with
 the  ``engine`` and ``engine_kwargs`` arguments. Numba must be installed as an optional dependency
@@ -356,9 +356,9 @@ of columns could result in a larger Series result. See (:issue:`37799`).
 .. ipython:: python
    :okwarning:
 
-    In [5]: df.all(bool_only=True)
+    In[5]: df.all(bool_only=True)
 
-    In [6]: df[["B", "C"]].all(bool_only=True)
+    In[6]: df[["B", "C"]].all(bool_only=True)
 
 
 Other DataFrame reductions with ``numeric_only=None`` will also avoid

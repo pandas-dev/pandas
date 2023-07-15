@@ -62,9 +62,9 @@ Some other important things to know about the docs:
 
   will be rendered as::
 
-      In [1]: x = 2
+      In[1]: x = 2
 
-      In [2]: x**3
+      In[2]: x**3
       Out[2]: 8
 
   Almost all code examples in the docs are run (and the output saved) during the
@@ -191,7 +191,7 @@ to speed up the documentation build. You can override this::
 Open the following file in a web browser to see the full documentation you
 just built::
 
-    doc/build/html/index.html
+    doc / build / html / index.html
 
 And you'll have the satisfaction of seeing your new and improved documentation!
 

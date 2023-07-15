@@ -39,6 +39,7 @@ initialized with a ``pyarrow.DataType``.
 .. ipython:: python
 
     import pyarrow as pa
+
     ser_float = pd.Series([1.0, 2.0, None], dtype="float32[pyarrow]")
     ser_float
 
@@ -115,8 +116,7 @@ to the index in the resample when :meth:`.Resampler.apply` is used.
 .. ipython:: python
 
     df = pd.DataFrame(
-        {'a': range(6)},
-        index=pd.date_range("2021-01-01", periods=6, freq="8H")
+        {"a": range(6)}, index=pd.date_range("2021-01-01", periods=6, freq="8H")
     )
     df.resample("D", group_keys=True).apply(lambda x: x)
     df.resample("D", group_keys=False).apply(lambda x: x)
@@ -158,9 +158,15 @@ Added new function :func:`~pandas.from_dummies` to convert a dummy coded :class:
 
     import pandas as pd
 
-    df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-                       "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-                       "col2_c": [0, 0, 1]})
+    df = pd.DataFrame(
+        {
+            "col1_a": [1, 0, 1],
+            "col1_b": [0, 1, 0],
+            "col2_a": [0, 1, 0],
+            "col2_b": [1, 0, 0],
+            "col2_c": [0, 0, 1],
+        }
+    )
 
     pd.from_dummies(df, sep="_")
 
@@ -206,7 +212,9 @@ If the compression method cannot be inferred, use the ``compression`` argument:
 
 .. code-block:: python
 
-   df = pd.read_csv(some_file_obj, compression={"method": "tar", "mode": "r:gz"}) # noqa F821
+   df = pd.read_csv(
+       some_file_obj, compression={"method": "tar", "mode": "r:gz"}
+   )  # noqa F821
 
 (``mode`` being one of ``tarfile.open``'s modes: https://docs.python.org/3/library/tarfile.html#tarfile.open)
 
@@ -222,6 +230,7 @@ apply converter methods, and parse dates (:issue:`43567`).
 .. ipython:: python
 
     from io import StringIO
+
     xml_dates = """<?xml version='1.0' encoding='utf-8'?>
     <data>
       <row>
@@ -246,9 +255,9 @@ apply converter methods, and parse dates (:issue:`43567`).
 
     df = pd.read_xml(
         StringIO(xml_dates),
-        dtype={'sides': 'Int64'},
-        converters={'degrees': str},
-        parse_dates=['date']
+        dtype={"sides": "Int64"},
+        converters={"degrees": str},
+        parse_dates=["date"],
     )
     df
     df.dtypes
@@ -402,7 +411,7 @@ did not have the same index as the input.
 
 .. ipython:: python
 
-    df = pd.DataFrame({'a': [1, 1, np.nan], 'b': [2, 3, 4]})
+    df = pd.DataFrame({"a": [1, 1, np.nan], "b": [2, 3, 4]})
 
 *Old behavior*:
 
@@ -442,10 +451,10 @@ did not have the same index as the input.
 
 .. ipython:: python
 
-    df.groupby('a', dropna=True).transform('sum')
-    df.groupby('a', dropna=True).transform(lambda x: x.sum())
-    df.groupby('a', dropna=True).transform('ffill')
-    df.groupby('a', dropna=True).transform(lambda x: x)
+    df.groupby("a", dropna=True).transform("sum")
+    df.groupby("a", dropna=True).transform(lambda x: x.sum())
+    df.groupby("a", dropna=True).transform("ffill")
+    df.groupby("a", dropna=True).transform(lambda x: x)
 
 .. _whatsnew_150.notable_bug_fixes.to_json_incorrectly_localizing_naive_timestamps:
 
@@ -464,9 +473,9 @@ upon serialization. (Related issue :issue:`12997`)
 .. ipython:: python
 
     index = pd.date_range(
-        start='2020-12-28 00:00:00',
-        end='2020-12-28 02:00:00',
-        freq='1H',
+        start="2020-12-28 00:00:00",
+        end="2020-12-28 02:00:00",
+        freq="1H",
     )
     a = pd.Series(
         data=range(3),
@@ -488,9 +497,10 @@ upon serialization. (Related issue :issue:`12997`)
 .. ipython:: python
 
     from io import StringIO
-    a.to_json(date_format='iso')
+
+    a.to_json(date_format="iso")
     # Roundtripping now works
-    pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    pd.read_json(StringIO(a.to_json(date_format="iso")), typ="series").index == a.index
 
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 
@@ -814,8 +824,8 @@ column from an array with different dtype:
 
 .. ipython:: python
 
-   df = pd.DataFrame({'price': [11.1, 12.2]}, index=['book1', 'book2'])
-   original_prices = df['price']
+   df = pd.DataFrame({"price": [11.1, 12.2]}, index=["book1", "book2"])
+   original_prices = df["price"]
    new_prices = np.array([98, 99])
 
 *Old behavior*:

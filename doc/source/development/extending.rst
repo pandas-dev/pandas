@@ -408,7 +408,6 @@ Below is an example to define two original properties, "internal_cache" as a tem
 .. code-block:: python
 
    class SubclassedDataFrame2(pd.DataFrame):
-
        # temporary properties
        _internal_names = pd.DataFrame._internal_names + ["internal_cache"]
        _internal_names_set = set(_internal_names)
@@ -525,6 +524,7 @@ The ``__pandas_priority__`` of :class:`DataFrame`, :class:`Series`, and :class:`
         def __radd__(self, other):
             # return `self` and not the addition for simplicity
             return self
+
 
     custom = CustomList()
     series = pd.Series([1, 2, 3])

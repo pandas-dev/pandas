@@ -137,7 +137,6 @@ backticks. The following are considered inline code:
 .. code-block:: python
 
     def func():
-
         """Some function.
 
         With several mistakes in the docstring.
@@ -297,7 +296,7 @@ would be used, then we will specify "str, int or None, default None".
 .. code-block:: python
 
     class Series:
-        def plot(self, kind, color='blue', **kwargs):
+        def plot(self, kind, color="blue", **kwargs):
             """
             Generate a plot.
 
@@ -463,6 +462,7 @@ With more than one value:
 
     import string
 
+
     def random_letters():
         """
         Generate and return a sequence of random letters.
@@ -478,8 +478,7 @@ With more than one value:
             String of random letters.
         """
         length = np.random.randint(1, 10)
-        letters = ''.join(np.random.choice(string.ascii_lowercase)
-                          for i in range(length))
+        letters = "".join(np.random.choice(string.ascii_lowercase) for i in range(length))
         return length, letters
 
 If the method yields its value:
@@ -628,7 +627,6 @@ A simple example could be:
 .. code-block:: python
 
     class Series:
-
         def head(self, n=5):
             """
             Return the first elements of the Series.
@@ -724,7 +722,6 @@ positional arguments ``head(3)``.
 .. code-block:: python
 
     class Series:
-
         def mean(self):
             """
             Compute the mean of the input.
@@ -736,7 +733,6 @@ positional arguments ``head(3)``.
             2
             """
             pass
-
 
         def fillna(self, value):
             """

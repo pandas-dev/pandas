@@ -218,11 +218,15 @@ This strategy is applied in the previous example:
 
 ::
 
-   fig, axs = plt.subplots(figsize=(12, 4))        # Create an empty Matplotlib Figure and Axes
-   air_quality.plot.area(ax=axs)                   # Use pandas to put the area plot on the prepared Figure/Axes
-   axs.set_ylabel("NO$_2$ concentration")          # Do any Matplotlib customization you like
-   fig.savefig("no2_concentrations.png")           # Save the Figure/Axes using the existing Matplotlib method.
-   plt.show()                                      # Display the plot
+   fig, axs = plt.subplots(figsize=(12, 4))  # Create an empty Matplotlib Figure and Axes
+   air_quality.plot.area(
+       ax=axs
+   )  # Use pandas to put the area plot on the prepared Figure/Axes
+   axs.set_ylabel("NO$_2$ concentration")  # Do any Matplotlib customization you like
+   fig.savefig(
+       "no2_concentrations.png"
+   )  # Save the Figure/Axes using the existing Matplotlib method.
+   plt.show()  # Display the plot
 
 .. raw:: html
 

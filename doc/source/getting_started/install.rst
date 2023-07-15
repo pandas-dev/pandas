@@ -178,6 +178,7 @@ libraries. Python internally has a list of directories it searches through, to f
 obtain these directories with::
 
             import sys
+
             sys.path
 
 One way you could be encountering this error is if you have multiple Python installations on your system

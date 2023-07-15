@@ -24,6 +24,7 @@ In these guides you will see input code inside code blocks such as:
 ::
 
     import pandas as pd
+
     pd.DataFrame({'A': [1, 2, 3]})
 
 
@@ -32,7 +33,8 @@ or:
 .. ipython:: python
 
     import pandas as pd
-    pd.DataFrame({'A': [1, 2, 3]})
+
+    pd.DataFrame({"A": [1, 2, 3]})
 
 The first block is a standard python input, while in the second the ``In [1]:`` indicates the input is inside a `notebook <https://jupyter.org>`__. In Jupyter Notebooks the last line is printed and plots are shown inline.
 

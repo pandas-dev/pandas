@@ -262,9 +262,7 @@ New columns
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {"AAA": [1, 1, 1, 2, 2, 2, 3, 3], "BBB": [2, 1, 3, 4, 5, 1, 2, 3]}
-   )
+   df = pd.DataFrame({"AAA": [1, 1, 1, 2, 2, 2, 3, 3], "BBB": [2, 1, 3, 4, 5, 1, 2, 3]})
    df
 
 Method 1 : idxmin() to get the index of the minimums
@@ -325,9 +323,7 @@ Arithmetic
 
 .. ipython:: python
 
-   cols = pd.MultiIndex.from_tuples(
-       [(x, y) for x in ["A", "B", "C"] for y in ["O", "I"]]
-   )
+   cols = pd.MultiIndex.from_tuples([(x, y) for x in ["A", "B", "C"] for y in ["O", "I"]])
    df = pd.DataFrame(np.random.randn(2, 6), index=["n", "m"], columns=cols)
    df
    df = df.div(df["C"], level=1)
@@ -492,11 +488,14 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    S = pd.Series([i / 100.0 for i in range(1, 11)])
 
+
    def cum_ret(x, y):
        return x * (1 + y)
 
+
    def red(x):
        return functools.reduce(cum_ret, x, 1.0)
+
 
    S.expanding().apply(red, raw=True)
 
@@ -509,9 +508,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    df = pd.DataFrame({"A": [1, 1, 2, 2], "B": [1, -1, 1, 2]})
    gb = df.groupby("A")
 
+
    def replace(g):
        mask = g < 0
        return g.where(~mask, g[~mask].mean())
+
 
    gb.transform(replace)
 
@@ -544,10 +545,12 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    rng = pd.date_range(start="2014-10-07", periods=10, freq="2min")
    ts = pd.Series(data=list(range(10)), index=rng)
 
+
    def MyCust(x):
        if len(x) > 2:
            return x.iloc[1] * 1.234
        return pd.NaT
+
 
    mhc = {"Mean": "mean", "Max": "max", "Custom": MyCust}
    ts.resample("5min").apply(mhc)
@@ -558,9 +561,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
 .. ipython:: python
 
-   df = pd.DataFrame(
-       {"Color": "Red Red Red Blue".split(), "Value": [100, 150, 50, 50]}
-   )
+   df = pd.DataFrame({"Color": "Red Red Red Blue".split(), "Value": [100, 150, 50, 50]})
    df
    df["Counts"] = df.groupby(["Color"]).transform(len)
    df
@@ -642,10 +643,7 @@ Create a list of dataframes, split using a delineation based on logic included i
    dfs = list(
        zip(
            *df.groupby(
-               (1 * (df["Case"] == "B"))
-               .cumsum()
-               .rolling(window=3, min_periods=1)
-               .median()
+               (1 * (df["Case"] == "B")).cumsum().rolling(window=3, min_periods=1).median()
            )
        )
    )[-1]
@@ -794,9 +792,11 @@ Apply
        index=["I", "II", "III"],
    )
 
+
    def make_df(ser):
        new_vals = [pd.Series(value, name=name) for name, value in ser.items()]
        return pd.DataFrame(new_vals)
+
 
    df_orgz = pd.concat({ind: row.pipe(make_df) for ind, row in df.iterrows()})
 
@@ -816,13 +816,15 @@ Rolling Apply to multiple columns where function calculates a Series before a Sc
    )
    df
 
+
    def gm(df, const):
        v = ((((df["A"] + df["B"]) + 1).cumprod()) - 1) * const
        return v.iloc[-1]
 
+
    s = pd.Series(
        {
-           df.index[i]: gm(df.iloc[i: min(i + 51, len(df) - 1)], 5)
+           df.index[i]: gm(df.iloc[i : min(i + 51, len(df) - 1)], 5)
            for i in range(len(df) - 50)
        }
    )
@@ -846,13 +848,15 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    )
    df
 
+
    def vwap(bars):
        return (bars.Close * bars.Volume).sum() / bars.Volume.sum()
+
 
    window = 5
    s = pd.concat(
        [
-           (pd.Series(vwap(df.iloc[i: i + window]), index=[df.index[i + window]]))
+           (pd.Series(vwap(df.iloc[i : i + window]), index=[df.index[i + window]]))
            for i in range(len(df) - window)
        ]
    )
@@ -1406,8 +1410,8 @@ The ``method`` argument within ``DataFrame.corr`` can accept a callable in addit
        A = a - a_bar - a_bar.T + np.full(shape=(n, n), fill_value=a_bar.mean())
        B = b - b_bar - b_bar.T + np.full(shape=(n, n), fill_value=b_bar.mean())
        cov_ab = np.sqrt(np.nansum(A * B)) / n
-       std_a = np.sqrt(np.sqrt(np.nansum(A ** 2)) / n)
-       std_b = np.sqrt(np.sqrt(np.nansum(B ** 2)) / n)
+       std_a = np.sqrt(np.sqrt(np.nansum(A**2)) / n)
+       std_b = np.sqrt(np.sqrt(np.nansum(B**2)) / n)
        return cov_ab / std_a / std_b
 
 
