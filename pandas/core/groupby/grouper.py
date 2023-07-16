@@ -125,7 +125,7 @@ class Grouper:
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby('Animal')`` is syntactic sugar for ``df.groupby(pd.Grouper(key="Animal"))``
 
     >>> df = pd.DataFrame(
     ...     {
