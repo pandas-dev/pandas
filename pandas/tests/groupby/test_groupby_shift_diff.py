@@ -7,6 +7,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -169,3 +170,48 @@ def test_group_shift_with_multiple_periods():
     # series
     shifted_series = df.groupby("b")["a"].shift([0, 1])
     tm.assert_frame_equal(shifted_series, expected_df)
+
+
+@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
+def test_group_shift_with_multiple_periods_fill_and_freq():
+    from pandas._libs import lib
+
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+        index=date_range("1/1/2000", periods=5, freq="H"),
+    )
+
+    msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
+    with pytest.raises(ValueError, match=msg):
+        df.shift([1, 2], fill_value=1, freq="H")
+
+    shifted_df = df.groupby("b")[["a"]].shift(
+        [0, 1],
+        freq="H",
+        fill_value=lib.no_default,
+    )
+    expected_df = DataFrame(
+        {
+            "a_0": [1.0, 2.0, 3.0, 4.0, 5.0, np.nan],
+            "a_1": [
+                np.nan,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+            ],
+        },
+        index=date_range("1/1/2000", periods=6, freq="H"),
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)
+
+    # series
+    shifted_df = df.groupby("b")[["a"]].shift(
+        [0, 1], freq=lib.no_default, fill_value=-1
+    )
+    expected_df = DataFrame(
+        {"a_0": [1, 2, 3, 4, 5], "a_1": [-1, 1, -1, 3, 2]},
+        index=date_range("1/1/2000", periods=5, freq="H"),
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)

@@ -4949,6 +4949,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if is_list_like(periods):
+            periods = cast(list, periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -4959,6 +4960,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             add_suffix = True
         else:
+            if not isinstance(periods, int):
+                raise TypeError(
+                    f"Periods must be integer, but {periods} is {type(periods)}."
+                )
             periods = [periods]
             add_suffix = False
 
@@ -4994,7 +4999,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )
-            shifted_dataframes.append(shifted)
+            shifted_dataframes.append(cast(Union[Series, DataFrame], shifted))
 
         return (
             shifted_dataframes[0]
