@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+import copy
 import datetime as dt
 from functools import partial
 import gc
@@ -6153,7 +6154,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         if isinstance(other, NDFrame):
             for name in other.attrs:
-                self.attrs[name] = other.attrs[name]
+                self.attrs[name] = copy.deepcopy(other.attrs[name])
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
