@@ -5507,6 +5507,13 @@ class DataFrame(NDFrame, OpsMixin):
         fill_value: Hashable = lib.no_default,
         suffix: str | None = None,
     ) -> DataFrame:
+        if freq is not None and fill_value is not lib.no_default:
+            # GH#53832
+            raise ValueError(
+                "Cannot pass both 'freq' and 'fill_value' to "
+                f"{type(self).__name__}.shift"
+            )
+
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
@@ -5533,13 +5540,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
             return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
         periods = cast(int, periods)
-
-        if freq is not None and fill_value is not lib.no_default:
-            # GH#53832
-            raise ValueError(
-                "Cannot pass both 'freq' and 'fill_value' to "
-                f"{type(self).__name__}.shift"
-            )
 
         ncols = len(self.columns)
         arrays = self._mgr.arrays

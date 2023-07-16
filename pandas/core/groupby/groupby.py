@@ -4949,8 +4949,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if is_list_like(periods):
-            # periods is not necessarily a list, but otherwise mypy complains.
-            periods = cast(list, periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -4959,39 +4957,50 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
 
-            shifted_dataframes = []
-            for period in periods:
-                if not isinstance(period, int):
-                    raise TypeError(
-                        f"Periods must be integer, but {period} is {type(period)}."
-                    )
-                shifted_dataframes.append(
-                    DataFrame(
-                        self.shift(
-                            periods=period, freq=freq, axis=axis, fill_value=fill_value
-                        )
-                    ).add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+            add_suffix = True
+        else:
+            periods = [periods]
+            add_suffix = False
+
+        shifted_dataframes = []
+        for period in periods:
+            if not isinstance(period, int):
+                raise TypeError(
+                    f"Periods must be integer, but {period} is {type(period)}."
                 )
-            return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
-        periods = cast(int, periods)
+            if freq is not None or axis != 0:
+                f = lambda x: x.shift(period, freq, axis, fill_value)
+                shifted = self._python_apply_general(
+                    f, self._selected_obj, is_transform=True
+                )
 
-        if freq is not None or axis != 0:
-            f = lambda x: x.shift(periods, freq, axis, fill_value)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+            else:
+                ids, _, ngroups = self.grouper.group_info
+                res_indexer = np.zeros(len(ids), dtype=np.int64)
 
-        ids, _, ngroups = self.grouper.group_info
-        res_indexer = np.zeros(len(ids), dtype=np.int64)
+                libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
 
-        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+                obj = self._obj_with_exclusions
 
-        obj = self._obj_with_exclusions
+                shifted = obj._reindex_with_indexers(
+                    {self.axis: (obj.axes[self.axis], res_indexer)},
+                    fill_value=fill_value,
+                    allow_dups=True,
+                )
 
-        res = obj._reindex_with_indexers(
-            {self.axis: (obj.axes[self.axis], res_indexer)},
-            fill_value=fill_value,
-            allow_dups=True,
+            if add_suffix:
+                if len(shifted.shape) == 1:
+                    shifted = shifted.to_frame()
+                shifted = shifted.add_suffix(
+                    f"{suffix}_{period}" if suffix else f"_{period}"
+                )
+            shifted_dataframes.append(shifted)
+
+        return (
+            shifted_dataframes[0]
+            if len(shifted_dataframes) == 1
+            else concat(shifted_dataframes, axis=1)
         )
-        return res
 
     @final
     @Substitution(name="groupby")

@@ -156,7 +156,7 @@ def test_multindex_empty_shift_with_fill():
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
 
 
-@pytest.mark.filterwarnings("ignore::FutureWarning")
+@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods():
     df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
 
