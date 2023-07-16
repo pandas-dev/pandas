@@ -3133,8 +3133,35 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> df.to_html()  # doctest: +SKIP
+        >>> df = pd.DataFrame({'ID': ['XYZ', 'ABC'],
+            'Department': ['HR', 'Admin'],
+            'Job Title': ['Title1', 'Title2']})
+        >>> print(df.to_html())
+        <table border="1" class="dataframe">
+        <thead>
+            <tr style="text-align: right;">
+            <th></th>
+            <th>ID</th>
+            <th>Department</th>
+            <th>Job Title</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <th>0</th>
+            <td>XYZ</td>
+            <td>HR</td>
+            <td>Title1</td>
+            </tr>
+            <tr>
+            <th>1</th>
+            <td>ABC</td>
+            <td>Admin</td>
+            <td>Title2</td>
+            </tr>
+        </tbody>
+        </table>
+
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
