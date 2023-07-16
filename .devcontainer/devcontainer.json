@@ -12,7 +12,6 @@
 		"vscode": {
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
-				"python.pythonPath": "/usr/local/bin/python",
 				"python.formatting.provider": "black",
 				"python.linting.enabled": true,
 				"python.linting.flake8Enabled": true,
