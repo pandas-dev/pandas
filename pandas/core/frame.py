@@ -9215,6 +9215,8 @@ class DataFrame(NDFrame, OpsMixin):
 
             if dropna is lib.no_default:
                 dropna = True
+            if sort is lib.no_default:
+                sort = True
 
             if isinstance(level, (tuple, list)):
                 result = stack_multiple(self, level, dropna=dropna, sort=sort)
