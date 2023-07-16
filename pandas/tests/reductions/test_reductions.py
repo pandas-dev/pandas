@@ -115,7 +115,13 @@ class TestReductions:
 
         obj = klass([NaT, datetime(2011, 11, 1)])
         assert getattr(obj, arg_op)() == 1
-        result = getattr(obj, arg_op)(skipna=False)
+
+        msg = (
+            "The behavior of (DatetimeIndex|Series).argmax/argmin with "
+            "skipna=False and NAs"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
         else:
@@ -124,7 +130,8 @@ class TestReductions:
         obj = klass([NaT, datetime(2011, 11, 1), NaT])
         # check DatetimeIndex non-monotonic path
         assert getattr(obj, arg_op)() == 1
-        result = getattr(obj, arg_op)(skipna=False)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
         else:
@@ -154,26 +161,40 @@ class TestReductions:
         obj = Index([np.nan, 1, np.nan, 2])
         assert obj.argmin() == 1
         assert obj.argmax() == 3
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        msg = "The behavior of Index.argmax/argmin with skipna=False and NAs"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
         obj = Index([np.nan])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
+        msg = "The behavior of DatetimeIndex.argmax/argmin with skipna=False and NAs"
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
         assert obj.argmin() == 1
         assert obj.argmax() == 2
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
         obj = Index([NaT])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):

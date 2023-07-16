@@ -14,6 +14,7 @@ from typing import (
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -36,6 +37,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -735,6 +737,13 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmax()
@@ -755,6 +764,13 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmin()
