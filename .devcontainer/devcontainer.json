@@ -2,6 +2,7 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/master/containers/python-3-miniconda
 {
 	"name": "pandas",
+	"containerUser": "pandas-dev",
 	"context": "..",
 	"dockerFile": "../Dockerfile",
 
