@@ -23,9 +23,13 @@ def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
     result = obj.value_counts()
+    present_types = set([type(i) for i in obj])
 
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
+
+    if len(present_types) > 1:
+        pytest.skip("Test doesn't make sense on data with different index types.")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -33,6 +37,7 @@ def test_value_counts(index_or_series_obj):
         with pytest.raises(NotImplementedError, match="float16 indexes are not "):
             expected.index.astype(obj.dtype)
         return
+
     if isinstance(expected.index, MultiIndex):
         expected.index.names = obj.names
     else:
@@ -57,11 +62,14 @@ def test_value_counts(index_or_series_obj):
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
     obj = orig.copy()
+    present_types = set([type(i) for i in obj])
 
     if not allow_na_ops(obj):
         pytest.skip("type doesn't allow for NA operations")
     elif len(obj) < 1:
         pytest.skip("Test doesn't make sense on empty data")
+    elif len(present_types) > 1:
+        pytest.skip("Test doesn't make sense on data with different index types.")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
