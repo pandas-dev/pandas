@@ -765,3 +765,14 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
+
+
+def test_attrs_copied():
+    df = pd.DataFrame({
+        'value': [1, 2]
+    })
+    df.attrs['transform'] = {}
+    df2 = pd.DataFrame({
+        'value': [1, 2]
+    }).__finalize__(df)
+    assert df.attrs['transform'] is not df2.attrs['transform']
