@@ -7,9 +7,10 @@ Installation
 ============
 
 The easiest way to install pandas is to install it
-as part of the `Anaconda <https://docs.continuum.io/anaconda/>`__ distribution, a
+as part of the `Anaconda <https://docs.continuum.io/free/anaconda/>`__ distribution, a
 cross platform distribution for data analysis and scientific computing.
-This is the recommended installation method for most users.
+The `Conda <https://conda.io/en/latest/>`__ package manager is the
+recommended installation method for most users.
 
 Instructions for installing :ref:`from source <install.source>`,
 :ref:`PyPI <install.pypi>`, or a
@@ -30,38 +31,26 @@ Installing pandas
 Installing with Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-For users that are new to Python, the easiest way to install Python, pandas, and the most popular
+For users that are new to Python, the easiest way to install Python, pandas, and the
 packages that make up the `PyData <https://pydata.org/>`__ stack
 (`SciPy <https://scipy.org/>`__, `NumPy <https://numpy.org/>`__,
-`Matplotlib <https://matplotlib.org/>`__, `and more <https://docs.continuum.io/anaconda/packages/pkg-docs/>`__)
-is with `Anaconda <https://docs.continuum.io/anaconda/>`__, a cross-platform
+`Matplotlib <https://matplotlib.org/>`__, `and more <https://docs.continuum.io/free/anaconda/reference/packages/pkg-docs/>`__)
+is with `Anaconda <https://docs.continuum.io/free/anaconda/>`__, a cross-platform
 (Linux, macOS, Windows) Python distribution for data analytics and
 scientific computing. Installation instructions for Anaconda
-`can be found here <https://docs.continuum.io/anaconda/install/>`__.
+`can be found here <https://docs.continuum.io/free/anaconda/install/>`__.
 
 .. _install.miniconda:
 
 Installing with Miniconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The previous section outlined how to get pandas installed as part of the
-`Anaconda <https://docs.continuum.io/anaconda/>`__ distribution.
-However this approach means you will install well over one hundred packages
-and involves downloading the installer which is a few hundred megabytes in size.
-
-If you want to have more control on which packages, or have a limited internet
-bandwidth, then installing pandas with
-`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__ is a better solution.
-`Miniconda <https://conda.pydata.org/miniconda.html>`__ allows you to create a
-minimal self contained Python installation, and then use the
-`Conda <https://conda.io/en/latest/>`__ command to install additional packages
-and create a virtual environment for your installation.
-
-First you will need `Conda <https://conda.io/en/latest/>`__ to be installed, and
-downloading and running the `Miniconda
-<https://conda.pydata.org/miniconda.html>`__
-will do this for you. The installer
-`can be found here <https://conda.pydata.org/miniconda.html>`__
+For users experienced with Python, the recommended way to install pandas with
+`Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__.
+Miniconda allows you to create a minimal, self-contained Python installation compared to Anaconda and use the
+`Conda <https://conda.io/en/latest/>`__ package manager to install additional packages
+and create a virtual environment for your installation. Installation instructions for Miniconda
+`can be found here <https://docs.conda.io/en/latest/miniconda.html>`__.
 
 The next step is to create a new conda environment. A conda environment is like a
 virtualenv that allows you to specify a specific version of Python and set of libraries.
@@ -92,6 +81,11 @@ pandas can be installed via pip from
 
     pip install pandas
 
+.. note::
+
+    It is recommended to install and run pandas from a virtual environment, for example,
+    using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
+
 pandas can also be installed with sets of optional dependencies to enable certain functionality. For example,
 to install pandas with the optional dependencies to read Excel files.
 
@@ -104,12 +98,14 @@ The full list of extras that can be installed can be found in the :ref:`dependen
 Handling ImportErrors
 ~~~~~~~~~~~~~~~~~~~~~
 
-If you encounter an ImportError, it usually means that Python couldn't find pandas in the list of available
+If you encounter an ``ImportError``, it usually means that Python couldn't find pandas in the list of available
 libraries. Python internally has a list of directories it searches through, to find packages. You can
-obtain these directories with::
+obtain these directories with.
 
-            import sys
-            sys.path
+.. code-block:: python
+
+    import sys
+    sys.path
 
 One way you could be encountering this error is if you have multiple Python installations on your system
 and you don't have pandas installed in the Python installation you're currently using.
