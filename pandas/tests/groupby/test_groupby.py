@@ -3122,3 +3122,31 @@ def test_groupby_with_Time_Grouper():
     df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
 
     tm.assert_frame_equal(df, expected_output)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize(
+    "kwarg, value, name, warn",
+    [
+        ("by", "a", 1, None),
+        ("by", ["a"], 1, FutureWarning),
+        ("by", ["a"], (1,), None),
+        ("level", 0, 1, None),
+        ("level", [0], 1, FutureWarning),
+        ("level", [0], (1,), None),
+    ],
+)
+def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
+    # GH#25971
+    obj = DataFrame({"b": [3, 4, 5]}, index=Index([1, 1, 2], name="a"))
+    if test_series:
+        obj = obj["b"]
+    gb = obj.groupby(**{kwarg: value})
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.get_group(name)
+    if test_series:
+        expected = Series([3, 4], index=Index([1, 1], name="a"), name="b")
+    else:
+        expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
+    tm.assert_equal(result, expected)
