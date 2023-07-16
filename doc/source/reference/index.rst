@@ -19,10 +19,10 @@ The following subpackages are public.
 - ``pandas.api.interchange``: DataFrame interchange protocol.
 - ``pandas.api.types``: Datatype classes and functions.
 - ``pandas.api.typing``: Classes that may be necessary for type-hinting.
-    These are classes that are encountered as intermediate results but should not be instantiated
-    directly by users. These classes are not to be confused with classes from the
-    `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`_ package
-    which has classes in addition to those that occur in pandas for type-hinting.
+  These are classes that are encountered as intermediate results but should not be instantiated
+  directly by users. These classes are not to be confused with classes from the
+  `pandas-stubs <https://github.com/pandas-dev/pandas-stubs>`_ package
+  which has classes in addition to those that occur in pandas for type-hinting.
 
 In addition, public functions in ``pandas.io`` and ``pandas.tseries`` submodules
 are mentioned in the documentation.
