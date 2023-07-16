@@ -4830,7 +4830,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add prefix on
 
             .. versionadded:: 2.0.0
@@ -4904,7 +4904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add suffix on
 
             .. versionadded:: 2.0.0
