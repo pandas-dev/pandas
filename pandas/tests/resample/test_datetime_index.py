@@ -925,6 +925,11 @@ def test_resample_origin_with_tz(unit):
     resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
+    resampled = ts.resample(
+        "5min", origin=Timestamp("1999-12-31 23:57:00", tz=tz)
+    ).mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", origin="12/31/1999 23:57:00").mean()
 
