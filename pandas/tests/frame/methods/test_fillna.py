@@ -49,11 +49,12 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        # TODO(CoW): This should raise a chained assignment error
-        df[0].fillna(-1, inplace=True)
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
+            df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
@@ -105,7 +106,9 @@ class TestFillNA:
             result = mf.fillna(method="pad")
         _check_mixed_float(result, dtype={"C": None})
 
-    def test_fillna_empty(self):
+    def test_fillna_empty(self, using_copy_on_write):
+        if using_copy_on_write:
+            pytest.skip("condition is unnecessary complex and is deprecated anyway")
         # empty frame (GH#2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
@@ -292,20 +295,25 @@ class TestFillNA:
         # GH#15277
         # infer int64 from float64
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(0, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         df = DataFrame({"a": [1.0, np.nan]})
-        result = df.fillna({"a": 0}, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna({"a": 0}, downcast="infer")
         expected = DataFrame({"a": [1, 0]})
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_downcast_false(self, frame_or_series):
         # GH#45603 preserve object dtype with downcast=False
         obj = frame_or_series([1, 2, 3], dtype="object")
-        result = obj.fillna("", downcast=False)
+        msg = "The 'downcast' keyword in fillna"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.fillna("", downcast=False)
         tm.assert_equal(result, obj)
 
     def test_fillna_downcast_noop(self, frame_or_series):
@@ -316,7 +324,7 @@ class TestFillNA:
 
         obj = frame_or_series([1, 2, 3], dtype=np.int64)
 
-        msg = "downcast other than None, False, and 'infer' are deprecated"
+        msg = "The 'downcast' keyword in fillna"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             # GH#40988
             res = obj.fillna("foo", downcast=np.dtype(np.int32))
@@ -324,7 +332,8 @@ class TestFillNA:
         tm.assert_equal(res, expected)
 
         obj2 = obj.astype(np.float64)
-        res2 = obj2.fillna("foo", downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res2 = obj2.fillna("foo", downcast="infer")
         expected2 = obj  # get back int64
         tm.assert_equal(res2, expected2)
 
@@ -648,7 +657,7 @@ class TestFillNA:
         # GH#40809
         df = DataFrame({"col1": [1, np.nan]})
 
-        msg = "downcast entries other than None, False, and 'infer' are deprecated"
+        msg = "The 'downcast' keyword in fillna"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = df.fillna({"col1": 2}, downcast={"col1": "int64"})
         expected = DataFrame({"col1": [1, 2]})

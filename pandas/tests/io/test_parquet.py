@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under13p0,
 )
 import pandas.util._test_decorators as td
 
@@ -376,21 +377,13 @@ class Base:
                 to_parquet(df, path, engine, compression=None)
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "main/pandas/tests/io/data/parquet/simple.parquet"
-        ),
-        check_before_test=True,
-    )
-    def test_parquet_read_from_url(self, df_compat, engine):
+    @pytest.mark.single_cpu
+    def test_parquet_read_from_url(self, httpserver, datapath, df_compat, engine):
         if engine != "auto":
             pytest.importorskip(engine)
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/"
-            "main/pandas/tests/io/data/parquet/simple.parquet"
-        )
-        df = read_parquet(url)
+        with open(datapath("io", "data", "parquet", "simple.parquet"), mode="rb") as f:
+            httpserver.serve_content(content=f.read())
+            df = read_parquet(httpserver.url)
         tm.assert_frame_equal(df, df_compat)
 
 
@@ -433,8 +426,12 @@ class TestBasic(Base):
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
 
-    def test_write_index(self, engine):
+    def test_write_index(self, engine, using_copy_on_write, request):
         check_names = engine != "fastparquet"
+        if using_copy_on_write and engine == "fastparquet":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="fastparquet write into index")
+            )
 
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine)
@@ -776,26 +773,26 @@ class TestParquetPyArrow(Base):
         check_round_trip(df, pa)
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip_explicit_fs(self, df_compat, s3_public_bucket, pa, s3so):
         s3fs = pytest.importorskip("s3fs")
         s3 = s3fs.S3FileSystem(**s3so)
         kw = {"filesystem": s3}
         check_round_trip(
             df_compat,
             pa,
-            path="pandas-test/pyarrow.parquet",
+            path=f"{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=kw,
             write_kwargs=kw,
         )
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, pa, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, pa, s3so):
         # GH #19134
         s3so = {"storage_options": s3so}
         check_round_trip(
             df_compat,
             pa,
-            path="s3://pandas-test/pyarrow.parquet",
+            path=f"s3://{s3_public_bucket.name}/pyarrow.parquet",
             read_kwargs=s3so,
             write_kwargs=s3so,
         )
@@ -810,7 +807,7 @@ class TestParquetPyArrow(Base):
         ],
     )
     def test_s3_roundtrip_for_dir(
-        self, df_compat, s3_resource, pa, partition_col, s3so
+        self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
         # GH #26388
         expected_df = df_compat.copy()
@@ -828,7 +825,7 @@ class TestParquetPyArrow(Base):
             df_compat,
             pa,
             expected=expected_df,
-            path="s3://pandas-test/parquet_dir",
+            path=f"s3://{s3_public_bucket.name}/parquet_dir",
             read_kwargs={"storage_options": s3so},
             write_kwargs={
                 "partition_cols": partition_col,
@@ -1010,14 +1007,15 @@ class TestParquetPyArrow(Base):
 
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        # pyarrow infers datetimes as us instead of ns
-        expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[us][pyarrow]"
-        )
-        expected["datetime_tz"] = expected["datetime_tz"].astype(
-            pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
-        )
+        if pa_version_under13p0:
+            # pyarrow infers datetimes as us instead of ns
+            expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "timestamp[us][pyarrow]"
+            )
+            expected["datetime_tz"] = expected["datetime_tz"].astype(
+                pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
+            )
 
         check_round_trip(
             df,
@@ -1136,12 +1134,12 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     @pytest.mark.single_cpu
-    def test_s3_roundtrip(self, df_compat, s3_resource, fp, s3so):
+    def test_s3_roundtrip(self, df_compat, s3_public_bucket, fp, s3so):
         # GH #19134
         check_round_trip(
             df_compat,
             fp,
-            path="s3://pandas-test/fastparquet.parquet",
+            path=f"s3://{s3_public_bucket.name}/fastparquet.parquet",
             read_kwargs={"storage_options": s3so},
             write_kwargs={"compression": None, "storage_options": s3so},
         )
@@ -1213,12 +1211,14 @@ class TestParquetFastParquet(Base):
                 partition_cols=partition_cols,
             )
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_empty_dataframe(self, fp):
         # GH #27339
         df = pd.DataFrame()
         expected = df.copy()
         check_round_trip(df, fp, expected=expected)
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
         idx = 5 * [timezone_aware_date_list]
 
@@ -1328,6 +1328,7 @@ class TestParquetFastParquet(Base):
             with pytest.raises(ValueError, match=msg):
                 read_parquet(path, dtype_backend="numpy")
 
+    @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_empty_columns(self, fp):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
