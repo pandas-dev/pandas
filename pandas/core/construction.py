@@ -6,14 +6,15 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -31,6 +32,7 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -368,6 +370,16 @@ def array(
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
     if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"datetime64 and timedelta64 dtype resolutions other than "
+            r"'s', 'ms', 'us', and 'ns' are deprecated. "
+            r"In future releases passing unsupported resolutions will "
+            r"raise an exception.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 

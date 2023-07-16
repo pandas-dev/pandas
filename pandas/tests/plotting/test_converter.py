@@ -43,6 +43,7 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
+@pytest.mark.single_cpu
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -63,6 +64,7 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
+    @pytest.mark.single_cpu
     def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (

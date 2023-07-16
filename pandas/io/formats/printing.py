@@ -3,14 +3,15 @@ Printing tools.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import sys
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
 )
@@ -498,7 +499,7 @@ def _justify(
     return head_tuples, tail_tuples
 
 
-class PrettyDict(Dict[_KT, _VT]):
+class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
