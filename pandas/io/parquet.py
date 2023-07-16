@@ -576,7 +576,7 @@ def read_parquet(
     4    4    9
     >>> df_parquet_bytes = original_df.to_parquet()
     >>> from io import BytesIO
-    >>> restored_df =  pd.read_parquet(BytesIO(df_parquet_bytes))
+    >>> restored_df = pd.read_parquet(BytesIO(df_parquet_bytes))
     >>> restored_df
        foo  bar
     0    0    5
@@ -606,7 +606,7 @@ def read_parquet(
     which can benefit from multithreading and also potentially be more
     economical in terms of memory.
 
-    >>> sel = [("bar", ">", 2)]
+    >>> sel = [("foo", ">", 2)]
     >>> restored_part = pd.read_parquet(BytesIO(df_parquet_bytes), filters=sel)
     >>> restored_part
         foo  bar
