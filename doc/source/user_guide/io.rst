@@ -704,7 +704,6 @@ Comments
 Sometimes comments or meta data may be included in a file:
 
 .. ipython:: python
-   :suppress:
 
    data = (
        "ID,level,category\n"
@@ -712,11 +711,8 @@ Sometimes comments or meta data may be included in a file:
        "Patient2,23000,y # wouldn't take his medicine\n"
        "Patient3,1234018,z # awesome"
    )
-
    with open("tmp.csv", "w") as fh:
        fh.write(data)
-
-.. ipython:: python
 
    print(open("tmp.csv").read())
 
