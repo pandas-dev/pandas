@@ -66,9 +66,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.Series.backfill \
         pandas.Series.pad \
         pandas.Series.hist \
-        pandas.errors.AccessorRegistrationWarning \
-        pandas.errors.AttributeConflictWarning \
-        pandas.errors.DataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
         pandas.errors.IntCastingNaNError \

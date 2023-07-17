@@ -184,12 +184,6 @@ class MergeError(ValueError):
     """
 
 
-class AccessorRegistrationWarning(Warning):
-    """
-    Warning for attribute conflicts in accessor registration.
-    """
-
-
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
@@ -281,6 +275,13 @@ class DataError(Exception):
 
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
+
+    Examples
+    --------
+    >>> ser = pd.Series(['a', 'b', 'c'])
+    >>> ser.rolling(2).sum()
+    Traceback (most recent call last):
+    DataError: No numeric types to aggregate
     """
 
 
@@ -552,6 +553,17 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    Examples
+    --------
+    >>> idx1 = pd.Index(['a', 'b'], name='name1')
+    >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
+    >>> df1.to_hdf('file', 'data', 'w', append=True)  # doctest: +SKIP
+    >>> idx2 = pd.Index(['c', 'd'], name='name2')
+    >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
+    >>> df2.to_hdf('file', 'data', 'a', append=True)  # doctest: +SKIP
+    AttributeConflictWarning: the [index_name] attribute of the existing index is
+    [name1] which conflicts with the new [name2]...
     """
 
 
@@ -644,7 +656,6 @@ class InvalidComparison(Exception):
 
 __all__ = [
     "AbstractMethodError",
-    "AccessorRegistrationWarning",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",
