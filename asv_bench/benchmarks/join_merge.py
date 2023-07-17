@@ -171,12 +171,12 @@ class Join:
 
 class JoinIndex:
     def setup(self):
-        N = 50000
+        N = 5000
         self.left = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jim", "joe"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jim", "joe"]
         )
         self.right = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jolie", "jolia"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jolie", "jolia"]
         ).set_index("jolie")
 
     def time_left_outer_join_index(self):
