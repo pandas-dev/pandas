@@ -10,7 +10,6 @@ import sys
 import time
 import warnings
 
-from pandas.errors import ParserError
 from pandas.util._exceptions import find_stack_level
 
 from pandas import StringDtype
@@ -106,24 +105,23 @@ from pandas.errors import (
     ParserWarning,
 )
 
-from pandas.core.dtypes.common import (
-    is_bool_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas.core.arrays.boolean import BooleanDtype
 
 cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
+DEFAULT_BUFFER_HEURISTIC = 2 ** 20
 
-cdef extern from "headers/portable.h":
+
+cdef extern from "pandas/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
     # so we don't get
     # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
@@ -133,7 +131,7 @@ cdef extern from "headers/portable.h":
     pass
 
 
-cdef extern from "parser/tokenizer.h":
+cdef extern from "pandas/parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -251,7 +249,7 @@ cdef extern from "parser/tokenizer.h":
 
     void COLITER_NEXT(coliter_t, const char *) nogil
 
-cdef extern from "pd_parser.h":
+cdef extern from "pandas/parser/pd_parser.h":
     void *new_rd_source(object obj) except NULL
 
     int del_rd_source(void *src)
@@ -309,19 +307,19 @@ PandasParser_IMPORT
 # cdef extern'ed declarations seem to leave behind an undefined symbol
 cdef double xstrtod_wrapper(const char *p, char **q, char decimal,
                             char sci, char tsep, int skip_trailing,
-                            int *error, int *maybe_int) nogil:
+                            int *error, int *maybe_int) noexcept nogil:
     return xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef double precise_xstrtod_wrapper(const char *p, char **q, char decimal,
                                     char sci, char tsep, int skip_trailing,
-                                    int *error, int *maybe_int) nogil:
+                                    int *error, int *maybe_int) noexcept nogil:
     return precise_xstrtod(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
 cdef double round_trip_wrapper(const char *p, char **q, char decimal,
                                char sci, char tsep, int skip_trailing,
-                               int *error, int *maybe_int) nogil:
+                               int *error, int *maybe_int) noexcept nogil:
     return round_trip(p, q, decimal, sci, tsep, skip_trailing, error, maybe_int)
 
 
@@ -588,7 +586,7 @@ cdef class TextReader:
             raise EmptyDataError("No columns to parse from file")
 
         # Compute buffer_lines as function of table width.
-        heuristic = 2**20 // self.table_width
+        heuristic = DEFAULT_BUFFER_HEURISTIC // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2
@@ -1077,7 +1075,7 @@ cdef class TextReader:
 
             # don't try to upcast EAs
             if (
-                na_count > 0 and not is_extension_array_dtype(col_dtype)
+                na_count > 0 and not isinstance(col_dtype, ExtensionDtype)
                 or self.dtype_backend != "numpy"
             ):
                 use_dtype_backend = self.dtype_backend != "numpy" and col_dtype is None
@@ -1142,14 +1140,14 @@ cdef class TextReader:
             # (see _try_bool_flex()). Usually this would be taken care of using
             # _maybe_upcast(), but if col_dtype is a floating type we should just
             # take care of that cast here.
-            if col_res.dtype == np.bool_ and is_float_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind == "f":
                 mask = col_res.view(np.uint8) == na_values[np.uint8]
                 col_res = col_res.astype(col_dtype)
                 np.putmask(col_res, mask, np.nan)
                 return col_res, na_count
 
             # NaNs are already cast to True here, so can not use astype
-            if col_res.dtype == np.bool_ and is_integer_dtype(col_dtype):
+            if col_res.dtype == np.bool_ and col_dtype.kind in "iu":
                 if na_count > 0:
                     raise ValueError(
                         f"cannot safely convert passed user dtype of "
@@ -1193,14 +1191,16 @@ cdef class TextReader:
                 cats, codes, dtype, true_values=true_values)
             return cat, na_count
 
-        elif is_extension_array_dtype(dtype):
+        elif isinstance(dtype, ExtensionDtype):
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
 
             array_type = dtype.construct_array_type()
             try:
                 # use _from_sequence_of_strings if the class defines it
-                if is_bool_dtype(dtype):
+                if isinstance(dtype, BooleanDtype):
+                    # xref GH 47534: BooleanArray._from_sequence_of_strings has extra
+                    # kwargs
                     true_values = [x.decode() for x in self.true_values]
                     false_values = [x.decode() for x in self.false_values]
                     result = array_type._from_sequence_of_strings(
@@ -1216,7 +1216,7 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_integer_dtype(dtype):
+        elif dtype.kind in "iu":
             try:
                 result, na_count = _try_int64(self.parser, i, start,
                                               end, na_filter, na_hashset)
@@ -1233,14 +1233,14 @@ cdef class TextReader:
 
             return result, na_count
 
-        elif is_float_dtype(dtype):
+        elif dtype.kind == "f":
             result, na_count = _try_double(self.parser, i, start, end,
                                            na_filter, na_hashset, na_flist)
 
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
             return result, na_count
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             result, na_count = _try_bool_flex(self.parser, i, start, end,
                                               na_filter, na_hashset,
                                               self.true_set, self.false_set)
@@ -1267,10 +1267,10 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_object_dtype(dtype):
+        elif dtype == object:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
-        elif is_datetime64_dtype(dtype):
+        elif dtype.kind == "M":
             raise TypeError(f"the dtype {dtype} is not supported "
                             f"for parsing, pass this column "
                             f"using parse_dates instead")
@@ -1438,7 +1438,7 @@ def _maybe_upcast(
     -------
     The casted array.
     """
-    if is_extension_array_dtype(arr.dtype):
+    if isinstance(arr.dtype, ExtensionDtype):
         # TODO: the docstring says arr is an ndarray, in which case this cannot
         #  be reached. Is that incorrect?
         return arr

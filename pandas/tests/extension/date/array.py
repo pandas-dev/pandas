@@ -4,7 +4,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     cast,
 )
 
@@ -19,6 +18,8 @@ from pandas.api.extensions import (
 from pandas.api.types import pandas_dtype
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         Dtype,
         PositionalIndexer,
@@ -83,7 +84,7 @@ class DateArray(ExtensionArray):
             self._day = np.zeros(ldates, dtype=np.uint8)  # 255 (1, 12)
             # populate them
             for i, (y, m, d) in enumerate(
-                map(lambda date: (date.year, date.month, date.day), dates)
+                (date.year, date.month, date.day) for date in dates
             ):
                 self._year[i] = y
                 self._month[i] = m
@@ -94,7 +95,7 @@ class DateArray(ExtensionArray):
             if ldates != 3:
                 raise ValueError("only triples are valid")
             # check if all elements have the same type
-            if any(map(lambda x: not isinstance(x, np.ndarray), dates)):
+            if any(not isinstance(x, np.ndarray) for x in dates):
                 raise TypeError("invalid type")
             ly, lm, ld = (len(cast(np.ndarray, d)) for d in dates)
             if not ly == lm == ld:

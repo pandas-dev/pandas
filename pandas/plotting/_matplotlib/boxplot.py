@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Collection,
     Literal,
     NamedTuple,
 )
@@ -33,6 +32,8 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
 
@@ -289,7 +290,7 @@ def _grouped_plot_by_column(
         ax_values.append(re_plotf)
         ax.grid(grid)
 
-    result = pd.Series(ax_values, index=columns)
+    result = pd.Series(ax_values, index=columns, copy=False)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:

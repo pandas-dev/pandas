@@ -14,16 +14,17 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+)
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -38,13 +39,10 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_to_extension_array
+from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_dtype_equal,
     is_list_like,
     is_scalar,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -75,12 +73,18 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
         AxisInt,
         Dtype,
         FillnaOptions,
+        InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
@@ -92,6 +96,8 @@ if TYPE_CHECKING:
         TakeIndexer,
         npt,
     )
+
+    from pandas import Index
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -121,6 +127,7 @@ class ExtensionArray:
     fillna
     equals
     insert
+    interpolate
     isin
     isna
     ravel
@@ -158,6 +165,7 @@ class ExtensionArray:
     * take
     * copy
     * _concat_same_type
+    * interpolate
 
     A default repr displaying the type, (truncated) data, length,
     and dtype is provided. It can be customized or replaced by
@@ -499,7 +507,12 @@ class ExtensionArray:
     @property
     def dtype(self) -> ExtensionDtype:
         """
-        An instance of 'ExtensionDtype'.
+        An instance of ExtensionDtype.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).dtype
+        Int64Dtype()
         """
         raise AbstractMethodError(self)
 
@@ -530,6 +543,11 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).nbytes
+        27
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
@@ -567,12 +585,37 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray or pandas.api.extensions.ExtensionArray
-            An ExtensionArray if dtype is ExtensionDtype,
-            Otherwise a NumPy ndarray with 'dtype' for its dtype.
-        """
+            An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
+            otherwise a Numpy ndarray with ``dtype`` for its dtype.
 
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
+
+        Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
+
+        >>> arr1 = arr.astype('Float64')
+        >>> arr1
+        <FloatingArray>
+        [1.0, 2.0, 3.0]
+        Length: 3, dtype: Float64
+        >>> arr1.dtype
+        Float64Dtype()
+
+        Otherwise, we will get a Numpy ndarray:
+
+        >>> arr2 = arr.astype('float64')
+        >>> arr2
+        array([1., 2., 3.])
+        >>> arr2.dtype
+        dtype('float64')
+        """
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if not copy:
                 return self
             else:
@@ -582,12 +625,12 @@ class ExtensionArray:
             cls = dtype.construct_array_type()
             return cls._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_datetime64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
 
             return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
 
-        elif is_timedelta64_dtype(dtype):
+        elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
             return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
@@ -643,12 +686,20 @@ class ExtensionArray:
         Notes
         -----
         The caller is responsible for *not* modifying these values in-place, so
-        it is safe for implementors to give views on `self`.
+        it is safe for implementors to give views on ``self``.
 
-        Functions that use this (e.g. ExtensionArray.argsort) should ignore
-        entries with missing values in the original array (according to `self.isna()`).
-        This means that the corresponding entries in the returned array don't need to
-        be modified to sort correctly.
+        Functions that use this (e.g. ``ExtensionArray.argsort``) should ignore
+        entries with missing values in the original array (according to
+        ``self.isna()``). This means that the corresponding entries in the returned
+        array don't need to be modified to sort correctly.
+
+        Examples
+        --------
+        In most cases, this is the underlying Numpy array of the ``ExtensionArray``:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._values_for_argsort()
+        array([1, 2, 3])
         """
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
@@ -671,6 +722,9 @@ class ExtensionArray:
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If ``'first'``, put ``NaN`` values at the beginning.
+            If ``'last'``, put ``NaN`` values at the end.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
 
@@ -683,6 +737,12 @@ class ExtensionArray:
         See Also
         --------
         numpy.argsort : Sorting implementation used internally.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argsort()
+        array([1, 2, 0, 4, 3])
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
@@ -717,7 +777,13 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmax
+        ExtensionArray.argmax : Return the index of the maximum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmin()
+        1
         """
         # Implementor note: You have two places to override the behavior of
         # argmin.
@@ -745,7 +811,13 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmin
+        ExtensionArray.argmin : Return the index of the minimum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmax()
+        3
         """
         # Implementor note: You have two places to override the behavior of
         # argmax.
@@ -755,6 +827,27 @@ class ExtensionArray:
         if not skipna and self._hasna:
             raise NotImplementedError
         return nargminmax(self, "argmax")
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        fill_value,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See DataFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement interpolate"
+        )
 
     def fillna(
         self,
@@ -801,10 +894,16 @@ class ExtensionArray:
 
         if mask.any():
             if method is not None:
-                func = missing.get_fill_func(method)
-                npvalues = self.astype(object)
-                func(npvalues, limit=limit, mask=mask)
-                new_values = self._from_sequence(npvalues, dtype=self.dtype)
+                meth = missing.clean_fill_method(method)
+
+                npmask = np.asarray(mask)
+                if meth == "pad":
+                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                    return self.take(indexer, allow_fill=True)
+                else:
+                    # i.e. meth == "backfill"
+                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                    return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -854,6 +953,8 @@ class ExtensionArray:
         If ``periods > len(self)``, then an array of size
         len(self) is returned, with all values filled with
         ``self.dtype.na_value``.
+
+        For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -889,7 +990,7 @@ class ExtensionArray:
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.
@@ -960,7 +1061,7 @@ class ExtensionArray:
         if type(self) != type(other):
             return False
         other = cast(ExtensionArray, other)
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             return False
         elif len(self) != len(other):
             return False
@@ -996,7 +1097,6 @@ class ExtensionArray:
         Returns
         -------
         values : ndarray
-
             An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
@@ -1005,6 +1105,12 @@ class ExtensionArray:
             as NA in the factorization routines, so it will be coded as
             `-1` and not included in `uniques`. By default,
             ``np.nan`` is used.
+
+        Notes
+        -----
+        The values returned by this method are also used in
+        :func:`pandas.util.hash_pandas_object`. If needed, this can be
+        overridden in the ``self._hash_pandas_object()`` method.
         """
         return self.astype(object), np.nan
 
@@ -1220,6 +1326,16 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.copy()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         raise AbstractMethodError(self)
 
@@ -1236,6 +1352,20 @@ class ExtensionArray:
         -------
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
+
+        Examples
+        --------
+        This gives view on the underlying data of an ``ExtensionArray`` and is not a
+        copy. Modifications on either the view or the original ``ExtensionArray``
+        will be reflectd on the underlying data:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.view()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [2, 2, 3]
+        Length: 3, dtype: Int64
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
@@ -1405,7 +1535,9 @@ class ExtensionArray:
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1417,6 +1549,15 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
+
+            .. versionadded:: 2.1
+
+               This parameter is not required in the _reduce signature to keep backward
+               compatibility, but will become required in the future. If the parameter
+               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -1435,7 +1576,11 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        return meth(skipna=skipna, **kwargs)
+        result = meth(skipna=skipna, **kwargs)
+        if keepdims:
+            result = np.array([result])
+
+        return result
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -1452,7 +1597,7 @@ class ExtensionArray:
         """
         Hook for hash_pandas_object.
 
-        Default is likely non-performant.
+        Default is to use the values returned by _values_for_factorize.
 
         Parameters
         ----------
@@ -1466,7 +1611,7 @@ class ExtensionArray:
         """
         from pandas.core.util.hashing import hash_array
 
-        values = self.to_numpy(copy=False)
+        values, _ = self._values_for_factorize()
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
@@ -1603,7 +1748,7 @@ class ExtensionArray:
             raise NotImplementedError
 
         return rank(
-            self,
+            self._values_for_argsort(),
             axis=axis,
             method=method,
             na_option=na_option,
@@ -1721,6 +1866,82 @@ class ExtensionArray:
             a MultiIndex will be returned.
         """
         return map_array(self, mapper, na_action=na_action)
+
+    # ------------------------------------------------------------------------
+    # GroupBy Methods
+
+    def _groupby_op(
+        self,
+        *,
+        how: str,
+        has_dropped_na: bool,
+        min_count: int,
+        ngroups: int,
+        ids: npt.NDArray[np.intp],
+        **kwargs,
+    ) -> ArrayLike:
+        """
+        Dispatch GroupBy reduction or transformation operation.
+
+        This is an *experimental* API to allow ExtensionArray authors to implement
+        reductions and transformations. The API is subject to change.
+
+        Parameters
+        ----------
+        how : {'any', 'all', 'sum', 'prod', 'min', 'max', 'mean', 'median',
+               'median', 'var', 'std', 'sem', 'nth', 'last', 'ohlc',
+               'cumprod', 'cumsum', 'cummin', 'cummax', 'rank'}
+        has_dropped_na : bool
+        min_count : int
+        ngroups : int
+        ids : np.ndarray[np.intp]
+            ids[i] gives the integer label for the group that self[i] belongs to.
+        **kwargs : operation-specific
+            'any', 'all' -> ['skipna']
+            'var', 'std', 'sem' -> ['ddof']
+            'cumprod', 'cumsum', 'cummin', 'cummax' -> ['skipna']
+            'rank' -> ['ties_method', 'ascending', 'na_option', 'pct']
+
+        Returns
+        -------
+        np.ndarray or ExtensionArray
+        """
+        from pandas.core.arrays.string_ import StringDtype
+        from pandas.core.groupby.ops import WrappedCythonOp
+
+        kind = WrappedCythonOp.get_kind_from_how(how)
+        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+
+        # GH#43682
+        if isinstance(self.dtype, StringDtype):
+            # StringArray
+            npvalues = self.to_numpy(object, na_value=np.nan)
+        else:
+            raise NotImplementedError(
+                f"function is not implemented for this dtype: {self.dtype}"
+            )
+
+        res_values = op._cython_op_ndim_compat(
+            npvalues,
+            min_count=min_count,
+            ngroups=ngroups,
+            comp_ids=ids,
+            mask=None,
+            **kwargs,
+        )
+
+        if op.how in op.cast_blocklist:
+            # i.e. how in ["rank"], since other cast_blocklist methods don't go
+            #  through cython_operation
+            return res_values
+
+        if isinstance(self.dtype, StringDtype):
+            dtype = self.dtype
+            string_array_cls = dtype.construct_array_type()
+            return string_array_cls._from_sequence(res_values, dtype=dtype)
+
+        else:
+            raise NotImplementedError
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):
@@ -1884,7 +2105,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_to_extension_array(type(self), arr)
+                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

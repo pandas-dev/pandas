@@ -181,7 +181,7 @@ labeled the aggregated group with the end of the interval: the next day).
   ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
 
 .. ipython:: python
-   :okwarning:
+   :okexcept:
 
     import io
 
@@ -226,6 +226,7 @@ labeled the aggregated group with the end of the interval: the next day).
   valid code. You must either specify a fill value or an interpolation method:
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
    s
@@ -243,15 +244,26 @@ Convenience methods ``ffill`` and  ``bfill`` have been added:
   function, that is itself a series, and possibly upcast the result to a
   DataFrame
 
-  .. ipython:: python
+  .. code-block:: python
 
-      def f(x):
-          return pd.Series([x, x ** 2], index=["x", "x^2"])
-
-
-      s = pd.Series(np.random.rand(5))
-      s
-      s.apply(f)
+     >>> def f(x):
+     ...     return pd.Series([x, x ** 2], index=["x", "x^2"])
+     >>>
+     >>> s = pd.Series(np.random.rand(5))
+     >>> s
+     0    0.340445
+     1    0.984729
+     2    0.919540
+     3    0.037772
+     4    0.861549
+     dtype: float64
+     >>> s.apply(f)
+               x       x^2
+     0  0.340445  0.115903
+     1  0.984729  0.969691
+     2  0.919540  0.845555
+     3  0.037772  0.001427
+     4  0.861549  0.742267
 
 - New API functions for working with pandas options (:issue:`2097`):
 

@@ -1,13 +1,16 @@
 """
 Tests for DatetimeArray
 """
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 import numpy as np
 import pytest
@@ -534,11 +537,11 @@ class TestDatetimeArray:
 
         # test the DataFrame method while we're here
         df = pd.DataFrame(dta)
-        res = df.fillna(method="pad")
+        res = df.ffill()
         expected = pd.DataFrame(expected1)
         tm.assert_frame_equal(res, expected)
 
-        res = df.fillna(method="backfill")
+        res = df.bfill()
         expected = pd.DataFrame(expected2)
         tm.assert_frame_equal(res, expected)
 
@@ -712,7 +715,9 @@ class TestDatetimeArray:
             # no tzdata
             pass
         else:
-            easts.append(tz)
+            # Argument 1 to "append" of "list" has incompatible type "ZoneInfo";
+            # expected "str"
+            easts.append(tz)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
@@ -740,3 +745,16 @@ class TestDatetimeArray:
         right2 = dta.astype(object)[2]
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
+
+
+def test_factorize_sort_without_freq():
+    dta = DatetimeArray._from_sequence([0, 2, 1])
+
+    msg = r"call pd.factorize\(obj, sort=True\) instead"
+    with pytest.raises(NotImplementedError, match=msg):
+        dta.factorize(sort=True)
+
+    # Do TimedeltaArray while we're here
+    tda = dta - dta[0]
+    with pytest.raises(NotImplementedError, match=msg):
+        tda.factorize(sort=True)

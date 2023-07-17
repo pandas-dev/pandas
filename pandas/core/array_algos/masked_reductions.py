@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Callable,
 )
+import warnings
 
 import numpy as np
 
@@ -51,7 +52,7 @@ def _reductions(
     axis : int, optional, default None
     """
     if not skipna:
-        if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
+        if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
             return func(values, axis=axis, **kwargs)
@@ -118,11 +119,11 @@ def _minmax(
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
-            return func(values)
+            return func(values, axis=axis)
     else:
         subset = values[~mask]
         if subset.size:
-            return func(subset)
+            return func(subset, axis=axis)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
@@ -171,9 +172,11 @@ def var(
     if not values.size or mask.all():
         return libmissing.NA
 
-    return _reductions(
-        np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )
 
 
 def std(
@@ -187,6 +190,8 @@ def std(
     if not values.size or mask.all():
         return libmissing.NA
 
-    return _reductions(
-        np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        return _reductions(
+            np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
+        )

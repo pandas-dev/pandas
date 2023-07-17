@@ -5,10 +5,11 @@ from pandas._libs.tslibs.np_datetime cimport NPY_DATETIMEUNIT
 
 cpdef str npy_unit_to_abbrev(NPY_DATETIMEUNIT unit)
 cpdef NPY_DATETIMEUNIT abbrev_to_npy_unit(str abbrev)
-cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) nogil
+cdef NPY_DATETIMEUNIT freq_group_code_to_npy_unit(int freq) noexcept nogil
 cpdef int64_t periods_per_day(NPY_DATETIMEUNIT reso=*) except? -1
 cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
 cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
+cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
 
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
@@ -102,5 +103,7 @@ cdef enum PeriodDtypeCode:
 cdef class PeriodDtypeBase:
     cdef readonly:
         PeriodDtypeCode _dtype_code
+        int64_t _n
 
     cpdef int _get_to_timestamp_base(self)
+    cpdef bint _is_tick_like(self)

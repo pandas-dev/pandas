@@ -36,7 +36,7 @@ from numpy cimport (
 from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
-cdef extern from "src/datetime/pd_datetime.h":
+cdef extern from "pandas/datetime/pd_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -59,7 +59,7 @@ cdef extern from "src/datetime/pd_datetime.h":
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef npy_datetime get_datetime64_value(object obj) nogil:
+cdef npy_datetime get_datetime64_value(object obj) noexcept nogil:
     """
     returns the int64 value underlying scalar numpy datetime64 object
 
@@ -69,14 +69,14 @@ cdef npy_datetime get_datetime64_value(object obj) nogil:
     return (<PyDatetimeScalarObject*>obj).obval
 
 
-cdef npy_timedelta get_timedelta64_value(object obj) nogil:
+cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil:
     """
     returns the int64 value underlying scalar numpy timedelta64 object
     """
     return (<PyTimedeltaScalarObject*>obj).obval
 
 
-cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
@@ -229,7 +229,7 @@ def py_td64_to_tdstruct(int64_t td64, NPY_DATETIMEUNIT unit):
     return tds  # <- returned as a dict to python
 
 
-cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts):
+cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
     if PyDateTime_CheckExact(dt):
         dts.year = PyDateTime_GET_YEAR(dt)
     else:
@@ -256,7 +256,7 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
-cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts):
+cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -419,7 +419,7 @@ def compare_mismatched_resolutions(ndarray left, ndarray right, op):
     array([ True])
     """
 
-    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in ["m", "M"]:
+    if left.dtype.kind != right.dtype.kind or left.dtype.kind not in "mM":
         raise ValueError("left and right must both be timedelta64 or both datetime64")
 
     cdef:

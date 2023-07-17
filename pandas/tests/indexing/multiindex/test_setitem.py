@@ -479,6 +479,21 @@ class TestSetitemWithExpansionMultiIndex:
         df["new"] = s
         assert df["new"].isna().all()
 
+    def test_setitem_enlargement_keep_index_names(self):
+        # GH#53053
+        mi = MultiIndex.from_tuples([(1, 2, 3)], names=["i1", "i2", "i3"])
+        df = DataFrame(data=[[10, 20, 30]], index=mi, columns=["A", "B", "C"])
+        df.loc[(0, 0, 0)] = df.loc[(1, 2, 3)]
+        mi_expected = MultiIndex.from_tuples(
+            [(1, 2, 3), (0, 0, 0)], names=["i1", "i2", "i3"]
+        )
+        expected = DataFrame(
+            data=[[10, 20, 30], [10, 20, 30]],
+            index=mi_expected,
+            columns=["A", "B", "C"],
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 @td.skip_array_manager_invalid_test  # df["foo"] select multiple columns -> .values
 # is not a view

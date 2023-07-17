@@ -3,7 +3,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import is_sparse
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -28,7 +27,7 @@ class BaseMissingTests(BaseExtensionTests):
         result = pd.Series(data_missing)
         expected = result.copy()
         mask = getattr(result, na_func)()
-        if is_sparse(mask):
+        if isinstance(mask.dtype, pd.SparseDtype):
             mask = np.array(mask)
 
         mask[:] = True
@@ -70,12 +69,18 @@ class BaseMissingTests(BaseExtensionTests):
         expected = data_missing.fillna(valid)
         self.assert_extension_array_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
+    )
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
-        result = pd.Series(arr).fillna(method="ffill", limit=2)
+        result = pd.Series(arr).ffill(limit=2)
         expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
         self.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
+    )
     def test_fillna_limit_backfill(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).fillna(method="backfill", limit=2)
@@ -120,7 +125,7 @@ class BaseMissingTests(BaseExtensionTests):
         if fillna_method == "ffill":
             data_missing = data_missing[::-1]
 
-        result = pd.Series(data_missing).fillna(method=fillna_method)
+        result = getattr(pd.Series(data_missing), fillna_method)()
         expected = pd.Series(
             data_missing._from_sequence(
                 [fill_value, fill_value], dtype=data_missing.dtype
@@ -155,6 +160,8 @@ class BaseMissingTests(BaseExtensionTests):
     def test_use_inf_as_na_no_effect(self, data_missing):
         ser = pd.Series(data_missing)
         expected = ser.isna()
-        with pd.option_context("mode.use_inf_as_na", True):
-            result = ser.isna()
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                result = ser.isna()
         self.assert_series_equal(result, expected)

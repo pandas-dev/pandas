@@ -3,13 +3,9 @@ Read SAS sas7bdat or xport files.
 """
 from __future__ import annotations
 
-from abc import (
-    ABCMeta,
-    abstractmethod,
-)
 from typing import (
     TYPE_CHECKING,
-    Hashable,
+    Protocol,
     overload,
 )
 
@@ -20,6 +16,7 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import stringify_path
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from types import TracebackType
 
     from pandas._typing import (
@@ -31,19 +28,16 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
-# TODO(PY38): replace with Protocol in Python 3.8
-class ReaderBase(metaclass=ABCMeta):
+class ReaderBase(Protocol):
     """
     Protocol for XportReader and SAS7BDATReader classes.
     """
 
-    @abstractmethod
     def read(self, nrows: int | None = None) -> DataFrame:
-        pass
+        ...
 
-    @abstractmethod
     def close(self) -> None:
-        pass
+        ...
 
     def __enter__(self) -> ReaderBase:
         return self

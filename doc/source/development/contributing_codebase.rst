@@ -18,24 +18,19 @@ tools will be run to check your code for stylistic errors.
 Generating any warnings will cause the test to fail.
 Thus, good style is a requirement for submitting code to pandas.
 
-There is a tool in pandas to help contributors verify their changes before
-contributing them to the project::
+There are a couple of tools in pandas to help contributors verify their changes
+before contributing to the project
 
-   ./ci/code_checks.sh
-
-The script validates the doctests, formatting in docstrings, and
-imported modules. It is possible to run the checks independently by using the
-parameters ``docstrings``, ``code``, and ``doctests``
-(e.g. ``./ci/code_checks.sh doctests``).
+- ``./ci/code_checks.sh``: a script validates the doctests, formatting in docstrings,
+  and imported modules. It is possible to run the checks independently by using the
+  parameters ``docstrings``, ``code``, and ``doctests``
+  (e.g. ``./ci/code_checks.sh doctests``);
+- ``pre-commit``, which we go into detail on in the next section.
 
 In addition, because a lot of people use our library, it is important that we
 do not make sudden changes to the code that could have the potential to break
 a lot of user code as a result, that is, we need it to be as *backwards compatible*
 as possible to avoid mass breakages.
-
-In addition to ``./ci/code_checks.sh``, some extra checks (including static type
-checking) are run by ``pre-commit`` - see :ref:`here <contributing.pre-commit>`
-for how to run them.
 
 .. _contributing.pre-commit:
 
@@ -44,14 +39,11 @@ Pre-commit
 
 Additionally, :ref:`Continuous Integration <contributing.ci>` will run code formatting checks
 like ``black``, ``ruff``,
-``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_
+``isort``, and ``cpplint`` and more using `pre-commit hooks <https://pre-commit.com/>`_.
 Any warnings from these checks will cause the :ref:`Continuous Integration <contributing.ci>` to fail; therefore,
 it is helpful to run the check yourself before submitting code. This
-can be done by installing ``pre-commit``::
-
-    pip install pre-commit
-
-and then running::
+can be done by installing ``pre-commit`` (which should already have happened if you followed the instructions
+in :ref:`Setting up your development environment <contributing_environment>`) and then running::
 
     pre-commit install
 
@@ -63,17 +55,17 @@ remain up-to-date with our code checks as they change.
 Note that if needed, you can skip these checks with ``git commit --no-verify``.
 
 If you don't want to use ``pre-commit`` as part of your workflow, you can still use it
-to run its checks with::
+to run its checks with one of the following::
 
     pre-commit run --files <files you have modified>
-
-without needing to have done ``pre-commit install`` beforehand.
-
-If you want to run checks on all recently committed files on upstream/main you can use::
-
     pre-commit run --from-ref=upstream/main --to-ref=HEAD --all-files
 
 without needing to have done ``pre-commit install`` beforehand.
+
+Finally, we also have some slow pre-commit checks, which don't run on each commit
+but which do run during continuous integration. You can trigger them manually with::
+
+    pre-commit run --hook-stage manual --all-files
 
 .. note::
 
@@ -170,43 +162,9 @@ pandas strongly encourages the use of :pep:`484` style type hints. New developme
 Style guidelines
 ~~~~~~~~~~~~~~~~
 
-Type imports should follow the ``from typing import ...`` convention. Some types do not need to be imported since :pep:`585` some builtin constructs, such as ``list`` and ``tuple``, can directly be used for type annotations. So rather than
-
-.. code-block:: python
-
-   import typing
-
-   primes: typing.List[int] = []
-
-You should write
-
-.. code-block:: python
-
-   primes: list[int] = []
-
-``Optional`` should be  avoided in favor of the shorter ``| None``, so instead of
-
-.. code-block:: python
-
-   from typing import Union
-
-   maybe_primes: list[Union[int, None]] = []
-
-or
-
-.. code-block:: python
-
-   from typing import Optional
-
-   maybe_primes: list[Optional[int]] = []
-
-You should write
-
-.. code-block:: python
-
-   from __future__ import annotations  # noqa: F404
-
-   maybe_primes: list[int | None] = []
+Type imports should follow the ``from typing import ...`` convention.
+Your code may be automatically re-written to use some modern constructs (e.g. using the built-in ``list`` instead of ``typing.List``)
+by the :ref:`pre-commit checks <contributing.pre-commit>`.
 
 In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in `Mypy 1775 <https://github.com/python/mypy/issues/1775#issuecomment-310969854>`_. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
@@ -654,23 +612,17 @@ deleted when the context block is exited.
 Testing involving network connectivity
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is highly discouraged to add a test that connects to the internet due to flakiness of network connections and
-lack of ownership of the server that is being connected to. If network connectivity is absolutely required, use the
-``tm.network`` decorator.
+A unit test should not access a public data set over the internet due to flakiness of network connections and
+lack of ownership of the server that is being connected to. To mock this interaction, use the ``httpserver`` fixture from the
+`pytest-localserver plugin. <https://github.com/pytest-dev/pytest-localserver>`_ with synthetic data.
 
 .. code-block:: python
 
-    @tm.network   # noqa
-    def test_network():
-        result = package.call_to_internet()
-
-If the test requires data from a specific website, specify ``check_before_test=True`` and the site in the decorator.
-
-.. code-block:: python
-
-    @tm.network("https://www.somespecificsite.com", check_before_test=True)
-    def test_network():
-        result = pd.read_html("https://www.somespecificsite.com")
+    @pytest.mark.network
+    @pytest.mark.single_cpu
+    def test_network(httpserver):
+        httpserver.serve_content(content="content")
+        result = pd.read_html(httpserver.url)
 
 Example
 ^^^^^^^
@@ -812,7 +764,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage.herokuapp.com/)
+entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage-12d2130077bc.herokuapp.com/))
 to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::
@@ -909,7 +861,7 @@ performance regressions. pandas is in the process of migrating to
 `asv benchmarks <https://github.com/airspeed-velocity/asv>`__
 to enable easy monitoring of the performance of critical pandas operations.
 These benchmarks are all found in the ``pandas/asv_bench`` directory, and the
-test results can be found `here <https://pandas.pydata.org/speed/pandas/>`__.
+test results can be found `here <https://asv-runner.github.io/asv-collection/pandas>`__.
 
 To use all features of asv, you will need either ``conda`` or
 ``virtualenv``. For more details please check the `asv installation
@@ -1001,9 +953,9 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 1.1.0
+    .. versionadded:: 2.1.0
 
-This will put the text *New in version 1.1.0* wherever you put the sphinx
+This will put the text *New in version 2.1.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
 or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
 or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).

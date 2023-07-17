@@ -29,7 +29,7 @@ you do not have an account yet, you will need to create one first.
 
 To get started just login at `Gitpod`_, and grant the appropriate permissions to GitHub.
 
-We have built a python 3.8 environment and all development dependencies will
+We have built a python 3.10 environment and all development dependencies will
 install when the environment starts.
 
 

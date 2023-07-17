@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_datetime64tz_dtype
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.base.common import allow_na_ops
@@ -21,7 +19,7 @@ def test_unique(index_or_series_obj):
         tm.assert_index_equal(result, expected, exact=True)
     elif isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj.dtype):
+        if isinstance(obj.dtype, pd.DatetimeTZDtype):
             expected = expected.normalize()
         tm.assert_index_equal(result, expected, exact=True)
     else:
@@ -56,7 +54,7 @@ def test_unique_null(null_obj, index_or_series_obj):
 
     if isinstance(obj, pd.Index):
         expected = pd.Index(unique_values, dtype=obj.dtype)
-        if is_datetime64tz_dtype(obj.dtype):
+        if isinstance(obj.dtype, pd.DatetimeTZDtype):
             result = result.normalize()
             expected = expected.normalize()
         tm.assert_index_equal(result, expected, exact=True)

@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
 )
@@ -20,6 +19,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
@@ -27,11 +27,14 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_categorical_dtype,
     is_integer,
     is_list_like,
     is_object_dtype,
     is_re,
+)
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -45,6 +48,8 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas import (
         DataFrame,
         Index,
@@ -178,7 +183,7 @@ class StringMethods(NoNewAttributesMixin):
         from pandas.core.arrays.string_ import StringDtype
 
         self._inferred_dtype = self._validate(data)
-        self._is_categorical = is_categorical_dtype(data.dtype)
+        self._is_categorical = isinstance(data.dtype, CategoricalDtype)
         self._is_string = isinstance(data.dtype, StringDtype)
         self._data = data
 
@@ -266,28 +271,75 @@ class StringMethods(NoNewAttributesMixin):
         if expand is None:
             # infer from ndim if expand is not specified
             expand = result.ndim != 1
-
-        elif (
-            expand is True
-            and is_object_dtype(result)
-            and not isinstance(self._orig, ABCIndex)
-        ):
+        elif expand is True and not isinstance(self._orig, ABCIndex):
             # required when expand=True is explicitly specified
             # not needed when inferred
+            if isinstance(result.dtype, ArrowDtype):
+                import pyarrow as pa
 
-            def cons_row(x):
-                if is_list_like(x):
-                    return x
+                from pandas.compat import pa_version_under11p0
+
+                from pandas.core.arrays.arrow.array import ArrowExtensionArray
+
+                value_lengths = pa.compute.list_value_length(result._pa_array)
+                max_len = pa.compute.max(value_lengths).as_py()
+                min_len = pa.compute.min(value_lengths).as_py()
+                if result._hasna:
+                    # ArrowExtensionArray.fillna doesn't work for list scalars
+                    result = ArrowExtensionArray(
+                        result._pa_array.fill_null([None] * max_len)
+                    )
+                if min_len < max_len:
+                    # append nulls to each scalar list element up to max_len
+                    if not pa_version_under11p0:
+                        result = ArrowExtensionArray(
+                            pa.compute.list_slice(
+                                result._pa_array,
+                                start=0,
+                                stop=max_len,
+                                return_fixed_size_list=True,
+                            )
+                        )
+                    else:
+                        all_null = np.full(max_len, fill_value=None, dtype=object)
+                        values = result.to_numpy()
+                        new_values = []
+                        for row in values:
+                            if len(row) < max_len:
+                                nulls = all_null[: max_len - len(row)]
+                                row = np.append(row, nulls)
+                            new_values.append(row)
+                        pa_type = result._pa_array.type
+                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
+                if name is not None:
+                    labels = name
                 else:
-                    return [x]
+                    labels = range(max_len)
+                result = (
+                    pa.compute.list_flatten(result._pa_array)
+                    .to_numpy()
+                    .reshape(len(result), max_len)
+                )
+                result = {
+                    label: ArrowExtensionArray(pa.array(res))
+                    for label, res in zip(labels, result.T)
+                }
+            elif is_object_dtype(result):
 
-            result = [cons_row(x) for x in result]
-            if result and not self._is_string:
-                # propagate nan values to match longest sequence (GH 18450)
-                max_len = max(len(x) for x in result)
-                result = [
-                    x * max_len if len(x) == 0 or x[0] is np.nan else x for x in result
-                ]
+                def cons_row(x):
+                    if is_list_like(x):
+                        return x
+                    else:
+                        return [x]
+
+                result = [cons_row(x) for x in result]
+                if result and not self._is_string:
+                    # propagate nan values to match longest sequence (GH 18450)
+                    max_len = max(len(x) for x in result)
+                    result = [
+                        x * max_len if len(x) == 0 or x[0] is np.nan else x
+                        for x in result
+                    ]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -379,7 +431,7 @@ class StringMethods(NoNewAttributesMixin):
         if isinstance(others, ABCSeries):
             return [others]
         elif isinstance(others, ABCIndex):
-            return [Series(others._values, index=idx, dtype=others.dtype)]
+            return [Series(others, index=idx, dtype=others.dtype)]
         elif isinstance(others, ABCDataFrame):
             return [others[x] for x in others]
         elif isinstance(others, np.ndarray) and others.ndim == 2:
@@ -628,13 +680,13 @@ class StringMethods(NoNewAttributesMixin):
 
             out = Index(result, dtype=object, name=self._orig.name)
         else:  # Series
-            if is_categorical_dtype(self._orig.dtype):
+            if isinstance(self._orig.dtype, CategoricalDtype):
                 # We need to infer the new categories.
                 dtype = None
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
-                result, dtype=dtype, index=data.index, name=self._orig.name
+                result, dtype=dtype, index=data.index, name=self._orig.name, copy=False
             )
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
@@ -1274,6 +1326,15 @@ class StringMethods(NoNewAttributesMixin):
         contains : Analogous, but less strict, relying on re.search instead of
             re.match.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["horse", "eagle", "donkey"])
+        >>> ser.str.match("e")
+        0   False
+        1   True
+        2   False
+        dtype: bool
         """
         result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1282,8 +1343,6 @@ class StringMethods(NoNewAttributesMixin):
     def fullmatch(self, pat, case: bool = True, flags: int = 0, na=None):
         """
         Determine if each string entirely matches a regular expression.
-
-        .. versionadded:: 1.1.0
 
         Parameters
         ----------
@@ -1307,6 +1366,15 @@ class StringMethods(NoNewAttributesMixin):
         match : Similar, but also returns `True` when only a *prefix* of the string
             matches the regular expression.
         extract : Extract matched groups.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["cat", "duck", "dove"])
+        >>> ser.str.fullmatch(r'd.+')
+        0   False
+        1    True
+        2    True
+        dtype: bool
         """
         result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
@@ -1376,7 +1444,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        When `pat` is a string and `regex` is True (the default), the given `pat`
+        When `pat` is a string and `regex` is True, the given `pat`
         is compiled as a regex. When `repl` is a string, it replaces matching
         regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
         left as is:
@@ -1599,6 +1667,35 @@ class StringMethods(NoNewAttributesMixin):
     Returns
     -------
     Series/Index of objects.
+
+    Examples
+    --------
+    For Series.str.center:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.center(8, fillchar='.')
+    0   ..dog...
+    1   ..bird..
+    2   .mouse..
+    dtype: object
+
+    For Series.str.ljust:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.ljust(8, fillchar='.')
+    0   dog.....
+    1   bird....
+    2   mouse...
+    dtype: object
+
+    For Series.str.rjust:
+
+    >>> ser = pd.Series(['dog', 'bird', 'mouse'])
+    >>> ser.str.rjust(8, fillchar='.')
+    0   .....dog
+    1   ....bird
+    2   ...mouse
+    dtype: object
     """
 
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
@@ -1850,6 +1947,17 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+
+        Examples
+        --------
+        For Series:
+
+        >>> ser = pd.Series([b'cow', b'123', b'()'])
+        >>> ser.str.decode('ascii')
+        0   cow
+        1   123
+        2   ()
+        dtype: object
         """
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:
@@ -1878,6 +1986,15 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+
+        Examples
+        --------
+        >>> ser = pd.Series(['cow', '123', '()'])
+        >>> ser.str.encode(encoding='ascii')
+        0     b'cow'
+        1     b'123'
+        2      b'()'
+        dtype: object
         """
         result = self._data.array._str_encode(encoding, errors)
         return self._wrap_result(result, returns_string=False)
@@ -2177,6 +2294,15 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series or Index
+
+        Examples
+        --------
+        >>> ser = pd.Series(["El niño", "Françoise"])
+        >>> mytable = str.maketrans({'ñ': 'n', 'ç': 'c'})
+        >>> ser.str.translate(mytable)
+        0   El nino
+        1   Francoise
+        dtype: object
         """
         result = self._data.array._str_translate(table)
         return self._wrap_result(result)
@@ -2713,6 +2839,26 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    For Series.str.find:
+
+    >>> ser = pd.Series(["cow_", "duck_", "do_ve"])
+    >>> ser.str.find("_")
+    0   3
+    1   4
+    2   2
+    dtype: int64
+
+    For Series.str.rfind:
+
+    >>> ser = pd.Series(["_cow_", "duck_", "do_v_e"])
+    >>> ser.str.rfind("_")
+    0   4
+    1   4
+    2   4
+    dtype: int64
     """
 
     @Appender(
@@ -2765,6 +2911,13 @@ class StringMethods(NoNewAttributesMixin):
         Returns
         -------
         Series/Index of objects
+
+        Examples
+        --------
+        >>> ser = pd.Series(['ñ'])
+        >>> ser.str.normalize('NFC') == ser.str.normalize('NFD')
+        0   False
+        dtype: bool
         """
         result = self._data.array._str_normalize(form)
         return self._wrap_result(result)
@@ -2796,6 +2949,26 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
     %(also)s
+
+    Examples
+    --------
+    For Series.str.index:
+
+    >>> ser = pd.Series(["horse", "eagle", "donkey"])
+    >>> ser.str.index("e")
+    0   4
+    1   0
+    2   4
+    dtype: int64
+
+    For Series.str.rindex:
+
+    >>> ser = pd.Series(["Deer", "eagle", "Sheep"])
+    >>> ser.str.rindex("e")
+    0   2
+    1   4
+    2   3
+    dtype: int64
     """
 
     @Appender(
@@ -3195,7 +3368,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: list, sep: str):
+def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 

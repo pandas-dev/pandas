@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+)
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     cast,
 )
 
@@ -34,7 +35,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_signed_integer_dtype,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.generic import ABCTimedeltaIndex
 
@@ -51,9 +51,12 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
+        NaPosition,
+        Self,
         npt,
     )
 _empty_range = range(0)
+_dtype_int64 = np.dtype(np.int64)
 
 
 class RangeIndex(Index):
@@ -93,6 +96,26 @@ class RangeIndex(Index):
     See Also
     --------
     Index : The base pandas Index type.
+
+    Examples
+    --------
+    >>> list(pd.RangeIndex(5))
+    [0, 1, 2, 3, 4]
+
+    >>> list(pd.RangeIndex(-2, 4))
+    [-2, -1, 0, 1, 2, 3]
+
+    >>> list(pd.RangeIndex(0, 10, 2))
+    [0, 2, 4, 6, 8]
+
+    >>> list(pd.RangeIndex(2, -10, -3))
+    [2, -1, -4, -7]
+
+    >>> list(pd.RangeIndex(0))
+    []
+
+    >>> list(pd.RangeIndex(1, 0))
+    []
     """
 
     _typ = "rangeindex"
@@ -114,7 +137,7 @@ class RangeIndex(Index):
         step=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> RangeIndex:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
@@ -144,15 +167,21 @@ class RangeIndex(Index):
         return cls._simple_new(rng, name=name)
 
     @classmethod
-    def from_range(
-        cls, data: range, name=None, dtype: Dtype | None = None
-    ) -> RangeIndex:
+    def from_range(cls, data: range, name=None, dtype: Dtype | None = None) -> Self:
         """
-        Create RangeIndex from a range object.
+        Create :class:`pandas.RangeIndex` from a ``range`` object.
 
         Returns
         -------
         RangeIndex
+
+        Examples
+        --------
+        >>> pd.RangeIndex.from_range(range(5))
+        RangeIndex(start=0, stop=5, step=1)
+
+        >>> pd.RangeIndex.from_range(range(2, -10, -3))
+        RangeIndex(start=2, stop=-10, step=-3)
         """
         if not isinstance(data, range):
             raise TypeError(
@@ -167,8 +196,8 @@ class RangeIndex(Index):
     #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: range, name: Hashable = None
-    ) -> RangeIndex:
+        cls, values: range, name: Hashable | None = None
+    ) -> Self:
         result = object.__new__(cls)
 
         assert isinstance(values, range)
@@ -216,7 +245,7 @@ class RangeIndex(Index):
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
 
     def __reduce__(self):
-        d = {"name": self.name}
+        d = {"name": self._name}
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (type(self), d), None
 
@@ -228,8 +257,8 @@ class RangeIndex(Index):
         Return a list of tuples of the (attr, formatted_value)
         """
         attrs = self._get_data_as_items()
-        if self.name is not None:
-            attrs.append(("name", ibase.default_pprint(self.name)))
+        if self._name is not None:
+            attrs.append(("name", ibase.default_pprint(self._name)))
         return attrs
 
     def _format_data(self, name=None):
@@ -252,6 +281,16 @@ class RangeIndex(Index):
     def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.start
+        0
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.start
+        2
         """
         # GH 25710
         return self._range.start
@@ -260,6 +299,16 @@ class RangeIndex(Index):
     def stop(self) -> int:
         """
         The value of the `stop` parameter.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.stop
+        5
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.stop
+        -10
         """
         return self._range.stop
 
@@ -267,6 +316,23 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.step
+        1
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.step
+        -3
+
+        Even if :class:`pandas.RangeIndex` is empty, ``step`` is still ``1`` if
+        not supplied.
+
+        >>> idx = pd.RangeIndex(1, 0)
+        >>> idx.step
+        1
         """
         # GH 25710
         return self._range.step
@@ -309,7 +375,7 @@ class RangeIndex(Index):
 
     @property
     def dtype(self) -> np.dtype:
-        return np.dtype(np.int64)
+        return _dtype_int64
 
     @property
     def is_unique(self) -> bool:
@@ -347,6 +413,8 @@ class RangeIndex(Index):
                 return self._range.index(new_key)
             except ValueError as err:
                 raise KeyError(key) from err
+        if isinstance(key, Hashable):
+            raise KeyError(key)
         self._check_indexing_error(key)
         raise KeyError(key)
 
@@ -398,7 +466,7 @@ class RangeIndex(Index):
 
     @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
-        name = self.name if name is no_default else name
+        name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
             return Index(values, name=name, dtype=np.float64)
@@ -412,13 +480,13 @@ class RangeIndex(Index):
         else:
             return self._constructor._simple_new(values, name=name)
 
-    def _view(self: RangeIndex) -> RangeIndex:
+    def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
         result._cache = self._cache
         return result
 
     @doc(Index.copy)
-    def copy(self, name: Hashable = None, deep: bool = False):
+    def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
@@ -494,7 +562,7 @@ class RangeIndex(Index):
         self,
         return_indexer: bool = False,
         ascending: bool = True,
-        na_position: str = "last",
+        na_position: NaPosition = "last",
         key: Callable | None = None,
     ):
         if key is not None:
@@ -607,7 +675,7 @@ class RangeIndex(Index):
             return False
         return other.start in self._range and other[-1] in self._range
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -615,9 +683,9 @@ class RangeIndex(Index):
         ----------
         other : Index or array-like
 
-        sort : False or None, default None
+        sort : bool or None, default None
             Whether to sort (monotonically increasing) the resulting index.
-            ``sort=None`` returns a ``RangeIndex`` if possible or a sorted
+            ``sort=None|True`` returns a ``RangeIndex`` if possible or a sorted
             ``Index`` with a int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
@@ -628,7 +696,7 @@ class RangeIndex(Index):
         union : Index
         """
         if isinstance(other, RangeIndex):
-            if sort is None or (
+            if sort in (None, True) or (
                 sort is False and self.step > 0 and self._range_in_self(other._range)
             ):
                 # GH 47557: Can still return a RangeIndex
@@ -769,7 +837,9 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: Hashable | None = None, sort=None
+    ):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -814,17 +884,17 @@ class RangeIndex(Index):
             rng = self._range
             if loc == 0 and item == self[0] - self.step:
                 new_rng = range(rng.start - rng.step, rng.stop, rng.step)
-                return type(self)._simple_new(new_rng, name=self.name)
+                return type(self)._simple_new(new_rng, name=self._name)
 
             elif loc == len(self) and item == self[-1] + self.step:
                 new_rng = range(rng.start, rng.stop + rng.step, rng.step)
-                return type(self)._simple_new(new_rng, name=self.name)
+                return type(self)._simple_new(new_rng, name=self._name)
 
             elif len(self) == 2 and item == self[0] + self.step / 2:
                 # e.g. inserting 1 into [0, 2]
                 step = int(self.step / 2)
                 new_rng = range(self.start, self.stop, step)
-                return type(self)._simple_new(new_rng, name=self.name)
+                return type(self)._simple_new(new_rng, name=self._name)
 
         return super().insert(loc, item)
 
@@ -843,7 +913,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 
@@ -922,7 +992,7 @@ class RangeIndex(Index):
             )
         return super().__getitem__(key)
 
-    def _getitem_slice(self: RangeIndex, slobj: slice) -> RangeIndex:
+    def _getitem_slice(self, slobj: slice) -> Self:
         """
         Fastpath for __getitem__ when we know we have a slice.
         """
@@ -937,11 +1007,11 @@ class RangeIndex(Index):
                 step = self.step // other
                 stop = start + len(self) * step
                 new_range = range(start, stop, step or 1)
-                return self._simple_new(new_range, name=self.name)
+                return self._simple_new(new_range, name=self._name)
             if len(self) == 1:
                 start = self.start // other
                 new_range = range(start, start + 1, 1)
-                return self._simple_new(new_range, name=self.name)
+                return self._simple_new(new_range, name=self._name)
 
         return super().__floordiv__(other)
 
@@ -978,7 +1048,7 @@ class RangeIndex(Index):
             # GH#19333 is_integer evaluated True on timedelta64,
             # so we need to catch these explicitly
             return super()._arith_method(other, op)
-        elif is_timedelta64_dtype(other):
+        elif lib.is_np_dtype(getattr(other, "dtype", None), "m"):
             # Must be an np.ndarray; GH#22390
             return super()._arith_method(other, op)
 
@@ -1013,8 +1083,9 @@ class RangeIndex(Index):
                 if not is_integer(rstep) or not rstep:
                     raise ValueError
 
+            # GH#53255
             else:
-                rstep = left.step
+                rstep = -left.step if op == ops.rsub else left.step
 
             with np.errstate(all="ignore"):
                 rstart = op(left.start, right)

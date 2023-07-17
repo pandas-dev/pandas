@@ -14,11 +14,11 @@ from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._validators import check_dtype_backend
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_interval_dtype,
-    is_period_dtype,
-    is_unsigned_integer_dtype,
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+    PeriodDtype,
 )
 
 import pandas as pd
@@ -63,13 +63,14 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -213,12 +214,9 @@ def to_orc(
     # In Pyarrow 8.0.0 this check will no longer be needed
     if pa_version_under8p0:
         for dtype in df.dtypes:
-            if (
-                is_categorical_dtype(dtype)
-                or is_interval_dtype(dtype)
-                or is_period_dtype(dtype)
-                or is_unsigned_integer_dtype(dtype)
-            ):
+            if isinstance(
+                dtype, (IntervalDtype, CategoricalDtype, PeriodDtype)
+            ) or is_unsigned_integer_dtype(dtype):
                 raise NotImplementedError(
                     "The dtype of one or more columns is not supported yet."
                 )

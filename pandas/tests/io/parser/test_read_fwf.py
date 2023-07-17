@@ -26,8 +26,8 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
+from pandas.io.common import urlopen
 from pandas.io.parsers import (
     read_csv,
     read_fwf,
@@ -328,7 +328,7 @@ def test_fwf_regression():
 
 def test_fwf_for_uint8():
     data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
-1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa:E501
+1421302964.226776    PRI=6 PGN=0xf002               SRC=0x47    243 00 00 255 247 00 00 71"""  # noqa: E501
     df = read_fwf(
         StringIO(data),
         colspecs=[(0, 17), (25, 26), (33, 37), (49, 51), (58, 62), (63, 1000)],
@@ -666,13 +666,13 @@ cc\tdd """
 
 
 @pytest.mark.parametrize("infer", [True, False])
-def test_fwf_compression(compression_only, infer):
+def test_fwf_compression(compression_only, infer, compression_to_extension):
     data = """1111111111
     2222222222
     3333333333""".strip()
 
     compression = compression_only
-    extension = _compression_to_extension[compression]
+    extension = compression_to_extension[compression]
 
     kwargs = {"widths": [5, 5], "names": ["one", "two"]}
     expected = read_fwf(StringIO(data), **kwargs)
@@ -695,10 +695,10 @@ def test_binary_mode():
 
     GH 18035.
     """
-    data = """aas aas aas
+    data = """aaa aaa aaa
 bba bab b a"""
     df_reference = DataFrame(
-        [["bba", "bab", "b a"]], columns=["aas", "aas.1", "aas.2"], index=[0]
+        [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
     with tm.ensure_clean() as path:
         Path(path).write_text(data)
@@ -1010,3 +1010,22 @@ def test_invalid_dtype_backend():
     )
     with pytest.raises(ValueError, match=msg):
         read_fwf("test", dtype_backend="numpy")
+
+
+@pytest.mark.network
+@pytest.mark.single_cpu
+def test_url_urlopen(httpserver):
+    data = """\
+A         B            C            D
+201158    360.242940   149.910199   11950.7
+201159    444.953632   166.985655   11788.4
+201160    364.136849   183.628767   11806.2
+201161    413.836124   184.375703   11916.8
+201162    502.953953   173.237159   12468.3
+"""
+    httpserver.serve_content(content=data)
+    expected = pd.Index(list("ABCD"))
+    with urlopen(httpserver.url) as f:
+        result = read_fwf(f).columns
+
+    tm.assert_index_equal(result, expected)

@@ -153,12 +153,16 @@ API changes
 
   Added the ``.bool()`` method to ``NDFrame`` objects to facilitate evaluating of single-element boolean Series:
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.Series([True]).bool()
-     pd.Series([False]).bool()
-     pd.DataFrame([[True]]).bool()
-     pd.DataFrame([[False]]).bool()
+     >>> pd.Series([True]).bool()
+      True
+     >>> pd.Series([False]).bool()
+      False
+     >>> pd.DataFrame([[True]]).bool()
+      True
+     >>> pd.DataFrame([[False]]).bool()
+      False
 
 - All non-Index NDFrames (``Series``, ``DataFrame``, ``Panel``, ``Panel4D``,
   ``SparsePanel``, etc.), now support the entire set of arithmetic operators

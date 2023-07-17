@@ -3,9 +3,11 @@ from datetime import (
     time,
 )
 from functools import partial
+from io import BytesIO
 import os
 from pathlib import Path
 import platform
+import re
 from urllib.error import URLError
 from zipfile import BadZipFile
 
@@ -147,6 +149,32 @@ class TestReaders:
         else:
             expected = expected_defaults[read_ext[1:]]
         assert result == expected
+
+    def test_engine_kwargs(self, read_ext, engine):
+        # GH#52214
+        expected_defaults = {
+            "xlsx": {"foo": "abcd"},
+            "xlsm": {"foo": 123},
+            "xlsb": {"foo": "True"},
+            "xls": {"foo": True},
+            "ods": {"foo": "abcd"},
+        }
+
+        if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
+            msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
+        elif read_ext[1:] == "ods":
+            msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
+        else:
+            msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
+
+        if engine is not None:
+            with pytest.raises(TypeError, match=msg):
+                pd.read_excel(
+                    "test1" + read_ext,
+                    sheet_name="Sheet1",
+                    index_col=0,
+                    engine_kwargs=expected_defaults[read_ext[1:]],
+                )
 
     def test_usecols_int(self, read_ext):
         # usecols as int
@@ -312,6 +340,14 @@ class TestReaders:
                 index_col=["A"],
                 usecols=["A", "C"],
             )
+
+    def test_index_col_str(self, read_ext):
+        # see gh-52716
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet3", index_col="A")
+        expected = DataFrame(
+            columns=["B", "C", "D", "E", "F"], index=Index([], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_index_col_empty(self, read_ext):
         # see gh-9208
@@ -808,7 +844,13 @@ class TestReaders:
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
         # CI tests with other languages, translates to "No such file or directory"
-        match = r"(No such file or directory|没有那个文件或目录|File o directory non esistente)"
+        match = "|".join(
+            [
+                "(No such file or directory",
+                "没有那个文件或目录",
+                "File o directory non esistente)",
+            ]
+        )
         with pytest.raises(FileNotFoundError, match=match):
             pd.read_excel(bad_file)
 
@@ -832,50 +874,42 @@ class TestReaders:
             error = BadZipFile
             msg = "File is not a zip file"
         with pytest.raises(error, match=msg):
-            pd.read_excel(bad_stream)
+            pd.read_excel(BytesIO(bad_stream))
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1.xlsx"
-        ),
-        check_before_test=True,
-    )
-    def test_read_from_http_url(self, read_ext):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1" + read_ext
-        )
-        url_table = pd.read_excel(url)
+    @pytest.mark.single_cpu
+    def test_read_from_http_url(self, httpserver, read_ext):
+        with open("test1" + read_ext, "rb") as f:
+            httpserver.serve_content(content=f.read())
+        url_table = pd.read_excel(httpserver.url)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_resource, s3so):
-        # Bucket "pandas-test" created in tests/io/conftest.py
+    def test_read_from_s3_url(self, read_ext, s3_public_bucket, s3so):
+        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
+            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
 
-        url = "s3://pandas-test/test1" + read_ext
+        url = f"s3://{s3_public_bucket.name}/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_resource, s3so):
+    def test_read_from_s3_object(self, read_ext, s3_public_bucket, s3so):
         # GH 38788
-        # Bucket "pandas-test" created in tests/io/conftest.py
+        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test1" + read_ext, Body=f)
+            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
 
         import s3fs
 
         s3 = s3fs.S3FileSystem(**s3so)
 
-        with s3.open("s3://pandas-test/test1" + read_ext) as f:
+        with s3.open(f"s3://{s3_public_bucket.name}/test1" + read_ext) as f:
             url_table = pd.read_excel(f)
 
         local_table = pd.read_excel("test1" + read_ext)
@@ -1108,13 +1142,14 @@ class TestReaders:
         # now be interpreted as rows that include null data.
         data = np.array(
             [
-                [None, None, None, None, None],
+                [np.nan, np.nan, np.nan, np.nan, np.nan],
                 ["R0C0", "R0C1", "R0C2", "R0C3", "R0C4"],
                 ["R1C0", "R1C1", "R1C2", "R1C3", "R1C4"],
                 ["R2C0", "R2C1", "R2C2", "R2C3", "R2C4"],
                 ["R3C0", "R3C1", "R3C2", "R3C3", "R3C4"],
                 ["R4C0", "R4C1", "R4C2", "R4C3", "R4C4"],
-            ]
+            ],
+            dtype=object,
         )
         columns = ["C_l0_g0", "C_l0_g1", "C_l0_g2", "C_l0_g3", "C_l0_g4"]
         mi = MultiIndex(
@@ -1404,6 +1439,18 @@ class TestReaders:
 
 
 class TestExcelFileRead:
+    def test_deprecate_bytes_input(self, engine, read_ext):
+        # GH 53830
+        msg = (
+            "Passing bytes to 'read_excel' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "byte string, wrap it in a `BytesIO` object."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with open("test1" + read_ext, "rb") as f:
+                pd.read_excel(f.read(), engine=engine)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -1587,7 +1634,7 @@ class TestExcelFileRead:
         with open("test1" + read_ext, "rb") as f:
             data = f.read()
 
-        actual = pd.read_excel(data, engine=engine)
+        actual = pd.read_excel(BytesIO(data), engine=engine)
         tm.assert_frame_equal(expected, actual)
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
@@ -1667,7 +1714,7 @@ class TestExcelFileRead:
             errors = (BadZipFile, xlrd.biffh.XLRDError)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
-            Path(file).write_text("corrupt")
+            Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
                     pd.ExcelFile(file, engine=engine)

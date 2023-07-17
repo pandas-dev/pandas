@@ -13,7 +13,7 @@ Reshaping by pivoting DataFrame objects
 
 .. image:: ../_static/reshaping_pivot.png
 
-Data is often stored in so-called "stacked" or "record" format:
+Data is often stored in so-called "stacked" or "record" format. In a "record" or "wide" format typically there is one row for each subject. In the "stacked" or "long" format there are multiple rows for each subject where applicable.
 
 .. ipython:: python
 
@@ -298,8 +298,6 @@ For instance,
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
 
-.. versionadded:: 1.1.0
-
 .. ipython:: python
 
    index = pd.MultiIndex.from_tuples([("person", "A"), ("person", "B")])
@@ -404,12 +402,12 @@ We can produce pivot tables from this data very easily:
 .. ipython:: python
 
    pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
-   pd.pivot_table(df, values="D", index=["B"], columns=["A", "C"], aggfunc=np.sum)
+   pd.pivot_table(df, values="D", index=["B"], columns=["A", "C"], aggfunc="sum")
    pd.pivot_table(
        df, values=["D", "E"],
        index=["B"],
        columns=["A", "C"],
-       aggfunc=np.sum,
+       aggfunc="sum",
    )
 
 The result object is a :class:`DataFrame` having potentially hierarchical indexes on the
@@ -453,7 +451,7 @@ rows and columns:
        columns="C",
        values=["D", "E"],
        margins=True,
-       aggfunc=np.std
+       aggfunc="std"
    )
    table
 
@@ -554,7 +552,7 @@ each group defined by the first two :class:`Series`:
 
 .. ipython:: python
 
-   pd.crosstab(df["A"], df["B"], values=df["C"], aggfunc=np.sum)
+   pd.crosstab(df["A"], df["B"], values=df["C"], aggfunc="sum")
 
 Adding margins
 ~~~~~~~~~~~~~~
@@ -564,7 +562,7 @@ Finally, one can also add margins or normalize this output.
 .. ipython:: python
 
    pd.crosstab(
-       df["A"], df["B"], values=df["C"], aggfunc=np.sum, normalize=True, margins=True
+       df["A"], df["B"], values=df["C"], aggfunc="sum", normalize=True, margins=True
    )
 
 .. _reshaping.tile:

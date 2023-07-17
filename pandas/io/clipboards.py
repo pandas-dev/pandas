@@ -26,31 +26,50 @@ def read_clipboard(
     **kwargs,
 ):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_csv.
+    Read text from clipboard and pass to :func:`~pandas.read_csv`.
+
+    Parses clipboard contents similar to how CSV files are parsed
+    using :func:`~pandas.read_csv`.
 
     Parameters
     ----------
-    sep : str, default '\s+'
-        A string or regex delimiter. The default of '\s+' denotes
+    sep : str, default '\\s+'
+        A string or regex delimiter. The default of ``'\\s+'`` denotes
         one or more whitespace characters.
 
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
     **kwargs
-        See read_csv for the full argument list.
+        See :func:`~pandas.read_csv` for the full argument list.
 
     Returns
     -------
     DataFrame
-        A parsed DataFrame object.
+        A parsed :class:`~pandas.DataFrame` object.
+
+    See Also
+    --------
+    DataFrame.to_clipboard : Copy object to the system clipboard.
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+    >>> df.to_clipboard()  # doctest: +SKIP
+    >>> pd.read_clipboard()  # doctest: +SKIP
+         A  B  C
+    0    1  2  3
+    1    4  5  6
     """
     encoding = kwargs.pop("encoding", "utf-8")
 

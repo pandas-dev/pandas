@@ -65,7 +65,7 @@ def test_time_rule_series(series, q):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
@@ -173,3 +173,10 @@ def test_center_reindex_frame(frame, q):
     )
     frame_rs = frame.rolling(window=25, center=True).quantile(q)
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+
+def test_keyword_quantile_deprecated():
+    # GH #52550
+    s = Series([1, 2, 3, 4])
+    with tm.assert_produces_warning(FutureWarning):
+        s.rolling(2).quantile(quantile=0.4)

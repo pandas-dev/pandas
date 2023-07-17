@@ -4,18 +4,14 @@ data hash pandas / numpy objects
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Iterator,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs.hashing import hash_object_array
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -25,6 +21,12 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         npt,
@@ -203,7 +205,10 @@ def hash_tuples(
 
     # create a list-of-Categoricals
     cat_vals = [
-        Categorical(mi.codes[level], mi.levels[level], ordered=False, fastpath=True)
+        Categorical._simple_new(
+            mi.codes[level],
+            CategoricalDtype(categories=mi.levels[level], ordered=False),
+        )
         for level in range(mi.nlevels)
     ]
 
@@ -250,7 +255,7 @@ def hash_array(
             encoding=encoding, hash_key=hash_key, categorize=categorize
         )
 
-    elif not isinstance(vals, np.ndarray):
+    if not isinstance(vals, np.ndarray):
         # GH#42003
         raise TypeError(
             "hash_array requires np.ndarray or ExtensionArray, not "
@@ -271,14 +276,15 @@ def _hash_ndarray(
     """
     dtype = vals.dtype
 
-    # we'll be working with everything as 64-bit values, so handle this
-    # 128-bit value early
+    # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
     if np.issubdtype(dtype, np.complex128):
-        return hash_array(np.real(vals)) + 23 * hash_array(np.imag(vals))
+        hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
+        hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
+        return hash_real + 23 * hash_imag
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif dtype == bool:
+    if dtype == bool:
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
@@ -296,7 +302,8 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            cat = Categorical(codes, Index(categories), ordered=False, fastpath=True)
+            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            cat = Categorical._simple_new(codes, dtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )

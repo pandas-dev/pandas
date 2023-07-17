@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -124,9 +125,10 @@ def ensure_clean(
     path.touch()
 
     handle_or_str: str | IO = str(path)
+    encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
-        handle_or_str = open(path, **kwargs)
+        handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
         yield handle_or_str
@@ -135,22 +137,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
 
 
 @contextmanager
@@ -205,18 +191,24 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error():
-    if PYPY:
+def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+    from pandas._testing import assert_produces_warning
+
+    if PYPY and not extra_warnings:
         from contextlib import nullcontext
 
         return nullcontext()
-    else:
-        from pandas._testing import assert_produces_warning
-
+    elif PYPY and extra_warnings:
         return assert_produces_warning(
-            ChainedAssignmentError,
-            match=(
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment"
-            ),
+            extra_warnings,
+            match="|".join(extra_match),
+        )
+    else:
+        match = (
+            "A value is trying to be set on a copy of a DataFrame or Series "
+            "through chained assignment"
+        )
+        return assert_produces_warning(
+            (ChainedAssignmentError, *extra_warnings),
+            match="|".join((match, *extra_match)),
         )

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 
 import numpy as np
 
@@ -13,15 +16,13 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas.core.dtypes.common import (
-    is_dtype_equal,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     arraylike,
+    missing,
     nanops,
     ops,
 )
@@ -34,13 +35,20 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        FillnaOptions,
+        InterpolateOptions,
         NpDtype,
         Scalar,
+        Self,
         npt,
     )
 
+    from pandas import Index
 
-class PandasArray(
+
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class PandasArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
@@ -197,7 +205,7 @@ class PandasArray(
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -215,11 +223,76 @@ class PandasArray(
         return fill_value
 
     def _values_for_factorize(self) -> tuple[np.ndarray, float | None]:
-        if self.dtype.kind in ["i", "u", "b"]:
+        if self.dtype.kind in "iub":
             fv = None
         else:
             fv = np.nan
         return self._ndarray, fv
+
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        """
+        ffill or bfill along axis=0.
+        """
+        if copy:
+            out_data = self._ndarray.copy()
+        else:
+            out_data = self._ndarray
+
+        meth = missing.clean_fill_method(method)
+        missing.pad_or_backfill_inplace(
+            out_data.T,
+            method=meth,
+            axis=0,
+            limit=limit,
+            limit_area=limit_area,
+        )
+
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if not copy:
+            out_data = self._ndarray
+        else:
+            out_data = self._ndarray.copy()
+
+        # TODO: assert we have floating dtype?
+        missing.interpolate_2d_inplace(
+            out_data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            **kwargs,
+        )
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -445,8 +518,7 @@ class PandasArray(
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
-        with np.errstate(all="ignore"):
-            result = pd_op(self._ndarray, other)
+        result = pd_op(self._ndarray, other)
 
         if op is divmod or op is ops.rdivmod:
             a, b = result

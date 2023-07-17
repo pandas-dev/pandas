@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Mapping,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -19,14 +14,12 @@ from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DtypeWarning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    pandas_dtype,
-)
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.concat import (
     concat_compat,
     union_categoricals,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core.indexes.api import ensure_index_from_sequences
 
@@ -41,6 +34,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeArg,
@@ -247,9 +246,7 @@ class CParserWrapper(ParserBase):
                 )
                 index, columns, col_dict = self._get_empty_meta(
                     names,
-                    self.index_col,
-                    self.index_names,
-                    dtype=self.kwds.get("dtype"),
+                    dtype=self.dtype,
                 )
                 columns = self._maybe_make_multi_index_columns(columns, self.col_names)
 
@@ -346,17 +343,6 @@ class CParserWrapper(ParserBase):
             ]
         return names
 
-    def _get_index_names(self):
-        names = list(self._reader.header[0])
-        idx_names = None
-
-        if self._reader.leading_cols == 0 and self.index_col is not None:
-            (idx_names, names, self.index_col) = self._clean_index_names(
-                names, self.index_col
-            )
-
-        return names, idx_names
-
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):
             values = self._date_conv(
@@ -381,10 +367,10 @@ def _concatenate_chunks(chunks: list[dict[int, ArrayLike]]) -> dict:
         arrs = [chunk.pop(name) for chunk in chunks]
         # Check each arr for consistent types.
         dtypes = {a.dtype for a in arrs}
-        non_cat_dtypes = {x for x in dtypes if not is_categorical_dtype(x)}
+        non_cat_dtypes = {x for x in dtypes if not isinstance(x, CategoricalDtype)}
 
         dtype = dtypes.pop()
-        if is_categorical_dtype(dtype):
+        if isinstance(dtype, CategoricalDtype):
             result[name] = union_categoricals(arrs, sort_categories=False)
         else:
             result[name] = concat_compat(arrs)

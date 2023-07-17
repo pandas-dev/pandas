@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -33,6 +35,18 @@ from pandas.core.arrays import (
 
 
 class TestDatetimeIndex:
+    def test_closed_deprecated(self):
+        # GH#52628
+        msg = "The 'closed' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], closed=True)
+
+    def test_normalize_deprecated(self):
+        # GH#52628
+        msg = "The 'normalize' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], normalize=True)
+
     def test_from_dt64_unsupported_unit(self):
         # GH#49292
         val = np.datetime64(1, "D")

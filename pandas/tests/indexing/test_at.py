@@ -114,9 +114,10 @@ class TestAtSetItem:
 
     @pytest.mark.parametrize("row", (Timestamp("2019-01-01"), "2019-01-01"))
     def test_at_datetime_index(self, row):
+        # Set float64 dtype to avoid upcast when setting .5
         df = DataFrame(
             data=[[1] * 2], index=DatetimeIndex(data=["2019-01-01", "2019-01-02"])
-        )
+        ).astype({0: "float64"})
         expected = DataFrame(
             data=[[0.5, 1], [1.0, 1]],
             index=DatetimeIndex(data=["2019-01-01", "2019-01-02"]),

@@ -109,7 +109,7 @@ class TestDataFrameEval:
         df.iloc[0] = 2
         m = df.mean()
 
-        base = DataFrame(  # noqa:F841
+        base = DataFrame(  # noqa: F841
             np.tile(m.values, n).reshape(n, -1), columns=list("abcd")
         )
 
@@ -491,7 +491,7 @@ class TestDataFrameQueryNumExprPandas:
 
         df = DataFrame(np.random.randn(20, 2), columns=list("ab"))
 
-        a, b = 1, 2  # noqa:F841
+        a, b = 1, 2  # noqa: F841
         res = df.query("a > b", engine=engine, parser=parser)
         expected = df[df.a > df.b]
         tm.assert_frame_equal(res, expected)
@@ -641,7 +641,7 @@ class TestDataFrameQueryNumExprPandas:
 
     def test_at_inside_string(self, engine, parser):
         skip_if_no_pandas_parser(parser)
-        c = 1  # noqa:F841
+        c = 1  # noqa: F841
         df = DataFrame({"a": ["a", "a", "b", "b", "@c", "@c"]})
         result = df.query('a == "@c"', engine=engine, parser=parser)
         expected = df[df.a == "@c"]
@@ -660,7 +660,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_index_resolvers_come_after_columns_with_the_same_name(
         self, engine, parser
     ):
-        n = 1  # noqa:F841
+        n = 1  # noqa: F841
         a = np.r_[20:101:20]
 
         df = DataFrame({"index": a, "b": np.random.randn(a.size)})
@@ -805,7 +805,7 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     def test_nested_scope(self, engine, parser):
         # smoke test
-        x = 1  # noqa:F841
+        x = 1  # noqa: F841
         result = pd.eval("x + 1", engine=engine, parser=parser)
         assert result == 2
 
@@ -1066,9 +1066,37 @@ class TestDataFrameQueryStrings:
             }
         )
         e = df[df.Symbol == "BUD US"]
-        symb = "BUD US"  # noqa:F841
+        symb = "BUD US"  # noqa: F841
         r = df.query("Symbol == @symb", parser=parser, engine=engine)
         tm.assert_frame_equal(e, r)
+
+    @pytest.mark.parametrize(
+        "in_list",
+        [
+            [None, "asdf", "ghjk"],
+            ["asdf", None, "ghjk"],
+            ["asdf", "ghjk", None],
+            [None, None, "asdf"],
+            ["asdf", None, None],
+            [None, None, None],
+        ],
+    )
+    def test_query_string_null_elements(self, in_list):
+        # GITHUB ISSUE #31516
+        parser = "pandas"
+        engine = "python"
+        expected = {i: value for i, value in enumerate(in_list) if value == "asdf"}
+
+        df_expected = DataFrame({"a": expected}, dtype="string")
+        df_expected.index = df_expected.index.astype("int64")
+        df = DataFrame({"a": in_list}, dtype="string")
+        res1 = df.query("a == 'asdf'", parser=parser, engine=engine)
+        res2 = df[df["a"] == "asdf"]
+        res3 = df.query("a <= 'asdf'", parser=parser, engine=engine)
+        tm.assert_frame_equal(res1, df_expected)
+        tm.assert_frame_equal(res1, res2)
+        tm.assert_frame_equal(res1, res3)
+        tm.assert_frame_equal(res2, res3)
 
 
 class TestDataFrameEvalWithFrame:
@@ -1246,7 +1274,7 @@ class TestDataFrameQueryBacktickQuoting:
         def func(*_):
             return 1
 
-        funcs = [func]  # noqa:F841
+        funcs = [func]  # noqa: F841
 
         df.eval("@func()")
 
@@ -1303,7 +1331,7 @@ class TestDataFrameQueryBacktickQuoting:
             pytest.importorskip("pyarrow")
         # GH#50261
         df = DataFrame({"a": Series([1, 2], dtype=dtype)})
-        ref = {2}  # noqa:F841
+        ref = {2}  # noqa: F841
         warning = RuntimeWarning if dtype == "Int64" and NUMEXPR_INSTALLED else None
         with tm.assert_produces_warning(warning):
             result = df.query("a in @ref")

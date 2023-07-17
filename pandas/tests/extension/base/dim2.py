@@ -12,8 +12,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
-import pandas._testing as tm
-from pandas.core.arrays.integer import INT_STR_TO_DTYPE
+from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -160,10 +159,26 @@ class Dim2CompatTests(BaseExtensionTests):
         assert arr[0].isna().all()
         assert not arr[1].isna().any()
 
-        result = arr.fillna(method=method)
+        try:
+            result = arr.pad_or_backfill(method=method, limit=None)
+        except AttributeError:
+            result = arr.fillna(method=method, limit=None)
 
         expected = data_missing.fillna(method=method).repeat(2).reshape(2, 2)
         self.assert_extension_array_equal(result, expected)
+
+        # Reverse so that backfill is not a no-op.
+        arr2 = arr[::-1]
+        assert not arr2[0].isna().any()
+        assert arr2[1].isna().all()
+
+        try:
+            result2 = arr2.pad_or_backfill(method=method, limit=None)
+        except AttributeError:
+            result2 = arr2.fillna(method=method, limit=None)
+
+        expected2 = data_missing[::-1].fillna(method=method).repeat(2).reshape(2, 2)
+        self.assert_extension_array_equal(result2, expected2)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis_none(self, data, method):
@@ -191,21 +206,22 @@ class Dim2CompatTests(BaseExtensionTests):
         assert is_matching_na(result, expected) or result == expected
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
-    def test_reductions_2d_axis0(self, data, method):
+    @pytest.mark.parametrize("min_count", [0, 1])
+    def test_reductions_2d_axis0(self, data, method, min_count):
+        if min_count == 1 and method not in ["sum", "prod"]:
+            pytest.skip(f"min_count not relevant for {method}")
+
         arr2d = data.reshape(1, -1)
 
         kwargs = {}
         if method in ["std", "var"]:
             # pass ddof=0 so we get all-zero std instead of all-NA std
             kwargs["ddof"] = 0
+        elif method in ["prod", "sum"]:
+            kwargs["min_count"] = min_count
 
         try:
-            if method in ["mean", "var", "std"] and hasattr(data, "_mask"):
-                # Empty slices produced by the mask cause RuntimeWarnings by numpy
-                with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
-                    result = getattr(arr2d, method)(axis=0, **kwargs)
-            else:
-                result = getattr(arr2d, method)(axis=0, **kwargs)
+            result = getattr(arr2d, method)(axis=0, **kwargs)
         except Exception as err:
             try:
                 getattr(data, method)()
@@ -221,25 +237,27 @@ class Dim2CompatTests(BaseExtensionTests):
             if dtype.itemsize == 8:
                 return dtype
             elif dtype.kind in "ib":
-                return INT_STR_TO_DTYPE[np.dtype(int).name]
+                return NUMPY_INT_TO_DTYPE[np.dtype(int)]
             else:
                 # i.e. dtype.kind == "u"
-                return INT_STR_TO_DTYPE[np.dtype(np.uint).name]
+                return NUMPY_INT_TO_DTYPE[np.dtype(np.uint)]
 
-        if method in ["median", "sum", "prod"]:
+        if method in ["sum", "prod"]:
             # std and var are not dtype-preserving
             expected = data
-            if method in ["sum", "prod"] and data.dtype.kind in "iub":
+            if data.dtype.kind in "iub":
                 dtype = get_reduction_result_dtype(data.dtype)
-
                 expected = data.astype(dtype)
-                if data.dtype.kind == "b" and method in ["sum", "prod"]:
-                    # We get IntegerArray instead of BooleanArray
-                    pass
-                else:
-                    assert type(expected) == type(data), type(expected)
                 assert dtype == expected.dtype
 
+            if min_count == 0:
+                fill_value = 1 if method == "prod" else 0
+                expected = expected.fillna(fill_value)
+
+            self.assert_extension_array_equal(result, expected)
+        elif method == "median":
+            # std and var are not dtype-preserving
+            expected = data
             self.assert_extension_array_equal(result, expected)
         elif method in ["mean", "std", "var"]:
             if is_integer_dtype(data) or is_bool_dtype(data):

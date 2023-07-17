@@ -9,10 +9,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays import (
-    PeriodArray,
-    period_array,
-)
+from pandas.core.arrays import PeriodArray
 
 # ----------------------------------------------------------------------------
 # Dtype
@@ -30,13 +27,13 @@ def test_registered():
 
 
 def test_asi8():
-    result = period_array(["2000", "2001", None], freq="D").asi8
+    result = PeriodArray._from_sequence(["2000", "2001", None], dtype="period[D]").asi8
     expected = np.array([10957, 11323, iNaT])
     tm.assert_numpy_array_equal(result, expected)
 
 
 def test_take_raises():
-    arr = period_array(["2000", "2001"], freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr.take([0, -1], allow_fill=True, fill_value=pd.Period("2000", freq="W"))
 
@@ -46,13 +43,13 @@ def test_take_raises():
 
 
 def test_fillna_raises():
-    arr = period_array(["2000", "2001", "2002"], freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001", "2002"], dtype="period[D]")
     with pytest.raises(ValueError, match="Length"):
         arr.fillna(arr[:2])
 
 
 def test_fillna_copies():
-    arr = period_array(["2000", "2001", "2002"], freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001", "2002"], dtype="period[D]")
     result = arr.fillna(pd.Period("2000", "D"))
     assert result is not arr
 
@@ -76,30 +73,30 @@ def test_fillna_copies():
     ],
 )
 def test_setitem(key, value, expected):
-    arr = PeriodArray(np.arange(3), freq="D")
-    expected = PeriodArray(expected, freq="D")
+    arr = PeriodArray(np.arange(3), dtype="period[D]")
+    expected = PeriodArray(expected, dtype="period[D]")
     arr[key] = value
     tm.assert_period_array_equal(arr, expected)
 
 
 def test_setitem_raises_incompatible_freq():
-    arr = PeriodArray(np.arange(3), freq="D")
+    arr = PeriodArray(np.arange(3), dtype="period[D]")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[0] = pd.Period("2000", freq="A")
 
-    other = period_array(["2000", "2001"], freq="A")
+    other = PeriodArray._from_sequence(["2000", "2001"], dtype="period[A]")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr[[0, 1]] = other
 
 
 def test_setitem_raises_length():
-    arr = PeriodArray(np.arange(3), freq="D")
+    arr = PeriodArray(np.arange(3), dtype="period[D]")
     with pytest.raises(ValueError, match="length"):
         arr[[0, 1]] = [pd.Period("2000", freq="D")]
 
 
 def test_setitem_raises_type():
-    arr = PeriodArray(np.arange(3), freq="D")
+    arr = PeriodArray(np.arange(3), dtype="period[D]")
     with pytest.raises(TypeError, match="int"):
         arr[0] = 1
 
@@ -109,7 +106,7 @@ def test_setitem_raises_type():
 
 
 def test_sub_period():
-    arr = period_array(["2000", "2001"], freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]")
     other = pd.Period("2000", freq="M")
     with pytest.raises(IncompatibleFrequency, match="freq"):
         arr - other
@@ -135,11 +132,16 @@ def test_sub_period_overflow():
 
 @pytest.mark.parametrize(
     "other",
-    [pd.Period("2000", freq="H"), period_array(["2000", "2001", "2000"], freq="H")],
+    [
+        pd.Period("2000", freq="H"),
+        PeriodArray._from_sequence(["2000", "2001", "2000"], dtype="period[H]"),
+    ],
 )
 def test_where_different_freq_raises(other):
     # GH#45768 The PeriodArray method raises, the Series method coerces
-    ser = pd.Series(period_array(["2000", "2001", "2002"], freq="D"))
+    ser = pd.Series(
+        PeriodArray._from_sequence(["2000", "2001", "2002"], dtype="period[D]")
+    )
     cond = np.array([True, False, True])
 
     with pytest.raises(IncompatibleFrequency, match="freq"):
@@ -155,7 +157,7 @@ def test_where_different_freq_raises(other):
 
 
 def test_repr_small():
-    arr = period_array(["2000", "2001"], freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]")
     result = str(arr)
     expected = (
         "<PeriodArray>\n['2000-01-01', '2001-01-01']\nLength: 2, dtype: period[D]"
@@ -164,7 +166,7 @@ def test_repr_small():
 
 
 def test_repr_large():
-    arr = period_array(["2000", "2001"] * 500, freq="D")
+    arr = PeriodArray._from_sequence(["2000", "2001"] * 500, dtype="period[D]")
     result = str(arr)
     expected = (
         "<PeriodArray>\n"

@@ -149,6 +149,10 @@ class Holiday:
     for observance.
     """
 
+    start_date: Timestamp | None
+    end_date: Timestamp | None
+    days_of_week: tuple[int, ...] | None
+
     def __init__(
         self,
         name: str,
@@ -242,7 +246,9 @@ class Holiday:
         repr = f"Holiday: {self.name} ({info})"
         return repr
 
-    def dates(self, start_date, end_date, return_name: bool = False):
+    def dates(
+        self, start_date, end_date, return_name: bool = False
+    ) -> Series | DatetimeIndex:
         """
         Calculate holidays observed between start date and end date
 
@@ -253,6 +259,11 @@ class Holiday:
         return_name : bool, optional, default=False
             If True, return a series that has dates and holiday names.
             False will only return dates.
+
+        Returns
+        -------
+        Series or DatetimeIndex
+            Series if return_name is True
         """
         start_date = Timestamp(start_date)
         end_date = Timestamp(end_date)
@@ -262,16 +273,21 @@ class Holiday:
 
         if self.year is not None:
             dt = Timestamp(datetime(self.year, self.month, self.day))
+            dti = DatetimeIndex([dt])
             if return_name:
-                return Series(self.name, index=[dt])
+                return Series(self.name, index=dti)
             else:
-                return [dt]
+                return dti
 
         dates = self._reference_dates(start_date, end_date)
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
-                np.in1d(holiday_dates.dayofweek, self.days_of_week)
+                np.in1d(
+                    # error: "DatetimeIndex" has no attribute "dayofweek"
+                    holiday_dates.dayofweek,  # type: ignore[attr-defined]
+                    self.days_of_week,
+                )
             ]
 
         if self.start_date is not None:
@@ -289,7 +305,9 @@ class Holiday:
             return Series(self.name, index=holiday_dates)
         return holiday_dates
 
-    def _reference_dates(self, start_date, end_date):
+    def _reference_dates(
+        self, start_date: Timestamp, end_date: Timestamp
+    ) -> DatetimeIndex:
         """
         Get reference dates for the holiday.
 
@@ -322,7 +340,7 @@ class Holiday:
 
         return dates
 
-    def _apply_rule(self, dates):
+    def _apply_rule(self, dates: DatetimeIndex) -> DatetimeIndex:
         """
         Apply the given offset/observance to a DatetimeIndex of dates.
 
@@ -459,9 +477,16 @@ class AbstractHolidayCalendar(metaclass=HolidayCalendarMetaClass):
                 rule.dates(start, end, return_name=True) for rule in self.rules
             ]
             if pre_holidays:
-                holidays = concat(pre_holidays)
+                # error: Argument 1 to "concat" has incompatible type
+                # "List[Union[Series, DatetimeIndex]]"; expected
+                # "Union[Iterable[DataFrame], Mapping[<nothing>, DataFrame]]"
+                holidays = concat(pre_holidays)  # type: ignore[arg-type]
             else:
-                holidays = Series(index=DatetimeIndex([]), dtype=object)
+                # error: Incompatible types in assignment (expression has type
+                # "Series", variable has type "DataFrame")
+                holidays = Series(
+                    index=DatetimeIndex([]), dtype=object
+                )  # type: ignore[assignment]
 
             self._cache = (start, end, holidays.sort_index())
 

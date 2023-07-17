@@ -719,7 +719,8 @@ class TestiLocBaseIndependent:
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        # Set object type to avoid upcast when setting "Z"
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -774,7 +775,8 @@ class TestiLocBaseIndependent:
             for idx in [None, "index", "locs"]:
                 mask = (df.nums > 2).values
                 if idx:
-                    mask = Series(mask, list(reversed(getattr(df, idx))))
+                    mask_index = getattr(df, idx)[::-1]
+                    mask = Series(mask, list(mask_index))
                 for method in ["", ".loc", ".iloc"]:
                     try:
                         if method:

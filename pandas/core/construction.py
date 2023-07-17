@@ -6,20 +6,25 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
 
 from pandas._libs import lib
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs import (
+    Period,
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -27,11 +32,9 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    _registry as registry,
-)
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
@@ -42,21 +45,15 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_timedelta64_ns_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PandasDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
-    ABCPandasArray,
-    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna
@@ -313,19 +310,17 @@ def array(
     data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
-    if isinstance(dtype, str):
-        dtype = registry.find(dtype) or dtype
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
 
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
+    if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
         # e.g. TimedeltaArray[s], avoid casting to PandasArray
         if copy:
             return data.copy()
         return data
 
-    if is_extension_array_dtype(dtype):
-        cls = cast(ExtensionDtype, dtype).construct_array_type()
+    if isinstance(dtype, ExtensionDtype):
+        cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
@@ -368,15 +363,40 @@ def array(
             return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for
-    #   1. datetime64[ns]
-    #   2. timedelta64[ns]
+    #   1. datetime64[ns,us,ms,s]
+    #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if is_datetime64_ns_dtype(dtype):
+    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    elif is_timedelta64_ns_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"datetime64 and timedelta64 dtype resolutions other than "
+            r"'s', 'ms', 'us', and 'ns' are deprecated. "
+            r"In future releases passing unsupported resolutions will "
+            r"raise an exception.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
+
+
+_typs = frozenset(
+    {
+        "index",
+        "rangeindex",
+        "multiindex",
+        "datetimeindex",
+        "timedeltaindex",
+        "periodindex",
+        "categoricalindex",
+        "intervalindex",
+        "series",
+    }
+)
 
 
 @overload
@@ -438,19 +458,22 @@ def extract_array(
     >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
     array([1, 2, 3])
     """
-    if isinstance(obj, (ABCIndex, ABCSeries)):
-        if isinstance(obj, ABCRangeIndex):
+    typ = getattr(obj, "_typ", None)
+    if typ in _typs:
+        # i.e. isinstance(obj, (ABCIndex, ABCSeries))
+        if typ == "rangeindex":
             if extract_range:
-                return obj._values
-            # https://github.com/python/mypy/issues/1081
-            # error: Incompatible return value type (got "RangeIndex", expected
-            # "Union[T, Union[ExtensionArray, ndarray[Any, Any]]]")
-            return obj  # type: ignore[return-value]
+                # error: "T" has no attribute "_values"
+                return obj._values  # type: ignore[attr-defined]
+            return obj
 
-        return obj._values
+        # error: "T" has no attribute "_values"
+        return obj._values  # type: ignore[attr-defined]
 
-    elif extract_numpy and isinstance(obj, ABCPandasArray):
-        return obj.to_numpy()
+    elif extract_numpy and typ == "npy_extension":
+        # i.e. isinstance(obj, ABCPandasArray)
+        # error: "T" has no attribute "to_numpy"
+        return obj.to_numpy()  # type: ignore[attr-defined]
 
     return obj
 
@@ -481,9 +504,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
-        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
+        data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
@@ -733,14 +754,14 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if is_object_dtype(dtype):
+    if dtype == object:
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
     elif dtype.kind == "U":
-        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        # TODO: test cases with arr.dtype.kind in "mM"
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             shape = arr.shape
@@ -752,12 +773,12 @@ def _try_cast(
             shape
         )
 
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and
     # that we can convert the data to the requested dtype.
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)

@@ -224,11 +224,13 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         self.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_pad(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+        warns = (PerformanceWarning, FutureWarning)
+        with tm.assert_produces_warning(warns, check_stacklevel=False):
             super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+        warns = (PerformanceWarning, FutureWarning)
+        with tm.assert_produces_warning(warns, check_stacklevel=False):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
@@ -239,9 +241,9 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_fillna_no_op_returns_copy(data)
 
-    def test_fillna_series_method(self, data_missing):
+    def test_fillna_series_method(self, data_missing, fillna_method):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
+            super().test_fillna_series_method(data_missing, fillna_method)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):
@@ -288,7 +290,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
     def test_fillna_copy_series(self, data_missing, using_copy_on_write):
         arr = data_missing.take([1, 1])
-        ser = pd.Series(arr)
+        ser = pd.Series(arr, copy=False)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)

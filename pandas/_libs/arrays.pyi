@@ -3,7 +3,9 @@ from typing import Sequence
 import numpy as np
 
 from pandas._typing import (
+    AxisInt,
     DtypeObj,
+    Self,
     Shape,
 )
 
@@ -32,3 +34,7 @@ class NDArrayBacked:
     def ravel(self, order=...): ...
     @property
     def T(self): ...
+    @classmethod
+    def _concat_same_type(
+        cls, to_concat: Sequence[Self], axis: AxisInt = ...
+    ) -> Self: ...

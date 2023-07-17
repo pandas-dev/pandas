@@ -19,7 +19,10 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
-from pandas.core.dtypes.common import is_float_dtype
+from pandas.core.dtypes.common import (
+    is_float_dtype,
+    is_scalar,
+)
 
 from pandas import (
     NA,
@@ -29,7 +32,6 @@ from pandas import (
     MultiIndex,
     NaT,
     PeriodIndex,
-    RangeIndex,
     TimedeltaIndex,
 )
 import pandas._testing as tm
@@ -179,6 +181,32 @@ class TestGetLoc:
         with pytest.raises((TypeError, InvalidIndexError), match="slice"):
             index.get_loc(slice(0, 1))
 
+    def test_get_loc_non_scalar_hashable(self, index):
+        # GH52877
+        from enum import Enum
+
+        class E(Enum):
+            X1 = "x1"
+
+        assert not is_scalar(E.X1)
+
+        exc = KeyError
+        msg = "<E.X1: 'x1'>"
+        if isinstance(
+            index,
+            (
+                DatetimeIndex,
+                TimedeltaIndex,
+                PeriodIndex,
+                IntervalIndex,
+            ),
+        ):
+            # TODO: make these more consistent?
+            exc = InvalidIndexError
+            msg = "E.X1"
+        with pytest.raises(exc, match=msg):
+            index.get_loc(E.X1)
+
     def test_get_loc_generator(self, index):
         exc = KeyError
         if isinstance(
@@ -187,7 +215,6 @@ class TestGetLoc:
                 DatetimeIndex,
                 TimedeltaIndex,
                 PeriodIndex,
-                RangeIndex,
                 IntervalIndex,
                 MultiIndex,
             ),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
@@ -29,7 +28,6 @@ from pandas.compat import pa_version_under7p0
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
-    is_integer_dtype,
     is_sequence,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
@@ -51,8 +49,6 @@ from pandas import (
     bdate_range,
 )
 from pandas._testing._io import (
-    close,
-    network,
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
@@ -98,7 +94,6 @@ from pandas._testing.compat import (
 from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
-    ensure_safe_environment_variables,
     raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
@@ -113,6 +108,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -389,11 +386,11 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     dtype = pandas_dtype(dtype)
     assert isinstance(dtype, np.dtype)
 
-    if is_integer_dtype(dtype):
+    if dtype.kind in "iu":
         values = np.arange(k, dtype=dtype)
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
-    elif is_float_dtype(dtype):
+    elif dtype.kind == "f":
         values = np.random.random_sample(k) - np.random.random_sample(1)
         values.sort()
         values = values * (10 ** np.random.randint(0, 9))
@@ -853,9 +850,7 @@ class SubclassedDataFrame(DataFrame):
 
 
 class SubclassedCategorical(Categorical):
-    @property
-    def _constructor(self):
-        return SubclassedCategorical
+    pass
 
 
 def _make_skipna_wrapper(alternative, skipna_alternative=None):
@@ -1099,7 +1094,6 @@ __all__ = [
     "box_expected",
     "BYTES_DTYPES",
     "can_set_locale",
-    "close",
     "COMPLEX_DTYPES",
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
@@ -1107,7 +1101,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",
     "FLOAT_EA_DTYPES",
@@ -1155,7 +1148,6 @@ __all__ = [
     "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
-    "network",
     "NP_NAT_OBJECTS",
     "NULL_OBJECTS",
     "OBJECT_DTYPES",

@@ -70,6 +70,14 @@ class TestNonNano:
         result = pd.array([Timedelta("2 min")]).total_seconds()[0]
         assert result == expected
 
+    def test_total_seconds_nanoseconds(self):
+        # issue #48521
+        start_time = pd.Series(["2145-11-02 06:00:00"]).astype("datetime64[ns]")
+        end_time = pd.Series(["2145-11-02 07:06:00"]).astype("datetime64[ns]")
+        expected = (end_time - start_time).values / np.timedelta64(1, "s")
+        result = (end_time - start_time).dt.total_seconds().values
+        assert result == expected
+
     @pytest.mark.parametrize(
         "nat", [np.datetime64("NaT", "ns"), np.datetime64("NaT", "us")]
     )

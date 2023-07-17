@@ -6,7 +6,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.types import infer_dtype
 from pandas.tests.extension import base
 from pandas.tests.extension.decimal.array import (
     DecimalArray,
@@ -70,15 +69,7 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-    def test_hashable(self, dtype):
-        pass
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_infer_dtype(self, data, data_missing, skipna):
-        # here overriding base test to ensure we fall back to return
-        # "unknown-array" for an EA pandas doesn't know
-        assert infer_dtype(data, skipna=skipna) == "unknown-array"
-        assert infer_dtype(data_missing, skipna=skipna) == "unknown-array"
+    pass
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -123,6 +114,49 @@ class Reduce:
             result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(np.asarray(s), op_name)()
             tm.assert_almost_equal(result, expected)
+
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        arr = ser.array
+        df = pd.DataFrame({"a": arr})
+
+        if op_name in ["count", "kurt", "sem", "skew", "median"]:
+            assert not hasattr(arr, op_name)
+            pytest.skip(f"{op_name} not an array method")
+
+        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
+        result2 = getattr(df, op_name)(skipna=skipna).array
+
+        tm.assert_extension_array_equal(result1, result2)
+
+        if not skipna and ser.isna().any():
+            expected = DecimalArray([pd.NA])
+        else:
+            exp_value = getattr(ser.dropna(), op_name)()
+            expected = DecimalArray([exp_value])
+
+        tm.assert_extension_array_equal(result1, expected)
+
+    def test_reduction_without_keepdims(self):
+        # GH52788
+        # test _reduce without keepdims
+
+        class DecimalArray2(DecimalArray):
+            def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+                # no keepdims in signature
+                return super()._reduce(name, skipna=skipna)
+
+        arr = DecimalArray2([decimal.Decimal(2) for _ in range(100)])
+
+        ser = pd.Series(arr)
+        result = ser.agg("sum")
+        expected = decimal.Decimal(200)
+        assert result == expected
+
+        df = pd.DataFrame({"a": arr, "b": arr})
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.agg("sum")
+        expected = pd.Series({"a": 200, "b": 200}, dtype=object)
+        tm.assert_series_equal(result, expected)
 
 
 class TestNumericReduce(Reduce, base.BaseNumericReduceTests):

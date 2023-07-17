@@ -25,12 +25,16 @@ class TestUpdate:
         # GH 3217
         df = DataFrame([{"a": 1}, {"a": 3, "b": 2}])
         df["c"] = np.nan
+        # Cast to object to avoid upcast when setting "foo"
+        df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
-        df["c"].update(Series(["foo"], index=[0]))
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df["c"].update(Series(["foo"], index=[0]))
             expected = df_orig
         else:
+            df["c"].update(Series(["foo"], index=[0]))
             expected = DataFrame(
                 [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
             )

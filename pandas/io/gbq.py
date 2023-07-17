@@ -134,9 +134,6 @@ def read_gbq(
         If set, limit the maximum number of rows to fetch from the query
         results.
 
-        *New in version 0.12.0 of pandas-gbq*.
-
-        .. versionadded:: 1.1.0
     progress_bar_type : Optional, str
         If set, use the `tqdm <https://tqdm.github.io/>`__ library to
         display a progress bar while the data downloads. Install the
@@ -156,10 +153,6 @@ def read_gbq(
             Use the :func:`tqdm.tqdm_gui` function to display a
             progress bar as a graphical dialog box.
 
-        Note that this feature requires version 0.12.0 or later of the
-        ``pandas-gbq`` package. And it requires the ``tqdm`` package. Slightly
-        different than ``pandas-gbq``, here the default is ``None``.
-
     Returns
     -------
     df: DataFrame
@@ -169,6 +162,19 @@ def read_gbq(
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
     DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+
+    Examples
+    --------
+    Example taken from `Google BigQuery documentation
+    <https://cloud.google.com/bigquery/docs/pandas-gbq-migration>`_
+
+    >>> sql = "SELECT name FROM table_name WHERE state = 'TX' LIMIT 100;"
+    >>> df = pd.read_gbq(sql, dialect="standard")  # doctest: +SKIP
+    >>> project_id = "your-project-id"  # doctest: +SKIP
+    >>> df = pd.read_gbq(sql,
+    ...                  project_id=project_id,
+    ...                  dialect="standard"
+    ...                  )  # doctest: +SKIP
     """
     pandas_gbq = _try_import()
 

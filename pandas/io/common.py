@@ -7,6 +7,11 @@ from abc import (
 )
 import codecs
 from collections import defaultdict
+from collections.abc import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import dataclasses
 import functools
 import gzip
@@ -29,10 +34,7 @@ from typing import (
     AnyStr,
     DefaultDict,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -57,9 +59,11 @@ from pandas._typing import (
     StorageOptions,
     WriteBuffer,
 )
-from pandas.compat import get_lzma_file
+from pandas.compat import (
+    get_bz2_file,
+    get_lzma_file,
+)
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import BZ2File as _BZ2File
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -243,7 +247,7 @@ def stringify_path(
 
     Notes
     -----
-    Objects supporting the fspath protocol (python 3.6+) are coerced
+    Objects supporting the fspath protocol are coerced
     according to its __fspath__ method.
 
     Any other object is passed through unchanged, which includes bytes,
@@ -289,9 +293,9 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     mode: str = "r",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOArgs:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -651,11 +655,11 @@ def get_handle(
     mode: str,
     *,
     encoding: str | None = None,
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors: str | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOHandles[str] | IOHandles[bytes]:
     """
     Get file handle for given path/buffer and mode.
@@ -670,13 +674,11 @@ def get_handle(
         Encoding to use.
     {compression_options}
 
-        .. versionchanged:: 1.0.0
-           May now be a dict with key 'method' as compression mode
+           May be a dict with key 'method' as compression mode
            and other keys as compression options if compression
            mode is 'zip'.
 
-        .. versionchanged:: 1.1.0
-           Passing compression options as keys in dict is now
+           Passing compression options as keys in dict is
            supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
 
         .. versionchanged:: 1.4.0 Zstandard support.
@@ -768,7 +770,7 @@ def get_handle(
         elif compression == "bz2":
             # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = _BZ2File(  # type: ignore[call-overload]
+            handle = get_bz2_file()(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
@@ -827,8 +829,10 @@ def get_handle(
         elif compression == "xz":
             # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
-            # PathLike[bytes]], IO[bytes]]]"
-            handle = get_lzma_file()(handle, ioargs.mode)  # type: ignore[arg-type]
+            # PathLike[bytes]], IO[bytes]], None]"
+            handle = get_lzma_file()(
+                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+            )
 
         # Zstd Compression
         elif compression == "zstd":

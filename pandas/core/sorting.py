@@ -6,9 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     DefaultDict,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
 )
 
@@ -24,7 +21,6 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
-    is_extension_array_dtype,
 )
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
@@ -35,7 +31,14 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         IndexKeyFunc,
         Level,
@@ -45,7 +48,10 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import MultiIndex
+    from pandas import (
+        MultiIndex,
+        Series,
+    )
     from pandas.core.arrays import ExtensionArray
     from pandas.core.indexes.base import Index
 
@@ -68,9 +74,9 @@ def get_indexer_indexer(
     target : Index
     level : int or level name or list of ints or list of level names
     ascending : bool or list of bools, default True
-    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
-    na_position : {'first', 'last'}, default 'last'
-    sort_remaining : bool, default True
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}
+    na_position : {'first', 'last'}
+    sort_remaining : bool
     key : callable, optional
 
     Returns
@@ -79,7 +85,10 @@ def get_indexer_indexer(
         The indexer for the new index.
     """
 
-    target = ensure_key_mapped(target, key, levels=level)
+    # error: Incompatible types in assignment (expression has type
+    # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
+    # type "Index")
+    target = ensure_key_mapped(target, key, levels=level)  # type:ignore[assignment]
     target = target._sort_levels_monotonic()
 
     if level is not None:
@@ -162,9 +171,7 @@ def get_group_index(
     lshape = list(shape)
     if not xnull:
         for i, (lab, size) in enumerate(zip(labels, shape)):
-            lab, size = maybe_lift(lab, size)
-            labels[i] = lab
-            lshape[i] = size
+            labels[i], lshape[i] = maybe_lift(lab, size)
 
     labels = list(labels)
 
@@ -306,7 +313,7 @@ def indexer_from_factorized(
 
 
 def lexsort_indexer(
-    keys,
+    keys: list[ArrayLike] | list[Series],
     orders=None,
     na_position: str = "last",
     key: Callable | None = None,
@@ -317,8 +324,9 @@ def lexsort_indexer(
 
     Parameters
     ----------
-    keys : sequence of arrays
+    keys : list[ArrayLike] | list[Series]
         Sequence of ndarrays to be sorted by the indexer
+        list[Series] is only if key is not None.
     orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
         it must be the same length as keys. This determines whether the
@@ -345,7 +353,10 @@ def lexsort_indexer(
     elif orders is None:
         orders = [True] * len(keys)
 
-    keys = [ensure_key_mapped(k, key) for k in keys]
+    # error: Incompatible types in assignment (expression has type
+    # "List[Union[ExtensionArray, ndarray[Any, Any], Index, Series]]", variable
+    # has type "Union[List[Union[ExtensionArray, ndarray[Any, Any]]], List[Series]]")
+    keys = [ensure_key_mapped(k, key) for k in keys]  # type: ignore[assignment]
 
     for k, order in zip(keys, orders):
         if na_position not in ["last", "first"]:
@@ -356,7 +367,9 @@ def lexsort_indexer(
             codes = k.copy()
             n = len(codes)
             mask_n = n
-            if mask.any():
+            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray,
+            # ndarray[Any, Any]]" has no attribute "any"
+            if mask.any():  # type: ignore[union-attr]
                 n -= 1
 
         else:
@@ -371,14 +384,40 @@ def lexsort_indexer(
 
         if order:  # ascending
             if na_position == "last":
-                codes = np.where(mask, n, codes)
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(mask, n, codes)  # type: ignore[arg-type]
             elif na_position == "first":
-                codes += 1
+                # error: Incompatible types in assignment (expression has type
+                # "Union[Any, int, ndarray[Any, dtype[signedinteger[Any]]]]",
+                # variable has type "Union[Series, ExtensionArray, ndarray[Any, Any]]")
+                # error: Unsupported operand types for + ("ExtensionArray" and "int")
+                codes += 1  # type: ignore[operator,assignment]
         else:  # not order means descending
             if na_position == "last":
-                codes = np.where(mask, n, n - codes - 1)
+                # error: Unsupported operand types for - ("int" and "ExtensionArray")
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(
+                    mask, n, n - codes - 1  # type: ignore[operator,arg-type]
+                )
             elif na_position == "first":
-                codes = np.where(mask, 0, n - codes)
+                # error: Unsupported operand types for - ("int" and "ExtensionArray")
+                # error: Argument 1 to "where" has incompatible type "Union[Any,
+                # ExtensionArray, ndarray[Any, Any]]"; expected
+                # "Union[_SupportsArray[dtype[Any]],
+                # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
+                # complex, str, bytes, _NestedSequence[Union[bool, int, float,
+                # complex, str, bytes]]]"
+                codes = np.where(mask, 0, n - codes)  # type: ignore[operator,arg-type]
 
         shape.append(mask_n)
         labels.append(codes)
@@ -387,8 +426,8 @@ def lexsort_indexer(
 
 
 def nargsort(
-    items,
-    kind: str = "quicksort",
+    items: ArrayLike | Index | Series,
+    kind: SortKind = "quicksort",
     ascending: bool = True,
     na_position: str = "last",
     key: Callable | None = None,
@@ -403,7 +442,8 @@ def nargsort(
 
     Parameters
     ----------
-    kind : str, default 'quicksort'
+    items : np.ndarray, ExtensionArray, Index, or Series
+    kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
     ascending : bool, default True
     na_position : {'first', 'last'}, default 'last'
     key : Optional[Callable], default None
@@ -416,6 +456,7 @@ def nargsort(
     """
 
     if key is not None:
+        # see TestDataFrameSortKey, TestRangeIndex::test_sort_values_key
         items = ensure_key_mapped(items, key)
         return nargsort(
             items,
@@ -427,16 +468,24 @@ def nargsort(
         )
 
     if isinstance(items, ABCRangeIndex):
-        return items.argsort(ascending=ascending)  # TODO: test coverage with key?
+        return items.argsort(ascending=ascending)
     elif not isinstance(items, ABCMultiIndex):
         items = extract_array(items)
-    if mask is None:
-        mask = np.asarray(isna(items))  # TODO: does this exclude MultiIndex too?
-
-    if is_extension_array_dtype(items):
-        return items.argsort(ascending=ascending, kind=kind, na_position=na_position)
     else:
-        items = np.asanyarray(items)
+        raise TypeError(
+            "nargsort does not support MultiIndex. Use index.sort_values instead."
+        )
+
+    if mask is None:
+        mask = np.asarray(isna(items))
+
+    if not isinstance(items, np.ndarray):
+        # i.e. ExtensionArray
+        return items.argsort(
+            ascending=ascending,
+            kind=kind,
+            na_position=na_position,
+        )
 
     idx = np.arange(len(items))
     non_nans = items[~mask]
@@ -553,7 +602,9 @@ def _ensure_key_mapped_multiindex(
     return type(index).from_arrays(mapped)
 
 
-def ensure_key_mapped(values, key: Callable | None, levels=None):
+def ensure_key_mapped(
+    values: ArrayLike | Index | Series, key: Callable | None, levels=None
+) -> ArrayLike | Index | Series:
     """
     Applies a callable key function to the values function and checks
     that the resulting value has the same shape. Can be called on Index
@@ -586,8 +637,10 @@ def ensure_key_mapped(values, key: Callable | None, levels=None):
         ):  # convert to a new Index subclass, not necessarily the same
             result = Index(result)
         else:
+            # try to revert to original type otherwise
             type_of_values = type(values)
-            result = type_of_values(result)  # try to revert to original type otherwise
+            #  error: Too many arguments for "ExtensionArray"
+            result = type_of_values(result)  # type: ignore[call-arg]
     except TypeError:
         raise TypeError(
             f"User-provided `key` function returned an invalid type {type(result)} \
@@ -698,16 +751,25 @@ def compress_group_index(
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    size_hint = len(group_index)
-    table = hashtable.Int64HashTable(size_hint)
+    if len(group_index) and np.all(group_index[1:] >= group_index[:-1]):
+        # GH 53806: fast path for sorted group_index
+        unique_mask = np.concatenate(
+            [group_index[:1] > -1, group_index[1:] != group_index[:-1]]
+        )
+        comp_ids = unique_mask.cumsum()
+        comp_ids -= 1
+        obs_group_ids = group_index[unique_mask]
+    else:
+        size_hint = len(group_index)
+        table = hashtable.Int64HashTable(size_hint)
 
-    group_index = ensure_int64(group_index)
+        group_index = ensure_int64(group_index)
 
-    # note, group labels come out ascending (ie, 1,2,3 etc)
-    comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
+        # note, group labels come out ascending (ie, 1,2,3 etc)
+        comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
 
-    if sort and len(obs_group_ids) > 0:
-        obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
+        if sort and len(obs_group_ids) > 0:
+            obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
 
     return ensure_int64(comp_ids), ensure_int64(obs_group_ids)
 

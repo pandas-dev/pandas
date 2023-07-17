@@ -17,13 +17,13 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 */
 
-#include "tokenizer.h"
+#include "pandas/parser/tokenizer.h"
 
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
 
-#include "../headers/portable.h"
+#include "pandas/portable.h"
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
@@ -664,9 +664,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
     ((!self->delim_whitespace && c == ' ' && self->skipinitialspace))
 
 // applied when in a field
-#define IS_DELIMITER(c)                                   \
-    ((!self->delim_whitespace && c == self->delimiter) || \
-     (self->delim_whitespace && isblank(c)))
+#define IS_DELIMITER(c) ((c == delimiter) || (delim_whitespace && isblank(c)))
 
 #define _TOKEN_CLEANUP()                                                \
     self->stream_len = slen;                                            \
@@ -720,6 +718,9 @@ int tokenize_bytes(parser_t *self,
 
     const char lineterminator = (self->lineterminator == '\0') ?
             '\n' : self->lineterminator;
+
+    const int delim_whitespace = self->delim_whitespace;
+    const char delimiter = self->delimiter;
 
     // 1000 is something that couldn't fit in "char"
     // thus comparing a char to it would always be "false"

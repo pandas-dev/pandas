@@ -328,15 +328,14 @@ class TestDataFrameIndexingWhere:
         )
 
         expected = DataFrame(
-            {"a": [np.nan, np.nan, 3.0, 4.0], "b": [4.0, 3.0, np.nan, np.nan]},
-            dtype="float64",
-        )
+            {"a": [-1, -1, 3, 4], "b": [4.0, 3.0, -1, -1]},
+        ).astype({"a": any_signed_int_numpy_dtype, "b": "float64"})
 
-        result = df.where(df > 2, np.nan)
+        result = df.where(df > 2, -1)
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(result > 2, np.nan, inplace=True)
+        return_value = result.where(result > 2, -1, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -402,10 +401,23 @@ class TestDataFrameIndexingWhere:
                 {"A": np.nan, "B": "Test", "C": np.nan},
             ]
         )
-        msg = "boolean setting on mixed-type"
 
-        with pytest.raises(TypeError, match=msg):
-            df.where(~isna(df), None, inplace=True)
+        orig = df.copy()
+
+        mask = ~isna(df)
+        df.where(mask, None, inplace=True)
+        expected = DataFrame(
+            {
+                "A": [1.0, np.nan],
+                "B": [None, "Test"],
+                "C": ["Test", None],
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+        df = orig.copy()
+        df[~mask] = None
+        tm.assert_frame_equal(df, expected)
 
     def test_where_empty_df_and_empty_cond_having_non_bool_dtypes(self):
         # see gh-21947
@@ -820,7 +832,7 @@ def test_where_bool_comparison():
     df_mask = DataFrame(
         {"AAA": [True] * 4, "BBB": [False] * 4, "CCC": [True, False, True, False]}
     )
-    result = df_mask.where(df_mask == False)  # noqa:E712
+    result = df_mask.where(df_mask == False)  # noqa: E712
     expected = DataFrame(
         {
             "AAA": np.array([np.nan] * 4, dtype=object),
@@ -1028,7 +1040,7 @@ def test_where_int_overflow(replacement):
 
 def test_where_inplace_no_other():
     # GH#51685
-    df = DataFrame({"a": [1, 2], "b": ["x", "y"]})
+    df = DataFrame({"a": [1.0, 2.0], "b": ["x", "y"]})
     cond = DataFrame({"a": [True, False], "b": [False, True]})
     df.where(cond, inplace=True)
     expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})

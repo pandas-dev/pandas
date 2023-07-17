@@ -24,11 +24,6 @@ import pytz
 
 from pandas._config import config
 
-from pandas.compat import (
-    IS64,
-    is_platform_windows,
-)
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -47,8 +42,6 @@ import pandas._testing as tm
 
 from pandas.io.formats import printing
 import pandas.io.formats.format as fmt
-
-use_32bit_repr = is_platform_windows() or not IS64
 
 
 def get_local_am_pm():
@@ -629,7 +622,10 @@ class TestDataFrameFormatting:
 
         # all col
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -641,7 +637,10 @@ class TestDataFrameFormatting:
 
         # column name
         df = DataFrame(
-            {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+            {
+                "b": ["あ", "いいい", "う", "ええええええ"],
+                "あああああ": [1, 222, 33333, 4],
+            },
             index=["a", "bb", "c", "ddd"],
         )
         expected = (
@@ -653,7 +652,10 @@ class TestDataFrameFormatting:
 
         # index
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=["あああ", "いいいいいい", "うう", "え"],
         )
         expected = (
@@ -665,7 +667,10 @@ class TestDataFrameFormatting:
 
         # index name
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=Index(["あ", "い", "うう", "え"], name="おおおお"),
         )
         expected = (
@@ -680,7 +685,10 @@ class TestDataFrameFormatting:
 
         # all
         df = DataFrame(
-            {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
+            {
+                "あああ": ["あああ", "い", "う", "えええええ"],
+                "いいいいい": ["あ", "いいい", "う", "ええ"],
+            },
             index=Index(["あ", "いいい", "うう", "え"], name="お"),
         )
         expected = (
@@ -698,7 +706,10 @@ class TestDataFrameFormatting:
             [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
         )
         df = DataFrame(
-            {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+            {
+                "a": ["あああああ", "い", "う", "えええ"],
+                "b": ["あ", "いいい", "う", "ええええええ"],
+            },
             index=idx,
         )
         expected = (
@@ -766,7 +777,10 @@ class TestDataFrameFormatting:
 
             # all col
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -780,7 +794,10 @@ class TestDataFrameFormatting:
 
             # column name
             df = DataFrame(
-                {"b": ["あ", "いいい", "う", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                    "あああああ": [1, 222, 33333, 4],
+                },
                 index=["a", "bb", "c", "ddd"],
             )
             expected = (
@@ -794,7 +811,10 @@ class TestDataFrameFormatting:
 
             # index
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=["あああ", "いいいいいい", "うう", "え"],
             )
             expected = (
@@ -808,7 +828,10 @@ class TestDataFrameFormatting:
 
             # index name
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=Index(["あ", "い", "うう", "え"], name="おおおお"),
             )
             expected = (
@@ -823,7 +846,10 @@ class TestDataFrameFormatting:
 
             # all
             df = DataFrame(
-                {"あああ": ["あああ", "い", "う", "えええええ"], "いいいいい": ["あ", "いいい", "う", "ええ"]},
+                {
+                    "あああ": ["あああ", "い", "う", "えええええ"],
+                    "いいいいい": ["あ", "いいい", "う", "ええ"],
+                },
                 index=Index(["あ", "いいい", "うう", "え"], name="お"),
             )
             expected = (
@@ -841,7 +867,10 @@ class TestDataFrameFormatting:
                 [("あ", "いい"), ("う", "え"), ("おおお", "かかかか"), ("き", "くく")]
             )
             df = DataFrame(
-                {"a": ["あああああ", "い", "う", "えええ"], "b": ["あ", "いいい", "う", "ええええええ"]},
+                {
+                    "a": ["あああああ", "い", "う", "えええ"],
+                    "b": ["あ", "いいい", "う", "ええええええ"],
+                },
                 index=idx,
             )
             expected = (
@@ -886,7 +915,10 @@ class TestDataFrameFormatting:
 
             # ambiguous unicode
             df = DataFrame(
-                {"b": ["あ", "いいい", "¡¡", "ええええええ"], "あああああ": [1, 222, 33333, 4]},
+                {
+                    "b": ["あ", "いいい", "¡¡", "ええええええ"],
+                    "あああああ": [1, 222, 33333, 4],
+                },
                 index=["a", "bb", "c", "¡¡¡"],
             )
             expected = (
@@ -1407,25 +1439,100 @@ class TestDataFrameFormatting:
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
-        # GH 13998, GH 22505, # GH 49230
+        # GH 13998, GH 22505
         df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x   \n 1  \\\n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x   \n11  \\\n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
 
         assert df_s == expected
 
         df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "  x   \n 11  \\\n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+
+        assert df_s == expected
+
+    def test_to_string_line_width_no_header(self):
+        # GH 53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  1  \\\n1  2   \n2  3   \n\n0  4  \n1  5  \n2  6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  11  \\\n1  22   \n2  33   \n\n0  4  \n1  5  \n2  6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  11  \\\n1  22   \n2 -33   \n\n0  4  \n1  5  \n2 -6  "
+
+        assert df_s == expected
+
+    def test_to_string_line_width_no_index_no_header(self):
+        # GH 53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = "1  \\\n2   \n3   \n\n4  \n5  \n6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = "11  \\\n22   \n33   \n\n4  \n5  \n6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = " 11  \\\n 22   \n-33   \n\n 4  \n 5  \n-6  "
+
+        assert df_s == expected
+
+    def test_to_string_line_width_with_both_index_and_header(self):
+        # GH 53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "   x  \\\n0  1   \n1  2   \n2  3   \n\n   y  \n0  4  \n1  5  \n2  6  "
+        )
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "    x  \\\n0  11   \n1  22   \n2  33   \n\n   y  \n0  4  \n1  5  \n2  6  "
+        )
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "    x  \\\n0  11   \n1  22   \n2 -33   \n\n   y  \n0  4  \n1  5  \n2 -6  "
+        )
 
         assert df_s == expected
 
@@ -2099,6 +2206,17 @@ c  10  11  12  13  14\
         result = formatter.max_rows_fitted
         assert result == expected
 
+    def test_no_extra_space(self):
+        # GH 52690: Check that no extra space is given
+        col1 = "TEST"
+        col2 = "PANDAS"
+        col3 = "to_string"
+        expected = f"{col1:<6s} {col2:<7s} {col3:<10s}"
+        df = DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
+        d = {"col1": "{:<6s}".format, "col2": "{:<7s}".format, "col3": "{:<10s}".format}
+        result = df.to_string(index=False, header=False, formatters=d)
+        assert result == expected
+
 
 def gen_series_formatting():
     s1 = Series(["a"] * 100)
@@ -2205,24 +2323,52 @@ class TestSeriesFormatting:
 
         # unicode index
         s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
-        expected = "あ         a\nいい       bb\nううう     CCC\nええええ      D\ndtype: object"
+        expected = "".join(
+            [
+                "あ         a\n",
+                "いい       bb\n",
+                "ううう     CCC\n",
+                "ええええ      D\ndtype: object",
+            ]
+        )
         assert repr(s) == expected
 
         # unicode values
         s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
-        expected = "a         あ\nbb       いい\nc       ううう\nddd    ええええ\ndtype: object"
+        expected = "".join(
+            [
+                "a         あ\n",
+                "bb       いい\n",
+                "c       ううう\n",
+                "ddd    ええええ\n",
+                "dtype: object",
+            ]
+        )
+
         assert repr(s) == expected
 
         # both
-        s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
-        expected = (
-            "ああ         あ\nいいいい      いい\nう        ううう\nえええ     ええええ\ndtype: object"
+        s = Series(
+            ["あ", "いい", "ううう", "ええええ"],
+            index=["ああ", "いいいい", "う", "えええ"],
         )
+        expected = "".join(
+            [
+                "ああ         あ\n",
+                "いいいい      いい\n",
+                "う        ううう\n",
+                "えええ     ええええ\n",
+                "dtype: object",
+            ]
+        )
+
         assert repr(s) == expected
 
         # unicode footer
         s = Series(
-            ["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"], name="おおおおおおお"
+            ["あ", "いい", "ううう", "ええええ"],
+            index=["ああ", "いいいい", "う", "えええ"],
+            name="おおおおおおお",
         )
         expected = (
             "ああ         あ\nいいいい      いい\nう        ううう\n"
@@ -2284,7 +2430,10 @@ class TestSeriesFormatting:
         # Enable Unicode option -----------------------------------------
         with option_context("display.unicode.east_asian_width", True):
             # unicode index
-            s = Series(["a", "bb", "CCC", "D"], index=["あ", "いい", "ううう", "ええええ"])
+            s = Series(
+                ["a", "bb", "CCC", "D"],
+                index=["あ", "いい", "ううう", "ええええ"],
+            )
             expected = (
                 "あ            a\nいい         bb\nううう      CCC\n"
                 "ええええ      D\ndtype: object"
@@ -2292,15 +2441,20 @@ class TestSeriesFormatting:
             assert repr(s) == expected
 
             # unicode values
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["a", "bb", "c", "ddd"])
+            s = Series(
+                ["あ", "いい", "ううう", "ええええ"],
+                index=["a", "bb", "c", "ddd"],
+            )
             expected = (
                 "a            あ\nbb         いい\nc        ううう\n"
                 "ddd    ええええ\ndtype: object"
             )
             assert repr(s) == expected
-
             # both
-            s = Series(["あ", "いい", "ううう", "ええええ"], index=["ああ", "いいいい", "う", "えええ"])
+            s = Series(
+                ["あ", "いい", "ううう", "ええええ"],
+                index=["ああ", "いいいい", "う", "えええ"],
+            )
             expected = (
                 "ああ              あ\n"
                 "いいいい        いい\n"
@@ -2380,7 +2534,8 @@ class TestSeriesFormatting:
 
             # ambiguous unicode
             s = Series(
-                ["¡¡", "い¡¡", "ううう", "ええええ"], index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"]
+                ["¡¡", "い¡¡", "ううう", "ええええ"],
+                index=["ああ", "¡¡¡¡いい", "¡¡", "えええ"],
             )
             expected = (
                 "ああ              ¡¡\n"
@@ -2821,7 +2976,7 @@ class TestGenericArrayFormatter:
             def dtype(self):
                 return DtypeStub()
 
-        series = Series(ExtTypeStub())
+        series = Series(ExtTypeStub(), copy=False)
         res = repr(series)  # This line crashed before #33770 was fixed.
         expected = "\n".join(
             ["0    [False  True]", "1    [ True False]", "dtype: DtypeStub"]

@@ -3,7 +3,10 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
-from libc.math cimport sqrt
+from libc.math cimport (
+    NAN,
+    sqrt,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -24,7 +27,6 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
-from numpy.math cimport NAN
 
 cnp.import_array()
 
@@ -49,7 +51,6 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_int64_max = np.iinfo(np.int64).max
 
 cdef float64_t NaN = <float64_t>np.NaN
 
@@ -61,7 +62,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -90,7 +91,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -98,7 +99,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -127,7 +128,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -135,7 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         float64_t result
 
@@ -256,9 +257,9 @@ def group_cumprod(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -345,9 +346,9 @@ def group_cumsum(
         True if `values` contains datetime-like entries.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -494,7 +495,6 @@ def group_fillna_indexer(
     ndarray[intp_t] labels,
     ndarray[intp_t] sorted_labels,
     ndarray[uint8_t] mask,
-    str direction,
     int64_t limit,
     bint dropna,
 ) -> None:
@@ -509,14 +509,11 @@ def group_fillna_indexer(
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
     sorted_labels : np.ndarray[np.intp]
-        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
-        direction == "bfill"
+        obtained by `np.argsort(labels, kind="mergesort")`
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
-    direction : {'ffill', 'bfill'}
-        Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
     dropna : Flag to indicate if NaN groups should return all NaN values
 
@@ -615,7 +612,7 @@ def group_any_all(
         # value encountered is True
         flag_val = 1
     else:
-        raise ValueError("'bool_func' must be either 'any' or 'all'!")
+        raise ValueError("'val_test' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
 
@@ -749,6 +746,13 @@ def group_sum(
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
                         compensation[lab, j] = t - sumx[lab, j] - y
+                        if compensation[lab, j] != compensation[lab, j]:
+                            # GH#53606
+                            # If val is +/- infinity compensation is NaN
+                            # which would lead to results being NaN instead
+                            # of +/- infinity. We cannot use util.is_nan
+                            # because of no gil
+                            compensation[lab, j] = 0
                         sumx[lab, j] = t
 
             _check_below_mincount(
@@ -894,6 +898,94 @@ def group_var(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow
+def group_skew(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3
+        float64_t delta, delta_n, term1, val
+        int64_t n1, n
+        float64_t ct
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, and M3 correspond to 1st, 2nd, and third Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Based on RunningStats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 3:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    out[i, j] = (
+                        (ct * (ct - 1) ** 0.5 / (ct - 2))
+                        * (M3[i, j] / M2[i, j] ** 1.5)
+                    )
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def group_mean(
     mean_t[:, ::1] out,
     int64_t[::1] counts,
@@ -986,6 +1078,13 @@ def group_mean(
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
+                    if compensation[lab, j] != compensation[lab, j]:
+                        # GH#50367
+                        # If val is +/- infinity, compensation is NaN
+                        # which would lead to results being NaN instead
+                        # of +/-infinity. We cannot use util.is_nan
+                        # because of no gil
+                        compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
         for i in range(ncounts):
@@ -1036,7 +1135,7 @@ def group_ohlc(
         raise NotImplementedError("Argument 'values' must have only one dimension")
 
     if int64float_t is float32_t or int64float_t is float64_t:
-        out[:] = np.nan
+        out[:] = NAN
     else:
         out[:] = 0
 
@@ -1204,7 +1303,8 @@ ctypedef fused numeric_object_complex_t:
     complex128_t
 
 
-cdef bint _treat_as_na(numeric_object_complex_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_complex_t val,
+                       bint is_datetimelike) noexcept nogil:
     if numeric_object_complex_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
@@ -1271,7 +1371,7 @@ cdef inline void _check_below_mincount(
     int64_t[:, ::1] nobs,
     int64_t min_count,
     mincount_t[:, ::1] resx,
-) nogil:
+) noexcept nogil:
     """
     Check if the number of observations for a group is below min_count,
     and if so set the result for that group to the appropriate NA-like value.

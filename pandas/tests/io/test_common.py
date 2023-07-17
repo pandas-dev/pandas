@@ -411,7 +411,7 @@ class TestMMapWrapper:
         with pytest.raises(err, match=msg):
             icom._maybe_memory_map(non_file, True)
 
-        with open(mmap_file) as target:
+        with open(mmap_file, encoding="utf-8") as target:
             pass
 
         msg = "I/O operation on closed file"
@@ -419,7 +419,7 @@ class TestMMapWrapper:
             icom._maybe_memory_map(target, True)
 
     def test_next(self, mmap_file):
-        with open(mmap_file) as target:
+        with open(mmap_file, encoding="utf-8") as target:
             lines = target.readlines()
 
             with icom.get_handle(

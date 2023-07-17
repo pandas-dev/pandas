@@ -231,7 +231,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         ["A", "B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    agg_dict = {"c": sum, "d": max, "e": "min"}
+    agg_dict = {"c": "sum", "d": "max", "e": "min"}
     grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
@@ -278,7 +278,7 @@ def test_groupby_dropna_datetime_like_data(
     else:
         indexes = [datetime1, datetime2, np.nan]
 
-    grouped = df.groupby("dt", dropna=dropna).agg({"values": sum})
+    grouped = df.groupby("dt", dropna=dropna).agg({"values": "sum"})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
@@ -574,7 +574,13 @@ def test_categorical_reducers(
     gb_keepna = df.groupby(
         keys, dropna=False, observed=observed, sort=sort, as_index=as_index
     )
-    result = getattr(gb_keepna, reduction_func)(*args)
+    if as_index or index_kind == "range" or reduction_func == "size":
+        warn = None
+    else:
+        warn = FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)
@@ -616,10 +622,17 @@ def test_categorical_transformers(
         "x", dropna=False, observed=observed, sort=sort, as_index=as_index
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
-    result = getattr(gb_keepna, transformation_func)(*args)
+
+    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = getattr(gb_keepna, "pct_change")(*args)
+    else:
+        result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
+
     for iloc, value in zip(
-        df[df["x"].isnull()].index.tolist(), null_group_result.values
+        df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
     ):
         if expected.ndim == 1:
             expected.iloc[iloc] = value

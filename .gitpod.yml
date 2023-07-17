@@ -3,19 +3,20 @@
 # https://www.gitpod.io/docs/config-start-tasks/#configuring-the-terminal
 # -------------------------------------------------------------------------
 
-# assuming we use dockerhub: name of the docker user, docker image, tag, e.g. https://hub.docker.com/r/pandas/pandas-gitpod/tags
-image: pythonpandas/pandas-gitpod:latest
+# images for gitpod pandas are in https://hub.docker.com/r/pandas/pandas-gitpod/tags
+# we're using the Dockerfile in the base of the repo
+image:
+  file: Dockerfile
 tasks:
   - name: Prepare development environment
     init: |
       mkdir -p .vscode
       cp gitpod/settings.json .vscode/settings.json
-      conda activate pandas-dev
-      git pull --unshallow  # need to force this else the prebuild fails
       git fetch --tags
-      python setup.py build_ext -j 4
-      python -m pip install -e . --no-build-isolation
-      echo "🛠 Completed rebuilding Pandas!! 🛠 "
+      python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+      pre-commit install
+    command: |
+      python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
       echo "✨ Pre-build complete! You can close this terminal ✨ "
 
 # --------------------------------------------------------
@@ -37,7 +38,7 @@ vscode:
     # avoid adding too many. they each open a pop-up window
 
 # --------------------------------------------------------
-# using prebuilds for the container
+# Using prebuilds for the container
 # With this configuration the prebuild will happen on push to main
 github:
   prebuilds:

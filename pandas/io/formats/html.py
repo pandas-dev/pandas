@@ -5,11 +5,9 @@ from __future__ import annotations
 
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Final,
-    Hashable,
-    Iterable,
-    Mapping,
     cast,
 )
 
@@ -28,6 +26,13 @@ from pandas.io.formats.format import (
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
 
 
 class HTMLFormatter:
@@ -621,7 +626,7 @@ class NotebookFormatter(HTMLFormatter):
                 )
         else:
             element_props.append(("thead th", "text-align", "right"))
-        template_mid = "\n\n".join(map(lambda t: template_select % t, element_props))
+        template_mid = "\n\n".join(template_select % t for t in element_props)
         template = dedent("\n".join((template_first, template_mid, template_last)))
         self.write(template)
 

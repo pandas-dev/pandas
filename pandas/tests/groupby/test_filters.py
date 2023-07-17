@@ -363,7 +363,8 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -405,7 +406,8 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -447,7 +449,8 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -492,7 +495,8 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -534,7 +538,8 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -603,12 +608,12 @@ def test_filter_non_bool_raises():
 def test_filter_dropna_with_empty_groups():
     # GH 10780
     data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
-    groupped = data.groupby(level=0)
-    result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
+    grouped = data.groupby(level=0)
+    result_false = grouped.filter(lambda x: x.mean() > 1, dropna=False)
     expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
-    result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
+    result_true = grouped.filter(lambda x: x.mean() > 1, dropna=True)
     expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
 

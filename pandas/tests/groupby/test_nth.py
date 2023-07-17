@@ -154,7 +154,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
+    df = DataFrame({"data": ["A"], "nans": Series([None], dtype=object)})
     grouped = df.groupby("data")
 
     expected = df.set_index("data").nans
@@ -767,6 +767,29 @@ def test_groupby_nth_with_column_axis():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_nth_interval():
+    # GH#24205
+    idx_result = MultiIndex(
+        [
+            pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
+        ],
+        [[0, 0, 0, 1, 1], [0, 1, 1, 0, -1]],
+    )
+    df_result = DataFrame({"col": range(len(idx_result))}, index=idx_result)
+    result = df_result.groupby(level=[0, 1], observed=False).nth(0)
+    val_expected = [0, 1, 3]
+    idx_expected = MultiIndex(
+        [
+            pd.CategoricalIndex([pd.Interval(0, 1), pd.Interval(1, 2)]),
+            pd.CategoricalIndex([pd.Interval(0, 10), pd.Interval(10, 20)]),
+        ],
+        [[0, 0, 1], [0, 1, 0]],
+    )
+    expected = DataFrame(val_expected, index=idx_expected, columns=["col"])
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "start, stop, expected_values, expected_columns",
     [
@@ -829,3 +852,24 @@ def test_head_tail_dropna_false():
 
     result = df.groupby(["X", "Y"], dropna=False).nth(n=0)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("selection", ("b", ["b"], ["b", "c"]))
+@pytest.mark.parametrize("dropna", ["any", "all", None])
+def test_nth_after_selection(selection, dropna):
+    # GH#11038, GH#53518
+    df = DataFrame(
+        {
+            "a": [1, 1, 2],
+            "b": [np.nan, 3, 4],
+            "c": [5, 6, 7],
+        }
+    )
+    gb = df.groupby("a")[selection]
+    result = gb.nth(0, dropna=dropna)
+    if dropna == "any" or (dropna == "all" and selection != ["b", "c"]):
+        locs = [1, 2]
+    else:
+        locs = [0, 2]
+    expected = df.loc[locs, selection]
+    tm.assert_equal(result, expected)

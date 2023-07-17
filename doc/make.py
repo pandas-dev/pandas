@@ -163,12 +163,12 @@ class DocBuilder:
             components=(docutils.parsers.rst.Parser,)
         )
         doc = docutils.utils.new_document("<doc>", option_parser.get_default_values())
-        with open(fname) as f:
+        with open(fname, encoding="utf-8") as f:
             data = f.read()
 
         parser = docutils.parsers.rst.Parser()
         # do not generate any warning when parsing the rst
-        with open(os.devnull, "a") as f:
+        with open(os.devnull, "a", encoding="utf-8") as f:
             doc.reporter.stream = f
             parser.parse(data, doc)
 
@@ -186,7 +186,7 @@ class DocBuilder:
         Create in the build directory an html file with a redirect,
         for every row in REDIRECTS_FILE.
         """
-        with open(REDIRECTS_FILE) as mapping_fd:
+        with open(REDIRECTS_FILE, encoding="utf-8") as mapping_fd:
             reader = csv.reader(mapping_fd)
             for row in reader:
                 if not row or row[0].strip().startswith("#"):
@@ -209,7 +209,7 @@ class DocBuilder:
                     # sphinx specific stuff
                     title = "this page"
 
-                with open(path, "w") as moved_page_fd:
+                with open(path, "w", encoding="utf-8") as moved_page_fd:
                     html = f"""\
 <html>
     <head>
@@ -321,7 +321,7 @@ def main():
         help=(
             "filename (relative to the 'source' folder) of section or method name to "
             "compile, e.g. 'development/contributing.rst', "
-            "'ecosystem.rst', 'pandas.DataFrame.join'"
+            "'pandas.DataFrame.join'"
         ),
     )
     argparser.add_argument(

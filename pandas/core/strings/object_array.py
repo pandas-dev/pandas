@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import functools
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
+    cast,
 )
 import unicodedata
 
@@ -17,12 +17,13 @@ from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
 
-from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         NpDtype,
         Scalar,
@@ -177,14 +178,15 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
         return self._str_map(f, dtype=str)
 
-    def _str_repeat(self, repeats):
-        if is_scalar(repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if lib.is_integer(repeats):
+            rint = cast(int, repeats)
 
             def scalar_rep(x):
                 try:
-                    return bytes.__mul__(x, repeats)
+                    return bytes.__mul__(x, rint)
                 except TypeError:
-                    return str.__mul__(x, repeats)
+                    return str.__mul__(x, rint)
 
             return self._str_map(scalar_rep, dtype=str)
         else:
@@ -198,8 +200,11 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 except TypeError:
                     return str.__mul__(x, r)
 
-            repeats = np.asarray(repeats, dtype=object)
-            result = libops.vec_binop(np.asarray(self), repeats, rep)
+            result = libops.vec_binop(
+                np.asarray(self),
+                np.asarray(repeats, dtype=object),
+                rep,
+            )
             if isinstance(self, BaseStringArray):
                 # Not going through map, so we have to do this here.
                 result = type(self)._from_sequence(result)
@@ -377,7 +382,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             arr = sep + arr.astype(str) + sep
 
         tags: set[str] = set()
-        for ts in Series(arr).str.split(sep):
+        for ts in Series(arr, copy=False).str.split(sep):
             tags.update(ts)
         tags2 = sorted(tags - {""})
 
@@ -464,14 +469,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(removeprefix)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return self._str_map(functools.partial(removesuffix, suffix=suffix))
-        else:
-            return self._str_map(lambda x: x.removesuffix(suffix))
+        return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

@@ -21,7 +21,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 from pandas.core.computation import expressions as expr
 from pandas.core.computation.expressions import (
     _MIN_ELEMENTS,
@@ -1246,19 +1245,19 @@ class TestFrameArithmeticUnsorted:
         filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df)
         expected = op(filled, filled).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
         result = op(df.fillna(7), df)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
     # TODO: not sure what's correct here.
@@ -1803,12 +1802,12 @@ class TestFrameArithmeticUnsorted:
         align = DataFrame._align_for_op
 
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-        tm.assert_frame_equal(align(df, val, "index")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=0)[1], expected)
 
         expected = DataFrame(
             {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
         )
-        tm.assert_frame_equal(align(df, val, "columns")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=1)[1], expected)
 
     @pytest.mark.parametrize("val", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)])
     def test_alignment_non_pandas_length_mismatch(self, val):
@@ -1820,10 +1819,10 @@ class TestFrameArithmeticUnsorted:
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_alignment_non_pandas_index_columns(self):
         index = ["A", "B", "C"]
@@ -1833,11 +1832,11 @@ class TestFrameArithmeticUnsorted:
         align = DataFrame._align_for_op
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index")[1],
+            align(df, val, axis=0)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns")[1],
+            align(df, val, axis=1)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 
@@ -1845,19 +1844,19 @@ class TestFrameArithmeticUnsorted:
         msg = "Unable to coerce to DataFrame, shape must be"
         val = np.array([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
         val = np.zeros((3, 3, 3))
         msg = re.escape(
             "Unable to coerce to Series/DataFrame, dimension must be <= 2: (3, 3, 3)"
         )
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_no_warning(self, all_arithmetic_operators):
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
@@ -2006,7 +2005,7 @@ def test_inplace_arithmetic_series_update(using_copy_on_write):
         tm.assert_frame_equal(df, expected)
 
 
-def test_arithemetic_multiindex_align():
+def test_arithmetic_multiindex_align():
     """
     Regression test for: https://github.com/pandas-dev/pandas/issues/33765
     """

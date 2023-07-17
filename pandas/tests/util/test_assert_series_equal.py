@@ -250,9 +250,10 @@ def test_series_equal_categorical_mismatch(check_categorical):
     msg = """Attributes of Series are different
 
 Attribute "dtype" are different
-\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False\\)
+\\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
+categories_dtype=object\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False\\)"""
+ordered=False, categories_dtype=object\\)"""
 
     s1 = Series(Categorical(["a", "b"]))
     s2 = Series(Categorical(["a", "b"], categories=list("abc")))
@@ -404,3 +405,21 @@ def test_identical_nested_series_is_equal():
     tm.assert_series_equal(x, x, check_exact=True)
     tm.assert_series_equal(x, y)
     tm.assert_series_equal(x, y, check_exact=True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64", "timedelta64"])
+def test_check_dtype_false_different_reso(dtype):
+    # GH 52449
+    ser_s = Series([1000213, 2131232, 21312331]).astype(f"{dtype}[s]")
+    ser_ms = ser_s.astype(f"{dtype}[ms]")
+    with pytest.raises(AssertionError, match="Attributes of Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+    tm.assert_series_equal(ser_ms, ser_s, check_dtype=False)
+
+    ser_ms -= Series([1, 1, 1]).astype(f"{dtype}[ms]")
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms)
+
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(ser_s, ser_ms, check_dtype=False)

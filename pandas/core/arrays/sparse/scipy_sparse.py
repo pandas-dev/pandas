@@ -5,10 +5,7 @@ Currently only includes to_coo helpers.
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs import lib
 
@@ -19,6 +16,8 @@ from pandas.core.indexes.api import MultiIndex
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     import numpy as np
     import scipy.sparse
 
@@ -195,7 +194,7 @@ def coo_to_sparse_series(
     from pandas import SparseDtype
 
     try:
-        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)))
+        ser = Series(A.data, MultiIndex.from_arrays((A.row, A.col)), copy=False)
     except AttributeError as err:
         raise TypeError(
             f"Expected coo_matrix. Got {type(A).__name__} instead."

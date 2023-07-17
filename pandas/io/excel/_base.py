@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import partial
 from io import BytesIO
@@ -11,16 +17,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 import zipfile
 
 from pandas._config import config
@@ -36,6 +38,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -97,6 +100,10 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method,
     such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
+
+    .. deprecated:: 2.1.0
+        Passing byte strings is deprecated. To read from a
+        byte string, wrap it in a ``BytesIO`` object.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
@@ -119,7 +126,7 @@ header : int, list of int, default 0
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None.
-index_col : int, list of int, default None
+index_col : int, str, list of int, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
@@ -279,15 +286,19 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable dtypes are used for all dtypes that have a nullable
-    implementation when "numpy_nullable" is set, pyarrow is used for all
-    dtypes if "pyarrow" is set.
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    Back-end data type applied to the resultant :class:`DataFrame`
+    (still experimental). Behaviour is as follows:
 
-    The dtype_backends are still experimential.
+    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+      (default).
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+      DataFrame.
 
     .. versionadded:: 2.0
+
+engine_kwargs : dict, optional
+    Arbitrary keyword arguments passed to excel engine.
 
 Returns
 -------
@@ -301,6 +312,11 @@ DataFrame.to_excel : Write DataFrame to an Excel file.
 DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
 read_csv : Read a comma-separated values (csv) file into DataFrame.
 read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
+Notes
+-----
+For specific information on the methods used for each Excel engine, refer to the pandas
+:ref:`user guide <io.excel_reader>`
 
 Examples
 --------
@@ -470,15 +486,23 @@ def read_excel(
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    engine_kwargs: dict | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
     check_dtype_backend(dtype_backend)
-
     should_close = False
+    if engine_kwargs is None:
+        engine_kwargs = {}
+
     if not isinstance(io, ExcelFile):
         should_close = True
-        io = ExcelFile(io, storage_options=storage_options, engine=engine)
+        io = ExcelFile(
+            io,
+            storage_options=storage_options,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+        )
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
@@ -520,8 +544,14 @@ def read_excel(
 
 class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
-        self, filepath_or_buffer, storage_options: StorageOptions = None
+        self,
+        filepath_or_buffer,
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         # First argument can also be bytes, so create a buffer
         if isinstance(filepath_or_buffer, bytes):
             filepath_or_buffer = BytesIO(filepath_or_buffer)
@@ -540,7 +570,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             # N.B. xlrd.Book has a read attribute too
             self.handles.handle.seek(0)
             try:
-                self.book = self.load_workbook(self.handles.handle)
+                self.book = self.load_workbook(self.handles.handle, engine_kwargs)
             except Exception:
                 self.close()
                 raise
@@ -555,7 +585,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs):
         pass
 
     def close(self) -> None:
@@ -735,7 +765,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[List[int], List[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -942,8 +972,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         * error: raise a ValueError.
         * new: Create a new sheet, with a name determined by the engine.
         * replace: Delete the contents of the sheet before writing to it.
-        * overlay: Write contents to the existing sheet without removing the old
-          contents.
+        * overlay: Write contents to the existing sheet without first removing,
+          but possibly over top of, the existing contents.
 
         .. versionadded:: 1.3.0
 
@@ -1098,7 +1128,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
         engine_kwargs: dict | None = None,
     ) -> ExcelWriter:
@@ -1187,7 +1217,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
@@ -1343,7 +1373,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     content_or_path: FilePath | ReadBuffer[bytes],
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
@@ -1450,6 +1480,14 @@ class ExcelFile:
 
             Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
             This is not supported, switch to using ``openpyxl`` instead.
+    engine_kwargs : dict, optional
+        Arbitrary keyword arguments passed to excel engine.
+
+    Examples
+    --------
+    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
+    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1468,14 +1506,25 @@ class ExcelFile:
         self,
         path_or_buffer,
         engine: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         if engine is not None and engine not in self._engines:
             raise ValueError(f"Unknown engine: {engine}")
 
         # First argument can also be bytes, so create a buffer
         if isinstance(path_or_buffer, bytes):
             path_or_buffer = BytesIO(path_or_buffer)
+            warnings.warn(
+                "Passing bytes to 'read_excel' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "byte string, wrap it in a `BytesIO` object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
@@ -1513,7 +1562,11 @@ class ExcelFile:
         self.engine = engine
         self.storage_options = storage_options
 
-        self._reader = self._engines[engine](self._io, storage_options=storage_options)
+        self._reader = self._engines[engine](
+            self._io,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     def __fspath__(self):
         return self._io
@@ -1550,6 +1603,13 @@ class ExcelFile:
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
+        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
             sheet_name=sheet_name,

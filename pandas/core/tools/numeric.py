@@ -14,7 +14,6 @@ from pandas.core.dtypes.cast import maybe_downcast_numeric
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_datetime_or_timedelta_dtype,
     is_decimal,
     is_integer_dtype,
     is_number,
@@ -23,13 +22,13 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
 from pandas.core.arrays import BaseMaskedArray
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
@@ -89,13 +88,14 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -213,13 +213,13 @@ def to_numeric(
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
-    elif is_datetime_or_timedelta_dtype(values_dtype):
+    elif lib.is_np_dtype(values_dtype, "mM"):
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
@@ -275,7 +275,8 @@ def to_numeric(
     # GH33013: for IntegerArray, BooleanArray & FloatingArray need to reconstruct
     # masked array
     if (mask is not None or new_mask is not None) and not is_string_dtype(values.dtype):
-        if mask is None:
+        if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
+            # GH 52588
             mask = new_mask
         else:
             mask = mask.copy()

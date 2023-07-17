@@ -63,7 +63,7 @@ class TestSelection:
 
         df["mean"] = 1.5
         result = df.groupby("A").mean(numeric_only=True)
-        expected = df.groupby("A")[["C", "D", "mean"]].agg(np.mean)
+        expected = df.groupby("A")[["C", "D", "mean"]].agg("mean")
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -399,15 +399,15 @@ class TestGrouping:
     def test_groupby_dict_mapping(self):
         # GH #679
         s = Series({"T1": 5})
-        result = s.groupby({"T1": "T2"}).agg(sum)
-        expected = s.groupby(["T2"]).agg(sum)
+        result = s.groupby({"T1": "T2"}).agg("sum")
+        expected = s.groupby(["T2"]).agg("sum")
         tm.assert_series_equal(result, expected)
 
         s = Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
         mapping = {"a": 0, "b": 0, "c": 1, "d": 1}
 
         result = s.groupby(mapping).mean()
-        result2 = s.groupby(mapping).agg(np.mean)
+        result2 = s.groupby(mapping).agg("mean")
         exp_key = np.array([0, 0, 1, 1], dtype=np.int64)
         expected = s.groupby(exp_key).mean()
         expected2 = s.groupby(exp_key).mean()
@@ -446,6 +446,29 @@ class TestGrouping:
         expected = ts.groupby(ts.index).sum()
         expected.index.freq = None
         tm.assert_series_equal(result, expected)
+
+    def test_groupby_with_datetime_key(self):
+        # GH 51158
+        df = DataFrame(
+            {
+                "id": ["a", "b"] * 3,
+                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+            }
+        )
+        grouper = Grouper(key="b", freq="D")
+        gb = df.groupby([grouper, "id"])
+
+        # test number of groups
+        expected = {
+            (Timestamp("2000-01-01"), "a"): [0, 2],
+            (Timestamp("2000-01-01"), "b"): [1],
+            (Timestamp("2000-01-02"), "a"): [4],
+            (Timestamp("2000-01-02"), "b"): [3, 5],
+        }
+        tm.assert_dict_equal(gb.groups, expected)
+
+        # test number of group keys
+        assert len(gb.groups.keys()) == 4
 
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
@@ -486,7 +509,9 @@ class TestGrouping:
         df.columns = np.arange(len(df.columns))
 
         # it works!
-        df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
+        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
@@ -967,7 +992,7 @@ class TestIteration:
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
         # pylint: disable-next=unnecessary-comprehension
-        groups = {key: gp for key, gp in grouped}
+        groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
         # axis = 1
@@ -1058,7 +1083,9 @@ def test_grouping_by_key_is_in_axis():
 
     # Currently only in-axis groupings are including in the result when as_index=False;
     # This is likely to change in the future.
-    result = gb.sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
 

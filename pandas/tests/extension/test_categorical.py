@@ -186,12 +186,8 @@ class TestMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
-        if na_action is not None:
-            with pytest.raises(NotImplementedError, match=""):
-                data.map(lambda x: x, na_action=na_action)
-        else:
-            result = data.map(lambda x: x, na_action=na_action)
-            self.assert_extension_array_equal(result, data)
+        result = data.map(lambda x: x, na_action=na_action)
+        self.assert_extension_array_equal(result, data)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -323,3 +319,12 @@ class Test2DCompat(base.NDArrayBacked2DTests):
 
         res = repr(data.reshape(-1, 1))
         assert res.count("\nCategories") == 1
+
+
+def test_astype_category_readonly_mask_values():
+    # GH 53658
+    df = pd.DataFrame([0, 1, 2], dtype="Int64")
+    df._mgr.arrays[0]._mask.flags["WRITEABLE"] = False
+    result = df.astype("category")
+    expected = pd.DataFrame([0, 1, 2], dtype="Int64").astype("category")
+    tm.assert_frame_equal(result, expected)

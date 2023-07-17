@@ -26,7 +26,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -35,13 +34,15 @@ from pandas.core.dtypes.common import (
 
 from pandas.core import ops
 from pandas.core.array_algos import masked_reductions
-from pandas.core.arrays import (
-    ExtensionArray,
+from pandas.core.arrays.base import ExtensionArray
+from pandas.core.arrays.floating import (
     FloatingArray,
-    IntegerArray,
+    FloatingDtype,
 )
-from pandas.core.arrays.floating import FloatingDtype
-from pandas.core.arrays.integer import IntegerDtype
+from pandas.core.arrays.integer import (
+    IntegerArray,
+    IntegerDtype,
+)
 from pandas.core.arrays.numpy_ import PandasArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
@@ -228,7 +229,9 @@ class BaseStringArray(ExtensionArray):
         return list(self.to_numpy())
 
 
-class StringArray(BaseStringArray, PandasArray):
+# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
+# incompatible with definition in base class "ExtensionArray"
+class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
@@ -352,8 +355,10 @@ class StringArray(BaseStringArray, PandasArray):
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
-                # pyarrow array
+            if lib.is_pyarrow_array(scalars):
+                # pyarrow array; we cannot rely on the "to_numpy" check in
+                #  ensure_string_array because calling scalars.to_numpy would set
+                #  zero_copy_only to True which caused problems see GH#52076
                 scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
             result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
@@ -438,7 +443,7 @@ class StringArray(BaseStringArray, PandasArray):
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -491,7 +496,7 @@ class StringArray(BaseStringArray, PandasArray):
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas.core.algorithms import value_counts_internal as value_counts
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
@@ -508,7 +513,7 @@ class StringArray(BaseStringArray, PandasArray):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(

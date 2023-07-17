@@ -1,5 +1,6 @@
 """Tests for Table Schema integration."""
 from collections import OrderedDict
+from io import StringIO
 import json
 
 import numpy as np
@@ -190,7 +191,6 @@ class TestTableSchemaType:
     @pytest.mark.parametrize(
         "date_dtype",
         [
-            np.datetime64,
             np.dtype("<M8[ns]"),
             PeriodDtype("D"),
             DatetimeTZDtype("ns", "US/Central"),
@@ -200,7 +200,7 @@ class TestTableSchemaType:
         # TODO: datedate.date? datetime.time?
         assert as_json_table_type(date_dtype) == "datetime"
 
-    @pytest.mark.parametrize("td_dtype", [np.timedelta64, np.dtype("<m8[ns]")])
+    @pytest.mark.parametrize("td_dtype", [np.dtype("<m8[ns]")])
     def test_as_json_table_type_timedelta_dtypes(self, td_dtype):
         assert as_json_table_type(td_dtype) == "duration"
 
@@ -255,7 +255,8 @@ class TestTableOrient:
                 "name_en": {"row_0": "Hakata Dolls Matsuo"},
             }
         )
-        result1 = pd.read_json(df.to_json())
+
+        result1 = pd.read_json(StringIO(df.to_json()))
         result2 = DataFrame.from_dict(json.loads(df.to_json()))
         tm.assert_frame_equal(result1, df)
         tm.assert_frame_equal(result2, df)
@@ -795,7 +796,7 @@ class TestTableOrientReader:
             index=pd.Index(range(4), name="idx"),
         )
 
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -811,7 +812,7 @@ class TestTableOrientReader:
             columns=["Aussprache", "Griechisch", "Args"],
         )
         df.index.names = index_names
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
@@ -819,7 +820,7 @@ class TestTableOrientReader:
         # GH 21287
         df = DataFrame(columns=["a", "b", "c"])
         expected = df.copy()
-        out = df.to_json(orient="table")
+        out = StringIO(df.to_json(orient="table"))
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(expected, result)
 
@@ -842,5 +843,5 @@ class TestTableOrientReader:
         }
         """
         expected = DataFrame({"a": [1, 2.0, "s"]})
-        result = pd.read_json(df_json, orient="table")
+        result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)

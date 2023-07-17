@@ -30,10 +30,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
 )
 
 from dateutil.tz import (
@@ -64,7 +64,6 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
-    compat,
 )
 import pandas._testing as tm
 from pandas.core import ops
@@ -72,6 +71,12 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
 try:
     import pyarrow as pa
@@ -81,18 +86,12 @@ else:
     del pa
     has_pyarrow = True
 
-zoneinfo = None
-if compat.PY39:
-    # Import "zoneinfo" could not be resolved (reportMissingImports)
-    import zoneinfo  # type: ignore[no-redef]
+import zoneinfo
 
-    # Although zoneinfo can be imported in Py39, it is effectively
-    # "not available" without tzdata/IANA tz data.
-    # We will set zoneinfo to not found in this case
-    try:
-        zoneinfo.ZoneInfo("UTC")  # type: ignore[attr-defined]
-    except zoneinfo.ZoneInfoNotFoundError:  # type: ignore[attr-defined]
-        zoneinfo = None
+try:
+    zoneinfo.ZoneInfo("UTC")
+except zoneinfo.ZoneInfoNotFoundError:
+    zoneinfo = None  # type: ignore[assignment]
 
 
 # ----------------------------------------------------------------
@@ -135,8 +134,42 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
+        ("is_int64_dtype", "is_int64_dtype is deprecated"),
+        ("is_interval_dtype", "is_interval_dtype is deprecated"),
+        ("is_period_dtype", "is_period_dtype is deprecated"),
+        ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
+        ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
+        ("is_sparse", "is_sparse is deprecated"),
+        ("NDFrame.replace", "The 'method' keyword"),
+        ("NDFrame.replace", "Series.replace without 'value'"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
+        (
+            "to_pydatetime",
+            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
+        ),
+        (
+            "pandas.core.generic.NDFrame.bool",
+            "(Series|DataFrame).bool is now deprecated and will be removed "
+            "in future version of pandas",
+        ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
+        ),
     ]
 
     for item in items:
@@ -658,7 +691,7 @@ def index_with_missing(request):
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values
+    vals = ind.values.copy()
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -708,7 +741,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.randn(size)
-    return Series(data, index=index, name="a")
+    return Series(data, index=index, name="a", copy=False)
 
 
 _series = {
@@ -738,7 +771,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.randn(8)
     ser = Series(data, index=index)
-    ser[3] = np.NaN
+    ser.iloc[3] = np.NaN
     return ser
 
 
@@ -923,7 +956,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(tz="US/Eastern"),
+            DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
     ]
@@ -1141,6 +1174,16 @@ def strict_data_files(pytestconfig):
 
 
 @pytest.fixture
+def tests_path() -> Path:
+    return Path(__file__).parent / "tests"
+
+
+@pytest.fixture
+def tests_io_data_path(tests_path) -> Path:
+    return tests_path / "io" / "data"
+
+
+@pytest.fixture
 def datapath(strict_data_files: str) -> Callable[..., str]:
     """
     Get the path to a data file.
@@ -1206,7 +1249,12 @@ TIMEZONES = [
     timezone(timedelta(hours=-1), name="foo"),
 ]
 if zoneinfo is not None:
-    TIMEZONES.extend([zoneinfo.ZoneInfo("US/Pacific"), zoneinfo.ZoneInfo("UTC")])
+    TIMEZONES.extend(
+        [
+            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
+            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
+        ]
+    )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
 
@@ -1949,7 +1997,7 @@ def using_copy_on_write() -> bool:
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))
+    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
 
 
 @pytest.fixture(params=warsaws)

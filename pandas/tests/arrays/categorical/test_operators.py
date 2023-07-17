@@ -86,11 +86,11 @@ class TestCategoricalOpsWithFactor:
             cat_rev > cat_rev_base2
 
         # Only categories with same ordering information can be compared
-        cat_unorderd = cat.set_ordered(False)
+        cat_unordered = cat.set_ordered(False)
         assert not (cat > cat).any()
 
         with pytest.raises(TypeError, match=msg):
-            cat > cat_unorderd
+            cat > cat_unordered
 
         # comparison (in both directions) with Series will raise
         s = Series(["b", "b", "b"])

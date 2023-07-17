@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -99,9 +99,9 @@ strings (``object``).
 .. note::
     When asking for the ``dtypes``, no brackets are used!
     ``dtypes`` is an attribute of a ``DataFrame`` and ``Series``. Attributes
-    of ``DataFrame`` or ``Series`` do not need brackets. Attributes
-    represent a characteristic of a ``DataFrame``/``Series``, whereas a
-    method (which requires brackets) *do* something with the
+    of a ``DataFrame`` or ``Series`` do not need brackets. Attributes
+    represent a characteristic of a ``DataFrame``/``Series``, whereas
+    methods (which require brackets) *do* something with the
     ``DataFrame``/``Series`` as introduced in the :ref:`first tutorial <10min_tut_01_tableoriented>`.
 
 .. raw:: html
@@ -198,7 +198,7 @@ The method :meth:`~DataFrame.info` provides technical information about a
 
 .. raw:: html
 
-    <div class="d-flex flex-row bg-light gs-torefguide">
+    <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
 For a complete overview of the input and output possibilities from and to pandas, see the user guide section about :ref:`reader and writer functions <io>`.

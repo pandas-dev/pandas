@@ -88,11 +88,11 @@ class build_ext(_build_ext):
                 # if .pxi.in is not updated, no need to output .pxi
                 continue
 
-            with open(pxifile) as f:
+            with open(pxifile, encoding="utf-8") as f:
                 tmpl = f.read()
             pyxcontent = Tempita.sub(tmpl)
 
-            with open(outfile, "w") as f:
+            with open(outfile, "w", encoding="utf-8") as f:
                 f.write(pyxcontent)
 
     def build_extensions(self):
@@ -115,15 +115,14 @@ class CleanCommand(Command):
         self._clean_trees = []
 
         base = pjoin("pandas", "_libs", "src")
-        tsbase = pjoin("pandas", "_libs", "tslibs", "src")
-        dt = pjoin(tsbase, "datetime")
-        util = pjoin("pandas", "util")
         parser = pjoin(base, "parser")
-        ujson_python = pjoin(base, "ujson", "python")
-        ujson_lib = pjoin(base, "ujson", "lib")
+        vendored = pjoin(base, "vendored")
+        dt = pjoin(base, "datetime")
+        ujson_python = pjoin(vendored, "ujson", "python")
+        ujson_lib = pjoin(vendored, "ujson", "lib")
         self._clean_exclude = [
-            pjoin(dt, "np_datetime.c"),
-            pjoin(dt, "np_datetime_strings.c"),
+            pjoin(vendored, "numpy", "datetime", "np_datetime.c"),
+            pjoin(vendored, "numpy", "datetime", "np_datetime_strings.c"),
             pjoin(dt, "date_conversions.c"),
             pjoin(parser, "tokenizer.c"),
             pjoin(parser, "io.c"),
@@ -132,9 +131,8 @@ class CleanCommand(Command):
             pjoin(ujson_python, "JSONtoObj.c"),
             pjoin(ujson_lib, "ultrajsonenc.c"),
             pjoin(ujson_lib, "ultrajsondec.c"),
-            pjoin(util, "move.c"),
-            pjoin(tsbase, "datetime", "pd_datetime.c"),
-            pjoin("pandas", "_libs", "pd_parser.c"),
+            pjoin(dt, "pd_datetime.c"),
+            pjoin(parser, "pd_parser.c"),
         ]
 
         for root, dirs, files in os.walk("pandas"):
@@ -204,7 +202,6 @@ class CheckSDist(sdist_class):
         "pandas/_libs/interval.pyx",
         "pandas/_libs/hashing.pyx",
         "pandas/_libs/missing.pyx",
-        "pandas/_libs/reduction.pyx",
         "pandas/_libs/testing.pyx",
         "pandas/_libs/sparse.pyx",
         "pandas/_libs/ops.pyx",
@@ -226,8 +223,8 @@ class CheckSDist(sdist_class):
         "pandas/_libs/tslibs/vectorized.pyx",
         "pandas/_libs/window/indexers.pyx",
         "pandas/_libs/writers.pyx",
-        "pandas/io/sas/sas.pyx",
-        "pandas/io/sas/byteswap.pyx",
+        "pandas/_libs/sas.pyx",
+        "pandas/_libs/byteswap.pyx",
     ]
 
     _cpp_pyxfiles = [
@@ -379,7 +376,7 @@ if "--with-cython-coverage" in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {"linetrace": False, "language_level": 3}
+directives = {"linetrace": False, "language_level": 3, "always_allow_keywords": True}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py
@@ -432,19 +429,15 @@ def srcpath(name=None, suffix=".pyx", subdir="src"):
     return pjoin("pandas", subdir, name + suffix)
 
 
-lib_depends = ["pandas/_libs/src/parse_helper.h"]
+lib_depends = ["pandas/_libs/include/pandas/parse_helper.h"]
 
-klib_include = ["pandas/_libs/src/klib"]
-
-tseries_includes = ["pandas/_libs/tslibs/src/datetime"]
 tseries_depends = [
-    "pandas/_libs/tslibs/src/datetime/pd_datetime.h",
+    "pandas/_libs/include/pandas/datetime/pd_datetime.h",
 ]
 
 ext_data = {
     "_libs.algos": {
         "pyxfile": "_libs/algos",
-        "include": klib_include,
         "depends": _pxi_dep["algos"],
     },
     "_libs.arrays": {"pyxfile": "_libs/arrays"},
@@ -452,41 +445,38 @@ ext_data = {
     "_libs.hashing": {"pyxfile": "_libs/hashing", "depends": []},
     "_libs.hashtable": {
         "pyxfile": "_libs/hashtable",
-        "include": klib_include,
         "depends": (
-            ["pandas/_libs/src/klib/khash_python.h", "pandas/_libs/src/klib/khash.h"]
+            [
+                "pandas/_libs/include/pandas/vendored/klib/khash_python.h",
+                "pandas/_libs/include/pandas/vendored/klib/khash.h",
+            ]
             + _pxi_dep["hashtable"]
         ),
     },
     "_libs.index": {
         "pyxfile": "_libs/index",
-        "include": klib_include,
         "depends": _pxi_dep["index"],
     },
     "_libs.indexing": {"pyxfile": "_libs/indexing"},
     "_libs.internals": {"pyxfile": "_libs/internals"},
     "_libs.interval": {
         "pyxfile": "_libs/interval",
-        "include": klib_include,
         "depends": _pxi_dep["interval"],
     },
-    "_libs.join": {"pyxfile": "_libs/join", "include": klib_include},
+    "_libs.join": {"pyxfile": "_libs/join"},
     "_libs.lib": {
         "pyxfile": "_libs/lib",
         "depends": lib_depends + tseries_depends,
-        "include": klib_include,  # due to tokenizer import
     },
     "_libs.missing": {"pyxfile": "_libs/missing", "depends": tseries_depends},
     "_libs.parsers": {
         "pyxfile": "_libs/parsers",
-        "include": klib_include + ["pandas/_libs/src", "pandas/_libs"],
         "depends": [
             "pandas/_libs/src/parser/tokenizer.h",
             "pandas/_libs/src/parser/io.h",
             "pandas/_libs/src/pd_parser.h",
         ],
     },
-    "_libs.reduction": {"pyxfile": "_libs/reduction"},
     "_libs.ops": {"pyxfile": "_libs/ops"},
     "_libs.ops_dispatch": {"pyxfile": "_libs/ops_dispatch"},
     "_libs.properties": {"pyxfile": "_libs/properties"},
@@ -502,7 +492,6 @@ ext_data = {
     "_libs.tslibs.conversion": {
         "pyxfile": "_libs/tslibs/conversion",
         "depends": tseries_depends,
-        "include": klib_include,
     },
     "_libs.tslibs.fields": {
         "pyxfile": "_libs/tslibs/fields",
@@ -512,17 +501,13 @@ ext_data = {
     "_libs.tslibs.np_datetime": {
         "pyxfile": "_libs/tslibs/np_datetime",
         "depends": tseries_depends,
-        "includes": tseries_includes,
     },
     "_libs.tslibs.offsets": {
         "pyxfile": "_libs/tslibs/offsets",
         "depends": tseries_depends,
-        "includes": tseries_includes,
     },
     "_libs.tslibs.parsing": {
         "pyxfile": "_libs/tslibs/parsing",
-        "include": tseries_includes + klib_include,
-        "depends": ["pandas/_libs/src/parser/tokenizer.h"],
         "sources": ["pandas/_libs/src/parser/tokenizer.c"],
     },
     "_libs.tslibs.period": {
@@ -539,7 +524,6 @@ ext_data = {
     },
     "_libs.tslibs.timestamps": {
         "pyxfile": "_libs/tslibs/timestamps",
-        "include": tseries_includes,
         "depends": tseries_depends,
     },
     "_libs.tslibs.timezones": {"pyxfile": "_libs/tslibs/timezones"},
@@ -556,12 +540,12 @@ ext_data = {
         "pyxfile": "_libs/window/aggregations",
         "language": "c++",
         "suffix": ".cpp",
-        "depends": ["pandas/_libs/src/skiplist.h"],
+        "depends": ["pandas/_libs/include/pandas/skiplist.h"],
     },
     "_libs.window.indexers": {"pyxfile": "_libs/window/indexers"},
     "_libs.writers": {"pyxfile": "_libs/writers"},
-    "io.sas._sas": {"pyxfile": "io/sas/sas"},
-    "io.sas._byteswap": {"pyxfile": "io/sas/byteswap"},
+    "_libs.sas": {"pyxfile": "_libs/sas"},
+    "_libs.byteswap": {"pyxfile": "_libs/byteswap"},
 }
 
 extensions = []
@@ -573,8 +557,7 @@ for name, data in ext_data.items():
 
     sources.extend(data.get("sources", []))
 
-    include = data.get("include", [])
-    include.append(numpy.get_include())
+    include = ["pandas/_libs/include", numpy.get_include()]
 
     undef_macros = []
 
@@ -614,24 +597,22 @@ if suffix == ".pyx":
 ujson_ext = Extension(
     "pandas._libs.json",
     depends=[
-        "pandas/_libs/src/ujson/lib/ultrajson.h",
-        "pandas/_libs/tslibs/src/datetime/pd_datetime.h",
+        "pandas/_libs/include/pandas/vendored/ujson/lib/ultrajson.h",
+        "pandas/_libs/include/pandas/datetime/pd_datetime.h",
     ],
     sources=(
         [
-            "pandas/_libs/src/ujson/python/ujson.c",
-            "pandas/_libs/src/ujson/python/objToJSON.c",
-            "pandas/_libs/src/ujson/python/JSONtoObj.c",
-            "pandas/_libs/src/ujson/lib/ultrajsonenc.c",
-            "pandas/_libs/src/ujson/lib/ultrajsondec.c",
+            "pandas/_libs/src/vendored/ujson/python/ujson.c",
+            "pandas/_libs/src/vendored/ujson/python/objToJSON.c",
+            "pandas/_libs/src/vendored/ujson/python/JSONtoObj.c",
+            "pandas/_libs/src/vendored/ujson/lib/ultrajsonenc.c",
+            "pandas/_libs/src/vendored/ujson/lib/ultrajsondec.c",
         ]
     ),
     include_dirs=[
-        "pandas/_libs/src/ujson/python",
-        "pandas/_libs/src/ujson/lib",
+        "pandas/_libs/include",
         numpy.get_include(),
-    ]
-    + tseries_includes,
+    ],
     extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,
     define_macros=macros,
@@ -649,14 +630,14 @@ pd_dt_ext = Extension(
     depends=["pandas/_libs/tslibs/datetime/pd_datetime.h"],
     sources=(
         [
-            "pandas/_libs/tslibs/src/datetime/np_datetime.c",
-            "pandas/_libs/tslibs/src/datetime/np_datetime_strings.c",
-            "pandas/_libs/tslibs/src/datetime/date_conversions.c",
-            "pandas/_libs/tslibs/src/datetime/pd_datetime.c",
+            "pandas/_libs/src/vendored/numpy/datetime/np_datetime.c",
+            "pandas/_libs/src/vendored/numpy/datetime/np_datetime_strings.c",
+            "pandas/_libs/src/datetime/date_conversions.c",
+            "pandas/_libs/src/datetime/pd_datetime.c",
         ]
     ),
-    include_dirs=tseries_includes
-    + [
+    include_dirs=[
+        "pandas/_libs/include",
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),
@@ -673,16 +654,16 @@ extensions.append(pd_dt_ext)
 # pd_datetime
 pd_parser_ext = Extension(
     "pandas._libs.pandas_parser",
-    depends=["pandas/_libs/pd_parser.h"],
+    depends=["pandas/_libs/include/pandas/parser/pd_parser.h"],
     sources=(
         [
             "pandas/_libs/src/parser/tokenizer.c",
             "pandas/_libs/src/parser/io.c",
-            "pandas/_libs/pd_parser.c",
+            "pandas/_libs/src/parser/pd_parser.c",
         ]
     ),
     include_dirs=[
-        "pandas/_libs/src/klib",
+        "pandas/_libs/include",
     ],
     extra_compile_args=(extra_compile_args),
     extra_link_args=extra_link_args,

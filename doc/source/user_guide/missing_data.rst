@@ -29,11 +29,6 @@ detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
 arise and we wish to also consider that "missing" or "not available" or "NA".
 
-.. note::
-
-   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
-   you can set ``pandas.options.mode.use_inf_as_na = True``.
-
 .. _missing.isna:
 
 .. ipython:: python
@@ -123,7 +118,7 @@ the missing value type chosen:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3])
+   s = pd.Series([1., 2., 3.])
    s.loc[0] = None
    s
 
@@ -150,7 +145,7 @@ objects.
    :suppress:
 
    df = df2.loc[:, ["one", "two", "three"]]
-   a = df2.loc[df2.index[:5], ["one", "two"]].fillna(method="pad")
+   a = df2.loc[df2.index[:5], ["one", "two"]].ffill()
    b = df2.loc[df2.index[:5], ["one", "two", "three"]]
 
 .. ipython:: python
@@ -181,11 +176,6 @@ account for missing data. For example:
 
 Sum/prod of empties/nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. warning::
-
-   This behavior is now standard as of v0.22.0 and is consistent with the default in ``numpy``; previously sum/prod of all-NA or empty Series/DataFrames would return NaN.
-   See :ref:`v0.22.0 whatsnew <whatsnew_0220>` for more.
 
 The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
@@ -247,7 +237,7 @@ can propagate non-NA values forward or backward:
 .. ipython:: python
 
    df
-   df.fillna(method="pad")
+   df.ffill()
 
 .. _missing_data.fillna.limit:
 
@@ -264,7 +254,7 @@ we can use the ``limit`` keyword:
 .. ipython:: python
 
    df
-   df.fillna(method="pad", limit=1)
+   df.ffill(limit=1)
 
 To remind you, these are the available filling methods:
 
@@ -373,7 +363,7 @@ Index aware interpolation is available via the ``method`` keyword:
 .. ipython:: python
    :suppress:
 
-   ts2 = ts[[0, 1, 30, 60, 99]]
+   ts2 = ts.iloc[[0, 1, 30, 60, 99]]
 
 .. ipython:: python
 
@@ -448,7 +438,7 @@ Compare several methods:
 
    ser = pd.Series(np.arange(1, 10.1, 0.25) ** 2 + np.random.randn(37))
    missing = np.array([4, 13, 14, 15, 16, 17, 18, 20, 29])
-   ser[missing] = np.nan
+   ser.iloc[missing] = np.nan
    methods = ["linear", "quadratic", "cubic"]
 
    df = pd.DataFrame({m: ser.interpolate(method=m) for m in methods})
@@ -560,13 +550,6 @@ For a DataFrame, you can specify individual values by column:
    df = pd.DataFrame({"a": [0, 1, 2, 3, 4], "b": [5, 6, 7, 8, 9]})
 
    df.replace({"a": 0, "b": 5}, 100)
-
-Instead of replacing with specified values, you can treat all given values as
-missing and interpolate over them:
-
-.. ipython:: python
-
-   ser.replace([1, 2, 3], method="pad")
 
 .. _missing_data.replace_expression:
 

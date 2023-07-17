@@ -13,12 +13,8 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
-import warnings
 
 import numpy as np
 
@@ -27,18 +23,15 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     AxisInt,
-    DtypeObj,
     NDFrameT,
     Shape,
     npt,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
@@ -50,35 +43,12 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
-    is_bool_dtype,
-    is_complex_dtype,
-    is_datetime64_any_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_numeric_dtype,
-    is_period_dtype,
-    is_sparse,
-    is_timedelta64_dtype,
-    needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     isna,
     maybe_fill,
 )
 
-from pandas.core.arrays import (
-    Categorical,
-    DatetimeArray,
-    ExtensionArray,
-    PeriodArray,
-    TimedeltaArray,
-)
-from pandas.core.arrays.masked import (
-    BaseMaskedArray,
-    BaseMaskedDtype,
-)
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -98,7 +68,38 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas.core.generic import NDFrame
+
+
+def check_result_array(obj, dtype):
+    # Our operation is supposed to be an aggregation/reduction. If
+    #  it returns an ndarray, this likely means an invalid operation has
+    #  been passed. See test_apply_without_aggregation, test_agg_must_agg
+    if isinstance(obj, np.ndarray):
+        if dtype != object:
+            # If it is object dtype, the function can be a reduction/aggregation
+            #  and still return an ndarray e.g. test_agg_over_numpy_arrays
+            raise ValueError("Must produce aggregated value")
+
+
+def extract_result(res):
+    """
+    Extract the result object, it might be a 0-dim ndarray
+    or a len-1 0-dim, or a scalar
+    """
+    if hasattr(res, "_values"):
+        # Preserve EA
+        res = res._values
+        if res.ndim == 1 and len(res) == 1:
+            # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
+            res = res[0]
+    return res
 
 
 class WrappedCythonOp:
@@ -139,6 +140,7 @@ class WrappedCythonOp:
             "var": "group_var",
             "std": functools.partial(libgroupby.group_var, name="std"),
             "sem": functools.partial(libgroupby.group_var, name="sem"),
+            "skew": "group_skew",
             "first": "group_nth",
             "last": "group_last",
             "ohlc": "group_ohlc",
@@ -154,10 +156,16 @@ class WrappedCythonOp:
 
     _cython_arity = {"ohlc": 4}  # OHLC
 
+    @classmethod
+    def get_kind_from_how(cls, how: str) -> str:
+        if how in cls._CYTHON_FUNCTIONS["aggregate"]:
+            return "aggregate"
+        return "transform"
+
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
@@ -182,7 +190,10 @@ class WrappedCythonOp:
             elif how in ["std", "sem"]:
                 # We have a partial object that does not have __signatures__
                 return f
-            if "object" not in f.__signatures__:
+            elif how == "skew":
+                # _get_cython_vals will convert to float64
+                pass
+            elif "object" not in f.__signatures__:
                 # raise NotImplementedError here rather than TypeError later
                 raise NotImplementedError(
                     f"function is not implemented for this dtype: "
@@ -210,13 +221,13 @@ class WrappedCythonOp:
         """
         how = self.how
 
-        if how in ["median", "std", "sem"]:
+        if how in ["median", "std", "sem", "skew"]:
             # median only has a float64 implementation
             # We should only get here with is_numeric, as non-numeric cases
             #  should raise in _get_cython_function
             values = ensure_float64(values)
 
-        elif values.dtype.kind in ["i", "u"]:
+        elif values.dtype.kind in "iu":
             if how in ["var", "mean"] or (
                 self.kind == "transform" and self.has_dropped_na
             ):
@@ -232,70 +243,6 @@ class WrappedCythonOp:
                     values = ensure_uint64(values)
 
         return values
-
-    # TODO: general case implementation overridable by EAs.
-    def _disallow_invalid_ops(self, dtype: DtypeObj, is_numeric: bool = False):
-        """
-        Check if we can do this operation with our cython functions.
-
-        Raises
-        ------
-        TypeError
-            This is not a valid operation for this dtype.
-        NotImplementedError
-            This may be a valid operation, but does not have a cython implementation.
-        """
-        how = self.how
-
-        if is_numeric:
-            # never an invalid op for those dtypes, so return early as fastpath
-            return
-
-        if isinstance(dtype, CategoricalDtype):
-            if how in ["sum", "prod", "cumsum", "cumprod"]:
-                raise TypeError(f"{dtype} type does not support {how} operations")
-            if how in ["min", "max", "rank"] and not dtype.ordered:
-                # raise TypeError instead of NotImplementedError to ensure we
-                #  don't go down a group-by-group path, since in the empty-groups
-                #  case that would fail to raise
-                raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
-            if how not in ["rank", "any", "all", "first", "last", "min", "max"]:
-                if self.kind == "transform":
-                    raise TypeError(f"{dtype} type does not support {how} operations")
-                raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
-
-        elif is_sparse(dtype):
-            raise NotImplementedError(f"{dtype} dtype not supported")
-        elif is_datetime64_any_dtype(dtype):
-            # Adding/multiplying datetimes is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
-                raise TypeError(f"datetime64 type does not support {how} operations")
-            if how in ["any", "all"]:
-                # GH#34479
-                warnings.warn(
-                    f"'{how}' with datetime64 dtypes is deprecated and will raise in a "
-                    f"future version. Use (obj != pd.Timestamp(0)).{how}() instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-        elif is_period_dtype(dtype):
-            # Adding/multiplying Periods is not valid
-            if how in ["sum", "prod", "cumsum", "cumprod", "var"]:
-                raise TypeError(f"Period type does not support {how} operations")
-            if how in ["any", "all"]:
-                # GH#34479
-                warnings.warn(
-                    f"'{how}' with PeriodDtype is deprecated and will raise in a "
-                    f"future version. Use (obj != pd.Period(0, freq)).{how}() instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-        elif is_timedelta64_dtype(dtype):
-            # timedeltas we can add but not multiply
-            if how in ["prod", "cumprod"]:
-                raise TypeError(f"timedelta64 type does not support {how} operations")
 
     def _get_output_shape(self, ngroups: int, values: np.ndarray) -> Shape:
         how = self.how
@@ -322,7 +269,7 @@ class WrappedCythonOp:
         if how == "rank":
             out_dtype = "float64"
         else:
-            if is_numeric_dtype(dtype):
+            if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
             else:
                 out_dtype = "object"
@@ -348,166 +295,11 @@ class WrappedCythonOp:
             if dtype == np.dtype(bool):
                 return np.dtype(np.int64)
         elif how in ["mean", "median", "var", "std", "sem"]:
-            if is_float_dtype(dtype) or is_complex_dtype(dtype):
+            if dtype.kind in "fc":
                 return dtype
-            elif is_numeric_dtype(dtype):
+            elif dtype.kind in "iub":
                 return np.dtype(np.float64)
         return dtype
-
-    @final
-    def _ea_wrap_cython_operation(
-        self,
-        values: ExtensionArray,
-        min_count: int,
-        ngroups: int,
-        comp_ids: np.ndarray,
-        **kwargs,
-    ) -> ArrayLike:
-        """
-        If we have an ExtensionArray, unwrap, call _cython_operation, and
-        re-wrap if appropriate.
-        """
-        if isinstance(values, BaseMaskedArray):
-            return self._masked_ea_wrap_cython_operation(
-                values,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                **kwargs,
-            )
-
-        elif isinstance(values, Categorical):
-            assert self.how in ["rank", "any", "all", "first", "last", "min", "max"]
-            mask = values.isna()
-            if self.how == "rank":
-                assert values.ordered  # checked earlier
-                npvalues = values._ndarray
-            elif self.how in ["first", "last", "min", "max"]:
-                if self.how in ["min", "max"]:
-                    assert values.ordered  # checked earlier
-                npvalues = values._ndarray
-                result_mask = np.zeros(ngroups, dtype=np.uint8)
-                kwargs["result_mask"] = result_mask
-            else:
-                npvalues = values.astype(bool)
-
-            res_values = self._cython_op_ndim_compat(
-                npvalues,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                mask=mask,
-                **kwargs,
-            )
-
-            if self.how in self.cast_blocklist:
-                return res_values
-            return values._from_backing_data(res_values)
-
-        npvalues = self._ea_to_cython_values(values)
-
-        res_values = self._cython_op_ndim_compat(
-            npvalues,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=None,
-            **kwargs,
-        )
-
-        if self.how in self.cast_blocklist:
-            # i.e. how in ["rank"], since other cast_blocklist methods don't go
-            #  through cython_operation
-            return res_values
-
-        return self._reconstruct_ea_result(values, res_values)
-
-    # TODO: general case implementation overridable by EAs.
-    def _ea_to_cython_values(self, values: ExtensionArray) -> np.ndarray:
-        # GH#43682
-        if isinstance(values, (DatetimeArray, PeriodArray, TimedeltaArray)):
-            # All of the functions implemented here are ordinal, so we can
-            #  operate on the tz-naive equivalents
-            npvalues = values._ndarray.view("M8[ns]")
-        elif isinstance(values.dtype, StringDtype):
-            # StringArray
-            npvalues = values.to_numpy(object, na_value=np.nan)
-        else:
-            raise NotImplementedError(
-                f"function is not implemented for this dtype: {values.dtype}"
-            )
-        return npvalues
-
-    # TODO: general case implementation overridable by EAs.
-    def _reconstruct_ea_result(
-        self, values: ExtensionArray, res_values: np.ndarray
-    ) -> ExtensionArray:
-        """
-        Construct an ExtensionArray result from an ndarray result.
-        """
-        dtype: BaseMaskedDtype | StringDtype
-
-        if isinstance(values.dtype, StringDtype):
-            dtype = values.dtype
-            string_array_cls = dtype.construct_array_type()
-            return string_array_cls._from_sequence(res_values, dtype=dtype)
-
-        elif isinstance(values, (DatetimeArray, TimedeltaArray, PeriodArray)):
-            # In to_cython_values we took a view as M8[ns]
-            assert res_values.dtype == "M8[ns]"
-            if self.how in ["std", "sem"]:
-                if isinstance(values, PeriodArray):
-                    raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
-                new_dtype = f"m8[{values.unit}]"
-                res_values = res_values.view(new_dtype)
-                return TimedeltaArray(res_values)
-
-            res_values = res_values.view(values._ndarray.dtype)
-            return values._from_backing_data(res_values)
-
-        raise NotImplementedError
-
-    @final
-    def _masked_ea_wrap_cython_operation(
-        self,
-        values: BaseMaskedArray,
-        min_count: int,
-        ngroups: int,
-        comp_ids: np.ndarray,
-        **kwargs,
-    ) -> BaseMaskedArray:
-        """
-        Equivalent of `_ea_wrap_cython_operation`, but optimized for masked EA's
-        and cython algorithms which accept a mask.
-        """
-        orig_values = values
-
-        # libgroupby functions are responsible for NOT altering mask
-        mask = values._mask
-        if self.kind != "aggregate":
-            result_mask = mask.copy()
-        else:
-            result_mask = np.zeros(ngroups, dtype=bool)
-
-        arr = values._data
-
-        res_values = self._cython_op_ndim_compat(
-            arr,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=mask,
-            result_mask=result_mask,
-            **kwargs,
-        )
-
-        if self.how == "ohlc":
-            arity = self._cython_arity.get(self.how, 1)
-            result_mask = np.tile(result_mask, (arity, 1)).T
-
-        # res_values should already have the correct dtype, we just need to
-        #  wrap in a MaskedArray
-        return orig_values._maybe_mask_result(res_values, result_mask)
 
     @final
     def _cython_op_ndim_compat(
@@ -568,14 +360,14 @@ class WrappedCythonOp:
         orig_values = values
 
         dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
+        is_numeric = dtype.kind in "iufcb"
 
-        is_datetimelike = needs_i8_conversion(dtype)
+        is_datetimelike = dtype.kind in "mM"
 
         if is_datetimelike:
             values = values.view("int64")
             is_numeric = True
-        elif is_bool_dtype(dtype):
+        elif dtype.kind == "b":
             values = values.view("uint8")
         if values.dtype == "float16":
             values = values.astype(np.float32)
@@ -641,6 +433,19 @@ class WrappedCythonOp:
                     **kwargs,
                 )
                 result = result.astype(bool, copy=False)
+            elif self.how in ["skew"]:
+                func(
+                    out=result,
+                    counts=counts,
+                    values=values,
+                    labels=comp_ids,
+                    mask=mask,
+                    result_mask=result_mask,
+                    **kwargs,
+                )
+                if dtype == object:
+                    result = result.astype(object)
+
             else:
                 raise NotImplementedError(f"{self.how} is not implemented")
         else:
@@ -662,7 +467,7 @@ class WrappedCythonOp:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767
-            if is_integer_dtype(result.dtype) and not is_datetimelike:
+            if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
                 empty_groups = counts < cutoff
@@ -689,6 +494,17 @@ class WrappedCythonOp:
         return op_result
 
     @final
+    def _validate_axis(self, axis: AxisInt, values: ArrayLike) -> None:
+        if values.ndim > 2:
+            raise NotImplementedError("number of dimensions is currently limited to 2")
+        if values.ndim == 2:
+            assert axis == 1, axis
+        elif not is_1d_only_ea_dtype(values.dtype):
+            # Note: it is *not* the case that axis is always 0 for 1-dim values,
+            #  as we can have 1D ExtensionArrays that we need to treat as 2D
+            assert axis == 0
+
+    @final
     def cython_operation(
         self,
         *,
@@ -702,29 +518,16 @@ class WrappedCythonOp:
         """
         Call our cython function, with appropriate pre- and post- processing.
         """
-        if values.ndim > 2:
-            raise NotImplementedError("number of dimensions is currently limited to 2")
-        if values.ndim == 2:
-            assert axis == 1, axis
-        elif not is_1d_only_ea_dtype(values.dtype):
-            # Note: it is *not* the case that axis is always 0 for 1-dim values,
-            #  as we can have 1D ExtensionArrays that we need to treat as 2D
-            assert axis == 0
-
-        dtype = values.dtype
-        is_numeric = is_numeric_dtype(dtype)
-
-        # can we do this operation with our cython functions
-        # if not raise NotImplementedError
-        self._disallow_invalid_ops(dtype, is_numeric)
+        self._validate_axis(axis, values)
 
         if not isinstance(values, np.ndarray):
             # i.e. ExtensionArray
-            return self._ea_wrap_cython_operation(
-                values,
+            return values._groupby_op(
+                how=self.how,
+                has_dropped_na=self.has_dropped_na,
                 min_count=min_count,
                 ngroups=ngroups,
-                comp_ids=comp_ids,
+                ids=comp_ids,
                 **kwargs,
             )
 
@@ -897,8 +700,14 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
-            index = Index(to_groupby)
+            to_groupby = []
+            for ping in self.groupings:
+                gv = ping.grouping_vector
+                if not isinstance(gv, BaseGrouper):
+                    to_groupby.append(gv)
+                else:
+                    to_groupby.append(gv.groupings[0].grouping_vector)
+            index = MultiIndex.from_arrays(to_groupby)
             return self.axis.groupby(index)
 
     @final
@@ -1060,11 +869,11 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = libreduction.extract_result(res)
+            res = extract_result(res)
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res, group.dtype)
+                check_result_array(res, group.dtype)
                 initialized = True
 
             result[i] = res
@@ -1172,7 +981,7 @@ class BinGrouper(BaseGrouper):
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
-        #  with empty self.bins, which would raise in libreduction.
+        #  with empty self.bins, which would raise later.
         assert len(self.binlabels) == len(self.bins)
 
     @cache_readonly
@@ -1186,6 +995,9 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
+
+    def __iter__(self) -> Iterator[Hashable]:
+        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:
@@ -1348,7 +1160,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
+        ser._name = sdata.name
         return ser.__finalize__(sdata, method="groupby")
 
 
@@ -1360,7 +1173,7 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        df = sdata._constructor(mgr)
+        df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
 

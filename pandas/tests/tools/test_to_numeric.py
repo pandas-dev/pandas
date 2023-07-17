@@ -6,6 +6,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     Index,
     Series,
@@ -509,6 +510,8 @@ def test_ignore_downcast_neg_to_unsigned():
     tm.assert_numpy_array_equal(res, expected)
 
 
+# Warning in 32 bit platforms
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.parametrize("downcast", ["integer", "signed", "unsigned"])
 @pytest.mark.parametrize(
     "data,expected",
@@ -942,3 +945,12 @@ def test_invalid_dtype_backend():
     )
     with pytest.raises(ValueError, match=msg):
         to_numeric(ser, dtype_backend="numpy")
+
+
+def test_coerce_pyarrow_backend():
+    # GH 52588
+    pa = pytest.importorskip("pyarrow")
+    ser = Series(list("12x"), dtype=ArrowDtype(pa.string()))
+    result = to_numeric(ser, errors="coerce", dtype_backend="pyarrow")
+    expected = Series([1, 2, None], dtype=ArrowDtype(pa.int64()))
+    tm.assert_series_equal(result, expected)

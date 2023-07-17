@@ -131,7 +131,7 @@ shared_style_params = [
 def test_styler_to_excel_basic(engine, css, attrs, expected):
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: css)
+    styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -164,13 +164,13 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     df = DataFrame(np.random.randn(1, 1))
 
     styler = df.style
-    styler.applymap_index(lambda x: css, axis=0)
-    styler.applymap_index(lambda x: css, axis=1)
+    styler.map_index(lambda x: css, axis=0)
+    styler.map_index(lambda x: css, axis=1)
 
     null_styler = df.style
-    null_styler.applymap(lambda x: "null: css;")
-    null_styler.applymap_index(lambda x: "null: css;", axis=0)
-    null_styler.applymap_index(lambda x: "null: css;", axis=1)
+    null_styler.map(lambda x: "null: css;")
+    null_styler.map_index(lambda x: "null: css;", axis=0)
+    null_styler.map_index(lambda x: "null: css;", axis=1)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -231,7 +231,7 @@ def test_styler_to_excel_border_style(engine, border_style):
 
     pytest.importorskip(engine)
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: css)
+    styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
@@ -261,7 +261,7 @@ def test_styler_custom_converter():
         return {"font": {"color": {"rgb": "111222"}}}
 
     df = DataFrame(np.random.randn(1, 1))
-    styler = df.style.applymap(lambda x: "color: #888999")
+    styler = df.style.map(lambda x: "color: #888999")
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
             ExcelFormatter(styler, style_converter=custom_converter).write(
@@ -274,18 +274,16 @@ def test_styler_custom_converter():
 
 @pytest.mark.single_cpu
 @td.skip_if_not_us_locale
-def test_styler_to_s3(s3_resource, s3so):
+def test_styler_to_s3(s3_public_bucket, s3so):
     # GH#46381
 
-    mock_bucket_name, target_file = "pandas-test", "test.xlsx"
+    mock_bucket_name, target_file = s3_public_bucket.name, "test.xlsx"
     df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
     styler = df.style.set_sticky(axis="index")
     styler.to_excel(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
     timeout = 5
     while True:
-        if target_file in (
-            obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
-        ):
+        if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
             break
         time.sleep(0.1)
         timeout -= 0.1

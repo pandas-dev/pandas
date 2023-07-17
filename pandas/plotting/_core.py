@@ -4,9 +4,7 @@ import importlib
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
 )
 
 from pandas._config import get_option
@@ -28,6 +26,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     import types
 
     from matplotlib.axes import Axes
@@ -87,8 +89,6 @@ def hist_series(
     legend : bool, default False
         Whether to show the legend.
 
-        .. versionadded:: 1.1.0
-
     **kwargs
         To be passed to the actual plotting function.
 
@@ -100,6 +100,26 @@ def hist_series(
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+
+    Examples
+    --------
+    For Series:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.hist()
+
+    For Groupby:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.groupby(level=0).hist()
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_series(
@@ -120,7 +140,7 @@ def hist_series(
 
 def hist_frame(
     data: DataFrame,
-    column: IndexLabel = None,
+    column: IndexLabel | None = None,
     by=None,
     grid: bool = True,
     xlabelsize: int | None = None,
@@ -196,8 +216,6 @@ def hist_frame(
 
     legend : bool, default False
         Whether to show the legend.
-
-        .. versionadded:: 1.1.0
 
     **kwargs
         All other plotting keyword arguments to be passed to
@@ -393,7 +411,7 @@ the matplotlib axes on which the boxplot is drawn are returned:
 
     >>> boxplot = df.boxplot(column=['Col1', 'Col2'], return_type='axes')
     >>> type(boxplot)
-    <class 'matplotlib.axes._subplots.AxesSubplot'>
+    <class 'matplotlib.axes._axes.Axes'>
 
 When grouping with ``by``, a Series mapping columns to ``return_type``
 is returned:
@@ -447,8 +465,6 @@ _bar_or_line_doc = """
                 colored accordingly. For example, if your columns are called `a` and
                 `b`, then passing {'a': 'green', 'b': 'red'} will color %(kind)ss for
                 column `a` in green and %(kind)ss for column `b` in red.
-
-            .. versionadded:: 1.1.0
 
         **kwargs
             Additional keyword arguments are documented in
@@ -705,8 +721,6 @@ class PlotAccessor(PandasObject):
         Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
         x-column name for planar plots.
 
-        .. versionadded:: 1.1.0
-
         .. versionchanged:: 1.2.0
 
            Now applicable to planar plots (`scatter`, `hexbin`).
@@ -718,8 +732,6 @@ class PlotAccessor(PandasObject):
     ylabel : label, optional
         Name to use for the ylabel on y-axis. Default will show no ylabel, or the
         y-column name for planar plots.
-
-        .. versionadded:: 1.1.0
 
         .. versionchanged:: 1.2.0
 
@@ -785,6 +797,44 @@ class PlotAccessor(PandasObject):
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
       (center)
+
+    Examples
+    --------
+    For Series:
+
+    .. plot::
+        :context: close-figs
+
+        >>> ser = pd.Series([1, 2, 3, 3])
+        >>> plot = ser.plot(kind='hist', title="My plot")
+
+    For DataFrame:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> plot = df.plot(title="DataFrame Plot")
+
+    For SeriesGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = [-1, -2, -3, 1, 2, 3]
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+    For DataFrameGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({"col1" : [1, 2, 3, 4],
+        ...                   "col2" : ["A", "B", "A", "B"]})
+        >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
@@ -1039,7 +1089,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def line(
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+    ) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1127,7 +1179,7 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable = None, y: Hashable = None, **kwargs
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1214,7 +1266,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def barh(
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+    ) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1226,7 +1280,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by: IndexLabel = None, **kwargs) -> PlotAccessor:
+    def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1293,7 +1347,9 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by: IndexLabel = None, bins: int = 10, **kwargs) -> PlotAccessor:
+    def hist(
+        self, by: IndexLabel | None = None, bins: int = 10, **kwargs
+    ) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1471,7 +1527,11 @@ class PlotAccessor(PandasObject):
     density = kde
 
     def area(
-        self, x: Hashable = None, y: Hashable = None, stacked: bool = True, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        stacked: bool = True,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Draw a stacked area plot.
@@ -1604,8 +1664,8 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        s: Hashable | Sequence[Hashable] = None,
-        c: Hashable | Sequence[Hashable] = None,
+        s: Hashable | Sequence[Hashable] | None = None,
+        c: Hashable | Sequence[Hashable] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1636,8 +1696,6 @@ class PlotAccessor(PandasObject):
             - A sequence of scalars, which will be used for each point's size
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
-
-              .. versionchanged:: 1.1.0
 
         c : str, int or array-like, optional
             The color of each point. Possible values are:
@@ -1696,7 +1754,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        C: Hashable = None,
+        C: Hashable | None = None,
         reduce_C_function: Callable | None = None,
         gridsize: int | tuple[int, int] | None = None,
         **kwargs,
@@ -1831,7 +1889,9 @@ def _load_backend(backend: str) -> types.ModuleType:
     if hasattr(eps, "select"):
         entry = eps.select(group=key)  # pyright: ignore[reportGeneralTypeIssues]
     else:
-        entry = eps.get(key, ())
+        # Argument 2 to "get" of "dict" has incompatible type "Tuple[]";
+        # expected "EntryPoints"  [arg-type]
+        entry = eps.get(key, ())  # type: ignore[arg-type]
     for entry_point in entry:
         found_backend = entry_point.name == backend
         if found_backend:

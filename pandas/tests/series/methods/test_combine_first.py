@@ -63,7 +63,9 @@ class TestCombineFirst:
         # corner case
         ser = Series([1.0, 2, 3], index=[0, 1, 2])
         empty = Series([], index=[], dtype=object)
-        result = ser.combine_first(empty)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.combine_first(empty)
         ser.index = ser.index.astype("O")
         tm.assert_series_equal(ser, result)
 
@@ -110,7 +112,9 @@ class TestCombineFirst:
         )
         s1 = Series(range(10), index=time_index)
         s2 = Series(index=time_index)
-        result = s1.combine_first(s2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s1.combine_first(s2)
         tm.assert_series_equal(result, s1)
 
     def test_combine_first_preserves_dtype(self):
@@ -119,4 +123,27 @@ class TestCombineFirst:
         s2 = Series([1, 2, 3])
         result = s1.combine_first(s2)
         expected = Series([1666880195890293744, 1666880195890293837, 3])
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_mixed_timezone(self):
+        # GH 26283
+        uniform_tz = Series({pd.Timestamp("2019-05-01", tz="UTC"): 1.0})
+        multi_tz = Series(
+            {
+                pd.Timestamp("2019-05-01 01:00:00+0100", tz="Europe/London"): 2.0,
+                pd.Timestamp("2019-05-02", tz="UTC"): 3.0,
+            }
+        )
+
+        result = uniform_tz.combine_first(multi_tz)
+        expected = Series(
+            [1.0, 3.0],
+            index=pd.Index(
+                [
+                    pd.Timestamp("2019-05-01 00:00:00+00:00", tz="UTC"),
+                    pd.Timestamp("2019-05-02 00:00:00+00:00", tz="UTC"),
+                ],
+                dtype="object",
+            ),
+        )
         tm.assert_series_equal(result, expected)

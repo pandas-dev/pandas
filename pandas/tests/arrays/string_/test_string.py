@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -406,15 +407,14 @@ def test_fillna_args(dtype, request):
         arr.fillna(value=1)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_array(dtype):
     # protocol added in 0.15.0
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
-    if dtype.storage == "pyarrow":
+    if dtype.storage == "pyarrow" and Version(pa.__version__) <= Version("11.0.0"):
         expected = pa.chunked_array(expected)
 
     assert arr.equals(expected)
@@ -492,17 +492,19 @@ def test_value_counts_with_normalize(dtype):
 def test_use_inf_as_na(values, expected, dtype):
     # https://github.com/pandas-dev/pandas/issues/33655
     values = pd.array(values, dtype=dtype)
-    with pd.option_context("mode.use_inf_as_na", True):
-        result = values.isna()
-        tm.assert_numpy_array_equal(result, expected)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = values.isna()
+            tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.Series(values).isna()
-        expected = pd.Series(expected)
-        tm.assert_series_equal(result, expected)
+            result = pd.Series(values).isna()
+            expected = pd.Series(expected)
+            tm.assert_series_equal(result, expected)
 
-        result = pd.DataFrame(values).isna()
-        expected = pd.DataFrame(expected)
-        tm.assert_frame_equal(result, expected)
+            result = pd.DataFrame(values).isna()
+            expected = pd.DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
 
 
 def test_memory_usage(dtype):

@@ -53,7 +53,8 @@ class TestConvertDtypes:
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
                 "e": pd.Series(pd.date_range("2022", periods=3)),
-                "f": pd.Series(pd.timedelta_range("1D", periods=3)),
+                "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
+                "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
@@ -76,6 +77,16 @@ class TestConvertDtypes:
                     )
                 ),
                 "f": pd.arrays.ArrowExtensionArray(
+                    pa.array(
+                        [
+                            datetime.datetime(2022, 1, 1),
+                            datetime.datetime(2022, 1, 2),
+                            datetime.datetime(2022, 1, 3),
+                        ],
+                        type=pa.timestamp(unit="s", tz="UTC"),
+                    )
+                ),
+                "g": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
                             datetime.timedelta(1),
@@ -134,3 +145,25 @@ class TestConvertDtypes:
         )
         with pytest.raises(ValueError, match=msg):
             df.convert_dtypes(dtype_backend="numpy")
+
+    def test_pyarrow_backend_no_conversion(self):
+        # GH#52872
+        pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": [1, 2], "b": 1.5, "c": True, "d": "x"})
+        expected = df.copy()
+        result = df.convert_dtypes(
+            convert_floating=False,
+            convert_integer=False,
+            convert_boolean=False,
+            convert_string=False,
+            dtype_backend="pyarrow",
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_to_np_nullable(self):
+        # GH 53648
+        pytest.importorskip("pyarrow")
+        ser = pd.DataFrame(range(2), dtype="int32[pyarrow]")
+        result = ser.convert_dtypes(dtype_backend="numpy_nullable")
+        expected = pd.DataFrame(range(2), dtype="Int32")
+        tm.assert_frame_equal(result, expected)
