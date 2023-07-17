@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
 )
 
 from pandas.util._decorators import (
@@ -231,7 +232,7 @@ class Expanding(RollingAndExpandingMixin):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
@@ -275,7 +276,7 @@ class Expanding(RollingAndExpandingMixin):
     def sum(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().sum(
@@ -314,7 +315,7 @@ class Expanding(RollingAndExpandingMixin):
     def max(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().max(
@@ -353,7 +354,7 @@ class Expanding(RollingAndExpandingMixin):
     def min(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().min(
@@ -392,7 +393,7 @@ class Expanding(RollingAndExpandingMixin):
     def mean(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().mean(
@@ -431,7 +432,7 @@ class Expanding(RollingAndExpandingMixin):
     def median(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().median(
@@ -490,7 +491,7 @@ class Expanding(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().std(
@@ -550,7 +551,7 @@ class Expanding(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().var(
