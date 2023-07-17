@@ -1,10 +1,3 @@
-# cython: annotation_typing=False
-# TODO(cython3): If set to true, "arg: datetime" annotation will impose
-# datetime limitations on Timestamp. The fused type below works
-# ctypedef fused datetimelike:
-#     _Timestamp
-#     datetime
-
 import re
 import time
 
