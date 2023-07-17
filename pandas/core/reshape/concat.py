@@ -7,10 +7,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -51,6 +48,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
