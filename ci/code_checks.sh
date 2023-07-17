@@ -96,7 +96,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_sas \
         pandas.read_spss \
         pandas.read_sql_query \
-        pandas.read_gbq \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
