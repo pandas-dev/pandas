@@ -74,7 +74,7 @@ class TestAsFreq:
         obj = frame_or_series(np.random.randn(len(dr)), index=dr)
 
         # it works!
-        obj.asfreq("T")
+        obj.asfreq("min")
 
     def test_asfreq_normalize(self, frame_or_series):
         rng = date_range("1/1/2000 09:30", periods=20)

@@ -492,7 +492,7 @@ class TestPeriodIndex:
 
         # #2245
         idx = date_range(
-            "2001-09-20 15:59", "2001-09-20 16:00", freq="T", tz="Australia/Sydney"
+            "2001-09-20 15:59", "2001-09-20 16:00", freq="min", tz="Australia/Sydney"
         )
         s = Series([1, 2], index=idx)
 

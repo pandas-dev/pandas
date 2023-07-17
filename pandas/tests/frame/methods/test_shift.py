@@ -73,8 +73,8 @@ class TestDataFrameShift:
             np.random.randn(5), index=date_range("1/1/2000", periods=5, freq="H")
         )
 
-        result = ts.shift(1, freq="5T")
-        exp_index = ts.index.shift(1, freq="5T")
+        result = ts.shift(1, freq="5min")
+        exp_index = ts.index.shift(1, freq="5min")
         tm.assert_index_equal(result.index, exp_index)
 
         # GH#1063, multiple of same base

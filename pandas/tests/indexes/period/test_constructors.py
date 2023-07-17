@@ -401,7 +401,7 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 
-    @pytest.mark.parametrize("freq", ["A", "M", "D", "T", "S"])
+    @pytest.mark.parametrize("freq", ["A", "M", "D", "min", "S"])
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
     def test_constructor_freq_mult_dti_compat(self, mult, freq):
         freqstr = str(mult) + freq
@@ -489,7 +489,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]
+        "freq", ["M", "Q", "A", "D", "B", "min", "S", "ms", "U", "N", "H"]
     )
     def test_recreate_from_data(self, freq):
         org = period_range(start="2001/04/01", freq=freq, periods=1)

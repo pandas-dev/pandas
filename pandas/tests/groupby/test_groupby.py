@@ -3110,12 +3110,12 @@ def test_groupby_with_Time_Grouper():
 
     expected_output = DataFrame(
         {
-            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1T"),
+            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1min"),
             "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         }
     )
 
-    df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
+    df = test_data.groupby(Grouper(key="time2", freq="1min")).count().reset_index()
 
     tm.assert_frame_equal(df, expected_output)

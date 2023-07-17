@@ -14,6 +14,7 @@ import pandas._testing as tm
 class DropDuplicates:
     def test_drop_duplicates_metadata(self, idx):
         # GH#10115
+        print("11111111  = ", idx)
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq

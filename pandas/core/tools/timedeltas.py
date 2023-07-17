@@ -180,6 +180,10 @@ def to_timedelta(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
+        if unit.lower() == "t":
+            unit = unit.replace(unit, "min")
+        else:
+            unit = unit.replace(unit, "ms")
 
     if unit is not None:
         unit = parse_timedelta_unit(unit)

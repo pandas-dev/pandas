@@ -1137,7 +1137,7 @@ def test_groupby_multiindex_categorical_datetime():
         {
             "key1": Categorical(list("abcbabcba")),
             "key2": Categorical(
-                list(pd.date_range("2018-06-01 00", freq="1T", periods=3)) * 3
+                list(pd.date_range("2018-06-01 00", freq="1min", periods=3)) * 3
             ),
             "values": np.arange(9),
         }
@@ -1147,7 +1147,7 @@ def test_groupby_multiindex_categorical_datetime():
     idx = MultiIndex.from_product(
         [
             Categorical(["a", "b", "c"]),
-            Categorical(pd.date_range("2018-06-01 00", freq="1T", periods=3)),
+            Categorical(pd.date_range("2018-06-01 00", freq="1min", periods=3)),
         ],
         names=["key1", "key2"],
     )

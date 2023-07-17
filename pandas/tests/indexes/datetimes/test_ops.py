@@ -25,9 +25,9 @@ class TestDatetimeIndexOps:
             ("M", "day"),
             ("D", "day"),
             ("H", "hour"),
-            ("T", "minute"),
+            ("min", "minute"),
             ("S", "second"),
-            ("L", "millisecond"),
+            ("ms", "millisecond"),
             ("U", "microsecond"),
         ],
     )

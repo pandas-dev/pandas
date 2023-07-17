@@ -266,7 +266,7 @@ def test_groupby_timedelta_cython_count():
 
 def test_count():
     n = 1 << 15
-    dr = date_range("2015-08-30", periods=n // 10, freq="T")
+    dr = date_range("2015-08-30", periods=n // 10, freq="min")
 
     df = DataFrame(
         {
