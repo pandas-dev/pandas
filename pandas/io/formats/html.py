@@ -75,6 +75,7 @@ class HTMLFormatter:
             # GH 53885: Handling case where column is index
             # Flatten the data in the multi index and add in the map
             if isinstance(self.columns, MultiIndex):
+                column = cast(MultiIndex, column)
                 for column_index in column:
                     self.col_space[str(column_index)] = col_space_value
 
