@@ -80,6 +80,10 @@ from .timestamps cimport _Timestamp
 
 from .timestamps import Timestamp
 
+ctypedef fused datetimelike:
+    _Timestamp
+    datetime
+
 # ---------------------------------------------------------------------
 # Misc Helpers
 
@@ -2214,7 +2218,7 @@ cdef class YearOffset(SingleConstructorOffset):
         return get_day_of_month(&dts, self._day_opt)
 
     @apply_wraps
-    def _apply(self, other: datetime) -> datetime:
+    def _apply(self, other: datetimelike) -> datetime:
         years = roll_qtrday(other, self.n, self.month, self._day_opt, modby=12)
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
@@ -4645,7 +4649,7 @@ def shift_months(
     return out
 
 
-def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetime:
+def shift_month(stamp: datetimelike, months: int, day_opt: object = None) -> datetime:
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,

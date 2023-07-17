@@ -321,7 +321,6 @@ class TestYearEndDiffMonth:
         assert_is_on_offset(offset, dt, expected)
 
 
-# @pytest.mark.xfail(is_numpy_dev, reason="result year is 1973, unclear why")
 def test_add_out_of_pydatetime_range():
     # GH#50348 don't raise in Timestamp.replace
     ts = Timestamp(np.datetime64("-20000-12-31"))
