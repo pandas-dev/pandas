@@ -88,7 +88,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.io.formats.style.Styler.to_html \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -111,15 +110,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.snap \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.PandasArray \

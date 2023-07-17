@@ -65,6 +65,7 @@ Copy-on-Write improvements
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Index objects and specifying ``copy=False``, will now use a lazy copy
   of those Index objects for the columns of the DataFrame (:issue:`52947`)
+- :meth:`DataFrame.head` and :meth:`DataFrame.tail` will now return deep copies (:issue:`54011`)
 - Add lazy copy mechanism to :meth:`DataFrame.eval` (:issue:`53746`)
 
 - Trying to operate inplace on a temporary column selection
@@ -75,6 +76,7 @@ Copy-on-Write improvements
 
   - DataFrame.update / Series.update
   - DataFrame.fillna / Series.fillna
+  - DataFrame.replace / Series.replace
 
 .. _whatsnew_210.enhancements.enhancement2:
 
@@ -396,6 +398,7 @@ Performance improvements
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
+- Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single masked dtype, e.g. :class:`Int64` (:issue:`52836`)
 - Performance improvement in :meth:`Series.add` for pyarrow string and binary dtypes (:issue:`53150`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
 - Performance improvement in :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill` with pyarrow dtypes (:issue:`53950`)
@@ -528,6 +531,7 @@ Period
 - Bug in :class:`PeriodDtype` constructor raising ``ValueError`` instead of ``TypeError`` when an invalid type is passed (:issue:`51790`)
 - Bug in :func:`read_csv` not processing empty strings as a null value, with ``engine="pyarrow"`` (:issue:`52087`)
 - Bug in :func:`read_csv` returning ``object`` dtype columns instead of ``float64`` dtype columns with ``engine="pyarrow"`` for columns that are all null with ``engine="pyarrow"`` (:issue:`52087`)
+- Bug in :meth:`Period.now` not accepting the ``freq`` parameter as a keyword argument (:issue:`53369`)
 - Bug in :meth:`arrays.PeriodArray.map` and :meth:`PeriodIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
 - Bug in incorrectly allowing construction of :class:`Period` or :class:`PeriodDtype` with :class:`CustomBusinessDay` freq; use :class:`BusinessDay` instead (:issue:`52534`)
 
