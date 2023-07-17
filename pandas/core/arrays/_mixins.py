@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -58,6 +57,8 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -232,7 +233,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)

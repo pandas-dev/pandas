@@ -15,13 +15,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Hashable,
-    Iterator,
     Literal,
-    Mapping,
     NoReturn,
-    Sequence,
-    Type,
     cast,
     final,
     overload,
@@ -90,10 +85,8 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import (
-    PY311,
-    PYPY,
-)
+from pandas.compat import PYPY
+from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -202,6 +195,13 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._libs.tslibs import BaseOffset
 
     from pandas import (
@@ -367,9 +367,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        For Series:
+
         >>> ser = pd.Series([1, 2, 3])
         >>> ser.attrs = {"A": [10, 20, 30]}
         >>> ser.attrs
+        {'A': [10, 20, 30]}
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.attrs = {"A": [10, 20, 30]}
+        >>> df.attrs
         {'A': [10, 20, 30]}
         """
         if self._attrs is None:
@@ -762,9 +771,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Interchange axes and swap values axes appropriately.
 
+        .. deprecated:: 2.1.0
+            ``swapaxes`` is deprecated and will be removed.
+            Please use ``transpose`` instead.
+
         Returns
         -------
         same as input
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.transpose`.
         """
         warnings.warn(
             # GH#51946
@@ -2189,14 +2206,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         columns: Sequence[Hashable] | None = None,
         header: Sequence[Hashable] | bool_t = True,
         index: bool_t = True,
-        index_label: IndexLabel = None,
+        index_label: IndexLabel | None = None,
         startrow: int = 0,
         startcol: int = 0,
         engine: Literal["openpyxl", "xlsxwriter"] | None = None,
         merge_cells: bool_t = True,
         inf_rep: str = "inf",
         freeze_panes: tuple[int, int] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
@@ -2356,7 +2373,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         compression: CompressionOptions = "infer",
         index: bool_t | None = None,
         indent: int | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
     ) -> str | None:
         """
@@ -2785,7 +2802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         schema: str | None = None,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool_t = True,
-        index_label: IndexLabel = None,
+        index_label: IndexLabel | None = None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
@@ -3008,7 +3025,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         path: FilePath | WriteBuffer[bytes],
         compression: CompressionOptions = "infer",
         protocol: int = pickle.HIGHEST_PROTOCOL,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         """
         Pickle (serialize) object to file.
@@ -3724,7 +3741,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         escapechar: str | None = None,
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -4076,7 +4093,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         key: IndexLabel,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         drop_level: bool_t = True,
     ) -> Self:
         """
@@ -4659,11 +4676,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def drop(
         self,
-        labels: IndexLabel = None,
+        labels: IndexLabel | None = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel = None,
-        columns: IndexLabel = None,
+        index: IndexLabel | None = None,
+        columns: IndexLabel | None = None,
         level: Level | None = None,
         inplace: bool_t = False,
         errors: IgnoreRaise = "raise",
@@ -4813,7 +4830,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add prefix on
 
             .. versionadded:: 2.0.0
@@ -4887,7 +4904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add suffix on
 
             .. versionadded:: 2.0.0
@@ -4999,7 +5016,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         ignore_index: bool_t = False,
-        key: ValueKeyFunc = None,
+        key: ValueKeyFunc | None = None,
     ) -> Self | None:
         """
         Sort by the values along either axis.
@@ -5194,14 +5211,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         *,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         ascending: bool_t | Sequence[bool_t] = True,
         inplace: bool_t = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool_t = True,
         ignore_index: bool_t = False,
-        key: IndexKeyFunc = None,
+        key: IndexKeyFunc | None = None,
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -6728,13 +6745,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
-        dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
-            Which dtype_backend to use, e.g. whether a DataFrame should use nullable
-            dtypes for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
 
-            The dtype_backends are still experimential.
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
 
             .. versionadded:: 2.0
 
@@ -6866,7 +6884,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             ]
             if len(results) > 0:
                 result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(Type["DataFrame"], self._constructor)
+                cons = cast(type["DataFrame"], self._constructor)
                 result = cons(result)
                 result = result.__finalize__(self, method="convert_dtypes")
                 # https://github.com/python/mypy/issues/8354
@@ -6974,7 +6992,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: Hashable | Mapping | Series | DataFrame | None = None,
         *,
         method: FillnaOptions | None = None,
         axis: Axis | None = None,
@@ -7091,8 +7109,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not PYPY and using_copy_on_write():
-                refcount = 2 if PY311 else 3
-                if sys.getrefcount(self) <= refcount:
+                if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7501,6 +7518,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.bfill`.
         """
         warnings.warn(
             "DataFrame.backfill/Series.backfill is deprecated. Use "
@@ -7980,22 +8001,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("downcast must be either None or 'infer'")
 
         inplace = validate_bool_kwarg(inplace, "inplace")
-
         axis = self._get_axis_number(axis)
 
-        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
-        should_transpose = axis == 1 and method not in fillna_methods
-
-        obj = self.T if should_transpose else self
-
-        if obj.empty:
+        if self.empty:
             if inplace:
                 return None
             return self.copy()
 
         if not isinstance(method, str):
             raise ValueError("'method' should be a string, not None.")
-        elif method.lower() in fillna_methods:
+
+        fillna_methods = ["ffill", "bfill", "pad", "backfill"]
+        if method.lower() in fillna_methods:
             # GH#53581
             warnings.warn(
                 f"{type(self).__name__}.interpolate with method={method} is "
@@ -8004,17 +8021,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        elif np.any(obj.dtypes == object):
-            # GH#53631
-            if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
-                # don't warn in cases that already raise
-                warnings.warn(
-                    f"{type(self).__name__}.interpolate with object dtype is "
-                    "deprecated and will raise in a future version. Call "
-                    "obj.infer_objects(copy=False) before interpolating instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            obj, should_transpose = self, False
+        else:
+            obj, should_transpose = (self.T, True) if axis == 1 else (self, False)
+            if np.any(obj.dtypes == object):
+                # GH#53631
+                if not (obj.ndim == 2 and np.all(obj.dtypes == object)):
+                    # don't warn in cases that already raise
+                    warnings.warn(
+                        f"{type(self).__name__}.interpolate with object dtype is "
+                        "deprecated and will raise in a future version. Call "
+                        "obj.infer_objects(copy=False) before interpolating instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
+        if "fill_value" in kwargs:
+            raise ValueError(
+                "'fill_value' is not a valid keyword for "
+                f"{type(self).__name__}.interpolate"
+            )
 
         if isinstance(obj.index, MultiIndex) and method != "linear":
             raise ValueError(
@@ -8023,23 +8049,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         limit_direction = missing.infer_limit_direction(limit_direction, method)
 
-        if obj.ndim == 2 and np.all(obj.dtypes == np.dtype("object")):
+        if obj.ndim == 2 and np.all(obj.dtypes == object):
             raise TypeError(
                 "Cannot interpolate with all object-dtype columns "
                 "in the DataFrame. Try setting at least one "
                 "column to a numeric dtype."
             )
 
-        if "fill_value" in kwargs:
-            raise ValueError(
-                "'fill_value' is not a valid keyword for "
-                f"{type(self).__name__}.interpolate"
-            )
-
         if method.lower() in fillna_methods:
             # TODO(3.0): remove this case
             # TODO: warn/raise on limit_direction or kwargs which are ignored?
             #  as of 2023-06-26 no tests get here with either
+            if not self._mgr.is_single_block and axis == 1:
+                # GH#53898
+                if inplace:
+                    raise NotImplementedError()
+                obj, axis, should_transpose = self.T, 1 - axis, True
 
             new_data = obj._mgr.pad_or_backfill(
                 method=method,
@@ -8605,7 +8630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method: FillnaOptions | None = None,
         how: Literal["start", "end"] | None = None,
         normalize: bool_t = False,
-        fill_value: Hashable = None,
+        fill_value: Hashable | None = None,
     ) -> Self:
         """
         Convert time series to specified frequency.
@@ -8875,8 +8900,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         label: Literal["right", "left"] | None = None,
         convention: Literal["start", "end", "s", "e"] = "start",
         kind: Literal["timestamp", "period"] | None = None,
-        on: Level = None,
-        level: Level = None,
+        on: Level | None = None,
+        level: Level | None = None,
         origin: str | TimestampConvertibleTypes = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool_t = False,
@@ -9687,9 +9712,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         other: NDFrameT,
         join: AlignJoin = "outer",
         axis: Axis | None = None,
-        level: Level = None,
+        level: Level | None = None,
         copy: bool_t | None = None,
-        fill_value: Hashable = None,
+        fill_value: Hashable | None = None,
         method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         fill_axis: Axis | lib.NoDefault = lib.no_default,
@@ -10290,7 +10315,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         inplace: bool_t = False,
         axis: Axis | None = None,
-        level: Level = None,
+        level: Level | None = None,
     ) -> Self | None:
         """
         Replace values where the condition is {cond_rev}.
@@ -10484,7 +10509,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         *,
         inplace: bool_t = False,
         axis: Axis | None = None,
-        level: Level = None,
+        level: Level | None = None,
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         cond = common.apply_if_callable(cond, self)

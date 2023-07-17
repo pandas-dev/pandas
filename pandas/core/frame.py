@@ -12,7 +12,15 @@ from __future__ import annotations
 
 import collections
 from collections import abc
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import functools
+from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -22,12 +30,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Iterator,
     Literal,
-    Mapping,
-    Sequence,
     cast,
     overload,
 )
@@ -49,6 +52,7 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
+from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import (
     function as nv,
@@ -57,6 +61,7 @@ from pandas.compat.numpy import (
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    _chained_assignment_method_msg,
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
@@ -103,6 +108,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -122,6 +128,7 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -1293,6 +1300,14 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         io.formats.style.Styler : Helps style a DataFrame or Series according to the
             data with HTML and CSS.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+        >>> df.style  # doctest: +SKIP
+
+        Please see
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         from pandas.io.formats.style import Styler
 
@@ -2561,7 +2576,7 @@ class DataFrame(NDFrame, OpsMixin):
         version: int | None = 114,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
         """
@@ -2756,7 +2771,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str] | None = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> str | None:
         if "showindex" in kwargs:
@@ -2808,7 +2823,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression: str | None = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -3177,7 +3192,7 @@ class DataFrame(NDFrame, OpsMixin):
         parser: XMLParsers | None = "lxml",
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render a DataFrame to an XML document.
@@ -3606,14 +3621,29 @@ class DataFrame(NDFrame, OpsMixin):
             and dtypes
             and isinstance(dtypes[0], ExtensionDtype)
         ):
-            # We have EAs with the same dtype. We can preserve that dtype in transpose.
-            dtype = dtypes[0]
-            arr_type = dtype.construct_array_type()
-            values = self.values
+            if isinstance(dtypes[0], BaseMaskedDtype):
+                # We have masked arrays with the same dtype. We can transpose faster.
+                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+                if isinstance(self._mgr, ArrayManager):
+                    masked_arrays = self._mgr.arrays
+                else:
+                    masked_arrays = list(self._iter_column_arrays())
+                new_values = transpose_homogenous_masked_arrays(
+                    cast(list[BaseMaskedArray], masked_arrays)
+                )
+            else:
+                # We have other EAs with the same dtype. We preserve dtype in transpose.
+                dtyp = dtypes[0]
+                arr_typ = dtyp.construct_array_type()
+                values = self.values
+                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values,
+                index=self.columns,
+                columns=self.index,
+                verify_integrity=False,
             )
 
         else:
@@ -5078,12 +5108,12 @@ class DataFrame(NDFrame, OpsMixin):
 
     def drop(
         self,
-        labels: IndexLabel = None,
+        labels: IndexLabel | None = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel = None,
-        columns: IndexLabel = None,
-        level: Level = None,
+        index: IndexLabel | None = None,
+        columns: IndexLabel | None = None,
+        level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
     ) -> DataFrame | None:
@@ -5288,7 +5318,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis | None = None,
         copy: bool | None = None,
         inplace: bool = False,
-        level: Level = None,
+        level: Level | None = None,
         errors: IgnoreRaise = "ignore",
     ) -> DataFrame | None:
         """
@@ -5803,7 +5833,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame:
         ...
 
@@ -5817,7 +5847,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> None:
         ...
 
@@ -5831,20 +5861,20 @@ class DataFrame(NDFrame, OpsMixin):
         col_level: Hashable = ...,
         col_fill: Hashable = ...,
         allow_duplicates: bool | lib.NoDefault = ...,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         ...
 
     def reset_index(
         self,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         *,
         drop: bool = False,
         inplace: bool = False,
         col_level: Hashable = 0,
         col_fill: Hashable = "",
         allow_duplicates: bool | lib.NoDefault = lib.no_default,
-        names: Hashable | Sequence[Hashable] = None,
+        names: Hashable | Sequence[Hashable] | None = None,
     ) -> DataFrame | None:
         """
         Reset the index, or a level of it.
@@ -6140,7 +6170,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         how: AnyAll | lib.NoDefault = lib.no_default,
         thresh: int | lib.NoDefault = lib.no_default,
-        subset: IndexLabel = None,
+        subset: IndexLabel | None = None,
         inplace: bool = False,
         ignore_index: bool = False,
     ) -> DataFrame | None:
@@ -6577,7 +6607,7 @@ class DataFrame(NDFrame, OpsMixin):
         kind: SortKind = "quicksort",
         na_position: str = "last",
         ignore_index: bool = False,
-        key: ValueKeyFunc = None,
+        key: ValueKeyFunc | None = None,
     ) -> DataFrame | None:
         """
         Sort by the values along either axis.
@@ -6856,14 +6886,14 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         *,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
-        key: IndexKeyFunc = None,
+        key: IndexKeyFunc | None = None,
     ) -> DataFrame | None:
         """
         Sort object by labels (along an axis).
@@ -7631,7 +7661,11 @@ class DataFrame(NDFrame, OpsMixin):
         return False
 
     def _align_for_op(
-        self, other, axis: AxisInt, flex: bool | None = False, level: Level = None
+        self,
+        other,
+        axis: AxisInt,
+        flex: bool | None = False,
+        level: Level | None = None,
     ):
         """
         Convert rhs to meet lhs dims if input is list, tuple or np.ndarray.
@@ -8490,6 +8524,14 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500
         2  3    6
         """
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= REF_COUNT:
+                warnings.warn(
+                    _chained_assignment_method_msg,
+                    ChainedAssignmentError,
+                    stacklevel=2,
+                )
+
         from pandas.core.computation import expressions
 
         # TODO: Support other joins
@@ -9006,7 +9048,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9032,6 +9074,8 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        sort : bool, default True
+            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9131,15 +9175,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_multi_level_cols2.stack(0)
                      kg    m
-        cat weight  1.0  NaN
-            height  NaN  2.0
-        dog weight  3.0  NaN
-            height  NaN  4.0
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  weight  kg    1.0
-             height  m     2.0
-        dog  weight  kg    3.0
-             height  m     4.0
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
         dtype: float64
 
         **Dropping missing values**
@@ -9175,9 +9219,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 
@@ -9385,7 +9429,7 @@ class DataFrame(NDFrame, OpsMixin):
         value_vars=None,
         var_name=None,
         value_name: Hashable = "value",
-        col_level: Level = None,
+        col_level: Level | None = None,
         ignore_index: bool = True,
     ) -> DataFrame:
         return melt(
@@ -10869,7 +10913,18 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, **kwds)
+                sign = signature(values._reduce)
+                if "keepdims" in sign.parameters:
+                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                else:
+                    warnings.warn(
+                        f"{type(values)}._reduce will require a `keepdims` parameter "
+                        "in the future",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    result = values._reduce(name, skipna=skipna, **kwds)
+                    return np.array([result])
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -10910,11 +10965,11 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
-        if out_dtype is not None:
+        if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any():
+        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
+        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
             out = out.astype(np.float64)
@@ -11175,10 +11230,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        # indices will always be np.ndarray since axis is not N
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -11205,10 +11259,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        assert isinstance(indices, (np.ndarray, ExtensionArray))  # for mypy
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -11825,7 +11878,24 @@ class DataFrame(NDFrame, OpsMixin):
         updated with the new labels, and the output shows the modified DataFrame.
         """,
     )
-    columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
+    columns = properties.AxisProperty(
+        axis=0,
+        doc=dedent(
+            """
+                The column labels of the DataFrame.
+
+                Examples
+                --------
+                >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+                >>> df
+                     A  B
+                0    1  3
+                1    2  4
+                >>> df.columns
+                Index(['A', 'B'], dtype='object')
+                """
+        ),
+    )
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame

@@ -10,6 +10,13 @@ from collections import (
     abc,
     defaultdict,
 )
+from collections.abc import (
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
 import contextlib
 from functools import partial
 import inspect
@@ -17,11 +24,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
     overload,
 )
@@ -524,23 +526,29 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
+def temp_setattr(
+    obj, attr: str, value, condition: bool = True
+) -> Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:
         obj: Object whose attribute will be modified.
         attr: Attribute to modify.
         value: Value to temporarily set attribute to.
+        condition: Whether to set the attribute. Provided in order to not have to
+            conditionally use this context manager.
 
     Yields:
         obj with modified attribute.
     """
-    old_value = getattr(obj, attr)
-    setattr(obj, attr, value)
+    if condition:
+        old_value = getattr(obj, attr)
+        setattr(obj, attr, value)
     try:
         yield obj
     finally:
-        setattr(obj, attr, old_value)
+        if condition:
+            setattr(obj, attr, old_value)
 
 
 def require_length_match(data, index: Index) -> None:

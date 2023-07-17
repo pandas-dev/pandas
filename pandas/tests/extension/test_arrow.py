@@ -508,6 +508,40 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
+    def check_reduce_frame(self, ser, op_name, skipna):
+        arr = ser.array
+
+        if op_name in ["count", "kurt", "sem", "skew"]:
+            assert not hasattr(arr, op_name)
+            return
+
+        kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
+
+        if op_name in ["max", "min"]:
+            cmp_dtype = arr.dtype
+        elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
+            if op_name not in ["median", "var", "std"]:
+                cmp_dtype = arr.dtype
+            else:
+                cmp_dtype = "float64[pyarrow]"
+        elif op_name in ["median", "var", "std", "mean", "skew"]:
+            cmp_dtype = "float64[pyarrow]"
+        else:
+            cmp_dtype = {
+                "i": "int64[pyarrow]",
+                "u": "uint64[pyarrow]",
+                "f": "float64[pyarrow]",
+            }[arr.dtype.kind]
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
+
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)(**kwargs)
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+
+        tm.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
     def test_median_not_approximate(self, typ):
         # GH 52679
@@ -1672,7 +1706,11 @@ def test_to_numpy_with_defaults(data):
     result = data.to_numpy()
 
     pa_type = data._pa_array.type
-    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+    if (
+        pa.types.is_duration(pa_type)
+        or pa.types.is_timestamp(pa_type)
+        or pa.types.is_date(pa_type)
+    ):
         expected = np.array(list(data))
     else:
         expected = np.array(data._pa_array)
@@ -2935,7 +2973,7 @@ def test_date32_repr():
     # GH48238
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
-    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+    assert repr(ser) == "0    2020-01-01\ndtype: date32[day][pyarrow]"
 
 
 @pytest.mark.xfail(
