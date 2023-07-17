@@ -103,6 +103,16 @@ def hist_series(
 
     Examples
     --------
+    For Series:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.hist()
+
+    For Groupby:
 
     .. plot::
         :context: close-figs
@@ -790,7 +800,7 @@ class PlotAccessor(PandasObject):
 
     Examples
     --------
-    For SeriesGroupBy:
+    For Series:
 
     .. plot::
         :context: close-figs
@@ -798,7 +808,7 @@ class PlotAccessor(PandasObject):
         >>> ser = pd.Series([1, 2, 3, 3])
         >>> plot = ser.plot(kind='hist', title="My plot")
 
-    For DataFrameGroupBy:
+    For DataFrame:
 
     .. plot::
         :context: close-figs
@@ -806,7 +816,25 @@ class PlotAccessor(PandasObject):
         >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
         ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
         ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
-        >>> plot = df.plot()
+        >>> plot = df.plot(title="DataFrame Plot")
+
+    For SeriesGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = [-1, -2, -3, 1, 2, 3]
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+    For DataFrameGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({"col1" : [1, 2, 3, 4],
+        ...                   "col2" : ["A", "B", "A", "B"]})
+        >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
