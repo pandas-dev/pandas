@@ -4974,7 +4974,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
             if freq is not None or axis != 0:
-                f = lambda x: x.shift(period, freq, axis, fill_value)
+                f = lambda x: x.shift(
+                    period, freq, axis, fill_value
+                )  # pylint: disable=cell-var-from-loop
                 shifted = self._python_apply_general(
                     f, self._selected_obj, is_transform=True
                 )
