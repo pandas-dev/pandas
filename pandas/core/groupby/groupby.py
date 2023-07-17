@@ -4994,6 +4994,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             f = lambda x: x.shift(periods, freq, axis, fill_value)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
+        if fill_value is lib.no_default:
+            fill_value = None
         ids, _, ngroups = self.grouper.group_info
         res_indexer = np.zeros(len(ids), dtype=np.int64)
 
