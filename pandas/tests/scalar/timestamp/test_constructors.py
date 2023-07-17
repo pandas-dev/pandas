@@ -18,6 +18,8 @@ from pandas.compat import PY310
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
+    NA,
+    NaT,
     Period,
     Timedelta,
     Timestamp,
@@ -898,3 +900,11 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     result = ts._value
     expected = value_out
     assert result == expected
+
+
+@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+def test_timestamp_constructor_na_value(na_value):
+    # GH45481
+    result = Timestamp(na_value)
+    expected = NaT
+    assert result is expected
