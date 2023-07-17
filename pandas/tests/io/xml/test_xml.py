@@ -573,7 +573,7 @@ def test_whitespace(parser):
         </row>
       </data>"""
 
-    df_output = read_xml(StringIO(xml), dtype="string")
+    df_output = read_xml(StringIO(xml), parser=parser, dtype="string")
 
     df_expected = DataFrame(
         {
