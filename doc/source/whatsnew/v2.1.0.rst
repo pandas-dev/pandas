@@ -268,7 +268,7 @@ In order to opt in to the new behaviour and silence this warning please specify 
 
 .. ipython:: python
 
-  l = ["2020-10-26 00:00:00+06:00", "2020-10-26 00:00:00+01:00"]
+  l = l = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
   pd.to_datetime(l, utc=True)
 
 Other Deprecations
