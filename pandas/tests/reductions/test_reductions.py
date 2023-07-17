@@ -112,6 +112,7 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
+        warn = FutureWarning if klass is Index else None
 
         obj = klass([NaT, datetime(2011, 11, 1)])
         assert getattr(obj, arg_op)() == 1
@@ -120,7 +121,7 @@ class TestReductions:
             "The behavior of (DatetimeIndex|Series).argmax/argmin with "
             "skipna=False and NAs"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
@@ -130,7 +131,7 @@ class TestReductions:
         obj = klass([NaT, datetime(2011, 11, 1), NaT])
         # check DatetimeIndex non-monotonic path
         assert getattr(obj, arg_op)() == 1
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)

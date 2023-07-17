@@ -2530,7 +2530,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # ignore warning produced by argmin since we will issue a different
+            #  warning for idxmin
+            warnings.simplefilter("ignore")
+            i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -2600,7 +2604,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # ignore warning produced by argmax since we will issue a different
+            #  warning for argmax
+            warnings.simplefilter("ignore")
+            i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             return np.nan
         return self.index[i]
