@@ -162,6 +162,19 @@ def read_gbq(
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
     DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
+
+    Examples
+    --------
+    Example taken from `Google BigQuery documentation
+    <https://cloud.google.com/bigquery/docs/pandas-gbq-migration>`_
+
+    >>> sql = "SELECT name FROM table_name WHERE state = 'TX' LIMIT 100;"
+    >>> df = pd.read_gbq(sql, dialect="standard")  # doctest: +SKIP
+    >>> project_id = "your-project-id"  # doctest: +SKIP
+    >>> df = pd.read_gbq(sql,
+    ...                  project_id=project_id,
+    ...                  dialect="standard"
+    ...                  )  # doctest: +SKIP
     """
     pandas_gbq = _try_import()
 
