@@ -423,7 +423,7 @@ class Shift:
         self.df.groupby("g").shift(fill_value=99)
 
 
-class FillNA:
+class Fillna:
     def setup(self):
         N = 100
         self.df = DataFrame(
@@ -431,16 +431,16 @@ class FillNA:
         ).set_index("group")
 
     def time_df_ffill(self):
-        self.df.groupby("group").fillna(method="ffill")
+        self.df.groupby("group").ffill()
 
     def time_df_bfill(self):
-        self.df.groupby("group").fillna(method="bfill")
+        self.df.groupby("group").bfill()
 
     def time_srs_ffill(self):
-        self.df.groupby("group")["value"].fillna(method="ffill")
+        self.df.groupby("group")["value"].ffill()
 
     def time_srs_bfill(self):
-        self.df.groupby("group")["value"].fillna(method="bfill")
+        self.df.groupby("group")["value"].bfill()
 
 
 class GroupByMethods:
