@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under12p0
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -200,11 +201,14 @@ def test_astype_arrow_timestamp(using_copy_on_write):
     result = df.astype("timestamp[ns][pyarrow]")
     if using_copy_on_write:
         assert not result._mgr._has_no_reference(0)
-        # TODO(CoW): arrow is not setting copy=False in the Series constructor
-        # under the hood
-        assert not np.shares_memory(
-            get_array(df, "a"), get_array(result, "a")._pa_array
-        )
+        if pa_version_under12p0:
+            assert not np.shares_memory(
+                get_array(df, "a"), get_array(result, "a")._pa_array
+            )
+        else:
+            assert np.shares_memory(
+                get_array(df, "a"), get_array(result, "a")._pa_array
+            )
 
 
 def test_convert_dtypes_infer_objects(using_copy_on_write):
