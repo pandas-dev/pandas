@@ -75,6 +75,7 @@ Copy-on-Write improvements
 
   - DataFrame.update / Series.update
   - DataFrame.fillna / Series.fillna
+  - DataFrame.replace / Series.replace
 
 .. _whatsnew_210.enhancements.enhancement2:
 

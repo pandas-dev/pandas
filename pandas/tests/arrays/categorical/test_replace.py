@@ -68,7 +68,8 @@ def test_replace_categorical(to_replace, value, result, expected_error_msg):
             # ensure non-inplace call does not affect original
             tm.assert_categorical_equal(cat, expected)
 
-    pd.Series(cat, copy=False).replace(to_replace, value, inplace=True)
+    ser = pd.Series(cat, copy=False)
+    ser.replace(to_replace, value, inplace=True)
     tm.assert_categorical_equal(cat, expected)
 
 
