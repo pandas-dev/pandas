@@ -158,6 +158,7 @@ def test_multindex_empty_shift_with_fill():
 
 
 def test_shift_periods_freq():
+    # GH 54093
     data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
     df = DataFrame(data, index=date_range(start="20100101", periods=6))
     result = df.groupby(df.index).shift(periods=-2, freq="D")

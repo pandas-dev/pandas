@@ -4934,6 +4934,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         fill_value : optional
             The scalar value to use for newly introduced missing values.
 
+            .. versionchanged:: 2.1.0
+                Will raise a ``ValueError`` if ``freq`` is provided too.
+
         Returns
         -------
         Series or DataFrame
