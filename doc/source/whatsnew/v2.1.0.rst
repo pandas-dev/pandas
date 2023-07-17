@@ -238,8 +238,41 @@ Other API changes
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
 
-Deprecations
-~~~~~~~~~~~~
+Deprecate parsing datetimes with mixed time zones
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Parsing datetimes with mixed time zones is deprecated and will show a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+  In [7]: l = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+
+  In [8]:  pd.to_datetime(l, utc=False)
+  Out[8]:
+  Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
+
+*New behavior*:
+
+.. code-block:: ipython
+
+  In [9]: pd.to_datetime(l, utc=False)
+  FutureWarning:
+    In a future version of pandas, parsing datetimes with mixed time zones will raise
+    a warning unless `utc=True`. Please specify `utc=True` to opt in to the new behaviour
+    and silence this warning.
+  Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
+
+In order to opt in to the new behaviour and silence this warning please specify ``utc=True``:
+
+.. ipython:: python
+
+  l = ["2020-10-26 00:00:00+06:00", "2020-10-26 00:00:00+01:00"]
+  pd.to_datetime(l, utc=True)
+
+Other Deprecations
+~~~~~~~~~~~~~~~~~~
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated 'fill_method' and 'limit' keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`, explicitly call ``ffill`` or ``bfill`` before calling ``pct_change`` instead (:issue:`53491`)
 - Deprecated 'method', 'limit', and 'fill_axis' keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call ``fillna`` on the alignment results instead (:issue:`51856`)
@@ -304,7 +337,6 @@ Deprecations
 - Deprecated literal string/bytes input to :func:`read_html`. Wrap literal string/bytes input in ``io.StringIO`` / ``io.BytesIO`` instead. (:issue:`53767`)
 - Deprecated option "mode.use_inf_as_na", convert inf entries to ``NaN`` before instead (:issue:`51684`)
 - Deprecated parameter ``obj`` in :meth:`GroupBy.get_group` (:issue:`53545`)
-- Deprecated parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
 - Deprecated strings ``T``, ``t``, ``L`` and ``l`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated the "method" and "limit" keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`SeriesGroupBy.fillna`, :meth:`DataFrameGroupBy.fillna`, and :meth:`Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)
