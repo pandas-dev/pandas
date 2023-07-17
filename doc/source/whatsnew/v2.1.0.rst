@@ -497,6 +497,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.interpolate` failing to fill across multiblock data when ``method`` is "pad", "ffill", "bfill", or "backfill" (:issue:`53898`)
 - Bug in :meth:`DataFrame.interpolate` ignoring ``inplace`` when :class:`DataFrame` is empty (:issue:`53199`)
+- Bug in :meth:`Series.idxmin`, :meth:`Series.idxmax`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax` with a :class:`DatetimeIndex` index containing ``NaT`` incorrectly returning ``NaN`` instead of ``NaT`` (:issue:`43587`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with complex dtype incorrectly failing to fill ``NaN`` entries (:issue:`53635`)
 -
