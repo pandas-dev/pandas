@@ -487,8 +487,7 @@ def test_empty_string_etree(val):
             read_xml(BytesIO(val), parser="etree")
 
 
-@td.skip_if_no("lxml")
-def test_wrong_file_path_lxml():
+def test_wrong_file_path(parser):
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -500,22 +499,7 @@ def test_wrong_file_path_lxml():
         FutureWarning,
         match=msg,
     ):
-        read_xml(filename, parser="lxml")
-
-
-def test_wrong_file_path_etree():
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-    filename = os.path.join("data", "html", "books.xml")
-
-    with pytest.raises(
-        FutureWarning,
-        match=msg,
-    ):
-        read_xml(filename, parser="etree")
+        read_xml(filename, parser=parser)
 
 
 @pytest.mark.network
@@ -573,7 +557,14 @@ def test_whitespace(parser):
         </row>
       </data>"""
 
-    df_output = read_xml(StringIO(xml), parser=parser, dtype="string")
+    df_xpath = read_xml(StringIO(xml), parser=parser, dtype="string")
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"row": ["sides", "shape", "degrees"]},
+        dtype="string",
+    )
 
     df_expected = DataFrame(
         {
@@ -588,7 +579,8 @@ def test_whitespace(parser):
         dtype="string",
     )
 
-    tm.assert_frame_equal(df_output, df_expected)
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 # XPATH
