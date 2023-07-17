@@ -3154,5 +3154,7 @@ def test_arrowextensiondtype_dataframe_repr():
         dtype=ArrowDtype(ArrowPeriodType("D")),
     )
     result = repr(df)
+    # TODO: repr value may not be expected; address how
+    # pyarrow.ExtensionType values are displayed
     expected = "     col\n0  15340\n1  15341\n2  15342"
     assert result == expected
