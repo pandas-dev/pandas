@@ -473,7 +473,7 @@ class MultiIndex(Index):
     def from_arrays(
         cls,
         arrays,
-        sortorder=None,
+        sortorder: int | None = None,
         names: Sequence[Hashable] | Hashable | lib.NoDefault = lib.no_default,
     ) -> MultiIndex:
         """
@@ -683,7 +683,12 @@ class MultiIndex(Index):
         return cls(levels, codes, sortorder=sortorder, names=names)
 
     @classmethod
-    def from_frame(cls, df: DataFrame, sortorder=None, names=None) -> MultiIndex:
+    def from_frame(
+        cls,
+        df: DataFrame,
+        sortorder: int | None = None,
+        names: Sequence[Hashable] | Hashable | None = None,
+    ) -> MultiIndex:
         """
         Make a MultiIndex from a DataFrame.
 
