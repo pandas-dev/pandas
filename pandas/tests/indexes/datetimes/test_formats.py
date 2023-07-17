@@ -68,7 +68,9 @@ class TestDatetimeIndexRendering:
         dr = pd.date_range(start="1/1/2012", periods=3)
         repr(dr)
 
-        expected = "DatetimeIndex(['2012-01-01 00:00:00'], dtype='datetime64[ns]', freq='60T')"
+        expected = (
+            "DatetimeIndex(['2012-01-01 00:00:00'], dtype='datetime64[ns]', freq='60T')"
+        )
         dr = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(60) + "T")
         result = repr(dr)
         assert expected == result
@@ -80,7 +82,9 @@ class TestDatetimeIndexRendering:
         result = repr(dr)
         assert expected == result
 
-        expected = "DatetimeIndex(['2012-01-01 00:00:00'], dtype='datetime64[ns]', freq='36H')"
+        expected = (
+            "DatetimeIndex(['2012-01-01 00:00:00'], dtype='datetime64[ns]', freq='36H')"
+        )
         dr = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(36) + "H")
         result = repr(dr)
         assert expected == result
