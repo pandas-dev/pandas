@@ -20,6 +20,7 @@ from collections.abc import (
     Sequence,
 )
 import functools
+from inspect import signature
 from io import StringIO
 import itertools
 import operator
@@ -107,6 +108,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -126,6 +128,7 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -3618,14 +3621,29 @@ class DataFrame(NDFrame, OpsMixin):
             and dtypes
             and isinstance(dtypes[0], ExtensionDtype)
         ):
-            # We have EAs with the same dtype. We can preserve that dtype in transpose.
-            dtype = dtypes[0]
-            arr_type = dtype.construct_array_type()
-            values = self.values
+            if isinstance(dtypes[0], BaseMaskedDtype):
+                # We have masked arrays with the same dtype. We can transpose faster.
+                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+                if isinstance(self._mgr, ArrayManager):
+                    masked_arrays = self._mgr.arrays
+                else:
+                    masked_arrays = list(self._iter_column_arrays())
+                new_values = transpose_homogenous_masked_arrays(
+                    cast(list[BaseMaskedArray], masked_arrays)
+                )
+            else:
+                # We have other EAs with the same dtype. We preserve dtype in transpose.
+                dtyp = dtypes[0]
+                arr_typ = dtyp.construct_array_type()
+                values = self.values
+                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values,
+                index=self.columns,
+                columns=self.index,
+                verify_integrity=False,
             )
 
         else:
@@ -4170,11 +4188,15 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value: Series) -> None:
+    def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
-        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        if using_copy_on_write():
+            self._iset_item_mgr(
+                loc, value._values, inplace=inplace, refs=value._references
+            )
+        else:
+            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -5492,7 +5514,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res._iset_item(i, newobj)
+                res._iset_item(i, newobj, inplace=inplace)
 
         if inplace:
             return
@@ -9030,7 +9052,7 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True):
+    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9056,6 +9078,8 @@ class DataFrame(NDFrame, OpsMixin):
             axis can create combinations of index and column values
             that are missing from the original dataframe. See Examples
             section.
+        sort : bool, default True
+            Whether to sort the levels of the resulting MultiIndex.
 
         Returns
         -------
@@ -9155,15 +9179,15 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> df_multi_level_cols2.stack(0)
                      kg    m
-        cat weight  1.0  NaN
-            height  NaN  2.0
-        dog weight  3.0  NaN
-            height  NaN  4.0
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  weight  kg    1.0
-             height  m     2.0
-        dog  weight  kg    3.0
-             height  m     4.0
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
         dtype: float64
 
         **Dropping missing values**
@@ -9199,9 +9223,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
 
         if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna)
+            result = stack_multiple(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna)
+            result = stack(self, level, dropna=dropna, sort=sort)
 
         return result.__finalize__(self, method="stack")
 
@@ -10893,7 +10917,18 @@ class DataFrame(NDFrame, OpsMixin):
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                return values._reduce(name, skipna=skipna, **kwds)
+                sign = signature(values._reduce)
+                if "keepdims" in sign.parameters:
+                    return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
+                else:
+                    warnings.warn(
+                        f"{type(values)}._reduce will require a `keepdims` parameter "
+                        "in the future",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    result = values._reduce(name, skipna=skipna, **kwds)
+                    return np.array([result])
             else:
                 return op(values, axis=axis, skipna=skipna, **kwds)
 
@@ -10934,11 +10969,11 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
-        if out_dtype is not None:
+        if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
-        elif (df._mgr.get_dtypes() == object).any():
+        elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
             out = out.astype(object)
-        elif len(self) == 0 and name in ("sum", "prod"):
+        elif len(self) == 0 and out.dtype == object and name in ("sum", "prod"):
             # Even if we are object dtype, follow numpy and return
             #  float64, see test_apply_funcs_over_empty
             out = out.astype(np.float64)
@@ -11199,10 +11234,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        # indices will always be np.ndarray since axis is not N
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -11229,10 +11263,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
 
-        # indices will always be np.ndarray since axis is not None and
+        # indices will always be 1d array since axis is not None and
         # values is a 2d array for DataFrame
-        # error: Item "int" of "Union[int, Any]" has no attribute "__iter__"
-        assert isinstance(indices, np.ndarray)  # for mypy
+        assert isinstance(indices, (np.ndarray, ExtensionArray))  # for mypy
 
         index = data._get_axis(axis)
         result = [index[i] if i >= 0 else np.nan for i in indices]
@@ -11849,7 +11882,24 @@ class DataFrame(NDFrame, OpsMixin):
         updated with the new labels, and the output shows the modified DataFrame.
         """,
     )
-    columns = properties.AxisProperty(axis=0, doc="The column labels of the DataFrame.")
+    columns = properties.AxisProperty(
+        axis=0,
+        doc=dedent(
+            """
+                The column labels of the DataFrame.
+
+                Examples
+                --------
+                >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+                >>> df
+                     A  B
+                0    1  3
+                1    2  4
+                >>> df.columns
+                Index(['A', 'B'], dtype='object')
+                """
+        ),
+    )
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
