@@ -84,14 +84,14 @@ if TYPE_CHECKING:
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
     if sys.version_info >= (3, 10):
-        from typing import TypeGuard
+        from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
     else:
-        from typing_extensions import TypeGuard  # pyright: reportUnusedImport = false
+        from typing_extensions import TypeGuard  # pyright: ignore[reportUnusedImport]
 
     if sys.version_info >= (3, 11):
         from typing import Self
     else:
-        from typing_extensions import Self  # pyright: reportUnusedImport = false
+        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
 else:
     npt: Any = None
     Self: Any = None

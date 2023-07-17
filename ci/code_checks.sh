@@ -63,12 +63,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.backfill \
-        pandas.Series.pad \
-        pandas.Series.hist \
-        pandas.errors.AccessorRegistrationWarning \
-        pandas.errors.AttributeConflictWarning \
-        pandas.errors.DataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
         pandas.errors.IntCastingNaNError \
@@ -88,7 +82,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.io.formats.style.Styler.to_html \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -96,7 +89,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_sas \
         pandas.read_spss \
         pandas.read_sql_query \
-        pandas.read_gbq \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
@@ -112,15 +104,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.snap \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.PandasArray \
@@ -148,9 +131,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.pad \
-        pandas.DataFrame.swapaxes \
-        pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
