@@ -5507,7 +5507,7 @@ class DataFrame(NDFrame, OpsMixin):
         fill_value: Hashable = lib.no_default,
         suffix: str | None = None,
     ) -> DataFrame:
-        if freq is not None and fill_value is not lib.no_default:
+        if freq is not None and fill_value not in (lib.no_default, None):
             # GH#53832
             raise ValueError(
                 "Cannot pass both 'freq' and 'fill_value' to "

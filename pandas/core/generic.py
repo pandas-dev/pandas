@@ -10642,7 +10642,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         axis = self._get_axis_number(axis)
 
-        if freq is not None and fill_value is not lib.no_default:
+        if freq is not None and fill_value not in (None, lib.no_default):
             # GH#53832
             raise ValueError(
                 "Cannot pass both 'freq' and 'fill_value' to "
