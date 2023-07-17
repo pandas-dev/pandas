@@ -771,9 +771,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Interchange axes and swap values axes appropriately.
 
+        .. deprecated:: 2.1.0
+            ``swapaxes`` is deprecated and will be removed.
+            Please use ``transpose`` instead.
+
         Returns
         -------
         same as input
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.transpose`.
         """
         warnings.warn(
             # GH#51946
@@ -4822,7 +4830,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add prefix on
 
             .. versionadded:: 2.0.0
@@ -4896,7 +4904,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add suffix on
 
             .. versionadded:: 2.0.0
@@ -5786,6 +5794,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4     monkey
         5     parrot
         """
+        if using_copy_on_write():
+            return self.iloc[:n].copy()
         return self.iloc[:n]
 
     @final
@@ -5861,6 +5871,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         7   whale
         8   zebra
         """
+        if using_copy_on_write():
+            if n == 0:
+                return self.iloc[0:0].copy()
+            return self.iloc[-n:].copy()
         if n == 0:
             return self.iloc[0:0]
         return self.iloc[-n:]
@@ -7377,6 +7391,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.ffill` or :meth:`Series.ffill`.
         """
         warnings.warn(
             "DataFrame.pad/Series.pad is deprecated. Use "
@@ -7513,7 +7531,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        Please see examples for :meth:`DataFrame.bfill`.
+        Please see examples for :meth:`DataFrame.bfill` or :meth:`Series.bfill`.
         """
         warnings.warn(
             "DataFrame.backfill/Series.backfill is deprecated. Use "
@@ -7623,6 +7641,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
