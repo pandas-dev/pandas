@@ -219,12 +219,12 @@ class _XMLFrameParser:
                 dicts = [
                     {
                         **(
-                            {el.tag: el.text.strip()}
+                            {el.tag: el.text}
                             if el.text and not el.text.isspace()
                             else {}
                         ),
                         **{
-                            nm: ch.text.strip() if ch.text else None
+                            nm: ch.text if ch.text else None
                             for nm, ch in zip(self.names, el.findall("*"))
                         },
                     }
@@ -232,30 +232,22 @@ class _XMLFrameParser:
                 ]
             else:
                 dicts = [
-                    {
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    }
+                    {ch.tag: ch.text if ch.text else None for ch in el.findall("*")}
                     for el in elems
                 ]
 
         elif self.attrs_only:
             dicts = [
-                {k: v.strip() if v else None for k, v in el.attrib.items()}
-                for el in elems
+                {k: v if v else None for k, v in el.attrib.items()} for el in elems
             ]
 
         elif self.names:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
-                        nm: ch.text.strip() if ch.text else None
+                        nm: ch.text if ch.text else None
                         for nm, ch in zip(self.names, el.findall("*"))
                     },
                 }
@@ -266,15 +258,8 @@ class _XMLFrameParser:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
-                    **{
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    },
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
+                    **{ch.tag: ch.text if ch.text else None for ch in el.findall("*")},
                 }
                 for el in elems
             ]
@@ -359,7 +344,7 @@ class _XMLFrameParser:
                 if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
-                            elem_val = elem.text.strip() if elem.text else None
+                            elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
 
@@ -369,7 +354,7 @@ class _XMLFrameParser:
                 else:
                     for col in self.iterparse[row_node]:
                         if curr_elem == col:
-                            row[col] = elem.text.strip() if elem.text else None
+                            row[col] = elem.text if elem.text else None
                         if col in elem.attrib:
                             row[col] = elem.attrib[col]
 

@@ -487,8 +487,7 @@ def test_empty_string_etree(val):
             read_xml(BytesIO(val), parser="etree")
 
 
-@td.skip_if_no("lxml")
-def test_wrong_file_path_lxml():
+def test_wrong_file_path(parser):
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -500,22 +499,7 @@ def test_wrong_file_path_lxml():
         FutureWarning,
         match=msg,
     ):
-        read_xml(filename, parser="lxml")
-
-
-def test_wrong_file_path_etree():
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-    filename = os.path.join("data", "html", "books.xml")
-
-    with pytest.raises(
-        FutureWarning,
-        match=msg,
-    ):
-        read_xml(filename, parser="etree")
+        read_xml(filename, parser=parser)
 
 
 @pytest.mark.network
@@ -545,6 +529,58 @@ def test_wrong_url(parser, httpserver):
     httpserver.serve_content("NOT FOUND", code=404)
     with pytest.raises(HTTPError, match=("HTTP Error 404: NOT FOUND")):
         read_xml(httpserver.url, xpath=".//book[count(*)=4]", parser=parser)
+
+
+# CONTENT
+
+
+def test_whitespace(parser):
+    xml = """
+      <data>
+        <row sides=" 4 ">
+          <shape>
+              square
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 0 ">
+          <shape>
+              circle
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 3 ">
+          <shape>
+              triangle
+          </shape>
+          <degrees>&#009;180&#009;</degrees>
+        </row>
+      </data>"""
+
+    df_xpath = read_xml(StringIO(xml), parser=parser, dtype="string")
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"row": ["sides", "shape", "degrees"]},
+        dtype="string",
+    )
+
+    df_expected = DataFrame(
+        {
+            "sides": [" 4 ", " 0 ", " 3 "],
+            "shape": [
+                "\n              square\n          ",
+                "\n              circle\n          ",
+                "\n              triangle\n          ",
+            ],
+            "degrees": ["\t360\t", "\t360\t", "\t180\t"],
+        },
+        dtype="string",
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
 
 
 # XPATH
