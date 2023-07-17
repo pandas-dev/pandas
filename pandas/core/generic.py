@@ -816,9 +816,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
-        elif (copy or copy is None) and self._mgr.is_single_block:
-            new_values = new_values.copy()
-
         return self._constructor(
             new_values,
             *new_axes,
