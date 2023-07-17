@@ -547,6 +547,50 @@ def test_wrong_url(parser, httpserver):
         read_xml(httpserver.url, xpath=".//book[count(*)=4]", parser=parser)
 
 
+# CONTENT
+
+
+def test_whitespace(parser):
+    xml = """
+      <data>
+        <row sides=" 4 ">
+          <shape>
+              square
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 0 ">
+          <shape>
+              circle
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 3 ">
+          <shape>
+              triangle
+          </shape>
+          <degrees>&#009;180&#009;</degrees>
+        </row>
+      </data>"""
+
+    df_output = read_xml(StringIO(xml), dtype="string")
+
+    df_expected = DataFrame(
+        {
+            "sides": [" 4 ", " 0 ", " 3 "],
+            "shape": [
+                "\n              square\n          ",
+                "\n              circle\n          ",
+                "\n              triangle\n          ",
+            ],
+            "degrees": ["\t360\t", "\t360\t", "\t180\t"],
+        },
+        dtype="string",
+    )
+
+    tm.assert_frame_equal(df_output, df_expected)
+
+
 # XPATH
 
 
