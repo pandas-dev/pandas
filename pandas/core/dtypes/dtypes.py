@@ -1197,17 +1197,17 @@ class IntervalDtype(PandasExtensionDtype):
 
             try:
                 subtype = pandas_dtype(subtype)
-                if CategoricalDtype.is_dtype(subtype) or is_string_dtype(subtype):
-                    # GH 19016
-                    msg = (
-                        "category, object, and string subtypes are not supported "
-                        "for IntervalDtype"
-                    )
-                    raise TypeError(msg)
-                self._subtype = subtype
-                self._closed = closed
             except TypeError as err:
                 raise TypeError("could not construct IntervalDtype") from err
+            if CategoricalDtype.is_dtype(subtype) or is_string_dtype(subtype):
+                # GH 19016
+                msg = (
+                    "category, object, and string subtypes are not supported "
+                    "for IntervalDtype"
+                )
+                raise TypeError(msg)
+            self._subtype = subtype
+            self._closed = closed
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
