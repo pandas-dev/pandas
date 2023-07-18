@@ -2490,6 +2490,47 @@ Read a URL with no options:
 
    The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
+Read a URL while passing headers alongside the HTTP request:
+
+.. code-block:: ipython
+
+   In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
+   In [323]: pd.read_html(url)
+   Out[323]:
+   [                   0                    1
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
+    2    Request Method:                  GET
+    3       Request URI:      /notes/request/
+    4     Request Query:                  NaN,
+    0   Accept-Encoding:             identity
+    1              Host:         www.sump.org
+    2        User-Agent:    Python-urllib/3.8
+    3        Connection:                close]
+   In [324]: headers = {
+   In [325]:    'User-Agent':'Mozilla Firefox v14.0',
+   In [326]:    'Accept':'application/json',
+   In [327]:    'Connection':'keep-alive',
+   In [328]:    'Auth':'Bearer 2*/f3+fe68df*4'
+   In [329]: }
+   In [340]: pd.read_html(url, storage_options=headers)
+   Out[340]:
+   [                   0                    1
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
+    2    Request Method:                  GET
+    3       Request URI:      /notes/request/
+    4     Request Query:                  NaN,
+    0        User-Agent: Mozilla Firefox v14.0
+    1    AcceptEncoding:   gzip,  deflate,  br
+    2            Accept:      application/json
+    3        Connection:             keep-alive
+    4              Auth:  Bearer 2*/f3+fe68df*4]
+
+.. note::
+
+   We see above that the headers we passed are reflected in the HTTP request.
+
 Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 

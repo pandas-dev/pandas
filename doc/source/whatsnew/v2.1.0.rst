@@ -141,6 +141,7 @@ Other enhancements
 - :meth:`MultiIndex.sortlevel` and :meth:`Index.sortlevel` gained a new keyword ``na_position`` (:issue:`51612`)
 - :meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
+- :meth:`pandas.read_html` now supports the ``storage_options`` keyword when used with a URL, allowing users to add headers the outbound HTTP request (:issue:`49944`)
 - Add :meth:`diff()` and :meth:`round()` for :class:`Index` (:issue:`19708`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)

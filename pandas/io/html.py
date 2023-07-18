@@ -40,7 +40,6 @@ from pandas.io.common import (
     is_fsspec_url,
     is_url,
     stringify_path,
-    urlopen,
     validate_header_arg,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -57,6 +56,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         FilePath,
         ReadBuffer,
+        StorageOptions,
     )
 
     from pandas import DataFrame
@@ -115,7 +115,11 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
     raise TypeError(f"{type(skiprows).__name__} is not a valid type for skipping rows")
 
 
-def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
+def _read(
+    obj: FilePath | BaseBuffer,
+    encoding: str | None,
+    storage_options: StorageOptions | None,
+) -> str | bytes:
     """
     Try to read from a url, file or string.
 
@@ -133,7 +137,9 @@ def _read(obj: FilePath | BaseBuffer, encoding: str | None) -> str | bytes:
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        with get_handle(obj, "r", encoding=encoding) as handles:
+        with get_handle(
+            obj, "r", encoding=encoding, storage_options=storage_options
+        ) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
@@ -219,6 +225,7 @@ class _HtmlFrameParser:
         encoding: str,
         displayed_only: bool,
         extract_links: Literal[None, "header", "footer", "body", "all"],
+        storage_options: StorageOptions = None,
     ) -> None:
         self.io = io
         self.match = match
@@ -226,6 +233,7 @@ class _HtmlFrameParser:
         self.encoding = encoding
         self.displayed_only = displayed_only
         self.extract_links = extract_links
+        self.storage_options = storage_options
 
     def parse_tables(self):
         """
@@ -637,7 +645,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return table.select("tfoot tr")
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io, self.encoding)
+        raw_text = _read(self.io, self.encoding, self.storage_options)
         if not raw_text:
             raise ValueError(f"No text parsed from document: {self.io}")
         return raw_text
@@ -777,8 +785,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         try:
             if is_url(self.io):
-                with urlopen(self.io) as f:
-                    r = parse(f, parser=parser)
+                with get_handle(
+                    self.io, "r", storage_options=self.storage_options
+                ) as f:
+                    r = parse(f.handle, parser=parser)
             else:
                 # try to parse the input in the simplest way
                 r = parse(self.io, parser=parser)
@@ -945,14 +955,32 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, displayed_only, extract_links, **kwargs):
+def _parse(
+    flavor,
+    io,
+    match,
+    attrs,
+    encoding,
+    displayed_only,
+    extract_links,
+    storage_options,
+    **kwargs,
+):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only, extract_links)
+        p = parser(
+            io,
+            compiled_match,
+            attrs,
+            encoding,
+            displayed_only,
+            extract_links,
+            storage_options,
+        )
 
         try:
             tables = p.parse_tables()
@@ -1017,6 +1045,7 @@ def read_html(
     displayed_only: bool = True,
     extract_links: Literal[None, "header", "footer", "body", "all"] = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    storage_options: StorageOptions = None,
 ) -> list[DataFrame]:
     r"""
     Read HTML tables into a ``list`` of ``DataFrame`` objects.
@@ -1224,4 +1253,5 @@ def read_html(
         displayed_only=displayed_only,
         extract_links=extract_links,
         dtype_backend=dtype_backend,
+        storage_options=storage_options,
     )
