@@ -11254,13 +11254,12 @@ class DataFrame(NDFrame, OpsMixin):
             nanops.nanargmin, "argmin", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
-
-        # indices will always be 1d array since axis is not None and
-        # values is a 2d array for DataFrame
         # indices will always be np.ndarray since axis is not N
 
         index = data._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = algorithms.take(
+            index._values, indices, allow_fill=True, fill_value=index._na_value
+        )
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
@@ -11283,13 +11282,12 @@ class DataFrame(NDFrame, OpsMixin):
             nanops.nanargmax, "argmax", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
-
-        # indices will always be 1d array since axis is not None and
-        # values is a 2d array for DataFrame
-        assert isinstance(indices, (np.ndarray, ExtensionArray))  # for mypy
+        # indices will always be 1d array since axis is not None
 
         index = data._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = algorithms.take(
+            index._values, indices, allow_fill=True, fill_value=index._na_value
+        )
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmax")
 
