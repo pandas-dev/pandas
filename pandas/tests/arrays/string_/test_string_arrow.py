@@ -69,6 +69,33 @@ def test_constructor_not_string_type_raises(array, chunked):
         ArrowStringArray(arr)
 
 
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_not_string_type_value_dictionary_raises(chunked):
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pa.array([1, 2, 3], pa.dictionary(pa.int32(), pa.int32()))
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    msg = re.escape(
+        "ArrowStringArray requires a PyArrow (chunked) array of string type"
+    )
+    with pytest.raises(ValueError, match=msg):
+        ArrowStringArray(arr)
+
+
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_valid_string_type_value_dictionary(chunked):
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.utf8()))
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    arr = ArrowStringArray(arr)
+    assert pa.types.is_string(arr._pa_array.type.value_type)
+
+
 @skip_if_no_pyarrow
 def test_from_sequence_wrong_dtype_raises():
     with pd.option_context("string_storage", "python"):
