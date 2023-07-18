@@ -2931,7 +2931,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self.grouper.size()
-        dtype_backend: str | None = None
+        dtype_backend = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
                 dtype_backend = "pyarrow"
