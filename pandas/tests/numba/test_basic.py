@@ -30,7 +30,7 @@ def test_series():
 
 @td.skip_if_no("numba")
 class TestBasic:
-    numba = import_optional_dependency("numba")
+    numba = import_optional_dependency("numba", errors="ignore")
 
     def test_identity(self, test_df):
         @self.numba.njit
