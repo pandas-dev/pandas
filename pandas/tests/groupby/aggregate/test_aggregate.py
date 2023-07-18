@@ -235,7 +235,7 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     warn_msg = f"DataFrameGroupBy.{reduction_func} with axis=1 is deprecated"
     if reduction_func in ("idxmax", "idxmin"):
         error = TypeError
-        msg = "reduction operation '.*' not allowed for this dtype"
+        msg = "'[<>]' not supported between instances of 'float' and 'str'"
         warn = FutureWarning
     else:
         error = ValueError

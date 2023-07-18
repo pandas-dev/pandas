@@ -470,11 +470,6 @@ Compare the above with the result using ``drop_level=True`` (the default value).
 
    df.xs("one", level="second", axis=1, drop_level=True)
 
-.. ipython:: python
-   :suppress:
-
-   df = df.T
-
 .. _advanced.advanced_reindex:
 
 Advanced reindexing and alignment

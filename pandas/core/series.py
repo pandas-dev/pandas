@@ -18,7 +18,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Union,
     cast,
     overload,
 )
@@ -893,7 +892,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+        if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)  # type: ignore[arg-type]
@@ -2532,7 +2531,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis = self._get_axis_number(axis)
         i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2602,7 +2602,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis = self._get_axis_number(axis)
         i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
@@ -3458,7 +3459,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3472,7 +3473,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3481,11 +3482,25 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        axis: Axis = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: bool = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> Series | None:
+        ...
+
     def sort_values(
         self,
         *,
         axis: Axis = 0,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = True,
+        ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
@@ -3646,7 +3661,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[Union[bool, int]], ascending)
+            ascending = cast(Sequence[bool], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
