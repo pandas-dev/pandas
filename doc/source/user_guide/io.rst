@@ -2493,6 +2493,7 @@ Read a URL with no options:
 Read a URL while passing headers alongside the HTTP request:
 
 .. code-block:: ipython
+
    In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
    In [323]: pd.read_html(url)
    Out[323]:
@@ -2525,6 +2526,7 @@ Read a URL while passing headers alongside the HTTP request:
     2            Accept:      application/json
     3        Connection:             keep-alive
     4              Auth:  Bearer 2*/f3+fe68df*4]
+    
 .. note::
 
    We see above that the headers we passed are reflected in the HTTP request.
