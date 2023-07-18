@@ -191,13 +191,11 @@ def test_group_shift_with_multiple_periods():
 
 
 @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
-def test_group_shift_with_multiple_periods_fill_and_freq():
+def test_group_shift_with_multiple_periods_and_freq():
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
         index=date_range("1/1/2000", periods=5, freq="H"),
     )
-
-    # only freq
     shifted_df = df.groupby("b")[["a"]].shift(
         [0, 1],
         freq="H",
@@ -218,15 +216,25 @@ def test_group_shift_with_multiple_periods_fill_and_freq():
     )
     tm.assert_frame_equal(shifted_df, expected_df)
 
-    # only fill
+
+@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
+def test_group_shift_with_multiple_periods_and_fill_value():
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+    )
     shifted_df = df.groupby("b")[["a"]].shift([0, 1], fill_value=-1)
     expected_df = DataFrame(
         {"a_0": [1, 2, 3, 4, 5], "a_1": [-1, 1, -1, 3, 2]},
-        index=date_range("1/1/2000", periods=5, freq="H"),
     )
     tm.assert_frame_equal(shifted_df, expected_df)
 
-    # both
+
+@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
+def test_group_shift_with_multiple_periods_and_both_fill_and_freq_fails():
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+        index=date_range("1/1/2000", periods=5, freq="H"),
+    )
     msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
     with pytest.raises(ValueError, match=msg):
         df.shift([1, 2], fill_value=1, freq="H")
