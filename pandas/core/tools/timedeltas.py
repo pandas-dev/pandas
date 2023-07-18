@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -19,6 +20,7 @@ from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -118,6 +120,9 @@ def to_timedelta(
 
         Must not be specified when `arg` context strings and ``errors="raise"``.
 
+        .. deprecated:: 2.1.0
+            Units 'T' and 'L' are deprecated and will be removed in a future version.
+
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -169,6 +174,13 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
+    if unit in {"T", "t", "L", "l"}:
+        warnings.warn(
+            f"Unit '{unit}' is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 

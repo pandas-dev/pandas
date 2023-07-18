@@ -14,7 +14,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    MutableMapping,
     cast,
 )
 import warnings
@@ -65,6 +64,7 @@ if not pa_version_under7p0:
     import pyarrow as pa
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
     from datetime import tzinfo
 
     import pyarrow as pa  # noqa: F811, TCH004
@@ -219,7 +219,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @classmethod
     def _from_categorical_dtype(
-        cls, dtype: CategoricalDtype, categories=None, ordered: Ordered = None
+        cls, dtype: CategoricalDtype, categories=None, ordered: Ordered | None = None
     ) -> CategoricalDtype:
         if categories is ordered is None:
             return dtype
@@ -610,6 +610,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def categories(self) -> Index:
         """
         An ``Index`` containing the unique categories allowed.
+
+        Examples
+        --------
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type.categories
+        Index(['a', 'b'], dtype='object')
         """
         return self._categories
 
@@ -617,6 +623,16 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     def ordered(self) -> Ordered:
         """
         Whether the categories have an ordered relationship.
+
+        Examples
+        --------
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=True)
+        >>> cat_type.ordered
+        True
+
+        >>> cat_type = pd.CategoricalDtype(categories=['a', 'b'], ordered=False)
+        >>> cat_type.ordered
+        False
         """
         return self._ordered
 
@@ -681,16 +697,17 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     Raises
     ------
-    pytz.UnknownTimeZoneError
+    ZoneInfoNotFoundError
         When the requested timezone cannot be found.
 
     Examples
     --------
-    >>> pd.DatetimeTZDtype(tz='UTC')
+    >>> from zoneinfo import ZoneInfo
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('UTC'))
     datetime64[ns, UTC]
 
-    >>> pd.DatetimeTZDtype(tz='dateutil/US/Central')
-    datetime64[ns, tzfile('/usr/share/zoneinfo/US/Central')]
+    >>> pd.DatetimeTZDtype(tz=ZoneInfo('Europe/Paris'))
+    datetime64[ns, Europe/Paris]
     """
 
     type: type[Timestamp] = Timestamp
@@ -756,6 +773,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def unit(self) -> str_type:
         """
         The precision of the datetime data.
+
+        Examples
+        --------
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype.unit
+        'ns'
         """
         return self._unit
 
@@ -763,6 +787,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def tz(self) -> tzinfo:
         """
         The timezone.
+
+        Examples
+        --------
+        >>> from zoneinfo import ZoneInfo
+        >>> dtype = pd.DatetimeTZDtype(tz=ZoneInfo('America/Los_Angeles'))
+        >>> dtype.tz
+        zoneinfo.ZoneInfo(key='America/Los_Angeles')
         """
         return self._tz
 
@@ -951,6 +982,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def freq(self):
         """
         The frequency object of this PeriodDtype.
+
+        Examples
+        --------
+        >>> dtype = pd.PeriodDtype(freq='D')
+        >>> dtype.freq
+        <Day>
         """
         return self._freq
 
@@ -1201,6 +1238,12 @@ class IntervalDtype(PandasExtensionDtype):
     def subtype(self):
         """
         The dtype of the Interval bounds.
+
+        Examples
+        --------
+        >>> dtype = pd.IntervalDtype(subtype='int64', closed='both')
+        >>> dtype.subtype
+        dtype('int64')
         """
         return self._subtype
 
@@ -1549,6 +1592,17 @@ class SparseDtype(ExtensionDtype):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> ser = pd.Series([1, 0, 0], dtype=pd.SparseDtype(dtype=int, fill_value=0))
+    >>> ser
+    0    1
+    1    0
+    2    0
+    dtype: Sparse[int64, 0]
+    >>> ser.sparse.density
+    0.3333333333333333
     """
 
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
@@ -1658,17 +1712,6 @@ class SparseDtype(ExtensionDtype):
         val = self._fill_value
         if isna(val):
             if not is_valid_na_for_dtype(val, self.subtype):
-                warnings.warn(
-                    "Allowing arbitrary scalar fill_value in SparseDtype is "
-                    "deprecated. In a future version, the fill_value must be "
-                    "a valid value for the SparseDtype.subtype.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-        elif isinstance(self.subtype, CategoricalDtype):
-            # TODO: is this even supported?  It is reached in
-            #  test_dtype_sparse_with_fill_value_not_present_in_data
-            if self.subtype.categories is None or val not in self.subtype.categories:
                 warnings.warn(
                     "Allowing arbitrary scalar fill_value in SparseDtype is "
                     "deprecated. In a future version, the fill_value must be "
@@ -2059,8 +2102,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        else:
-            raise NotImplementedError(pa_type)
+        elif isinstance(pa_type, pa.ExtensionType):
+            return type(self)(pa_type.storage_type).type
+        raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
@@ -2214,10 +2258,13 @@ class ArrowDtype(StorageExtensionDtype):
         # Mirrors BaseMaskedDtype
         from pandas.core.dtypes.cast import find_common_type
 
+        null_dtype = type(self)(pa.null())
+
         new_dtype = find_common_type(
             [
                 dtype.numpy_dtype if isinstance(dtype, ArrowDtype) else dtype
                 for dtype in dtypes
+                if dtype != null_dtype
             ]
         )
         if not isinstance(new_dtype, np.dtype):

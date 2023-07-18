@@ -323,6 +323,10 @@ class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
         expected = getattr(s.astype(s.dtype._dtype), op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.skip("tests not written yet")
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        pass
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series(self, data, all_boolean_reductions, skipna):
         super().test_reduce_series(data, all_boolean_reductions, skipna)

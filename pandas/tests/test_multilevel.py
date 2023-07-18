@@ -19,13 +19,13 @@ class TestMultiLevel:
 
         month_sums = ymd.groupby("month").sum()
         result = month_sums.reindex(ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform(np.sum)
+        expected = ymd.groupby(level="month").transform("sum")
 
         tm.assert_frame_equal(result, expected)
 
         # Series
         result = month_sums["A"].reindex(ymd.index, level=1)
-        expected = ymd["A"].groupby(level="month").transform(np.sum)
+        expected = ymd["A"].groupby(level="month").transform("sum")
         tm.assert_series_equal(result, expected, check_names=False)
 
         # axis=1
@@ -35,7 +35,7 @@ class TestMultiLevel:
 
         month_sums = gb.sum()
         result = month_sums.reindex(columns=ymd.index, level=1)
-        expected = ymd.groupby(level="month").transform(np.sum).T
+        expected = ymd.groupby(level="month").transform("sum").T
         tm.assert_frame_equal(result, expected)
 
     def test_reindex(self, multiindex_dataframe_random_data):

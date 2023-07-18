@@ -184,12 +184,6 @@ class MergeError(ValueError):
     """
 
 
-class AccessorRegistrationWarning(Warning):
-    """
-    Warning for attribute conflicts in accessor registration.
-    """
-
-
 class AbstractMethodError(NotImplementedError):
     """
     Raise this error instead of NotImplementedError for abstract methods.
@@ -281,6 +275,13 @@ class DataError(Exception):
 
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
+
+    Examples
+    --------
+    >>> ser = pd.Series(['a', 'b', 'c'])
+    >>> ser.rolling(2).sum()
+    Traceback (most recent call last):
+    DataError: No numeric types to aggregate
     """
 
 
@@ -390,6 +391,18 @@ _chained_assignment_msg = (
     "See the caveats in the documentation: "
     "https://pandas.pydata.org/pandas-docs/stable/user_guide/"
     "indexing.html#returning-a-view-versus-a-copy"
+)
+
+
+_chained_assignment_method_msg = (
+    "A value is trying to be set on a copy of a DataFrame or Series "
+    "through chained assignment using an inplace method.\n"
+    "When using the Copy-on-Write mode, such inplace method never works "
+    "to update the original DataFrame or Series, because the intermediate "
+    "object on which we are setting values always behaves as a copy.\n\n"
+    "For example, when doing 'df[col].method(value, inplace=True)', try "
+    "using 'df.method({col: value}, inplace=True)' instead, to perform "
+    "the operation inplace on the original object.\n\n"
 )
 
 
@@ -540,6 +553,17 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    Examples
+    --------
+    >>> idx1 = pd.Index(['a', 'b'], name='name1')
+    >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
+    >>> df1.to_hdf('file', 'data', 'w', append=True)  # doctest: +SKIP
+    >>> idx2 = pd.Index(['c', 'd'], name='name2')
+    >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
+    >>> df2.to_hdf('file', 'data', 'a', append=True)  # doctest: +SKIP
+    AttributeConflictWarning: the [index_name] attribute of the existing index is
+    [name1] which conflicts with the new [name2]...
     """
 
 
@@ -632,7 +656,6 @@ class InvalidComparison(Exception):
 
 __all__ = [
     "AbstractMethodError",
-    "AccessorRegistrationWarning",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",
