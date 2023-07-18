@@ -115,6 +115,38 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "times",
+    [
+        np.arange(10).astype("datetime64[D]").astype("datetime64[ns]"),
+        date_range("2000", freq="D", periods=10),
+        date_range("2000", freq="D", periods=10).tz_localize("UTC"),
+    ],
+)
+@pytest.mark.parametrize("min_periods", [0, 2])
+def test_ewma_with_time_index_equal_spacing(halflife_with_times, times, min_periods):
+    halflife = halflife_with_times
+    data = np.arange(10.0)
+    data[::2] = np.nan
+    df = DataFrame({"A": data}, index=times)
+    result = df.ewm(halflife=halflife, min_periods=min_periods).mean()
+    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ewma_with_time_index_variable_spacing(tz_aware_fixture):
+    tz = tz_aware_fixture
+    halflife = "23 days"
+    times = DatetimeIndex(
+        ["2020-01-01", "2020-01-10T00:04:05", "2020-02-23T05:00:23"]
+    ).tz_localize(tz)
+    data = np.arange(3)
+    df = DataFrame(data, index=times)
+    result = df.ewm(halflife=halflife).mean()
+    expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459], index=times)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_ewm_with_nat_raises(halflife_with_times):
     # GH#38535
     ser = Series(range(1))

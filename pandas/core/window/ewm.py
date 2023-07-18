@@ -23,6 +23,7 @@ from pandas.core.indexers.objects import (
     ExponentialMovingWindowIndexer,
     GroupbyIndexer,
 )
+from pandas.core.indexes.api import DatetimeIndex
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     maybe_use_numba,
@@ -150,9 +151,10 @@ class ExponentialMovingWindow(BaseWindow):
         :math:`\alpha = 1 - \exp\left(-\ln(2) / halflife\right)`, for
         :math:`halflife > 0`.
 
-        If ``times`` is specified, a timedelta convertible unit over which an
-        observation decays to half its value. Only applicable to ``mean()``,
-        and halflife value will not apply to the other functions.
+        If ``times`` is specified or the index is a DatetimeIndex, a timedelta
+        convertible unit over which an observation decays to half its value. Only
+        applicable to ``mean()``, and halflife value will not apply to the other
+        functions.
 
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly
@@ -360,6 +362,12 @@ class ExponentialMovingWindow(BaseWindow):
         self.adjust = adjust
         self.ignore_na = ignore_na
         self.times = times
+        if (
+            self.halflife is not None
+            and isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64))
+            and isinstance(self.obj.index, DatetimeIndex)
+        ):
+            self.times = self.obj.index
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
@@ -384,7 +392,7 @@ class ExponentialMovingWindow(BaseWindow):
             ):
                 raise ValueError(
                     "halflife can only be a timedelta convertible argument if "
-                    "times is not None."
+                    "times is not None or the index is a DatetimeIndex."
                 )
             # Without times, points are equally spaced
             self._deltas = np.ones(
