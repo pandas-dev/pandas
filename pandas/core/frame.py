@@ -3133,35 +3133,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'ID': ['XYZ', 'ABC'],
-            'Department': ['HR', 'Admin'],
-            'Job Title': ['Title1', 'Title2']})
-        >>> print(df.to_html())
-        <table border="1" class="dataframe">
-        <thead>
-            <tr style="text-align: right;">
-            <th></th>
-            <th>ID</th>
-            <th>Department</th>
-            <th>Job Title</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-            <th>0</th>
-            <td>XYZ</td>
-            <td>HR</td>
-            <td>Title1</td>
-            </tr>
-            <tr>
-            <th>1</th>
-            <td>ABC</td>
-            <td>Admin</td>
-            <td>Title2</td>
-            </tr>
-        </tbody>
-        </table>
-
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
+        >>> html_string = '''<table border="1" class="dataframe">
+        ...   <thead>
+        ...     <tr style="text-align: right;">
+        ...       <th></th>
+        ...       <th>col1</th>
+        ...       <th>col2</th>
+        ...     </tr>
+        ...   </thead>
+        ...   <tbody>
+        ...     <tr>
+        ...       <th>0</th>
+        ...       <td>1</td>
+        ...       <td>4</td>
+        ...     </tr>
+        ...     <tr>
+        ...       <th>1</th>
+        ...       <td>2</td>
+        ...       <td>3</td>
+        ...     </tr>
+        ...   </tbody>
+        ... </table>'''
+        >>> assert html_string == df.to_html()
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
