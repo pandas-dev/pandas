@@ -70,7 +70,7 @@ class TestToTimestamp:
         result3 = result.to_period(freq="3M")
         exp = PeriodIndex(["NaT", "2011-01", "2011-02"], freq="3M", name="idx")
         tm.assert_index_equal(result3, exp)
-        assert result3.freq == "3ME"
+        assert result3.freqstr == "3M"
 
         msg = "Frequency must be positive, because it represents span: -2A"
         with pytest.raises(ValueError, match=msg):
