@@ -317,7 +317,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 func(npvalues, limit=limit, mask=mask.T)
                 npvalues = npvalues.T
 
-                # TODO: PandasArray didn't used to copy, need tests for this
+                # TODO: NumpyExtensionArray didn't used to copy, need tests
+                #  for this
                 new_values = self._from_backing_data(npvalues)
             else:
                 # fill with value
