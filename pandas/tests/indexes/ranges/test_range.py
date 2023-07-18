@@ -580,12 +580,17 @@ class TestRangeIndex:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_sort_values_key(self):
-        # GH#43666
+        # GH#43666, GH#52764
         sort_order = {8: 2, 6: 0, 4: 8, 2: 10, 0: 12}
         values = RangeIndex(0, 10, 2)
         result = values.sort_values(key=lambda x: x.map(sort_order))
-        expected = Index([4, 8, 6, 0, 2], dtype="int64")
+        expected = Index([6, 8, 4, 2, 0], dtype="int64")
         tm.assert_index_equal(result, expected, check_exact=True)
+
+        # check this matches the Series.sort_values behavior
+        ser = values.to_series()
+        result2 = ser.sort_values(key=lambda x: x.map(sort_order))
+        tm.assert_series_equal(result2, expected.to_series(), check_exact=True)
 
     def test_range_index_rsub_by_const(self):
         # GH#53255
