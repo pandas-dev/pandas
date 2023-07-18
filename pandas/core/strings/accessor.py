@@ -48,7 +48,10 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
     from pandas import (
         DataFrame,
@@ -243,7 +246,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator:
         raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def _wrap_result(
