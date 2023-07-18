@@ -25,7 +25,6 @@ Exceptions and warnings
    :toctree: api/
 
    errors.AbstractMethodError
-   errors.AccessorRegistrationWarning
    errors.AttributeConflictWarning
    errors.CategoricalConversionWarning
    errors.ChainedAssignmentError
