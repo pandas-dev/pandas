@@ -525,7 +525,6 @@ I/O
 - Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 - Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)
--
 
 Period
 ^^^^^^
