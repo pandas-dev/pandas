@@ -63,9 +63,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.backfill \
-        pandas.Series.pad \
-        pandas.Series.hist \
         pandas.errors.AccessorRegistrationWarning \
         pandas.errors.AttributeConflictWarning \
         pandas.errors.DataError \
@@ -88,7 +85,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.io.formats.style.Styler.to_html \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
         pandas.read_parquet \
@@ -96,7 +92,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.read_sas \
         pandas.read_spss \
         pandas.read_sql_query \
-        pandas.read_gbq \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
@@ -110,44 +105,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas_object \
         pandas.api.interchange.from_dataframe \
         pandas.DatetimeIndex.snap \
-        pandas.core.window.rolling.Rolling.max \
-        pandas.core.window.rolling.Rolling.cov \
-        pandas.core.window.rolling.Rolling.skew \
-        pandas.core.window.rolling.Rolling.apply \
-        pandas.core.window.rolling.Window.mean \
-        pandas.core.window.rolling.Window.sum \
-        pandas.core.window.rolling.Window.var \
-        pandas.core.window.rolling.Window.std \
-        pandas.core.window.expanding.Expanding.count \
-        pandas.core.window.expanding.Expanding.sum \
-        pandas.core.window.expanding.Expanding.mean \
-        pandas.core.window.expanding.Expanding.median \
-        pandas.core.window.expanding.Expanding.min \
-        pandas.core.window.expanding.Expanding.max \
-        pandas.core.window.expanding.Expanding.corr \
-        pandas.core.window.expanding.Expanding.cov \
-        pandas.core.window.expanding.Expanding.skew \
-        pandas.core.window.expanding.Expanding.apply \
-        pandas.core.window.expanding.Expanding.quantile \
-        pandas.core.window.ewm.ExponentialMovingWindow.mean \
-        pandas.core.window.ewm.ExponentialMovingWindow.sum \
-        pandas.core.window.ewm.ExponentialMovingWindow.std \
-        pandas.core.window.ewm.ExponentialMovingWindow.var \
-        pandas.core.window.ewm.ExponentialMovingWindow.corr \
-        pandas.core.window.ewm.ExponentialMovingWindow.cov \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler \
-        pandas.io.formats.style.Styler.from_custom_template \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.PandasArray \
@@ -159,12 +118,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_argsort \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.argsort \
-        pandas.api.extensions.ExtensionArray.astype \
-        pandas.api.extensions.ExtensionArray.copy \
-        pandas.api.extensions.ExtensionArray.view \
         pandas.api.extensions.ExtensionArray.dropna \
         pandas.api.extensions.ExtensionArray.equals \
         pandas.api.extensions.ExtensionArray.factorize \
@@ -177,20 +131,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.searchsorted \
         pandas.api.extensions.ExtensionArray.shift \
         pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.dtype \
-        pandas.api.extensions.ExtensionArray.nbytes \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.columns \
-        pandas.DataFrame.backfill \
-        pandas.DataFrame.ffill \
-        pandas.DataFrame.pad \
-        pandas.DataFrame.swapaxes \
-        pandas.DataFrame.attrs \
-        pandas.DataFrame.plot \
         pandas.DataFrame.to_gbq \
-        pandas.DataFrame.style \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

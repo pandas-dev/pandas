@@ -470,12 +470,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not is_list_like(comps):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(comps).__name__}]"
+            f"to isin(), you passed a `{type(comps).__name__}`"
         )
     if not is_list_like(values):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(values).__name__}]"
+            f"to isin(), you passed a `{type(values).__name__}`"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
@@ -1322,7 +1322,7 @@ def searchsorted(
     arr: ArrayLike,
     value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
-    sorter: NumpySorter = None,
+    sorter: NumpySorter | None = None,
 ) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
