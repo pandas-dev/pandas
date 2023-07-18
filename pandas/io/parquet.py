@@ -563,7 +563,6 @@ def read_parquet(
 
     Examples
     --------
-    >>> import pandas as pd
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
     ...    )
@@ -612,7 +611,6 @@ def read_parquet(
         foo  bar
     0    3    8
     1    4    9
-
     """
 
     impl = get_engine(engine)
