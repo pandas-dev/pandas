@@ -92,7 +92,7 @@ class SeriesType(types.ArrayCompatible):
 
 class DataFrameType(types.ArrayCompatible):
     """
-    The type class for Series objects.
+    The type class for DataFrame objects.
     """
 
     array_priority = 1000
@@ -239,41 +239,29 @@ make_attribute_wrapper(DataFrameType, "values", "values")
 make_attribute_wrapper(DataFrameType, "columns", "columns")
 
 
-def make_index(context, builder, typ, **kwargs):
-    return cgutils.create_struct_proxy(typ)(context, builder, **kwargs)
-
-
-def make_series(context, builder, typ, **kwargs):
-    return cgutils.create_struct_proxy(typ)(context, builder, **kwargs)
-
-
-def make_dataframe(context, builder, typ, **kwargs):
-    return cgutils.create_struct_proxy(typ)(context, builder, **kwargs)
-
-
 @lower_builtin("__array__", IndexType)
 def index_as_array(context, builder, sig, args):
-    val = make_index(context, builder, sig.args[0], ref=args[0])
+    val = cgutils.create_struct_proxy(sig.args[0])(context, builder, ref=args[0])
     return val._get_ptr_by_name("data")
 
 
 @lower_builtin("__array__", SeriesType)
 def series_as_array(context, builder, sig, args):
-    val = make_series(context, builder, sig.args[0], ref=args[0])
+    val = cgutils.create_struct_proxy(sig.args[0])(context, builder, ref=args[0])
     return val._get_ptr_by_name("values")
 
 
 @lower_builtin("__array_wrap__", IndexType, types.Array)
 def index_wrap_array(context, builder, sig, args):
-    dest = make_index(context, builder, sig.return_type)
+    dest = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     dest.data = args[1]
     return impl_ret_borrowed(context, builder, sig.return_type, dest._getvalue())
 
 
 @lower_builtin("__array_wrap__", SeriesType, types.Array)
 def series_wrap_array(context, builder, sig, args):
-    src = make_series(context, builder, sig.args[0], value=args[0])
-    dest = make_series(context, builder, sig.return_type)
+    src = cgutils.create_struct_proxy(sig.args[0])(value=args[0])
+    dest = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     dest.values = args[1]
     dest.index = src.index
     return impl_ret_borrowed(context, builder, sig.return_type, dest._getvalue())
@@ -282,7 +270,7 @@ def series_wrap_array(context, builder, sig, args):
 @lower_builtin(Series, types.Array, IndexType)
 def pdseries_constructor(context, builder, sig, args):
     data, index = args
-    series = make_series(context, builder, sig.return_type)
+    series = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     series.index = index
     series.values = data
     return impl_ret_borrowed(context, builder, sig.return_type, series._getvalue())
@@ -291,7 +279,7 @@ def pdseries_constructor(context, builder, sig, args):
 @lower_builtin(Index, types.Array)
 def index_constructor(context, builder, sig, args):
     (data,) = args
-    index = make_index(context, builder, sig.return_type)
+    index = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     index.data = data
     return impl_ret_borrowed(context, builder, sig.return_type, index._getvalue())
 
@@ -300,7 +288,7 @@ def index_constructor(context, builder, sig, args):
 @lower_builtin(DataFrame, types.Array, IndexType, types.ListType)
 def pdframe_constructor(context, builder, sig, args):
     data, index, columns = args
-    df = make_dataframe(context, builder, sig.return_type)
+    df = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     df.index = index
     df.values = data
     df.columns = columns
@@ -312,9 +300,12 @@ def unbox_index(typ, obj, c):
     """
     Convert a Index object to a native structure.
     """
-    data = c.pyapi.object_getattr_string(obj, "_data")
-    index = make_index(c.context, c.builder, typ)
-    index.data = c.unbox(typ.as_array, data).value
+    data_obj = c.pyapi.object_getattr_string(obj, "_data")
+    index = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    index.data = c.unbox(typ.as_array, data_obj).value
+
+    # Decrefs
+    c.pyapi.decref(data_obj)
 
     return NativeValue(index._getvalue())
 
@@ -324,11 +315,15 @@ def unbox_series(typ, obj, c):
     """
     Convert a Series object to a native structure.
     """
-    index = c.pyapi.object_getattr_string(obj, "index")
-    values = c.pyapi.object_getattr_string(obj, "values")
-    series = make_series(c.context, c.builder, typ)
-    series.index = c.unbox(typ.index, index).value
-    series.values = c.unbox(typ.values, values).value
+    index_obj = c.pyapi.object_getattr_string(obj, "index")
+    values_obj = c.pyapi.object_getattr_string(obj, "values")
+    series = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    series.index = c.unbox(typ.index, index_obj).value
+    series.values = c.unbox(typ.values, values_obj).value
+
+    # Decrefs
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(values_obj)
 
     return NativeValue(series._getvalue())
 
@@ -339,20 +334,29 @@ def unbox_df(typ, obj, c):
     Convert a DataFrame object to a native structure.
     """
     # TODO: Check refcounting!!!
-    index = c.pyapi.object_getattr_string(obj, "index")
-    values = c.pyapi.object_getattr_string(obj, "values")
-    columns_index = c.pyapi.object_getattr_string(obj, "columns")
+    index_obj = c.pyapi.object_getattr_string(obj, "index")
+    values_obj = c.pyapi.object_getattr_string(obj, "values")
+    columns_index_obj = c.pyapi.object_getattr_string(obj, "columns")
 
-    columns_list = c.pyapi.call_method(columns_index, "tolist")
+    columns_list_obj = c.pyapi.call_method(columns_index_obj, "tolist")
 
     typed_list = c.pyapi.unserialize(c.pyapi.serialize_object(numba.typed.List))
 
-    df = make_dataframe(c.context, c.builder, typ)
-    df.index = c.unbox(typ.index, index).value
-    df.values = c.unbox(typ.values, values).value
+    df = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    df.index = c.unbox(typ.index, index_obj).value
+    df.values = c.unbox(typ.values, values_obj).value
     # Convert to numba typed list
-    columns_typed_list = c.pyapi.call_function_objargs(typed_list, (columns_list,))
-    df.columns = c.unbox(typ.columns, columns_typed_list).value
+    columns_typed_list_obj = c.pyapi.call_function_objargs(
+        typed_list, (columns_list_obj,)
+    )
+    df.columns = c.unbox(typ.columns, columns_typed_list_obj).value
+
+    # Decrefs
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(values_obj)
+    c.pyapi.decref(columns_index_obj)
+    c.pyapi.decref(columns_list_obj)
+    c.pyapi.decref(columns_typed_list_obj)
 
     return NativeValue(df._getvalue())
 
@@ -363,11 +367,15 @@ def box_index(typ, val, c):
     Convert a native index structure to a Index object.
     """
     # First build a Numpy array object, then wrap it in a Index
-    index = make_index(c.context, c.builder, typ, value=val)
-    classobj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.pyclass))
-    arrayobj = c.box(typ.as_array, index.data)
-    indexobj = c.pyapi.call_function_objargs(classobj, (arrayobj,))
-    return indexobj
+    index = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.pyclass))
+    array_obj = c.box(typ.as_array, index.data)
+    index_obj = c.pyapi.call_function_objargs(class_obj, (array_obj,))
+
+    # Decrefs
+    c.pyapi.decref(class_obj)
+    c.pyapi.decref(array_obj)
+    return index_obj
 
 
 @box(SeriesType)
@@ -375,12 +383,18 @@ def box_series(typ, val, c):
     """
     Convert a native series structure to a Series object.
     """
-    series = make_series(c.context, c.builder, typ, value=val)
-    classobj = c.pyapi.unserialize(c.pyapi.serialize_object(Series))
-    indexobj = c.box(typ.index, series.index)
-    arrayobj = c.box(typ.as_array, series.values)
-    seriesobj = c.pyapi.call_function_objargs(classobj, (arrayobj, indexobj))
-    return seriesobj
+    series = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series))
+    index_obj = c.box(typ.index, series.index)
+    array_obj = c.box(typ.as_array, series.values)
+    series_obj = c.pyapi.call_function_objargs(class_obj, (array_obj, index_obj))
+
+    # Decrefs
+    c.pyapi.decref(class_obj)
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(array_obj)
+
+    return series_obj
 
 
 @box(DataFrameType)
@@ -388,14 +402,25 @@ def box_df(typ, val, c):
     """
     Convert a native series structure to a DataFrame object.
     """
-    df = make_dataframe(c.context, c.builder, typ, value=val)
-    classobj = c.pyapi.unserialize(c.pyapi.serialize_object(DataFrame))
-    indexclassobj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
-    indexobj = c.box(typ.index, df.index)
-    arrayobj = c.box(typ.as_array, df.values)
+    df = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(DataFrame))
+    indexclass_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
+    index_obj = c.box(typ.index, df.index)
+    array_obj = c.box(typ.as_array, df.values)
 
-    columnsobj = c.box(typ.columns, df.columns)
-    columns_index = c.pyapi.call_function_objargs(indexclassobj, (columnsobj,))
+    columns_obj = c.box(typ.columns, df.columns)
+    columns_index_obj = c.pyapi.call_function_objargs(indexclass_obj, (columns_obj,))
 
-    dfobj = c.pyapi.call_function_objargs(classobj, (arrayobj, indexobj, columns_index))
-    return dfobj
+    df_obj = c.pyapi.call_function_objargs(
+        class_obj, (array_obj, index_obj, columns_index_obj)
+    )
+
+    # Decrefs
+    c.pyapi.decref(class_obj)
+    c.pyapi.decref(indexclass_obj)
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(array_obj)
+    c.pyapi.decref(columns_obj)
+    c.pyapi.decref(columns_index_obj)
+
+    return df_obj

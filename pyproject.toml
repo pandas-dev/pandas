@@ -354,6 +354,7 @@ exclude = [
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
 
+
 [tool.pylint.messages_control]
 max-line-length = 88
 disable = [

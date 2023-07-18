@@ -105,7 +105,6 @@ class TestEngine:
         else:
             tm.assert_series_equal(result, expected)
 
-    # @pytest.mark.xfail(reason="column names are incorrect")
     @pytest.mark.parametrize("group_keys", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
     def test_cython_vs_numba_apply_reduce_axis_0(self, group_keys, as_index):

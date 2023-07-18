@@ -1,3 +1,4 @@
+# ruff: noqa: F401
 def _register_extensions() -> None:
     """
     Exposes the DF/Series/Index extension types so users
@@ -5,3 +6,8 @@ def _register_extensions() -> None:
 
     Called via the numba_extensions entry point in pyproject.toml
     """
+    from pandas.core._numba.extensions import (
+        DataFrameType,
+        IndexType,
+        SeriesType,
+    )
