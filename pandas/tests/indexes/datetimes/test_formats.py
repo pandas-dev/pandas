@@ -86,9 +86,7 @@ class TestDatetimeIndexRendering:
         result = repr(dr)
         assert expected == result
 
-        expected = (
-            "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24H')"
-        )
+        expected = "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24H')"
         dr = DatetimeIndex(["2012-01-01"], freq=str(24) + "H")
         result = repr(dr)
         assert expected == result
