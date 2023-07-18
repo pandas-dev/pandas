@@ -86,7 +86,7 @@ if TYPE_CHECKING:
         BaseMaskedArray,
         DatetimeArray,
         IntervalArray,
-        PandasArray,
+        NumpyExtensionArray,
         PeriodArray,
         SparseArray,
     )
@@ -1382,7 +1382,7 @@ class IntervalDtype(PandasExtensionDtype):
         return IntervalDtype(common, closed=closed)
 
 
-class PandasDtype(ExtensionDtype):
+class NumpyEADtype(ExtensionDtype):
     """
     A Pandas ExtensionDtype for NumPy dtypes.
 
@@ -1401,19 +1401,19 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None) -> None:
-        if isinstance(dtype, PandasDtype):
+    def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
+        if isinstance(dtype, NumpyEADtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
         self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
-        return f"PandasDtype({repr(self.name)})"
+        return f"NumpyEADtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self) -> np.dtype:
         """
-        The NumPy dtype this PandasDtype wraps.
+        The NumPy dtype this NumpyEADtype wraps.
         """
         return self._dtype
 
@@ -1441,19 +1441,19 @@ class PandasDtype(ExtensionDtype):
         return self.kind == "b"
 
     @classmethod
-    def construct_from_string(cls, string: str) -> PandasDtype:
+    def construct_from_string(cls, string: str) -> NumpyEADtype:
         try:
             dtype = np.dtype(string)
         except TypeError as err:
             if not isinstance(string, str):
                 msg = f"'construct_from_string' expects a string, got {type(string)}"
             else:
-                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
+                msg = f"Cannot construct a 'NumpyEADtype' from '{string}'"
             raise TypeError(msg) from err
         return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> type_t[PandasArray]:
+    def construct_array_type(cls) -> type_t[NumpyExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -1461,9 +1461,9 @@ class PandasDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
-        return PandasArray
+        return NumpyExtensionArray
 
     @property
     def kind(self) -> str:
@@ -2102,8 +2102,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        else:
-            raise NotImplementedError(pa_type)
+        elif isinstance(pa_type, pa.ExtensionType):
+            return type(self)(pa_type.storage_type).type
+        raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
