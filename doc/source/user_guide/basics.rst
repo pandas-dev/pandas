@@ -220,11 +220,6 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-.. ipython:: python
-   :suppress:
-
-   df_orig = df
-
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
@@ -272,13 +267,9 @@ case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.copy()
    df2["three"]["a"] = 1.0
-
-.. ipython:: python
-
    df
    df2
    df + df2
@@ -936,7 +927,6 @@ Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
 
 .. ipython:: python
-   :suppress:
 
    tsdf = pd.DataFrame(
        np.random.randn(10, 3),
@@ -944,9 +934,6 @@ Series operation on each column or row:
        index=pd.date_range("1/1/2000", periods=10),
    )
    tsdf.iloc[3:7] = np.nan
-
-.. ipython:: python
-
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
@@ -1171,12 +1158,8 @@ and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
 .. ipython:: python
-   :suppress:
 
-   df4 = df_orig.copy()
-
-.. ipython:: python
-
+   df4 = df.copy()
    df4
 
    def f(x):
@@ -1280,14 +1263,9 @@ is a common enough operation that the :meth:`~DataFrame.reindex_like` method is
 available to make this simpler:
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.reindex(["a", "b", "c"], columns=["one", "two"])
    df3 = df2 - df2.mean()
-
-
-.. ipython:: python
-
    df2
    df3
    df.reindex_like(df2)
