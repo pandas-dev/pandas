@@ -466,7 +466,7 @@ Numeric
 - Bug in :meth:`Series.mean`, :meth:`DataFrame.mean` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`36703`, :issue:`44008`)
 - Bug in :meth:`DataFrame.corrwith` raising ``NotImplementedError`` for pyarrow-backed dtypes (:issue:`52314`)
 - Bug in :meth:`DataFrame.size` and :meth:`Series.size` returning 64-bit integer instead of int (:issue:`52897`)
-- Bug in :meth:`DateFrame.dot` producing incorrect dtype (:issue:`53979`)
+- Bug in :meth:`DateFrame.dot` returning ``object`` dtype for :class:`ArrowDtype` data (:issue:`53979`)
 - Bug in :meth:`Series.any`, :meth:`Series.all`, :meth:`DataFrame.any`, and :meth:`DataFrame.all` had the default value of ``bool_only`` set to ``None`` instead of ``False``; this change should have no impact on users (:issue:`53258`)
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
 - Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)
