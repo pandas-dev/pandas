@@ -367,7 +367,7 @@ class ExponentialMovingWindow(BaseWindow):
             and isinstance(self.halflife, (str, datetime.timedelta, np.timedelta64))
             and isinstance(self.obj.index, DatetimeIndex)
         ):
-            self.times = self.obj.index
+            self.times = self.obj.index.values
         if self.times is not None:
             if not self.adjust:
                 raise NotImplementedError("times is not supported with adjust=False.")
