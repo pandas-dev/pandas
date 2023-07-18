@@ -4,8 +4,6 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
     cast,
     final,
 )
@@ -75,6 +73,11 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -400,6 +403,29 @@ class IndexingMixin:
                     max_speed
         sidewinder          7
 
+        Multiple conditional using ``&`` that returns a boolean Series
+
+        >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
+               max_speed  shield
+        viper          4       5
+
+        Multiple conditional using ``|`` that returns a boolean Series
+
+        >>> df.loc[(df['max_speed'] > 4) | (df['shield'] < 5)]
+                    max_speed  shield
+        cobra               1       2
+        sidewinder          7       8
+
+        Please ensure that each condition is wrapped in parentheses ``()``.
+        See the :ref:`user guide<indexing.boolean>`
+        for more details and explanations of Boolean indexing.
+
+        .. note::
+            If you find yourself using 3 or more conditionals in ``.loc[]``,
+            consider using :ref:`advanced indexing<advanced.advanced_hierarchical>`.
+
+            See below for using ``.loc[]`` on MultiIndex DataFrames.
+
         Callable that returns a boolean Series
 
         >>> df.loc[lambda df: df['shield'] == 8]
@@ -442,6 +468,26 @@ class IndexingMixin:
                     max_speed  shield
         cobra              30      10
         viper               0       0
+        sidewinder          0       0
+
+        Add value matching location
+
+        >>> df.loc["viper", "shield"] += 5
+        >>> df
+                    max_speed  shield
+        cobra              30      10
+        viper               0       5
+        sidewinder          0       0
+
+        Setting using a ``Series`` or a ``DataFrame`` sets the values matching the
+        index labels, not the index positions.
+
+        >>> shuffled_df = df.loc[["viper", "cobra", "sidewinder"]]
+        >>> df.loc[:] += shuffled_df
+        >>> df
+                    max_speed  shield
+        cobra              60      20
+        viper               0      10
         sidewinder          0       0
 
         **Getting values on a DataFrame with an index that has integer labels**
@@ -1885,7 +1931,7 @@ class _iLocIndexer(_LocationIndexer):
                 pass
 
             elif self._is_scalar_access(indexer) and is_object_dtype(
-                self.obj.dtypes[ilocs[0]]
+                self.obj.dtypes._values[ilocs[0]]
             ):
                 # We are setting nested data, only possible for object dtype data
                 self._setitem_single_column(indexer[1], value, pi)
@@ -1978,7 +2024,10 @@ class _iLocIndexer(_LocationIndexer):
                 if item in value:
                     sub_indexer[1] = item
                     val = self._align_series(
-                        tuple(sub_indexer), value[item], multiindex_indexer
+                        tuple(sub_indexer),
+                        value[item],
+                        multiindex_indexer,
+                        using_cow=using_copy_on_write(),
                     )
                 else:
                     val = np.nan
@@ -2184,7 +2233,13 @@ class _iLocIndexer(_LocationIndexer):
             ilocs = column_indexer
         return ilocs
 
-    def _align_series(self, indexer, ser: Series, multiindex_indexer: bool = False):
+    def _align_series(
+        self,
+        indexer,
+        ser: Series,
+        multiindex_indexer: bool = False,
+        using_cow: bool = False,
+    ):
         """
         Parameters
         ----------
@@ -2253,6 +2308,8 @@ class _iLocIndexer(_LocationIndexer):
                     else:
                         new_ix = Index(new_ix)
                     if ser.index.equals(new_ix):
+                        if using_cow:
+                            return ser
                         return ser._values.copy()
 
                     return ser.reindex(new_ix)._values

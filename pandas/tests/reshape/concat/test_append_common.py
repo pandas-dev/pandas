@@ -10,50 +10,52 @@ from pandas import (
 )
 import pandas._testing as tm
 
-dt_data = [
-    pd.Timestamp("2011-01-01"),
-    pd.Timestamp("2011-01-02"),
-    pd.Timestamp("2011-01-03"),
-]
-tz_data = [
-    pd.Timestamp("2011-01-01", tz="US/Eastern"),
-    pd.Timestamp("2011-01-02", tz="US/Eastern"),
-    pd.Timestamp("2011-01-03", tz="US/Eastern"),
-]
-td_data = [
-    pd.Timedelta("1 days"),
-    pd.Timedelta("2 days"),
-    pd.Timedelta("3 days"),
-]
-period_data = [
-    pd.Period("2011-01", freq="M"),
-    pd.Period("2011-02", freq="M"),
-    pd.Period("2011-03", freq="M"),
-]
-data_dict = {
-    "bool": [True, False, True],
-    "int64": [1, 2, 3],
-    "float64": [1.1, np.nan, 3.3],
-    "category": Categorical(["X", "Y", "Z"]),
-    "object": ["a", "b", "c"],
-    "datetime64[ns]": dt_data,
-    "datetime64[ns, US/Eastern]": tz_data,
-    "timedelta64[ns]": td_data,
-    "period[M]": period_data,
-}
+
+@pytest.fixture(
+    params=list(
+        {
+            "bool": [True, False, True],
+            "int64": [1, 2, 3],
+            "float64": [1.1, np.nan, 3.3],
+            "category": Categorical(["X", "Y", "Z"]),
+            "object": ["a", "b", "c"],
+            "datetime64[ns]": [
+                pd.Timestamp("2011-01-01"),
+                pd.Timestamp("2011-01-02"),
+                pd.Timestamp("2011-01-03"),
+            ],
+            "datetime64[ns, US/Eastern]": [
+                pd.Timestamp("2011-01-01", tz="US/Eastern"),
+                pd.Timestamp("2011-01-02", tz="US/Eastern"),
+                pd.Timestamp("2011-01-03", tz="US/Eastern"),
+            ],
+            "timedelta64[ns]": [
+                pd.Timedelta("1 days"),
+                pd.Timedelta("2 days"),
+                pd.Timedelta("3 days"),
+            ],
+            "period[M]": [
+                pd.Period("2011-01", freq="M"),
+                pd.Period("2011-02", freq="M"),
+                pd.Period("2011-03", freq="M"),
+            ],
+        }.items()
+    )
+)
+def item(request):
+    key, data = request.param
+    return key, data
+
+
+@pytest.fixture
+def item2(item):
+    return item
 
 
 class TestConcatAppendCommon:
     """
     Test common dtype coercion rules between concat and append.
     """
-
-    @pytest.fixture(params=sorted(data_dict.keys()))
-    def item(self, request):
-        key = request.param
-        return key, data_dict[key]
-
-    item2 = item
 
     def test_dtypes(self, item, index_or_series):
         # to confirm test case covers intended dtypes
@@ -693,11 +695,14 @@ class TestConcatAppendCommon:
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
 
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-        tm.assert_series_equal(s1._append(s2, ignore_index=True), s2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
+            tm.assert_series_equal(s1._append(s2, ignore_index=True), s2)
 
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
-        tm.assert_series_equal(s2._append(s1, ignore_index=True), s2)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
+            tm.assert_series_equal(s2._append(s1, ignore_index=True), s2)
 
         s1 = Series([], dtype="category")
         s2 = Series([], dtype="category")
@@ -719,11 +724,13 @@ class TestConcatAppendCommon:
 
         # empty Series is ignored
         exp = Series([np.nan, np.nan])
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
-        tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
+            tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
-        tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
+            tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 
     def test_categorical_concat_append(self):
         cat = Categorical(["a", "b"], categories=["a", "b"])

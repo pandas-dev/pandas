@@ -8,6 +8,8 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numba
 import numpy as np
 
@@ -16,13 +18,13 @@ from pandas.core._numba.kernels.shared import is_monotonic_increasing
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def add_sum(
-    val: float,
+    val: Any,
     nobs: int,
-    sum_x: float,
-    compensation: float,
+    sum_x: Any,
+    compensation: Any,
     num_consecutive_same_value: int,
-    prev_value: float,
-) -> tuple[int, float, float, int, float]:
+    prev_value: Any,
+) -> tuple[int, Any, Any, int, Any]:
     if not np.isnan(val):
         nobs += 1
         y = val - compensation
@@ -41,8 +43,8 @@ def add_sum(
 
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def remove_sum(
-    val: float, nobs: int, sum_x: float, compensation: float
-) -> tuple[int, float, float]:
+    val: Any, nobs: int, sum_x: Any, compensation: Any
+) -> tuple[int, Any, Any]:
     if not np.isnan(val):
         nobs -= 1
         y = -val - compensation
@@ -55,21 +57,29 @@ def remove_sum(
 @numba.jit(nopython=True, nogil=True, parallel=False)
 def sliding_sum(
     values: np.ndarray,
+    result_dtype: np.dtype,
     start: np.ndarray,
     end: np.ndarray,
     min_periods: int,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[int]]:
+    dtype = values.dtype
+
+    na_val: object = np.nan
+    if dtype.kind == "i":
+        na_val = 0
+
     N = len(start)
     nobs = 0
-    sum_x = 0.0
-    compensation_add = 0.0
-    compensation_remove = 0.0
+    sum_x = 0
+    compensation_add = 0
+    compensation_remove = 0
+    na_pos = []
 
     is_monotonic_increasing_bounds = is_monotonic_increasing(
         start
     ) and is_monotonic_increasing(end)
 
-    output = np.empty(N, dtype=np.float64)
+    output = np.empty(N, dtype=result_dtype)
 
     for i in range(N):
         s = start[i]
@@ -119,20 +129,22 @@ def sliding_sum(
                 )
 
         if nobs == 0 == min_periods:
-            result = 0.0
+            result: object = 0
         elif nobs >= min_periods:
             if num_consecutive_same_value >= nobs:
                 result = prev_value * nobs
             else:
                 result = sum_x
         else:
-            result = np.nan
+            result = na_val
+            if dtype.kind == "i":
+                na_pos.append(i)
 
         output[i] = result
 
         if not is_monotonic_increasing_bounds:
             nobs = 0
-            sum_x = 0.0
-            compensation_remove = 0.0
+            sum_x = 0
+            compensation_remove = 0
 
-    return output
+    return output, na_pos

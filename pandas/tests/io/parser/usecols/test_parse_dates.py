@@ -13,15 +13,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-_msg_validate_usecols_arg = (
-    "'usecols' must either be list-like "
-    "of all strings, all unicode, all "
-    "integers or a callable."
-)
-_msg_validate_usecols_names = (
-    "Usecols do not match columns, columns expected but not found: {0}"
-)
-
 # TODO(1.4): Change these to xfails whenever parse_dates support(which was
 # intentionally disable to keep small PR sizes) is added back
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")
@@ -88,7 +79,7 @@ def test_usecols_with_parse_dates3(all_parsers):
     parse_dates = [0]
 
     cols = {
-        "a": Timestamp("2016-09-21"),
+        "a": Timestamp("2016-09-21").as_unit("ns"),
         "b": [1],
         "c": [1],
         "d": [2],

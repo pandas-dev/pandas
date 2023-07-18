@@ -36,7 +36,7 @@ __all__ = [
     "Day",
 ]
 
-from pandas._libs.tslibs import dtypes
+from pandas._libs.tslibs import dtypes  # pylint: disable=import-self
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.dtypes import (
     Resolution,

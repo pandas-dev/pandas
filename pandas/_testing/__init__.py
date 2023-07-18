@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
@@ -50,8 +49,6 @@ from pandas import (
     bdate_range,
 )
 from pandas._testing._io import (
-    close,
-    network,
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
@@ -97,7 +94,6 @@ from pandas._testing.compat import (
 from pandas._testing.contexts import (
     decompress_file,
     ensure_clean,
-    ensure_safe_environment_variables,
     raises_chained_assignment_error,
     set_timezone,
     use_numexpr,
@@ -112,6 +108,8 @@ from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -1096,7 +1094,6 @@ __all__ = [
     "box_expected",
     "BYTES_DTYPES",
     "can_set_locale",
-    "close",
     "COMPLEX_DTYPES",
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
@@ -1104,7 +1101,6 @@ __all__ = [
     "EMPTY_STRING_PATTERN",
     "ENDIAN",
     "ensure_clean",
-    "ensure_safe_environment_variables",
     "equalContents",
     "external_error_raised",
     "FLOAT_EA_DTYPES",
@@ -1152,7 +1148,6 @@ __all__ = [
     "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
-    "network",
     "NP_NAT_OBJECTS",
     "NULL_OBJECTS",
     "OBJECT_DTYPES",

@@ -4,7 +4,9 @@
 pip
 versioneer[toml]
 cython==0.29.33
-pytest>=7.0.0
+meson[ninja]==1.0.1
+meson-python==0.13.1
+pytest>=7.3.2
 pytest-cov
 pytest-xdist>=2.2.0
 pytest-asyncio>=0.17.0
@@ -50,19 +52,15 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.3.0
-cpplint
 flake8==6.0.0
-isort>=5.2.1
-mypy==1.2
+mypy==1.4.1
+tokenize-rt
 pre-commit>=2.15.0
-pyupgrade
-ruff==0.0.215
 gitpython
 gitdb
 natsort
 numpydoc
-pydata-sphinx-theme<0.11
+pydata-sphinx-theme
 pytest-cython
 sphinx
 sphinx-design
@@ -88,4 +86,3 @@ pygments
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1
-setuptools>=61.0.0

@@ -438,6 +438,15 @@ class TestMerge:
         result = merge(right, left, on="key", how="right")
         tm.assert_frame_equal(result, left)
 
+    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+    def test_merge_empty_dataframe(self, index, how):
+        # GH52777
+        left = DataFrame([], index=index[:0])
+        right = left.copy()
+
+        result = left.join(right, how=how)
+        tm.assert_frame_equal(result, left)
+
     @pytest.mark.parametrize(
         "kwarg",
         [
@@ -679,8 +688,13 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        df = concat([df, d], ignore_index=True)
-        result = concat([df, d], ignore_index=True)
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        warn = FutureWarning
+        if using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df = concat([df, d], ignore_index=True)
+            result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -1460,7 +1474,9 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype)
 
-    @pytest.mark.parametrize("d1", [np.int64, np.int32, np.int16, np.int8, np.uint8])
+    @pytest.mark.parametrize(
+        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
+    )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, d1, d2):
         dtype1 = np.dtype(d1)
@@ -2772,4 +2788,44 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
     result = df2.merge(df)
     expected = df2.copy()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
+@pytest.mark.parametrize("tz", [None, "America/Chicago"])
+def test_merge_datetime_different_resolution(tz, how):
+    # https://github.com/pandas-dev/pandas/issues/53200
+    vals = [
+        pd.Timestamp(2023, 5, 12, tz=tz),
+        pd.Timestamp(2023, 5, 13, tz=tz),
+        pd.Timestamp(2023, 5, 14, tz=tz),
+    ]
+    df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
+    df1["t"] = df1["t"].dt.as_unit("ns")
+    df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
+    df2["t"] = df2["t"].dt.as_unit("s")
+
+    expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
+    expected["t"] = expected["t"].dt.as_unit("ns")
+    if how == "inner":
+        expected = expected.iloc[[1]].reset_index(drop=True)
+    elif how == "left":
+        expected = expected.iloc[[0, 1]]
+    elif how == "right":
+        expected = expected.iloc[[1, 2]].reset_index(drop=True)
+
+    result = df1.merge(df2, on="t", how=how)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_single_level():
+    # GH52331
+    df = DataFrame({"col": ["A", "B"]})
+    df2 = DataFrame(
+        data={"b": [100]},
+        index=MultiIndex.from_tuples([("A",), ("C",)], names=["col"]),
+    )
+    expected = DataFrame({"col": ["A", "B"], "b": [100, np.nan]})
+
+    result = df.merge(df2, left_on=["col"], right_index=True, how="left")
     tm.assert_frame_equal(result, expected)

@@ -71,6 +71,10 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__getitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
     ):
@@ -113,6 +117,10 @@ class TestFancy:
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__setitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)

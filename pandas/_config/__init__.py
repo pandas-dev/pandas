@@ -17,7 +17,7 @@ __all__ = [
     "using_copy_on_write",
 ]
 from pandas._config import config
-from pandas._config import dates  # pyright: ignore # noqa:F401
+from pandas._config import dates  # pyright: ignore[reportUnusedImport]  # noqa: F401
 from pandas._config.config import (
     _global_config,
     describe_option,

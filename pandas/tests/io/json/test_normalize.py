@@ -170,6 +170,20 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fields_list_type_normalize(self):
+        parse_metadata_fields_list_type = [
+            {"values": [1, 2, 3], "metadata": {"listdata": [1, 2]}}
+        ]
+        result = json_normalize(
+            parse_metadata_fields_list_type,
+            record_path=["values"],
+            meta=[["metadata", "listdata"]],
+        )
+        expected = DataFrame(
+            {0: [1, 2, 3], "metadata.listdata": [[1, 2], [1, 2], [1, 2]]}
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_empty_array(self):
         result = json_normalize([])
         expected = DataFrame()

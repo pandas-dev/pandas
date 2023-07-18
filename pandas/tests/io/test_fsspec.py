@@ -189,17 +189,24 @@ def test_fastparquet_options(fsspectest):
 
 @pytest.mark.single_cpu
 @td.skip_if_no("s3fs")
-def test_from_s3_csv(s3_resource, tips_file, s3so):
+def test_from_s3_csv(s3_public_bucket_with_data, tips_file, s3so):
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv", storage_options=s3so), read_csv(tips_file)
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv", storage_options=s3so
+        ),
+        read_csv(tips_file),
     )
     # the following are decompressed by pandas, not fsspec
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.gz", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.gz", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
     tm.assert_equal(
-        read_csv("s3://pandas-test/tips.csv.bz2", storage_options=s3so),
+        read_csv(
+            f"s3://{s3_public_bucket_with_data.name}/tips.csv.bz2", storage_options=s3so
+        ),
         read_csv(tips_file),
     )
 
@@ -207,9 +214,12 @@ def test_from_s3_csv(s3_resource, tips_file, s3so):
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("protocol", ["s3", "s3a", "s3n"])
 @td.skip_if_no("s3fs")
-def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
+def test_s3_protocols(s3_public_bucket_with_data, tips_file, protocol, s3so):
     tm.assert_equal(
-        read_csv(f"{protocol}://pandas-test/tips.csv", storage_options=s3so),
+        read_csv(
+            f"{protocol}://{s3_public_bucket_with_data.name}/tips.csv",
+            storage_options=s3so,
+        ),
         read_csv(tips_file),
     )
 
@@ -218,8 +228,8 @@ def test_s3_protocols(s3_resource, tips_file, protocol, s3so):
 @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) fastparquet
 @td.skip_if_no("s3fs")
 @td.skip_if_no("fastparquet")
-def test_s3_parquet(s3_resource, s3so, df1):
-    fn = "s3://pandas-test/test.parquet"
+def test_s3_parquet(s3_public_bucket, s3so, df1):
+    fn = f"s3://{s3_public_bucket.name}/test.parquet"
     df1.to_parquet(
         fn, index=False, engine="fastparquet", compression=None, storage_options=s3so
     )
@@ -237,18 +247,18 @@ def test_not_present_exception():
 @td.skip_if_no("pyarrow")
 def test_feather_options(fsspectest):
     df = DataFrame({"a": [0]})
-    df.to_feather("testmem://afile", storage_options={"test": "feather_write"})
+    df.to_feather("testmem://mockfile", storage_options={"test": "feather_write"})
     assert fsspectest.test[0] == "feather_write"
-    out = read_feather("testmem://afile", storage_options={"test": "feather_read"})
+    out = read_feather("testmem://mockfile", storage_options={"test": "feather_read"})
     assert fsspectest.test[0] == "feather_read"
     tm.assert_frame_equal(df, out)
 
 
 def test_pickle_options(fsspectest):
     df = DataFrame({"a": [0]})
-    df.to_pickle("testmem://afile", storage_options={"test": "pickle_write"})
+    df.to_pickle("testmem://mockfile", storage_options={"test": "pickle_write"})
     assert fsspectest.test[0] == "pickle_write"
-    out = read_pickle("testmem://afile", storage_options={"test": "pickle_read"})
+    out = read_pickle("testmem://mockfile", storage_options={"test": "pickle_read"})
     assert fsspectest.test[0] == "pickle_read"
     tm.assert_frame_equal(df, out)
 
@@ -256,13 +266,13 @@ def test_pickle_options(fsspectest):
 def test_json_options(fsspectest, compression):
     df = DataFrame({"a": [0]})
     df.to_json(
-        "testmem://afile",
+        "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_write"},
     )
     assert fsspectest.test[0] == "json_write"
     out = read_json(
-        "testmem://afile",
+        "testmem://mockfile",
         compression=compression,
         storage_options={"test": "json_read"},
     )
@@ -273,10 +283,10 @@ def test_json_options(fsspectest, compression):
 def test_stata_options(fsspectest):
     df = DataFrame({"a": [0]})
     df.to_stata(
-        "testmem://afile", storage_options={"test": "stata_write"}, write_index=False
+        "testmem://mockfile", storage_options={"test": "stata_write"}, write_index=False
     )
     assert fsspectest.test[0] == "stata_write"
-    out = read_stata("testmem://afile", storage_options={"test": "stata_read"})
+    out = read_stata("testmem://mockfile", storage_options={"test": "stata_read"})
     assert fsspectest.test[0] == "stata_read"
     tm.assert_frame_equal(df, out.astype("int64"))
 
@@ -284,9 +294,9 @@ def test_stata_options(fsspectest):
 @td.skip_if_no("tabulate")
 def test_markdown_options(fsspectest):
     df = DataFrame({"a": [0]})
-    df.to_markdown("testmem://afile", storage_options={"test": "md_write"})
+    df.to_markdown("testmem://mockfile", storage_options={"test": "md_write"})
     assert fsspectest.test[0] == "md_write"
-    assert fsspectest.cat("testmem://afile")
+    assert fsspectest.cat("testmem://mockfile")
 
 
 @td.skip_if_no("pyarrow")

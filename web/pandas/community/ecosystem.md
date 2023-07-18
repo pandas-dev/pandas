@@ -58,7 +58,7 @@ target values with cutoff times that can be used for supervised learning.
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
 At its core, STUMPY efficiently computes something called a
-`matrix profile <https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html>`__,
+[matrix profile](https://stumpy.readthedocs.io/en/latest/Tutorial_The_Matrix_Profile.html),
 which can be used for a wide variety of time series data mining tasks.
 
 ## Visualization
@@ -177,7 +177,7 @@ D-Tale integrates seamlessly with Jupyter notebooks, Python terminals, Kaggle
 
 ### [hvplot](https://hvplot.holoviz.org/index.html)
 
-hvPlot is a high-level plotting API for the PyData ecosystem built on `HoloViews <https://holoviews.org/>`__.
+hvPlot is a high-level plotting API for the PyData ecosystem built on [HoloViews](https://holoviews.org/).
 It can be loaded as a native pandas plotting backend via
 
 ```python
@@ -207,14 +207,14 @@ are utilized by Jupyter Notebook for displaying (abbreviated) HTML or
 LaTeX tables. LaTeX output is properly escaped. (Note: HTML tables may
 or may not be compatible with non-HTML Jupyter output formats.)
 
-See `Options and Settings <options>` and
-`Available Options <options.available>`
+See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
 
-### [quantopian/qgrid](https://github.com/quantopian/qgrid)
+### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
 
-qgrid is "an interactive grid for sorting and filtering DataFrames in
-IPython Notebook" built with SlickGrid.
+modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
+It is a fork of qgrid and is actively maintained by the modin project.
+modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -321,7 +321,14 @@ which support geometric operations. If your work entails maps and
 geographical coordinates, and you love pandas, you should take a close
 look at Geopandas.
 
-### [staricase](https://github.com/staircase-dev/staircase)
+### [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)
+
+gurobipy-pandas provides a convenient accessor API to connect pandas with
+gurobipy. It enables users to more easily and efficiently build mathematical
+optimization models from data stored in DataFrames and Series, and to read
+solutions back directly as pandas objects.
+
+### [staircase](https://github.com/staircase-dev/staircase)
 
 staircase is a data analysis package, built upon pandas and numpy, for modelling and
 manipulation of mathematical step functions. It provides a rich variety of arithmetic
@@ -348,7 +355,7 @@ Rigorously tested, it is a complete replacement for ``df.to_sql``.
 ### [Deltalake](https://pypi.org/project/deltalake)
 
 Deltalake python package lets you access tables stored in
-`Delta Lake <https://delta.io/>`__ natively in Python without the need to use Spark or
+[Delta Lake](https://delta.io/) natively in Python without the need to use Spark or
 JVM. It provides the ``delta_table.to_pyarrow_table().to_pandas()`` method to convert
 any Delta table into Pandas dataframe.
 
@@ -503,8 +510,8 @@ assumptions about your datasets and check that they're *actually* true.
 ## Extension data types
 
 Pandas provides an interface for defining
-`extension types <extending.extension-types>` to extend NumPy's type system. The following libraries
-implement that interface to provide types not found in NumPy or pandas,
+[extension types](https://pandas.pydata.org/docs/development/extending.html#extension-types) to extend NumPy's type system.
+The following librariesimplement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
@@ -518,6 +525,13 @@ DataFrame.
 Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
+
+### [Physipandas](https://github.com/mocquin/physipandas)
+
+Physipandas provides an extension for manipulating physical quantities
+ (like scalar and numpy.ndarray) in association with a physical unit
+ (like meter or joule) and additional features for integration of
+ `physipy` accessors with pandas Series and Dataframe.
 
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
@@ -533,7 +547,8 @@ Text Extensions for Pandas provides extension types to cover common data structu
 ## Accessors
 
 A directory of projects providing
-`extension accessors <extending.register-accessors>`. This is for users to discover new accessors and for library
+[extension accessors](https://pandas.pydata.org/docs/development/extending.html#registering-custom-accessors).
+This is for users to discover new accessors and for library
 authors to coordinate on the namespace.
 
   | Library                                                              | Accessor   | Classes               |
@@ -543,9 +558,11 @@ authors to coordinate on the namespace.
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
+  | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
   | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
 

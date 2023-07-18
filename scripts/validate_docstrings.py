@@ -217,6 +217,8 @@ class PandasDocstring(Validator):
                 "-m",
                 "flake8",
                 "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
+                "--max-line-length=88",
+                "--ignore=E203,E3,W503,W504,E402,E731",
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
@@ -367,7 +369,7 @@ def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
+        with open(api_doc_fname, encoding="utf-8") as f:
             yield from get_api_items(f)
 
 

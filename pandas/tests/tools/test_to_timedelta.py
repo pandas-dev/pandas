@@ -293,6 +293,11 @@ class TestTimedeltas:
         expected = Series([pd.Timedelta(1, unit="ns"), pd.NaT])
         tm.assert_series_equal(result, expected)
 
+    def test_to_timedelta_fraction(self):
+        result = to_timedelta(1.0 / 3, unit="h")
+        expected = pd.Timedelta("0 days 00:19:59.999999998")
+        assert result == expected
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425

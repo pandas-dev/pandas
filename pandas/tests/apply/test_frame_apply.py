@@ -37,6 +37,13 @@ def test_apply(float_frame):
         assert result.index is float_frame.index
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_args(float_frame, axis):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_categorical_func():
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
@@ -660,6 +667,50 @@ def test_infer_row_shape():
     assert result == (6, 2)
 
 
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, Series({"a": 1})),
+    ],
+)
+def test_dictlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"a": lambda x: x + 1},
+        {"a": lambda x: x.sum()},
+        {"a": ["sum", np.sum, lambda x: x.sum()]},
+        {"a": lambda x: 1},
+    ],
+)
+def test_dictlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
+
+
 def test_with_dictlike_columns():
     # GH 17602
     df = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
@@ -707,6 +758,58 @@ def test_with_dictlike_columns_with_infer():
     ]
     result = df.apply(lambda x: {"s": x["a"] + x["b"]}, axis=1, result_type="expand")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            [lambda x: x + 1, lambda x: 3],
+            "compat",
+            DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+        (
+            [lambda x: 2, lambda x: 3],
+            False,
+            DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
+        ),
+    ],
+)
+def test_listlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [lambda x: x + 1],
+        [lambda x: x.sum()],
+        ["sum", np.sum, lambda x: x.sum()],
+        [lambda x: x + 1, lambda x: 3],
+    ],
+)
+def test_listlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
 
 
 def test_with_listlike_columns():
@@ -1385,7 +1488,7 @@ def test_aggregation_func_column_order():
 def test_apply_getitem_axis_1():
     # GH 13427
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    result = df[["a", "a"]].apply(lambda x: x.iloc[0] + x.iloc[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 
@@ -1471,8 +1574,8 @@ def test_any_apply_keyword_non_zero_axis_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
@@ -1481,26 +1584,37 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+    # single func already takes the vectorized path
+    result = df.agg(foo1, 0, 3, c=4)
+    expected = df + 7
+    tm.assert_frame_equal(result, expected)
 
-    result = df.agg([foo1, foo2], 0, 3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg([foo1, foo2], 0, 3, c=4)
     expected = DataFrame(
-        [[8, 8], [9, 9], [10, 10]],
-        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
     )
+    tm.assert_frame_equal(result, expected)
+
+    # TODO: the result below is wrong, should be fixed (GH53325)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg({"x": foo1}, 0, 3, c=4)
+    expected = DataFrame([2, 3, 4], columns=["x"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_agg_std():
     df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
 
-    result = df.agg(np.std)
+    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
+        result = df.agg(np.std)
     expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
     tm.assert_series_equal(result, expected)
 
-    result = df.agg([np.std])
+    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
+        result = df.agg([np.std])
     expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
     tm.assert_frame_equal(result, expected)
 

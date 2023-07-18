@@ -7,6 +7,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._libs import parsers as libparsers
 from pandas.errors import DtypeWarning
 
 from pandas import (
@@ -162,14 +163,18 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
-def test_chunks_have_consistent_numerical_type(all_parsers):
+def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
+    # mainly an issue with the C parser
+    heuristic = 2**3
     parser = all_parsers
-    integers = [str(i) for i in range(499999)]
+    integers = [str(i) for i in range(heuristic - 1)]
     data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
 
     # Coercions should work without warnings.
     with tm.assert_produces_warning(None):
-        result = parser.read_csv(StringIO(data))
+        with monkeypatch.context() as m:
+            m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+            result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
     assert result.a.dtype == float
@@ -228,7 +233,7 @@ def test_read_csv_memory_growth_chunksize(all_parsers):
     parser = all_parsers
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for i in range(1000):
                 f.write(str(i) + "\n")
 

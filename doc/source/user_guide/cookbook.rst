@@ -530,7 +530,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    code_groups = df.groupby("code")
 
-   agg_n_sort_order = code_groups[["data"]].transform(sum).sort_values(by="data")
+   agg_n_sort_order = code_groups[["data"]].transform("sum").sort_values(by="data")
 
    sorted_df = df.loc[agg_n_sort_order.index]
 
@@ -546,10 +546,10 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 
    def MyCust(x):
        if len(x) > 2:
-           return x[1] * 1.234
+           return x.iloc[1] * 1.234
        return pd.NaT
 
-   mhc = {"Mean": np.mean, "Max": np.max, "Custom": MyCust}
+   mhc = {"Mean": "mean", "Max": "max", "Custom": MyCust}
    ts.resample("5min").apply(mhc)
    ts
 
@@ -685,7 +685,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        values=["Sales"],
        index=["Province"],
        columns=["City"],
-       aggfunc=np.sum,
+       aggfunc="sum",
        margins=True,
    )
    table.stack("City")
@@ -1488,3 +1488,31 @@ of the data values:
        {"height": [60, 70], "weight": [100, 140, 180], "sex": ["Male", "Female"]}
    )
    df
+
+Constant series
+---------------
+
+To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.
+However, a more performant approach, that does not count all unique values first, is:
+
+.. ipython:: python
+
+   v = s.to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
+
+This approach assumes that the series does not contain missing values.
+For the case that we would drop NA values, we can simply remove those values first:
+
+.. ipython:: python
+
+   v = s.dropna().to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
+
+If missing values are considered distinct from any other value, then one could use:
+
+.. ipython:: python
+
+   v = s.to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all() or not pd.notna(v).any()
+
+(Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)

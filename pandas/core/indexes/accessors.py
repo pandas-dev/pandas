@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     PeriodDtype,
@@ -35,7 +36,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,

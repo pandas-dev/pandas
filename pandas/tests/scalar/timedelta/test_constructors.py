@@ -295,7 +295,6 @@ def test_overflow_on_construction():
 @pytest.mark.parametrize(
     "val, unit",
     [
-        (3508, "M"),
         (15251, "W"),  # 1
         (106752, "D"),  # change from previous:
         (2562048, "h"),  # 0 hours
@@ -339,7 +338,6 @@ def test_construction_out_of_bounds_td64ns(val, unit):
 @pytest.mark.parametrize(
     "val, unit",
     [
-        (3508 * 10**9, "M"),
         (15251 * 10**9, "W"),
         (106752 * 10**9, "D"),
         (2562048 * 10**9, "h"),

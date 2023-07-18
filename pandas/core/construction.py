@@ -6,14 +6,15 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
@@ -31,6 +32,7 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -364,20 +366,20 @@ def array(
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if (
-        lib.is_np_dtype(dtype, "M")
-        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
-        # "Optional[dtype[Any]]"; expected "dtype[Any]"
-        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
-    ):
+    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    if (
-        lib.is_np_dtype(dtype, "m")
-        # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
-        # "Optional[dtype[Any]]"; expected "dtype[Any]"
-        and is_supported_unit(get_unit_from_dtype(dtype))  # type: ignore[arg-type]
-    ):
+    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"datetime64 and timedelta64 dtype resolutions other than "
+            r"'s', 'ms', 'us', and 'ns' are deprecated. "
+            r"In future releases passing unsupported resolutions will "
+            r"raise an exception.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
 
@@ -502,9 +504,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
-        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
+        data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:

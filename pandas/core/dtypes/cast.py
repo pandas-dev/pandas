@@ -10,8 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
-    Sized,
     TypeVar,
     cast,
     overload,
@@ -58,6 +56,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype as pandas_dtype_func,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
@@ -78,7 +77,14 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.io._util import _arrow_dtype_mapping
+
 if TYPE_CHECKING:
+    from collections.abc import (
+        Sequence,
+        Sized,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -561,9 +567,16 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         If fill_value is a non-scalar and dtype is not object.
     """
     orig = fill_value
+    orig_is_nat = False
     if checknull(fill_value):
         # https://github.com/pandas-dev/pandas/pull/39692#issuecomment-1441051740
         #  avoid cache misses with NaN/NaT values that are not singletons
+        if fill_value is not NA:
+            try:
+                orig_is_nat = np.isnat(fill_value)
+            except TypeError:
+                pass
+
         fill_value = _canonical_nans.get(type(fill_value), fill_value)
 
     # for performance, we are using a cached version of the actual implementation
@@ -579,13 +592,15 @@ def maybe_promote(dtype: np.dtype, fill_value=np.nan):
         # if fill_value is not hashable (required for caching)
         dtype, fill_value = _maybe_promote(dtype, fill_value)
 
-    if dtype == _dtype_obj and orig is not None:
-        # GH#51592 restore our potentially non-canonical fill_value
+    if (dtype == _dtype_obj and orig is not None) or (
+        orig_is_nat and np.datetime_data(orig)[0] != "ns"
+    ):
+        # GH#51592,53497 restore our potentially non-canonical fill_value
         fill_value = orig
     return dtype, fill_value
 
 
-@functools.lru_cache(maxsize=128)
+@functools.lru_cache
 def _maybe_promote_cached(dtype, fill_value, fill_value_type):
     # The cached version of _maybe_promote below
     # This also use fill_value_type as (unused) argument to use this in the
@@ -644,7 +659,18 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
         if inferred == dtype:
             return dtype, fv
 
-        return np.dtype("object"), fill_value
+        elif inferred.kind == "m":
+            # different unit, e.g. passed np.timedelta64(24, "h") with dtype=m8[ns]
+            # see if we can losslessly cast it to our dtype
+            unit = np.datetime_data(dtype)[0]
+            try:
+                td = Timedelta(fill_value).as_unit(unit, round_ok=False)
+            except OutOfBoundsTimedelta:
+                return _dtype_obj, fill_value
+            else:
+                return dtype, td.asm8
+
+        return _dtype_obj, fill_value
 
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -774,8 +800,6 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
             val = Timestamp(val)
-            if val is not NaT:
-                val = val.as_unit("ns")
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
@@ -784,7 +808,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
         else:
-            dtype = DatetimeTZDtype(unit="ns", tz=val.tz)
+            dtype = DatetimeTZDtype(unit=val.unit, tz=val.tz)
 
     elif isinstance(val, (np.timedelta64, dt.timedelta)):
         try:
@@ -792,8 +816,11 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            dtype = np.dtype("m8[ns]")
-            val = np.timedelta64(val.value, "ns")
+            if val is NaT:
+                val = np.timedelta64("NaT", "ns")
+            else:
+                val = val.asm8
+            dtype = val.dtype
 
     elif is_bool(val):
         dtype = np.dtype(np.bool_)
@@ -977,11 +1004,16 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "numpy_nullable"
-        Nullable dtype implementation to use.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        * "numpy_nullable" returns numpy-backed nullable types
-        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1070,7 +1102,6 @@ def convert_dtypes(
 
     if dtype_backend == "pyarrow":
         from pandas.core.arrays.arrow.array import to_pyarrow_type
-        from pandas.core.arrays.arrow.dtype import ArrowDtype
         from pandas.core.arrays.string_ import StringDtype
 
         assert not isinstance(inferred_dtype, str)
@@ -1085,7 +1116,9 @@ def convert_dtypes(
                 and not isinstance(inferred_dtype, StringDtype)
             )
         ):
-            if isinstance(inferred_dtype, PandasExtensionDtype):
+            if isinstance(inferred_dtype, PandasExtensionDtype) and not isinstance(
+                inferred_dtype, DatetimeTZDtype
+            ):
                 base_dtype = inferred_dtype.base
             elif isinstance(inferred_dtype, (BaseMaskedDtype, ArrowDtype)):
                 base_dtype = inferred_dtype.numpy_dtype
@@ -1096,6 +1129,9 @@ def convert_dtypes(
             pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
+    elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
+        # GH 53648
+        inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
 
     # error: Incompatible return value type (got "Union[str, Union[dtype[Any],
     # ExtensionDtype]]", expected "Union[dtype[Any], ExtensionDtype]")
@@ -1200,7 +1236,7 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
     Traceback (most recent call last):
         ...
     TypeError: dtype=timedelta64[ps] is not supported. Supported resolutions are 's', 'ms', 'us', and 'ns'
-    """  # noqa:E501
+    """  # noqa: E501
     msg = (
         f"The '{dtype.name}' dtype has no unit. "
         f"Please pass in '{dtype.name}[ns]' instead."
@@ -1230,17 +1266,17 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
 
 # TODO: other value-dependent functions to standardize here include
 #  Index._find_common_type_compat
-def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
+def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
     """
-    Find the type/dtype for a the result of an operation between these objects.
+    Find the type/dtype for the result of an operation between objects.
 
-    This is similar to find_common_type, but looks at the objects instead
-    of just their dtypes. This can be useful in particular when one of the
-    objects does not have a `dtype`.
+    This is similar to find_common_type, but looks at the right object instead
+    of just its dtype. This can be useful in particular when the right
+    object does not have a `dtype`.
 
     Parameters
     ----------
-    left : np.ndarray or ExtensionArray
+    left_dtype : np.dtype or ExtensionDtype
     right : Any
 
     Returns
@@ -1255,26 +1291,24 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     new_dtype: DtypeObj
 
     if (
-        isinstance(left, np.ndarray)
-        and left.dtype.kind in "iuc"
+        isinstance(left_dtype, np.dtype)
+        and left_dtype.kind in "iuc"
         and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
         #  which will make us upcast too far.
-        if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
+        if lib.is_float(right) and right.is_integer() and left_dtype.kind != "f":
             right = int(right)
+        new_dtype = np.result_type(left_dtype, right)
 
-        new_dtype = np.result_type(left, right)
-
-    elif is_valid_na_for_dtype(right, left.dtype):
+    elif is_valid_na_for_dtype(right, left_dtype):
         # e.g. IntervalDtype[int] and None/np.nan
-        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+        new_dtype = ensure_dtype_can_hold_na(left_dtype)
 
     else:
         dtype, _ = infer_dtype_from(right)
-
-        new_dtype = find_common_type([left.dtype, dtype])
+        new_dtype = find_common_type([left_dtype, dtype])
 
     return new_dtype
 
@@ -1297,7 +1331,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if isinstance(dtype, np.dtype) and dtype.kind in "iu":
+    if lib.is_np_dtype(dtype, "iu"):
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1314,6 +1348,32 @@ def common_dtype_categorical_compat(
                     dtype = np.dtype(np.float64)
                     break
     return dtype
+
+
+def np_find_common_type(*dtypes: np.dtype) -> np.dtype:
+    """
+    np.find_common_type implementation pre-1.25 deprecation using np.result_type
+    https://github.com/pandas-dev/pandas/pull/49569#issuecomment-1308300065
+
+    Parameters
+    ----------
+    dtypes : np.dtypes
+
+    Returns
+    -------
+    np.dtype
+    """
+    try:
+        common_dtype = np.result_type(*dtypes)
+        if common_dtype.kind in "mMSU":
+            # NumPy promotion currently (1.25) misbehaves for for times and strings,
+            # so fall back to object (find_common_dtype did unless there
+            # was only one dtype)
+            common_dtype = np.dtype("O")
+
+    except TypeError:
+        common_dtype = np.dtype("O")
+    return common_dtype
 
 
 @overload
@@ -1383,7 +1443,7 @@ def find_common_type(types):
             if t.kind in "iufc":
                 return np.dtype("object")
 
-    return np.find_common_type(types, [])
+    return np_find_common_type(*types)
 
 
 def construct_2d_arraylike_from_scalar(
@@ -1448,7 +1508,7 @@ def construct_1d_arraylike_from_scalar(
         if length and dtype.kind in "iu" and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
-        elif isinstance(dtype, np.dtype) and dtype.kind in "US":
+        elif lib.is_np_dtype(dtype, "US"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
             dtype = np.dtype("object")

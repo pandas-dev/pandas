@@ -4,6 +4,12 @@ from collections import (
     abc,
     defaultdict,
 )
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import csv
 from io import StringIO
 import re
@@ -12,12 +18,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     DefaultDict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     cast,
 )
 
@@ -207,7 +208,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(List[str], lines)
+                lines_str = cast(list[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -365,6 +366,17 @@ class PythonParser(ParserBase):
             clean_dtypes,
         )
 
+    @cache_readonly
+    def _have_mi_columns(self) -> bool:
+        if self.header is None:
+            return False
+
+        header = self.header
+        if isinstance(header, (list, tuple, np.ndarray)):
+            return len(header) > 1
+        else:
+            return False
+
     def _infer_columns(
         self,
     ) -> tuple[list[list[Scalar | None]], int, set[Scalar | None]]:
@@ -372,18 +384,16 @@ class PythonParser(ParserBase):
         num_original_columns = 0
         clear_buffer = True
         unnamed_cols: set[Scalar | None] = set()
-        self._header_line = None
 
         if self.header is not None:
             header = self.header
+            have_mi_columns = self._have_mi_columns
 
             if isinstance(header, (list, tuple, np.ndarray)):
-                have_mi_columns = len(header) > 1
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
                     header = list(header) + [header[-1] + 1]
             else:
-                have_mi_columns = False
                 header = [header]
 
             columns: list[list[Scalar | None]] = []
@@ -531,27 +541,14 @@ class PythonParser(ParserBase):
                     columns, columns[0], num_original_columns
                 )
         else:
-            try:
-                line = self._buffered_line()
-
-            except StopIteration as err:
-                if not names:
-                    raise EmptyDataError("No columns to parse from file") from err
-
-                line = names[:]
-
-            # Store line, otherwise it is lost for guessing the index
-            self._header_line = line
-            ncols = len(line)
+            ncols = len(self._header_line)
             num_original_columns = ncols
 
             if not names:
                 columns = [list(range(ncols))]
-                columns = self._handle_usecols(
-                    columns, columns[0], num_original_columns
-                )
-            elif self.usecols is None or len(names) >= num_original_columns:
-                columns = self._handle_usecols([names], names, num_original_columns)
+                columns = self._handle_usecols(columns, columns[0], ncols)
+            elif self.usecols is None or len(names) >= ncols:
+                columns = self._handle_usecols([names], names, ncols)
                 num_original_columns = len(names)
             elif not callable(self.usecols) and len(names) != len(self.usecols):
                 raise ValueError(
@@ -560,11 +557,25 @@ class PythonParser(ParserBase):
                 )
             else:
                 # Ignore output but set used columns.
-                self._handle_usecols([names], names, ncols)
                 columns = [names]
-                num_original_columns = ncols
+                self._handle_usecols(columns, columns[0], ncols)
 
         return columns, num_original_columns, unnamed_cols
+
+    @cache_readonly
+    def _header_line(self):
+        # Store line for reuse in _get_index_name
+        if self.header is not None:
+            return None
+
+        try:
+            line = self._buffered_line()
+        except StopIteration as err:
+            if not self.names:
+                raise EmptyDataError("No columns to parse from file") from err
+
+            line = self.names[:]
+        return line
 
     def _handle_usecols(
         self,

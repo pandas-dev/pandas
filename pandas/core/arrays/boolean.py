@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
         type_t,
     )
@@ -296,6 +297,12 @@ class BooleanArray(BaseMaskedArray):
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
+    @classmethod
+    def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
+        result = super()._simple_new(values, mask)
+        result._dtype = BooleanDtype()
+        return result
+
     def __init__(
         self, values: np.ndarray, mask: np.ndarray, copy: bool = False
     ) -> None:
@@ -390,7 +397,7 @@ class BooleanArray(BaseMaskedArray):
         if name in ("cummin", "cummax"):
             op = getattr(masked_accumulations, name)
             data, mask = op(data, mask, skipna=skipna, **kwargs)
-            return type(self)(data, mask, copy=False)
+            return self._simple_new(data, mask)
         else:
             from pandas.core.arrays import IntegerArray
 

@@ -454,7 +454,7 @@ class TestDataFrameIndexing:
 
         # set existing column
         dm["A"] = "bar"
-        assert "bar" == dm["A"][0]
+        assert "bar" == dm["A"].iloc[0]
 
         dm = DataFrame(index=np.arange(3))
         dm["A"] = 1
@@ -525,7 +525,7 @@ class TestDataFrameIndexing:
         df = DataFrame(np.random.randn(10, 5))
 
         # this is OK
-        result = df.iloc[:8:2]  # noqa
+        df.iloc[:8:2]
         df.iloc[:8:2] = np.nan
         assert isna(df.iloc[:8:2]).values.all()
 
@@ -629,7 +629,7 @@ class TestDataFrameIndexing:
 
         # individual value
         for j, col in enumerate(f.columns):
-            ts = f[col]  # noqa
+            f[col]
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
                 val = np.random.randn()
@@ -819,7 +819,7 @@ class TestDataFrameIndexing:
         # check our dtypes
         result = df.dtypes
         expected = Series(
-            [np.dtype("float64")] * 3 + [np.dtype("datetime64[ns]")],
+            [np.dtype("float64")] * 3 + [np.dtype("datetime64[s]")],
             index=["foo", "bar", "baz", "timestamp"],
         )
         tm.assert_series_equal(result, expected)

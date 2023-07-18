@@ -9,7 +9,6 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
     Literal,
 )
 
@@ -88,6 +87,8 @@ from pandas.core.indexes.timedeltas import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -222,7 +223,7 @@ class IntervalIndex(ExtensionIndex):
         closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
         verify_integrity: bool = True,
     ) -> IntervalIndex:
         name = maybe_extract_name(name, data, cls)
@@ -263,7 +264,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         breaks,
         closed: IntervalClosedType | None = "right",
-        name: Hashable = None,
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
@@ -299,7 +300,7 @@ class IntervalIndex(ExtensionIndex):
         left,
         right,
         closed: IntervalClosedType = "right",
-        name: Hashable = None,
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
@@ -334,7 +335,7 @@ class IntervalIndex(ExtensionIndex):
         cls,
         data,
         closed: IntervalClosedType = "right",
-        name: Hashable = None,
+        name: Hashable | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
@@ -983,7 +984,7 @@ def interval_range(
     end=None,
     periods=None,
     freq=None,
-    name: Hashable = None,
+    name: Hashable | None = None,
     closed: IntervalClosedType = "right",
 ) -> IntervalIndex:
     """

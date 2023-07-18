@@ -17,10 +17,13 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
-test_frame = DataFrame(
-    {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
-    index=date_range("1/1/2000", freq="s", periods=40),
-)
+
+@pytest.fixture
+def test_frame():
+    return DataFrame(
+        {"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)},
+        index=date_range("1/1/2000", freq="s", periods=40),
+    )
 
 
 @async_mark()
@@ -85,7 +88,7 @@ def test_deferred_with_groupby():
     tm.assert_frame_equal(result, expected)
 
 
-def test_getitem():
+def test_getitem(test_frame):
     g = test_frame.groupby("A")
 
     expected = g.B.apply(lambda x: x.resample("2s").mean())
@@ -217,7 +220,7 @@ def test_nearest():
         "ohlc",
     ],
 )
-def test_methods(f):
+def test_methods(f, test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -226,7 +229,7 @@ def test_methods(f):
     tm.assert_equal(result, expected)
 
 
-def test_methods_nunique():
+def test_methods_nunique(test_frame):
     # series only
     g = test_frame.groupby("A")
     r = g.resample("2s")
@@ -236,7 +239,7 @@ def test_methods_nunique():
 
 
 @pytest.mark.parametrize("f", ["std", "var"])
-def test_methods_std_var(f):
+def test_methods_std_var(f, test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
     result = getattr(r, f)(ddof=1)
@@ -244,7 +247,7 @@ def test_methods_std_var(f):
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply():
+def test_apply(test_frame):
     g = test_frame.groupby("A")
     r = g.resample("2s")
 
@@ -342,7 +345,7 @@ def test_resample_groupby_with_label():
     tm.assert_frame_equal(result, expected)
 
 
-def test_consistency_with_window():
+def test_consistency_with_window(test_frame):
     # consistent return values with window
     df = test_frame
     expected = Index([1, 2, 3], name="A")
@@ -659,3 +662,29 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     )
     with pytest.raises(KeyError, match="Columns not found"):
         df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+
+
+@pytest.mark.parametrize("kind", ["datetime", "period"])
+def test_groupby_resample_kind(kind):
+    # GH 24103
+    df = DataFrame(
+        {
+            "datetime": pd.to_datetime(
+                ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"]
+            ),
+            "group": ["A", "B", "A", "B"],
+            "value": [1, 2, 3, 4],
+        }
+    )
+    df = df.set_index("datetime")
+    result = df.groupby("group")["value"].resample("D", kind=kind).last()
+
+    dt_level = pd.DatetimeIndex(["2018-11-01", "2018-11-02"])
+    if kind == "period":
+        dt_level = dt_level.to_period(freq="D")
+    expected_index = pd.MultiIndex.from_product(
+        [["A", "B"], dt_level],
+        names=["group", "datetime"],
+    )
+    expected = Series([1, 3, 2, 4], index=expected_index, name="value")
+    tm.assert_series_equal(result, expected)

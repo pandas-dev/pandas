@@ -27,8 +27,6 @@ from typing import (
     AnyStr,
     Callable,
     Final,
-    Hashable,
-    Sequence,
     cast,
 )
 import warnings
@@ -75,6 +73,10 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from types import TracebackType
     from typing import Literal
 
@@ -608,9 +610,10 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
             # Replace with NumPy-compatible column
             data[col] = data[col].astype(data[col].dtype.numpy_dtype)
         dtype = data[col].dtype
+        empty_df = data.shape[0] == 0
         for c_data in conversion_data:
             if dtype == c_data[0]:
-                if data[col].max() <= np.iinfo(c_data[1]).max:
+                if empty_df or data[col].max() <= np.iinfo(c_data[1]).max:
                     dtype = c_data[1]
                 else:
                     dtype = c_data[2]
@@ -621,14 +624,17 @@ def _cast_to_stata_types(data: DataFrame) -> DataFrame:
                 data[col] = data[col].astype(dtype)
 
         # Check values and upcast if necessary
-        if dtype == np.int8:
+
+        if dtype == np.int8 and not empty_df:
             if data[col].max() > 100 or data[col].min() < -127:
                 data[col] = data[col].astype(np.int16)
-        elif dtype == np.int16:
+        elif dtype == np.int16 and not empty_df:
             if data[col].max() > 32740 or data[col].min() < -32767:
                 data[col] = data[col].astype(np.int32)
         elif dtype == np.int64:
-            if data[col].max() <= 2147483620 and data[col].min() >= -2147483647:
+            if empty_df or (
+                data[col].max() <= 2147483620 and data[col].min() >= -2147483647
+            ):
                 data[col] = data[col].astype(np.int32)
             else:
                 data[col] = data[col].astype(np.float64)
@@ -1129,7 +1135,7 @@ class StataReader(StataParser, abc.Iterator):
         order_categoricals: bool = True,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         super().__init__()
         self._col_sizes: list[int] = []
@@ -1700,13 +1706,6 @@ the string values returned are correct."""
         order_categoricals: bool | None = None,
     ) -> DataFrame:
         self._ensure_open()
-        # Handle empty file or chunk.  If reading incrementally raise
-        # StopIteration.  If reading the whole thing return an empty
-        # data frame.
-        if (self._nobs == 0) and (nrows is None):
-            self._can_read_value_labels = True
-            self._data_read = True
-            return DataFrame(columns=self._varlist)
 
         # Handle options
         if convert_dates is None:
@@ -1723,9 +1722,25 @@ the string values returned are correct."""
             order_categoricals = self._order_categoricals
         if index_col is None:
             index_col = self._index_col
-
         if nrows is None:
             nrows = self._nobs
+
+        # Handle empty file or chunk.  If reading incrementally raise
+        # StopIteration.  If reading the whole thing return an empty
+        # data frame.
+        if (self._nobs == 0) and nrows == 0:
+            self._can_read_value_labels = True
+            self._data_read = True
+            data = DataFrame(columns=self._varlist)
+            # Apply dtypes correctly
+            for i, col in enumerate(data.columns):
+                dt = self._dtyplist[i]
+                if isinstance(dt, np.dtype):
+                    if dt.char != "S":
+                        data[col] = data[col].astype(dt)
+            if columns is not None:
+                data = self._do_select_columns(data, columns)
+            return data
 
         if (self._format_version >= 117) and (not self._value_labels_read):
             self._can_read_value_labels = True
@@ -2067,7 +2082,7 @@ def read_stata(
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> DataFrame | StataReader:
     reader = StataReader(
         filepath_or_buffer,
@@ -2327,7 +2342,7 @@ class StataWriter(StataParser):
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
@@ -2624,7 +2639,7 @@ class StataWriter(StataParser):
         )
         for key in self._convert_dates:
             new_type = _convert_datetime_to_stata_type(self._convert_dates[key])
-            dtypes[key] = np.dtype(new_type)
+            dtypes.iloc[key] = np.dtype(new_type)
 
         # Verify object arrays are strings and encode to bytes
         self._encode_strings()
@@ -3254,7 +3269,7 @@ class StataWriter117(StataWriter):
         variable_labels: dict[Hashable, str] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
@@ -3646,7 +3661,7 @@ class StataWriterUTF8(StataWriter117):
         convert_strl: Sequence[Hashable] | None = None,
         version: int | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
