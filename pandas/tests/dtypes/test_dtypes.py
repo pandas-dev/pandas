@@ -567,6 +567,7 @@ class TestPeriodDtype(Base):
         assert not per_d2.freq.normalize
 
     def test_dont_keep_ref_after_del(self):
+        # GH 54184
         dtype = PeriodDtype("D")
         ref = weakref.ref(dtype)
         del dtype
@@ -840,6 +841,7 @@ class TestIntervalDtype(Base):
             assert not is_interval_dtype(np.float64)
 
     def test_caching(self):
+        # GH 54184: Caching not shown to improve performance
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
         assert len(IntervalDtype._cache_dtypes) == 0
@@ -864,6 +866,7 @@ class TestIntervalDtype(Base):
         tm.round_trip_pickle(dtype)
 
     def test_dont_keep_ref_after_del(self):
+        # GH 54184
         dtype = IntervalDtype("int64", "right")
         ref = weakref.ref(dtype)
         del dtype
