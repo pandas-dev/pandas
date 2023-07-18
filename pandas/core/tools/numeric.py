@@ -22,13 +22,13 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
 )
 
 from pandas.core.arrays import BaseMaskedArray
-from pandas.core.arrays.arrow import ArrowDtype
 from pandas.core.arrays.string_ import StringDtype
 
 if TYPE_CHECKING:
@@ -88,13 +88,14 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 

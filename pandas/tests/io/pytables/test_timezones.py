@@ -50,7 +50,7 @@ def test_append_with_timezones(setup_path, gettz):
     df_est = DataFrame(
         {
             "A": [
-                Timestamp("20130102 2:00:00", tz=gettz("US/Eastern"))
+                Timestamp("20130102 2:00:00", tz=gettz("US/Eastern")).as_unit("ns")
                 + timedelta(hours=1) * i
                 for i in range(5)
             ]
@@ -61,24 +61,24 @@ def test_append_with_timezones(setup_path, gettz):
     #  of DST transition
     df_crosses_dst = DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-            "B": Timestamp("20130603", tz=gettz("US/Eastern")),
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": Timestamp("20130603", tz=gettz("US/Eastern")).as_unit("ns"),
         },
         index=range(5),
     )
 
     df_mixed_tz = DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-            "B": Timestamp("20130102", tz=gettz("EET")),
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": Timestamp("20130102", tz=gettz("EET")).as_unit("ns"),
         },
         index=range(5),
     )
 
     df_different_tz = DataFrame(
         {
-            "A": Timestamp("20130102", tz=gettz("US/Eastern")),
-            "B": Timestamp("20130102", tz=gettz("CET")),
+            "A": Timestamp("20130102", tz=gettz("US/Eastern")).as_unit("ns"),
+            "B": Timestamp("20130102", tz=gettz("CET")).as_unit("ns"),
         },
         index=range(5),
     )
@@ -303,8 +303,8 @@ def test_legacy_datetimetz_object(datapath):
     # 8260
     expected = DataFrame(
         {
-            "A": Timestamp("20130102", tz="US/Eastern"),
-            "B": Timestamp("20130603", tz="CET"),
+            "A": Timestamp("20130102", tz="US/Eastern").as_unit("ns"),
+            "B": Timestamp("20130603", tz="CET").as_unit("ns"),
         },
         index=range(5),
     )

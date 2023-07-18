@@ -147,6 +147,56 @@ None
 Methods
 -------
 None
+
+Examples
+--------
+For Int8Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.Int8Dtype())
+>>> ser.dtype
+Int8Dtype()
+
+For Int16Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.Int16Dtype())
+>>> ser.dtype
+Int16Dtype()
+
+For Int32Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.Int32Dtype())
+>>> ser.dtype
+Int32Dtype()
+
+For Int64Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.Int64Dtype())
+>>> ser.dtype
+Int64Dtype()
+
+For UInt8Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.UInt8Dtype())
+>>> ser.dtype
+UInt8Dtype()
+
+For UInt16Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.UInt16Dtype())
+>>> ser.dtype
+UInt16Dtype()
+
+For UInt32Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.UInt32Dtype())
+>>> ser.dtype
+UInt32Dtype()
+
+For UInt64Dtype:
+
+>>> ser = pd.Series([2, pd.NA], dtype=pd.UInt64Dtype())
+>>> ser.dtype
+UInt64Dtype()
 """
 
 # create the Dtype

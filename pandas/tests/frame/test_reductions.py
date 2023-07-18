@@ -6,7 +6,10 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -28,6 +31,8 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+
+is_windows_or_is32 = is_platform_windows() or not IS64
 
 
 def assert_stat_op_calc(
@@ -331,11 +336,14 @@ class TestDataFrameAnalytics:
             DataFrame({0: [np.nan, 2], 1: [np.nan, 3], 2: [np.nan, 4]}, dtype=object),
         ],
     )
+    @pytest.mark.filterwarnings("ignore:Mismatched null-like values:FutureWarning")
     def test_stat_operators_attempt_obj_array(self, method, df, axis):
         # GH#676
         assert df.values.dtype == np.object_
         result = getattr(df, method)(axis=axis)
         expected = getattr(df.astype("f8"), method)(axis=axis).astype(object)
+        if axis in [1, "columns"] and method in ["min", "max"]:
+            expected[expected.isna()] = None
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["mean", "std", "var", "skew", "kurt", "sem"])
@@ -611,16 +619,16 @@ class TestDataFrameAnalytics:
 
         # min
         result = diffs.min()
-        assert result[0] == diffs.loc[0, "A"]
-        assert result[1] == diffs.loc[0, "B"]
+        assert result.iloc[0] == diffs.loc[0, "A"]
+        assert result.iloc[1] == diffs.loc[0, "B"]
 
         result = diffs.min(axis=1)
         assert (result == diffs.loc[0, "B"]).all()
 
         # max
         result = diffs.max()
-        assert result[0] == diffs.loc[2, "A"]
-        assert result[1] == diffs.loc[2, "B"]
+        assert result.iloc[0] == diffs.loc[2, "A"]
+        assert result.iloc[1] == diffs.loc[2, "B"]
 
         result = diffs.max(axis=1)
         assert (result == diffs["A"]).all()
@@ -932,7 +940,7 @@ class TestDataFrameAnalytics:
         arr = np.random.randint(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
-        expected = DataFrame(arr).mean()
+        expected = DataFrame(arr).mean().astype("Float64")
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
@@ -964,16 +972,27 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmin_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmin(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmin(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmin(numeric_only=numeric_only)
             expected = Series([2, 1], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1, 0], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
@@ -992,16 +1011,27 @@ class TestDataFrameAnalytics:
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_idxmax_empty(self, index, skipna, axis):
+        # GH53265
+        if axis == 0:
+            frame = DataFrame(index=index)
+        else:
+            frame = DataFrame(columns=index)
+
+        result = frame.idxmax(axis=axis, skipna=skipna)
+        expected = Series(dtype=index.dtype)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmax(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmax(numeric_only=numeric_only)
             expected = Series([1, 0], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([1, 0, 1], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
@@ -1641,6 +1671,101 @@ class TestNuisanceColumns:
             getattr(np, method)(df, axis=0)
 
 
+class TestEmptyDataFrameReductions:
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_value, exp_dtype",
+        [
+            ("sum", np.int8, 0, np.int64),
+            ("prod", np.int8, 1, np.int_),
+            ("sum", np.int64, 0, np.int64),
+            ("prod", np.int64, 1, np.int64),
+            ("sum", np.uint8, 0, np.uint64),
+            ("prod", np.uint8, 1, np.uint),
+            ("sum", np.uint64, 0, np.uint64),
+            ("prod", np.uint64, 1, np.uint64),
+            ("sum", np.float32, 0, np.float32),
+            ("prod", np.float32, 1, np.float32),
+            ("sum", np.float64, 0, np.float64),
+        ],
+    )
+    def test_df_empty_min_count_0(self, opname, dtype, exp_value, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=0)
+
+        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_dtype",
+        [
+            ("sum", np.int8, np.float64),
+            ("prod", np.int8, np.float64),
+            ("sum", np.int64, np.float64),
+            ("prod", np.int64, np.float64),
+            ("sum", np.uint8, np.float64),
+            ("prod", np.uint8, np.float64),
+            ("sum", np.uint64, np.float64),
+            ("prod", np.uint64, np.float64),
+            ("sum", np.float32, np.float32),
+            ("prod", np.float32, np.float32),
+            ("sum", np.float64, np.float64),
+        ],
+    )
+    def test_df_empty_min_count_1(self, opname, dtype, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=1)
+
+        expected = Series([np.nan, np.nan], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_value, exp_dtype",
+        [
+            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int64", 0, "Int64"),
+            ("prod", "Int64", 1, "Int64"),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt64", 0, "UInt64"),
+            ("prod", "UInt64", 1, "UInt64"),
+            ("sum", "Float32", 0, "Float32"),
+            ("prod", "Float32", 1, "Float32"),
+            ("sum", "Float64", 0, "Float64"),
+        ],
+    )
+    def test_df_empty_nullable_min_count_0(self, opname, dtype, exp_value, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=0)
+
+        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_dtype",
+        [
+            ("sum", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int64", "Int64"),
+            ("prod", "Int64", "Int64"),
+            ("sum", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt64", "UInt64"),
+            ("prod", "UInt64", "UInt64"),
+            ("sum", "Float32", "Float32"),
+            ("prod", "Float32", "Float32"),
+            ("sum", "Float64", "Float64"),
+        ],
+    )
+    def test_df_empty_nullable_min_count_1(self, opname, dtype, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=1)
+
+        expected = Series([pd.NA, pd.NA], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+
 def test_sum_timedelta64_skipna_false(using_array_manager, request):
     # GH#17235
     if using_array_manager:
@@ -1693,7 +1818,9 @@ def test_minmax_extensionarray(method, numeric_only):
     df = DataFrame({"Int64": ser})
     result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
-        [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
+        [getattr(int64_info, method)],
+        dtype="Int64",
+        index=Index(["Int64"], dtype="object"),
     )
     tm.assert_series_equal(result, expected)
 

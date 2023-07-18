@@ -7,10 +7,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -51,6 +48,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -532,7 +535,7 @@ class _Concatenator:
                 keys = type(keys).from_tuples(clean_keys, names=keys.names)
             else:
                 name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name)
+                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
 
         if len(objs) == 0:
             raise ValueError("All objects passed were None")
@@ -640,7 +643,8 @@ class _Concatenator:
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
 
-                result = cons(mgr, name=name, fastpath=True)
+                result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
+                result._name = name
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -681,8 +685,8 @@ class _Concatenator:
             if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
-            cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
+            return out.__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:
@@ -806,15 +810,19 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         for hlevel, level in zip(zipped, levels):
             to_concat = []
-            for key, index in zip(hlevel, indexes):
-                # Find matching codes, include matching nan values as equal.
-                mask = (isna(level) & isna(key)) | (level == key)
-                if not mask.any():
-                    raise ValueError(f"Key {key} not in level {level}")
-                i = np.nonzero(mask)[0][0]
+            if isinstance(hlevel, Index) and hlevel.equals(level):
+                lens = [len(idx) for idx in indexes]
+                codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
+            else:
+                for key, index in zip(hlevel, indexes):
+                    # Find matching codes, include matching nan values as equal.
+                    mask = (isna(level) & isna(key)) | (level == key)
+                    if not mask.any():
+                        raise ValueError(f"Key {key} not in level {level}")
+                    i = np.nonzero(mask)[0][0]
 
-                to_concat.append(np.repeat(i, len(index)))
-            codes_list.append(np.concatenate(to_concat))
+                    to_concat.append(np.repeat(i, len(index)))
+                codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 

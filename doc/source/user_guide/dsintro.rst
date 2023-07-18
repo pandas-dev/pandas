@@ -102,15 +102,15 @@ However, operations such as slicing will also slice the index.
 
 .. ipython:: python
 
-    s[0]
-    s[:3]
+    s.iloc[0]
+    s.iloc[:3]
     s[s > s.median()]
-    s[[4, 3, 1]]
+    s.iloc[[4, 3, 1]]
     np.exp(s)
 
 .. note::
 
-   We will address array-based indexing like ``s[[4, 3, 1]]``
+   We will address array-based indexing like ``s.iloc[[4, 3, 1]]``
    in :ref:`section on indexing <indexing>`.
 
 Like a NumPy array, a pandas :class:`Series` has a single :attr:`~Series.dtype`.
@@ -201,7 +201,7 @@ labels.
 
 .. ipython:: python
 
-    s[1:] + s[:-1]
+    s.iloc[1:] + s.iloc[:-1]
 
 The result of an operation between unaligned :class:`Series` will have the **union** of
 the indexes involved. If a label is not found in one :class:`Series` or the other, the

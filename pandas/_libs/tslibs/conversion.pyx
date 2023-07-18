@@ -25,6 +25,7 @@ from cpython.datetime cimport (
 
 import_datetime()
 
+from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
@@ -57,7 +58,6 @@ from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.parsing cimport parse_datetime_string
@@ -268,7 +268,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
-    if ts is None or ts is NaT:
+    if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
@@ -595,7 +595,7 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
+cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso) noexcept:
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.

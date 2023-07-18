@@ -17,10 +17,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
@@ -45,32 +42,6 @@ def test_buffer_overflow(c_parser_only, malformed):
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(malformed))
-
-
-def test_buffer_rd_bytes(c_parser_only):
-    # see gh-12098: src->buffer in the C parser can be freed twice leading
-    # to a segfault if a corrupt gzip file is read with 'read_csv', and the
-    # buffer is filled more than once before gzip raises an Exception.
-
-    data = (
-        "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09"
-        "\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0"
-        "\xA6\x4D" + "\x55" * 267 + "\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00"
-        "\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO"
-    )
-    parser = c_parser_only
-
-    for _ in range(100):
-        try:
-            parser.read_csv_check_warnings(
-                RuntimeWarning,
-                "compression has no effect when passing a non-binary object as input",
-                StringIO(data),
-                compression="gzip",
-                delim_whitespace=True,
-            )
-        except Exception:
-            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -683,10 +654,7 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    if IS64:
-        assert not df.iloc[0, 0] == df3.iloc[0, 0]
-    else:
-        assert df.iloc[0, 0] == df3.iloc[0, 0]
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 

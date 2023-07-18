@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -45,6 +46,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -68,7 +71,7 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar) -> bool:
+def isna(obj: Scalar | Pattern) -> bool:
     ...
 
 
@@ -573,17 +576,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
         else:
-            try:
-                if np.any(np.asarray(left_value != right_value)):
+            with warnings.catch_warnings():
+                # suppress numpy's "elementwise comparison failed"
+                warnings.simplefilter("ignore", DeprecationWarning)
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
+                except ValueError:
+                    # numpy can raise a ValueError if left and right cannot be
+                    # compared (e.g. nested arrays)
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
-                raise
-            except ValueError:
-                # numpy can raise a ValueError if left and right cannot be
-                # compared (e.g. nested arrays)
-                return False
     return True
 
 
@@ -745,10 +751,10 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    if dtype.kind == "f" and isinstance(dtype, np.dtype):
+    if lib.is_np_dtype(dtype, "f"):
         checker = nan_checker
 
-    elif (isinstance(dtype, np.dtype) and dtype.kind in "mM") or isinstance(
+    elif (lib.is_np_dtype(dtype, "mM")) or isinstance(
         dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type

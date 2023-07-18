@@ -117,7 +117,7 @@ class BaseXMLFormatter:
         pretty_print: bool | None = True,
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         self.frame = frame
         self.path_or_buffer = path_or_buffer
@@ -252,10 +252,18 @@ class BaseXMLFormatter:
 
         nmsp_dict: dict[str, str] = {}
         if self.namespaces and self.prefix is None:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
+            nmsp_dict = {
+                "xmlns": n  # noqa: RUF011
+                for p, n in self.namespaces.items()
+                if p != ""
+            }
 
         if self.namespaces and self.prefix:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p == ""}
+            nmsp_dict = {
+                "xmlns": n  # noqa: RUF011
+                for p, n in self.namespaces.items()
+                if p == ""
+            }
 
         return nmsp_dict
 

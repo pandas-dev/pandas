@@ -802,7 +802,17 @@ def test_series_subset_set_with_indexer(
     s_orig = s.copy()
     subset = s[:]
 
-    indexer_si(subset)[indexer] = 0
+    warn = None
+    msg = "Series.__setitem__ treating keys as positions is deprecated"
+    if (
+        indexer_si is tm.setitem
+        and isinstance(indexer, np.ndarray)
+        and indexer.dtype.kind == "i"
+    ):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        indexer_si(subset)[indexer] = 0
     expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
@@ -833,8 +843,9 @@ def test_del_frame(backend, using_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    # TODO in theory modifying column "b" of the parent wouldn't need a CoW
-    # but the weakref is still alive and so we still perform CoW
+    df.loc[0, "b"] = 200
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    df_orig = df.copy()
 
     df2.loc[0, "a"] = 100
     if using_copy_on_write:

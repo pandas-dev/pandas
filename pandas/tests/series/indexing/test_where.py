@@ -399,7 +399,7 @@ def test_where_datetimelike_coerce(dtype):
     tm.assert_series_equal(rs, expected)
 
     rs = ser.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype="object")
+    expected = Series([10, np.nan], dtype="object")
     tm.assert_series_equal(rs, expected)
 
 

@@ -24,9 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -62,6 +60,11 @@ from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Mapping,
+    )
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
@@ -131,13 +134,13 @@ def _parse_date_columns(data_frame, parse_dates):
     # we want to coerce datetime64_tz dtypes for now to UTC
     # we could in theory do a 'nice' conversion from a FixedOffset tz
     # GH11216
-    for col_name, df_col in data_frame.items():
+    for i, (col_name, df_col) in enumerate(data_frame.items()):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
             except TypeError:
                 fmt = None
-            data_frame[col_name] = _handle_date_column(df_col, format=fmt)
+            data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
     return data_frame
 
@@ -302,13 +305,14 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -440,13 +444,14 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -573,13 +578,14 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -685,7 +691,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
-    index_label: IndexLabel = None,
+    index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
@@ -974,10 +980,16 @@ class SQLTable(PandasObject):
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
                 if isinstance(ser._values, ArrowExtensionArray):
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings("ignore", category=FutureWarning)
-                        # GH#52459 to_pydatetime will return Index[object]
-                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                    import pyarrow as pa
+
+                    if pa.types.is_date(ser.dtype.pyarrow_dtype):
+                        # GH#53854 to_pydatetime not supported for pyarrow date dtypes
+                        d = ser._values.to_numpy(dtype=object)
+                    else:
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=FutureWarning)
+                            # GH#52459 to_pydatetime will return Index[object]
+                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
@@ -1622,13 +1634,14 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
-            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable dtypes are used for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
 
-            The dtype_backends are still experimential.
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
 
             .. versionadded:: 2.0
 

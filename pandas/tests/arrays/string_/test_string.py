@@ -492,17 +492,19 @@ def test_value_counts_with_normalize(dtype):
 def test_use_inf_as_na(values, expected, dtype):
     # https://github.com/pandas-dev/pandas/issues/33655
     values = pd.array(values, dtype=dtype)
-    with pd.option_context("mode.use_inf_as_na", True):
-        result = values.isna()
-        tm.assert_numpy_array_equal(result, expected)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = values.isna()
+            tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.Series(values).isna()
-        expected = pd.Series(expected)
-        tm.assert_series_equal(result, expected)
+            result = pd.Series(values).isna()
+            expected = pd.Series(expected)
+            tm.assert_series_equal(result, expected)
 
-        result = pd.DataFrame(values).isna()
-        expected = pd.DataFrame(expected)
-        tm.assert_frame_equal(result, expected)
+            result = pd.DataFrame(values).isna()
+            expected = pd.DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
 
 
 def test_memory_usage(dtype):

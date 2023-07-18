@@ -1163,7 +1163,9 @@ class TestLocBaseIndependent:
         # GH6173, various appends to an empty dataframe
 
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         # appends to fit length of data
         df = DataFrame(columns=["x", "y"])
@@ -1174,7 +1176,9 @@ class TestLocBaseIndependent:
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = df["x"].astype(np.int64)
@@ -3026,7 +3030,7 @@ class TestLocSeries:
     def test_loc_getitem_not_monotonic(self, datetime_series):
         d1, d2 = datetime_series.index[[5, 15]]
 
-        ts2 = datetime_series[::2][[1, 2, 0]]
+        ts2 = datetime_series[::2].iloc[[1, 2, 0]]
 
         msg = r"Timestamp\('2000-01-10 00:00:00'\)"
         with pytest.raises(KeyError, match=msg):
@@ -3184,7 +3188,7 @@ class TestLocSeries:
         result.loc[inds] = 5
 
         expected = string_series.copy()
-        expected[[3, 4, 7]] = 5
+        expected.iloc[[3, 4, 7]] = 5
         tm.assert_series_equal(result, expected)
 
         result.iloc[5:10] = 10

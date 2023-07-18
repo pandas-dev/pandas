@@ -4,12 +4,7 @@ data hash pandas / numpy objects
 from __future__ import annotations
 
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Iterable,
-    Iterator,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -26,6 +21,12 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         npt,
@@ -254,7 +255,7 @@ def hash_array(
             encoding=encoding, hash_key=hash_key, categorize=categorize
         )
 
-    elif not isinstance(vals, np.ndarray):
+    if not isinstance(vals, np.ndarray):
         # GH#42003
         raise TypeError(
             "hash_array requires np.ndarray or ExtensionArray, not "
@@ -275,14 +276,15 @@ def _hash_ndarray(
     """
     dtype = vals.dtype
 
-    # we'll be working with everything as 64-bit values, so handle this
-    # 128-bit value early
+    # _hash_ndarray only takes 64-bit values, so handle 128-bit by parts
     if np.issubdtype(dtype, np.complex128):
-        return hash_array(np.real(vals)) + 23 * hash_array(np.imag(vals))
+        hash_real = _hash_ndarray(vals.real, encoding, hash_key, categorize)
+        hash_imag = _hash_ndarray(vals.imag, encoding, hash_key, categorize)
+        return hash_real + 23 * hash_imag
 
     # First, turn whatever array this is into unsigned 64-bit ints, if we can
     # manage it.
-    elif dtype == bool:
+    if dtype == bool:
         vals = vals.astype("u8")
     elif issubclass(dtype.type, (np.datetime64, np.timedelta64)):
         vals = vals.view("i8").astype("u8", copy=False)
