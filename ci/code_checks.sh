@@ -84,7 +84,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.NaT \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
-        pandas.read_parquet \
         pandas.read_orc \
         pandas.read_sas \
         pandas.read_spss \
@@ -106,7 +105,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
-        pandas.arrays.PandasArray \
+        pandas.arrays.NumpyExtensionArray \
         pandas.api.extensions.ExtensionArray._accumulate \
         pandas.api.extensions.ExtensionArray._concat_same_type \
         pandas.api.extensions.ExtensionArray._formatter \
