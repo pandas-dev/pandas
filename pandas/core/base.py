@@ -748,11 +748,7 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmax()
         else:
-            # error: Incompatible return value type (got "Union[int, ndarray]", expected
-            # "int")
-            result = nanops.nanargmax(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            result = nanops.nanargmax(delegate, skipna=skipna)
             if result == -1:
                 warnings.warn(
                     f"The behavior of {type(self).__name__}.argmax/argmin "
@@ -761,7 +757,9 @@ class IndexOpsMixin(OpsMixin):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            return result
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return result  # type: ignore[return-value]
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
@@ -784,11 +782,7 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmin()
         else:
-            # error: Incompatible return value type (got "Union[int, ndarray]", expected
-            # "int")
-            result = nanops.nanargmin(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            result = nanops.nanargmin(delegate, skipna=skipna)
             if result == -1:
                 warnings.warn(
                     f"The behavior of {type(self).__name__}.argmax/argmin "
@@ -797,7 +791,9 @@ class IndexOpsMixin(OpsMixin):
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            return result
+            # error: Incompatible return value type (got "Union[int, ndarray]", expected
+            # "int")
+            return result  # type: ignore[return-value]
 
     def tolist(self):
         """
