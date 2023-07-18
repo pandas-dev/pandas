@@ -213,7 +213,9 @@ def test_filter_against_workaround():
     # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
     N = 1000
-    random_letters = letters.take(np.random.default_rng(2).integers(0, 26, N))
+    random_letters = letters.take(
+        np.random.default_rng(2).integers(0, 26, N, dtype=int)
+    )
     df = DataFrame(
         {
             "ints": Series(np.random.default_rng(2).integers(0, 100, N)),
