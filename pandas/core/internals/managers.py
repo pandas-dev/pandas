@@ -1101,7 +1101,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
+                    self._iset_split_block(
+                        blkno_l, blk_locs, value_getitem(val_locs), refs=refs
+                    )
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
