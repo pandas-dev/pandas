@@ -108,6 +108,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.missing import (
@@ -127,6 +128,7 @@ from pandas.core.apply import reconstruct_and_relabel_result
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
+    BaseMaskedArray,
     DatetimeArray,
     ExtensionArray,
     PeriodArray,
@@ -2102,6 +2104,25 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
         read_gbq : Read a DataFrame from Google BigQuery.
+
+        Examples
+        --------
+        Example taken from `Google BigQuery documentation
+        <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
+
+        >>> project_id = "my-project"
+        >>> table_id = 'my_dataset.my_table'
+        >>> df = pd.DataFrame({
+        ...                   "my_string": ["a", "b", "c"],
+        ...                   "my_int64": [1, 2, 3],
+        ...                   "my_float64": [4.0, 5.0, 6.0],
+        ...                   "my_bool1": [True, False, True],
+        ...                   "my_bool2": [False, True, False],
+        ...                   "my_dates": pd.date_range("now", periods=3),
+        ...                   }
+        ...                   )
+
+        >>> df.to_gbq(table_id, project_id=project_id)  # doctest: +SKIP
         """
         from pandas.io import gbq
 
@@ -3619,14 +3640,29 @@ class DataFrame(NDFrame, OpsMixin):
             and dtypes
             and isinstance(dtypes[0], ExtensionDtype)
         ):
-            # We have EAs with the same dtype. We can preserve that dtype in transpose.
-            dtype = dtypes[0]
-            arr_type = dtype.construct_array_type()
-            values = self.values
+            if isinstance(dtypes[0], BaseMaskedDtype):
+                # We have masked arrays with the same dtype. We can transpose faster.
+                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
 
-            new_values = [arr_type._from_sequence(row, dtype=dtype) for row in values]
+                if isinstance(self._mgr, ArrayManager):
+                    masked_arrays = self._mgr.arrays
+                else:
+                    masked_arrays = list(self._iter_column_arrays())
+                new_values = transpose_homogenous_masked_arrays(
+                    cast(list[BaseMaskedArray], masked_arrays)
+                )
+            else:
+                # We have other EAs with the same dtype. We preserve dtype in transpose.
+                dtyp = dtypes[0]
+                arr_typ = dtyp.construct_array_type()
+                values = self.values
+                new_values = [arr_typ._from_sequence(row, dtype=dtyp) for row in values]
+
             result = type(self)._from_arrays(
-                new_values, index=self.columns, columns=self.index
+                new_values,
+                index=self.columns,
+                columns=self.index,
+                verify_integrity=False,
             )
 
         else:
@@ -4171,11 +4207,15 @@ class DataFrame(NDFrame, OpsMixin):
         if len(self):
             self._check_setitem_copy()
 
-    def _iset_item(self, loc: int, value: Series) -> None:
+    def _iset_item(self, loc: int, value: Series, inplace: bool = True) -> None:
         # We are only called from _replace_columnwise which guarantees that
         # no reindex is necessary
-        # TODO(CoW): Optimize to avoid copy here, but have ton track refs
-        self._iset_item_mgr(loc, value._values.copy(), inplace=True)
+        if using_copy_on_write():
+            self._iset_item_mgr(
+                loc, value._values, inplace=inplace, refs=value._references
+            )
+        else:
+            self._iset_item_mgr(loc, value._values.copy(), inplace=True)
 
         # check if we are modifying a copy
         # try to set first as we want an invalid
@@ -5493,7 +5533,7 @@ class DataFrame(NDFrame, OpsMixin):
                 target, value = mapping[ax_value]
                 newobj = ser.replace(target, value, regex=regex)
 
-                res._iset_item(i, newobj)
+                res._iset_item(i, newobj, inplace=inplace)
 
         if inplace:
             return
@@ -10065,11 +10105,13 @@ class DataFrame(NDFrame, OpsMixin):
             the order of the join key depends on the join type (how keyword).
         validate : str, optional
             If specified, checks if join is of specified type.
+
             * "one_to_one" or "1:1": check if join keys are unique in both left
-            and right datasets.
+               and right datasets.
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
+
             .. versionadded:: 1.5.0
 
         Returns
