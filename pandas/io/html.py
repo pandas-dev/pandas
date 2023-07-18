@@ -109,7 +109,6 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
 
 
 def _read(
-    # obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
     obj: FilePath | BaseBuffer,
     encoding: str | None,
     storage_options: StorageOptions | None,
