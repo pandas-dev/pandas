@@ -157,6 +157,24 @@ def test_multindex_empty_shift_with_fill():
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
 
 
+def test_shift_periods_freq():
+    # GH 54093
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data, index=date_range(start="20100101", periods=6))
+    result = df.groupby(df.index).shift(periods=-2, freq="D")
+    expected = DataFrame(data, index=date_range(start="2009-12-30", periods=6))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_shift_disallow_freq_and_fill_value():
+    # GH 53832
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data, index=date_range(start="20100101", periods=6))
+    msg = "Cannot pass both 'freq' and 'fill_value' to (Series|DataFrame).shift"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(df.index).shift(periods=-2, freq="D", fill_value="1")
+
+
 @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods():
     df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
