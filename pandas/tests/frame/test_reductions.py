@@ -970,6 +970,7 @@ class TestDataFrameAnalytics:
         for df in [frame, int_frame]:
             result = df.idxmin(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1009,6 +1010,7 @@ class TestDataFrameAnalytics:
         for df in [frame, int_frame]:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])

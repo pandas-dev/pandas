@@ -2532,7 +2532,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis = self._get_axis_number(axis)
         i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2602,7 +2603,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis = self._get_axis_number(axis)
         i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
