@@ -82,6 +82,9 @@ pandas can be installed via pip from
     pip install pandas
 
 .. note::
+    You must have ``pip>=19.3`` to install from PyPI.
+
+.. note::
 
     It is recommended to install and run pandas from a virtual environment, for example,
     using the Python standard library's `venv <https://docs.python.org/3/library/venv.html>`__
@@ -150,9 +153,8 @@ Note that you might be required to uninstall an existing version of pandas to in
 Running the test suite
 ----------------------
 
-pandas is equipped with an exhaustive set of unit tests. The unit tests require `pytest
-<https://docs.pytest.org/en/latest/>`__ >= 7.3.2 and `Hypothesis
-<https://hypothesis.readthedocs.io/en/latest/>`__ >= 6.34.2 to run. To run the tests from a
+pandas is equipped with an exhaustive set of unit tests. The packages required to run the tests
+can be installed with ``pip install "pandas[test]"``. To run the tests from a
 Python terminal.
 
 .. code-block:: python
