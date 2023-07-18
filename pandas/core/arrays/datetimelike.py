@@ -10,9 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     cast,
     final,
@@ -58,6 +56,7 @@ from pandas._typing import (
     Dtype,
     DtypeObj,
     F,
+    InterpolateOptions,
     NpDtype,
     PositionalIndexer2D,
     PositionalIndexerTuple,
@@ -106,6 +105,7 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import (
     algorithms,
+    missing,
     nanops,
 )
 from pandas.core.algorithms import (
@@ -142,6 +142,12 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
+    from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,
         PeriodArray,
@@ -861,9 +867,20 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For DatetimeIndex:
+
         >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
+
+        For TimedeltaIndex:
+
+        >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+        >>> tdelta_idx
+        TimedeltaIndex(['0 days', '10 days', '20 days'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.inferred_freq
+        '10D'
         """
         if self.ndim != 1:
             return None
@@ -1535,6 +1552,26 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         Notes
         -----
         mean is only defined for Datetime and Timedelta dtypes, not for Period.
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.mean()
+        Timestamp('2001-01-02 00:00:00')
+
+        For :class:`pandas.TimedeltaIndex`:
+
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.mean()
+        Timedelta('2 days 00:00:00')
         """
         if isinstance(self.dtype, PeriodDtype):
             # See discussion in GH#24757
@@ -2177,7 +2214,15 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 codes = codes[::-1]
                 uniques = uniques[::-1]
             return codes, uniques
-        # FIXME: shouldn't get here; we are ignoring sort
+
+        if sort:
+            # algorithms.factorize only passes sort=True here when freq is
+            #  not None, so this should not be reached.
+            raise NotImplementedError(
+                f"The 'sort' keyword in {type(self).__name__}.factorize is "
+                "ignored unless arr.freq is not None. To factorize with sort, "
+                "call pd.factorize(obj, sort=True) instead."
+            )
         return super().factorize(use_na_sentinel=use_na_sentinel)
 
     @classmethod
@@ -2207,6 +2252,44 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         new_obj = super().copy(order=order)  # type: ignore[call-arg]
         new_obj._freq = self.freq
         return new_obj
+
+    def interpolate(
+        self,
+        *,
+        method: InterpolateOptions,
+        axis: int,
+        index: Index,
+        limit,
+        limit_direction,
+        limit_area,
+        copy: bool,
+        **kwargs,
+    ) -> Self:
+        """
+        See NDFrame.interpolate.__doc__.
+        """
+        # NB: we return type(self) even if copy=False
+        if method != "linear":
+            raise NotImplementedError
+
+        if not copy:
+            out_data = self._ndarray
+        else:
+            out_data = self._ndarray.copy()
+
+        missing.interpolate_2d_inplace(
+            out_data,
+            method=method,
+            axis=axis,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            **kwargs,
+        )
+        if not copy:
+            return self
+        return type(self)._simple_new(out_data, dtype=self.dtype)
 
 
 # -------------------------------------------------------------------

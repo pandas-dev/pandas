@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+)
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     cast,
 )
 
@@ -95,6 +96,26 @@ class RangeIndex(Index):
     See Also
     --------
     Index : The base pandas Index type.
+
+    Examples
+    --------
+    >>> list(pd.RangeIndex(5))
+    [0, 1, 2, 3, 4]
+
+    >>> list(pd.RangeIndex(-2, 4))
+    [-2, -1, 0, 1, 2, 3]
+
+    >>> list(pd.RangeIndex(0, 10, 2))
+    [0, 2, 4, 6, 8]
+
+    >>> list(pd.RangeIndex(2, -10, -3))
+    [2, -1, -4, -7]
+
+    >>> list(pd.RangeIndex(0))
+    []
+
+    >>> list(pd.RangeIndex(1, 0))
+    []
     """
 
     _typ = "rangeindex"
@@ -116,7 +137,7 @@ class RangeIndex(Index):
         step=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> RangeIndex:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
@@ -148,11 +169,19 @@ class RangeIndex(Index):
     @classmethod
     def from_range(cls, data: range, name=None, dtype: Dtype | None = None) -> Self:
         """
-        Create RangeIndex from a range object.
+        Create :class:`pandas.RangeIndex` from a ``range`` object.
 
         Returns
         -------
         RangeIndex
+
+        Examples
+        --------
+        >>> pd.RangeIndex.from_range(range(5))
+        RangeIndex(start=0, stop=5, step=1)
+
+        >>> pd.RangeIndex.from_range(range(2, -10, -3))
+        RangeIndex(start=2, stop=-10, step=-3)
         """
         if not isinstance(data, range):
             raise TypeError(
@@ -167,7 +196,7 @@ class RangeIndex(Index):
     #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: range, name: Hashable = None
+        cls, values: range, name: Hashable | None = None
     ) -> Self:
         result = object.__new__(cls)
 
@@ -252,6 +281,16 @@ class RangeIndex(Index):
     def start(self) -> int:
         """
         The value of the `start` parameter (``0`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.start
+        0
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.start
+        2
         """
         # GH 25710
         return self._range.start
@@ -260,6 +299,16 @@ class RangeIndex(Index):
     def stop(self) -> int:
         """
         The value of the `stop` parameter.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.stop
+        5
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.stop
+        -10
         """
         return self._range.stop
 
@@ -267,6 +316,23 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.step
+        1
+
+        >>> idx = pd.RangeIndex(2, -10, -3)
+        >>> idx.step
+        -3
+
+        Even if :class:`pandas.RangeIndex` is empty, ``step`` is still ``1`` if
+        not supplied.
+
+        >>> idx = pd.RangeIndex(1, 0)
+        >>> idx.step
+        1
         """
         # GH 25710
         return self._range.step
@@ -420,7 +486,7 @@ class RangeIndex(Index):
         return result
 
     @doc(Index.copy)
-    def copy(self, name: Hashable = None, deep: bool = False) -> Self:
+    def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
@@ -609,7 +675,7 @@ class RangeIndex(Index):
             return False
         return other.start in self._range and other[-1] in self._range
 
-    def _union(self, other: Index, sort):
+    def _union(self, other: Index, sort: bool | None):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -617,9 +683,9 @@ class RangeIndex(Index):
         ----------
         other : Index or array-like
 
-        sort : False or None, default None
+        sort : bool or None, default None
             Whether to sort (monotonically increasing) the resulting index.
-            ``sort=None`` returns a ``RangeIndex`` if possible or a sorted
+            ``sort=None|True`` returns a ``RangeIndex`` if possible or a sorted
             ``Index`` with a int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
@@ -630,7 +696,7 @@ class RangeIndex(Index):
         union : Index
         """
         if isinstance(other, RangeIndex):
-            if sort is None or (
+            if sort in (None, True) or (
                 sort is False and self.step > 0 and self._range_in_self(other._range)
             ):
                 # GH 47557: Can still return a RangeIndex
@@ -771,7 +837,9 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: Hashable | None = None, sort=None
+    ):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -845,7 +913,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 

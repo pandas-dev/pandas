@@ -8,6 +8,8 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
@@ -70,18 +72,8 @@ def test_union_different_types(index_flat, index_flat2, request):
     msg = "'<' not supported between"
     if not len(idx1) or not len(idx2):
         pass
-    elif (
-        idx1.dtype.kind == "c"
-        and (
-            idx2.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx2.dtype, np.dtype)
-        )
-    ) or (
-        idx2.dtype.kind == "c"
-        and (
-            idx1.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx1.dtype, np.dtype)
-        )
+    elif (idx1.dtype.kind == "c" and (not lib.is_np_dtype(idx2.dtype, "iufc"))) or (
+        idx2.dtype.kind == "c" and (not lib.is_np_dtype(idx1.dtype, "iufc"))
     ):
         # complex objects non-sortable
         warn = RuntimeWarning
@@ -596,6 +588,43 @@ def test_union_nan_in_both(dup):
     b = Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_rangeindex_sort_true():
+    # GH 53490
+    idx1 = RangeIndex(1, 100, 6)
+    idx2 = RangeIndex(1, 50, 3)
+    result = idx1.union(idx2, sort=True)
+    expected = Index(
+        [
+            1,
+            4,
+            7,
+            10,
+            13,
+            16,
+            19,
+            22,
+            25,
+            28,
+            31,
+            34,
+            37,
+            40,
+            43,
+            46,
+            49,
+            55,
+            61,
+            67,
+            73,
+            79,
+            85,
+            91,
+            97,
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 

@@ -746,6 +746,13 @@ def group_sum(
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
                         compensation[lab, j] = t - sumx[lab, j] - y
+                        if compensation[lab, j] != compensation[lab, j]:
+                            # GH#53606
+                            # If val is +/- infinity compensation is NaN
+                            # which would lead to results being NaN instead
+                            # of +/- infinity. We cannot use util.is_nan
+                            # because of no gil
+                            compensation[lab, j] = 0
                         sumx[lab, j] = t
 
             _check_below_mincount(
@@ -943,7 +950,7 @@ def group_skew(
                     isna_entry = _treat_as_na(val, False)
 
                 if not isna_entry:
-                    # Based on RunningSats::Push from
+                    # Based on RunningStats::Push from
                     #  https://www.johndcook.com/blog/skewness_kurtosis/
                     n1 = nobs[lab, j]
                     n = n1 + 1

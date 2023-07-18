@@ -39,15 +39,12 @@ from pandas.core.indexes.api import (
     ensure_index,
     ensure_index_from_sequences,
 )
-from pandas.tests.indexes.common import Base
 
 
-class TestIndex(Base):
-    _index_cls = Index
-
+class TestIndex:
     @pytest.fixture
     def simple_index(self) -> Index:
-        return self._index_cls(list("abcde"))
+        return Index(list("abcde"))
 
     def test_can_hold_identifiers(self, simple_index):
         index = simple_index
@@ -617,7 +614,9 @@ class TestIndex(Base):
         left = Index([], name="foo")
         right = Index([1, 2, 3], name=name)
 
-        result = left.append(right)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left.append(right)
         assert result.name == expected
 
     @pytest.mark.parametrize(
@@ -1305,19 +1304,13 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
 
-class TestMixedIntIndex(Base):
+class TestMixedIntIndex:
     # Mostly the tests from common.py for which the results differ
     # in py2 and py3 because ints and strings are uncomparable in py3
     # (GH 13514)
-    _index_cls = Index
-
     @pytest.fixture
     def simple_index(self) -> Index:
-        return self._index_cls([0, "a", 1, "b", 2, "c"])
-
-    @pytest.fixture(params=[[0, "a", 1, "b", 2, "c"]], ids=["mixedIndex"])
-    def index(self, request):
-        return Index(request.param)
+        return Index([0, "a", 1, "b", 2, "c"])
 
     def test_argsort(self, simple_index):
         index = simple_index

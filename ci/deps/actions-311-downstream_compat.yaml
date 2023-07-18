@@ -1,8 +1,9 @@
+# Non-dependencies that pandas utilizes or has compatibility with pandas objects
 name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.9
+  - python=3.11
 
   # build dependencies
   - versioneer[toml]
@@ -11,10 +12,11 @@ dependencies:
   - meson-python=0.13.1
 
   # test dependencies
-  - pytest>=7.0.0
+  - pytest>=7.3.2
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-asyncio>=0.17.0
+  - pytest-localserver>=0.7.1
   - boto3
 
   # required dependencies
@@ -35,8 +37,7 @@ dependencies:
   - jinja2>=3.1.2
   - lxml>=4.8.0
   - matplotlib>=3.6.1
-  # test_numba_vs_cython segfaults with numba 0.57
-  - numba>=0.55.2, <0.57.0
+  - numba>=0.55.2
   - numexpr>=2.8.0
   - odfpy>=1.4.1
   - qtpy>=2.2.0
@@ -45,7 +46,7 @@ dependencies:
   - psycopg2>=2.9.3
   - pyarrow>=7.0.0
   - pymysql>=1.0.2
-  # - pyreadstat>=1.1.5 not available on ARM
+  - pyreadstat>=1.1.5
   - pytables>=3.7.0
   - python-snappy>=0.6.1
   - pyxlsb>=1.0.9
@@ -57,3 +58,20 @@ dependencies:
   - xlrd>=2.0.1
   - xlsxwriter>=3.0.3
   - zstandard>=0.17.0
+
+  # downstream packages
+  - botocore
+  - cftime
+  - dask
+  - ipython
+  - geopandas-base
+  - seaborn
+  - scikit-learn
+  - statsmodels
+  - coverage
+  - pandas-datareader
+  - pyyaml
+  - py
+  - pip:
+    - pyqt5>=5.15.6
+    - tzdata>=2022.1

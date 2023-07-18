@@ -1291,3 +1291,10 @@ class TestDataFrameSelectReindex:
         result = df.reindex(index=index_res)
         expected = DataFrame(index=index_exp)
         tm.assert_frame_equal(result, expected)
+
+    def test_invalid_method(self):
+        df = DataFrame({"A": [1, np.nan, 2]})
+
+        msg = "Invalid fill method"
+        with pytest.raises(ValueError, match=msg):
+            df.reindex([1, 0, 2], method="asfreq")

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -50,6 +47,8 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -328,7 +327,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> Self:
         if closed is not lib.no_default:
             # GH#52628
@@ -764,6 +763,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         --------
         indexer_at_time : Get index locations of values at particular time of day.
         DataFrame.between_time : Select values between particular times of day.
+
+        Examples
+        --------
+        >>> idx = pd.date_range("2023-01-01", periods=4, freq="H")
+        >>> idx
+        DatetimeIndex(['2023-01-01 00:00:00', '2023-01-01 01:00:00',
+                           '2023-01-01 02:00:00', '2023-01-01 03:00:00'],
+                          dtype='datetime64[ns]', freq='H')
+        >>> idx.indexer_between_time("00:00", "2:00", include_end=False)
+        array([0, 1])
         """
         start_time = to_time(start_time)
         end_time = to_time(end_time)
@@ -799,7 +808,7 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: Hashable = None,
+    name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
     unit: str | None = None,
@@ -1000,7 +1009,7 @@ def bdate_range(
     freq: Frequency = "B",
     tz=None,
     normalize: bool = True,
-    name: Hashable = None,
+    name: Hashable | None = None,
     weekmask=None,
     holidays=None,
     inclusive: IntervalClosedType = "both",

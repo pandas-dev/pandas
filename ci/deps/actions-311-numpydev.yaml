@@ -2,7 +2,7 @@ name: pandas-dev
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.11
 
   # build dependencies
   - versioneer[toml]
@@ -10,7 +10,7 @@ dependencies:
   - meson-python=0.13.1
 
   # test dependencies
-  - pytest>=7.0.0
+  - pytest>=7.3.2
   - pytest-cov
   # Once pytest-cov > 4 comes out, unpin this
   # Right now, a DeprecationWarning related to rsyncdir
@@ -26,7 +26,7 @@ dependencies:
 
   - pip:
     - "cython"
-    - "--extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple"
+    - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
     - "scipy"

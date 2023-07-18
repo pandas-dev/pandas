@@ -80,7 +80,7 @@ def get_engine(engine: str) -> BaseImpl:
 def _get_path_or_handle(
     path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     mode: str = "rb",
     is_dir: bool = False,
 ) -> tuple[
@@ -171,7 +171,7 @@ class PyArrowImpl(BaseImpl):
         path: FilePath | WriteBuffer[bytes],
         compression: str | None = "snappy",
         index: bool | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         partition_cols: list[str] | None = None,
         filesystem=None,
         **kwargs,
@@ -230,7 +230,7 @@ class PyArrowImpl(BaseImpl):
         columns=None,
         use_nullable_dtypes: bool = False,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> DataFrame:
@@ -285,7 +285,7 @@ class FastParquetImpl(BaseImpl):
         compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
         partition_cols=None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> None:
@@ -335,7 +335,7 @@ class FastParquetImpl(BaseImpl):
         self,
         path,
         columns=None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> DataFrame:
@@ -388,7 +388,7 @@ def to_parquet(
     engine: str = "auto",
     compression: str | None = "snappy",
     index: bool | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     partition_cols: list[str] | None = None,
     filesystem: Any = None,
     **kwargs,
@@ -483,7 +483,7 @@ def read_parquet(
     path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
     columns: list[str] | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
@@ -533,13 +533,14 @@ def read_parquet(
 
         .. deprecated:: 2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 

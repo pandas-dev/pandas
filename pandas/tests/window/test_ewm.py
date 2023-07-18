@@ -403,7 +403,7 @@ def test_ewma_nan_handling():
 )
 def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
     # GH 7603
-    expected = (s.multiply(w).cumsum() / Series(w).cumsum()).fillna(method="ffill")
+    expected = (s.multiply(w).cumsum() / Series(w).cumsum()).ffill()
     result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
 
     tm.assert_series_equal(result, expected)

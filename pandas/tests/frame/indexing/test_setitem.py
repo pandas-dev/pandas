@@ -930,6 +930,20 @@ class TestDataFrameSetItemWithExpansion:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_expansion_with_timedelta_type(self):
+        result = DataFrame(columns=list("abc"))
+        result.loc[0] = {
+            "a": pd.to_timedelta(5, unit="s"),
+            "b": pd.to_timedelta(72, unit="s"),
+            "c": "23",
+        }
+        expected = DataFrame(
+            [[pd.Timedelta("0 days 00:00:05"), pd.Timedelta("0 days 00:01:12"), "23"]],
+            index=Index([0]),
+            columns=(["a", "b", "c"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSetItemSlicing:
     def test_setitem_slice_position(self):
@@ -1302,4 +1316,19 @@ class TestDataFrameSetitemCopyViewSemantics:
         rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
         df["a"] = rhs
         expected = DataFrame([[0, 1.5, 3], [2, 2.5, 6]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_frame_setitem_empty_dataframe(self):
+        # GH#28871
+        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        df = df[0:0].copy()
+
+        df["3010"] = None
+        df["2010"] = None
+
+        expected = DataFrame(
+            [],
+            columns=["3010", "2010"],
+            index=Index([], dtype="datetime64[ns]", name="date"),
+        )
         tm.assert_frame_equal(df, expected)
