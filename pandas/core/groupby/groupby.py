@@ -4911,7 +4911,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         periods: int = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
-        fill_value=None,
+        fill_value=lib.no_default,
     ):
         """
         Shift each group by periods observations.
@@ -4933,6 +4933,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         fill_value : optional
             The scalar value to use for newly introduced missing values.
+
+            .. versionchanged:: 2.1.0
+                Will raise a ``ValueError`` if ``freq`` is provided too.
 
         Returns
         -------
@@ -4991,6 +4994,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             f = lambda x: x.shift(periods, freq, axis, fill_value)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
 
+        if fill_value is lib.no_default:
+            fill_value = None
         ids, _, ngroups = self.grouper.group_info
         res_indexer = np.zeros(len(ids), dtype=np.int64)
 
