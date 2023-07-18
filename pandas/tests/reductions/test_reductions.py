@@ -809,6 +809,24 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             np.argmax(s, out=data)
 
+    def test_idxmin_dt64index(self):
+        # GH#43587 should have NaT instead of NaN
+        ser = Series(
+            [1.0, 2.0, np.nan], index=DatetimeIndex(["NaT", "2015-02-08", "NaT"])
+        )
+        res = ser.idxmin(skipna=False)
+        assert res is NaT
+        res = ser.idxmax(skipna=False)
+        assert res is NaT
+
+        df = ser.to_frame()
+        res = df.idxmin(skipna=False)
+        assert res.dtype == "M8[ns]"
+        assert res.isna().all()
+        res = df.idxmax(skipna=False)
+        assert res.dtype == "M8[ns]"
+        assert res.isna().all()
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.

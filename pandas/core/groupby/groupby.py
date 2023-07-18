@@ -2938,12 +2938,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self.grouper.size()
+        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        if isinstance(self.obj, Series):
+            if isinstance(self.obj.array, ArrowExtensionArray):
+                dtype_backend = "pyarrow"
+            elif isinstance(self.obj.array, BaseMaskedArray):
+                dtype_backend = "numpy_nullable"
+        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
+
+        if dtype_backend is not None:
+            result = result.convert_dtypes(
+                infer_objects=False,
+                convert_string=False,
+                convert_boolean=False,
+                convert_floating=False,
+                dtype_backend=dtype_backend,
+            )
 
         with com.temp_setattr(self, "as_index", True):
             # size already has the desired behavior in GH#49519, but this makes the
