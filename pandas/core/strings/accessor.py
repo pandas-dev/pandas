@@ -243,6 +243,9 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
+    def __iter__(self):
+        raise TypeError(f"'{type(self).__name__}' object is not iterable")
+
     def _wrap_result(
         self,
         result,
