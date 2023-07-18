@@ -802,11 +802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self._values.swapaxes(i, j)  # type: ignore[union-attr]
-        if (
-            using_copy_on_write()
-            and self._mgr.is_single_block
-            and isinstance(self._mgr, BlockManager)
-        ):
+        if self._mgr.is_single_block and isinstance(self._mgr, BlockManager):
             # This should only get hit in case of having a single block, otherwise a
             # copy is made, we don't have to set up references.
             new_mgr = ndarray_to_mgr(
@@ -823,10 +819,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_mgr.blocks[0].refs.add_reference(
                 new_mgr.blocks[0]  # type: ignore[arg-type]
             )
-            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+            if not using_copy_on_write() and copy is not False:
+                new_mgr = new_mgr.copy(deep=True)
 
-        elif (copy or copy is None) and self._mgr.is_single_block:
-            new_values = new_values.copy()
+            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         return self._constructor(
             new_values,
@@ -2421,7 +2417,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             the default is 'epoch'.
         double_precision : int, default 10
             The number of decimal places to use when encoding
-            floating point values.
+            floating point values. The possible maximal value is 15.
+            Passing double_precision greater than 15 will raise a ValueError.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
