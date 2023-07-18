@@ -33,7 +33,7 @@ class TestABCClasses:
             "ABCPeriodArray",
             pd.arrays.PeriodArray([2000, 2001, 2002], dtype="period[D]"),
         ),
-        ("ABCPandasArray", pd.arrays.PandasArray(np.array([0, 1, 2]))),
+        ("ABCNumpyExtensionArray", pd.arrays.NumpyExtensionArray(np.array([0, 1, 2]))),
         ("ABCPeriodIndex", period_index),
         ("ABCCategoricalIndex", categorical_df.index),
         ("ABCSeries", pd.Series([1, 2, 3])),
