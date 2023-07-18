@@ -2110,8 +2110,8 @@ class DataFrame(NDFrame, OpsMixin):
         Example taken from `Google BigQuery documentation
         <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
 
-        >>> project_id = "my-project"  # doctest: +SKIP
-        >>> table_id = 'my_dataset.my_table'  # doctest: +SKIP
+        >>> project_id = "my-project"
+        >>> table_id = 'my_dataset.my_table'
         >>> df = pd.DataFrame({
         ...                   "my_string": ["a", "b", "c"],
         ...                   "my_int64": [1, 2, 3],
