@@ -463,8 +463,9 @@ class TestDataFrameShift:
     @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_axis1_multiple_blocks_with_int_fill(self):
         # GH#42719
-        df1 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 3)))
-        df2 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 2)))
+        rng = np.random.default_rng(2)
+        df1 = DataFrame(rng.integers(1000, size=(5, 3), dtype=int))
+        df2 = DataFrame(rng.integers(1000, size=(5, 2), dtype=int))
         df3 = pd.concat([df1.iloc[:4, 1:3], df2.iloc[:4, :]], axis=1)
         result = df3.shift(2, axis=1, fill_value=np.int_(0))
         assert len(df3._mgr.blocks) == 2
