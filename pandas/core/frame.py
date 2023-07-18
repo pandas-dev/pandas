@@ -2104,6 +2104,25 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
         read_gbq : Read a DataFrame from Google BigQuery.
+
+        Examples
+        --------
+        Example taken from `Google BigQuery documentation
+        <https://cloud.google.com/bigquery/docs/samples/bigquery-pandas-gbq-to-gbq-simple>`_
+
+        >>> project_id = "my-project"
+        >>> table_id = 'my_dataset.my_table'
+        >>> df = pd.DataFrame({
+        ...                   "my_string": ["a", "b", "c"],
+        ...                   "my_int64": [1, 2, 3],
+        ...                   "my_float64": [4.0, 5.0, 6.0],
+        ...                   "my_bool1": [True, False, True],
+        ...                   "my_bool2": [False, True, False],
+        ...                   "my_dates": pd.date_range("now", periods=3),
+        ...                   }
+        ...                   )
+
+        >>> df.to_gbq(table_id, project_id=project_id)  # doctest: +SKIP
         """
         from pandas.io import gbq
 
