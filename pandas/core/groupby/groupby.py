@@ -5006,6 +5006,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
+
             add_suffix = True
         else:
             if not isinstance(periods, int):
@@ -5023,8 +5024,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             if freq is not None or axis != 0:
                 f = lambda x: x.shift(
-                    period, freq, axis, fill_value
-                )  # pylint: disable=cell-var-from-loop
+                    period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
+                )
                 shifted = self._python_apply_general(
                     f, self._selected_obj, is_transform=True
                 )
