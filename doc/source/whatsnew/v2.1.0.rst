@@ -247,9 +247,9 @@ Parsing datetimes with mixed time zones is deprecated and will show a warning un
 
 .. code-block:: ipython
 
-  In [7]: l = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+  In [7]: data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
 
-  In [8]:  pd.to_datetime(l, utc=False)
+  In [8]:  pd.to_datetime(data, utc=False)
   Out[8]:
   Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
 
@@ -257,7 +257,7 @@ Parsing datetimes with mixed time zones is deprecated and will show a warning un
 
 .. code-block:: ipython
 
-  In [9]: pd.to_datetime(l, utc=False)
+  In [9]: pd.to_datetime(data, utc=False)
   FutureWarning:
     In a future version of pandas, parsing datetimes with mixed time zones will raise
     a warning unless `utc=True`. Please specify `utc=True` to opt in to the new behaviour
@@ -268,8 +268,8 @@ In order to opt in to the new behaviour and silence this warning please specify 
 
 .. ipython:: python
 
-  l = l = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
-  pd.to_datetime(l, utc=True)
+  data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+  pd.to_datetime(data, utc=True)
 
 Other Deprecations
 ~~~~~~~~~~~~~~~~~~
