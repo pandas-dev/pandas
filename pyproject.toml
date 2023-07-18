@@ -345,7 +345,7 @@ exclude = [
 
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
-"asv_bench/*" = ["TID"]
+"asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028"]

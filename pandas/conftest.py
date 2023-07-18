@@ -557,7 +557,9 @@ def multiindex_dataframe_random_data(
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
-        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
+        np.random.default_rng(2).standard_normal((10, 3)),
+        index=index,
+        columns=Index(["A", "B", "C"], name="exp"),
     )
 
 
@@ -610,7 +612,7 @@ indices_dict = {
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),
-    "bool-dtype": Index(np.random.randn(10) < 0),
+    "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": tm.makeCategoricalIndex(100),
@@ -740,7 +742,7 @@ def datetime_series() -> Series:
 def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
-    data = np.random.randn(size)
+    data = np.random.default_rng(2).standard_normal(size)
     return Series(data, index=index, name="a", copy=False)
 
 
@@ -769,7 +771,7 @@ def series_with_multilevel_index() -> Series:
     ]
     tuples = zip(*arrays)
     index = MultiIndex.from_tuples(tuples)
-    data = np.random.randn(8)
+    data = np.random.default_rng(2).standard_normal(8)
     ser = Series(data, index=index)
     ser.iloc[3] = np.NaN
     return ser
@@ -942,7 +944,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         datetime(2000, 1, 5),
     ]
 
-    return Series(np.random.randn(len(dates)), index=dates)
+    return Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
