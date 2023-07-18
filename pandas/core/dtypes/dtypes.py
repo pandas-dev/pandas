@@ -2102,8 +2102,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        else:
-            raise NotImplementedError(pa_type)
+        elif isinstance(pa_type, pa.ExtensionType):
+            return type(self)(pa_type.storage_type).type
+        raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
