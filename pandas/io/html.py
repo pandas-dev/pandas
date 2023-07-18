@@ -45,6 +45,7 @@ from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        BaseBuffer,
         DtypeBackend,
         FilePath,
         ReadBuffer,
@@ -108,7 +109,8 @@ def _get_skiprows(skiprows: int | Sequence[int] | slice | None) -> int | Sequenc
 
 
 def _read(
-    obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    # obj: bytes | FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    obj: FilePath | BaseBuffer,
     encoding: str | None,
     storage_options: StorageOptions | None,
 ) -> str | bytes:
