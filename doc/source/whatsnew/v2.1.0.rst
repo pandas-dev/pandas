@@ -412,6 +412,7 @@ Performance improvements
 - Performance improvement in various :class:`MultiIndex` set and indexing operations (:issue:`53955`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
+- Performance improvement when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -598,6 +599,7 @@ ExtensionArray
 - Bug in :meth:`Series.quantile` for pyarrow temporal types raising ArrowInvalid (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
+- Bug where the :class:`DataFrame` repr would not work when a column would have an :class:`ArrowDtype` with an ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 
 Styler
@@ -618,7 +620,7 @@ Other
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
 - Bug in :func:`assert_frame_equal` checks category dtypes even when asked not to check index type (:issue:`52126`)
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
-- Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` when passing both "freq" and "fill_value" silently ignoring "fill_value" instead of raising ``ValueError`` (:issue:`53832`)
+- Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`DataFrameGroupBy.shift` when passing both "freq" and "fill_value" silently ignoring "fill_value" instead of raising ``ValueError`` (:issue:`53832`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` on a :class:`DataFrame` with a single :class:`ExtensionDtype` column giving incorrect results (:issue:`53832`)
 - Bug in :meth:`Series.align`, :meth:`DataFrame.align`, :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, incorrectly failing to raise with method="asfreq" (:issue:`53620`)
 - Bug in :meth:`Series.map` when giving a callable to an empty series, the returned series had ``object`` dtype. It now keeps the original dtype (:issue:`52384`)
