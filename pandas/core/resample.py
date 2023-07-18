@@ -2685,7 +2685,8 @@ def asfreq(
         if how is None:
             how = "E"
 
-        freq = freq_to_period_freqstr(obj.index.freq.n, freq)
+        if isinstance(freq, BaseOffset):
+            freq = freq_to_period_freqstr(freq.n, freq.name)
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)

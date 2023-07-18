@@ -162,7 +162,7 @@ class TestPeriodIndex:
         ts = Series(np.random.randn(len(rng)), rng)
 
         result = ts.resample("M", convention="end").ffill(limit=2)
-        expected = ts.asfreq("ME").reindex(result.index, method="ffill", limit=2)
+        expected = ts.asfreq("M").reindex(result.index, method="ffill", limit=2)
         tm.assert_series_equal(result, expected)
 
     def test_annual_upsample(self, simple_period_range_series):
@@ -178,7 +178,7 @@ class TestPeriodIndex:
         result = ts.resample("M").ffill()
         ex_index = period_range("2000-01", "2003-12", freq="M")
 
-        expected = ts.asfreq("ME", how="start").reindex(ex_index, method="ffill")
+        expected = ts.asfreq("M", how="start").reindex(ex_index, method="ffill")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)
