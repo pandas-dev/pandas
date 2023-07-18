@@ -8,7 +8,7 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import NumpyExtensionArray
 
 pytestmark = td.skip_array_manager_invalid_test
 
@@ -55,7 +55,7 @@ def test_to_dict_of_blocks_item_cache(request, using_copy_on_write):
         request.node.add_marker(pytest.mark.xfail(reason="CoW - not yet implemented"))
     # Calling to_dict_of_blocks should not poison item_cache
     df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-    df["c"] = PandasArray(np.array([1, 2, None, 3], dtype=object))
+    df["c"] = NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
     mgr = df._mgr
     assert len(mgr.blocks) == 3  # i.e. not consolidated
 

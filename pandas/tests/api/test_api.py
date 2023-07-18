@@ -373,3 +373,11 @@ class TestTesting(Base):
     def test_util_in_top_level(self):
         with pytest.raises(AttributeError, match="foo"):
             pd.util.foo
+
+
+def test_pandas_array_alias():
+    msg = "PandasArray has been renamed NumpyExtensionArray"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = pd.arrays.PandasArray
+
+    assert res is pd.arrays.NumpyExtensionArray

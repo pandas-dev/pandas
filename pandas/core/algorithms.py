@@ -58,7 +58,7 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -1439,8 +1439,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
     else:
         op = operator.sub
 
-    if isinstance(dtype, PandasDtype):
-        # PandasArray cannot necessarily hold shifted versions of itself.
+    if isinstance(dtype, NumpyEADtype):
+        # NumpyExtensionArray cannot necessarily hold shifted versions of itself.
         arr = arr.to_numpy()
         dtype = arr.dtype
 

@@ -118,7 +118,7 @@ def arrays_to_mgr(
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
         #  - all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
-        #  - all(type(x) is not PandasArray for x in arrays)
+        #  - all(type(x) is not NumpyExtensionArray for x in arrays)
 
     else:
         index = ensure_index(index)
