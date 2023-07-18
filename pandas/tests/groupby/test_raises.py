@@ -157,8 +157,8 @@ def test_groupby_raises_string(
         "ffill": (None, ""),
         "fillna": (None, ""),
         "first": (None, ""),
-        "idxmax": (TypeError, "'argmax' not allowed for this dtype"),
-        "idxmin": (TypeError, "'argmin' not allowed for this dtype"),
+        "idxmax": (None, ""),
+        "idxmin": (None, ""),
         "last": (None, ""),
         "max": (None, ""),
         "mean": (

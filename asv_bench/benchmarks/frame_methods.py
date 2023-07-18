@@ -388,7 +388,6 @@ class Isnull:
 class Fillna:
     params = (
         [True, False],
-        ["pad", "bfill"],
         [
             "float64",
             "float32",
@@ -400,9 +399,9 @@ class Fillna:
             "timedelta64[ns]",
         ],
     )
-    param_names = ["inplace", "method", "dtype"]
+    param_names = ["inplace", "dtype"]
 
-    def setup(self, inplace, method, dtype):
+    def setup(self, inplace, dtype):
         N, M = 10000, 100
         if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
             data = {
@@ -420,9 +419,16 @@ class Fillna:
             if dtype == "Int64":
                 values = values.round()
             self.df = DataFrame(values, dtype=dtype)
+        self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
-    def time_frame_fillna(self, inplace, method, dtype):
-        self.df.fillna(inplace=inplace, method=method)
+    def time_fillna(self, inplace, dtype):
+        self.df.fillna(value=self.fill_values, inplace=inplace)
+
+    def time_ffill(self, inplace, dtype):
+        self.df.ffill(inplace=inplace)
+
+    def time_bfill(self, inplace, dtype):
+        self.df.bfill(inplace=inplace)
 
 
 class Dropna:
