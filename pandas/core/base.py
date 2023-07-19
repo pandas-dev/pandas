@@ -9,8 +9,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Hashable,
-    Iterator,
     Literal,
     cast,
     final,
@@ -69,6 +67,11 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -515,11 +518,11 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        For regular NumPy types like int, and float, a PandasArray
+        For regular NumPy types like int, and float, a NumpyExtensionArray
         is returned.
 
         >>> pd.Series([1, 2, 3]).array
-        <PandasArray>
+        <NumpyExtensionArray>
         [1, 2, 3]
         Length: 3, dtype: int64
 
@@ -1304,7 +1307,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if isinstance(value, ABCDataFrame):
             msg = (

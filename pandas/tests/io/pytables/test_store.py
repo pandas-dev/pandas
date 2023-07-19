@@ -1,6 +1,6 @@
+import contextlib
 import datetime as dt
 import hashlib
-import os
 import tempfile
 import time
 from warnings import (
@@ -27,7 +27,6 @@ import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
-    safe_close,
 )
 
 from pandas.io.pytables import (
@@ -832,53 +831,34 @@ def test_path_localpath_hdfstore():
     tm.assert_frame_equal(df, result)
 
 
-def test_copy():
-    with catch_warnings(record=True):
+@pytest.mark.parametrize("propindexes", [True, False])
+def test_copy(propindexes):
+    df = tm.makeDataFrame()
 
-        def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
-            if new_f is None:
-                fd, new_f = tempfile.mkstemp()
-
-            try:
-                store = HDFStore(f, "r")
-                tstore = store.copy(new_f, keys=keys, propindexes=propindexes, **kwargs)
-
-                # check keys
-                if keys is None:
+    with tm.ensure_clean() as path:
+        with HDFStore(path) as st:
+            st.append("df", df, data_columns=["A"])
+        with tempfile.NamedTemporaryFile() as new_f:
+            with HDFStore(path) as store:
+                with contextlib.closing(
+                    store.copy(new_f.name, keys=None, propindexes=propindexes)
+                ) as tstore:
+                    # check keys
                     keys = store.keys()
-                assert set(keys) == set(tstore.keys())
+                    assert set(keys) == set(tstore.keys())
+                    # check indices & nrows
+                    for k in tstore.keys():
+                        if tstore.get_storer(k).is_table:
+                            new_t = tstore.get_storer(k)
+                            orig_t = store.get_storer(k)
 
-                # check indices & nrows
-                for k in tstore.keys():
-                    if tstore.get_storer(k).is_table:
-                        new_t = tstore.get_storer(k)
-                        orig_t = store.get_storer(k)
+                            assert orig_t.nrows == new_t.nrows
 
-                        assert orig_t.nrows == new_t.nrows
-
-                        # check propindixes
-                        if propindexes:
-                            for a in orig_t.axes:
-                                if a.is_indexed:
-                                    assert new_t[a.name].is_indexed
-
-            finally:
-                safe_close(store)
-                safe_close(tstore)
-                try:
-                    os.close(fd)
-                except (OSError, ValueError):
-                    pass
-                os.remove(new_f)
-
-        # new table
-        df = tm.makeDataFrame()
-
-        with tm.ensure_clean() as path:
-            with HDFStore(path) as st:
-                st.append("df", df, data_columns=["A"])
-            do_copy(f=path)
-            do_copy(f=path, propindexes=False)
+                            # check propindixes
+                            if propindexes:
+                                for a in orig_t.axes:
+                                    if a.is_indexed:
+                                        assert new_t[a.name].is_indexed
 
 
 def test_duplicate_column_name(tmp_path, setup_path):

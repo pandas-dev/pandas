@@ -3,6 +3,12 @@ Utilities for conversion to writer-agnostic Excel representation.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import functools
 import itertools
 import re
@@ -10,10 +16,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Sequence,
     cast,
 )
 import warnings
@@ -897,7 +899,7 @@ class ExcelFormatter:
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
         engine: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """

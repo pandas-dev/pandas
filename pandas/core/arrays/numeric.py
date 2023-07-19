@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
 )
 
 import numpy as np
@@ -29,6 +28,8 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import pyarrow
 
     from pandas._typing import (
