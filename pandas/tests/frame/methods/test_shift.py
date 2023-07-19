@@ -524,9 +524,9 @@ class TestDataFrameShift:
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
         ps = tm.makePeriodFrame()
         ps = tm.get_obj(ps, frame_or_series)
-        msg = "Given freq ME does not match PeriodIndex freq B"
+        msg = "Given freq M does not match PeriodIndex freq B"
         with pytest.raises(ValueError, match=msg):
-            ps.shift(freq="ME")
+            ps.shift(freq="M")
 
     def test_datetime_frame_shift_with_freq_error(
         self, datetime_frame, frame_or_series
