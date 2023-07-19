@@ -617,12 +617,8 @@ def test_groupby_raises_category_on_category(
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
         "first": (None, ""),
-        "idxmax": (ValueError, "attempt to get argmax of an empty sequence")
-        if empty_groups
-        else (None, ""),
-        "idxmin": (ValueError, "attempt to get argmin of an empty sequence")
-        if empty_groups
-        else (None, ""),
+        "idxmax": (None, "") if empty_groups else (None, ""),
+        "idxmin": (None, "") if empty_groups else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
         "mean": (TypeError, "category dtype does not support aggregation 'mean'"),

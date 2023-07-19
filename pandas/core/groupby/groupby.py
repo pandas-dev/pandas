@@ -74,6 +74,7 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     ensure_dtype_can_hold_na,
+    na_value_for_dtype,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -1823,12 +1824,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         *,
         alias: str,
         npfunc: Callable,
+        post_process: Callable | None = None,
     ):
         result = self._cython_agg_general(
             how=alias,
             alt=npfunc,
             numeric_only=numeric_only,
             min_count=min_count,
+            post_process=post_process,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -1866,7 +1869,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # preserve the kind of exception that raised
             raise type(err)(msg) from err
 
-        if ser.dtype == object:
+        if ser.dtype == object and how not in ["idxmax", "idxmin"]:
+            # idxmin/idxmax uses the index dtype
             res_values = res_values.astype(object, copy=False)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
@@ -1882,6 +1886,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alt: Callable,
         numeric_only: bool = False,
         min_count: int = -1,
+        post_process: Callable | None = None,
         **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
@@ -1913,6 +1918,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         new_mgr = data.grouped_reduce(array_func)
+        if post_process is not None:
+            new_mgr = new_mgr.apply(post_process)
         res = self._wrap_agged_manager(new_mgr)
         out = self._wrap_aggregated_output(res)
         if self.axis == 1:
@@ -3218,6 +3225,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 alias="max",
                 npfunc=np.max,
             )
+
+    def _idxmax_idxmin(
+        self,
+        how: Literal["idxmin", "idxmax"],
+        alt: Callable,
+        numeric_only: bool = False,
+    ) -> Series | DataFrame:
+        """Compute idxmax/idxmin.
+
+        Parameters
+        ----------
+        how: {"idxmin", "idxmax"}
+            Whether to compute idxmin or idxmax.
+        alt: Callable
+            Fallback for non-Cython (e.g. object) types.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+        Returns
+        -------
+        Series or DataFrame
+            idxmax or idxmin for the groupby operation.
+        """
+
+        def post_process(x):
+            if x.size == 0:
+                result = x.astype(self.obj.index.dtype)
+            else:
+                index = self.obj.index
+                if isinstance(index, MultiIndex):
+                    index = index.to_flat_index()
+                result = index.take(x).values
+                mask = x == -1
+                if mask.any():
+                    dtype = ensure_dtype_can_hold_na(result.dtype)
+                    if dtype != result.dtype:
+                        result = result.astype(dtype)
+                    result[mask] = na_value_for_dtype(result.dtype)
+            return result
+
+        result = self._agg_general(
+            numeric_only=numeric_only,
+            # min_count is not utilized
+            min_count=-1,
+            alias=how,
+            npfunc=alt,
+            post_process=post_process,
+        )
+        return result
 
     @final
     def first(self, numeric_only: bool = False, min_count: int = -1):

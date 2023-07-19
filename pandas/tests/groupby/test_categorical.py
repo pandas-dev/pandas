@@ -1866,14 +1866,7 @@ def test_category_order_reducer(
     request, as_index, sort, observed, reduction_func, index_kind, ordered
 ):
     # GH#48749
-    if (
-        reduction_func in ("idxmax", "idxmin")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmax/min fail with unused categories"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-    elif reduction_func == "corrwith" and not as_index:
+    if reduction_func == "corrwith" and not as_index:
         msg = "GH#49950 - corrwith with as_index=False may not have grouping column"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
     elif index_kind != "range" and not as_index:

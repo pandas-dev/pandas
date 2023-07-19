@@ -504,15 +504,6 @@ def test_null_is_null_for_dtype(
 def test_categorical_reducers(
     request, reduction_func, observed, sort, as_index, index_kind
 ):
-    # GH#36327
-    if (
-        reduction_func in ("idxmin", "idxmax")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmin/max broken for categorical with observed=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
     # Ensure there is at least one null value by appending to the end
     values = np.append(np.random.choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
@@ -562,9 +553,10 @@ def test_categorical_reducers(
         values = expected["y"].values.tolist()
         if index_kind == "single":
             values = [np.nan if e == 4 else e for e in values]
+            expected["y"] = pd.Categorical(values, categories=[1, 2, 3])
         else:
             values = [(np.nan, np.nan) if e == (4, 4) else e for e in values]
-        expected["y"] = values
+            expected["y"] = values
     if reduction_func == "size":
         # size, unlike other methods, has the desired behavior in GH#49519
         expected = expected.rename(columns={0: "size"})

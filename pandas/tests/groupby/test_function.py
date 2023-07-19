@@ -1486,10 +1486,6 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "idxmin":
-            msg = "'<' not supported between instances of 'type' and 'type'"
-        elif kernel == "idxmax":
-            msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:

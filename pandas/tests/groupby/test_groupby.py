@@ -1954,16 +1954,6 @@ def test_empty_groupby(
     # GH8093 & GH26411
     override_dtype = None
 
-    if (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and op in ["idxmax", "idxmin"]
-    ):
-        mark = pytest.mark.xfail(
-            raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
-        )
-        request.node.add_marker(mark)
-
     if isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
         override_dtype = "Int64"
@@ -2008,7 +1998,11 @@ def test_empty_groupby(
     is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
 
-    if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
+    if (
+        isinstance(values, Categorical)
+        and not values.ordered
+        and op in ["min", "max", "idxmin", "idxmax"]
+    ):
         msg = f"Cannot perform {op} with non-ordered Categorical"
         with pytest.raises(TypeError, match=msg):
             get_result()
@@ -2017,6 +2011,8 @@ def test_empty_groupby(
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
+            if op in ["idxmax", "idxmin"]:
+                expected = expected.astype(int)
             tm.assert_equal(result, expected)
         return
 
