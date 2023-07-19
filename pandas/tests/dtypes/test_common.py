@@ -100,7 +100,7 @@ class TestNumpyEADtype:
         ],
     )
     def test_period_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) is not PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
