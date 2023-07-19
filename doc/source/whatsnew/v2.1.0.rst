@@ -547,6 +547,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)
+- Fixed UserWarning in :meth:`DataFrame.plot.scatter` when invoked with ``c="b"`` (:issue:`53908`)
 -
 
 Groupby/resample/rolling
