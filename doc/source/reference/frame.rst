@@ -389,3 +389,22 @@ Serialization / IO / conversion
    DataFrame.to_markdown
    DataFrame.style
    DataFrame.__dataframe__
+
+.. _api.frame.axis_ops:
+
+Axis operations
+~~~~~~~~~~~~~~~
+``DataFrame.axis_ops`` can be used to access methods that operate on the object's
+``index`` but not its data. These can be accessed like ``DataFrame.axis_ops.<method>``.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   DataFrame.axis_ops.reorder_levels
+   DataFrame.axis_ops.drop_level
+   DataFrame.axis_ops.swap_level
+   DataFrame.axis_ops.tz_convert
+   DataFrame.axis_ops.tz_localize
+   DataFrame.axis_ops.to_timestamp
+   DataFrame.axis_ops.to_period

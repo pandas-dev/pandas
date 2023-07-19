@@ -282,6 +282,25 @@ Categorical                 :ref:`cat <api.series.cat>`
 Sparse                      :ref:`sparse <api.series.sparse>`
 =========================== =================================
 
+.. _api.series.axis_ops:
+
+Axis operations
+~~~~~~~~~~~~~~~
+``Series.axis_ops`` can be used to access methods that operate on the object's
+``index`` but not its data. These can be accessed like ``Series.axis_ops.<method>``.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.axis_ops.reorder_levels
+   Series.axis_ops.drop_level
+   Series.axis_ops.swap_level
+   Series.axis_ops.tz_convert
+   Series.axis_ops.tz_localize
+   Series.axis_ops.to_timestamp
+   Series.axis_ops.to_period
+
 .. _api.series.dt:
 
 Datetimelike properties
