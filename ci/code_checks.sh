@@ -65,16 +65,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
-        pandas.errors.MergeError \
         pandas.errors.NoBufferPresent \
-        pandas.errors.NullFrequencyError \
-        pandas.errors.NumbaUtilError \
         pandas.errors.OptionError \
-        pandas.errors.OutOfBoundsDatetime \
-        pandas.errors.OutOfBoundsTimedelta \
-        pandas.errors.ParserError \
         pandas.errors.PerformanceWarning \
         pandas.errors.PyperclipException \
         pandas.errors.PyperclipWindowsException \
