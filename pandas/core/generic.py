@@ -10550,7 +10550,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
         suffix: str | None = None,
-    ) -> Self:
+    ) -> Self | DataFrame:
         """
         Shift index by desired number of periods with an optional time `freq`.
 

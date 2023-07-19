@@ -184,7 +184,6 @@ def test_shift_disallow_suffix_if_periods_is_int():
         df.groupby("b").shift(1, suffix="fails")
 
 
-@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods():
     # GH#44424
     df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
@@ -200,7 +199,6 @@ def test_group_shift_with_multiple_periods():
     tm.assert_frame_equal(shifted_series, expected_df)
 
 
-@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_freq():
     # GH#44424
     df = DataFrame(
@@ -228,7 +226,6 @@ def test_group_shift_with_multiple_periods_and_freq():
     tm.assert_frame_equal(shifted_df, expected_df)
 
 
-@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_fill_value():
     # GH#44424
     df = DataFrame(
@@ -241,7 +238,6 @@ def test_group_shift_with_multiple_periods_and_fill_value():
     tm.assert_frame_equal(shifted_df, expected_df)
 
 
-@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_both_fill_and_freq_fails():
     # GH#44424
     df = DataFrame(
