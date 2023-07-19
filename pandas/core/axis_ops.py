@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     Generic,
-    Sequence,
 )
 
 from pandas._config import using_copy_on_write
@@ -22,6 +21,8 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         Axis,
         Frequency,
