@@ -1299,6 +1299,31 @@ frequencies. We will refer to these aliases as *offset aliases*.
    given frequency it will roll to the next value for ``start_date``
    (respectively previous for the ``end_date``)
 
+.. _timeseries.period_aliases:
+
+Period aliases
+~~~~~~~~~~~~~~
+
+A number of string aliases are given to useful common time series
+frequencies. We will refer to these aliases as *period aliases*.
+
+.. csv-table::
+    :header: "Alias", "Description"
+    :widths: 15, 100
+
+    "B", "business day frequency"
+    "D", "calendar day frequency"
+    "W", "weekly frequency"
+    "M", "monthly frequency"
+    "Q", "quarterly frequency"
+    "A, Y", "yearly frequency"
+    "H", "hourly frequency"
+    "T, min", "minutely frequency"
+    "S", "secondly frequency"
+    "L, ms", "milliseconds"
+    "U, us", "microseconds"
+    "N", "nanoseconds"
+
 
 Combining aliases
 ~~~~~~~~~~~~~~~~~
@@ -1776,14 +1801,14 @@ You can pass a list or dict of functions to do aggregation with, outputting a ``
 
 .. ipython:: python
 
-   r["A"].agg([np.sum, np.mean, np.std])
+   r["A"].agg(["sum", "mean", "std"])
 
 On a resampled ``DataFrame``, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
-   r.agg([np.sum, np.mean])
+   r.agg(["sum", "mean"])
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
 columns of a ``DataFrame``:
@@ -1791,7 +1816,7 @@ columns of a ``DataFrame``:
 .. ipython:: python
    :okexcept:
 
-   r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+   r.agg({"A": "sum", "B": lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be implemented on the resampled object:
@@ -2083,7 +2108,7 @@ Period dtypes
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
-``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.period_aliases>`.
 
 .. ipython:: python
 

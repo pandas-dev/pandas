@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -74,6 +73,8 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
@@ -163,6 +164,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
+
+    Examples
+    --------
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
+    ...                                       '2023-01-02'], freq='D'))
+    <PeriodArray>
+    ['2023-01-01', '2023-01-02']
+    Length: 2, dtype: period[D]
     """
 
     # array priority higher than numpy scalars
@@ -455,6 +464,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "hour",
         """
         The hour of the period.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-01 10:00", "2023-01-01 11:00"], freq='H')
+        >>> idx.hour
+        Index([10, 11], dtype='int64')
         """,
     )
     minute = _field_accessor(
@@ -514,6 +529,18 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day_of_year",
         """
         The ordinal day of the year.
+
+        Examples
+        --------
+        >>> idx = pd.PeriodIndex(["2023-01-10", "2023-02-01", "2023-03-01"], freq="D")
+        >>> idx.dayofyear
+        Index([10, 32, 60], dtype='int64')
+
+        >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
+        >>> idx
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        >>> idx.dayofyear
+        Index([365, 366, 365], dtype='int64')
         """,
     )
     quarter = _field_accessor(
@@ -536,6 +563,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         Examples
         --------
+        For Series:
+
         >>> period = pd.period_range('2020-1-1 00:00', '2020-3-1 00:00', freq='M')
         >>> s = pd.Series(period)
         >>> s
@@ -548,6 +577,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         1    29
         2    31
         dtype: int64
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.days_in_month   # It can be also entered as `daysinmonth`
+        Index([31, 28, 31], dtype='int64')
         """,
     )
     daysinmonth = days_in_month
@@ -746,7 +781,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
@@ -1149,6 +1184,7 @@ def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
             freq = end.freq
         else:  # pragma: no cover
             raise ValueError("Could not infer freq from start/end")
+        mult = freq.n
 
     if periods is not None:
         periods = periods * mult

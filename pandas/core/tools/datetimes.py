@@ -7,9 +7,6 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    List,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -57,7 +54,10 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -67,10 +67,11 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.datetimes import (
     maybe_convert_dtype,
@@ -82,6 +83,8 @@ from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
 
@@ -93,13 +96,13 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[List, Tuple, AnyArrayLike]
+ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
 DatetimeScalar = Union[Scalar, datetime]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
-DatetimeDictArg = Union[List[Scalar], Tuple[Scalar, ...], AnyArrayLike]
+DatetimeDictArg = Union[list[Scalar], tuple[Scalar, ...], AnyArrayLike]
 
 
 class YearMonthDayDict(TypedDict, total=True):
@@ -243,6 +246,9 @@ def _maybe_cache(
         if not should_cache(arg):
             return cache_array
 
+        if not isinstance(arg, (np.ndarray, ExtensionArray, Index, ABCSeries)):
+            arg = np.array(arg)
+
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
             cache_dates = convert_listlike(unique_dates, format)
@@ -258,7 +264,7 @@ def _maybe_cache(
 
 
 def _box_as_indexlike(
-    dt_array: ArrayLike, utc: bool = False, name: Hashable = None
+    dt_array: ArrayLike, utc: bool = False, name: Hashable | None = None
 ) -> Index:
     """
     Properly boxes the ndarray of datetimes to DatetimeIndex
@@ -350,7 +356,7 @@ def _return_parsed_timezone_results(
 def _convert_listlike_datetimes(
     arg,
     format: str | None,
-    name: Hashable = None,
+    name: Hashable | None = None,
     utc: bool = False,
     unit: str | None = None,
     errors: DateTimeErrorChoices = "raise",
@@ -387,7 +393,7 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
-    elif isinstance(arg, PandasArray):
+    elif isinstance(arg, NumpyExtensionArray):
         arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
@@ -400,8 +406,26 @@ def _convert_listlike_datetimes(
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
 
+    elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.type is Timestamp:
+        # TODO: Combine with above if DTI/DTA supports Arrow timestamps
+        if utc:
+            # pyarrow uses UTC, not lowercase utc
+            if isinstance(arg, Index):
+                arg_array = cast(ArrowExtensionArray, arg.array)
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg_array = arg_array._dt_tz_convert("UTC")
+                else:
+                    arg_array = arg_array._dt_tz_localize("UTC")
+                arg = Index(arg_array)
+            else:
+                # ArrowExtensionArray
+                if arg_dtype.pyarrow_dtype.tz is not None:
+                    arg = arg._dt_tz_convert("UTC")
+                else:
+                    arg = arg._dt_tz_localize("UTC")
+        return arg
+
     elif lib.is_np_dtype(arg_dtype, "M"):
-        arg_dtype = cast(np.dtype, arg_dtype)
         if not is_supported_unit(get_unit_from_dtype(arg_dtype)):
             # We go to closest supported reso, i.e. "s"
             arg = astype_overflowsafe(
@@ -705,7 +729,8 @@ def to_datetime(
     arg : int, float, str, datetime, list, tuple, 1-d array, Series, DataFrame/dict-like
         The object to convert to a datetime. If a :class:`DataFrame` is provided, the
         method expects minimally the following columns: :const:`"year"`,
-        :const:`"month"`, :const:`"day"`.
+        :const:`"month"`, :const:`"day"`. The column "year"
+        must be specified in 4-digit format.
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If :const:`'raise'`, then invalid parsing will raise an exception.
         - If :const:`'coerce'`, then invalid parsing will be set as :const:`NaT`.
@@ -764,6 +789,11 @@ def to_datetime(
           time string (not necessarily in exactly the same format);
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
+
+        .. note::
+
+            If a :class:`DataFrame` is passed, then `format` has no effect.
+
     exact : bool, default True
         Control how `format` is used:
 
@@ -1252,9 +1282,7 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
 
     # string with NaN-like
     try:
-        # error: Argument 2 to "isin" has incompatible type "List[Any]"; expected
-        # "Union[Union[ExtensionArray, ndarray], Index, Series]"
-        mask = ~algorithms.isin(arg, list(nat_strings))  # type: ignore[arg-type]
+        mask = ~algorithms.isin(arg, list(nat_strings))
         return calc_with_mask(arg, mask)
     except (ValueError, OverflowError, TypeError):
         pass

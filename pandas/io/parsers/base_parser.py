@@ -10,12 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
-    Tuple,
     cast,
     final,
     overload,
@@ -88,6 +82,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeArg,
@@ -353,7 +354,7 @@ class ParserBase:
     ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
         if is_potential_multi_index(columns):
-            list_columns = cast(List[Tuple], columns)
+            list_columns = cast(list[tuple], columns)
             return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
 
@@ -558,11 +559,7 @@ class ParserBase:
                 try:
                     values = lib.map_infer(values, conv_f)
                 except ValueError:
-                    # error: Argument 2 to "isin" has incompatible type "List[Any]";
-                    # expected "Union[Union[ExtensionArray, ndarray], Index, Series]"
-                    mask = algorithms.isin(
-                        values, list(na_values)  # type: ignore[arg-type]
-                    ).view(np.uint8)
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
                     values = lib.map_infer_mask(values, conv_f, mask)
 
                 cvals, na_count = self._infer_types(

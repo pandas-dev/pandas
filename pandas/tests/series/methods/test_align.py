@@ -80,8 +80,10 @@ def test_align_fill_method(
     ea = a.reindex(join_index)
     eb = b.reindex(join_index)
 
-    ea = ea.fillna(method=method, limit=limit)
-    eb = eb.fillna(method=method, limit=limit)
+    msg2 = "Series.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg2):
+        ea = ea.fillna(method=method, limit=limit)
+        eb = eb.fillna(method=method, limit=limit)
 
     tm.assert_series_equal(aa, ea)
     tm.assert_series_equal(ab, eb)

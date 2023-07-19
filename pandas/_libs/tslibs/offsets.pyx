@@ -1221,12 +1221,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 # perform calculation in UTC
                 other = other.replace(tzinfo=None)
 
-            if self.n > 0:
-                for i in range(self.n):
-                    other = other + self._offset
-            else:
-                for i in range(-self.n):
-                    other = other - self._offset
+            other = other + (self._offset * self.n)
 
             if hasattr(self, "nanoseconds"):
                 other = self.n * Timedelta(nanoseconds=self.nanoseconds) + other
@@ -3816,6 +3811,17 @@ cdef class Easter(SingleConstructorOffset):
     DateOffset for the Easter holiday using logic defined in dateutil.
 
     Right now uses the revised method which is valid in years 1583-4099.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
 
     Examples
     --------

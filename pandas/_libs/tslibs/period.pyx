@@ -1684,6 +1684,15 @@ cdef class PeriodMixin:
         1   2020-02-29 23:59:59.999999999
         2   2020-03-31 23:59:59.999999999
         dtype: datetime64[ns]
+
+        For PeriodIndex:
+
+        >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
+        >>> idx.end_time
+        DatetimeIndex(['2023-01-31 23:59:59.999999999',
+                       '2023-02-28 23:59:59.999999999',
+                       '2023-03-31 23:59:59.999999999'],
+                       dtype='datetime64[ns]', freq=None)
         """
         return self.to_timestamp(how="end")
 
@@ -1908,13 +1917,20 @@ cdef class _Period(PeriodMixin):
         Parameters
         ----------
         freq : str, BaseOffset
-            The desired frequency.
+            The desired frequency. If passing a `str`, it needs to be a
+            valid :ref:`period alias <timeseries.period_aliases>`.
         how : {'E', 'S', 'end', 'start'}, default 'end'
             Start or end of the timespan.
 
         Returns
         -------
         resampled : Period
+
+        Examples
+        --------
+        >>> period = pd.Period('2023-1-1', freq='D')
+        >>> period.asfreq('H')
+        Period('2023-01-01 23:00', 'H')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2450,6 +2466,11 @@ cdef class _Period(PeriodMixin):
         ----------
         freq : str, BaseOffset
             Frequency to use for the returned period.
+
+        Examples
+        --------
+        >>> pd.Period.now('H')  # doctest: +SKIP
+        Period('2023-06-12 11:00', 'H')
         """
         return Period(datetime.now(), freq=freq)
 
@@ -2647,13 +2668,14 @@ class Period(_Period):
 
     Parameters
     ----------
-    value : Period or str, default None
+    value : Period, str, datetime, date or pandas.Timestamp, default None
         The time period represented (e.g., '4Q2005'). This represents neither
         the start or the end of the period, but rather the entire period itself.
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
         strings are listed in the
-        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        :ref:`period alias section <timeseries.period_aliases>` in the user docs.
+        If value is datetime, freq is required.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
     year : int, default None
