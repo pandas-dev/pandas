@@ -2531,6 +2531,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         axis = self._get_axis_number(axis)
         with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
             # ignore warning produced by argmin since we will issue a different
             #  warning for idxmin
             warnings.simplefilter("ignore")
@@ -2606,6 +2607,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         axis = self._get_axis_number(axis)
         with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
             # ignore warning produced by argmax since we will issue a different
             #  warning for argmax
             warnings.simplefilter("ignore")
