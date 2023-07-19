@@ -550,7 +550,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.const_type(node.n, self.env)
 
     def visit_Constant(self, node, **kwargs) -> Term:
-        return self.const_type(node.n, self.env)
+        return self.const_type(node.value, self.env)
 
     def visit_Str(self, node, **kwargs):
         name = self.env.add_tmp(node.s)
