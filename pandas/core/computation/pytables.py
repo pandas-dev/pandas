@@ -240,6 +240,8 @@ class BinOp(ops.BinOp):
             try:
                 v_dec = Decimal(v)
             except InvalidOperation:
+                # GH 54186
+                # convert v to float to raise float's ValueError
                 float(v)
             else:
                 v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
