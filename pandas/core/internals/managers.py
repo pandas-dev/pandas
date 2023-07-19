@@ -995,8 +995,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         values = block.iget(self.blklocs[i])
         return values
 
-    @property
-    def column_arrays(self) -> list[np.ndarray]:
+    def column_arrays(self, date_unit) -> list[np.ndarray]:
         """
         Used in the JSON C code to access column arrays.
         This optimizes compared to using `iget_values` by converting each
@@ -1010,7 +1009,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         for blk in self.blocks:
             mgr_locs = blk._mgr_locs
-            values = blk.values_for_json()
+            values = blk.values_for_json(date_unit)
             if values.ndim == 1:
                 # TODO(EA2D): special casing not needed with 2D EAs
                 result[mgr_locs[0]] = values

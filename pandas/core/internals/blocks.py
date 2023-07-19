@@ -1638,7 +1638,7 @@ class Block(PandasObject):
         """
         raise AbstractMethodError(self)
 
-    def values_for_json(self) -> np.ndarray:
+    def values_for_json(self, date_unit) -> np.ndarray:
         raise AbstractMethodError(self)
 
 
@@ -1885,7 +1885,7 @@ class EABackedBlock(Block):
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
-    def values_for_json(self) -> np.ndarray:
+    def values_for_json(self, date_unit) -> np.ndarray:
         return np.asarray(self.values)
 
     @final
@@ -2174,7 +2174,7 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
             return self.values.astype(_dtype_obj)
         return self.values
 
-    def values_for_json(self) -> np.ndarray:
+    def values_for_json(self, date_unit) -> np.ndarray:
         return self.values
 
     @cache_readonly
@@ -2231,7 +2231,22 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
 
-    def values_for_json(self) -> np.ndarray:
+    def values_for_json(self, date_unit) -> np.ndarray:
+        values = self.values
+        if values.dtype.kind == "M":
+            if date_unit == "s":
+                return self.values.strftime("%Y-%M-%D %h-%m-%s")
+            elif date_unit == "ms":
+                raise NotImplementedError
+            elif date_unit == "us":
+                return self.values.strftime("%Y-%M-%D %h-%m-%s.%f")
+            elif date_unit == "ns":
+                return self.values.astype(str)
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+
         return self.values._ndarray
 
 
