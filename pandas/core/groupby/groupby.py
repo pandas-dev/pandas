@@ -5065,7 +5065,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             if add_suffix:
                 if isinstance(shifted, Series):
-                    shifted = shifted.to_frame()
+                    shifted = cast(NDFrameT, shifted.to_frame())
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
                 )

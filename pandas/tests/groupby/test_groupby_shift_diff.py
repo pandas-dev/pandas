@@ -241,7 +241,7 @@ def test_group_shift_with_multiple_periods_and_fill_value():
     tm.assert_frame_equal(shifted_df, expected_df)
 
 
-# @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
+@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_both_fill_and_freq_fails():
     # GH#44424
     df = DataFrame(
