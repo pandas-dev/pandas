@@ -52,7 +52,7 @@ def test_info_categorical_column_smoke_test():
     df = DataFrame({"int64": np.random.default_rng(2).integers(100, size=n, dtype=int)})
     df["category"] = Series(
         np.array(list("abcdefghij")).take(
-            np.random.default_rng(2).integers(0, 10, size=n)
+            np.random.default_rng(2).integers(0, 10, size=n, dtype=int)
         )
     ).astype("category")
     df.isna()
