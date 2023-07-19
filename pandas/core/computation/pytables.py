@@ -242,7 +242,7 @@ class BinOp(ops.BinOp):
                 v_dec = Decimal(v)
                 v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
             except InvalidOperation:
-                raise ValueError(f"could not convert {type(v)} to {kind}")
+                raise ValueError("could not convert string to ")
             return TermValue(v, v, kind)
         elif kind == "float":
             v = float(v)

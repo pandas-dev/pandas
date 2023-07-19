@@ -914,7 +914,7 @@ def test_query_compare_column_type(setup_path):
                 if col == "real_date":
                     msg = 'Given date string "a" not likely a datetime'
                 else:
-                    msg = "could not convert string to "
+                    msg = "could not convert string to"
                 with pytest.raises(ValueError, match=msg):
                     store.select("test", where=query)
 
