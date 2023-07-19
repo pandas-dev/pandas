@@ -42,7 +42,8 @@ dependencies:
   - odfpy>=1.4.1
   - qtpy>=2.2.0
   - openpyxl>=3.0.10
-  - pandas-gbq>=0.17.5
+  # Bump pandas-gbq to one where pyarrow isn't pinned
+  - pandas-gbq>=0.19
   - psycopg2>=2.9.3
   - pyarrow>=7.0.0
   - pymysql>=1.0.2
