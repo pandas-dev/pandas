@@ -63,12 +63,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.backfill \
-        pandas.Series.pad \
-        pandas.Series.hist \
-        pandas.errors.AccessorRegistrationWarning \
-        pandas.errors.AttributeConflictWarning \
-        pandas.errors.DataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
         pandas.errors.IntCastingNaNError \
@@ -90,12 +84,10 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.NaT \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
-        pandas.read_parquet \
         pandas.read_orc \
         pandas.read_sas \
         pandas.read_spss \
         pandas.read_sql_query \
-        pandas.read_gbq \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
@@ -138,9 +130,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.pad \
-        pandas.DataFrame.plot \
-        pandas.DataFrame.to_gbq \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

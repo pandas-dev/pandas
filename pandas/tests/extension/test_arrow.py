@@ -61,6 +61,7 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -1706,7 +1707,11 @@ def test_to_numpy_with_defaults(data):
     result = data.to_numpy()
 
     pa_type = data._pa_array.type
-    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+    if (
+        pa.types.is_duration(pa_type)
+        or pa.types.is_timestamp(pa_type)
+        or pa.types.is_date(pa_type)
+    ):
         expected = np.array(list(data))
     else:
         expected = np.array(data._pa_array)
@@ -2969,7 +2974,7 @@ def test_date32_repr():
     # GH48238
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
-    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+    assert repr(ser) == "0    2020-01-01\ndtype: date32[day][pyarrow]"
 
 
 @pytest.mark.xfail(
@@ -3139,3 +3144,17 @@ def test_to_numpy_temporal(pa_type):
     expected = np.array(expected, dtype=object)
     assert result[0].unit == expected[0].unit
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_arrowextensiondtype_dataframe_repr():
+    # GH 54062
+    df = pd.DataFrame(
+        pd.period_range("2012", periods=3),
+        columns=["col"],
+        dtype=ArrowDtype(ArrowPeriodType("D")),
+    )
+    result = repr(df)
+    # TODO: repr value may not be expected; address how
+    # pyarrow.ExtensionType values are displayed
+    expected = "     col\n0  15340\n1  15341\n2  15342"
+    assert result == expected
