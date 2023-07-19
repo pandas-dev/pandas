@@ -1570,7 +1570,7 @@ class TestDatetime64DateOffsetArithmetic:
         # Same thing but boxing other
         other = tm.box_expected(other, box_with_array)
         if box_with_array is pd.array and op is roperator.radd:
-            # We expect a PandasArray, not ndarray[object] here
+            # We expect a NumpyExtensionArray, not ndarray[object] here
             expected = pd.array(expected, dtype=object)
         with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)

@@ -534,7 +534,7 @@ def test_idxmin_idxmax_axis1():
     df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
-    msg = "reduction operation 'argmax' not allowed for this dtype"
+    msg = "'>' not supported between instances of 'Timestamp' and 'float'"
     with pytest.raises(TypeError, match=msg):
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             gb2.idxmax(axis=1)
@@ -1467,7 +1467,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
-    elif has_arg or kernel in ("idxmax", "idxmin"):
+    elif has_arg:
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
 
@@ -1486,6 +1486,10 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
+        if kernel == "idxmin":
+            msg = "'<' not supported between instances of 'type' and 'type'"
+        elif kernel == "idxmax":
+            msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
@@ -1529,8 +1533,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "cummin",
         "cumprod",
         "cumsum",
-        "idxmax",
-        "idxmin",
         "quantile",
     )
     # ops that give an object result on object input
@@ -1556,9 +1558,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # Test default behavior; kernels that fail may be enabled in the future but kernels
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
-        if groupby_func in ("idxmax", "idxmin"):
-            msg = "not allowed for this dtype"
-        elif groupby_func == "quantile":
+        if groupby_func == "quantile":
             msg = "cannot be performed against 'object' dtypes"
         else:
             msg = "is not supported for object dtype"

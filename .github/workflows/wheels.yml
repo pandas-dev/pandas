@@ -110,7 +110,7 @@ jobs:
           path: ./dist
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.1
+        uses: pypa/cibuildwheel@v2.14.1
         # TODO: Build wheels from sdist again
         # There's some sort of weird race condition?
         # within Github that makes the sdist be missing files

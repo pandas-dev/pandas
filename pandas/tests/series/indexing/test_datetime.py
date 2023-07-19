@@ -384,15 +384,19 @@ def test_indexing_unordered():
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
-    compare(slice("2011-01-01", "2011-01-15"))
-    with pytest.raises(KeyError, match="Value based partial slicing on non-monotonic"):
-        compare(slice("2010-12-30", "2011-01-15"))
-    compare(slice("2011-01-01", "2011-01-16"))
-
-    # partial ranges
-    compare(slice("2011-01-01", "2011-01-6"))
-    compare(slice("2011-01-06", "2011-01-8"))
-    compare(slice("2011-01-06", "2011-01-12"))
+    for key in [
+        slice("2011-01-01", "2011-01-15"),
+        slice("2010-12-30", "2011-01-15"),
+        slice("2011-01-01", "2011-01-16"),
+        # partial ranges
+        slice("2011-01-01", "2011-01-6"),
+        slice("2011-01-06", "2011-01-8"),
+        slice("2011-01-06", "2011-01-12"),
+    ]:
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
+            compare(key)
 
     # single values
     result = ts2["2011"].sort_index()
