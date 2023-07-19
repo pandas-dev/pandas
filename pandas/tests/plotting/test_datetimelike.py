@@ -816,6 +816,7 @@ class TestTSPlot:
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "T"
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
         irreg = ts.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
