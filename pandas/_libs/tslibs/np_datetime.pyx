@@ -158,6 +158,13 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
 class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
+
+    Examples
+    --------
+    >>> pd.to_datetime("08335394550")
+    Traceback (most recent call last):
+    OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
+    at position 0
     """
     pass
 
@@ -167,6 +174,13 @@ class OutOfBoundsTimedelta(ValueError):
     Raised when encountering a timedelta value that cannot be represented.
 
     Representation should be within a timedelta64[ns].
+
+    Examples
+    --------
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    Traceback (most recent call last):
+    OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
+    to unit='ns' without overflow.
     """
     # Timedelta analogue to OutOfBoundsDatetime
     pass
