@@ -914,7 +914,7 @@ def test_query_compare_column_type(setup_path):
                 if col == "real_date":
                     msg = 'Given date string "a" not likely a datetime'
                 else:
-                    msg = "could not convert string to "
+                    msg = "could not convert string to"
                 with pytest.raises(ValueError, match=msg):
                     store.select("test", where=query)
 
@@ -943,3 +943,22 @@ def test_select_empty_where(tmp_path, where):
         store.put("df", df, "t")
         result = read_hdf(store, "df", where=where)
         tm.assert_frame_equal(result, df)
+
+
+def test_select_large_integer(tmp_path):
+    path = tmp_path / "large_int.h5"
+
+    df = DataFrame(
+        zip(
+            ["a", "b", "c", "d"],
+            [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+        ),
+        columns=["x", "y"],
+    )
+    result = None
+    with HDFStore(path) as s:
+        s.append("data", df, data_columns=True, index=False)
+        result = s.select("data", where="y==-9223372036854775801").get("y").get(0)
+    expected = df["y"][0]
+
+    assert expected == result
