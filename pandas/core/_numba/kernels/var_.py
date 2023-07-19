@@ -8,10 +8,7 @@ Mirrors pandas/_libs/window/aggregation.pyx
 """
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numba
 import numpy as np
@@ -195,12 +192,12 @@ def grouped_var(
         if lab < 0:
             continue
 
-        mean_x = cast(float, means[lab])
-        ssqdm_x = cast(float, output[lab])
-        nobs = cast(int, nobs_arr[lab])
-        compensation_add = cast(float, comp_arr[lab])
-        num_consecutive_same_value = cast(int, consecutive_counts[lab])
-        prev_value = cast(float, prev_vals[lab])
+        mean_x = means[lab]
+        ssqdm_x = output[lab]
+        nobs = nobs_arr[lab]
+        compensation_add = comp_arr[lab]
+        num_consecutive_same_value = consecutive_counts[lab]
+        prev_value = prev_vals[lab]
 
         (
             nobs,

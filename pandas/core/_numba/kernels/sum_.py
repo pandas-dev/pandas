@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 
 import numba
@@ -184,9 +183,9 @@ def grouped_kahan_sum(
             continue
 
         sum_x = output[lab]
-        nobs = cast(int, nobs_arr[lab])
+        nobs = nobs_arr[lab]
         compensation_add = comp_arr[lab]
-        num_consecutive_same_value = cast(int, consecutive_counts[lab])
+        num_consecutive_same_value = consecutive_counts[lab]
         prev_value = prev_vals[lab]
 
         (
