@@ -328,7 +328,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin`, :meth:`SeriesGroupBy.idxmax`, and :meth:`SeriesGroupBy.idxmin` would not consistently raise when grouping with ``observed=False`` and unobserved categoricals (:issue:`10694`)
 -
 
 Reshaping

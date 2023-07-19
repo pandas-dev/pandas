@@ -1185,15 +1185,23 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmin(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmin")
+        else:
+            axis = 0
+        return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "idxmax")
+        else:
+            axis = 0
+        return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2195,14 +2203,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             axis = self.axis
 
-        def func(df):
-            return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmax"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmax", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2290,14 +2293,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             axis = self.axis
 
-        def func(df):
-            return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmin"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmin", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 

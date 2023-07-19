@@ -97,22 +97,24 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args):
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
+def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
+    warn_klass = None if warn_msg == "" else FutureWarning
+    with tm.assert_produces_warning(warn_klass, match=warn_msg):
+        if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
             elif how == "agg":
                 gb.agg(groupby_func, *args)
             else:
                 gb.transform(groupby_func, *args)
+        else:
+            with pytest.raises(klass, match=msg):
+                if how == "method":
+                    getattr(gb, groupby_func)(*args)
+                elif how == "agg":
+                    gb.agg(groupby_func, *args)
+                else:
+                    gb.transform(groupby_func, *args)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -233,8 +235,7 @@ def test_groupby_raises_string_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -297,13 +298,11 @@ def test_groupby_raises_datetime(
         "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    warn = None
-    warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
     if groupby_func in ["any", "all"]:
-        warn = FutureWarning
-
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func, args)
+        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -342,8 +341,7 @@ def test_groupby_raises_datetime_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -540,8 +538,7 @@ def test_groupby_raises_category_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -572,6 +569,16 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = any(group.empty for group in gb.groups.values())
+    if (
+        not observed
+        and how != "transform"
+        and isinstance(by, list)
+        and isinstance(by[0], str)
+        and by == ["a", "b"]
+    ):
+        assert not empty_groups
+        # TODO: empty_groups should be true due to unobserved categorical combinations
+        empty_groups = True
 
     klass, msg = {
         "all": (None, ""),
@@ -617,10 +624,10 @@ def test_groupby_raises_category_on_category(
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
         "first": (None, ""),
-        "idxmax": (ValueError, "attempt to get argmax of an empty sequence")
+        "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups
         else (None, ""),
-        "idxmin": (ValueError, "attempt to get argmin of an empty sequence")
+        "idxmin": (ValueError, "empty group due to unobserved categories")
         if empty_groups
         else (None, ""),
         "last": (None, ""),
