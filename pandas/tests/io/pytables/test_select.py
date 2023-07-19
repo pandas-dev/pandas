@@ -943,3 +943,20 @@ def test_select_empty_where(tmp_path, where):
         store.put("df", df, "t")
         result = read_hdf(store, "df", where=where)
         tm.assert_frame_equal(result, df)
+
+
+def test_select_large_integer(tmp_path):
+    path = tmp_path / "large_int.h5"
+    s = HDFStore(path)
+    df = DataFrame(
+        zip(
+            ["a", "b", "c", "d"],
+            [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+        ),
+        columns=["x", "y"],
+    )
+    s.append("data", df, data_columns=True, index=False)
+    assert (
+        s.select("data", where="y==-9223372036854775801").get("y").get(0)
+        == -9223372036854775801
+    )
