@@ -489,9 +489,10 @@ all standard database join operations between ``DataFrame`` or named ``Series`` 
   columns. Defaults to ``('_x', '_y')``.
 * ``copy``: Always copy data (default ``True``) from the passed DataFrame or named Series
   objects, even when reindexing is not necessary. Cannot be avoided in many
-  cases but may improve performance / memory usage. The cases where copying
-  can be avoided are somewhat pathological but this option is provided
-  nonetheless.
+  cases but may improve performance / memory usage. When CoW is used, copy will be
+  disabled.If merge finally work on axis 0, then copy operation may be needed. There
+  are some corner cases in which copy is enabled in the end but finally object's
+  underlying data is not copied.
 * ``indicator``: Add a column to the output DataFrame called ``_merge``
   with information on the source of each row. ``_merge`` is Categorical-type
   and takes on a value of ``left_only`` for observations whose merge key
