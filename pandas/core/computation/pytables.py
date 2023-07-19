@@ -233,10 +233,16 @@ class BinOp(ops.BinOp):
                 result = metadata.searchsorted(v, side="left")
             return TermValue(result, result, "integer")
         elif kind == "integer":
-            from decimal import Decimal
+            from decimal import (
+                Decimal,
+                InvalidOperation,
+            )
 
-            v_dec = Decimal(v)
-            v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            try:
+                v_dec = Decimal(v)
+                v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            except InvalidOperation:
+                raise ValueError(f"could not convert {type(v)} to {kind}")
             return TermValue(v, v, kind)
         elif kind == "float":
             v = float(v)
