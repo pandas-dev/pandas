@@ -947,7 +947,7 @@ def test_select_empty_where(tmp_path, where):
 
 def test_select_large_integer(tmp_path):
     path = tmp_path / "large_int.h5"
-    s = HDFStore(path)
+
     df = DataFrame(
         zip(
             ["a", "b", "c", "d"],
@@ -955,8 +955,10 @@ def test_select_large_integer(tmp_path):
         ),
         columns=["x", "y"],
     )
-    s.append("data", df, data_columns=True, index=False)
-    assert (
-        s.select("data", where="y==-9223372036854775801").get("y").get(0)
-        == -9223372036854775801
-    )
+    result = None
+    with HDFStore(path) as s:
+        s.append("data", df, data_columns=True, index=False)
+        result = s.select("data", where="y==-9223372036854775801").get("y").get(0)
+    expected = df["y"][0]
+
+    assert expected == result
