@@ -130,7 +130,7 @@ class TestPeriodIndex:
         tm.assert_index_equal(pi1.asfreq("3M"), exp)
         tm.assert_index_equal(pi1.astype("period[3M]"), exp)
 
-    def test_asfreq_with_periodindex(self):
+    def test_asfreq_with_different_n(self):
         ser = Series([1, 2], index=PeriodIndex(["2020-01", "2020-03"], freq="2M"))
         result = ser.asfreq("M")
 
