@@ -587,7 +587,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     stacked : Series or DataFrame
     """
 
-    def factorize(index):
+    def stack_factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
         codes, categories = factorize_from_iterable(index)
@@ -606,7 +606,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
         new_levels = list(frame.index.levels)
         new_codes = [lab.repeat(K) for lab in frame.index.codes]
 
-        clev, clab = factorize(frame.columns)
+        clev, clab = stack_factorize(frame.columns)
         new_levels.append(clev)
         new_codes.append(np.tile(clab, N).ravel())
 
