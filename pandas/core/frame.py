@@ -5523,7 +5523,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int | Iterable[int] = 1,
+        periods: int | Sequence[int] = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
@@ -5540,7 +5540,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(periods):
             # periods is not necessarily a list, but otherwise mypy complains.
-            periods = cast(list, periods)
+            periods = cast(Sequence, periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
@@ -5560,7 +5560,9 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1) if shifted_dataframes else self
+            return concat(shifted_dataframes, axis=1)
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)
 
         ncols = len(self.columns)

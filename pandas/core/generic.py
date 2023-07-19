@@ -197,7 +197,6 @@ from pandas.io.formats.printing import pprint_thing
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
-        Iterable,
         Iterator,
         Mapping,
         Sequence,
@@ -10545,7 +10544,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int | Iterable[int] = 1,
+        periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
@@ -10563,7 +10562,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        periods : int or Iterable
+        periods : int or Sequence
             Number of periods to shift. Can be positive or negative.
             If an iterable of ints, the data will be shifted once by each int.
             This is equivalent to shifting by one value at a time and
@@ -10675,7 +10674,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if periods == 0:
             return self.copy(deep=None)
 
-        if is_list_like(periods) and len(self.shape) == 1:
+        if is_list_like(periods) and isinstance(self, ABCSeries):
             return self.to_frame().shift(
                 periods=periods, freq=freq, axis=axis, fill_value=fill_value
             )

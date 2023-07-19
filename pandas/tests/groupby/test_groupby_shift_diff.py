@@ -175,8 +175,18 @@ def test_shift_disallow_freq_and_fill_value():
         df.groupby(df.index).shift(periods=-2, freq="D", fill_value="1")
 
 
+def test_shift_disallow_suffix_if_periods_is_int():
+    # GH#44424
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data)
+    msg = "Cannot specify `suffix` if `periods` is an int."
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("b").shift(1, suffix="fails")
+
+
 @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods():
+    # GH#44424
     df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
 
     shifted_df = df.groupby("b")[["a"]].shift([0, 1])
@@ -192,6 +202,7 @@ def test_group_shift_with_multiple_periods():
 
 @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_freq():
+    # GH#44424
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
         index=date_range("1/1/2000", periods=5, freq="H"),
@@ -219,6 +230,7 @@ def test_group_shift_with_multiple_periods_and_freq():
 
 @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_fill_value():
+    # GH#44424
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
     )
@@ -229,12 +241,13 @@ def test_group_shift_with_multiple_periods_and_fill_value():
     tm.assert_frame_equal(shifted_df, expected_df)
 
 
-@pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
+# @pytest.mark.filterwarnings("ignore:The 'axis' keyword in")
 def test_group_shift_with_multiple_periods_and_both_fill_and_freq_fails():
+    # GH#44424
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
         index=date_range("1/1/2000", periods=5, freq="H"),
     )
     msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
     with pytest.raises(ValueError, match=msg):
-        df.shift([1, 2], fill_value=1, freq="H")
+        df.groupby("b")[["a"]].shift([1, 2], fill_value=1, freq="H")

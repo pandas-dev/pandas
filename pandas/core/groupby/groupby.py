@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
-    Iterable,
     Iterator,
     Mapping,
     Sequence,
@@ -4909,7 +4908,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     def shift(
         self,
-        periods: int | Iterable[int] = 1,
+        periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=lib.no_default,
@@ -4922,7 +4921,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        periods : int | Iterable[int], default 1
+        periods : int | Sequence[int], default 1
             Number of periods to shift. If a list of values, shift each group by
             each period.
         freq : str, optional
@@ -4998,11 +4997,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             axis = 0
 
         if is_list_like(periods):
-            periods = cast(list, periods)
             if axis == 1:
                 raise ValueError(
                     "If `periods` contains multiple shifts, `axis` cannot be 1."
                 )
+            periods = cast(Sequence, periods)
             if len(periods) == 0:
                 raise ValueError("If `periods` is an iterable, it cannot be empty.")
             from pandas.core.reshape.concat import concat
@@ -5013,6 +5012,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {periods} is {type(periods)}."
                 )
+            if suffix:
+                raise ValueError("Cannot specify `suffix` if `periods` is an int.")
             periods = [periods]
             add_suffix = False
 
@@ -5046,7 +5047,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             if add_suffix:
-                if len(shifted.shape) == 1:
+                if isinstance(shifted, Series):
                     shifted = shifted.to_frame()
                 shifted = shifted.add_suffix(
                     f"{suffix}_{period}" if suffix else f"_{period}"
