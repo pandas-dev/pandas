@@ -212,6 +212,13 @@ class TestDataFrameColor:
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
+    def test_scatter_colors_not_raising_warnings(self):
+        # GH-53908. Do not raise UserWarning: No data for colormapping
+        # provided via 'c'. Parameters 'cmap' will be ignored
+        df = DataFrame({"x": [1, 2, 3], "y": [1, 2, 3]})
+        with tm.assert_produces_warning(None):
+            df.plot.scatter(x="x", y="y", c="b")
+
     def test_scatter_colors_default(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
         default_colors = _unpack_cycler(mpl.pyplot.rcParams)
