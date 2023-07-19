@@ -893,7 +893,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+        if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)  # type: ignore[arg-type]
@@ -2536,7 +2536,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             warnings.simplefilter("ignore")
             i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2610,7 +2611,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             warnings.simplefilter("ignore")
             i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            return self.index._na_value
         return self.index[i]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
