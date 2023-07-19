@@ -83,7 +83,7 @@ class ParserError(ValueError):
     ... cat,foo,bar
     ... dog,foo,"baz'''
     >>> from io import StringIO
-    >>> pd.read_csv(StringIO(data), skipfooter=1)
+    >>> pd.read_csv(StringIO(data), skipfooter=1, engine='python')
     Traceback (most recent call last):
     ParserError: ',' expected after '"'. Error could possibly be due
     to parsing errors in the skipped footer rows
