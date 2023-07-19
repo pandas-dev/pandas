@@ -691,8 +691,7 @@ class ArrayManager(BaseArrayManager):
         """
         return self.arrays[i]
 
-    @property
-    def column_arrays(self) -> list[ArrayLike]:
+    def column_arrays(self, date_unit) -> list[np.ndarray]:
         """
         Used in the JSON C code to access column arrays.
         """
