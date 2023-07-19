@@ -2,6 +2,7 @@ import pytest
 
 from pandas import (
     PeriodIndex,
+    Series,
     period_range,
 )
 import pandas._testing as tm
@@ -128,3 +129,10 @@ class TestPeriodIndex:
         exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="3M")
         tm.assert_index_equal(pi1.asfreq("3M"), exp)
         tm.assert_index_equal(pi1.astype("period[3M]"), exp)
+
+    def test_asfreq_with_different_n(self):
+        ser = Series([1, 2], index=PeriodIndex(["2020-01", "2020-03"], freq="2M"))
+        result = ser.asfreq("M")
+
+        excepted = Series([1, 2], index=PeriodIndex(["2020-02", "2020-04"], freq="M"))
+        tm.assert_series_equal(result, excepted)
