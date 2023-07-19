@@ -2319,6 +2319,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Reductions
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ["argmax", "argmin"]:
+            # don't wrap in Categorical!
+            return result
+        if keepdims:
+            return type(self)(result, dtype=self.dtype)
+        else:
+            return result
+
     def min(self, *, skipna: bool = True, **kwargs):
         """
         The minimum value of the object.
@@ -2581,7 +2593,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             values_type = type(values).__name__
             raise TypeError(
                 "only list-like objects are allowed to be passed "
-                f"to isin(), you passed a [{values_type}]"
+                f"to isin(), you passed a `{values_type}`"
             )
         values = sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
@@ -2633,18 +2645,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Optimization to apply the callable `f` to the categories once
         # and rebuild the result by `take`ing from the result with the codes.
         # Returns the same type as the object-dtype implementation though.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
         categories = self.categories
         codes = self.codes
-        result = PandasArray(categories.to_numpy())._str_map(f, na_value, dtype)
+        result = NumpyExtensionArray(categories.to_numpy())._str_map(f, na_value, dtype)
         return take_nd(result, codes, fill_value=na_value)
 
     def _str_get_dummies(self, sep: str = "|"):
         # sep may not be in categories. Just bail on this.
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
-        return PandasArray(self.astype(str))._str_get_dummies(sep)
+        return NumpyExtensionArray(self.astype(str))._str_get_dummies(sep)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
