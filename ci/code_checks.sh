@@ -65,16 +65,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
-        pandas.errors.MergeError \
         pandas.errors.NoBufferPresent \
-        pandas.errors.NullFrequencyError \
-        pandas.errors.NumbaUtilError \
         pandas.errors.OptionError \
-        pandas.errors.OutOfBoundsDatetime \
-        pandas.errors.OutOfBoundsTimedelta \
-        pandas.errors.ParserError \
         pandas.errors.PerformanceWarning \
         pandas.errors.PyperclipException \
         pandas.errors.PyperclipWindowsException \
@@ -115,18 +108,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.dropna \
-        pandas.api.extensions.ExtensionArray.equals \
-        pandas.api.extensions.ExtensionArray.factorize \
-        pandas.api.extensions.ExtensionArray.fillna \
-        pandas.api.extensions.ExtensionArray.insert \
         pandas.api.extensions.ExtensionArray.interpolate \
-        pandas.api.extensions.ExtensionArray.isin \
-        pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.api.extensions.ExtensionArray.searchsorted \
-        pandas.api.extensions.ExtensionArray.shift \
-        pandas.api.extensions.ExtensionArray.unique \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
