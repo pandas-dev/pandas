@@ -656,6 +656,12 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * `na_values` should implement :func:`ExtensionArray._reduce`
         * ``na_values.any`` and ``na_values.all`` should be implemented
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, np.nan, np.nan])
+        >>> arr.isna()
+        array([False, False,  True,  True])
         """
         raise AbstractMethodError(self)
 
@@ -882,6 +888,14 @@ class ExtensionArray:
         -------
         ExtensionArray
             With NA/NaN filled.
+
+        Examples
+        --------
+        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr.fillna(0)
+        <IntegerArray>
+        [0, 0, 2, 3, 0, 0]
+        Length: 6, dtype: Int64
         """
         value, method = validate_fillna_kwargs(value, method)
 
@@ -918,7 +932,13 @@ class ExtensionArray:
 
         Returns
         -------
-        pandas.api.extensions.ExtensionArray
+
+        Examples
+        --------
+        >>> pd.array([1, 2, np.nan]).dropna()
+        <IntegerArray>
+        [1, 2]
+        Length: 2, dtype: Int64
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
@@ -955,6 +975,14 @@ class ExtensionArray:
         ``self.dtype.na_value``.
 
         For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.shift(2)
+        <IntegerArray>
+        [<NA>, <NA>, 1]
+        Length: 3, dtype: Int64
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -982,6 +1010,14 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 1, 2, 3])
+        >>> arr.unique()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
@@ -1029,6 +1065,12 @@ class ExtensionArray:
         See Also
         --------
         numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr.searchsorted([4])
+        array([3])
         """
         # Note: the base tests provided by pandas only test the basics.
         # We do not test
@@ -1057,6 +1099,13 @@ class ExtensionArray:
         -------
         boolean
             Whether the arrays are equivalent.
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        True
         """
         if type(self) != type(other):
             return False
@@ -1087,6 +1136,14 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[bool]
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.isin([1])
+        <BooleanArray>
+        [True, False, False]
+        Length: 3, dtype: boolean
         """
         return isin(np.asarray(self), values)
 
@@ -1151,6 +1208,16 @@ class ExtensionArray:
         Notes
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
+
+        Examples
+        --------
+        >>> idx1 = pd.PeriodIndex(["2014-01", "2014-01", "2014-02", "2014-02",
+        ...                       "2014-03", "2014-03"], freq="M")
+        >>> arr, idx = idx1.factorize()
+        >>> arr
+        array([0, 0, 1, 1, 2, 2])
+        >>> idx
+        PeriodIndex(['2014-01', '2014-02', '2014-03'], dtype='period[M]')
         """
         # Implementer note: There are two ways to override the behavior of
         # pandas.factorize
@@ -1657,6 +1724,14 @@ class ExtensionArray:
 
         The default implementation relies on _from_sequence to raise on invalid
         items.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.insert(2, -1)
+        <IntegerArray>
+        [1, 2, -1, 3]
+        Length: 4, dtype: Int64
         """
         loc = validate_insert_loc(loc, len(self))
 
