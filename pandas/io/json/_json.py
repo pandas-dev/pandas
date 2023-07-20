@@ -22,8 +22,8 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.json import (
-    dumps,
-    loads,
+    ujson_dumps,
+    ujson_loads,
 )
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
@@ -255,7 +255,7 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        return dumps(
+        return ujson_dumps(
             self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
@@ -1327,7 +1327,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> None:
-        data = loads(self.json, precise_float=self.precise_float)
+        data = ujson_loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1356,12 +1356,12 @@ class FrameParser(Parser):
 
         if orient == "columns":
             self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
+                ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
         elif orient == "split":
             decoded = {
                 str(k): v
-                for k, v in loads(json, precise_float=self.precise_float).items()
+                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
             orig_names = [
@@ -1375,7 +1375,7 @@ class FrameParser(Parser):
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
-                loads(json, precise_float=self.precise_float),
+                ujson_loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
@@ -1383,7 +1383,7 @@ class FrameParser(Parser):
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
             self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
+                ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
     def _process_converter(self, f, filt=None) -> None:

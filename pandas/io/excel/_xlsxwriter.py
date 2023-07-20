@@ -261,7 +261,7 @@ class XlsxWriter(ExcelWriter):
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
 
-            stylekey = json.dumps(cell.style)
+            stylekey = json.ujson_dumps(cell.style)
             if fmt:
                 stylekey += fmt
 

@@ -247,7 +247,7 @@ class ODSWriter(ExcelWriter):
 
         if style is None:
             return None
-        style_key = json.dumps(style)
+        style_key = json.ujson_dumps(style)
         if style_key in self._style_dict:
             return self._style_dict[style_key]
         name = f"pd{len(self._style_dict)+1}"

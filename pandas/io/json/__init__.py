@@ -1,8 +1,8 @@
 from pandas.io.json._json import (
-    dumps,
-    loads,
     read_json,
     to_json,
+    ujson_dumps as dumps,
+    ujson_loads as loads,
 )
 from pandas.io.json._table_schema import build_table_schema
 
