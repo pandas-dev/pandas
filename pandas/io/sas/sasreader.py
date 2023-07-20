@@ -129,7 +129,7 @@ def read_sas(
 
     Examples
     --------
-    >>> df = pd.read_sas("sas_data.sas7bdat")
+    >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP
     """
     if format is None:
         buffer_error_msg = (
