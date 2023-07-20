@@ -160,8 +160,13 @@ class BaseMethodsTests(BaseExtensionTests):
         self, data_missing_for_sorting, op_name, skipna, expected
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        warn = None
+        if op_name.startswith("arg") and expected == -1:
+            warn = FutureWarning
+        msg = "The behavior of Series.argmax/argmin"
         ser = pd.Series(data_missing_for_sorting)
-        result = getattr(ser, op_name)(skipna=skipna)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):

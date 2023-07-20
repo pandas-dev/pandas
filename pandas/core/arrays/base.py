@@ -520,6 +520,12 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.shape
+        (3,)
         """
         return (len(self),)
 
@@ -536,6 +542,12 @@ class ExtensionArray:
     def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.ndim
+        1
         """
         return 1
 
@@ -1599,6 +1611,14 @@ class ExtensionArray:
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._accumulate(name='cumsum')
+        <IntegerArray>
+        [1, 3, 6]
+        Length: 3, dtype: Int64
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
@@ -1694,6 +1714,12 @@ class ExtensionArray:
         Returns
         -------
         list
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.tolist()
+        [1, 2, 3]
         """
         if self.ndim > 1:
             return [x.tolist() for x in self]
