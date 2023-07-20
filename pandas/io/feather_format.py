@@ -103,6 +103,10 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+
+    Examples
+    --------
+    >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather

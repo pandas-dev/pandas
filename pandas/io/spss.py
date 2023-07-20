@@ -50,6 +50,10 @@ def read_spss(
     Returns
     -------
     DataFrame
+
+    Examples
+    --------
+    >>> df = pd.read_spss("spss_data.sav")  # doctest: +SKIP
     """
     pyreadstat = import_optional_dependency("pyreadstat")
     check_dtype_backend(dtype_backend)

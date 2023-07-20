@@ -468,6 +468,13 @@ def read_sql_query(
     -----
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
+
+    Examples
+    --------
+    >>> from sqlalchemy import create_engine  # doctest: +SKIP
+    >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
+    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
