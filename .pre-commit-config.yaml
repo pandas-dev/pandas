@@ -245,7 +245,7 @@ repos:
             |os\.remove
 
             # Unseeded numpy default_rng
-            | default_rng\(\)
+            |default_rng\(\)
         files: ^pandas/tests/
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-ea-tests
