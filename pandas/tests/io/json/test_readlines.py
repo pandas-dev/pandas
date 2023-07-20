@@ -54,9 +54,7 @@ def test_read_datetime(request, engine):
     if engine == "pyarrow":
         result = read_json(StringIO(json_line), engine=engine)
     else:
-        msg = "parsing datetimes with mixed time zones will raise a warning"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = read_json(StringIO(json_line), engine=engine)
+        result = read_json(StringIO(json_line), engine=engine)
     expected = DataFrame(
         [[1, "2020-03-05", "hector"], [2, "2020-04-08T09:58:49+00:00", "hector"]],
         columns=["accounts", "date", "name"],
