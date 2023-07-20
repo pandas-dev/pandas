@@ -63,24 +63,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.Series.backfill \
-        pandas.Series.pad \
-        pandas.Series.hist \
-        pandas.errors.AccessorRegistrationWarning \
-        pandas.errors.AttributeConflictWarning \
-        pandas.errors.DataError \
         pandas.errors.IncompatibilityWarning \
         pandas.errors.InvalidComparison \
-        pandas.errors.IntCastingNaNError \
         pandas.errors.LossySetitemError \
-        pandas.errors.MergeError \
         pandas.errors.NoBufferPresent \
-        pandas.errors.NullFrequencyError \
-        pandas.errors.NumbaUtilError \
         pandas.errors.OptionError \
-        pandas.errors.OutOfBoundsDatetime \
-        pandas.errors.OutOfBoundsTimedelta \
-        pandas.errors.ParserError \
         pandas.errors.PerformanceWarning \
         pandas.errors.PyperclipException \
         pandas.errors.PyperclipWindowsException \
@@ -88,15 +75,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsupportedFunctionCall \
         pandas.test \
         pandas.NaT \
-        pandas.io.formats.style.Styler.to_html \
         pandas.read_feather \
         pandas.DataFrame.to_feather \
-        pandas.read_parquet \
         pandas.read_orc \
         pandas.read_sas \
         pandas.read_spss \
         pandas.read_sql_query \
-        pandas.read_gbq \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
@@ -112,18 +96,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.DatetimeIndex.snap \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.io.formats.style.Styler.set_caption \
-        pandas.io.formats.style.Styler.set_sticky \
-        pandas.io.formats.style.Styler.set_uuid \
-        pandas.io.formats.style.Styler.clear \
-        pandas.io.formats.style.Styler.highlight_null \
-        pandas.io.formats.style.Styler.highlight_max \
-        pandas.io.formats.style.Styler.highlight_min \
-        pandas.io.formats.style.Styler.bar \
-        pandas.io.formats.style.Styler.to_string \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
-        pandas.arrays.PandasArray \
+        pandas.arrays.NumpyExtensionArray \
         pandas.api.extensions.ExtensionArray._accumulate \
         pandas.api.extensions.ExtensionArray._concat_same_type \
         pandas.api.extensions.ExtensionArray._formatter \
@@ -133,24 +108,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.dropna \
-        pandas.api.extensions.ExtensionArray.equals \
-        pandas.api.extensions.ExtensionArray.factorize \
-        pandas.api.extensions.ExtensionArray.fillna \
-        pandas.api.extensions.ExtensionArray.insert \
         pandas.api.extensions.ExtensionArray.interpolate \
-        pandas.api.extensions.ExtensionArray.isin \
-        pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.api.extensions.ExtensionArray.searchsorted \
-        pandas.api.extensions.ExtensionArray.shift \
-        pandas.api.extensions.ExtensionArray.unique \
         pandas.api.extensions.ExtensionArray.ndim \
         pandas.api.extensions.ExtensionArray.shape \
         pandas.api.extensions.ExtensionArray.tolist \
-        pandas.DataFrame.pad \
-        pandas.DataFrame.plot \
-        pandas.DataFrame.to_gbq \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
