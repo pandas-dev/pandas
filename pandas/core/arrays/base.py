@@ -1718,10 +1718,8 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([1, 2, 3])
-        >>> arr.tolist
-        <bound method BaseMaskedArray.tolist of <IntegerArray>
+        >>> arr.tolist()
         [1, 2, 3]
-        Length: 3, dtype: Int64>
         """
         if self.ndim > 1:
             return [x.tolist() for x in self]
