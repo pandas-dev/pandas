@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import functools
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 import unicodedata
@@ -22,7 +20,6 @@ import pandas._libs.ops as libops
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer_dtype,
-    is_scalar,
 )
 from pandas.core.dtypes.missing import isna
 
@@ -30,6 +27,8 @@ from pandas.core.arrays.integer import IntegerArray
 from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         NpDtype,
         Scalar,
@@ -490,14 +489,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(removeprefix)
 
     def _str_removesuffix(self, suffix: str) -> Series:
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return self._str_map(functools.partial(removesuffix, suffix=suffix))
-        else:
-            return self._str_map(lambda x: x.removesuffix(suffix))
+        return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
         regex = re.compile(pat, flags=flags)

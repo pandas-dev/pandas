@@ -10,8 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
-    Sized,
     TypeVar,
     cast,
     overload,
@@ -84,6 +82,11 @@ from pandas.core.dtypes.missing import (
 from pandas.io._util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Sequence,
+        Sized,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -1005,11 +1008,16 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : str, default "numpy_nullable"
-        Nullable dtype implementation to use.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        * "numpy_nullable" returns numpy-backed nullable types
-        * "pyarrow" returns pyarrow-backed nullable types using ``ArrowDtype``
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
+
+        .. versionadded:: 2.0
 
     Returns
     -------
@@ -1262,17 +1270,17 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
 
 # TODO: other value-dependent functions to standardize here include
 #  Index._find_common_type_compat
-def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
+def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
     """
-    Find the type/dtype for a the result of an operation between these objects.
+    Find the type/dtype for the result of an operation between objects.
 
-    This is similar to find_common_type, but looks at the objects instead
-    of just their dtypes. This can be useful in particular when one of the
-    objects does not have a `dtype`.
+    This is similar to find_common_type, but looks at the right object instead
+    of just its dtype. This can be useful in particular when the right
+    object does not have a `dtype`.
 
     Parameters
     ----------
-    left : np.ndarray or ExtensionArray
+    left_dtype : np.dtype or ExtensionDtype
     right : Any
 
     Returns
@@ -1287,26 +1295,24 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     new_dtype: DtypeObj
 
     if (
-        isinstance(left, np.ndarray)
-        and left.dtype.kind in "iuc"
+        isinstance(left_dtype, np.dtype)
+        and left_dtype.kind in "iuc"
         and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
         #  which will make us upcast too far.
-        if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
+        if lib.is_float(right) and right.is_integer() and left_dtype.kind != "f":
             right = int(right)
+        new_dtype = np.result_type(left_dtype, right)
 
-        new_dtype = np.result_type(left, right)
-
-    elif is_valid_na_for_dtype(right, left.dtype):
+    elif is_valid_na_for_dtype(right, left_dtype):
         # e.g. IntervalDtype[int] and None/np.nan
-        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+        new_dtype = ensure_dtype_can_hold_na(left_dtype)
 
     else:
         dtype, _ = infer_dtype_from(right)
-
-        new_dtype = find_common_type([left.dtype, dtype])
+        new_dtype = find_common_type([left_dtype, dtype])
 
     return new_dtype
 
@@ -1329,7 +1335,7 @@ def common_dtype_categorical_compat(
     # GH#38240
 
     # TODO: more generally, could do `not can_hold_na(dtype)`
-    if isinstance(dtype, np.dtype) and dtype.kind in "iu":
+    if lib.is_np_dtype(dtype, "iu"):
         for obj in objs:
             # We don't want to accientally allow e.g. "categorical" str here
             obj_dtype = getattr(obj, "dtype", None)
@@ -1506,7 +1512,7 @@ def construct_1d_arraylike_from_scalar(
         if length and dtype.kind in "iu" and isna(value):
             # coerce if we have nan for an integer dtype
             dtype = np.dtype("float64")
-        elif isinstance(dtype, np.dtype) and dtype.kind in "US":
+        elif lib.is_np_dtype(dtype, "US"):
             # we need to coerce to object dtype to avoid
             # to allow numpy to take our string as a scalar value
             dtype = np.dtype("object")

@@ -38,7 +38,6 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
 )
-from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -62,6 +61,7 @@ from pandas.tests.extension import base
 pa = pytest.importorskip("pyarrow", minversion="7.0.0")
 
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
+from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
@@ -509,6 +509,40 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series(data, all_numeric_reductions, skipna)
 
+    def check_reduce_frame(self, ser, op_name, skipna):
+        arr = ser.array
+
+        if op_name in ["count", "kurt", "sem", "skew"]:
+            assert not hasattr(arr, op_name)
+            return
+
+        kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
+
+        if op_name in ["max", "min"]:
+            cmp_dtype = arr.dtype
+        elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
+            if op_name not in ["median", "var", "std"]:
+                cmp_dtype = arr.dtype
+            else:
+                cmp_dtype = "float64[pyarrow]"
+        elif op_name in ["median", "var", "std", "mean", "skew"]:
+            cmp_dtype = "float64[pyarrow]"
+        else:
+            cmp_dtype = {
+                "i": "int64[pyarrow]",
+                "u": "uint64[pyarrow]",
+                "f": "float64[pyarrow]",
+            }[arr.dtype.kind]
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
+
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)(**kwargs)
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+
+        tm.assert_extension_array_equal(result, expected)
+
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
     def test_median_not_approximate(self, typ):
         # GH 52679
@@ -697,12 +731,6 @@ class TestBaseMissing(base.BaseMissingTests):
         result = data.fillna(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.maybe_produces_warning(
-            PerformanceWarning, fillna_method is not None, check_stacklevel=False
-        ):
-            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class TestBasePrinting(base.BasePrintingTests):
@@ -1679,7 +1707,11 @@ def test_to_numpy_with_defaults(data):
     result = data.to_numpy()
 
     pa_type = data._pa_array.type
-    if pa.types.is_duration(pa_type) or pa.types.is_timestamp(pa_type):
+    if (
+        pa.types.is_duration(pa_type)
+        or pa.types.is_timestamp(pa_type)
+        or pa.types.is_date(pa_type)
+    ):
         expected = np.array(list(data))
     else:
         expected = np.array(data._pa_array)
@@ -2942,7 +2974,7 @@ def test_date32_repr():
     # GH48238
     arrow_dt = pa.array([date.fromisoformat("2020-01-01")], type=pa.date32())
     ser = pd.Series(arrow_dt, dtype=ArrowDtype(arrow_dt.type))
-    assert repr(ser) == "0   2020-01-01\ndtype: date32[day][pyarrow]"
+    assert repr(ser) == "0    2020-01-01\ndtype: date32[day][pyarrow]"
 
 
 @pytest.mark.xfail(
@@ -3090,6 +3122,14 @@ def test_iter_temporal(pa_type):
     assert result == expected
 
 
+def test_groupby_series_size_returns_pa_int(data):
+    # GH 54132
+    ser = pd.Series(data[:3], index=["a", "a", "b"])
+    result = ser.groupby(level=0).size()
+    expected = pd.Series([2, 1], dtype="int64[pyarrow]", index=["a", "b"])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
@@ -3112,3 +3152,17 @@ def test_to_numpy_temporal(pa_type):
     expected = np.array(expected, dtype=object)
     assert result[0].unit == expected[0].unit
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_arrowextensiondtype_dataframe_repr():
+    # GH 54062
+    df = pd.DataFrame(
+        pd.period_range("2012", periods=3),
+        columns=["col"],
+        dtype=ArrowDtype(ArrowPeriodType("D")),
+    )
+    result = repr(df)
+    # TODO: repr value may not be expected; address how
+    # pyarrow.ExtensionType values are displayed
+    expected = "     col\n0  15340\n1  15341\n2  15342"
+    assert result == expected

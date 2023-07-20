@@ -12,8 +12,8 @@ from pandas.core.arrays import (
     FloatingArray,
     IntegerArray,
     IntervalArray,
+    NumpyExtensionArray,
     ObjectStringArray,
-    PandasArray,
     PeriodArray,
     SparseArray,
     StringArray,
@@ -29,10 +29,27 @@ __all__ = [
     "FloatingArray",
     "IntegerArray",
     "IntervalArray",
-    "PandasArray",
+    "NumpyExtensionArray",
     "PeriodArray",
     "SparseArray",
     "StringArray",
     "ObjectStringArray",
     "TimedeltaArray",
 ]
+
+
+def __getattr__(name: str):
+    if name == "PandasArray":
+        # GH#53694
+        import warnings
+
+        from pandas.util._exceptions import find_stack_level
+
+        warnings.warn(
+            "PandasArray has been renamed NumpyExtensionArray. Use that "
+            "instead. This alias will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        return NumpyExtensionArray
+    raise AttributeError(f"module 'pandas.arrays' has no attribute '{name}'")

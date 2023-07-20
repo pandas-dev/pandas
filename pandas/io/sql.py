@@ -24,9 +24,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -62,6 +60,11 @@ from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Mapping,
+    )
+
     from sqlalchemy import Table
     from sqlalchemy.sql.expression import (
         Select,
@@ -302,13 +305,14 @@ def read_sql_table(
     chunksize : int, default None
         If specified, returns an iterator where `chunksize` is the number of
         rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -440,13 +444,14 @@ def read_sql_query(
         {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
 
         .. versionadded:: 1.3.0
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -463,6 +468,13 @@ def read_sql_query(
     -----
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
+
+    Examples
+    --------
+    >>> from sqlalchemy import create_engine  # doctest: +SKIP
+    >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
+    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -573,13 +585,14 @@ def read_sql(
     chunksize : int, default None
         If specified, return an iterator where `chunksize` is the
         number of rows to include in each chunk.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
@@ -685,7 +698,7 @@ def to_sql(
     schema: str | None = None,
     if_exists: Literal["fail", "replace", "append"] = "fail",
     index: bool = True,
-    index_label: IndexLabel = None,
+    index_label: IndexLabel | None = None,
     chunksize: int | None = None,
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
@@ -974,10 +987,16 @@ class SQLTable(PandasObject):
         for i, (_, ser) in enumerate(temp.items()):
             if ser.dtype.kind == "M":
                 if isinstance(ser._values, ArrowExtensionArray):
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings("ignore", category=FutureWarning)
-                        # GH#52459 to_pydatetime will return Index[object]
-                        d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
+                    import pyarrow as pa
+
+                    if pa.types.is_date(ser.dtype.pyarrow_dtype):
+                        # GH#53854 to_pydatetime not supported for pyarrow date dtypes
+                        d = ser._values.to_numpy(dtype=object)
+                    else:
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=FutureWarning)
+                            # GH#52459 to_pydatetime will return Index[object]
+                            d = np.asarray(ser.dt.to_pydatetime(), dtype=object)
                 else:
                     d = ser._values.to_pydatetime()
             elif ser.dtype.kind == "m":
@@ -1622,13 +1641,14 @@ class SQLDatabase(PandasSQL):
         chunksize : int, default None
             If specified, return an iterator where `chunksize` is the number
             of rows to include in each chunk.
-        dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy dtypes
-            Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-            arrays, nullable dtypes are used for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
 
-            The dtype_backends are still experimential.
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
 
             .. versionadded:: 2.0
 
@@ -1642,7 +1662,7 @@ class SQLDatabase(PandasSQL):
         SQLDatabase.read_query
 
         """
-        self.meta.reflect(bind=self.con, only=[table_name])
+        self.meta.reflect(bind=self.con, only=[table_name], views=True)
         table = SQLTable(table_name, self, index=index_col, schema=schema)
         if chunksize is not None:
             self.returns_generator = True
@@ -1976,7 +1996,9 @@ class SQLDatabase(PandasSQL):
     def drop_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
+            self.meta.reflect(
+                bind=self.con, only=[table_name], schema=schema, views=True
+            )
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
@@ -2398,7 +2420,15 @@ class SQLiteDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"
-        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
+        query = f"""
+        SELECT
+            name
+        FROM
+            sqlite_master
+        WHERE
+            type IN ('table', 'view')
+            AND name={wld};
+        """
 
         return len(self.execute(query, [name]).fetchall()) > 0
 

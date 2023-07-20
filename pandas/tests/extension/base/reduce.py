@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_numeric_dtype
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -65,6 +66,15 @@ class BaseNumericReduceTests(BaseReduceTests):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             self.check_reduce(s, op_name, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        s = pd.Series(data)
+        if not is_numeric_dtype(s):
+            pytest.skip("not numeric dtype")
+
+        self.check_reduce_frame(s, op_name, skipna)
 
 
 class BaseBooleanReduceTests(BaseReduceTests):
