@@ -634,10 +634,13 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
-    if conn == "postgresql_adbc_conn":
+    if method == "multi" and "adbc" in conn:
         request.node.add_marker(
-            pytest.mark.skip(reason="segfault when not 'index=False'", strict=True)
+            pytest.mark.xfail(
+                reason="'method' not implemented for ADBC drivers", strict=True
+            )
         )
+
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
@@ -649,10 +652,6 @@ def test_to_sql(conn, method, test_frame1, request):
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("mode, num_row_coef", [("replace", 1), ("append", 2)])
 def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="segfault when not 'index=False'", strict=True)
-        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
@@ -664,10 +663,6 @@ def test_to_sql_exist(conn, mode, num_row_coef, test_frame1, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_exist_fail(conn, test_frame1, request):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="segfault when not 'index=False'", strict=True)
-        )
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", if_exists="fail")
