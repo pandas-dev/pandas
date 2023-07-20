@@ -74,7 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
         pandas.NaT \
-        pandas.DataFrame.to_feather \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
