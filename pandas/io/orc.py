@@ -95,6 +95,10 @@ def read_orc(
     a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
     pyarrow or fsspec filesystem object into the filesystem keyword to override this
     behavior.
+
+    Examples
+    --------
+    >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
     # we require a newer version of pyarrow than we support for parquet
 
