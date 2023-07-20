@@ -970,6 +970,7 @@ class TestDataFrameAnalytics:
         for df in [frame, int_frame]:
             result = df.idxmin(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -987,13 +988,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmin(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmin(numeric_only=numeric_only)
             expected = Series([2, 1], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1, 0], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
@@ -1010,6 +1010,7 @@ class TestDataFrameAnalytics:
         for df in [frame, int_frame]:
             result = df.idxmax(axis=axis, skipna=skipna)
             expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -1027,13 +1028,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmax(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmax(numeric_only=numeric_only)
             expected = Series([1, 0], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([1, 0, 1], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame

@@ -18,6 +18,12 @@ from pandas.util.version import InvalidVersion
 class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
+
+    Examples
+    --------
+    >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
+    Traceback (most recent call last):
+    IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer
     """
 
 
@@ -27,6 +33,13 @@ class NullFrequencyError(ValueError):
 
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
+
+    Examples
+    --------
+    >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
+    >>> df.shift(2)
+    Traceback (most recent call last):
+    NullFrequencyError: Cannot shift with no freq
     """
 
 
@@ -63,6 +76,17 @@ class ParserError(ValueError):
     --------
     read_csv : Read CSV (comma-separated) file into a DataFrame.
     read_html : Read HTML table into a DataFrame.
+
+    Examples
+    --------
+    >>> data = '''a,b,c
+    ... cat,foo,bar
+    ... dog,foo,"baz'''
+    >>> from io import StringIO
+    >>> pd.read_csv(StringIO(data), skipfooter=1, engine='python')
+    Traceback (most recent call last):
+    ParserError: ',' expected after '"'. Error could possibly be due
+    to parsing errors in the skipped footer rows
     """
 
 
@@ -181,12 +205,18 @@ class MergeError(ValueError):
     Exception raised when merging data.
 
     Subclass of ``ValueError``.
-    """
 
-
-class AccessorRegistrationWarning(Warning):
-    """
-    Warning for attribute conflicts in accessor registration.
+    Examples
+    --------
+    >>> left = pd.DataFrame({"a": ["a", "b", "b", "d"],
+    ...                     "b": ["cat", "dog", "weasel", "horse"]},
+    ...                     index=range(4))
+    >>> right = pd.DataFrame({"a": ["a", "b", "c", "d"],
+    ...                      "c": ["meow", "bark", "chirp", "nay"]},
+    ...                      index=range(4)).set_index("a")
+    >>> left.join(right, on="a", validate="one_to_one",)
+    Traceback (most recent call last):
+    MergeError: Merge keys are not unique in left dataset; not a one-to-one merge
     """
 
 
@@ -231,6 +261,17 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b", "b"], "data": [1, 2, 3, 4]},
+    ...                   columns=["key", "data"])
+    >>> def incorrect_function(x):
+    ...     return sum(x) * 2.7
+    >>> df.groupby("key").agg(incorrect_function, engine="numba")
+    Traceback (most recent call last):
+    NumbaUtilError: The first 2 arguments to incorrect_function
+    must be ['values', 'index']
     """
 
 
@@ -281,6 +322,13 @@ class DataError(Exception):
 
     For example, calling ``ohlc`` on a non-numerical column or a function
     on a rolling window.
+
+    Examples
+    --------
+    >>> ser = pd.Series(['a', 'b', 'c'])
+    >>> ser.rolling(2).sum()
+    Traceback (most recent call last):
+    DataError: No numeric types to aggregate
     """
 
 
@@ -552,6 +600,17 @@ class AttributeConflictWarning(Warning):
     Occurs when attempting to append an index with a different
     name than the existing index on an HDFStore or attempting to append an index with a
     different frequency than the existing index on an HDFStore.
+
+    Examples
+    --------
+    >>> idx1 = pd.Index(['a', 'b'], name='name1')
+    >>> df1 = pd.DataFrame([[1, 2], [3, 4]], index=idx1)
+    >>> df1.to_hdf('file', 'data', 'w', append=True)  # doctest: +SKIP
+    >>> idx2 = pd.Index(['c', 'd'], name='name2')
+    >>> df2 = pd.DataFrame([[5, 6], [7, 8]], index=idx2)
+    >>> df2.to_hdf('file', 'data', 'a', append=True)  # doctest: +SKIP
+    AttributeConflictWarning: the [index_name] attribute of the existing index is
+    [name1] which conflicts with the new [name2]...
     """
 
 
@@ -644,7 +703,6 @@ class InvalidComparison(Exception):
 
 __all__ = [
     "AbstractMethodError",
-    "AccessorRegistrationWarning",
     "AttributeConflictWarning",
     "CategoricalConversionWarning",
     "ClosedFileError",
