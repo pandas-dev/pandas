@@ -50,6 +50,10 @@ def to_feather(
     **kwargs :
         Additional keywords passed to `pyarrow.feather.write_feather`.
 
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A' : [1, 2, 3], 'B' : [4, 5, 6]})
+    >>> df.to_feather("file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
