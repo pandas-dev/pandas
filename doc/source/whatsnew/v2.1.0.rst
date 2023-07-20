@@ -370,6 +370,7 @@ Deprecations
 - Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)
 - Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: "s", "ms", "us", "ns" resolutions (:issue:`53058`)
 - Deprecated values "pad", "ffill", "bfill", "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
+- Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and skipna=True or any-NAs and skipna=False returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -485,7 +486,7 @@ Conversion
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 - Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
--
+- Bug in :meth:`HDFStore.select` loses precision of large int when stored and retrieved (:issue:`54186`)
 
 Strings
 ^^^^^^^
@@ -527,6 +528,7 @@ I/O
 - Bug in :func:`read_hdf` not properly closing store after a ``IndexError`` is raised (:issue:`52781`)
 - Bug in :func:`read_html`, style elements were read into DataFrames (:issue:`52197`)
 - Bug in :func:`read_html`, tail texts were removed together with elements containing ``display:none`` style (:issue:`51629`)
+- Bug in :func:`read_sql_table` raising an exception when reading a view (:issue:`52969`)
 - Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)
 - Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)
 - Bug in :meth:`DataFrame.to_html` where ``colspace`` was incorrectly applied in case of multi index columns (:issue:`53885`)
