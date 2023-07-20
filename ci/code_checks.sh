@@ -99,7 +99,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.NumpyExtensionArray \
-        pandas.api.extensions.ExtensionArray._accumulate \
         pandas.api.extensions.ExtensionArray._concat_same_type \
         pandas.api.extensions.ExtensionArray._formatter \
         pandas.api.extensions.ExtensionArray._from_factorized \
@@ -110,9 +109,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._values_for_factorize \
         pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.api.extensions.ExtensionArray.ndim \
-        pandas.api.extensions.ExtensionArray.shape \
-        pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
