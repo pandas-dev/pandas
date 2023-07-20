@@ -77,6 +77,22 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
+def test_isin_period_range():
+    period_range = pd.period_range("2000-01-01", periods=3)
+    element = ["2000-01-02"]
+    result = period_range.isin(element)
+    expected = np.array([False, True, False], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
+def test_isin_date_dtype():
+    period_range = pd.date_range("2000-01-01", periods=3)
+    element = ["2000-01-02"]
+    result = period_range.isin(element)
+    expected = np.array([False, True, False], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
 def test_diff():
     ser = pd.Series([1, 2, 3], dtype="category")
 

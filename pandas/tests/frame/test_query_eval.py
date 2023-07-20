@@ -16,6 +16,7 @@ from pandas import (
     MultiIndex,
     Series,
     date_range,
+    period_range,
 )
 import pandas._testing as tm
 from pandas.core.computation.check import NUMEXPR_INSTALLED
@@ -1330,4 +1331,22 @@ class TestDataFrameQueryBacktickQuoting:
                 "B": Series([1, 2], dtype=dtype, index=[0, 2]),
             }
         )
+        tm.assert_frame_equal(result, expected)
+
+
+class TestPeriodDtypeQueryPythonPandas(TestDataFrameQueryNumExprPandas):
+    @pytest.fixture
+    def engine(self):
+        return "python"
+
+    @pytest.fixture
+    def parser(self):
+        return "pandas"
+
+    def test_query_builtin(self, engine, parser):
+        df = DataFrame(
+            {"Date": period_range("2000-01-01", periods=10, name="Date")},
+        )
+        result = df.query("Date == '2000-01-06'", parser=parser, engine=engine)
+        expected = DataFrame([{"Date": pd.Period("2000-01-06", "D")}], index=[5])
         tm.assert_frame_equal(result, expected)

@@ -73,6 +73,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
+from pandas.core.api import PeriodDtype
 from pandas.core.array_algos.take import take_nd
 from pandas.core.construction import (
     array as pd_array,
@@ -501,6 +502,8 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     comps_array = extract_array(comps_array, extract_numpy=True)
     if not isinstance(comps_array, np.ndarray):
         # i.e. Extension Array
+        if isinstance(comps_array.dtype, PeriodDtype):
+            comps_array = comps_array.to_timestamp()
         return comps_array.isin(values)
 
     elif needs_i8_conversion(comps_array.dtype):
