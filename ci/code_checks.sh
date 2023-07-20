@@ -73,14 +73,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.test \
         pandas.NaT \
-        pandas.read_feather \
-        pandas.DataFrame.to_feather \
-        pandas.read_orc \
-        pandas.read_sas \
-        pandas.read_spss \
-        pandas.read_sql_query \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
