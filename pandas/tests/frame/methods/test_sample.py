@@ -180,7 +180,7 @@ class TestSample:
     def test_sample_generator(self, frame_or_series):
         # GH#38100
         obj = frame_or_series(np.arange(100))
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(2)
 
         # Consecutive calls should advance the seed
         result1 = obj.sample(n=50, random_state=rng)
