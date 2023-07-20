@@ -76,7 +76,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.test \
         pandas.NaT \
         pandas.read_feather \
-        pandas.DataFrame.to_feather \
         pandas.read_orc \
         pandas.read_sas \
         pandas.read_spss \
