@@ -713,21 +713,21 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
         return;
     }
 
-    NPY_DATETIMEUNIT dunit = (PyObjectEncoder *)tc->datetimeUnit;
+    NPY_DATETIMEUNIT dunit = ((PyObjectEncoder *)tc)->datetimeUnit;
     PyObject *date_unit;
     if (dunit == NPY_FR_s) {
-        date_unit = "s";
+        date_unit = PyUnicode_FromString("s");
     } else if (dunit == NPY_FR_ms) {
-        date_unit = "ms";
+        date_unit = PyUnicode_FromString("ms");
     } else if (dunit == NPY_FR_us) {
-        date_unit = "us";
+        date_unit = PyUnicode_FromString("us");
     } else if (dunit == NPY_FR_ns) {
-        date_unit = "ns";
+        date_unit = PyUnicode_FromString("ns");
     }
 
     PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
-    PyObject *name = "column_arrays";
-    arrays = PyObject_CallMethodOneArg(mgr, name, date_unit);
+    arrays = PyObject_CallMethod(mgr, "column_arrays", "%s", date_unit);
+    Py_DECREF(mgr);
 
     if (!arrays) {
         GET_TC(tc)->iterNext = NpyArr_iterNextNone;
