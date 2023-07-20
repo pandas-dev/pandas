@@ -71,7 +71,10 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            expected_uniques = expected_uniques.sort_values()
+            try:
+                expected_uniques = expected_uniques.sort_values()
+            except TypeError:
+                pytest.xfail("dtypes not suitable for sorting.")
 
         # construct an integer ndarray so that
         # `expected_uniques.take(expected_codes)` is equal to `obj`

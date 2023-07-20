@@ -23,13 +23,9 @@ def test_value_counts(index_or_series_obj):
     obj = index_or_series_obj
     obj = np.repeat(obj, range(1, len(obj) + 1))
     result = obj.value_counts()
-    present_types = set([type(i) for i in obj])
 
     counter = collections.Counter(obj)
     expected = Series(dict(counter.most_common()), dtype=np.int64, name="count")
-
-    if len(present_types) > 1:
-        pytest.skip("Test doesn't make sense on data with different index types.")
 
     if obj.dtype != np.float16:
         expected.index = expected.index.astype(obj.dtype)
@@ -52,10 +48,13 @@ def test_value_counts(index_or_series_obj):
 
     # TODO(GH#32514): Order of entries with the same count is inconsistent
     #  on CI (gh-32449)
-    if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
-    tm.assert_series_equal(result, expected)
+    try:
+        if obj.duplicated().any():
+            result = result.sort_index()
+            expected = expected.sort_index()
+        tm.assert_series_equal(result, expected)
+    except TypeError:
+        pytest.xfail("dtypes not suitable for sorting.")
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
