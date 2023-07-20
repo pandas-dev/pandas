@@ -2208,8 +2208,6 @@ class ADBCDatabase(PandasSQL):
             supports this). If specified, this overwrites the default
             schema of the SQLDatabase object.
         """
-        if index:
-            raise NotImplementedError("'index' is not implemented for ADBC drivers")
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
@@ -2246,7 +2244,7 @@ class ADBCDatabase(PandasSQL):
 
         import pyarrow as pa
 
-        tbl = pa.Table.from_pandas(frame)
+        tbl = pa.Table.from_pandas(frame, preserve_index=index)
         with self.con.cursor() as cur:
             total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
 
