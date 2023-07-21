@@ -316,7 +316,7 @@ class TestPeriodIndex:
 
     def test_resample_nonexistent_time_bin_edge(self):
         # GH 19375
-        index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15T")
+        index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15min")
         s = Series(np.zeros(len(index)), index=index)
         expected = s.tz_localize("US/Pacific")
         expected.index = pd.DatetimeIndex(expected.index, freq="900S")
