@@ -1,9 +1,9 @@
 from collections import OrderedDict
+from collections.abc import Iterator
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
@@ -1918,7 +1918,7 @@ class TestSeriesConstructors:
         # going through 2D->1D path
         vals = [(1,), (2,), (3,)]
         ser = Series(vals)
-        dtype = ser.array.dtype  # PandasDtype
+        dtype = ser.array.dtype  # NumpyEADtype
         ser2 = Series(vals, dtype=dtype)
         tm.assert_series_equal(ser, ser2)
 

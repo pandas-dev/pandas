@@ -526,6 +526,13 @@ Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
 
+### [Physipandas](https://github.com/mocquin/physipandas)
+
+Physipandas provides an extension for manipulating physical quantities
+ (like scalar and numpy.ndarray) in association with a physical unit
+ (like meter or joule) and additional features for integration of
+ `physipy` accessors with pandas Series and Dataframe.
+
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
 Pint-Pandas provides an extension type for storing numeric arrays with units.
@@ -551,6 +558,7 @@ authors to coordinate on the namespace.
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |

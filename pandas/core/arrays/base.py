@@ -14,9 +14,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -77,6 +75,11 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         AstypeArg,
@@ -508,7 +511,12 @@ class ExtensionArray:
     @property
     def dtype(self) -> ExtensionDtype:
         """
-        An instance of 'ExtensionDtype'.
+        An instance of ExtensionDtype.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).dtype
+        Int64Dtype()
         """
         raise AbstractMethodError(self)
 
@@ -516,6 +524,12 @@ class ExtensionArray:
     def shape(self) -> Shape:
         """
         Return a tuple of the array dimensions.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.shape
+        (3,)
         """
         return (len(self),)
 
@@ -532,6 +546,12 @@ class ExtensionArray:
     def ndim(self) -> int:
         """
         Extension Arrays are only allowed to be 1-dimensional.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.ndim
+        1
         """
         return 1
 
@@ -539,6 +559,11 @@ class ExtensionArray:
     def nbytes(self) -> int:
         """
         The number of bytes needed to store this object in memory.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).nbytes
+        27
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
@@ -576,10 +601,35 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray or pandas.api.extensions.ExtensionArray
-            An ExtensionArray if dtype is ExtensionDtype,
-            Otherwise a NumPy ndarray with 'dtype' for its dtype.
-        """
+            An ``ExtensionArray`` if ``dtype`` is ``ExtensionDtype``,
+            otherwise a Numpy ndarray with ``dtype`` for its dtype.
 
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
+
+        Casting to another ``ExtensionDtype`` returns an ``ExtensionArray``:
+
+        >>> arr1 = arr.astype('Float64')
+        >>> arr1
+        <FloatingArray>
+        [1.0, 2.0, 3.0]
+        Length: 3, dtype: Float64
+        >>> arr1.dtype
+        Float64Dtype()
+
+        Otherwise, we will get a Numpy ndarray:
+
+        >>> arr2 = arr.astype('float64')
+        >>> arr2
+        array([1., 2., 3.])
+        >>> arr2.dtype
+        dtype('float64')
+        """
         dtype = pandas_dtype(dtype)
         if dtype == self.dtype:
             if not copy:
@@ -622,6 +672,12 @@ class ExtensionArray:
         * ``na_values._is_boolean`` should be True
         * `na_values` should implement :func:`ExtensionArray._reduce`
         * ``na_values.any`` and ``na_values.all`` should be implemented
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, np.nan, np.nan])
+        >>> arr.isna()
+        array([False, False,  True,  True])
         """
         raise AbstractMethodError(self)
 
@@ -652,12 +708,20 @@ class ExtensionArray:
         Notes
         -----
         The caller is responsible for *not* modifying these values in-place, so
-        it is safe for implementors to give views on `self`.
+        it is safe for implementors to give views on ``self``.
 
-        Functions that use this (e.g. ExtensionArray.argsort) should ignore
-        entries with missing values in the original array (according to `self.isna()`).
-        This means that the corresponding entries in the returned array don't need to
-        be modified to sort correctly.
+        Functions that use this (e.g. ``ExtensionArray.argsort``) should ignore
+        entries with missing values in the original array (according to
+        ``self.isna()``). This means that the corresponding entries in the returned
+        array don't need to be modified to sort correctly.
+
+        Examples
+        --------
+        In most cases, this is the underlying Numpy array of the ``ExtensionArray``:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._values_for_argsort()
+        array([1, 2, 3])
         """
         # Note: this is used in `ExtensionArray.argsort/argmin/argmax`.
         return np.array(self)
@@ -680,6 +744,9 @@ class ExtensionArray:
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, optional
             Sorting algorithm.
+        na_position : {'first', 'last'}, default 'last'
+            If ``'first'``, put ``NaN`` values at the beginning.
+            If ``'last'``, put ``NaN`` values at the end.
         *args, **kwargs:
             Passed through to :func:`numpy.argsort`.
 
@@ -692,6 +759,12 @@ class ExtensionArray:
         See Also
         --------
         numpy.argsort : Sorting implementation used internally.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argsort()
+        array([1, 2, 0, 4, 3])
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
@@ -726,7 +799,13 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmax
+        ExtensionArray.argmax : Return the index of the maximum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmin()
+        1
         """
         # Implementor note: You have two places to override the behavior of
         # argmin.
@@ -754,7 +833,13 @@ class ExtensionArray:
 
         See Also
         --------
-        ExtensionArray.argmin
+        ExtensionArray.argmin : Return the index of the minimum value.
+
+        Examples
+        --------
+        >>> arr = pd.array([3, 1, 2, 5, 4])
+        >>> arr.argmax()
+        3
         """
         # Implementor note: You have two places to override the behavior of
         # argmax.
@@ -902,6 +987,14 @@ class ExtensionArray:
         -------
         ExtensionArray
             With NA/NaN filled.
+
+        Examples
+        --------
+        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr.fillna(0)
+        <IntegerArray>
+        [0, 0, 2, 3, 0, 0]
+        Length: 6, dtype: Int64
         """
         if method is not None:
             warnings.warn(
@@ -947,7 +1040,13 @@ class ExtensionArray:
 
         Returns
         -------
-        pandas.api.extensions.ExtensionArray
+
+        Examples
+        --------
+        >>> pd.array([1, 2, np.nan]).dropna()
+        <IntegerArray>
+        [1, 2]
+        Length: 2, dtype: Int64
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
@@ -984,6 +1083,14 @@ class ExtensionArray:
         ``self.dtype.na_value``.
 
         For 2-dimensional ExtensionArrays, we are always shifting along axis=0.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.shift(2)
+        <IntegerArray>
+        [<NA>, <NA>, 1]
+        Length: 3, dtype: Int64
         """
         # Note: this implementation assumes that `self.dtype.na_value` can be
         # stored in an instance of your ExtensionArray with `self.dtype`.
@@ -1011,6 +1118,14 @@ class ExtensionArray:
         Returns
         -------
         pandas.api.extensions.ExtensionArray
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 1, 2, 3])
+        >>> arr.unique()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
@@ -1019,7 +1134,7 @@ class ExtensionArray:
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         """
         Find indices where elements should be inserted to maintain order.
@@ -1058,6 +1173,12 @@ class ExtensionArray:
         See Also
         --------
         numpy.searchsorted : Similar method from NumPy.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3, 5])
+        >>> arr.searchsorted([4])
+        array([3])
         """
         # Note: the base tests provided by pandas only test the basics.
         # We do not test
@@ -1086,6 +1207,13 @@ class ExtensionArray:
         -------
         boolean
             Whether the arrays are equivalent.
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, np.nan])
+        >>> arr2 = pd.array([1, 2, np.nan])
+        >>> arr1.equals(arr2)
+        True
         """
         if type(self) != type(other):
             return False
@@ -1116,6 +1244,14 @@ class ExtensionArray:
         Returns
         -------
         np.ndarray[bool]
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.isin([1])
+        <BooleanArray>
+        [True, False, False]
+        Length: 3, dtype: boolean
         """
         return isin(np.asarray(self), values)
 
@@ -1180,6 +1316,16 @@ class ExtensionArray:
         Notes
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
+
+        Examples
+        --------
+        >>> idx1 = pd.PeriodIndex(["2014-01", "2014-01", "2014-02", "2014-02",
+        ...                       "2014-03", "2014-03"], freq="M")
+        >>> arr, idx = idx1.factorize()
+        >>> arr
+        array([0, 0, 1, 1, 2, 2])
+        >>> idx
+        PeriodIndex(['2014-01', '2014-02', '2014-03'], dtype='period[M]')
         """
         # Implementer note: There are two ways to override the behavior of
         # pandas.factorize
@@ -1355,6 +1501,16 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.copy()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         raise AbstractMethodError(self)
 
@@ -1371,6 +1527,20 @@ class ExtensionArray:
         -------
         ExtensionArray or np.ndarray
             A view on the :class:`ExtensionArray`'s data.
+
+        Examples
+        --------
+        This gives view on the underlying data of an ``ExtensionArray`` and is not a
+        copy. Modifications on either the view or the original ``ExtensionArray``
+        will be reflectd on the underlying data:
+
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr2 = arr.view()
+        >>> arr[0] = 2
+        >>> arr2
+        <IntegerArray>
+        [2, 2, 3]
+        Length: 3, dtype: Int64
         """
         # NB:
         # - This must return a *new* object referencing the same data, not self.
@@ -1537,10 +1707,20 @@ class ExtensionArray:
         Raises
         ------
         NotImplementedError : subclass does not define accumulations
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr._accumulate(name='cumsum')
+        <IntegerArray>
+        [1, 3, 6]
+        Length: 3, dtype: Int64
         """
         raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1552,6 +1732,15 @@ class ExtensionArray:
             std, var, sem, kurt, skew }.
         skipna : bool, default True
             If True, skip NaN values.
+        keepdims : bool, default False
+            If False, a scalar is returned.
+            If True, the result has dimension with size one along the reduced axis.
+
+            .. versionadded:: 2.1
+
+               This parameter is not required in the _reduce signature to keep backward
+               compatibility, but will become required in the future. If the parameter
+               is not found in the method signature, a FutureWarning will be emitted.
         **kwargs
             Additional keyword arguments passed to the reduction function.
             Currently, `ddof` is the only supported kwarg.
@@ -1570,7 +1759,11 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        return meth(skipna=skipna, **kwargs)
+        result = meth(skipna=skipna, **kwargs)
+        if keepdims:
+            result = np.array([result])
+
+        return result
 
     # https://github.com/python/typeshed/issues/2148#issuecomment-520783318
     # Incompatible types in assignment (expression has type "None", base class
@@ -1617,6 +1810,12 @@ class ExtensionArray:
         Returns
         -------
         list
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.tolist()
+        [1, 2, 3]
         """
         if self.ndim > 1:
             return [x.tolist() for x in self]
@@ -1647,6 +1846,14 @@ class ExtensionArray:
 
         The default implementation relies on _from_sequence to raise on invalid
         items.
+
+        Examples
+        --------
+        >>> arr = pd.array([1, 2, 3])
+        >>> arr.insert(2, -1)
+        <IntegerArray>
+        [1, 2, -1, 3]
+        Length: 4, dtype: Int64
         """
         loc = validate_insert_loc(loc, len(self))
 
