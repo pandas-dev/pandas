@@ -726,6 +726,9 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     }
 
     PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
+    if (mgr == NULL) {
+        return;
+    }
     arrays = PyObject_CallMethod(mgr, "column_arrays", "%s", date_unit);
     Py_DECREF(mgr);
 
