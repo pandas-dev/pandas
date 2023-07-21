@@ -537,7 +537,7 @@ class _EtreeFrameParser(_XMLFrameParser):
 
 class _LxmlFrameParser(_XMLFrameParser):
     """
-    Internal class to parse XML into DataFrames with third-party
+    Internal class to parse XML into :class:`~pandas.DataFrame` with third-party
     full-featured XML library, ``lxml``, that supports
     ``XPath`` 1.0 and XSLT 1.0.
     """
@@ -886,7 +886,7 @@ def read_xml(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
-    Read XML document into a ``DataFrame`` object.
+    Read XML document into a :class:`~pandas.DataFrame` object.
 
     .. versionadded:: 1.3.0
 
@@ -903,9 +903,9 @@ def read_xml(
             Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
-        The ``XPath`` to parse required set of nodes for migration to DataFrame.
-        ``XPath`` should return a collection of elements and not a single
-        element. Note: The ``etree`` parser supports limited ``XPath``
+        The ``XPath`` to parse required set of nodes for migration to
+        :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements
+        and not a single element. Note: The ``etree`` parser supports limited ``XPath``
         expressions. For more complex ``XPath``, use ``lxml`` which requires
         installation.
 
