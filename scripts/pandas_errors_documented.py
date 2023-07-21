@@ -18,16 +18,18 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
+PRIVATE_ERRORS = frozenset(["InvalidComparison", "LossySetitemError"])
 
 
 def get_defined_errors(content: str) -> set[str]:
     errors = set()
     for node in ast.walk(ast.parse(content)):
-        if isinstance(node, ast.ClassDef):
+        if (isinstance(node, ast.ClassDef)) and (node.name not in PRIVATE_ERRORS):
             errors.add(node.name)
         elif isinstance(node, ast.ImportFrom) and node.module != "__future__":
             for alias in node.names:
-                errors.add(alias.name)
+                if alias.name not in PRIVATE_ERRORS:
+                    errors.add(alias.name)
     return errors
 
 
