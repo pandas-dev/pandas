@@ -67,10 +67,7 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i4 = Period("2005", freq="M")
-        i5 = Period("2005", freq="me")
-
         assert i1 != i4
-        assert i4 == i5
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
@@ -1182,7 +1179,7 @@ class TestArithmetic:
         result = left - right
         assert result == 4 * right.freq
 
-        msg = r"Input has different freq=ME from Period\(freq=A-DEC\)"
+        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             left - Period("2007-01", freq="M")
 
@@ -1257,7 +1254,7 @@ class TestArithmetic:
         assert per1 - per2 == -14 * off
         assert per2 - per1 == 14 * off
 
-        msg = r"Input has different freq=ME from Period\(freq=D\)"
+        msg = r"Input has different freq=M from Period\(freq=D\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             per1 - Period("2011-02", freq="M")
 

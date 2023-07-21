@@ -1987,30 +1987,6 @@ def test_resample_empty_series_with_tz():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_frequency_M_deprecated():
-    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
-
-    ts = Series(range(9), index=date_range("1/1/2000", periods=9, freq="ME"))
-    expected = ts.resample("3ME").sum()
-    with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = ts.resample("3M").sum()
-    tm.assert_almost_equal(result, expected)
-
-
-def test_asfreq_resample_frequency_M_deprecated():
-    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
-
-    ser = Series(
-        range(0, 10),
-        index=period_range("2005-01-01", freq="D", periods=10),
-        dtype="int64",
-    )
-    expected = ser.to_timestamp().resample("2ME").asfreq()
-    with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = ser.to_timestamp().resample("2M").asfreq()
-    tm.assert_almost_equal(result, expected)
-
-
 def test_resample_M_deprecated():
     depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
 

@@ -881,7 +881,7 @@ class TestPeriodIndexArithmetic:
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
-        msg = r"Input has different freq=-1ME from Period\(freq=Q-DEC\)"
+        msg = r"Input has different freq=-1M from Period\(freq=Q-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             with tm.assert_produces_warning(PerformanceWarning):
                 pi - anchored

@@ -1718,10 +1718,11 @@ cdef class PeriodMixin:
 
         if condition:
             freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
+            other_freqstr = freq_to_period_freqstr(other_freq.n, other_freq.name)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
                 own_freq=freqstr,
-                other_freq=other_freq.freqstr,
+                other_freq=other_freqstr,
             )
             raise IncompatibleFrequency(msg)
 
