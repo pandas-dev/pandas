@@ -743,4 +743,3 @@ class TestDataFrameShift:
         msg = "Cannot specify `suffix` if `periods` is an int."
         with pytest.raises(ValueError, match=msg):
             df.shift(1, suffix="fails")
-
