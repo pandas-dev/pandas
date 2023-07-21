@@ -1470,11 +1470,11 @@ cdef class _Timedelta(timedelta):
         elif self._us:
             return "U"
         elif self._ms:
-            return "L"
+            return "ms"
         elif self._s:
             return "S"
         elif self._m:
-            return "T"
+            return "min"
         elif self._h:
             return "H"
         else:

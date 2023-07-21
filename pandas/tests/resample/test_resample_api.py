@@ -346,7 +346,7 @@ def test_agg_consistency():
         columns=["A", "B", "C"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -361,7 +361,7 @@ def test_agg_consistency_int_str_column_mix():
         columns=[1, "a"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \[2, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -643,7 +643,7 @@ def test_try_aggregate_non_existing_column():
     # Error as we don't have 'z' column
     msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
+        df.resample("30min").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
 
 def test_agg_list_like_func_with_args():

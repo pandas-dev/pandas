@@ -276,7 +276,6 @@ class Resolution(Enum):
         True
         """
         try:
-            attr_name = _abbrev_to_attrnames[freq]
             if freq in {"T", "L"}:
                 warnings.warn(
                     f"Code freq={freq} is deprecated "
@@ -285,6 +284,7 @@ class Resolution(Enum):
                     stacklevel=find_stack_level(),
                 )
                 freq = freq.replace("T", "min").replace("L", "ms")
+            attr_name = _abbrev_to_attrnames[freq]
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
             #  a month string.
