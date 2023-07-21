@@ -714,15 +714,15 @@ void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     }
 
     NPY_DATETIMEUNIT dunit = ((PyObjectEncoder *)tc)->datetimeUnit;
-    PyObject *date_unit;
+    char *date_unit;
     if (dunit == NPY_FR_s) {
-        date_unit = PyUnicode_FromString("s");
+        date_unit = "s";
     } else if (dunit == NPY_FR_ms) {
-        date_unit = PyUnicode_FromString("ms");
+        date_unit = "ms";
     } else if (dunit == NPY_FR_us) {
-        date_unit = PyUnicode_FromString("us");
+        date_unit = "us";
     } else if (dunit == NPY_FR_ns) {
-        date_unit = PyUnicode_FromString("ns");
+        date_unit = "ns";
     }
 
     PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
