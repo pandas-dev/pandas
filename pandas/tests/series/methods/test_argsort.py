@@ -41,7 +41,9 @@ class TestSeriesArgsort:
         expected = Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
-        result = shifted.argsort()
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = shifted.argsort()
         expected = Series(list(range(4)) + [-1], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
