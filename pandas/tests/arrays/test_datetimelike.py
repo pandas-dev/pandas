@@ -23,7 +23,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -425,7 +425,7 @@ class SharedTests:
             pd.Series,
             np.array,
             list,
-            PandasArray,
+            NumpyExtensionArray,
         ],
     )
     def test_setitem_object_dtype(self, box, arr1d):
@@ -439,7 +439,7 @@ class SharedTests:
         elif box is np.array:
             # if we do np.array(x).astype(object) then dt64 and td64 cast to ints
             vals = np.array(vals.astype(object))
-        elif box is PandasArray:
+        elif box is NumpyExtensionArray:
             vals = box(np.asarray(vals, dtype=object))
         else:
             vals = box(vals).astype(object)
@@ -1291,7 +1291,7 @@ def test_period_index_construction_from_strings(klass):
 def test_from_pandas_array(dtype):
     # GH#24615
     data = np.array([1, 2, 3], dtype=dtype)
-    arr = PandasArray(data)
+    arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 

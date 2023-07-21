@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import functools
 import operator
 import re
-import sys
 import textwrap
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
 )
 import unicodedata
@@ -27,6 +24,7 @@ from pandas.compat import (
     pa_version_under8p0,
     pa_version_under9p0,
     pa_version_under11p0,
+    pa_version_under13p0,
 )
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
@@ -127,6 +125,8 @@ if not pa_version_under7p0:
     }
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -1057,7 +1057,7 @@ class ArrowExtensionArray(
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(
@@ -1219,7 +1219,7 @@ class ArrowExtensionArray(
             else:
                 result = result.to_numpy(dtype=dtype)
             return result
-        elif pa.types.is_time(pa_type):
+        elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
             result = np.array(list(self), dtype=dtype)
@@ -1417,6 +1417,8 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
+        cast_kwargs = {} if pa_version_under13p0 else {"safe": False}
+
         if name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -1492,9 +1494,15 @@ class ArrowExtensionArray(
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
         if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
+            if not pa_version_under13p0:
+                nbits = pa_type.bit_width
+                if nbits == 32:
+                    result = result.cast(pa.int32(), **cast_kwargs)
+                else:
+                    result = result.cast(pa.int64(), **cast_kwargs)
             result = result.cast(pa_type)
         if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
-            result = result.cast(pa.int64())
+            result = result.cast(pa.int64(), **cast_kwargs)
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
@@ -1509,7 +1517,9 @@ class ArrowExtensionArray(
 
         return result
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         """
         Return a scalar result of performing the reduction operation.
 
@@ -1533,12 +1543,16 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
-        result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
+        pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
-        if pc.is_null(result).as_py():
+        if keepdims:
+            result = pa.array([pa_result.as_py()], type=pa_result.type)
+            return type(self)(result)
+
+        if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
-
-        return result.as_py()
+        else:
+            return pa_result.as_py()
 
     def _explode(self):
         """
@@ -2189,14 +2203,7 @@ class ArrowExtensionArray(
         # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         # result = pc.if_else(starts_with, removed, self._pa_array)
         # return type(self)(result)
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removeprefix
-
-            predicate = functools.partial(removeprefix, prefix=prefix)
-        else:
-            predicate = lambda val: val.removeprefix(prefix)
+        predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
 

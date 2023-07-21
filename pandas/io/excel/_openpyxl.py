@@ -4,7 +4,6 @@ import mmap
 from typing import (
     TYPE_CHECKING,
     Any,
-    Tuple,
     cast,
 )
 
@@ -48,7 +47,7 @@ class OpenpyxlWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         if_sheet_exists: str | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
@@ -478,7 +477,7 @@ class OpenpyxlWriter(ExcelWriter):
             wks.title = sheet_name
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(Tuple[int, int], freeze_panes)
+            freeze_panes = cast(tuple[int, int], freeze_panes)
             wks.freeze_panes = wks.cell(
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
@@ -535,7 +534,7 @@ class OpenpyxlReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """

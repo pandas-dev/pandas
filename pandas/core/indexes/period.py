@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -46,6 +43,8 @@ from pandas.core.indexes.datetimes import (
 from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -213,7 +212,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
         **fields,
     ) -> Self:
         valid_field_set = {
@@ -467,7 +466,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
+    start=None,
+    end=None,
+    periods: int | None = None,
+    freq=None,
+    name: Hashable | None = None,
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.

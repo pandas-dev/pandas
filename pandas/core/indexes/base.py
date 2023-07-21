@@ -9,11 +9,8 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Hashable,
-    Iterable,
     Literal,
     NoReturn,
-    Sequence,
     cast,
     final,
     overload,
@@ -189,6 +186,12 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Sequence,
+    )
+
     from pandas import (
         CategoricalIndex,
         DataFrame,
@@ -642,7 +645,9 @@ class Index(IndexOpsMixin, PandasObject):
     # See each method's docstring.
 
     @classmethod
-    def _simple_new(cls, values: ArrayLike, name: Hashable = None, refs=None) -> Self:
+    def _simple_new(
+        cls, values: ArrayLike, name: Hashable | None = None, refs=None
+    ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
         a non-dtype compat, then coerce using the constructor.
@@ -1157,7 +1162,6 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(
                 indices, allow_fill=allow_fill, fill_value=self._na_value
             )
-        # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(taken, name=self.name)
 
     @final
@@ -1521,7 +1525,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     @final
-    def to_series(self, index=None, name: Hashable = None) -> Series:
+    def to_series(self, index=None, name: Hashable | None = None) -> Series:
         """
         Create a Series with both index and values equal to the index keys.
 
@@ -4541,7 +4545,7 @@ class Index(IndexOpsMixin, PandasObject):
         other: Index,
         *,
         how: JoinHow = "left",
-        level: Level = None,
+        level: Level | None = None,
         return_indexers: bool = False,
         sort: bool = False,
     ) -> Index | tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
@@ -5094,9 +5098,9 @@ class Index(IndexOpsMixin, PandasObject):
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
-            from pandas.core.arrays.numpy_ import PandasArray
+            from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
-            array = PandasArray(array)
+            array = NumpyExtensionArray(array)
         return array
 
     @property
@@ -5553,6 +5557,10 @@ class Index(IndexOpsMixin, PandasObject):
             return True
 
         if not isinstance(other, Index):
+            return False
+
+        if len(self) != len(other):
+            # quickly return if the lengths are different
             return False
 
         if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
@@ -6285,7 +6293,7 @@ class Index(IndexOpsMixin, PandasObject):
             ):
                 return _dtype_obj
 
-        dtype = find_result_type(self._values, target)
+        dtype = find_result_type(self.dtype, target)
         dtype = common_dtype_categorical_compat([self, target], dtype)
         return dtype
 
@@ -7263,6 +7271,13 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
         return super().argmin(skipna=skipna)
 
@@ -7275,6 +7290,13 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
         return super().argmax(skipna=skipna)
 

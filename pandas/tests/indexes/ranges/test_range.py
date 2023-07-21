@@ -210,7 +210,7 @@ class TestRangeIndex:
         assert index.dtype == np.int64
 
     def test_cache(self):
-        # GH 26565, GH26617, GH35432
+        # GH 26565, GH26617, GH35432, GH53387
         # This test checks whether _cache has been set.
         # Calling RangeIndex._cache["_data"] creates an int64 array of the same length
         # as the RangeIndex and stores it in _cache.
@@ -264,11 +264,21 @@ class TestRangeIndex:
         df.iloc[5:10]
         assert idx._cache == {}
 
+        # after calling take, _cache may contain other keys, but not "_data"
+        idx.take([3, 0, 1])
+        assert "_data" not in idx._cache
+
+        df.loc[[50]]
+        assert "_data" not in idx._cache
+
+        df.iloc[[5, 6, 7, 8, 9]]
+        assert "_data" not in idx._cache
+
         # idx._cache should contain a _data entry after call to idx._data
         idx._data
         assert isinstance(idx._data, np.ndarray)
         assert idx._data is idx._data  # check cached value is reused
-        assert len(idx._cache) == 1
+        assert "_data" in idx._cache
         expected = np.arange(0, 100, 10, dtype="int64")
         tm.assert_numpy_array_equal(idx._cache["_data"], expected)
 

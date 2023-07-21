@@ -1,7 +1,6 @@
 from datetime import datetime
 from functools import partial
 from io import StringIO
-from typing import List
 
 import numpy as np
 import pytest
@@ -1335,7 +1334,7 @@ def test_resample_consistency(unit):
     tm.assert_series_equal(s10_2, rl)
 
 
-dates1: List[DatetimeNaTType] = [
+dates1: list[DatetimeNaTType] = [
     datetime(2014, 10, 1),
     datetime(2014, 9, 3),
     datetime(2014, 11, 5),
@@ -1344,7 +1343,7 @@ dates1: List[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: List[DatetimeNaTType] = (
+dates2: list[DatetimeNaTType] = (
     dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
 )
 dates3 = [pd.NaT] + dates1 + [pd.NaT]
