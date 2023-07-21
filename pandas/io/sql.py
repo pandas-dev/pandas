@@ -468,6 +468,13 @@ def read_sql_query(
     -----
     Any datetime values with time zone information parsed via the `parse_dates`
     parameter will be converted to UTC.
+
+    Examples
+    --------
+    >>> from sqlalchemy import create_engine  # doctest: +SKIP
+    >>> engine = create_engine("sqlite:///database.db")  # doctest: +SKIP
+    >>> with engine.connect() as conn, conn.begin():  # doctest: +SKIP
+    ...     data = pd.read_sql_table("data", conn)  # doctest: +SKIP
     """
 
     check_dtype_backend(dtype_backend)
@@ -1655,7 +1662,7 @@ class SQLDatabase(PandasSQL):
         SQLDatabase.read_query
 
         """
-        self.meta.reflect(bind=self.con, only=[table_name])
+        self.meta.reflect(bind=self.con, only=[table_name], views=True)
         table = SQLTable(table_name, self, index=index_col, schema=schema)
         if chunksize is not None:
             self.returns_generator = True
@@ -1989,7 +1996,9 @@ class SQLDatabase(PandasSQL):
     def drop_table(self, table_name: str, schema: str | None = None) -> None:
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
-            self.meta.reflect(bind=self.con, only=[table_name], schema=schema)
+            self.meta.reflect(
+                bind=self.con, only=[table_name], schema=schema, views=True
+            )
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
             self.meta.clear()
@@ -2411,7 +2420,15 @@ class SQLiteDatabase(PandasSQL):
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
         wld = "?"
-        query = f"SELECT name FROM sqlite_master WHERE type='table' AND name={wld};"
+        query = f"""
+        SELECT
+            name
+        FROM
+            sqlite_master
+        WHERE
+            type IN ('table', 'view')
+            AND name={wld};
+        """
 
         return len(self.execute(query, [name]).fetchall()) > 0
 

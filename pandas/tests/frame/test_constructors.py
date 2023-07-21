@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
 )
 
@@ -188,7 +188,7 @@ class TestDataFrameConstructors:
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
-        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        obj = frame_or_series(frame_or_series(arr), dtype=NumpyEADtype(object))
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 

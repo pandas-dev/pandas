@@ -1,4 +1,5 @@
 import re
+import weakref
 
 import numpy as np
 import pytest
@@ -412,9 +413,9 @@ class TestPeriodDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype
-        assert dtype3 is dtype
+        assert dtype is not dtype2
+        assert dtype2 is not dtype
+        assert dtype3 is not dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
 
@@ -461,13 +462,13 @@ class TestPeriodDtype(Base):
 
     def test_identity(self):
         assert PeriodDtype("period[D]") == PeriodDtype("period[D]")
-        assert PeriodDtype("period[D]") is PeriodDtype("period[D]")
+        assert PeriodDtype("period[D]") is not PeriodDtype("period[D]")
 
         assert PeriodDtype("period[3D]") == PeriodDtype("period[3D]")
-        assert PeriodDtype("period[3D]") is PeriodDtype("period[3D]")
+        assert PeriodDtype("period[3D]") is not PeriodDtype("period[3D]")
 
         assert PeriodDtype("period[1S1U]") == PeriodDtype("period[1000001U]")
-        assert PeriodDtype("period[1S1U]") is PeriodDtype("period[1000001U]")
+        assert PeriodDtype("period[1S1U]") is not PeriodDtype("period[1000001U]")
 
     def test_compat(self, dtype):
         assert not is_datetime64_ns_dtype(dtype)
@@ -568,6 +569,13 @@ class TestPeriodDtype(Base):
         per_d2 = PeriodDtype(pd.offsets.YearEnd(normalize=False))
         assert not per_d2.freq.normalize
 
+    def test_dont_keep_ref_after_del(self):
+        # GH 54184
+        dtype = PeriodDtype("D")
+        ref = weakref.ref(dtype)
+        del dtype
+        assert ref() is None
+
 
 class TestIntervalDtype(Base):
     @pytest.fixture
@@ -584,9 +592,9 @@ class TestIntervalDtype(Base):
         assert dtype == dtype2
         assert dtype2 == dtype
         assert dtype3 == dtype
-        assert dtype is dtype2
-        assert dtype2 is dtype3
-        assert dtype3 is dtype
+        assert dtype is not dtype2
+        assert dtype2 is not dtype3
+        assert dtype3 is not dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
 
@@ -596,9 +604,9 @@ class TestIntervalDtype(Base):
         assert dtype2 == dtype1
         assert dtype2 == dtype2
         assert dtype2 == dtype3
-        assert dtype2 is dtype1
+        assert dtype2 is not dtype1
         assert dtype2 is dtype2
-        assert dtype2 is dtype3
+        assert dtype2 is not dtype3
         assert hash(dtype2) == hash(dtype1)
         assert hash(dtype2) == hash(dtype2)
         assert hash(dtype2) == hash(dtype3)
@@ -836,12 +844,13 @@ class TestIntervalDtype(Base):
             assert not is_interval_dtype(np.float64)
 
     def test_caching(self):
+        # GH 54184: Caching not shown to improve performance
         IntervalDtype.reset_cache()
         dtype = IntervalDtype("int64", "right")
-        assert len(IntervalDtype._cache_dtypes) == 1
+        assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype("interval")
-        assert len(IntervalDtype._cache_dtypes) == 2
+        assert len(IntervalDtype._cache_dtypes) == 0
 
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
@@ -858,6 +867,13 @@ class TestIntervalDtype(Base):
         assert dtype._closed is None
 
         tm.round_trip_pickle(dtype)
+
+    def test_dont_keep_ref_after_del(self):
+        # GH 54184
+        dtype = IntervalDtype("int64", "right")
+        ref = weakref.ref(dtype)
+        del dtype
+        assert ref() is None
 
 
 class TestCategoricalDtypeParametrized:

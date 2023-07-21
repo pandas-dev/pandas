@@ -767,15 +767,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Overview:
 
-        dtype       | values        | _values       | array         |
-        ----------- | ------------- | ------------- | ------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   |
-        Category    | Categorical   | Categorical   | Categorical   |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
-        Nullable    | EA            | EA            | EA            |
+        dtype       | values        | _values       | array                 |
+        ----------- | ------------- | ------------- | --------------------- |
+        Numeric     | ndarray       | ndarray       | NumpyExtensionArray   |
+        Category    | Categorical   | Categorical   | Categorical           |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| TimedeltaArray        |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray           |
+        Nullable    | EA            | EA            | EA                    |
 
         """
         return self._mgr.internal_values()
@@ -889,7 +889,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4      2
         dtype: int8
         """
-        # self.array instead of self._values so we piggyback on PandasArray
+        # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
@@ -2530,7 +2530,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmin since we will issue a different
+            #  warning for idxmin
+            warnings.simplefilter("ignore")
+            i = self.argmin(axis, skipna, *args, **kwargs)
         if i == -1:
             # GH#43587 give correct NA value for Index.
             return self.index._na_value
@@ -2601,7 +2606,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmax since we will issue a different
+            #  warning for argmax
+            warnings.simplefilter("ignore")
+            i = self.argmax(axis, skipna, *args, **kwargs)
         if i == -1:
             # GH#43587 give correct NA value for Index.
             return self.index._na_value
