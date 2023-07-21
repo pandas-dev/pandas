@@ -657,6 +657,15 @@ class TestDataFrameShift:
         shifted2 = df.shift(-6, axis=1, fill_value=None)
         tm.assert_frame_equal(shifted2, expected)
 
+    def test_shift_with_offsets_freq(self):
+        df = DataFrame({"x": [1, 2, 3]}, index=date_range("2000", periods=3))
+        shifted = df.shift(freq="1MS")
+        expected = DataFrame(
+            {"x": [1, 2, 3]},
+            index=date_range(start="02/01/2000", end="02/01/2000", periods=3),
+        )
+        tm.assert_frame_equal(shifted, expected)
+
     def test_shift_with_iterable_basic_functionality(self):
         # GH#44424
         data = {"a": [1, 2, 3], "b": [4, 5, 6]}
@@ -734,3 +743,4 @@ class TestDataFrameShift:
         msg = "Cannot specify `suffix` if `periods` is an int."
         with pytest.raises(ValueError, match=msg):
             df.shift(1, suffix="fails")
+
