@@ -183,10 +183,13 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
+.. _fixed_groupby_error_with_nullable_types:
 
-notable_bug_fix1
+groupby_nullable_types_error
 ^^^^^^^^^^^^^^^^
+*Previous_behaviour*:
+groupby now works as expected with null types and "top" or "bottom" as a na_position
+
 
 .. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
 
