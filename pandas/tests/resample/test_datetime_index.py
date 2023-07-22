@@ -1,7 +1,6 @@
 from datetime import datetime
 from functools import partial
 from io import StringIO
-from typing import List
 
 import numpy as np
 import pytest
@@ -87,7 +86,7 @@ def test_custom_grouper(index, unit):
     expect = Series(arr, index=idx)
 
     # GH2763 - return input dtype if we can
-    result = g.agg(np.sum)
+    result = g.agg("sum")
     tm.assert_series_equal(result, expect)
 
 
@@ -95,7 +94,7 @@ def test_custom_grouper_df(index, unit):
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype="float64")
-    r = df.groupby(b).agg(np.sum)
+    r = df.groupby(b).agg("sum")
 
     assert len(r.columns) == 10
     assert len(r.index) == 2593
@@ -1335,7 +1334,7 @@ def test_resample_consistency(unit):
     tm.assert_series_equal(s10_2, rl)
 
 
-dates1: List[DatetimeNaTType] = [
+dates1: list[DatetimeNaTType] = [
     datetime(2014, 10, 1),
     datetime(2014, 9, 3),
     datetime(2014, 11, 5),
@@ -1344,7 +1343,7 @@ dates1: List[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: List[DatetimeNaTType] = (
+dates2: list[DatetimeNaTType] = (
     dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
 )
 dates3 = [pd.NaT] + dates1 + [pd.NaT]
@@ -1847,7 +1846,9 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.prod)
+    msg = "using DatetimeIndexResampler.prod"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(
@@ -1967,4 +1968,20 @@ def test_long_rule_non_nano():
         freq="200A-DEC",
     )
     expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_empty_series_with_tz():
+    # GH#53664
+    df = DataFrame({"ts": [], "values": []}).astype(
+        {"ts": "datetime64[ns, Atlantic/Faroe]"}
+    )
+    result = df.resample("2MS", on="ts", closed="left", label="left", origin="start")[
+        "values"
+    ].sum()
+
+    expected_idx = DatetimeIndex(
+        [], freq="2MS", name="ts", dtype="datetime64[ns, Atlantic/Faroe]"
+    )
+    expected = Series([], index=expected_idx, name="values", dtype="float64")
     tm.assert_series_equal(result, expected)

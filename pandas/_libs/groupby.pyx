@@ -950,7 +950,7 @@ def group_skew(
                     isna_entry = _treat_as_na(val, False)
 
                 if not isna_entry:
-                    # Based on RunningSats::Push from
+                    # Based on RunningStats::Push from
                     #  https://www.johndcook.com/blog/skewness_kurtosis/
                     n1 = nobs[lab, j]
                     n = n1 + 1

@@ -29,6 +29,7 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+import uuid
 
 import numpy as np
 import pytest
@@ -75,31 +76,34 @@ try:
 except ImportError:
     SQLALCHEMY_INSTALLED = False
 
-SQL_STRINGS = {
-    "read_parameters": {
-        "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
-        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
-    },
-    "read_named_parameters": {
-        "sqlite": """
+
+@pytest.fixture
+def sql_strings():
+    return {
+        "read_parameters": {
+            "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
+            "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
+            "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        },
+        "read_named_parameters": {
+            "sqlite": """
                 SELECT * FROM iris WHERE Name=:name AND SepalLength=:length
                 """,
-        "mysql": """
+            "mysql": """
                 SELECT * FROM iris WHERE
                 `Name`=%(name)s AND `SepalLength`=%(length)s
                 """,
-        "postgresql": """
+            "postgresql": """
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
-    },
-    "read_no_parameters_with_percent": {
-        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
-        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
-        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
-    },
-}
+        },
+        "read_no_parameters_with_percent": {
+            "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+            "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+            "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        },
+    }
 
 
 def iris_table_metadata(dialect: str):
@@ -558,6 +562,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
             "datetime": pd.array(
                 [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
             ),
+            "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
             "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }
@@ -669,12 +674,12 @@ def test_read_iris_query_expression_with_parameter(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris_query_string_with_parameter(conn, request):
-    for db, query in SQL_STRINGS["read_parameters"].items():
+def test_read_iris_query_string_with_parameter(conn, request, sql_strings):
+    for db, query in sql_strings["read_parameters"].items():
         if db in conn:
             break
     else:
-        raise KeyError(f"No part of {conn} found in SQL_STRINGS['read_parameters']")
+        raise KeyError(f"No part of {conn} found in sql_strings['read_parameters']")
     conn = request.getfixturevalue(conn)
     iris_frame = read_sql_query(query, conn, params=("Iris-setosa", 5.1))
     check_iris_frame(iris_frame)
@@ -817,6 +822,179 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.db
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_insertion_method_on_conflict_do_nothing(conn, request):
+    # GH 15988: Example in to_sql docstring
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    def insert_on_conflict(table, conn, keys, data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        stmt = (
+            insert(table.table)
+            .values(data)
+            .on_conflict_do_nothing(index_elements=["a"])
+        )
+        result = conn.execute(stmt)
+        return result.rowcount
+
+    create_sql = text(
+        """
+    CREATE TABLE test_insert_conflict (
+        a  integer PRIMARY KEY,
+        b  numeric,
+        c  text
+    );
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(create_sql)
+    else:
+        with conn.begin():
+            conn.execute(create_sql)
+
+    expected = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
+    expected.to_sql("test_insert_conflict", conn, if_exists="append", index=False)
+
+    df_insert = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
+    inserted = df_insert.to_sql(
+        "test_insert_conflict",
+        conn,
+        index=False,
+        if_exists="append",
+        method=insert_on_conflict,
+    )
+    result = sql.read_sql_table("test_insert_conflict", conn)
+    tm.assert_frame_equal(result, expected)
+    assert inserted == 0
+
+    # Cleanup
+    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.drop_table("test_insert_conflict")
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_insertion_method_on_conflict_update(conn, request):
+    # GH 14553: Example in to_sql docstring
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.dialects.mysql import insert
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    def insert_on_conflict(table, conn, keys, data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        stmt = insert(table.table).values(data)
+        stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
+        result = conn.execute(stmt)
+        return result.rowcount
+
+    create_sql = text(
+        """
+    CREATE TABLE test_insert_conflict (
+        a INT PRIMARY KEY,
+        b FLOAT,
+        c VARCHAR(10)
+    );
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(create_sql)
+    else:
+        with conn.begin():
+            conn.execute(create_sql)
+
+    df = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
+    df.to_sql("test_insert_conflict", conn, if_exists="append", index=False)
+
+    expected = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
+    inserted = expected.to_sql(
+        "test_insert_conflict",
+        conn,
+        index=False,
+        if_exists="append",
+        method=insert_on_conflict,
+    )
+    result = sql.read_sql_table("test_insert_conflict", conn)
+    tm.assert_frame_equal(result, expected)
+    assert inserted == 2
+
+    # Cleanup
+    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.drop_table("test_insert_conflict")
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_read_view_postgres(conn, request):
+    # GH 52969
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    table_name = f"group_{uuid.uuid4().hex}"
+    view_name = f"group_view_{uuid.uuid4().hex}"
+
+    sql_stmt = text(
+        f"""
+    CREATE TABLE {table_name} (
+        group_id INTEGER,
+        name TEXT
+    );
+    INSERT INTO {table_name} VALUES
+        (1, 'name');
+    CREATE VIEW {view_name}
+    AS
+    SELECT * FROM {table_name};
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(sql_stmt)
+    else:
+        with conn.begin():
+            conn.execute(sql_stmt)
+    result = read_sql_table(view_name, conn)
+    expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_view_sqlite(sqlite_buildin):
+    # GH 52969
+    create_table = """
+CREATE TABLE groups (
+   group_id INTEGER,
+   name TEXT
+);
+"""
+    insert_into = """
+INSERT INTO groups VALUES
+    (1, 'name');
+"""
+    create_view = """
+CREATE VIEW group_view
+AS
+SELECT * FROM groups;
+"""
+    sqlite_buildin.execute(create_table)
+    sqlite_buildin.execute(insert_into)
+    sqlite_buildin.execute(create_view)
+    result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
+    expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_execute_typeerror(sqlite_iris_engine):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
         with tm.assert_produces_warning(
@@ -933,20 +1111,20 @@ class PandasSQLTest:
         else:
             create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _read_sql_iris_parameter(self):
-        query = SQL_STRINGS["read_parameters"][self.flavor]
+    def _read_sql_iris_parameter(self, sql_strings):
+        query = sql_strings["read_parameters"][self.flavor]
         params = ("Iris-setosa", 5.1)
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_named_parameter(self):
-        query = SQL_STRINGS["read_named_parameters"][self.flavor]
+    def _read_sql_iris_named_parameter(self, sql_strings):
+        query = sql_strings["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_no_parameter_with_percent(self):
-        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+    def _read_sql_iris_no_parameter_with_percent(self, sql_strings):
+        query = sql_strings["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
         check_iris_frame(iris_frame)
 
@@ -1832,11 +2010,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_engine(cls):
         raise NotImplementedError()
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
@@ -2948,11 +3126,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self.load_types_data(types_data)
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)

@@ -63,13 +63,14 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -94,6 +95,10 @@ def read_orc(
     a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
     pyarrow or fsspec filesystem object into the filesystem keyword to override this
     behavior.
+
+    Examples
+    --------
+    >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
     # we require a newer version of pyarrow than we support for parquet
 

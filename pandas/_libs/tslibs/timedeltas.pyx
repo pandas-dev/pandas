@@ -42,6 +42,7 @@ from pandas._libs.tslibs.conversion cimport (
 )
 from pandas._libs.tslibs.dtypes cimport (
     get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -151,9 +152,9 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
-
 # ----------------------------------------------------------------------
 # API
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -973,7 +974,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
             "Only resolutions 's', 'ms', 'us', 'ns' are supported."
         )
 
-    td_base._value= value
+    td_base._value = value
     td_base._is_populated = 0
     td_base._creso = reso
     return td_base
@@ -1155,7 +1156,7 @@ cdef class _Timedelta(timedelta):
             #  resolution.
             try:
                 obj = (<_Timedelta>self)._as_creso(<NPY_DATETIMEUNIT>(self._creso + 1))
-            except OverflowError:
+            except OutOfBoundsTimedelta:
                 # Doesn't fit, so we're off the hook
                 return hash(self._value)
             else:
@@ -1789,7 +1790,6 @@ class Timedelta(_Timedelta):
                 + int(kwargs.get("milliseconds", 0) * 1_000_000)
                 + seconds
             )
-
         if unit in {"Y", "y", "M"}:
             raise ValueError(
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
@@ -1836,6 +1836,18 @@ class Timedelta(_Timedelta):
                 return NaT
 
             reso = get_datetime64_unit(value)
+            if not (is_supported_unit(reso) or
+                    reso in [NPY_DATETIMEUNIT.NPY_FR_m,
+                             NPY_DATETIMEUNIT.NPY_FR_h,
+                             NPY_DATETIMEUNIT.NPY_FR_D,
+                             NPY_DATETIMEUNIT.NPY_FR_W,
+                             NPY_DATETIMEUNIT.NPY_FR_GENERIC]):
+                err = npy_unit_to_abbrev(reso)
+                raise ValueError(
+                    f"Unit {err} is not supported. "
+                    "Only unambiguous timedelta values durations are supported. "
+                    "Allowed units are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'")
+
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
                 try:

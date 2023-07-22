@@ -5,17 +5,16 @@ from __future__ import annotations
 from collections import abc
 from numbers import Number
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Pattern,
-)
+from re import Pattern
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import lib
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool

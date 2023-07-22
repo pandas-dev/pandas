@@ -34,7 +34,7 @@ def to_numpy_dtypes(dtypes):
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
-class TestPandasDtype:
+class TestNumpyEADtype:
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -100,7 +100,7 @@ class TestPandasDtype:
         ],
     )
     def test_period_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) is not PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
