@@ -1440,10 +1440,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # libgroupby functions are responsible for NOT altering mask
         mask = self._mask
-        if op.kind != "aggregate":
-            result_mask = mask.copy()
-        else:
-            result_mask = np.zeros(ngroups, dtype=bool)
+
+        result_mask = np.zeros(ngroups, dtype=bool)
 
         res_values = op._cython_op_ndim_compat(
             self._data,
