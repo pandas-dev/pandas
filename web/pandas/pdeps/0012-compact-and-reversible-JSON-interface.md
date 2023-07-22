@@ -15,6 +15,7 @@
 - [Motivation](./pandas_PDEP.md/#Motivation)
     - [Why is it important to have a compact and reversible JSON interface ?](./pandas_PDEP.md/#Why-is-it-important-to-have-a-compact-and-reversible-JSON-interface-?)
     - [Is it relevant to take an extended type into account ?](./pandas_PDEP.md/#Is-it-relevant-to-take-an-extended-type-into-account-?)
+    - [Is this only useful for pandas ?](./pandas_PDEP.md/#Is-this-only-useful-for-pandas-?)
 - [Description](./pandas_PDEP.md/#Description)
     - [data typing](./pandas_PDEP.md/#Data-typing)
     - [JSON format](./pandas_PDEP.md/#JSON-format)
@@ -124,6 +125,9 @@ The proposed interface is compatible with existing data.
 - it increases the semantic scope of the data processed by pandas
 - the use of a complementary type avoids having to modify the pandas data model
 
+### Is this only useful for pandas ?
+- the JSON-TAB format is applicable to tabular data and multi-dimensional data. 
+- this JSON interface can therefore be used for any application using tabular or multi-dimensional data. This would allow for example reversible data exchanges between pandas - DataFrame and Xarray - DataArray (Xarray issue under construction) [see example DataFrame / DataArray](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#Multidimensional-data).
 
 ## Description
 
@@ -274,7 +278,50 @@ Several pandas implementations are possible:
 
 ## F.A.Q.
 
-Tbd
+**Q: Does `orient="table"` not do what you are proposing already?**
+
+**A**: In principle, yes, this option takes into account the notion of type.
+
+But this is very limited (see examples added in the [Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb)) :
+- **Types and Json interface**
+    - the only way to keep the types in the json interface is to use the orient='table' option
+    - only few types are allowed in json-table interface : int64, float64, bool, datetime64, timedelta64, categorical
+    - allowed types are not always kept in json-table interface
+    - data with 'object' dtype is kept only id data is string
+    - with categorical dtype, the underlying dtype is not included in json interface
+- **Data compactness**
+    - json-table interface is not compact (in this example the size is double or triple the size of the compact format
+- **Reversibility**
+    - Interface is reversible only with json dtype
+- **External types**
+    - the interface does not accept external types
+    - to integrate external types, it is necessary to first create ExtensionArray and ExtensionDtype objects
+
+The proposal made meets these limitations whithout complex code.
+
+**Q: In general, we should only have 1 `"table"` format for pandas in read_json/to_json. There is also the issue of backwards compatibility if we do change the format. Can the existing format be adapted in a way that fixes the type issues/issues with roundtripping?**
+
+**A**: I will add two additional remarks:
+- the types defined in Tableschema are only partially taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint):
+- the `read_json()` interface works with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this json ( yet basic).    
+
+I think that the problem cannot be limited to bug fixes and that a clear strategy must be defined for the Json interface in particular with the gradual abandonment in open-data solutions of the obsolete CSV format in favor of a Json format.    
+     
+As stated, the proposed solution addresses several shortcomings of the current interface and could simply fit into the pandas environment (the other option would be to consider that the Json interface is a peripheral function of pandas and can remain external to pandas) regardless of the `orient='table'` option.
+
+**Q: As far as I can tell, JSON NTV is not in any form a standardised JSON format. I believe that pandas (and geopandas, which is where I came from to this issue) should try to follow either de facto or de jure standards and do not opt in for a file format that does not have any community support at this moment. This can obviously change in the future and that is where this PR should be revised. Why would pandas use this standard?**
+
+**A**: As indicated in the issue (and detailed in [the attached Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb)), the json interface is not reversible (`to_json` then `read_json` does not always return the initial object) and several shortcomings and bugs are present. The main cause of this problem is that the data type is not taken into account in the JSON format (or very partially with the `orient='table'` option).
+
+The proposal made answers this problem ([the example at the beginning of Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#0---Simple-example) simply and clearly illustrates the interest of the proposal).
+
+Regarding the underlying JSON-NTV format, its impact is quite low for tabular data (it is limited to adding the type in the field name).
+Nevertheless, the question is relevant: The JSON-NTV format is indeed a shared, documented, supported and implemented format, but indeed the community support is for the moment reduced but it only asks to expand!!
+
+To conclude,
+- if it is important (or strategic) to have a reversible JSON interface for any type of data, the proposal can be allowed,
+- if not, a third-party package that reads/writes this format to/from pandas DataFrames listed in the [ecosystem](https://pandas.pydata.org/community/ecosystem.html) should be considered
+
 
 ## Core team decision
 Implementation option : xxxx
@@ -285,3 +332,4 @@ Tbd
 ## PDEP History
 
 - 16 June 2023: Initial draft
+- 22 July 2023: Add F.A.Q.
