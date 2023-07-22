@@ -327,7 +327,7 @@ If using :ref:`pip <contributing.pip>` , do:
 Tips for a successful pull request
 ==================================
 
-If you have made it to the `Review your code`_ phase, one of the core contributors may
+If you have made it to the `Making a pull request`_ phase, one of the core contributors may
 take a look. Please note however that a handful of people are responsible for reviewing
 all of the contributions, which can often lead to bottlenecks.
 
