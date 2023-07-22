@@ -2113,12 +2113,6 @@ class ArrowDtype(StorageExtensionDtype):
         """
         A string identifying the data type.
         """
-        # try:
-        #     return self._cache_dtype_names[self.pyarrow_dtype]
-        # except KeyError:
-        #     name = f"{str(self.pyarrow_dtype)}[{self.storage}]"
-        #     self._cache_dtype_names[self.pyarrow_dtype] = name
-        #     return name
         return f"{str(self.pyarrow_dtype)}[{self.storage}]"
 
     @cache_readonly
