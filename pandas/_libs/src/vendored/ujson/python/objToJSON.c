@@ -366,8 +366,9 @@ static char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
 /* JSON callback */
 static char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
                                      size_t *len) {
-    if (!PyDate_Check(obj)) {
-        PyErr_SetString(PyExc_TypeError, "Expected date object");
+    if (!PyDate_Check(obj) && !PyDateTime_Check(obj)) {
+        PyErr_SetString(PyExc_TypeError, "Expected date or datetime object");
+        ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
         return NULL;
     }
 
@@ -1549,13 +1550,24 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
         return;
     } else if (PyArray_IsScalar(obj, Datetime)) {
+        npy_int64 longVal;
         if (((PyDatetimeScalarObject *)obj)->obval == get_nat()) {
             tc->type = JT_NULL;
             return;
         }
+        PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
+        if (dtype->type_num == NPY_OBJECT) {
+            PyErr_Format(PyExc_ValueError, "Could not get resolution of datetime");
+        }
+
+        PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
+        PyArray_CastScalarToCtype(obj, &longVal, outcode);
+        Py_DECREF(outcode);
 
         if (enc->datetimeIso) {
-            pc->PyTypeToUTF8 = PyDateTimeToIsoCallback;
+            GET_TC(tc)->longValue = longVal;
+            pc->PyTypeToUTF8 = NpyDateTimeToIsoCallback;
+            enc->valueUnit = get_datetime_metadata_from_dtype(dtype).base;
             tc->type = JT_UTF8;
         } else {
             NPY_DATETIMEUNIT base =
