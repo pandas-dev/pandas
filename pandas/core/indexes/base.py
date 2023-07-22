@@ -1162,7 +1162,6 @@ class Index(IndexOpsMixin, PandasObject):
             taken = values.take(
                 indices, allow_fill=allow_fill, fill_value=self._na_value
             )
-        # _constructor so RangeIndex-> Index with an int64 dtype
         return self._constructor._simple_new(taken, name=self.name)
 
     @final
@@ -5099,9 +5098,9 @@ class Index(IndexOpsMixin, PandasObject):
     def array(self) -> ExtensionArray:
         array = self._data
         if isinstance(array, np.ndarray):
-            from pandas.core.arrays.numpy_ import PandasArray
+            from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
-            array = PandasArray(array)
+            array = NumpyExtensionArray(array)
         return array
 
     @property
@@ -5560,6 +5559,10 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
+        if len(self) != len(other):
+            # quickly return if the lengths are different
+            return False
+
         if is_object_dtype(self.dtype) and not is_object_dtype(other.dtype):
             # if other is not object, use other's logic for coercion
             return other.equals(self)
@@ -5817,15 +5820,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.sort_values(ascending=False, return_indexer=True)
         (Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
-        idx = cast(Index, ensure_key_mapped(self, key))
-
         # GH 35584. Sort missing values according to na_position kwarg
         # ignore na_position for MultiIndex
         if not isinstance(self, ABCMultiIndex):
             _as = nargsort(
-                items=idx, ascending=ascending, na_position=na_position, key=key
+                items=self, ascending=ascending, na_position=na_position, key=key
             )
         else:
+            idx = cast(Index, ensure_key_mapped(self, key))
             _as = idx.argsort(na_position=na_position)
             if not ascending:
                 _as = _as[::-1]
@@ -6290,7 +6292,7 @@ class Index(IndexOpsMixin, PandasObject):
             ):
                 return _dtype_obj
 
-        dtype = find_result_type(self._values, target)
+        dtype = find_result_type(self.dtype, target)
         dtype = common_dtype_categorical_compat([self, target], dtype)
         return dtype
 
@@ -7268,6 +7270,13 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
         return super().argmin(skipna=skipna)
 
@@ -7280,6 +7289,13 @@ class Index(IndexOpsMixin, PandasObject):
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
         return super().argmax(skipna=skipna)
 

@@ -2,6 +2,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -112,10 +113,17 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
+        warn = FutureWarning if klass is Index else None
 
         obj = klass([NaT, datetime(2011, 11, 1)])
         assert getattr(obj, arg_op)() == 1
-        result = getattr(obj, arg_op)(skipna=False)
+
+        msg = (
+            "The behavior of (DatetimeIndex|Series).argmax/argmin with "
+            "skipna=False and NAs"
+        )
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
         else:
@@ -124,7 +132,8 @@ class TestReductions:
         obj = klass([NaT, datetime(2011, 11, 1), NaT])
         # check DatetimeIndex non-monotonic path
         assert getattr(obj, arg_op)() == 1
-        result = getattr(obj, arg_op)(skipna=False)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
         else:
@@ -154,26 +163,40 @@ class TestReductions:
         obj = Index([np.nan, 1, np.nan, 2])
         assert obj.argmin() == 1
         assert obj.argmax() == 3
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        msg = "The behavior of Index.argmax/argmin with skipna=False and NAs"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
         obj = Index([np.nan])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
+        msg = "The behavior of DatetimeIndex.argmax/argmin with skipna=False and NAs"
         obj = Index([NaT, datetime(2011, 11, 1), datetime(2011, 11, 2), NaT])
         assert obj.argmin() == 1
         assert obj.argmax() == 2
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
         obj = Index([NaT])
-        assert obj.argmin() == -1
-        assert obj.argmax() == -1
-        assert obj.argmin(skipna=False) == -1
-        assert obj.argmax(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax() == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmin(skipna=False) == -1
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert obj.argmax(skipna=False) == -1
 
     @pytest.mark.parametrize("op, expected_col", [["max", "a"], ["min", "b"]])
     def test_same_tz_min_max_axis_1(self, op, expected_col):
@@ -808,6 +831,24 @@ class TestSeriesReductions:
         with pytest.raises(ValueError, match=msg):
             np.argmax(s, out=data)
 
+    def test_idxmin_dt64index(self):
+        # GH#43587 should have NaT instead of NaN
+        ser = Series(
+            [1.0, 2.0, np.nan], index=DatetimeIndex(["NaT", "2015-02-08", "NaT"])
+        )
+        res = ser.idxmin(skipna=False)
+        assert res is NaT
+        res = ser.idxmax(skipna=False)
+        assert res is NaT
+
+        df = ser.to_frame()
+        res = df.idxmin(skipna=False)
+        assert res.dtype == "M8[ns]"
+        assert res.isna().all()
+        res = df.idxmax(skipna=False)
+        assert res.dtype == "M8[ns]"
+        assert res.isna().all()
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.
@@ -1070,26 +1111,88 @@ class TestSeriesReductions:
             (Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"]), TypeError),
         ],
     )
-    def test_assert_idxminmax_raises(self, test_input, error_type):
+    def test_assert_idxminmax_empty_raises(self, test_input, error_type):
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
-        msg = (
-            "reduction operation 'argmin' not allowed for this dtype|"
-            "attempt to get argmin of an empty sequence"
-        )
-        with pytest.raises(error_type, match=msg):
+        test_input = Series([], dtype="float64")
+        msg = "attempt to get argmin of an empty sequence"
+        with pytest.raises(ValueError, match=msg):
             test_input.idxmin()
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(ValueError, match=msg):
             test_input.idxmin(skipna=False)
-        msg = (
-            "reduction operation 'argmax' not allowed for this dtype|"
-            "attempt to get argmax of an empty sequence"
-        )
-        with pytest.raises(error_type, match=msg):
+        msg = "attempt to get argmax of an empty sequence"
+        with pytest.raises(ValueError, match=msg):
             test_input.idxmax()
-        with pytest.raises(error_type, match=msg):
+        with pytest.raises(ValueError, match=msg):
             test_input.idxmax(skipna=False)
+
+    def test_idxminmax_object_dtype(self):
+        # pre-2.1 object-dtype was disallowed for argmin/max
+        ser = Series(["foo", "bar", "baz"])
+        assert ser.idxmax() == 0
+        assert ser.idxmax(skipna=False) == 0
+        assert ser.idxmin() == 1
+        assert ser.idxmin(skipna=False) == 1
+
+        ser2 = Series([(1,), (2,)])
+        assert ser2.idxmax() == 1
+        assert ser2.idxmax(skipna=False) == 1
+        assert ser2.idxmin() == 0
+        assert ser2.idxmin(skipna=False) == 0
+
+        # attempting to compare np.nan with string raises
+        ser3 = Series(["foo", "foo", "bar", "bar", None, np.nan, "baz"])
+        msg = "'>' not supported between instances of 'float' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            ser3.idxmax()
+        with pytest.raises(TypeError, match=msg):
+            ser3.idxmax(skipna=False)
+        msg = "'<' not supported between instances of 'float' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            ser3.idxmin()
+        with pytest.raises(TypeError, match=msg):
+            ser3.idxmin(skipna=False)
+
+    def test_idxminmax_object_frame(self):
+        # GH#4279
+        df = DataFrame([["zimm", 2.5], ["biff", 1.0], ["bid", 12.0]])
+        res = df.idxmax()
+        exp = Series([0, 2])
+        tm.assert_series_equal(res, exp)
+
+    def test_idxminmax_object_tuples(self):
+        # GH#43697
+        ser = Series([(1, 3), (2, 2), (3, 1)])
+        assert ser.idxmax() == 2
+        assert ser.idxmin() == 0
+        assert ser.idxmax(skipna=False) == 2
+        assert ser.idxmin(skipna=False) == 0
+
+    def test_idxminmax_object_decimals(self):
+        # GH#40685
+        df = DataFrame(
+            {
+                "idx": [0, 1],
+                "x": [Decimal("8.68"), Decimal("42.23")],
+                "y": [Decimal("7.11"), Decimal("79.61")],
+            }
+        )
+        res = df.idxmax()
+        exp = Series({"idx": 1, "x": 1, "y": 1})
+        tm.assert_series_equal(res, exp)
+
+        res2 = df.idxmin()
+        exp2 = exp - 1
+        tm.assert_series_equal(res2, exp2)
+
+    def test_argminmax_object_ints(self):
+        # GH#18021
+        ser = Series([0, 1], dtype="object")
+        assert ser.argmax() == 1
+        assert ser.argmin() == 0
+        assert ser.argmax(skipna=False) == 1
+        assert ser.argmin(skipna=False) == 0
 
     def test_idxminmax_with_inf(self):
         # For numeric data with NA and Inf (GH #13595)

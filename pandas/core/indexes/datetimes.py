@@ -393,11 +393,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
+
         from pandas.io.formats.format import is_dates_only
+
+        delta = getattr(self.freq, "delta", None)
+
+        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+            return False
 
         # error: Argument 1 to "is_dates_only" has incompatible type
         # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
         # DatetimeArray, Index, DatetimeIndex]"
+
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
@@ -665,18 +672,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return Index.slice_indexer(self, start, end, step)
 
         mask = np.array(True)
-        raise_mask = np.array(True)
+        in_index = True
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
-            raise_mask = start_casted == self
+            in_index &= (start_casted == self).any()
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
-            raise_mask = (end_casted == self) | raise_mask
+            in_index &= (end_casted == self).any()
 
-        if not raise_mask.any():
+        if not in_index:
             raise KeyError(
                 "Value based partial slicing on non-monotonic DatetimeIndexes "
                 "with non-existing keys is not allowed.",
