@@ -396,7 +396,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         from pandas.io.formats.format import is_dates_only
 
-        delta = self.freq.delta if self.freq and hasattr(self.freq, "delta") else None
+        delta = getattr(self.freq, "delta", None)
 
         if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
             return False
