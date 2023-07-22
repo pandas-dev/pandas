@@ -8,6 +8,7 @@ import pandas._testing as tm
 from pandas.core.arrays import SparseArray
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.parametrize("fill_value", [0, np.nan])
 @pytest.mark.parametrize("op", [operator.pos, operator.neg])
 def test_unary_op(op, fill_value):
