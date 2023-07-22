@@ -1464,7 +1464,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._maybe_mask_result(res_values, result_mask)
 
 
-def transpose_homogenous_masked_arrays(
+def transpose_homogeneous_masked_arrays(
     masked_arrays: Sequence[BaseMaskedArray],
 ) -> list[BaseMaskedArray]:
     """Transpose masked arrays in a list, but faster.

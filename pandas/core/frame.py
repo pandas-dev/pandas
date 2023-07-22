@@ -3650,14 +3650,30 @@ class DataFrame(NDFrame, OpsMixin):
         ):
             if isinstance(dtypes[0], BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
-                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
+                from pandas.core.arrays.masked import (
+                    transpose_homogeneous_masked_arrays,
+                )
 
                 if isinstance(self._mgr, ArrayManager):
                     masked_arrays = self._mgr.arrays
                 else:
                     masked_arrays = list(self._iter_column_arrays())
-                new_values = transpose_homogenous_masked_arrays(
+                new_values = transpose_homogeneous_masked_arrays(
                     cast(list[BaseMaskedArray], masked_arrays)
+                )
+            elif isinstance(dtypes[0], ArrowDtype):
+                # We have arrow EAs with the same dtype. We can transpose faster.
+                from pandas.core.arrays.arrow.array import (
+                    ArrowExtensionArray,
+                    transpose_homogeneous_arrow_extension_arrays,
+                )
+
+                if isinstance(self._mgr, ArrayManager):
+                    arrays = self._mgr.arrays
+                else:
+                    arrays = list(self._iter_column_arrays())
+                new_values = transpose_homogeneous_arrow_extension_arrays(
+                    cast(list[ArrowExtensionArray], arrays)
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
