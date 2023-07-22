@@ -21,7 +21,11 @@ class TestSeriesArgsort:
         ts = ser.copy()
         ts[::2] = np.NaN
 
-        result = func(ts)[1::2]
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            result = func(ts)[1::2]
         expected = func(np.array(ts.dropna()))
 
         tm.assert_numpy_array_equal(result.values, expected, check_dtype=False)
