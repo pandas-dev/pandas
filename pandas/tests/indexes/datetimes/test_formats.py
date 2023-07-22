@@ -68,28 +68,35 @@ class TestDatetimeIndexRendering:
         dr = pd.date_range(start="1/1/2012", periods=3)
         repr(dr)
 
+    @pytest.mark.parametrize(
+        "dates, freq, expected_repr",
+        [
+            (
+                ["2012-01-01 00:00:00"],
+                "60T",
+                (
+                    "DatetimeIndex(['2012-01-01 00:00:00'], "
+                    "dtype='datetime64[ns]', freq='60T')"
+                ),
+            ),
+            (
+                ["2012-01-01 00:00:00", "2012-01-01 01:00:00"],
+                "60T",
+                "DatetimeIndex(['2012-01-01 00:00:00', '2012-01-01 01:00:00'], "
+                "dtype='datetime64[ns]', freq='60T')",
+            ),
+            (
+                ["2012-01-01"],
+                "24H",
+                "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24H')",
+            ),
+        ],
+    )
+    def test_dti_repr_time_midnight(self, dates, freq, expected_repr):
         # GH53634
-        expected = (
-            "DatetimeIndex(['2012-01-01 00:00:00'], dtype='datetime64[ns]', freq='60T')"
-        )
-        dr = DatetimeIndex(["2012-01-01 00:00:00"], freq=str(60) + "T")
-        result = repr(dr)
-        assert expected == result
-
-        expected = (
-            "DatetimeIndex(['2012-01-01 00:00:00', '2012-01-01 01:00:00'], "
-            "dtype='datetime64[ns]', freq='60T')"
-        )
-        dr = DatetimeIndex(
-            ["2012-01-01 00:00:00", "2012-01-01 01:00:00"], freq=str(60) + "T"
-        )
-        result = repr(dr)
-        assert expected == result
-
-        expected = "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24H')"
-        dr = DatetimeIndex(["2012-01-01"], freq=str(24) + "H")
-        result = repr(dr)
-        assert expected == result
+        dti = DatetimeIndex(dates, freq)
+        actual_repr = repr(dti)
+        assert actual_repr == expected_repr
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_dti_representation(self, method):

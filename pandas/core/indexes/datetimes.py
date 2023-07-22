@@ -393,13 +393,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from datetime import timedelta
 
         from pandas.io.formats.format import is_dates_only
 
         delta = self.freq.delta if self.freq and hasattr(self.freq, "delta") else None
 
-        if delta and delta % timedelta(days=1) != timedelta(days=0):
+        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
             return False
 
         # error: Argument 1 to "is_dates_only" has incompatible type
