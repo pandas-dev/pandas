@@ -18,7 +18,10 @@ from csv import (
 )
 from decimal import Decimal
 from functools import partial
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import math
 import re
 from shutil import get_terminal_size
@@ -1127,7 +1130,7 @@ class DataFrameRenderer:
 
         if path_or_buf is None:
             created_buffer = True
-            path_or_buf = StringIO()
+            path_or_buf = StringIO() if engine == "python" else BytesIO()
         else:
             created_buffer = False
 
@@ -1154,8 +1157,11 @@ class DataFrameRenderer:
         csv_formatter.save()
 
         if created_buffer:
-            assert isinstance(path_or_buf, StringIO)
             content = path_or_buf.getvalue()
+            if isinstance(path_or_buf, BytesIO):
+                # Need to decode into string since the
+                # pyarrow engine only writes binary data
+                content = content.decode("utf-8")
             path_or_buf.close()
             return content
 

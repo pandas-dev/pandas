@@ -546,7 +546,8 @@ y
 z
 """
         with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", encoding="utf-8") as f:
+            # TODO: open in bytes mode for pyarrow
+            with open(path, encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None, engine=engine)
             with open(path, encoding="utf-8") as f:
@@ -559,6 +560,7 @@ z
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
         with tm.ensure_clean("test.txt") as path:
+            # TODO: Open in bytes mode for pyarrow
             with open(path, "w", newline="", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None, engine=engine)

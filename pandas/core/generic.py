@@ -3729,7 +3729,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         header: bool_t | list[str] = True,
         index: bool_t = True,
         index_label: IndexLabel | None = None,
-        mode: str = "w",
+        mode: str | None = None,
         encoding: str | None = None,
         compression: CompressionOptions = "infer",
         quoting: int | None = None,
@@ -3786,13 +3786,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
             for easier importing in R.
-        mode : {{'w', 'x', 'a'}}, default 'w'
+        mode : {{'w', 'x', 'a'}}, default 'w' (Python engine) or 'wb' (Pyarrow engine)
             Forwarded to either `open(mode=)` or `fsspec.open(mode=)` to control
             the file opening. Typical values include:
 
             - 'w', truncate the file first.
             - 'x', exclusive creation, failing if the file already exists.
             - 'a', append to the end of file if it exists.
+
+            NOTE: The pyarrow engine can only handle binary buffers.
 
         encoding : str, optional
             A string representing the encoding to use in the output file,
@@ -3902,6 +3904,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             float_format=float_format,
             decimal=decimal,
         )
+
+        if mode is None:
+            mode = "w"
+            if engine == "pyarrow":
+                mode += "b"
 
         return DataFrameRenderer(formatter).to_csv(
             path_or_buf,
