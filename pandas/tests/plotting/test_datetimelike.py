@@ -320,11 +320,14 @@ class TestTSPlot:
 
     def test_business_freq(self):
         bts = tm.makePeriodSeries()
+        msg = r"PeriodDtype\[B\] is deprecated"
+        dt = bts.index[0].to_timestamp()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            bts.index = period_range(start=dt, periods=len(bts), freq="B")
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert PeriodIndex(data=idx).freqstr == "B"
 

@@ -15,7 +15,6 @@ from typing import (
     ContextManager,
     cast,
 )
-import warnings
 
 import numpy as np
 
@@ -442,9 +441,7 @@ def makeTimedeltaIndex(
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        pi = pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
+    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
     return pi
 
 
