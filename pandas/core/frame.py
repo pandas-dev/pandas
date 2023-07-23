@@ -3655,12 +3655,8 @@ class DataFrame(NDFrame, OpsMixin):
                     transpose_homogeneous_masked_arrays,
                 )
 
-                if isinstance(self._mgr, ArrayManager):
-                    masked_arrays = self._mgr.arrays
-                else:
-                    masked_arrays = list(self._iter_column_arrays())
                 new_values = transpose_homogeneous_masked_arrays(
-                    cast(list[BaseMaskedArray], masked_arrays)
+                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
                 )
             elif isinstance(dtypes[0], ArrowDtype):
                 # We have arrow EAs with the same dtype. We can transpose faster.
@@ -3669,12 +3665,8 @@ class DataFrame(NDFrame, OpsMixin):
                     transpose_homogeneous_arrow_extension_arrays,
                 )
 
-                if isinstance(self._mgr, ArrayManager):
-                    arrays = self._mgr.arrays
-                else:
-                    arrays = list(self._iter_column_arrays())
                 new_values = transpose_homogeneous_arrow_extension_arrays(
-                    cast(list[ArrowExtensionArray], arrays)
+                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
@@ -3789,8 +3781,11 @@ class DataFrame(NDFrame, OpsMixin):
         Warning! The returned array is a view but doesn't handle Copy-on-Write,
         so this should be used with caution (for read-only purposes).
         """
-        for i in range(len(self.columns)):
-            yield self._get_column_array(i)
+        if isinstance(self._mgr, ArrayManager):
+            yield from self._mgr.arrays
+        else:
+            for i in range(len(self.columns)):
+                yield self._get_column_array(i)
 
     def _getitem_nocopy(self, key: list):
         """

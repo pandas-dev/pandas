@@ -1472,6 +1472,7 @@ def transpose_homogeneous_masked_arrays(
     Input should be a list of 1-dim masked arrays of equal length and all have the
     same dtype. The caller is responsible for ensuring validity of input data.
     """
+    masked_arrays = list(masked_arrays)
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
     transposed_values = np.concatenate(values, axis=0)
 

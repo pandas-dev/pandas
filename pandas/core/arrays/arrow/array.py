@@ -2574,8 +2574,9 @@ def transpose_homogeneous_arrow_extension_arrays(
     Input should be a list of arrays of equal length and all have the same
     dtype. The caller is responsible for ensuring validity of input data.
     """
-    arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
+    arrays = list(arrays)
     nrows, ncols = len(arrays[0]), len(arrays)
     indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
     arr = arr.take(indices)
     return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]
