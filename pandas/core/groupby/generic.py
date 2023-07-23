@@ -2226,7 +2226,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result.astype(self.obj.index.dtype)
         else:
             alt = lambda x: x.idxmax(skipna=skipna)
-            result = self._idxmax_idxmin("idxmax", alt, numeric_only)
+            # expression has type "Series | DataFrame", variable has type "DataFrame"
+            result = self._idxmax_idxmin(  # type: ignore[assignment]
+                "idxmax", alt, numeric_only
+            )
         return result
 
     def idxmin(
@@ -2328,7 +2331,10 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 result = result.astype(self.obj.index.dtype)
         else:
             alt = lambda x: x.idxmin(skipna=skipna)
-            result = self._idxmax_idxmin("idxmin", alt, numeric_only)
+            # expression has type "Series | DataFrame", variable has type "DataFrame"
+            result = self._idxmax_idxmin(  # type: ignore[assignment]
+                "idxmin", alt, numeric_only
+            )
         return result
 
     boxplot = boxplot_frame_groupby
