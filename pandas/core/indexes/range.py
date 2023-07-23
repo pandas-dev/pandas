@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+)
 from datetime import timedelta
 import operator
 from sys import getsizeof
@@ -7,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     cast,
 )
 
@@ -49,6 +50,7 @@ from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        Axis,
         Dtype,
         NaPosition,
         Self,
@@ -136,7 +138,7 @@ class RangeIndex(Index):
         step=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> RangeIndex:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
@@ -195,7 +197,7 @@ class RangeIndex(Index):
     #  "Union[ExtensionArray, ndarray[Any, Any]]"  [override]
     @classmethod
     def _simple_new(  # type: ignore[override]
-        cls, values: range, name: Hashable = None
+        cls, values: range, name: Hashable | None = None
     ) -> Self:
         result = object.__new__(cls)
 
@@ -485,7 +487,7 @@ class RangeIndex(Index):
         return result
 
     @doc(Index.copy)
-    def copy(self, name: Hashable = None, deep: bool = False) -> Self:
+    def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
@@ -836,7 +838,9 @@ class RangeIndex(Index):
 
         return new_index
 
-    def symmetric_difference(self, other, result_name: Hashable = None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: Hashable | None = None, sort=None
+    ):
         if not isinstance(other, RangeIndex) or sort is not None:
             return super().symmetric_difference(other, result_name, sort)
 
@@ -910,7 +914,7 @@ class RangeIndex(Index):
         elif len(indexes) == 1:
             return indexes[0]
 
-        rng_indexes = cast(List[RangeIndex], indexes)
+        rng_indexes = cast(list[RangeIndex], indexes)
 
         start = step = next_ = None
 
@@ -1102,3 +1106,44 @@ class RangeIndex(Index):
         except (ValueError, TypeError, ZeroDivisionError):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
+
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ):
+        if kwargs:
+            nv.validate_take((), kwargs)
+        if is_scalar(indices):
+            raise TypeError("Expected indices to be array-like")
+        indices = ensure_platform_int(indices)
+
+        # raise an exception if allow_fill is True and fill_value is not None
+        self._maybe_disallow_fill(allow_fill, fill_value, indices)
+
+        if len(indices) == 0:
+            taken = np.array([], dtype=self.dtype)
+        else:
+            ind_max = indices.max()
+            if ind_max >= len(self):
+                raise IndexError(
+                    f"index {ind_max} is out of bounds for axis 0 with size {len(self)}"
+                )
+            ind_min = indices.min()
+            if ind_min < -len(self):
+                raise IndexError(
+                    f"index {ind_min} is out of bounds for axis 0 with size {len(self)}"
+                )
+            taken = indices.astype(self.dtype, casting="safe")
+            if ind_min < 0:
+                taken %= len(self)
+            if self.step != 1:
+                taken *= self.step
+            if self.start != 0:
+                taken += self.start
+
+        # _constructor so RangeIndex-> Index with an int64 dtype
+        return self._constructor._simple_new(taken, name=self.name)

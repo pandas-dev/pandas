@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
@@ -103,12 +102,14 @@ from pandas._testing.contexts import (
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -306,7 +307,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     if box_cls is pd.array:
         if isinstance(expected, RangeIndex):
             # pd.array would return an IntegerArray
-            expected = PandasArray(np.asarray(expected._values))
+            expected = NumpyExtensionArray(np.asarray(expected._values))
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:

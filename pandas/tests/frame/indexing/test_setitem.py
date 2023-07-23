@@ -1317,3 +1317,18 @@ class TestDataFrameSetitemCopyViewSemantics:
         df["a"] = rhs
         expected = DataFrame([[0, 1.5, 3], [2, 2.5, 6]], columns=["a", "a", "b"])
         tm.assert_frame_equal(df, expected)
+
+    def test_frame_setitem_empty_dataframe(self):
+        # GH#28871
+        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        df = df[0:0].copy()
+
+        df["3010"] = None
+        df["2010"] = None
+
+        expected = DataFrame(
+            [],
+            columns=["3010", "2010"],
+            index=Index([], dtype="datetime64[ns]", name="date"),
+        )
+        tm.assert_frame_equal(df, expected)

@@ -8,8 +8,6 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Sequence,
 )
 
 import numpy as np
@@ -77,6 +75,11 @@ from pandas.core.internals.managers import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -115,7 +118,7 @@ def arrays_to_mgr(
         #  - all(len(x) == len(index) for x in arrays)
         #  - all(x.ndim == 1 for x in arrays)
         #  - all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
-        #  - all(type(x) is not PandasArray for x in arrays)
+        #  - all(type(x) is not NumpyExtensionArray for x in arrays)
 
     else:
         index = ensure_index(index)

@@ -5,6 +5,7 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
+from collections.abc import Iterator
 from datetime import (
     date,
     datetime,
@@ -20,7 +21,6 @@ import re
 import sys
 from typing import (
     Generic,
-    Iterator,
     TypeVar,
 )
 
@@ -1362,7 +1362,8 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        # with pd.array this becomes NumpyExtensionArray which ends up
+        #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
         assert lib.infer_dtype(values, skipna=skipna) == exp
 

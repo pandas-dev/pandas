@@ -212,13 +212,13 @@ class TestCrosstab:
         values = np.random.randn(100)
 
         table = crosstab(
-            [a, b], c, values, aggfunc=np.sum, rownames=["foo", "bar"], colnames=["baz"]
+            [a, b], c, values, aggfunc="sum", rownames=["foo", "bar"], colnames=["baz"]
         )
 
         df = DataFrame({"foo": a, "bar": b, "baz": c, "values": values})
 
         expected = df.pivot_table(
-            "values", index=["foo", "bar"], columns="baz", aggfunc=np.sum
+            "values", index=["foo", "bar"], columns="baz", aggfunc="sum"
         )
         tm.assert_frame_equal(table, expected)
 
@@ -452,9 +452,11 @@ class TestCrosstab:
             index=Index([1, 2, "All"], name="a", dtype="object"),
             columns=Index([3, 4, "All"], name="b", dtype="object"),
         )
-        test_case = crosstab(
-            df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
-        )
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            test_case = crosstab(
+                df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
+            )
         tm.assert_frame_equal(test_case, norm_sum)
 
     def test_crosstab_with_empties(self, using_array_manager):
@@ -655,14 +657,17 @@ class TestCrosstab:
                 "E": [0] * 24,
             }
         )
-        result = crosstab(
-            [df.A, df.B],
-            df.C,
-            values=df.D,
-            aggfunc=np.sum,
-            normalize=True,
-            margins=True,
-        )
+
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = crosstab(
+                [df.A, df.B],
+                df.C,
+                values=df.D,
+                aggfunc=np.sum,
+                normalize=True,
+                margins=True,
+            )
         expected = DataFrame(
             np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
             columns=Index(["bar", "foo", "All"], dtype="object", name="C"),
