@@ -60,7 +60,7 @@ def test_select_columns_in_where(setup_path):
 def test_select_with_dups(setup_path):
     # single dtypes
     df = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -87,7 +87,7 @@ def test_select_with_dups(setup_path):
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)

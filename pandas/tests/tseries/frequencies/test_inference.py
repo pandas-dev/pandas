@@ -39,11 +39,11 @@ from pandas.tseries import (
     params=[
         (timedelta(1), "D"),
         (timedelta(hours=1), "H"),
-        (timedelta(minutes=1), "T"),
+        (timedelta(minutes=1), "min"),
         (timedelta(seconds=1), "S"),
         (np.timedelta64(1, "ns"), "N"),
         (timedelta(microseconds=1), "U"),
-        (timedelta(microseconds=1000), "L"),
+        (timedelta(microseconds=1000), "ms"),
     ]
 )
 def base_delta_code_pair(request):

@@ -2882,7 +2882,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
     def test_frame_timeseries_column(self):
         # GH19157
-        dr = date_range(start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern")
+        dr = date_range(
+            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern"
+        )
         result = DataFrame(dr, columns=["timestamps"])
         expected = DataFrame(
             {

@@ -178,7 +178,7 @@ def test_groupby_with_origin():
 def test_nearest():
     # GH 17496
     # Resample nearest
-    index = date_range("1/1/2000", periods=3, freq="T")
+    index = date_range("1/1/2000", periods=3, freq="min")
     result = Series(range(3), index=index).resample("20s").nearest()
 
     expected = Series(
@@ -313,7 +313,7 @@ def test_apply_non_naive_index():
         cutoff = cumsum.iloc[-1] * q
         return series[cumsum >= cutoff].iloc[0]
 
-    times = date_range("2017-6-23 18:00", periods=8, freq="15T", tz="UTC")
+    times = date_range("2017-6-23 18:00", periods=8, freq="15min", tz="UTC")
     data = Series([1.0, 1, 1, 1, 1, 2, 2, 0], index=times)
     weights = Series([160.0, 91, 65, 43, 24, 10, 1, 0], index=times)
 

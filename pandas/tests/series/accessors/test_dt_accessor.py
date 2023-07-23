@@ -253,7 +253,7 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # tzaware
-        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="min"), name="xxx")
         ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(ser)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
@@ -270,11 +270,11 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_ambiguous_freq_conversions(self):
         # GH#11295
         # ambiguous time error on the conversions
-        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="min"), name="xxx")
         ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
 
         exp_values = date_range(
-            "2015-01-01", "2016-01-01", freq="T", tz="UTC"
+            "2015-01-01", "2016-01-01", freq="min", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
         exp_values = exp_values._with_freq(None)
@@ -611,7 +611,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_minutes(self):
-        ser = Series(period_range("20130101", periods=4, freq="L"))
+        ser = Series(period_range("20130101", periods=4, freq="ms"))
         result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%l")
         expected = Series(
             [

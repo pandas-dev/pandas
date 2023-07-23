@@ -14,7 +14,6 @@ import pandas._testing as tm
 class DropDuplicates:
     def test_drop_duplicates_metadata(self, idx):
         # GH#10115
-        print("11111111  = ", idx)
         result = idx.drop_duplicates()
         tm.assert_index_equal(idx, result)
         assert idx.freq == result.freq
@@ -69,7 +68,7 @@ class DropDuplicates:
 
 
 class TestDropDuplicatesPeriodIndex(DropDuplicates):
-    @pytest.fixture(params=["D", "3D", "H", "2H", "T", "2T", "S", "3S"])
+    @pytest.fixture(params=["D", "3D", "H", "2H", "min", "2min", "S", "3S"])
     def freq(self, request):
         return request.param
 

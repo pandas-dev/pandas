@@ -44,13 +44,13 @@ class TestFreqConversion:
 
     def test_asfreq_corner(self):
         val = Period(freq="A", year=2007)
-        result1 = val.asfreq("5t")
-        result2 = val.asfreq("t")
-        expected = Period("2007-12-31 23:59", freq="t")
+        result1 = val.asfreq("5min")
+        result2 = val.asfreq("min")
+        expected = Period("2007-12-31 23:59", freq="min")
         assert result1.ordinal == expected.ordinal
-        assert result1.freqstr == "5T"
+        assert result1.freqstr == "5min"
         assert result2.ordinal == expected.ordinal
-        assert result2.freqstr == "T"
+        assert result2.freqstr == "min"
 
     def test_conv_annual(self):
         # frequency conversion tests: from Annual Frequency
@@ -107,8 +107,6 @@ class TestFreqConversion:
         assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "S") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
-        assert ival_A.asfreq("T", "S") == ival_A_to_T_start
-        assert ival_A.asfreq("T", "E") == ival_A_to_T_end
         assert ival_A.asfreq("S", "S") == ival_A_to_S_start
         assert ival_A.asfreq("S", "E") == ival_A_to_S_end
 

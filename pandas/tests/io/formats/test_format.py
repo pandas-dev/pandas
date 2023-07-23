@@ -3333,7 +3333,7 @@ class TestPeriodIndexFormat:
         # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"

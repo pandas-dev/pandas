@@ -1152,11 +1152,13 @@ def test_rolling_on_df_transposed():
     ("index", "window"),
     [
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
-            "2T",
+            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="min"),
+            "2min",
         ),
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"),
+            period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30min"
+            ),
             "1h",
         ),
     ],

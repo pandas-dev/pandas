@@ -210,13 +210,13 @@ class TestPeriodIndex:
         )
         s[10:30] = np.nan
         index = PeriodIndex(
-            [Period("2013-01-01 00:00", "T"), Period("2013-01-01 00:01", "T")],
+            [Period("2013-01-01 00:00", "min"), Period("2013-01-01 00:01", "min")],
             name="idx",
         )
         expected = Series([34.5, 79.5], index=index)
-        result = s.to_period().resample("T", kind="period").mean()
+        result = s.to_period().resample("min", kind="period").mean()
         tm.assert_series_equal(result, expected)
-        result2 = s.resample("T", kind="period").mean()
+        result2 = s.resample("min", kind="period").mean()
         tm.assert_series_equal(result2, expected)
 
     @pytest.mark.parametrize(
@@ -341,10 +341,13 @@ class TestPeriodIndex:
     def test_resample_ambiguous_time_bin_edge(self):
         # GH 10117
         idx = date_range(
-            "2014-10-25 22:00:00", "2014-10-26 00:30:00", freq="30T", tz="Europe/London"
+            "2014-10-25 22:00:00",
+            "2014-10-26 00:30:00",
+            freq="30min",
+            tz="Europe/London",
         )
         expected = Series(np.zeros(len(idx)), index=idx)
-        result = expected.resample("30T").mean()
+        result = expected.resample("30min").mean()
         tm.assert_series_equal(result, expected)
 
     def test_fill_method_and_how_upsample(self):
@@ -640,7 +643,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize(
         "from_freq, to_freq",
-        [("D", "MS"), ("Q", "AS"), ("M", "QS"), ("H", "D"), ("T", "H")],
+        [("D", "MS"), ("Q", "AS"), ("M", "QS"), ("H", "D"), ("min", "H")],
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)

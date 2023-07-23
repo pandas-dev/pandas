@@ -14,10 +14,10 @@ from pandas.core.indexes.timedeltas import timedelta_range
 
 def test_asfreq_bug():
     df = DataFrame(data=[1, 3], index=[timedelta(), timedelta(minutes=3)])
-    result = df.resample("1T").asfreq()
+    result = df.resample("1min").asfreq()
     expected = DataFrame(
         data=[1, np.nan, np.nan, 3],
-        index=timedelta_range("0 day", periods=4, freq="1T"),
+        index=timedelta_range("0 day", periods=4, freq="1min"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -35,12 +35,12 @@ def test_resample_with_nat():
 
 def test_resample_as_freq_with_subperiod():
     # GH 13022
-    index = timedelta_range("00:00:00", "00:10:00", freq="5T")
+    index = timedelta_range("00:00:00", "00:10:00", freq="5min")
     df = DataFrame(data={"value": [1, 5, 10]}, index=index)
-    result = df.resample("2T").asfreq()
+    result = df.resample("2min").asfreq()
     expected_data = {"value": [1, np.nan, np.nan, np.nan, np.nan, 10]}
     expected = DataFrame(
-        data=expected_data, index=timedelta_range("00:00:00", "00:10:00", freq="2T")
+        data=expected_data, index=timedelta_range("00:00:00", "00:10:00", freq="2min")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -71,9 +71,9 @@ def test_resample_single_period_timedelta():
 
 def test_resample_timedelta_idempotency():
     # GH 12072
-    index = timedelta_range("0", periods=9, freq="10L")
+    index = timedelta_range("0", periods=9, freq="10ms")
     series = Series(range(9), index=index)
-    result = series.resample("10L").mean()
+    result = series.resample("10ms").mean()
     expected = series.astype(float)
     tm.assert_series_equal(result, expected)
 
@@ -196,11 +196,11 @@ def test_resample_closed_right():
     # GH#45414
     idx = pd.Index([pd.Timedelta(seconds=120 + i * 30) for i in range(10)])
     ser = Series(range(10), index=idx)
-    result = ser.resample("T", closed="right", label="right").sum()
+    result = ser.resample("min", closed="right", label="right").sum()
     expected = Series(
         [0, 3, 7, 11, 15, 9],
         index=pd.TimedeltaIndex(
-            [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="T"
+            [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="min"
         ),
     )
     tm.assert_series_equal(result, expected)
