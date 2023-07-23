@@ -591,12 +591,10 @@ class GroupByCythonAgg:
         [
             "sum",
             "prod",
-            # TODO: uncomment min/max
-            # Currently, min/max implemented very inefficiently
-            # because it re-uses the Window min/max kernel
-            # so it will time out ASVs
-            # "min",
-            # "max",
+            "min",
+            "max",
+            "idxmin",
+            "idxmax",
             "mean",
             "median",
             "var",
