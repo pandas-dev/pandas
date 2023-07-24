@@ -475,7 +475,7 @@ be located.
 
 8) Is your test for one of the pandas-provided ExtensionArrays (``Categorical``,
    ``DatetimeArray``, ``TimedeltaArray``, ``PeriodArray``, ``IntervalArray``,
-   ``PandasArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
+   ``NumpyExtensionArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
    This test likely belongs in one of:
 
    - tests.arrays

@@ -64,14 +64,14 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
     SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
-    ABCPandasArray,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -101,7 +101,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -449,7 +449,7 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        new_dtype = find_result_type(self.values, other)
+        new_dtype = find_result_type(self.values.dtype, other)
 
         return self.astype(new_dtype, copy=False)
 
@@ -486,7 +486,7 @@ class Block(PandasObject):
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
         new_values = maybe_coerce_values(new_values)
-        refs = self.refs if using_cow and new_values is self.values else None
+        refs = self.refs if new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
     @final
@@ -529,7 +529,7 @@ class Block(PandasObject):
         refs = None
         if copy and res_values is values:
             res_values = values.copy()
-        elif res_values is values and using_cow:
+        elif res_values is values:
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -577,7 +577,7 @@ class Block(PandasObject):
         new_values = maybe_coerce_values(new_values)
 
         refs = None
-        if using_cow and astype_is_view(values.dtype, new_values.dtype):
+        if (using_cow or not copy) and astype_is_view(values.dtype, new_values.dtype):
             refs = self.refs
 
         newb = self.make_block(new_values, refs=refs)
@@ -914,7 +914,7 @@ class Block(PandasObject):
                     nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
                     if (nb is self or using_cow) and not inplace:
                         nb = nb.copy()
-                    elif inplace and has_ref and nb.refs.has_reference():
+                    elif inplace and has_ref and nb.refs.has_reference() and using_cow:
                         # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
@@ -1391,9 +1391,9 @@ class Block(PandasObject):
 
         copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
-        # Dispatch to the PandasArray method.
-        # We know self.array_values is a PandasArray bc EABlock overrides
-        vals = cast(PandasArray, self.array_values)
+        # Dispatch to the NumpyExtensionArray method.
+        # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
+        vals = cast(NumpyExtensionArray, self.array_values)
         if axis == 1:
             vals = vals.T
         new_values = vals.pad_or_backfill(
@@ -2167,7 +2167,7 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
 
     @property
     def array_values(self) -> ExtensionArray:
-        return PandasArray(self.values)
+        return NumpyExtensionArray(self.values)
 
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         if dtype == _dtype_obj:
@@ -2265,7 +2265,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     -------
     values : np.ndarray or ExtensionArray
     """
-    # Caller is responsible for ensuring PandasArray is already extracted.
+    # Caller is responsible for ensuring NumpyExtensionArray is already extracted.
 
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
@@ -2297,7 +2297,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     elif isinstance(dtype, PeriodDtype):
         return NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
-        # Note: need to be sure PandasArray is unwrapped before we get here
+        # Note: need to be sure NumpyExtensionArray is unwrapped before we get here
         return ExtensionBlock
 
     # We use kind checks because it is much more performant
@@ -2330,7 +2330,7 @@ def new_block(
     refs: BlockValuesRefs | None = None,
 ) -> Block:
     # caller is responsible for ensuring:
-    # - values is NOT a PandasArray
+    # - values is NOT a NumpyExtensionArray
     # - check_ndim/ensure_block_shape already checked
     # - maybe_coerce_values already called/unnecessary
     klass = get_block_type(values.dtype)
@@ -2383,16 +2383,16 @@ def extract_pandas_array(
     values: ArrayLike, dtype: DtypeObj | None, ndim: int
 ) -> tuple[ArrayLike, DtypeObj | None]:
     """
-    Ensure that we don't allow PandasArray / PandasDtype in internals.
+    Ensure that we don't allow NumpyExtensionArray / NumpyEADtype in internals.
     """
     # For now, blocks should be backed by ndarrays when possible.
-    if isinstance(values, ABCPandasArray):
+    if isinstance(values, ABCNumpyExtensionArray):
         values = values.to_numpy()
         if ndim and ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
             values = np.atleast_2d(values)
 
-    if isinstance(dtype, PandasDtype):
+    if isinstance(dtype, NumpyEADtype):
         dtype = dtype.numpy_dtype
 
     return values, dtype

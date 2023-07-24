@@ -1248,7 +1248,7 @@ class TestDataFrameIndexing:
         df.loc[:] = df.values[:, ::-1]
         tm.assert_frame_equal(df, orig)
 
-        df.loc[:] = pd.core.arrays.PandasArray(df.values[:, ::-1])
+        df.loc[:] = pd.core.arrays.NumpyExtensionArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
         df.iloc[:] = df.iloc[:, :]
