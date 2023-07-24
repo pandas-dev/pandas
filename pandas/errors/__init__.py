@@ -687,9 +687,9 @@ class LossySetitemError(Exception):
     """
     Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
 
-    Examples
+    Notes
     --------
-    This is an internal error. Please do not use it.
+    This is an internal error.
     """
 
 
@@ -703,9 +703,9 @@ class InvalidComparison(Exception):
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
 
-    Examples
+    Notes
     --------
-    This is an internal error. Please do not use it.
+    This is an internal error.
     """
 
 
