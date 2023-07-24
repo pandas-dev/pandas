@@ -104,6 +104,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
     FloatingArray,
+    IntegerArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -2248,6 +2249,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
+            if isinstance(bvalues, BaseMaskedArray):
+                return IntegerArray(
+                    counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
+                )
+            elif isinstance(bvalues, ArrowExtensionArray):
+                return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
