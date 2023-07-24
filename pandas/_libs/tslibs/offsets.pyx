@@ -12,11 +12,14 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+
 import warnings
+
 from pandas._libs.tslibs.dtypes cimport (
-    c_OFFSET_TO_PERIOD_FREQSTR,
     c_OFFSET_DEPR_FREQSTR,
+    c_REVERSE_OFFSET_DEPR_FREQSTR,
 )
+
 import_datetime()
 
 import numpy as np
@@ -47,7 +50,6 @@ from pandas._libs.tslibs.ccalendar import (
     weekday_to_int,
 )
 from pandas.util._exceptions import find_stack_level
-
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -2353,7 +2355,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "YE"
+    _prefix = "AE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4248,7 +4250,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
-        YearEnd,  # 'YE'
+        YearEnd,  # 'AE'
         BYearBegin,  # 'BAS'
         BYearEnd,  # 'BA'
         BusinessDay,  # 'B'
@@ -4416,20 +4418,22 @@ cpdef to_offset(freq, bint is_period=False):
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
                 if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
+                    msg = f"\'{name}\' will be deprecated, please use "
+                    "\'{c_OFFSET_DEPR_FREQSTR.get(name)}\'",
                     warnings.warn(
-                        "\'M\' will be deprecated, please use \'ME\' "
-                        "for \'month end\'",
+                        msg,
                         UserWarning,
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
-                if is_period is True and name in c_OFFSET_TO_PERIOD_FREQSTR:
+                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     raise ValueError(
-                        r"for Period, please use \'M\' "
-                        "instead of \'ME\'"
+                        "for Period, please use "
+                        "\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                        "instead of \'{name}\'"
                     )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
-                    name = c_OFFSET_DEPR_FREQSTR[name]
+                    name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
