@@ -56,7 +56,6 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             >>> ax.axis('off')
             >>> table = pd.plotting.table(ax, df, loc='center',
             ...                   cellLoc='center', colWidths=list([.2, .2]))
-            (0.0, 1.0, 0.0, 1.0)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
