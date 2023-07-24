@@ -101,14 +101,12 @@ class TestDataFrameColor:
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot.bar()
         _check_colors(ax.patches[::5], facecolors=default_colors[:5])
-        tm.close()
 
     def test_bar_colors_custom(self):
         custom_colors = "rgcby"
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot.bar(color=custom_colors)
         _check_colors(ax.patches[::5], facecolors=custom_colors)
-        tm.close()
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_bar_colors_cmap(self, colormap):
@@ -117,19 +115,16 @@ class TestDataFrameColor:
         ax = df.plot.bar(colormap=colormap)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
         _check_colors(ax.patches[::5], facecolors=rgba_colors)
-        tm.close()
 
     def test_bar_colors_single_col(self):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.loc[:, [0]].plot.bar(color="DodgerBlue")
         _check_colors([ax.patches[0]], facecolors=["DodgerBlue"])
-        tm.close()
 
     def test_bar_colors_green(self):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(kind="bar", color="green")
         _check_colors(ax.patches[::5], facecolors=["green"] * 5)
-        tm.close()
 
     def test_bar_user_colors(self):
         df = DataFrame(
@@ -217,6 +212,13 @@ class TestDataFrameColor:
         with pytest.raises(TypeError, match="Specify exactly one of `c` and `color`"):
             df.plot.scatter(x="a", y="b", c="c", color="green")
 
+    def test_scatter_colors_not_raising_warnings(self):
+        # GH-53908. Do not raise UserWarning: No data for colormapping
+        # provided via 'c'. Parameters 'cmap' will be ignored
+        df = DataFrame({"x": [1, 2, 3], "y": [1, 2, 3]})
+        with tm.assert_produces_warning(None):
+            df.plot.scatter(x="x", y="y", c="b")
+
     def test_scatter_colors_default(self):
         df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3]})
         default_colors = _unpack_cycler(mpl.pyplot.rcParams)
@@ -254,7 +256,7 @@ class TestDataFrameColor:
         ax = df.plot(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
 
-        tm.close()
+        plt.close("all")
 
         ax2 = df.plot(color=custom_colors)
         lines2 = ax2.get_lines()
@@ -262,15 +264,12 @@ class TestDataFrameColor:
         for l1, l2 in zip(ax.get_lines(), lines2):
             assert l1.get_color() == l2.get_color()
 
-        tm.close()
-
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_line_colors_cmap(self, colormap):
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(colormap=colormap)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         _check_colors(ax.get_lines(), linecolors=rgba_colors)
-        tm.close()
 
     def test_line_colors_single_col(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -283,7 +282,6 @@ class TestDataFrameColor:
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(color="red")
         _check_colors(ax.get_lines(), linecolors=["red"] * 5)
-        tm.close()
 
     def test_line_colors_hex(self):
         # GH 10299
@@ -291,7 +289,6 @@ class TestDataFrameColor:
         custom_colors = ["#FF0000", "#0000FF", "#FFFF00", "#000000", "#FFFFFF"]
         ax = df.plot(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
-        tm.close()
 
     def test_dont_modify_colors(self):
         colors = ["r", "g", "b"]
@@ -307,7 +304,6 @@ class TestDataFrameColor:
         axes = df.plot(subplots=True)
         for ax, c in zip(axes, list(default_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     @pytest.mark.parametrize("color", ["k", "green"])
     def test_line_colors_and_styles_subplots_single_color_str(self, color):
@@ -315,7 +311,6 @@ class TestDataFrameColor:
         axes = df.plot(subplots=True, color=color)
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=[color])
-        tm.close()
 
     @pytest.mark.parametrize("color", ["rgcby", list("rgcby")])
     def test_line_colors_and_styles_subplots_custom_colors(self, color):
@@ -324,7 +319,6 @@ class TestDataFrameColor:
         axes = df.plot(color=color, subplots=True)
         for ax, c in zip(axes, list(color)):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     def test_line_colors_and_styles_subplots_colormap_hex(self):
         # GH 9894
@@ -334,7 +328,6 @@ class TestDataFrameColor:
         axes = df.plot(color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     @pytest.mark.parametrize("cmap", ["jet", cm.jet])
     def test_line_colors_and_styles_subplots_colormap_subplot(self, cmap):
@@ -344,7 +337,6 @@ class TestDataFrameColor:
         axes = df.plot(colormap=cmap, subplots=True)
         for ax, c in zip(axes, rgba_colors):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     def test_line_colors_and_styles_subplots_single_col(self):
         # GH 9894
@@ -361,7 +353,6 @@ class TestDataFrameColor:
         axes = df.plot(style="r", subplots=True)
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=["r"])
-        tm.close()
 
     def test_line_colors_and_styles_subplots_list_styles(self):
         # GH 9894
@@ -371,7 +362,6 @@ class TestDataFrameColor:
         axes = df.plot(style=styles, subplots=True)
         for ax, c in zip(axes, styles):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     def test_area_colors(self):
         from matplotlib.collections import PolyCollection
@@ -389,7 +379,6 @@ class TestDataFrameColor:
 
         for h in handles:
             assert h.get_alpha() is None
-        tm.close()
 
     def test_area_colors_poly(self):
         from matplotlib import cm
@@ -406,7 +395,6 @@ class TestDataFrameColor:
         _check_colors(handles, facecolors=jet_colors)
         for h in handles:
             assert h.get_alpha() is None
-        tm.close()
 
     def test_area_colors_stacked_false(self):
         from matplotlib import cm
@@ -433,14 +421,12 @@ class TestDataFrameColor:
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot.hist()
         _check_colors(ax.patches[::10], facecolors=default_colors[:5])
-        tm.close()
 
     def test_hist_colors_single_custom(self):
         df = DataFrame(np.random.randn(5, 5))
         custom_colors = "rgcby"
         ax = df.plot.hist(color=custom_colors)
         _check_colors(ax.patches[::10], facecolors=custom_colors)
-        tm.close()
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_hist_colors_cmap(self, colormap):
@@ -448,7 +434,6 @@ class TestDataFrameColor:
         ax = df.plot.hist(colormap=colormap)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, 5)]
         _check_colors(ax.patches[::10], facecolors=rgba_colors)
-        tm.close()
 
     def test_hist_colors_single_col(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -459,7 +444,6 @@ class TestDataFrameColor:
         df = DataFrame(np.random.randn(5, 5))
         ax = df.plot(kind="hist", color="green")
         _check_colors(ax.patches[::10], facecolors=["green"] * 5)
-        tm.close()
 
     @td.skip_if_no_scipy
     def test_kde_colors(self):
@@ -468,7 +452,6 @@ class TestDataFrameColor:
 
         ax = df.plot.kde(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
-        tm.close()
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -477,7 +460,6 @@ class TestDataFrameColor:
         ax = df.plot.kde(colormap=colormap)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         _check_colors(ax.get_lines(), linecolors=rgba_colors)
-        tm.close()
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
@@ -488,7 +470,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", subplots=True)
         for ax, c in zip(axes, list(default_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["k", "red"])
@@ -497,7 +478,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", color=colormap, subplots=True)
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=[colormap])
-        tm.close()
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_custom_color(self):
@@ -506,7 +486,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
@@ -516,7 +495,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", colormap=colormap, subplots=True)
         for ax, c in zip(axes, rgba_colors):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_single_col(self):
@@ -534,7 +512,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", style="r", subplots=True)
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=["r"])
-        tm.close()
 
     @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_list(self):
@@ -544,7 +521,6 @@ class TestDataFrameColor:
         axes = df.plot(kind="kde", style=styles, subplots=True)
         for ax, c in zip(axes, styles):
             _check_colors(ax.get_lines(), linecolors=[c])
-        tm.close()
 
     def test_boxplot_colors(self):
         default_colors = _unpack_cycler(mpl.pyplot.rcParams)
@@ -558,7 +534,6 @@ class TestDataFrameColor:
             default_colors[2],
             default_colors[0],
         )
-        tm.close()
 
     def test_boxplot_colors_dict_colors(self):
         df = DataFrame(np.random.randn(5, 5))
@@ -577,7 +552,6 @@ class TestDataFrameColor:
             dict_colors["caps"],
             "r",
         )
-        tm.close()
 
     def test_boxplot_colors_default_color(self):
         default_colors = _unpack_cycler(mpl.pyplot.rcParams)
@@ -586,7 +560,6 @@ class TestDataFrameColor:
         dict_colors = {"whiskers": "c", "medians": "m"}
         bp = df.plot.box(color=dict_colors, return_type="dict")
         _check_colors_box(bp, default_colors[0], "c", "m", default_colors[0])
-        tm.close()
 
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_boxplot_colors_cmap(self, colormap):
@@ -596,7 +569,6 @@ class TestDataFrameColor:
         _check_colors_box(
             bp, jet_colors[0], jet_colors[0], jet_colors[2], jet_colors[0]
         )
-        tm.close()
 
     def test_boxplot_colors_single(self):
         df = DataFrame(np.random.randn(5, 5))

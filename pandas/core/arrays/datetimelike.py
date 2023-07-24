@@ -10,9 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     cast,
     final,
@@ -144,6 +142,11 @@ from pandas.core.ops.invalid import (
 from pandas.tseries import frequencies
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,
@@ -649,7 +652,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg)
 
-        # Do type inference if necessary up front (after unpacking PandasArray)
+        # Do type inference if necessary up front (after unpacking
+        # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = extract_array(value, extract_numpy=True)
         value = pd_array(value)
@@ -1552,6 +1556,17 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         Examples
         --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.mean()
+        Timestamp('2001-01-02 00:00:00')
+
+        For :class:`pandas.TimedeltaIndex`:
+
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
@@ -2200,7 +2215,15 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 codes = codes[::-1]
                 uniques = uniques[::-1]
             return codes, uniques
-        # FIXME: shouldn't get here; we are ignoring sort
+
+        if sort:
+            # algorithms.factorize only passes sort=True here when freq is
+            #  not None, so this should not be reached.
+            raise NotImplementedError(
+                f"The 'sort' keyword in {type(self).__name__}.factorize is "
+                "ignored unless arr.freq is not None. To factorize with sort, "
+                "call pd.factorize(obj, sort=True) instead."
+            )
         return super().factorize(use_na_sentinel=use_na_sentinel)
 
     @classmethod

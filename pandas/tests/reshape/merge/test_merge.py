@@ -438,6 +438,15 @@ class TestMerge:
         result = merge(right, left, on="key", how="right")
         tm.assert_frame_equal(result, left)
 
+    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+    def test_merge_empty_dataframe(self, index, how):
+        # GH52777
+        left = DataFrame([], index=index[:0])
+        right = left.copy()
+
+        result = left.join(right, how=how)
+        tm.assert_frame_equal(result, left)
+
     @pytest.mark.parametrize(
         "kwarg",
         [
@@ -679,8 +688,13 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        df = concat([df, d], ignore_index=True)
-        result = concat([df, d], ignore_index=True)
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        warn = FutureWarning
+        if using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df = concat([df, d], ignore_index=True)
+            result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -2805,7 +2819,7 @@ def test_merge_datetime_different_resolution(tz, how):
 
 
 def test_merge_multiindex_single_level():
-    # GH #52331
+    # GH52331
     df = DataFrame({"col": ["A", "B"]})
     df2 = DataFrame(
         data={"b": [100]},

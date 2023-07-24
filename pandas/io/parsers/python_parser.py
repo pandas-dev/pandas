@@ -4,6 +4,12 @@ from collections import (
     abc,
     defaultdict,
 )
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import csv
 from io import StringIO
 import re
@@ -12,12 +18,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     DefaultDict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     cast,
 )
 
@@ -207,7 +208,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(List[str], lines)
+                lines_str = cast(list[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string

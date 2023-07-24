@@ -7,7 +7,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
 )
 
@@ -38,7 +37,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
     SparseDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -57,7 +56,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
     TimedeltaArray,
 )
 from pandas.core.construction import (
@@ -90,6 +89,8 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -220,7 +221,7 @@ class BaseArrayManager(DataManager):
         assert "filter" not in kwargs
 
         align_keys = align_keys or []
-        result_arrays: list[np.ndarray] = []
+        result_arrays: list[ArrayLike] = []
         # fillna: Series/DataFrame is responsible for making sure value is aligned
 
         aligned_args = {k: kwargs[k] for k in align_keys}
@@ -247,16 +248,10 @@ class BaseArrayManager(DataManager):
             else:
                 applied = getattr(arr, f)(**kwargs)
 
-            # if not isinstance(applied, ExtensionArray):
-            #     # TODO not all EA operations return new EAs (eg astype)
-            #     applied = array(applied)
             result_arrays.append(applied)
 
         new_axes = self._axes
-
-        # error: Argument 1 to "ArrayManager" has incompatible type "List[ndarray]";
-        # expected "List[Union[ndarray, ExtensionArray]]"
-        return type(self)(result_arrays, new_axes)  # type: ignore[arg-type]
+        return type(self)(result_arrays, new_axes)
 
     def apply_with_block(self, f, align_keys=None, **kwargs) -> Self:
         # switch axis to follow BlockManager logic
@@ -336,7 +331,8 @@ class BaseArrayManager(DataManager):
 
         def _convert(arr):
             if is_object_dtype(arr.dtype):
-                # extract PandasArray for tests that patch PandasArray._typ
+                # extract NumpyExtensionArray for tests that patch
+                #  NumpyExtensionArray._typ
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
@@ -352,10 +348,6 @@ class BaseArrayManager(DataManager):
 
     def to_native_types(self, **kwargs) -> Self:
         return self.apply(to_native_types, **kwargs)
-
-    @property
-    def is_mixed_type(self) -> bool:
-        return True
 
     @property
     def any_extension_types(self) -> bool:
@@ -1031,7 +1023,7 @@ class ArrayManager(BaseArrayManager):
 
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
+        elif isinstance(dtype, NumpyEADtype):
             dtype = dtype.numpy_dtype
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
@@ -1157,7 +1149,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """The array that Series.array returns"""
         arr = self.array
         if isinstance(arr, np.ndarray):
-            arr = PandasArray(arr)
+            arr = NumpyExtensionArray(arr)
         return arr
 
     @property
@@ -1319,7 +1311,7 @@ def concat_arrays(to_concat: list) -> ArrayLike:
 
     if single_dtype:
         target_dtype = to_concat_no_proxy[0].dtype
-    elif all(x.kind in "iub" and isinstance(x, np.dtype) for x in dtypes):
+    elif all(lib.is_np_dtype(x, "iub") for x in dtypes):
         # GH#42092
         target_dtype = np_find_common_type(*dtypes)
     else:

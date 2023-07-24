@@ -6,9 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Iterable,
     Literal,
-    Sequence,
     cast,
     final,
 )
@@ -68,14 +66,14 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
     SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
-    ABCPandasArray,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -105,7 +103,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -119,6 +117,11 @@ from pandas.core.construction import (
 from pandas.core.indexers import check_setitem_lengths
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas.core.api import Index
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 
@@ -158,10 +161,34 @@ class Block(PandasObject):
 
     __slots__ = ()
     is_numeric = False
-    is_object = False
-    is_extension = False
-    _can_consolidate = True
-    _validate_ndim = True
+
+    @final
+    @cache_readonly
+    def _validate_ndim(self) -> bool:
+        """
+        We validate dimension for blocks that can hold 2D values, which for now
+        means numpy dtypes or DatetimeTZDtype.
+        """
+        dtype = self.dtype
+        return not isinstance(dtype, ExtensionDtype) or isinstance(
+            dtype, DatetimeTZDtype
+        )
+
+    @final
+    @cache_readonly
+    def is_object(self) -> bool:
+        return self.values.dtype == _dtype_obj
+
+    @final
+    @cache_readonly
+    def is_extension(self) -> bool:
+        return not lib.is_np_dtype(self.values.dtype)
+
+    @final
+    @cache_readonly
+    def _can_consolidate(self) -> bool:
+        # We _could_ consolidate for DatetimeTZDtype but don't for now.
+        return not self.is_extension
 
     @final
     @cache_readonly
@@ -344,8 +371,7 @@ class Block(PandasObject):
         result = func(self.values)
 
         if self.values.ndim == 1:
-            # TODO(EA2D): special case not needed with 2D EAs
-            res_values = np.array([[result]])
+            res_values = result
         else:
             res_values = result.reshape(-1, 1)
 
@@ -425,7 +451,7 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        new_dtype = find_result_type(self.values, other)
+        new_dtype = find_result_type(self.values.dtype, other)
 
         return self.astype(new_dtype, copy=False)
 
@@ -487,9 +513,10 @@ class Block(PandasObject):
         """
         new_values = maybe_downcast_to_dtype(self.values, dtype=dtype)
         new_values = maybe_coerce_values(new_values)
-        refs = self.refs if using_cow and new_values is self.values else None
+        refs = self.refs if new_values is self.values else None
         return [self.make_block(new_values, refs=refs)]
 
+    @final
     def convert(
         self,
         *,
@@ -506,7 +533,15 @@ class Block(PandasObject):
             return [self.copy()] if copy else [self]
 
         if self.ndim != 1 and self.shape[0] != 1:
-            return self.split_and_operate(Block.convert, copy=copy, using_cow=using_cow)
+            blocks = self.split_and_operate(
+                Block.convert, copy=copy, using_cow=using_cow
+            )
+            if all(blk.dtype.kind == "O" for blk in blocks):
+                # Avoid fragmenting the block if convert is a no-op
+                if using_cow:
+                    return [self.copy(deep=False)]
+                return [self.copy()] if copy else [self]
+            return blocks
 
         values = self.values
         if values.ndim == 2:
@@ -521,7 +556,7 @@ class Block(PandasObject):
         refs = None
         if copy and res_values is values:
             res_values = values.copy()
-        elif res_values is values and using_cow:
+        elif res_values is values:
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -569,7 +604,7 @@ class Block(PandasObject):
         new_values = maybe_coerce_values(new_values)
 
         refs = None
-        if using_cow and astype_is_view(values.dtype, new_values.dtype):
+        if (using_cow or not copy) and astype_is_view(values.dtype, new_values.dtype):
             refs = self.refs
 
         newb = self.make_block(new_values, refs=refs)
@@ -906,7 +941,7 @@ class Block(PandasObject):
                     nb = self.astype(np.dtype(object), copy=False, using_cow=using_cow)
                     if (nb is self or using_cow) and not inplace:
                         nb = nb.copy()
-                    elif inplace and has_ref and nb.refs.has_reference():
+                    elif inplace and has_ref and nb.refs.has_reference() and using_cow:
                         # no copy in astype and we had refs before
                         nb = nb.copy()
                     putmask_inplace(nb.values, mask, value)
@@ -978,6 +1013,7 @@ class Block(PandasObject):
             self.values = self.values.copy()
         self.values[locs] = values
 
+    @final
     def take_nd(
         self,
         indexer: npt.NDArray[np.intp],
@@ -1111,11 +1147,8 @@ class Block(PandasObject):
                     #  test_iloc_setitem_custom_object
                     casted = setitem_datetimelike_compat(values, len(vi), casted)
 
-            if using_cow and self.refs.has_reference():
-                values = values.copy()
-                self = self.make_block_same_class(
-                    values.T if values.ndim == 2 else values
-                )
+            self = self._maybe_copy(using_cow, inplace=True)
+            values = cast(np.ndarray, self.values.T)
             if isinstance(casted, np.ndarray) and casted.ndim == 1 and len(casted) == 1:
                 # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
                 casted = casted[0, ...]
@@ -1158,14 +1191,10 @@ class Block(PandasObject):
         try:
             casted = np_can_hold_element(values.dtype, new)
 
-            if using_cow and self.refs.has_reference():
-                # Do this here to avoid copying twice
-                values = values.copy()
-                self = self.make_block_same_class(values)
+            self = self._maybe_copy(using_cow, inplace=True)
+            values = cast(np.ndarray, self.values)
 
             putmask_without_repeat(values.T, mask, casted)
-            if using_cow:
-                return [self.copy(deep=False)]
             return [self]
         except LossySetitemError:
             if self.ndim == 1 or self.shape[0] == 1:
@@ -1377,32 +1406,47 @@ class Block(PandasObject):
     def pad_or_backfill(
         self,
         *,
-        method: FillnaOptions = "pad",
+        method: FillnaOptions,
         axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
-        **kwargs,
     ) -> list[Block]:
-        return self.interpolate(
+        if not self._can_hold_na:
+            # If there are no NAs, then interpolate is a no-op
+            if using_cow:
+                return [self.copy(deep=False)]
+            return [self] if inplace else [self.copy()]
+
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+        # Dispatch to the NumpyExtensionArray method.
+        # We know self.array_values is a NumpyExtensionArray bc EABlock overrides
+        vals = cast(NumpyExtensionArray, self.array_values)
+        if axis == 1:
+            vals = vals.T
+        new_values = vals.pad_or_backfill(
             method=method,
-            axis=axis,
-            inplace=inplace,
             limit=limit,
             limit_area=limit_area,
-            downcast=downcast,
-            using_cow=using_cow,
-            **kwargs,
+            copy=copy,
         )
+        if axis == 1:
+            new_values = new_values.T
 
+        data = extract_array(new_values, extract_numpy=True)
+
+        nb = self.make_block_same_class(data, refs=refs)
+        return nb._maybe_downcast([nb], downcast, using_cow)
+
+    @final
     def interpolate(
         self,
         *,
-        method: FillnaOptions | InterpolateOptions = "pad",
-        axis: AxisInt = 0,
-        index: Index | None = None,
+        method: InterpolateOptions,
+        index: Index,
         inplace: bool = False,
         limit: int | None = None,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
@@ -1412,6 +1456,10 @@ class Block(PandasObject):
         **kwargs,
     ) -> list[Block]:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        # error: Non-overlapping equality check [...]
+        if method == "asfreq":  # type: ignore[comparison-overlap]
+            # clean_fill_method used to allow this
+            missing.clean_fill_method(method)
 
         if not self._can_hold_na:
             # If there are no NAs, then interpolate is a no-op
@@ -1420,7 +1468,7 @@ class Block(PandasObject):
             return [self] if inplace else [self.copy()]
 
         # TODO(3.0): this case will not be reachable once GH#53638 is enforced
-        if not _interp_method_is_pad_or_backfill(method) and self.dtype == _dtype_obj:
+        if self.dtype == _dtype_obj:
             # only deal with floats
             # bc we already checked that can_hold_na, we don't have int dtype here
             # test_interp_basic checks that we make a copy here
@@ -1428,46 +1476,19 @@ class Block(PandasObject):
                 return [self.copy(deep=False)]
             return [self] if inplace else [self.copy()]
 
-        if self.is_object and self.ndim == 2 and self.shape[0] != 1 and axis == 0:
-            # split improves performance in ndarray.copy()
-            return self.split_and_operate(
-                type(self).interpolate,
-                method=method,
-                axis=axis,
-                index=index,
-                inplace=inplace,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                downcast=downcast,
-                **kwargs,
-            )
-
         copy, refs = self._get_refs_and_copy(using_cow, inplace)
 
-        # Dispatch to the PandasArray method.
-        # We know self.array_values is a PandasArray bc EABlock overrides
-        if _interp_method_is_pad_or_backfill(method):
-            # TODO: warn about ignored kwargs, limit_direction, index...?
-            new_values = cast(PandasArray, self.array_values).pad_or_backfill(
-                method=cast(FillnaOptions, method),
-                axis=axis,
-                limit=limit,
-                limit_area=limit_area,
-                copy=copy,
-            )
-        else:
-            assert index is not None  # for mypy
-            new_values = cast(PandasArray, self.array_values).interpolate(
-                method=cast(InterpolateOptions, method),
-                axis=axis,
-                index=index,
-                limit=limit,
-                limit_direction=limit_direction,
-                limit_area=limit_area,
-                copy=copy,
-                **kwargs,
-            )
+        # Dispatch to the EA method.
+        new_values = self.array_values.interpolate(
+            method=method,
+            axis=self.ndim - 1,
+            index=index,
+            limit=limit,
+            limit_direction=limit_direction,
+            limit_area=limit_area,
+            copy=copy,
+            **kwargs,
+        )
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
@@ -1659,6 +1680,7 @@ class EABackedBlock(Block):
 
     values: ExtensionArray
 
+    @final
     def shift(self, periods: int, fill_value: Any = None) -> list[Block]:
         """
         Shift the block by `periods`.
@@ -1671,6 +1693,7 @@ class EABackedBlock(Block):
         new_values = self.values.T.shift(periods=periods, fill_value=fill_value).T
         return [self.make_block_same_class(new_values)]
 
+    @final
     def setitem(self, indexer, value, using_cow: bool = False):
         """
         Attempt self.values[indexer] = value, possibly creating a new array.
@@ -1729,6 +1752,7 @@ class EABackedBlock(Block):
         else:
             return self
 
+    @final
     def where(
         self, other, cond, _downcast: str | bool = "infer", using_cow: bool = False
     ) -> list[Block]:
@@ -1799,6 +1823,7 @@ class EABackedBlock(Block):
         nb = self.make_block_same_class(res_values)
         return [nb]
 
+    @final
     def putmask(self, mask, new, using_cow: bool = False) -> list[Block]:
         """
         See Block.putmask.__doc__
@@ -1806,10 +1831,6 @@ class EABackedBlock(Block):
         mask = extract_bool_array(mask)
         if new is lib.no_default:
             new = self.fill_value
-
-        values = self.values
-        if values.ndim == 2:
-            values = values.T
 
         orig_new = new
         orig_mask = mask
@@ -1821,9 +1842,10 @@ class EABackedBlock(Block):
                 return [self.copy(deep=False)]
             return [self]
 
-        if using_cow and self.refs.has_reference():
-            values = values.copy()
-            self = self.make_block_same_class(values.T if values.ndim == 2 else values)
+        self = self._maybe_copy(using_cow, inplace=True)
+        values = self.values
+        if values.ndim == 2:
+            values = values.T
 
         try:
             # Caller is responsible for ensuring matching lengths
@@ -1866,6 +1888,7 @@ class EABackedBlock(Block):
 
         return [self]
 
+    @final
     def delete(self, loc) -> list[Block]:
         # This will be unnecessary if/when __array_function__ is implemented
         if self.ndim == 1:
@@ -1877,10 +1900,12 @@ class EABackedBlock(Block):
             return []
         return super().delete(loc)
 
+    @final
     @cache_readonly
     def array_values(self) -> ExtensionArray:
         return self.values
 
+    @final
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         """
         return object dtype as boxed values, such as Timestamps/Timedelta
@@ -1894,42 +1919,25 @@ class EABackedBlock(Block):
     def values_for_json(self) -> np.ndarray:
         return np.asarray(self.values)
 
-    def interpolate(
+    @final
+    def pad_or_backfill(
         self,
         *,
-        method: FillnaOptions | InterpolateOptions = "pad",
-        index: Index | None = None,
-        axis: int = 0,
+        method: FillnaOptions,
+        axis: AxisInt = 0,
         inplace: bool = False,
         limit: int | None = None,
-        fill_value=None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        downcast: Literal["infer"] | None = None,
         using_cow: bool = False,
-        **kwargs,
-    ):
+    ) -> list[Block]:
         values = self.values
-
-        if not _interp_method_is_pad_or_backfill(method):
-            imeth = cast(InterpolateOptions, method)
-            return super().interpolate(
-                method=imeth,
-                index=index,
-                axis=axis,
-                inplace=inplace,
-                limit=limit,
-                fill_value=fill_value,
-                using_cow=using_cow,
-                **kwargs,
-            )
+        if values.ndim == 2 and axis == 1:
+            # NDArrayBackedExtensionArray.fillna assumes axis=0
+            new_values = values.T.fillna(method=method, limit=limit).T
         else:
-            meth = cast(FillnaOptions, method)
-            if values.ndim == 2 and axis == 0:
-                # NDArrayBackedExtensionArray.fillna assumes axis=1
-                new_values = values.T.fillna(
-                    value=fill_value, method=meth, limit=limit
-                ).T
-            else:
-                new_values = values.fillna(value=fill_value, method=meth, limit=limit)
-        return self.make_block_same_class(new_values)
+            new_values = values.fillna(method=method, limit=limit)
+        return [self.make_block_same_class(new_values)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -1943,10 +1951,6 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
 
     ExtensionArrays are limited to 1-D.
     """
-
-    _can_consolidate = False
-    _validate_ndim = False
-    is_extension = True
 
     values: ExtensionArray
 
@@ -2194,7 +2198,7 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
 
     @property
     def array_values(self) -> ExtensionArray:
-        return PandasArray(self.values)
+        return NumpyExtensionArray(self.values)
 
     def get_values(self, dtype: DtypeObj | None = None) -> np.ndarray:
         if dtype == _dtype_obj:
@@ -2210,10 +2214,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
         kind = dtype.kind
 
         return kind in "fciub"
-
-    @cache_readonly
-    def is_object(self) -> bool:  # type: ignore[override]
-        return self.values.dtype.kind == "O"
 
 
 class NumericBlock(NumpyBlock):
@@ -2234,12 +2234,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
     """
 
     values: NDArrayBackedExtensionArray
-
-    # error: Signature of "is_extension" incompatible with supertype "Block"
-    @cache_readonly
-    def is_extension(self) -> bool:  # type: ignore[override]
-        # i.e. datetime64tz, PeriodDtype
-        return not isinstance(self.dtype, np.dtype)
 
     @property
     def is_view(self) -> bool:
@@ -2278,9 +2272,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-    is_extension = True
-    _validate_ndim = True
-    _can_consolidate = False
 
     # Don't use values_for_json from DatetimeLikeBlock since it is
     # an invalid optimization here(drop the tz)
@@ -2305,7 +2296,7 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
     -------
     values : np.ndarray or ExtensionArray
     """
-    # Caller is responsible for ensuring PandasArray is already extracted.
+    # Caller is responsible for ensuring NumpyExtensionArray is already extracted.
 
     if isinstance(values, np.ndarray):
         values = ensure_wrapped_if_datetimelike(values)
@@ -2337,7 +2328,7 @@ def get_block_type(dtype: DtypeObj) -> type[Block]:
     elif isinstance(dtype, PeriodDtype):
         return NDArrayBackedExtensionBlock
     elif isinstance(dtype, ExtensionDtype):
-        # Note: need to be sure PandasArray is unwrapped before we get here
+        # Note: need to be sure NumpyExtensionArray is unwrapped before we get here
         return ExtensionBlock
 
     # We use kind checks because it is much more performant
@@ -2370,7 +2361,7 @@ def new_block(
     refs: BlockValuesRefs | None = None,
 ) -> Block:
     # caller is responsible for ensuring:
-    # - values is NOT a PandasArray
+    # - values is NOT a NumpyExtensionArray
     # - check_ndim/ensure_block_shape already checked
     # - maybe_coerce_values already called/unnecessary
     klass = get_block_type(values.dtype)
@@ -2423,16 +2414,16 @@ def extract_pandas_array(
     values: ArrayLike, dtype: DtypeObj | None, ndim: int
 ) -> tuple[ArrayLike, DtypeObj | None]:
     """
-    Ensure that we don't allow PandasArray / PandasDtype in internals.
+    Ensure that we don't allow NumpyExtensionArray / NumpyEADtype in internals.
     """
     # For now, blocks should be backed by ndarrays when possible.
-    if isinstance(values, ABCPandasArray):
+    if isinstance(values, ABCNumpyExtensionArray):
         values = values.to_numpy()
         if ndim and ndim > 1:
             # TODO(EA2D): special case not needed with 2D EAs
             values = np.atleast_2d(values)
 
-    if isinstance(dtype, PandasDtype):
+    if isinstance(dtype, NumpyEADtype):
         dtype = dtype.numpy_dtype
 
     return values, dtype
@@ -2584,14 +2575,3 @@ def external_values(values: ArrayLike) -> ArrayLike:
     # TODO(CoW) we should also mark our ExtensionArrays as read-only
 
     return values
-
-
-def _interp_method_is_pad_or_backfill(method: str) -> bool:
-    try:
-        m = missing.clean_fill_method(method)
-    except ValueError:
-        m = None
-        if method == "asfreq":
-            # clean_fill_method used to allow this
-            raise
-    return m is not None
