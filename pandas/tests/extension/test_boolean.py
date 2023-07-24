@@ -26,6 +26,13 @@ import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+]
+
 
 def make_data():
     return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
