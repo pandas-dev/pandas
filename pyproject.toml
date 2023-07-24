@@ -3,7 +3,7 @@
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python==0.13.1",
-    "meson[ninja]==1.0.1",
+    "meson==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
