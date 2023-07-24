@@ -704,7 +704,6 @@ Comments
 Sometimes comments or meta data may be included in a file:
 
 .. ipython:: python
-   :suppress:
 
    data = (
        "ID,level,category\n"
@@ -712,11 +711,8 @@ Sometimes comments or meta data may be included in a file:
        "Patient2,23000,y # wouldn't take his medicine\n"
        "Patient3,1234018,z # awesome"
    )
-
    with open("tmp.csv", "w") as fh:
        fh.write(data)
-
-.. ipython:: python
 
    print(open("tmp.csv").read())
 
@@ -1568,8 +1564,7 @@ class of the csv module. For this, you have to specify ``sep=None``.
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   df.to_csv("tmp2.csv", sep=":")
+   df.to_csv("tmp2.csv", sep=":", index=False)
    pd.read_csv("tmp2.csv", sep=None, engine="python")
 
 .. ipython:: python
@@ -1597,8 +1592,8 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    df = pd.DataFrame(np.random.randn(10, 4))
-   df.to_csv("tmp.csv", sep="|")
-   table = pd.read_csv("tmp.csv", sep="|")
+   df.to_csv("tmp.csv", index=False)
+   table = pd.read_csv("tmp.csv")
    table
 
 
@@ -1607,8 +1602,8 @@ value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", chunksize=4) as reader:
-       reader
+   with pd.read_csv("tmp.csv", chunksize=4) as reader:
+       print(reader)
        for chunk in reader:
            print(chunk)
 
@@ -1620,8 +1615,8 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   with pd.read_csv("tmp.csv", sep="|", iterator=True) as reader:
-       reader.get_chunk(5)
+   with pd.read_csv("tmp.csv", iterator=True) as reader:
+       print(reader.get_chunk(5))
 
 .. ipython:: python
    :suppress:
@@ -2495,6 +2490,47 @@ Read a URL with no options:
 
    The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
+Read a URL while passing headers alongside the HTTP request:
+
+.. code-block:: ipython
+
+   In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
+   In [323]: pd.read_html(url)
+   Out[323]:
+   [                   0                    1
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
+    2    Request Method:                  GET
+    3       Request URI:      /notes/request/
+    4     Request Query:                  NaN,
+    0   Accept-Encoding:             identity
+    1              Host:         www.sump.org
+    2        User-Agent:    Python-urllib/3.8
+    3        Connection:                close]
+   In [324]: headers = {
+   In [325]:    'User-Agent':'Mozilla Firefox v14.0',
+   In [326]:    'Accept':'application/json',
+   In [327]:    'Connection':'keep-alive',
+   In [328]:    'Auth':'Bearer 2*/f3+fe68df*4'
+   In [329]: }
+   In [340]: pd.read_html(url, storage_options=headers)
+   Out[340]:
+   [                   0                    1
+    0     Remote Socket:  51.15.105.256:51760
+    1  Protocol Version:             HTTP/1.1
+    2    Request Method:                  GET
+    3       Request URI:      /notes/request/
+    4     Request Query:                  NaN,
+    0        User-Agent: Mozilla Firefox v14.0
+    1    AcceptEncoding:   gzip,  deflate,  br
+    2            Accept:      application/json
+    3        Connection:             keep-alive
+    4              Auth:  Bearer 2*/f3+fe68df*4]
+
+.. note::
+
+   We see above that the headers we passed are reflected in the HTTP request.
+
 Read in the content of the file from the above URL and pass it to ``read_html``
 as a string:
 
@@ -2664,7 +2700,7 @@ Links can be extracted from cells along with the text using ``extract_links="all
     """
 
     df = pd.read_html(
-        html_table,
+        StringIO(html_table),
         extract_links="all"
     )[0]
     df
@@ -2920,6 +2956,7 @@ Read an XML string:
 
 .. ipython:: python
 
+    from io import StringIO
    xml = """<?xml version="1.0" encoding="UTF-8"?>
    <bookstore>
      <book category="cooking">
@@ -2942,7 +2979,7 @@ Read an XML string:
      </book>
    </bookstore>"""
 
-   df = pd.read_xml(xml)
+   df = pd.read_xml(StringIO(xml))
    df
 
 Read a URL with no options:
@@ -2962,7 +2999,7 @@ as a string:
        f.write(xml)
 
    with open(file_path, "r") as f:
-       df = pd.read_xml(f.read())
+       df = pd.read_xml(StringIO(f.read()))
    df
 
 Read in the content of the "books.xml" as instance of ``StringIO`` or
@@ -3053,7 +3090,7 @@ For example, below XML contains a namespace with prefix, ``doc``, and URI at
      </doc:row>
    </doc:data>"""
 
-   df = pd.read_xml(xml,
+   df = pd.read_xml(StringIO(xml),
                     xpath="//doc:row",
                     namespaces={"doc": "https://example.com"})
    df
@@ -3083,7 +3120,7 @@ But assigning *any* temporary name to correct URI allows parsing by nodes.
     </row>
    </data>"""
 
-   df = pd.read_xml(xml,
+   df = pd.read_xml(StringIO(xml),
                     xpath="//pandas:row",
                     namespaces={"pandas": "https://example.com"})
    df
@@ -3118,7 +3155,7 @@ However, if XPath does not reference node names such as default, ``/*``, then
         </row>
       </data>"""
 
-      df = pd.read_xml(xml, xpath="./row")
+      df = pd.read_xml(StringIO(xml), xpath="./row")
       df
 
    shows the attribute ``sides`` on ``shape`` element was not parsed as
@@ -3219,7 +3256,7 @@ output (as shown below for demonstration) for easier parse into ``DataFrame``:
       </row>
     </response>"""
 
-   df = pd.read_xml(xml, stylesheet=xsl)
+   df = pd.read_xml(StringIO(xml), stylesheet=xsl)
    df
 
 For very large XML files that can range in hundreds of megabytes to gigabytes, :func:`pandas.read_xml`

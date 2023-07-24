@@ -11,9 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
-    Hashable,
-    Sequence,
     overload,
 )
 import warnings
@@ -60,6 +57,12 @@ from pandas.io.formats.style_render import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Hashable,
+        Sequence,
+    )
+
     from matplotlib.colors import Colormap
 
     from pandas._typing import (
@@ -238,6 +241,16 @@ class Styler(StylerRenderer):
     Any, or all, or these classes can be renamed by using the ``css_class_names``
     argument in ``Styler.set_table_classes``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1.0, 2.0, 3.0], [4, 5, 6]], index=['a', 'b'],
+    ...                   columns=['A', 'B', 'C'])
+    >>> pd.io.formats.style.Styler(df, precision=2,
+    ...                            caption="My table")  # doctest: +SKIP
+
+    Please see:
+    `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
     """
 
     def __init__(
@@ -520,7 +533,7 @@ class Styler(StylerRenderer):
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -1294,6 +1307,21 @@ class Styler(StylerRenderer):
         See Also
         --------
         DataFrame.to_html: Write a DataFrame to a file, buffer or string in HTML format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> print(df.style.to_html())  # doctest: +SKIP
+        <style type="text/css">
+        </style>
+        <table id="T_1e78e">
+          <thead>
+            <tr>
+              <th class="blank level0" >&nbsp;</th>
+              <th id="T_1e78e_level0_col0" class="col_heading level0 col0" >A</th>
+              <th id="T_1e78e_level0_col1" class="col_heading level0 col1" >B</th>
+            </tr>
+        ...
         """
         obj = self._copy(deepcopy=True)  # manipulate table_styles on obj, not self
 
@@ -1406,6 +1434,12 @@ class Styler(StylerRenderer):
         -------
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.style.to_string()
+        ' A B\\n0 1 3\\n1 2 4\\n'
         """
         obj = self._copy(deepcopy=True)
 
@@ -1637,6 +1671,21 @@ class Styler(StylerRenderer):
         Reset the ``Styler``, removing any previously applied styles.
 
         Returns None.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, np.nan]})
+
+        After any added style:
+
+        >>> df.style.highlight_null(color='yellow')  # doctest: +SKIP
+
+        Remove it with:
+
+        >>> df.style.clear()  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         # create default GH 40675
         clean_copy = Styler(self.data, uuid=self.uuid)
@@ -2244,6 +2293,22 @@ class Styler(StylerRenderer):
         Almost all HTML elements within the table, and including the ``<table>`` element
         are assigned ``id`` attributes. The format is ``T_uuid_<extra>`` where
         ``<extra>`` is typically a more specific identifier, such as ``row1_col2``.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], index=['A', 'B'], columns=['c1', 'c2'])
+
+        You can get the `id` attributes with the following:
+
+        >>> print((df).style.to_html())  # doctest: +SKIP
+
+        To add a title to column `c1`, its `id` is T_20a7d_level0_col0:
+
+        >>> df.style.set_uuid("T_20a7d_level0_col0")
+        ... .set_caption("Test")  # doctest: +SKIP
+
+        Please see:
+        `Table visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         self.uuid = uuid
         return self
@@ -2262,6 +2327,14 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.style.set_caption("test")  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         msg = "`caption` must be either a string or 2-tuple of strings."
         if isinstance(caption, (list, tuple)):
@@ -2310,6 +2383,14 @@ class Styler(StylerRenderer):
           - `styler.set_sticky(axis="columns").hide(axis="columns")`
 
         may produce strange behaviour due to CSS controls with missing elements.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.style.set_sticky(axis="index")  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         axis = self.data._get_axis_number(axis)
         obj = self.data.index if axis == 0 else self.data.columns
@@ -3060,6 +3141,11 @@ class Styler(StylerRenderer):
         This section of the user guide:
         `Table Visualization <../../user_guide/style.ipynb>`_ gives
         a number of examples for different settings and color coordination.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [3, 4, 5, 6]})
+        >>> df.style.bar(subset=['A'], color='gray')  # doctest: +SKIP
         """
         if color is None and cmap is None:
             color = "#d65f5f"
@@ -3134,6 +3220,14 @@ class Styler(StylerRenderer):
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, np.nan]})
+        >>> df.style.highlight_null(color='yellow')  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
 
         def f(data: DataFrame, props: str) -> np.ndarray:
@@ -3180,6 +3274,14 @@ class Styler(StylerRenderer):
         Styler.highlight_min: Highlight the minimum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [2, 1], 'B': [3, 4]})
+        >>> df.style.highlight_max(color='yellow')  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
 
         if props is None:
@@ -3228,6 +3330,14 @@ class Styler(StylerRenderer):
         Styler.highlight_max: Highlight the maximum with a style.
         Styler.highlight_between: Highlight a defined range with a style.
         Styler.highlight_quantile: Highlight values defined by a quantile with a style.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [2, 1], 'B': [3, 4]})
+        >>> df.style.highlight_min(color='yellow')  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
 
         if props is None:
@@ -3489,6 +3599,19 @@ class Styler(StylerRenderer):
         MyStyler : subclass of Styler
             Has the correct ``env``,``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
+
+        Examples
+        --------
+        >>> from pandas.io.formats.style import Styler  # doctest: +SKIP
+        >>> from IPython.display import HTML  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2]})  # doctest: +SKIP
+        >>> path = "path/to/template"  # doctest: +SKIP
+        >>> file = "template.tpl"  # doctest: +SKIP
+        >>> EasyStyler = Styler.from_custom_template(path, file)  # doctest: +SKIP
+        >>> HTML(EasyStyler(df).to_html(table_title="Another Title"))  # doctest: +SKIP
+
+        Please see:
+        `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
         """
         loader = jinja2.ChoiceLoader([jinja2.FileSystemLoader(searchpath), cls.loader])
 

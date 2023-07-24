@@ -118,6 +118,8 @@ cdef:
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
 
+DEFAULT_BUFFER_HEURISTIC = 2 ** 20
+
 
 cdef extern from "pandas/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
@@ -584,7 +586,7 @@ cdef class TextReader:
             raise EmptyDataError("No columns to parse from file")
 
         # Compute buffer_lines as function of table width.
-        heuristic = 2**20 // self.table_width
+        heuristic = DEFAULT_BUFFER_HEURISTIC // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2

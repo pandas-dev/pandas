@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -67,6 +66,8 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,
@@ -217,7 +218,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
-        assert isinstance(dtype, np.dtype) and dtype.kind == "m"
+        assert lib.is_np_dtype(dtype, "m")
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
@@ -363,7 +364,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "m":
+        if lib.is_np_dtype(dtype, "m"):
             if dtype == self.dtype:
                 if copy:
                     return self.copy()

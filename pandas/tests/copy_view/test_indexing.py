@@ -843,8 +843,9 @@ def test_del_frame(backend, using_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    # TODO in theory modifying column "b" of the parent wouldn't need a CoW
-    # but the weakref is still alive and so we still perform CoW
+    df.loc[0, "b"] = 200
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    df_orig = df.copy()
 
     df2.loc[0, "a"] = 100
     if using_copy_on_write:

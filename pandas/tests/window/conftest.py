@@ -90,7 +90,12 @@ def numeric_only(request):
     return request.param
 
 
-@pytest.fixture(params=[pytest.param("numba", marks=td.skip_if_no("numba")), "cython"])
+@pytest.fixture(
+    params=[
+        pytest.param("numba", marks=[td.skip_if_no("numba"), pytest.mark.single_cpu]),
+        "cython",
+    ]
+)
 def engine(request):
     """engine keyword argument for rolling.apply"""
     return request.param
@@ -98,7 +103,9 @@ def engine(request):
 
 @pytest.fixture(
     params=[
-        pytest.param(("numba", True), marks=td.skip_if_no("numba")),
+        pytest.param(
+            ("numba", True), marks=[td.skip_if_no("numba"), pytest.mark.single_cpu]
+        ),
         ("cython", True),
         ("cython", False),
     ]
