@@ -1439,7 +1439,7 @@ class Block(PandasObject):
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="pad_or_backfill")
 
     @final
     def interpolate(
