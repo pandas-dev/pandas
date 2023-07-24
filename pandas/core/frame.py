@@ -5792,16 +5792,16 @@ class DataFrame(NDFrame, OpsMixin):
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
-                for i in range(self.index.nlevels):
-                    arrays.append(self.index._get_level_values(i))
+                arrays.extend(
+                    self.index._get_level_values(i) for i in range(self.index.nlevels)
+                )
             else:
                 arrays.append(self.index)
 
         to_remove: list[Hashable] = []
         for col in keys:
             if isinstance(col, MultiIndex):
-                for n in range(col.nlevels):
-                    arrays.append(col._get_level_values(n))
+                arrays.extend(col._get_level_values(n) for n in range(col.nlevels))
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)

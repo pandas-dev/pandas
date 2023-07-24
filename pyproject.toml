@@ -241,9 +241,8 @@ select = [
   "RUF",
   # flake8-bandit: exec-builtin
   "S102",
-  "PERF101",
-  "PERF401",
-  "PERF402",
+  # Perflint
+  "PERF",
 ]
 
 ignore = [
