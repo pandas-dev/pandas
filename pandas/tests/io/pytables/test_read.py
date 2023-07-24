@@ -362,6 +362,8 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     tm.assert_series_equal(result, series)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_read_py2_hdf_file_in_py3(datapath):
     # GH 16781
 
