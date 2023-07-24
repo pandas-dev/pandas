@@ -172,7 +172,8 @@ columns.
       df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
 
-   However, pandas does not aligns AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``.
+   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
+   because ``.iloc`` operates by position.
 
    This will modify ``df`` because the column alignment is not done before value assignment.
 
