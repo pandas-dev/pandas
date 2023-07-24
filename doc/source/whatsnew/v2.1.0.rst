@@ -492,7 +492,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :meth:`Series.str` that did not raise a ``TypeError`` when iterated (:issue:`54173`)
 -
 
 Interval
