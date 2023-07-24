@@ -650,8 +650,7 @@ cdef _array_to_datetime_object(
                     tzinfo=tsobj.tzinfo,
                     fold=tsobj.fold,
                 )
-                if tsobj.tzinfo is not None:
-                    unique_timezones.add(tsobj.tzinfo)
+                unique_timezones.add(tsobj.tzinfo)
 
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
