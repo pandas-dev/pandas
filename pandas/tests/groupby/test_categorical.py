@@ -135,23 +135,33 @@ def test_basic():  # TODO: split this test
     df = DataFrame({"a": [5, 15, 25]})
     c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
 
-    result = df.a.groupby(c, observed=False).transform(sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.a.groupby(c, observed=False).transform(sum)
     tm.assert_series_equal(result, df["a"])
 
     tm.assert_series_equal(
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
-    tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.groupby(c, observed=False).transform(sum)
+    expected = df[["a"]]
+    tm.assert_frame_equal(result, expected)
 
     gbc = df.groupby(c, observed=False)
     result = gbc.transform(lambda xs: np.max(xs, axis=0))
     tm.assert_frame_equal(result, df[["a"]])
 
-    with tm.assert_produces_warning(None):
-        result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+    result2 = gbc.transform(lambda xs: np.max(xs, axis=0))
+    msg = "using DataFrameGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
         result3 = gbc.transform(max)
-        result4 = gbc.transform(np.maximum.reduce)
-        result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
+    result4 = gbc.transform(np.maximum.reduce)
+    result5 = gbc.transform(lambda xs: np.maximum.reduce(xs))
     tm.assert_frame_equal(result2, df[["a"]], check_dtype=False)
     tm.assert_frame_equal(result3, df[["a"]], check_dtype=False)
     tm.assert_frame_equal(result4, df[["a"]])
@@ -165,13 +175,22 @@ def test_basic():  # TODO: split this test
     df = DataFrame({"a": [5, 15, 25, -5]})
     c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
 
-    result = df.a.groupby(c, observed=False).transform(sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.a.groupby(c, observed=False).transform(sum)
     tm.assert_series_equal(result, df["a"])
 
     tm.assert_series_equal(
         df.a.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df["a"]
     )
-    tm.assert_frame_equal(df.groupby(c, observed=False).transform(sum), df[["a"]])
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = df.groupby(c, observed=False).transform(sum)
+    expected = df[["a"]]
+    tm.assert_frame_equal(result, expected)
+
     tm.assert_frame_equal(
         df.groupby(c, observed=False).transform(lambda xs: np.sum(xs)), df[["a"]]
     )
@@ -294,7 +313,10 @@ def test_apply(ordered):
     result = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
-    result = grouped.agg(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = grouped.agg(np.mean)
     tm.assert_frame_equal(result, expected)
 
     # but for transform we should still get back the original index
@@ -1216,7 +1238,10 @@ def test_seriesgroupby_observed_true(df_cat, operation):
     expected = Series(data=[2, 4, 1, 3], index=index, name="C").sort_index()
 
     grouped = df_cat.groupby(["A", "B"], observed=True)["C"]
-    result = getattr(grouped, operation)(sum)
+    msg = "using np.sum" if operation == "apply" else "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
 
 
@@ -1239,7 +1264,10 @@ def test_seriesgroupby_observed_false_or_none(df_cat, observed, operation):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = expected.fillna(0, downcast="infer")
     grouped = df_cat.groupby(["A", "B"], observed=observed)["C"]
-    result = getattr(grouped, operation)(sum)
+    msg = "using SeriesGroupBy.sum" if operation == "agg" else "using np.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = getattr(grouped, operation)(sum)
     tm.assert_series_equal(result, expected)
 
 
@@ -1664,7 +1692,10 @@ def test_categorical_transform():
         categories=["Waiting", "OnTheWay", "Delivered"], ordered=True
     )
     df["status"] = df["status"].astype(delivery_status_type)
-    df["last_status"] = df.groupby("package_id")["status"].transform(max)
+    msg = "using SeriesGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        df["last_status"] = df.groupby("package_id")["status"].transform(max)
     result = df.copy()
 
     expected = DataFrame(

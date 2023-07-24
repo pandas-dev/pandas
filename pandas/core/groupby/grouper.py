@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     final,
 )
 import warnings
@@ -46,6 +44,11 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -122,7 +125,7 @@ class Grouper:
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
 
     >>> df = pd.DataFrame(
     ...     {

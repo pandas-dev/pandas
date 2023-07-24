@@ -1801,14 +1801,14 @@ You can pass a list or dict of functions to do aggregation with, outputting a ``
 
 .. ipython:: python
 
-   r["A"].agg([np.sum, np.mean, np.std])
+   r["A"].agg(["sum", "mean", "std"])
 
 On a resampled ``DataFrame``, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
-   r.agg([np.sum, np.mean])
+   r.agg(["sum", "mean"])
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
 columns of a ``DataFrame``:
@@ -1816,7 +1816,7 @@ columns of a ``DataFrame``:
 .. ipython:: python
    :okexcept:
 
-   r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+   r.agg({"A": "sum", "B": lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be implemented on the resampled object:
