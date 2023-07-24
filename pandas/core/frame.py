@@ -5787,7 +5787,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH 49473 Use "lazy copy" with Copy-on-Write
             frame = self.copy(deep=None)
 
-        arrays = []
+        arrays: list[Index] = []
         names: list[Hashable] = []
         if append:
             names = list(self.index.names)
