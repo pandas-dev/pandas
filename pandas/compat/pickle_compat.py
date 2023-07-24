@@ -7,7 +7,7 @@ import contextlib
 import copy
 import io
 import pickle
-from typing import Generator
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -20,6 +20,10 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.internals import BlockManager
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
 
 # If classes are moved, provide compat here.
 _class_locations_map = {

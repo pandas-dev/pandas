@@ -578,7 +578,9 @@ def test_concat_float_datetime64(using_array_manager):
 
     if not using_array_manager:
         expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-        result = concat([df_time, df_float.iloc[:0]])
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([df_time, df_float.iloc[:0]])
         tm.assert_frame_equal(result, expected)
     else:
         expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(

@@ -4,12 +4,14 @@ from abc import (
     ABC,
     abstractmethod,
 )
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Hashable,
     Iterable,
-    Literal,
     Sequence,
+)
+from typing import (
+    TYPE_CHECKING,
+    Literal,
 )
 import warnings
 
@@ -1233,11 +1235,12 @@ class ScatterPlot(PlanePlot):
 
         if self.colormap is not None:
             cmap = mpl.colormaps.get_cmap(self.colormap)
-        # cmap is only used if c_values are integers, otherwise UserWarning
-        elif is_integer_dtype(c_values):
+        # cmap is only used if c_values are integers, otherwise UserWarning.
+        # GH-53908: additionally call isinstance() because is_integer_dtype
+        # returns True for "b" (meaning "blue" and not int8 in this context)
+        elif not isinstance(c_values, str) and is_integer_dtype(c_values):
             # pandas uses colormap, matplotlib uses cmap.
-            cmap = "Greys"
-            cmap = mpl.colormaps[cmap]
+            cmap = mpl.colormaps["Greys"]
         else:
             cmap = None
 

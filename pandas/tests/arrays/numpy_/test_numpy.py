@@ -1,15 +1,15 @@
 """
-Additional tests for PandasArray that aren't covered by
+Additional tests for NumpyExtensionArray that aren't covered by
 the interface tests.
 """
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.arrays import PandasArray
+from pandas.arrays import NumpyExtensionArray
 
 
 @pytest.fixture(
@@ -33,7 +33,7 @@ def any_numpy_array(request):
 
 
 # ----------------------------------------------------------------------------
-# PandasDtype
+# NumpyEADtype
 
 
 @pytest.mark.parametrize(
@@ -52,7 +52,7 @@ def any_numpy_array(request):
     ],
 )
 def test_is_numeric(dtype, expected):
-    dtype = PandasDtype(dtype)
+    dtype = NumpyEADtype(dtype)
     assert dtype._is_numeric is expected
 
 
@@ -72,25 +72,25 @@ def test_is_numeric(dtype, expected):
     ],
 )
 def test_is_boolean(dtype, expected):
-    dtype = PandasDtype(dtype)
+    dtype = NumpyEADtype(dtype)
     assert dtype._is_boolean is expected
 
 
 def test_repr():
-    dtype = PandasDtype(np.dtype("int64"))
-    assert repr(dtype) == "PandasDtype('int64')"
+    dtype = NumpyEADtype(np.dtype("int64"))
+    assert repr(dtype) == "NumpyEADtype('int64')"
 
 
 def test_constructor_from_string():
-    result = PandasDtype.construct_from_string("int64")
-    expected = PandasDtype(np.dtype("int64"))
+    result = NumpyEADtype.construct_from_string("int64")
+    expected = NumpyEADtype(np.dtype("int64"))
     assert result == expected
 
 
 def test_dtype_univalent(any_numpy_dtype):
-    dtype = PandasDtype(any_numpy_dtype)
+    dtype = NumpyEADtype(any_numpy_dtype)
 
-    result = PandasDtype(dtype)
+    result = NumpyEADtype(dtype)
     assert result == dtype
 
 
@@ -100,40 +100,40 @@ def test_dtype_univalent(any_numpy_dtype):
 
 def test_constructor_no_coercion():
     with pytest.raises(ValueError, match="NumPy array"):
-        PandasArray([1, 2, 3])
+        NumpyExtensionArray([1, 2, 3])
 
 
 def test_series_constructor_with_copy():
     ndarray = np.array([1, 2, 3])
-    ser = pd.Series(PandasArray(ndarray), copy=True)
+    ser = pd.Series(NumpyExtensionArray(ndarray), copy=True)
 
     assert ser.values is not ndarray
 
 
 def test_series_constructor_with_astype():
     ndarray = np.array([1, 2, 3])
-    result = pd.Series(PandasArray(ndarray), dtype="float64")
+    result = pd.Series(NumpyExtensionArray(ndarray), dtype="float64")
     expected = pd.Series([1.0, 2.0, 3.0], dtype="float64")
     tm.assert_series_equal(result, expected)
 
 
 def test_from_sequence_dtype():
     arr = np.array([1, 2, 3], dtype="int64")
-    result = PandasArray._from_sequence(arr, dtype="uint64")
-    expected = PandasArray(np.array([1, 2, 3], dtype="uint64"))
+    result = NumpyExtensionArray._from_sequence(arr, dtype="uint64")
+    expected = NumpyExtensionArray(np.array([1, 2, 3], dtype="uint64"))
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_constructor_copy():
     arr = np.array([0, 1])
-    result = PandasArray(arr, copy=True)
+    result = NumpyExtensionArray(arr, copy=True)
 
     assert not tm.shares_memory(result, arr)
 
 
 def test_constructor_with_data(any_numpy_array):
     nparr = any_numpy_array
-    arr = PandasArray(nparr)
+    arr = NumpyExtensionArray(nparr)
     assert arr.dtype.numpy_dtype == nparr.dtype
 
 
@@ -142,7 +142,7 @@ def test_constructor_with_data(any_numpy_array):
 
 
 def test_to_numpy():
-    arr = PandasArray(np.array([1, 2, 3]))
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
     result = arr.to_numpy()
     assert result is arr._ndarray
 
@@ -167,7 +167,7 @@ def test_setitem_series():
 
 def test_setitem(any_numpy_array):
     nparr = any_numpy_array
-    arr = PandasArray(nparr, copy=True)
+    arr = NumpyExtensionArray(nparr, copy=True)
 
     arr[0] = arr[1]
     nparr[0] = nparr[1]
@@ -181,14 +181,14 @@ def test_setitem(any_numpy_array):
 
 def test_bad_reduce_raises():
     arr = np.array([1, 2, 3], dtype="int64")
-    arr = PandasArray(arr)
+    arr = NumpyExtensionArray(arr)
     msg = "cannot perform not_a_method with type int"
     with pytest.raises(TypeError, match=msg):
         arr._reduce(msg)
 
 
 def test_validate_reduction_keyword_args():
-    arr = PandasArray(np.array([1, 2, 3]))
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
     msg = "the 'keepdims' parameter is not supported .*all"
     with pytest.raises(ValueError, match=msg):
         arr.all(keepdims=True)
@@ -217,7 +217,7 @@ def test_np_max_nested_tuples():
 
 def test_np_reduce_2d():
     raw = np.arange(12).reshape(4, 3)
-    arr = PandasArray(raw)
+    arr = NumpyExtensionArray(raw)
 
     res = np.maximum.reduce(arr, axis=0)
     tm.assert_extension_array_equal(res, arr[-1])
@@ -232,24 +232,24 @@ def test_np_reduce_2d():
 
 @pytest.mark.parametrize("ufunc", [np.abs, np.negative, np.positive])
 def test_ufunc_unary(ufunc):
-    arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
+    arr = NumpyExtensionArray(np.array([-1.0, 0.0, 1.0]))
     result = ufunc(arr)
-    expected = PandasArray(ufunc(arr._ndarray))
+    expected = NumpyExtensionArray(ufunc(arr._ndarray))
     tm.assert_extension_array_equal(result, expected)
 
     # same thing but with the 'out' keyword
-    out = PandasArray(np.array([-9.0, -9.0, -9.0]))
+    out = NumpyExtensionArray(np.array([-9.0, -9.0, -9.0]))
     ufunc(arr, out=out)
     tm.assert_extension_array_equal(out, expected)
 
 
 def test_ufunc():
-    arr = PandasArray(np.array([-1.0, 0.0, 1.0]))
+    arr = NumpyExtensionArray(np.array([-1.0, 0.0, 1.0]))
 
     r1, r2 = np.divmod(arr, np.add(arr, 2))
     e1, e2 = np.divmod(arr._ndarray, np.add(arr._ndarray, 2))
-    e1 = PandasArray(e1)
-    e2 = PandasArray(e2)
+    e1 = NumpyExtensionArray(e1)
+    e2 = NumpyExtensionArray(e2)
     tm.assert_extension_array_equal(r1, e1)
     tm.assert_extension_array_equal(r2, e2)
 
@@ -257,23 +257,23 @@ def test_ufunc():
 def test_basic_binop():
     # Just a basic smoke test. The EA interface tests exercise this
     # more thoroughly.
-    x = PandasArray(np.array([1, 2, 3]))
+    x = NumpyExtensionArray(np.array([1, 2, 3]))
     result = x + x
-    expected = PandasArray(np.array([2, 4, 6]))
+    expected = NumpyExtensionArray(np.array([2, 4, 6]))
     tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("dtype", [None, object])
 def test_setitem_object_typecode(dtype):
-    arr = PandasArray(np.array(["a", "b", "c"], dtype=dtype))
+    arr = NumpyExtensionArray(np.array(["a", "b", "c"], dtype=dtype))
     arr[0] = "t"
-    expected = PandasArray(np.array(["t", "b", "c"], dtype=dtype))
+    expected = NumpyExtensionArray(np.array(["t", "b", "c"], dtype=dtype))
     tm.assert_extension_array_equal(arr, expected)
 
 
 def test_setitem_no_coercion():
     # https://github.com/pandas-dev/pandas/issues/28150
-    arr = PandasArray(np.array([1, 2, 3]))
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
     with pytest.raises(ValueError, match="int"):
         arr[0] = "a"
 
@@ -285,7 +285,7 @@ def test_setitem_no_coercion():
 
 def test_setitem_preserves_views():
     # GH#28150, see also extension test of the same name
-    arr = PandasArray(np.array([1, 2, 3]))
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
     view1 = arr.view()
     view2 = arr[:]
     view3 = np.asarray(arr)
@@ -303,22 +303,22 @@ def test_setitem_preserves_views():
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 def test_quantile_empty(dtype):
     # we should get back np.nans, not -1s
-    arr = PandasArray(np.array([], dtype=dtype))
+    arr = NumpyExtensionArray(np.array([], dtype=dtype))
     idx = pd.Index([0.0, 0.5])
 
     result = arr._quantile(idx, interpolation="linear")
-    expected = PandasArray(np.array([np.nan, np.nan]))
+    expected = NumpyExtensionArray(np.array([np.nan, np.nan]))
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_factorize_unsigned():
-    # don't raise when calling factorize on unsigned int PandasArray
+    # don't raise when calling factorize on unsigned int NumpyExtensionArray
     arr = np.array([1, 2, 3], dtype=np.uint64)
-    obj = PandasArray(arr)
+    obj = NumpyExtensionArray(arr)
 
     res_codes, res_unique = obj.factorize()
     exp_codes, exp_unique = pd.factorize(arr)
 
     tm.assert_numpy_array_equal(res_codes, exp_codes)
 
-    tm.assert_extension_array_equal(res_unique, PandasArray(exp_unique))
+    tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
