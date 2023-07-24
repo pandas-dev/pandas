@@ -244,8 +244,9 @@ select = [
 ]
 
 ignore = [
+  ### Intentionally disabled
   # space before : (needed for how black formats slicing)
-  # "E203",  # not yet implemented
+  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -303,7 +304,7 @@ ignore = [
   # while int | float can be shortened to float, the former is more explicit
   # "PYI041",  # not yet implemented
 
-  # Additional checks that don't pass yet
+  ### TODO: Enable gradually
   # Useless statement
   "B018",
   # Within an except clause, raise exceptions with ...
