@@ -51,12 +51,12 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             :context: close-figs
 
             >>> import matplotlib.pyplot as plt
-            >>> df = pd.DataFrame({'A':[1, 2], 'B':[3,4]})
+            >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
             >>> fix, ax = plt.subplots()
             >>> ax.axis('off')
-            >>> table = pd.plotting.table(ax, df, loc='center',
-            ...                   cellLoc='center', colWidths=list([.2, .2]))
             (0.0, 1.0, 0.0, 1.0)
+            >>> table = pd.plotting.table(ax, df, loc='center',
+            ...                           cellLoc='center', colWidths=list([.2, .2]))
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
