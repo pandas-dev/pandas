@@ -11292,6 +11292,15 @@ class DataFrame(NDFrame, OpsMixin):
         indices = res._values
         # indices will always be np.ndarray since axis is not N
 
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         index = data._get_axis(axis)
         result = algorithms.take(
             index._values, indices, allow_fill=True, fill_value=index._na_value
@@ -11319,6 +11328,15 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
         # indices will always be 1d array since axis is not None
+
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         index = data._get_axis(axis)
         result = algorithms.take(

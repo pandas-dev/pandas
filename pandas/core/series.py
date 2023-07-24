@@ -2536,8 +2536,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             #  warning for idxmin
             warnings.simplefilter("ignore")
             i = self.argmin(axis, skipna, *args, **kwargs)
+
         if i == -1:
             # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self.index._na_value
         return self.index[i]
 
@@ -2612,8 +2620,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             #  warning for argmax
             warnings.simplefilter("ignore")
             i = self.argmax(axis, skipna, *args, **kwargs)
+
         if i == -1:
             # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self.index._na_value
         return self.index[i]
 

@@ -309,6 +309,7 @@ Deprecations
 - Deprecated ``axis=1`` in :meth:`DataFrame.ewm`, :meth:`DataFrame.rolling`, :meth:`DataFrame.expanding`, transpose before calling the method instead (:issue:`51778`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated accepting slices in :meth:`DataFrame.take`, call ``obj[slicer]`` or pass a sequence of integers instead (:issue:`51539`)
+- Deprecated behavior of :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin` in with all-NA entries or any-NA and ``skipna=False``; in a future version these will raise ``ValueError`` (:issue:`51276`)
 - Deprecated explicit support for subclassing :class:`Index` (:issue:`45289`)
 - Deprecated making functions given to :meth:`Series.agg` attempt to operate on each element in the :class:`Series` and only operate on the whole :class:`Series` if the elementwise operations failed. In the future, functions given to :meth:`Series.agg` will always operate on the whole :class:`Series` only. To keep the current behavior, use :meth:`Series.transform` instead. (:issue:`53325`)
 - Deprecated making the functions in a list of functions given to :meth:`DataFrame.agg` attempt to operate on each element in the :class:`DataFrame` and only operate on the columns of the :class:`DataFrame` if the elementwise operations failed. To keep the current behavior, use :meth:`DataFrame.transform` instead. (:issue:`53325`)
