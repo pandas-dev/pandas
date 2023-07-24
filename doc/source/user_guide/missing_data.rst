@@ -99,7 +99,7 @@ Datetimes
    from pandas._libs import NaTType
    from pandas._libs.missing import NAType
 
-   ``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing". 
+``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing". 
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
