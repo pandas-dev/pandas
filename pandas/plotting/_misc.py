@@ -56,6 +56,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             >>> ax.axis('off')
             >>> table = pd.plotting.table(ax, df, loc='center',
             ...                   cellLoc='center', colWidths=list([.2, .2]))
+            (0.0, 1.0, 0.0, 1.0)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
@@ -573,9 +574,10 @@ class _Options(dict):
             :context: close-figs
 
              >>> np.random.seed(42)
-             >>> df = pd.DataFrame({'A': np.random.randn(1000),
-             ...                   'B': np.random.randn(1000)},
-             ...                   index=pd.date_range("1/1/2000", periods=1000))
+             >>> df = pd.DataFrame({'A': np.random.randn(10),
+             ...                   'B': np.random.randn(10)},
+             ...                   index=pd.date_range("1/1/2000",
+             ...                   freq='4MS', periods=10))
              >>> with pd.plotting.plot_params.use("x_compat", True):
              ...     df["A"].plot(color="r")
              ...     df["B"].plot(color="g")
