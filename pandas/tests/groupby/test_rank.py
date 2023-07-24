@@ -711,7 +711,7 @@ def test_rank_categorical():
     expected = df.astype(object).groupby("col1").rank()
     tm.assert_frame_equal(res, expected)
 
-def test_groupy_op_with_nullables():
+def test_groupby_op_with_nullables():
     df_ext = pd.DataFrame({ "x": [None] }, dtype="Float64")
     res = df_ext.groupby("x", dropna=False)["x"].rank(method="min", na_option="bottom")
     expected = df_ext.groupby("x", dropna=False)["x"].rank(method="min")
