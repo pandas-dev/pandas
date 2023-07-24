@@ -579,10 +579,8 @@ class _Options(dict):
              ...                   index=pd.date_range("1/1/2000",
              ...                   freq='4MS', periods=10))
              >>> with pd.plotting.plot_params.use("x_compat", True):
-             ...     df["A"].plot(color="r")
-             ...     df["B"].plot(color="g")
-             <Axes: >
-             <Axes: >
+             ...     _ = df["A"].plot(color="r")
+             ...     _ = df["B"].plot(color="g")
     """
 
     # alias so the names are same as plotting method parameter names
