@@ -43,6 +43,20 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Returns
     -------
     matplotlib table object
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+            >>> import matplotlib.pyplot as plt
+            >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+            >>> fix, ax = plt.subplots()
+            >>> ax.axis('off')
+            (0.0, 1.0, 0.0, 1.0)
+            >>> table = pd.plotting.table(ax, df, loc='center',
+            ...                           cellLoc='center', colWidths=list([.2, .2]))
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
@@ -552,6 +566,21 @@ class _Options(dict):
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
     format that makes it easy to breakdown into groups later.
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+             >>> np.random.seed(42)
+             >>> df = pd.DataFrame({'A': np.random.randn(10),
+             ...                   'B': np.random.randn(10)},
+             ...                   index=pd.date_range("1/1/2000",
+             ...                   freq='4MS', periods=10))
+             >>> with pd.plotting.plot_params.use("x_compat", True):
+             ...     _ = df["A"].plot(color="r")
+             ...     _ = df["B"].plot(color="g")
     """
 
     # alias so the names are same as plotting method parameter names
