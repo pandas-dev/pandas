@@ -441,7 +441,8 @@ def makeTimedeltaIndex(
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
+    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
+    return pi
 
 
 def makeMultiIndex(k: int = 10, names=None, **kwargs):

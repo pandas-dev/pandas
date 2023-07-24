@@ -911,6 +911,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     assert cols2load_original == cols2load
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_to_hdf_with_object_column_names(tmp_path, setup_path):
     # GH9057
 

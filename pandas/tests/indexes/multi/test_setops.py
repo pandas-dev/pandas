@@ -622,6 +622,7 @@ def test_union_with_duplicates_keep_ea_dtype(dupe_val, any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_union_duplicates(index, request):
     # GH#38977
     if index.empty or isinstance(index, (IntervalIndex, CategoricalIndex)):

@@ -107,7 +107,10 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    BDay,
+)
 
 cdef:
     enum:
@@ -2811,6 +2814,18 @@ class Period(_Period):
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 1000*nanosecond, base)
+
+        if isinstance(freq, BDay):
+            # GH#53446
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+            warnings.warn(
+                "Period with BDay freq is deprecated and will be removed "
+                "in a future version. Use a DatetimeIndex with BDay freq instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return cls._from_ordinal(ordinal, freq)
 

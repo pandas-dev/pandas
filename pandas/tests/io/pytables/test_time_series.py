@@ -21,6 +21,7 @@ def test_store_datetime_fractional_secs(setup_path):
         assert store["a"].index[0] == dt
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
@@ -42,6 +43,7 @@ def test_tseries_indices_series(setup_path):
         tm.assert_class_equal(result.index, ser.index, obj="series index")
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_frame(setup_path):
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)

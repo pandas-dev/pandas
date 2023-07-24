@@ -50,7 +50,10 @@ class TestDatetimeLikeStatReductions:
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
-        parr = dti._data.to_period(freq)
+        warn = FutureWarning if freq == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            parr = dti._data.to_period(freq)
         obj = box(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
