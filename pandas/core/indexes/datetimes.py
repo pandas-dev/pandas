@@ -395,11 +395,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
+
         from pandas.io.formats.format import is_dates_only
+
+        delta = getattr(self.freq, "delta", None)
+
+        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+            return False
 
         # error: Argument 1 to "is_dates_only" has incompatible type
         # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
         # DatetimeArray, Index, DatetimeIndex]"
+
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
