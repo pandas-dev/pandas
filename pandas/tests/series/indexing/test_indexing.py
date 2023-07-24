@@ -470,10 +470,8 @@ class TestSetitemValidation:
             ser.loc[indexer] = invalid
             ser = orig_ser.copy()
 
-        # note: commented-out in the EA case too
-        # FIXME: don't leave commented-out
-        # with tm.assert_produces_warning(FutureWarning, match=msg):
-        #     ser[:] = invalid
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[:] = invalid
 
     _invalid_scalars = [
         1 + 2j,
