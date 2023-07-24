@@ -202,15 +202,19 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "N": "N",
     "H": "H",
     "Q": "Q",
-    "A": "A",
+    "YE": "A",
     "W": "W",
     "ME": "M",
-    "Y": "A",
     "BY": "A",
     "YS": "A",
     "BYS": "A",
 }
+OFFSET_DEPR_FREQSTR: dict[str, str]= {
+    "M": "ME",
+    "A": "YE"
+}
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_OFFSET_DEPR_FREQSTR = OFFSET_DEPR_FREQSTR
 
 cpdef freq_to_period_freqstr(freq_n, freq_name):
     if freq_n == 1:

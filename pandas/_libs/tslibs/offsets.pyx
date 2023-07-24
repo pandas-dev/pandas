@@ -13,7 +13,10 @@ from cpython.datetime cimport (
     timedelta,
 )
 import warnings
-
+from pandas._libs.tslibs.dtypes cimport (
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    c_OFFSET_DEPR_FREQSTR,
+)
 import_datetime()
 
 import numpy as np
@@ -2350,7 +2353,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "A"
+    _prefix = "YE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4245,7 +4248,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
-        YearEnd,  # 'A'
+        YearEnd,  # 'YE'
         BYearBegin,  # 'BAS'
         BYearEnd,  # 'BA'
         BusinessDay,  # 'B'
@@ -4412,21 +4415,21 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name == "M":
+                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
                         "\'M\' will be deprecated, please use \'ME\' "
                         "for \'month end\'",
                         UserWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = "ME"
-                if is_period is True and name == "ME":
+                    name = c_OFFSET_DEPR_FREQSTR[name]
+                if is_period is True and name in c_OFFSET_TO_PERIOD_FREQSTR:
                     raise ValueError(
                         r"for Period, please use \'M\' "
                         "instead of \'ME\'"
                     )
-                elif is_period is True and name == "M":
-                    name = "ME"
+                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    name = c_OFFSET_DEPR_FREQSTR[name]
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
