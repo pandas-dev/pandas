@@ -899,22 +899,3 @@ def test_resample_frequency_ME_error_message(series_and_frame):
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
         obj.resample("2ME")
-
-
-def test_resample_from_offset_deprecated():
-    msg = "Invalid frequency: 2ME"
-
-    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    with pytest.raises(ValueError, match=msg):
-        s.to_period().resample("2ME")
-
-
-def test_asfreq_frequency_M_deprecated():
-    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
-
-    index = date_range("1/1/2000", periods=4, freq="ME")
-    df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
-    expected = df.asfreq(freq="5ME")
-    with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = df.asfreq(freq="5M")
-        tm.assert_frame_equal(result, expected)

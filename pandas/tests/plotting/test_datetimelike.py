@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -220,7 +219,7 @@ class TestTSPlot:
         # #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=100)
         df = DataFrame(np.random.randn(len(idx), 3), index=idx, columns=["A", "B", "C"])
-        freq = df.index.asfreq(freq_to_period_freqstr(1, df.index.freq.rule_code)).freq
+        freq = df.index.freq.name
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
