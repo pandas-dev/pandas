@@ -282,7 +282,11 @@ def maybe_convert_index(ax: Axes, data):
             # suppress Period[B] deprecation warning
             # TODO: need to find an alternative to this before the deprecation
             #  is enforced!
-            warnings.simplefilter("ignore")
+            warnings.filterwarnings(
+                "ignore",
+                r"PeriodDtype\[B\] is deprecated",
+                category=FutureWarning,
+            )
 
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)

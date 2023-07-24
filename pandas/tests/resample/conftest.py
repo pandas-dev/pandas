@@ -66,7 +66,12 @@ def simple_period_range_series():
     def _simple_period_range_series(start, end, freq="D"):
         with warnings.catch_warnings():
             # suppress Period[B] deprecation warning
-            warnings.simplefilter("ignore")
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
             rng = period_range(start, end, freq=freq)
         return Series(np.random.randn(len(rng)), index=rng)
 
