@@ -73,22 +73,13 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.test \
         pandas.NaT \
-        pandas.read_feather \
-        pandas.DataFrame.to_feather \
-        pandas.read_orc \
-        pandas.read_sas \
-        pandas.read_spss \
-        pandas.read_sql_query \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
         pandas.plotting.deregister_matplotlib_converters \
-        pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
-        pandas.plotting.table \
         pandas.util.hash_array \
         pandas.util.hash_pandas_object \
         pandas_object \
@@ -99,7 +90,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.NumpyExtensionArray \
-        pandas.api.extensions.ExtensionArray._accumulate \
         pandas.api.extensions.ExtensionArray._concat_same_type \
         pandas.api.extensions.ExtensionArray._formatter \
         pandas.api.extensions.ExtensionArray._from_factorized \
@@ -108,21 +98,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._hash_pandas_object \
         pandas.api.extensions.ExtensionArray._reduce \
         pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.dropna \
-        pandas.api.extensions.ExtensionArray.equals \
-        pandas.api.extensions.ExtensionArray.factorize \
-        pandas.api.extensions.ExtensionArray.fillna \
-        pandas.api.extensions.ExtensionArray.insert \
         pandas.api.extensions.ExtensionArray.interpolate \
-        pandas.api.extensions.ExtensionArray.isin \
-        pandas.api.extensions.ExtensionArray.isna \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.api.extensions.ExtensionArray.searchsorted \
-        pandas.api.extensions.ExtensionArray.shift \
-        pandas.api.extensions.ExtensionArray.unique \
-        pandas.api.extensions.ExtensionArray.ndim \
-        pandas.api.extensions.ExtensionArray.shape \
-        pandas.api.extensions.ExtensionArray.tolist \
         pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
