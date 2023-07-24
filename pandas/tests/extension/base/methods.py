@@ -161,9 +161,12 @@ class BaseMethodsTests(BaseExtensionTests):
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
         warn = None
+        msg = "The behavior of Series.argmax/argmin"
         if op_name.startswith("arg") and expected == -1:
             warn = FutureWarning
-        msg = "The behavior of Series.argmax/argmin"
+        if op_name.startswith("idx") and np.isnan(expected):
+            warn = FutureWarning
+            msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
         with tm.assert_produces_warning(warn, match=msg):
             result = getattr(ser, op_name)(skipna=skipna)
