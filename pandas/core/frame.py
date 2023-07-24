@@ -3662,10 +3662,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # We have arrow EAs with the same dtype. We can transpose faster.
                 from pandas.core.arrays.arrow.array import (
                     ArrowExtensionArray,
-                    transpose_homogeneous_arrow_extension_arrays,
+                    transpose_homogeneous_pyarrow,
                 )
 
-                new_values = transpose_homogeneous_arrow_extension_arrays(
+                new_values = transpose_homogeneous_pyarrow(
                     cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
                 )
             else:

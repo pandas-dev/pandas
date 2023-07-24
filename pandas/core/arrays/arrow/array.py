@@ -2566,7 +2566,7 @@ class ArrowExtensionArray(
         return type(self)(result)
 
 
-def transpose_homogeneous_arrow_extension_arrays(
+def transpose_homogeneous_pyarrow(
     arrays: Sequence[ArrowExtensionArray],
 ) -> list[ArrowExtensionArray]:
     """Transpose arrow extension arrays in a list, but faster.
