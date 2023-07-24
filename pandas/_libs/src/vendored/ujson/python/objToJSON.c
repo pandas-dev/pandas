@@ -1556,8 +1556,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
             return;
         }
         PyArray_Descr *dtype = PyArray_DescrFromScalar(obj);
-        if (dtype->type_num == NPY_OBJECT) {
+        if (!PyTypeNum_ISDATETIME(dtype->type_num)) {
             PyErr_Format(PyExc_ValueError, "Could not get resolution of datetime");
+            return;
         }
 
         PyArray_Descr *outcode = PyArray_DescrFromType(NPY_INT64);
