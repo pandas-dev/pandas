@@ -240,7 +240,10 @@ select = [
   # Ruff-specific rules
   "RUF",
   # flake8-bandit: exec-builtin
-  "S102"
+  "S102",
+  "PERF101",
+  "PERF401",
+  "PERF402",
 ]
 
 ignore = [
@@ -303,6 +306,11 @@ ignore = [
   # "PYI027",  # not yet implemented
   # while int | float can be shortened to float, the former is more explicit
   # "PYI041",  # not yet implemented
+  # incorrect-dict-iterator, flags valid Series.items usage
+  "PERF102",
+  # try-except-in-loop, becomes useless in Python 3.11
+  "PERF203",
+
 
   ### TODO: Enable gradually
   # Useless statement
