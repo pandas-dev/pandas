@@ -2237,3 +2237,17 @@ def test_parse_dates_arrow_engine(all_parsers):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_from_csv_with_mixed_offsets():
+    content = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
+    result = read_csv(StringIO(content), parse_dates=["a"])["a"]
+    expected = Series(
+        [
+            Timestamp("2020-01-01 00:00:00+01:00"),
+            Timestamp("2020-01-01 00:00:00+00:00"),
+        ],
+        name="a",
+        index=[0, 1],
+    )
+    tm.assert_series_equal(result, expected)

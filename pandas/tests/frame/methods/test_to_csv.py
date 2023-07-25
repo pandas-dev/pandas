@@ -1310,16 +1310,3 @@ class TestDataFrameToCSV:
         expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
-
-    def test_from_csv_with_mixed_offsets(self):
-        content = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
-        result = read_csv(StringIO(content), parse_dates=["a"])["a"]
-        expected = Series(
-            [
-                Timestamp("2020-01-01 00:00:00+01:00"),
-                Timestamp("2020-01-01 00:00:00+00:00"),
-            ],
-            name="a",
-            index=[0, 1],
-        )
-        tm.assert_series_equal(result, expected)
