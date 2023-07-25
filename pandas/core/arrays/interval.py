@@ -890,7 +890,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def pad_or_backfill(
+    def pad_or_backfill(  # pylint: disable=useless-parent-delegation
         self,
         *,
         method: FillnaOptions,

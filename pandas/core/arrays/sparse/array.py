@@ -712,7 +712,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mask[self.sp_index.indices] = isna(self.sp_values)
         return type(self)(mask, fill_value=False, dtype=dtype)
 
-    def pad_or_backfill(
+    def pad_or_backfill(  # pylint: disable=useless-parent-delegation
         self,
         *,
         method: FillnaOptions,
