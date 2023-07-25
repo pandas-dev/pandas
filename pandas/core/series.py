@@ -2530,9 +2530,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmin since we will issue a different
+            #  warning for idxmin
+            warnings.simplefilter("ignore")
+            i = self.argmin(axis, skipna, *args, **kwargs)
+
         if i == -1:
             # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self.index._na_value
         return self.index[i]
 
@@ -2601,9 +2614,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmax since we will issue a different
+            #  warning for argmax
+            warnings.simplefilter("ignore")
+            i = self.argmax(axis, skipna, *args, **kwargs)
+
         if i == -1:
             # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             return self.index._na_value
         return self.index[i]
 
@@ -3936,6 +3962,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
+            warnings.warn(
+                "The behavior of Series.argsort in the presence of NA values is "
+                "deprecated. In a future version, NA values will be ordered "
+                "last instead of set to -1.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)

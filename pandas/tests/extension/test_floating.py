@@ -30,6 +30,14 @@ from pandas.tests.extension import (
     masked_shared,
 )
 
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:overflow encountered in reduce:RuntimeWarning"),
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+]
+
 
 def make_data():
     return (

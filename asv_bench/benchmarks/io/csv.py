@@ -341,7 +341,7 @@ class ReadCSVThousands(BaseIO):
         if thousands is not None:
             fmt = f":{thousands}"
             fmt = "{" + fmt + "}"
-            df = df.applymap(lambda x: fmt.format(x))
+            df = df.map(lambda x: fmt.format(x))
         df.to_csv(self.fname, sep=sep)
 
     def time_thousands(self, sep, thousands, engine):

@@ -29,6 +29,7 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+import uuid
 
 import numpy as np
 import pytest
@@ -930,6 +931,68 @@ def test_insertion_method_on_conflict_update(conn, request):
     # Cleanup
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
         pandasSQL.drop_table("test_insert_conflict")
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_read_view_postgres(conn, request):
+    # GH 52969
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    table_name = f"group_{uuid.uuid4().hex}"
+    view_name = f"group_view_{uuid.uuid4().hex}"
+
+    sql_stmt = text(
+        f"""
+    CREATE TABLE {table_name} (
+        group_id INTEGER,
+        name TEXT
+    );
+    INSERT INTO {table_name} VALUES
+        (1, 'name');
+    CREATE VIEW {view_name}
+    AS
+    SELECT * FROM {table_name};
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(sql_stmt)
+    else:
+        with conn.begin():
+            conn.execute(sql_stmt)
+    result = read_sql_table(view_name, conn)
+    expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_view_sqlite(sqlite_buildin):
+    # GH 52969
+    create_table = """
+CREATE TABLE groups (
+   group_id INTEGER,
+   name TEXT
+);
+"""
+    insert_into = """
+INSERT INTO groups VALUES
+    (1, 'name');
+"""
+    create_view = """
+CREATE VIEW group_view
+AS
+SELECT * FROM groups;
+"""
+    sqlite_buildin.execute(create_table)
+    sqlite_buildin.execute(insert_into)
+    sqlite_buildin.execute(create_view)
+    result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
+    expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
 
 
 def test_execute_typeerror(sqlite_iris_engine):
