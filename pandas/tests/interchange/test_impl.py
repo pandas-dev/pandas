@@ -284,3 +284,14 @@ def test_empty_pyarrow(data):
     arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimetzdtype(tz, unit):
+    # GH 54239
+    tz_data = (
+        pd.date_range("2018-01-01", periods=5, freq="D").tz_localize(tz).as_unit(unit)
+    )
+    df = pd.DataFrame({"ts_tz": tz_data})
+    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
