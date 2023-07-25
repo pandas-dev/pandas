@@ -5031,7 +5031,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
             if suffix:
                 raise ValueError("Cannot specify `suffix` if `periods` is an int.")
-            periods = [periods]
+            periods = [cast(int, periods)]
             add_suffix = False
 
         shifted_dataframes = []
@@ -5040,6 +5040,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )
+            period = cast(int, period)
             if freq is not None or axis != 0:
                 f = lambda x: x.shift(
                     period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
