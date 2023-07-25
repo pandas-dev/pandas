@@ -917,9 +917,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         filled : IntervalArray with NA/NaN filled
         """
         if method is not None:
-            raise TypeError("Filling by method is not supported for IntervalArray.")
-        if limit is not None:
-            raise TypeError("limit is not supported for IntervalArray.")
+            return super().fillna(value=value, method=method, limit=limit)
 
         value_left, value_right = self._validate_scalar(value)
 
