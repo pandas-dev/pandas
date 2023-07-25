@@ -543,15 +543,18 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit_Name(self, node, **kwargs):
         return self.term_type(node.id, self.env, **kwargs)
 
+    # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
     def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
+    # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
     def visit_Num(self, node, **kwargs) -> Term:
-        return self.const_type(node.n, self.env)
+        return self.const_type(node.value, self.env)
 
     def visit_Constant(self, node, **kwargs) -> Term:
-        return self.const_type(node.n, self.env)
+        return self.const_type(node.value, self.env)
 
+    # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
     def visit_Str(self, node, **kwargs):
         name = self.env.add_tmp(node.s)
         return self.term_type(name, self.env)

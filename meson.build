@@ -27,6 +27,13 @@ versioneer = files('generate_version.py')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'c')
 add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 
+# Allow supporting older numpys than the version compiled against
+# Set the define to the min supported version of numpy for pandas
+# e.g. right now this is targeting numpy 1.21+
+add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'c')
+add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'cpp')
+
+
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', pure: false, subdir: 'pandas')
 else

@@ -47,8 +47,8 @@ jobs:
       - run:
           name: Build aarch64 wheels
           command: |
-            pip3 install cibuildwheel==2.12.1
-            cibuildwheel --output-dir wheelhouse
+            pip3 install cibuildwheel==2.14.1
+            cibuildwheel --prerelease-pythons --output-dir wheelhouse
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
@@ -91,4 +91,5 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
+              # TODO: Enable Python 3.12 wheels when numpy releases a version that supports Python 3.12
+              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]#, "cp312-manylinux_aarch64"]

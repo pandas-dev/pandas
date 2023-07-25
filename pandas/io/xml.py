@@ -501,7 +501,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
                 parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-                children = parent.findall("*") if parent else []
+                children = parent.findall("*") if parent is not None else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
