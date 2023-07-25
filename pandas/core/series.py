@@ -3962,6 +3962,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
+            warnings.warn(
+                "The behavior of Series.argsort in the presence of NA values is "
+                "deprecated. In a future version, NA values will be ordered "
+                "last instead of set to -1.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
