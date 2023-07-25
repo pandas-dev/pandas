@@ -244,7 +244,7 @@ a ``BaseIndexer`` subclass that allows a user to define a custom method for calc
 The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
 a tuple of two arrays, the first being the starting indices of the windows and second being the
 ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
-and will automatically be passed to ``get_window_bounds`` and the defined method must
+and ``step`` will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
 For example, if we have the following :class:`DataFrame`
