@@ -116,7 +116,6 @@ class TestReductions:
         # GH#7261
         klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
-        warn = FutureWarning if klass is Index else None
 
         obj = klass([NaT, datetime(2011, 11, 1)])
         assert getattr(obj, arg_op)() == 1
@@ -125,7 +124,9 @@ class TestReductions:
             "The behavior of (DatetimeIndex|Series).argmax/argmin with "
             "skipna=False and NAs"
         )
-        with tm.assert_produces_warning(warn, match=msg):
+        if klass is Series:
+            msg = "The behavior of Series.(idxmax|idxmin) with all-NA"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
@@ -135,7 +136,7 @@ class TestReductions:
         obj = klass([NaT, datetime(2011, 11, 1), NaT])
         # check DatetimeIndex non-monotonic path
         assert getattr(obj, arg_op)() == 1
-        with tm.assert_produces_warning(warn, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             result = getattr(obj, arg_op)(skipna=False)
         if klass is Series:
             assert np.isnan(result)
@@ -839,16 +840,24 @@ class TestSeriesReductions:
         ser = Series(
             [1.0, 2.0, np.nan], index=DatetimeIndex(["NaT", "2015-02-08", "NaT"])
         )
-        res = ser.idxmin(skipna=False)
+        msg = "The behavior of Series.idxmin with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.idxmin(skipna=False)
         assert res is NaT
-        res = ser.idxmax(skipna=False)
+        msg = "The behavior of Series.idxmax with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.idxmax(skipna=False)
         assert res is NaT
 
         df = ser.to_frame()
-        res = df.idxmin(skipna=False)
+        msg = "The behavior of DataFrame.idxmin with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.idxmin(skipna=False)
         assert res.dtype == "M8[ns]"
         assert res.isna().all()
-        res = df.idxmax(skipna=False)
+        msg = "The behavior of DataFrame.idxmax with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = df.idxmax(skipna=False)
         assert res.dtype == "M8[ns]"
         assert res.isna().all()
 
@@ -862,7 +871,9 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmin()] == string_series.min()
-        assert isna(string_series.idxmin(skipna=False))
+        msg = "The behavior of Series.idxmin"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert isna(string_series.idxmin(skipna=False))
 
         # no NaNs
         nona = string_series.dropna()
@@ -871,7 +882,8 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        assert isna(allna.idxmin())
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert isna(allna.idxmin())
 
         # datetime64[ns]
         s = Series(date_range("20130102", periods=6))
@@ -892,7 +904,9 @@ class TestSeriesReductions:
 
         # skipna or no
         assert string_series[string_series.idxmax()] == string_series.max()
-        assert isna(string_series.idxmax(skipna=False))
+        msg = "The behavior of Series.idxmax with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert isna(string_series.idxmax(skipna=False))
 
         # no NaNs
         nona = string_series.dropna()
@@ -901,7 +915,9 @@ class TestSeriesReductions:
 
         # all NaNs
         allna = string_series * np.nan
-        assert isna(allna.idxmax())
+        msg = "The behavior of Series.idxmax with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert isna(allna.idxmax())
 
         s = Series(date_range("20130102", periods=6))
         result = s.idxmax()
@@ -1202,10 +1218,14 @@ class TestSeriesReductions:
         s = Series([0, -np.inf, np.inf, np.nan])
 
         assert s.idxmin() == 1
-        assert np.isnan(s.idxmin(skipna=False))
+        msg = "The behavior of Series.idxmin with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert np.isnan(s.idxmin(skipna=False))
 
         assert s.idxmax() == 2
-        assert np.isnan(s.idxmax(skipna=False))
+        msg = "The behavior of Series.idxmax with all-NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert np.isnan(s.idxmax(skipna=False))
 
         msg = "use_inf_as_na option is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):

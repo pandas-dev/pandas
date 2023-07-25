@@ -968,8 +968,16 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmin(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmin with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmin(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmin"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
             expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
@@ -1009,8 +1017,16 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmax(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmax with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmax(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmax"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
