@@ -107,7 +107,9 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        result = pd.Series(data_missing_for_sorting).argsort()
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.Series(data_missing_for_sorting).argsort()
         expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
@@ -161,9 +163,12 @@ class BaseMethodsTests(BaseExtensionTests):
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
         warn = None
+        msg = "The behavior of Series.argmax/argmin"
         if op_name.startswith("arg") and expected == -1:
             warn = FutureWarning
-        msg = "The behavior of Series.argmax/argmin"
+        if op_name.startswith("idx") and np.isnan(expected):
+            warn = FutureWarning
+            msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
         with tm.assert_produces_warning(warn, match=msg):
             result = getattr(ser, op_name)(skipna=skipna)

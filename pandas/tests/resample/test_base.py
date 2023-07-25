@@ -277,15 +277,20 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
 @pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
+    if isinstance(index, PeriodIndex):
+        # GH#53511
+        index = PeriodIndex([], freq="B", name=index.name)
     empty_series_dti = Series([], index, dtype)
+    rs = empty_series_dti.resample("d", group_keys=False)
     try:
-        getattr(empty_series_dti.resample("d", group_keys=False), resample_method)()
+        getattr(rs, resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object_)

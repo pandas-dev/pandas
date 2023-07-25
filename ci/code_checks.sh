@@ -64,8 +64,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
         pandas.errors.IncompatibilityWarning \
-        pandas.errors.InvalidComparison \
-        pandas.errors.LossySetitemError \
         pandas.errors.NoBufferPresent \
         pandas.errors.OptionError \
         pandas.errors.PerformanceWarning \
@@ -73,27 +71,16 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.errors.PyperclipWindowsException \
         pandas.errors.UnsortedIndexError \
         pandas.errors.UnsupportedFunctionCall \
-        pandas.test \
         pandas.NaT \
-        pandas.read_feather \
-        pandas.DataFrame.to_feather \
-        pandas.read_orc \
-        pandas.read_sas \
-        pandas.read_spss \
-        pandas.read_sql_query \
         pandas.io.stata.StataReader.data_label \
         pandas.io.stata.StataReader.value_labels \
         pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
         pandas.plotting.deregister_matplotlib_converters \
-        pandas.plotting.plot_params \
         pandas.plotting.register_matplotlib_converters \
-        pandas.plotting.table \
         pandas.util.hash_array \
         pandas.util.hash_pandas_object \
         pandas_object \
-        pandas.api.interchange.from_dataframe \
-        pandas.DatetimeIndex.snap \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.api.extensions.ExtensionDtype \
@@ -109,7 +96,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray._values_for_factorize \
         pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

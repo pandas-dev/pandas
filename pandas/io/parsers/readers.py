@@ -98,7 +98,7 @@ filepath_or_buffer : str, path object or file-like object
     URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
-    If you want to pass in a path object, ``pandas`` accepts any ``os.PathLike``.
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
@@ -123,7 +123,7 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     ``header=None``. Explicitly pass ``header=0`` to be able to
     replace existing names. The header can be a list of integers that
     specify row locations for a :class:`~pandas.MultiIndex` on the columns
-    e.g. ``[0,1,3]``. Intervening rows that are not specified will be
+    e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example is skipped). Note that this
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
@@ -137,7 +137,7 @@ index_col : Hashable, Sequence of Hashable or False, optional
   indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
   will be formed for the row labels.
 
-  Note: ``index_col=False`` can be used to force ``pandas`` to *not* use the first
+  Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g., when you have a malformed file with delimiters at
   the end of each line.
 usecols : list of Hashable or Callable, optional
@@ -205,9 +205,10 @@ nrows : int, optional
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
-    ``NaN``: '"""
-    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
-    + """'.
+    ``NaN``: " """
+    + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
+    + """ ".
+
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -251,7 +252,7 @@ default False
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
-    If ``True`` and ``parse_dates`` is enabled, ``pandas`` will attempt to infer the
+    If ``True`` and ``parse_dates`` is enabled, pandas will attempt to infer the
     format of the ``datetime`` strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
@@ -265,7 +266,7 @@ keep_date_col : bool, default False
 date_parser : Callable, optional
     Function to use for converting a sequence of string columns to an array of
     ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. ``pandas`` will try to call ``date_parser`` in three different ways,
+    conversion. pandas will try to call ``date_parser`` in three different ways,
     advancing to the next if an exception occurs: 1) Pass one or more arrays
     (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
     string values from the columns defined by ``parse_dates`` into a single array
@@ -407,7 +408,7 @@ memory_map : bool, default False
 float_precision : {{'high', 'legacy', 'round_trip'}}, optional
     Specifies which converter the C engine should use for floating-point
     values. The options are ``None`` or ``'high'`` for the ordinary converter,
-    ``'legacy'`` for the original lower precision ``pandas`` converter, and
+    ``'legacy'`` for the original lower precision pandas converter, and
     ``'round_trip'`` for the round-trip converter.
 
     .. versionchanged:: 1.2

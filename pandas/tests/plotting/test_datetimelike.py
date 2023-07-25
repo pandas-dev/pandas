@@ -221,6 +221,7 @@ class TestTSPlot:
         freq = df.index.asfreq(df.index.freq.rule_code).freq
         _check_plot_works(df.plot, freq)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.parametrize(
         "freq", ["S", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
     )
@@ -319,11 +320,16 @@ class TestTSPlot:
 
     def test_business_freq(self):
         bts = tm.makePeriodSeries()
+        msg = r"PeriodDtype\[B\] is deprecated"
+        dt = bts.index[0].to_timestamp()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            bts.index = period_range(start=dt, periods=len(bts), freq="B")
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
         assert ax.get_lines()[0].get_xydata()[0, 0] == bts.index[0].ordinal
         idx = ax.get_lines()[0].get_xdata()
-        assert PeriodIndex(data=idx).freqstr == "B"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert PeriodIndex(data=idx).freqstr == "B"
 
     def test_business_freq_convert(self):
         bts = tm.makeTimeSeries(300).asfreq("BM")
@@ -360,8 +366,13 @@ class TestTSPlot:
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)
         idx = ax.get_lines()[0].get_xdata()
-        tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_index_equal(bts.index.to_period(), PeriodIndex(idx))
 
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
     @pytest.mark.parametrize(
         "obj",
         [
@@ -407,7 +418,9 @@ class TestTSPlot:
     def test_finder_daily(self):
         day_lst = [10, 40, 252, 400, 950, 2750, 10000]
 
-        xpl1 = xpl2 = [Period("1999-1-1", freq="B").ordinal] * len(day_lst)
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            xpl1 = xpl2 = [Period("1999-1-1", freq="B").ordinal] * len(day_lst)
         rs1 = []
         rs2 = []
         for n in day_lst:
@@ -698,14 +711,16 @@ class TestTSPlot:
 
         ax2 = s2.plot(style="g", ax=ax)
         lines = ax2.get_lines()
-        idx1 = PeriodIndex(lines[0].get_xdata())
-        idx2 = PeriodIndex(lines[1].get_xdata())
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(lines[0].get_xdata())
+            idx2 = PeriodIndex(lines[1].get_xdata())
 
-        tm.assert_index_equal(idx1, s1.index.to_period("B"))
-        tm.assert_index_equal(idx2, s2.index.to_period("B"))
+            tm.assert_index_equal(idx1, s1.index.to_period("B"))
+            tm.assert_index_equal(idx2, s2.index.to_period("B"))
 
-        left, right = ax2.get_xlim()
-        pidx = s1.index.to_period()
+            left, right = ax2.get_xlim()
+            pidx = s1.index.to_period()
         assert left <= pidx[0].ordinal
         assert right >= pidx[-1].ordinal
 
@@ -730,12 +745,14 @@ class TestTSPlot:
         s1.plot(ax=ax)
         ax2 = s2.plot(style="g", ax=ax)
         lines = ax2.get_lines()
-        idx1 = PeriodIndex(lines[0].get_xdata())
-        idx2 = PeriodIndex(lines[1].get_xdata())
-        assert idx1.equals(s1.index.to_period("B"))
-        assert idx2.equals(s2.index.to_period("B"))
-        left, right = ax2.get_xlim()
-        pidx = s1.index.to_period()
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            idx1 = PeriodIndex(lines[0].get_xdata())
+            idx2 = PeriodIndex(lines[1].get_xdata())
+            assert idx1.equals(s1.index.to_period("B"))
+            assert idx2.equals(s2.index.to_period("B"))
+            left, right = ax2.get_xlim()
+            pidx = s1.index.to_period()
         assert left <= pidx[0].ordinal
         assert right >= pidx[-1].ordinal
 
@@ -802,10 +819,13 @@ class TestTSPlot:
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "min"
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_mixed_freq_irreg_period(self):
         ts = tm.makeTimeSeries()
         irreg = ts.iloc[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 16, 17, 18, 29]]
-        rng = period_range("1/3/2000", periods=30, freq="B")
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rng = period_range("1/3/2000", periods=30, freq="B")
         ps = Series(np.random.randn(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
         irreg.plot(ax=ax)
