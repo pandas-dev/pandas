@@ -179,6 +179,17 @@ def group_min(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
+def group_idxmin_idxmax(
+    out: np.ndarray,  # int64_t[:, ::1]
+    counts: np.ndarray,  # int64_t[::1]
+    values: np.ndarray,  # ndarray[groupby_t, ndim=2]
+    labels: np.ndarray,  # const int64_t[:]
+    is_datetimelike: bool = ...,
+    mask: np.ndarray | None = ...,
+    name: str = ...,
+    min_count: int = ...,
+    result_mask: np.ndarray | None = ...,
+) -> None: ...
 def group_cummin(
     out: np.ndarray,  # groupby_t[:, ::1]
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]

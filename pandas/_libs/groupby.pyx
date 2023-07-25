@@ -1782,15 +1782,15 @@ cdef group_min_max(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef group_idxmin_idxmax(
+def group_idxmin_idxmax(
     int64_t[:, ::1] out,
     int64_t[::1] counts,
-    ndarray[numeric_t, ndim=2] values,
+    ndarray[numeric_object_t, ndim=2] values,
     const intp_t[::1] labels,
     Py_ssize_t min_count=-1,
     bint is_datetimelike=False,
-    bint compute_max=True,
     const uint8_t[:, ::1] mask=None,
+    str name="idxmin",
     uint8_t[:, ::1] result_mask=None,
 ):
     """
@@ -1805,7 +1805,7 @@ cdef group_idxmin_idxmax(
         Array to store result in.
     counts : np.ndarray[int64]
         Input as a zeroed array, populated by group sizes during algorithm
-    values : array
+    values : np.ndarray[numeric_object_t, ndim=2]
         Values to find column-wise min/max of.
     labels : np.ndarray[np.intp]
         Labels to group by.
@@ -1813,8 +1813,8 @@ cdef group_idxmin_idxmax(
         Unused. For compatibility with other Cython ops.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
-    compute_max : bint, default True
-        True to compute group-wise max, False to compute min
+    name : {"idxmin", "idxmax"}, default "idxmin"
+        Whether to compute idxmin or idxmax.
     mask : ndarray[bool, ndim=2], optional
         If not None, indices represent missing values,
         otherwise the mask will not be used
@@ -1829,10 +1829,14 @@ cdef group_idxmin_idxmax(
     """
     cdef:
         Py_ssize_t i, j, N, K, lab
-        numeric_t val
-        numeric_t[:, ::1] group_min_or_max
+        numeric_object_t val
+        numeric_object_t[:, ::1] group_min_or_max
         bint uses_mask = mask is not None
         bint isna_entry
+        bint compute_max = name == "idxmax"
+
+    assert name == "idxmin" or name == "idxmax"
+    assert min_count == -1, "'min_count' only used in sum and prod"
 
     # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
@@ -1840,11 +1844,15 @@ cdef group_idxmin_idxmax(
         raise AssertionError("len(index) != len(labels)")
 
     group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    group_min_or_max[:] = _get_min_or_max(<numeric_t>0, compute_max, is_datetimelike)
+    group_min_or_max[:] = _get_min_or_max(
+        <numeric_object_t>0, compute_max, is_datetimelike
+    )
+    out[:] = -1
 
     N, K = (<object>values).shape
 
-    with nogil:
+    # TODO(cython3): De-duplicate once conditional-nogil is available
+    if numeric_object_t is object:
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -1857,7 +1865,8 @@ cdef group_idxmin_idxmax(
                 if uses_mask:
                     isna_entry = mask[i, j]
                 else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                    # TODO(cython3): use _treat_as_na here
+                    isna_entry = checknull(val)
 
                 if not isna_entry:
                     if compute_max:
@@ -1868,6 +1877,31 @@ cdef group_idxmin_idxmax(
                         if val < group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
+    else:
+        with nogil:
+            for i in range(N):
+                lab = labels[i]
+                if lab < 0:
+                    continue
+
+                counts[lab] += 1
+                for j in range(K):
+                    val = values[i, j]
+
+                    if uses_mask:
+                        isna_entry = mask[i, j]
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
+
+                    if not isna_entry:
+                        if compute_max:
+                            if val > group_min_or_max[lab, j]:
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
+                        else:
+                            if val < group_min_or_max[lab, j]:
+                                group_min_or_max[lab, j] = val
+                                out[lab, j] = i
 
 
 @cython.wraparound(False)
@@ -1898,32 +1932,6 @@ def group_max(
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def group_idxmax(
-    int64_t[:, ::1] out,
-    int64_t[::1] counts,
-    ndarray[numeric_t, ndim=2] values,
-    const intp_t[::1] labels,
-    Py_ssize_t min_count=-1,
-    bint is_datetimelike=False,
-    const uint8_t[:, ::1] mask=None,
-    uint8_t[:, ::1] result_mask=None,
-) -> None:
-    """See group_idxmin_idxmax.__doc__"""
-    group_idxmin_idxmax(
-        out,
-        counts,
-        values,
-        labels,
-        min_count=min_count,
-        is_datetimelike=is_datetimelike,
-        compute_max=True,
-        mask=mask,
-        result_mask=result_mask,
-    )
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def group_min(
     numeric_t[:, ::1] out,
     int64_t[::1] counts,
@@ -1936,32 +1944,6 @@ def group_min(
 ) -> None:
     """See group_min_max.__doc__"""
     group_min_max(
-        out,
-        counts,
-        values,
-        labels,
-        min_count=min_count,
-        is_datetimelike=is_datetimelike,
-        compute_max=False,
-        mask=mask,
-        result_mask=result_mask,
-    )
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_idxmin(
-    int64_t[:, ::1] out,
-    int64_t[::1] counts,
-    ndarray[numeric_t, ndim=2] values,
-    const intp_t[::1] labels,
-    Py_ssize_t min_count=-1,
-    bint is_datetimelike=False,
-    const uint8_t[:, ::1] mask=None,
-    uint8_t[:, ::1] result_mask=None,
-) -> None:
-    """See group_idxmin_idxmax.__doc__"""
-    group_idxmin_idxmax(
         out,
         counts,
         values,

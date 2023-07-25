@@ -133,8 +133,8 @@ class WrappedCythonOp:
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
-            "idxmin": "group_idxmin",
-            "idxmax": "group_idxmax",
+            "idxmin": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmin"),
+            "idxmax": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmax"),
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
@@ -189,7 +189,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif how in ["std", "sem"]:
+            elif how in ["std", "sem", "idxmin", "idxmax"]:
                 # We have a partial object that does not have __signatures__
                 return f
             elif how == "skew":
@@ -270,7 +270,7 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
-        elif how in ("idxmin", "idxmax"):
+        elif how in ["idxmin", "idxmax"]:
             # The Cython implementation only produces the row number; we'll take
             # from the index using this in post processing
             out_dtype = "int64"
@@ -402,12 +402,7 @@ class WrappedCythonOp:
         values = self._get_cython_vals(values)
         out_dtype = self._get_out_dtype(values.dtype)
 
-        if self.how in ["idxmin", "idxmax"]:
-            # A single categorical grouper with observed=False includes unobserved
-            # categories; encode these missing indices as -1
-            result = -1 * np.ones(out_shape, dtype=out_dtype)
-        else:
-            result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
+        result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
             if self.how in [
@@ -483,7 +478,7 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if self.kind == "aggregate" and self.how not in ("idxmin", "idxmax"):
+        if self.kind == "aggregate" and self.how not in ["idxmin", "idxmax"]:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
             # see GH#40767. For idxmin/idxmax, the value will be -1 which is handled

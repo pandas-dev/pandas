@@ -1823,7 +1823,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_count: int = -1,
         *,
         alias: str,
-        npfunc: Callable,
+        npfunc: Callable | None = None,
         post_process: Callable | None = None,
     ):
         result = self._cython_agg_general(
@@ -1883,7 +1883,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable,
+        alt: Callable | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         post_process: Callable | None = None,
@@ -1909,11 +1909,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                if how in ["any", "all", "std", "sem"]:
+                if alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
 
+            assert alt is not None
             result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
@@ -3226,10 +3227,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 npfunc=np.max,
             )
 
-    def _idxmax_idxmin(
+    def _idxmin_idxmax(
         self,
-        how: Literal["idxmin", "idxmax"],
-        alt: Callable,
+        how: Literal["idxmax", "idxmin"],
         numeric_only: bool = False,
     ) -> Series | DataFrame:
         """Compute idxmax/idxmin.
@@ -3262,7 +3262,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     dtype = ensure_dtype_can_hold_na(result.dtype)
                     if dtype != result.dtype:
                         result = result.astype(dtype)
-                    result[mask] = na_value_for_dtype(result.dtype)
+                    if isinstance(dtype, np.dtype):
+                        result = np.where(
+                            mask, na_value_for_dtype(result.dtype), result
+                        )
+                    else:
+                        result[mask] = na_value_for_dtype(result.dtype)
             return result
 
         result = self._agg_general(
@@ -3270,7 +3275,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # min_count is not utilized
             min_count=-1,
             alias=how,
-            npfunc=alt,
             post_process=post_process,
         )
         return result
