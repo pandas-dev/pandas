@@ -1678,6 +1678,19 @@ class ExtensionArray:
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
 
+    def _values_for_json(self) -> np.ndarray:
+        """
+        Specify how to render our entries in to_json.
+
+        Notes
+        -----
+        The dtype on the returned ndarray is not restricted, but for non-native
+        types that are not specifically handled in objToJSON.c, to_json is
+        liable to raise. In these cases, it may be safer to return an ndarray
+        of strings.
+        """
+        return np.asarray(self)
+
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool
     ) -> npt.NDArray[np.uint64]:
