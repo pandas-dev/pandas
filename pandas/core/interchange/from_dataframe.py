@@ -389,7 +389,7 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
         length=col.size(),
     )
 
-    data = parse_datetime_format_str(format_str, data)
+    data = parse_datetime_format_str(format_str, data)  # type: ignore[assignment]
     data = set_nulls(data, col, buffers["validity"])
     return data, buffers
 

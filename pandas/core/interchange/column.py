@@ -142,7 +142,7 @@ class PandasColumn(Column):
         if isinstance(dtype, ArrowDtype):
             byteorder = dtype.numpy_dtype.byteorder
         elif isinstance(dtype, DatetimeTZDtype):
-            byteorder = dtype.base.byteorder
+            byteorder = dtype.base.byteorder  # type: ignore[union-attr]
         else:
             byteorder = dtype.byteorder
 
