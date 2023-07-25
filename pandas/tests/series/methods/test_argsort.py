@@ -11,6 +11,7 @@ import pandas._testing as tm
 
 class TestSeriesArgsort:
     def test_argsort_axis(self):
+        # GH#54257
         ser = Series(range(3))
 
         msg = "No axis named 2 for object type Series"

@@ -3959,7 +3959,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         """
         if axis != -1:
-            # We allow -1 here so that np.argsort(series) works
+            # GH#54257 We allow -1 here so that np.argsort(series) works
             self._get_axis_number(axis)
 
         values = self._values
