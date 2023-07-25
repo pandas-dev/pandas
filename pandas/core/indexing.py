@@ -2486,7 +2486,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
