@@ -11,7 +11,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -79,13 +78,13 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.missing import pad_or_backfill_inplace
 from pandas.core.nanops import check_below_min_count
 
 from pandas.io.formats import printing
 
 # See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from enum import Enum
 
     class ellipsis(Enum):
@@ -761,21 +760,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
         if method is not None:
-            msg = "fillna with 'method' requires high memory usage."
-            warnings.warn(
-                msg,
-                PerformanceWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_values = np.asarray(self)
-            # pad_or_backfill_inplace modifies new_values inplace
-            # error: Argument "method" to "pad_or_backfill_inplace" has incompatible
-            # type "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
-            # "Literal['pad', 'backfill']"
-            pad_or_backfill_inplace(
-                new_values, method=method, limit=limit  # type: ignore[arg-type]
-            )
-            return type(self)(new_values, fill_value=self.fill_value)
+            return super().fillna(method=method, limit=limit)
 
         else:
             new_values = np.where(isna(self.sp_values), value, self.sp_values)
@@ -1138,7 +1123,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         self,
         v: ArrayLike | object,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         msg = "searchsorted requires high memory usage."
         warnings.warn(msg, PerformanceWarning, stacklevel=find_stack_level())
@@ -1388,7 +1373,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     # Reductions
     # ------------------------------------------------------------------------
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         method = getattr(self, name, None)
 
         if method is None:
@@ -1399,7 +1386,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         else:
             arr = self.dropna()
 
-        return getattr(arr, name)(**kwargs)
+        result = getattr(arr, name)(**kwargs)
+
+        if keepdims:
+            return type(self)([result], dtype=self.dtype)
+        else:
+            return result
 
     def all(self, axis=None, *args, **kwargs):
         """

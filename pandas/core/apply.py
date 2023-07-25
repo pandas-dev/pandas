@@ -9,13 +9,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Sequence,
     cast,
 )
 import warnings
@@ -59,6 +53,13 @@ import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -69,7 +70,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
 
-ResType = Dict[int, Any]
+ResType = dict[int, Any]
 
 
 def frame_apply(
@@ -213,7 +214,7 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(List[AggFuncTypeBase], func)
+            func = cast(list[AggFuncTypeBase], func)
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -335,7 +336,7 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python objects.
         """
-        func = cast(List[AggFuncTypeBase], self.func)
+        func = cast(list[AggFuncTypeBase], self.func)
         obj = self.obj
 
         results = []
@@ -1283,7 +1284,7 @@ class SeriesApply(NDFrameApply):
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             warnings.warn(
-                "Returning a DataFrame from Series.apply when the supplied function"
+                "Returning a DataFrame from Series.apply when the supplied function "
                 "returns a Series is deprecated and will be removed in a future "
                 "version.",
                 FutureWarning,

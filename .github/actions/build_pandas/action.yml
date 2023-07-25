@@ -12,12 +12,13 @@ runs:
       run: |
         micromamba info
         micromamba list
+        pip list --pre
       shell: bash -el {0}
 
     - name: Uninstall existing Pandas installation
       run: |
-        if pip list | grep -q ^pandas; then
-          pip uninstall -y pandas || true
+        if pip show pandas 1>/dev/null; then
+          pip uninstall -y pandas
         fi
       shell: bash -el {0}
 

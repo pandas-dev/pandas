@@ -141,6 +141,19 @@ def test_groupby_with_origin():
     start, end = "1/1/2000 00:00:00", "1/31/2000 00:00"
     middle = "1/15/2000 00:00:00"
 
+    # test origin on 1970-01-01 00:00:00
+    rng = date_range("1970-01-01 00:00:00", end, freq="1231min")  # prime number
+    ts = Series(np.random.randn(len(rng)), index=rng)
+    middle_ts = rng[len(rng) // 2]
+    ts2 = ts[middle_ts:end]
+
+    origin = Timestamp(0)
+    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
+    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
+    adjusted_count_ts = adjusted_count_ts[middle_ts:end]
+    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
+    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2[middle_ts:end])
+
     rng = date_range(start, end, freq="1231min")  # prime number
     ts = Series(np.random.randn(len(rng)), index=rng)
     ts2 = ts[middle:end]
@@ -154,25 +167,18 @@ def test_groupby_with_origin():
     with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
-    # test origin on 1970-01-01 00:00:00
-    origin = Timestamp(0)
-    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
-    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
-    adjusted_count_ts = adjusted_count_ts[middle:end]
-    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
-    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2)
-
     # test origin on 2049-10-18 20:00:00
+
+    rng = date_range(start, "2049-10-18 20:00:00", freq="1231min")  # prime number
+    ts = Series(np.random.randn(len(rng)), index=rng)
+    middle_ts = rng[len(rng) // 2]
+    ts2 = ts[middle_ts:end]
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
     adjusted_grouper2 = pd.Grouper(freq=freq, origin=origin_future)
     adjusted2_count_ts = ts.groupby(adjusted_grouper2).agg("count")
-    adjusted2_count_ts = adjusted2_count_ts[middle:end]
+    adjusted2_count_ts = adjusted2_count_ts[middle_ts:end]
     adjusted2_count_ts2 = ts2.groupby(adjusted_grouper2).agg("count")
     tm.assert_series_equal(adjusted2_count_ts, adjusted2_count_ts2)
-
-    # both grouper use an adjusted timestamp that is a multiple of 1399 min
-    # they should be equals even if the adjusted_timestamp is in the future
-    tm.assert_series_equal(adjusted_count_ts, adjusted2_count_ts2)
 
 
 def test_nearest():
@@ -662,3 +668,29 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     )
     with pytest.raises(KeyError, match="Columns not found"):
         df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+
+
+@pytest.mark.parametrize("kind", ["datetime", "period"])
+def test_groupby_resample_kind(kind):
+    # GH 24103
+    df = DataFrame(
+        {
+            "datetime": pd.to_datetime(
+                ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"]
+            ),
+            "group": ["A", "B", "A", "B"],
+            "value": [1, 2, 3, 4],
+        }
+    )
+    df = df.set_index("datetime")
+    result = df.groupby("group")["value"].resample("D", kind=kind).last()
+
+    dt_level = pd.DatetimeIndex(["2018-11-01", "2018-11-02"])
+    if kind == "period":
+        dt_level = dt_level.to_period(freq="D")
+    expected_index = pd.MultiIndex.from_product(
+        [["A", "B"], dt_level],
+        names=["group", "datetime"],
+    )
+    expected = Series([1, 3, 2, 4], index=expected_index, name="value")
+    tm.assert_series_equal(result, expected)

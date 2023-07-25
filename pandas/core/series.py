@@ -3,6 +3,12 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import operator
 import sys
 from textwrap import dedent
@@ -11,12 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
-    Sequence,
-    Union,
     cast,
     overload,
 )
@@ -37,10 +38,12 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
+from pandas.compat._constants import REF_COUNT
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    _chained_assignment_method_msg,
     _chained_assignment_msg,
 )
 from pandas.util._decorators import (
@@ -764,15 +767,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Overview:
 
-        dtype       | values        | _values       | array         |
-        ----------- | ------------- | ------------- | ------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   |
-        Category    | Categorical   | Categorical   | Categorical   |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
-        Nullable    | EA            | EA            | EA            |
+        dtype       | values        | _values       | array                 |
+        ----------- | ------------- | ------------- | --------------------- |
+        Numeric     | ndarray       | ndarray       | NumpyExtensionArray   |
+        Category    | Categorical   | Categorical   | Categorical           |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| TimedeltaArray        |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray           |
+        Nullable    | EA            | EA            | EA                    |
 
         """
         return self._mgr.internal_values()
@@ -886,11 +889,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4      2
         dtype: int8
         """
-        # self.array instead of self._values so we piggyback on PandasArray
+        # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+        if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
             blk.refs.add_reference(blk)  # type: ignore[arg-type]
@@ -1502,7 +1505,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def reset_index(
         self,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         *,
         drop: bool = False,
         name: Level = lib.no_default,
@@ -1814,7 +1817,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: IO[str] | None = None,
         mode: str = "wt",
         index: bool = True,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         **kwargs,
     ) -> str | None:
         """
@@ -2091,7 +2094,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         by=None,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
         group_keys: bool = True,
@@ -2527,9 +2530,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmin since we will issue a different
+            #  warning for idxmin
+            warnings.simplefilter("ignore")
+            i = self.argmin(axis, skipna, *args, **kwargs)
+
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return self.index._na_value
         return self.index[i]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2597,9 +2614,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmax since we will issue a different
+            #  warning for argmax
+            warnings.simplefilter("ignore")
+            i = self.argmax(axis, skipna, *args, **kwargs)
+
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return self.index._na_value
         return self.index[i]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
@@ -3095,7 +3126,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
@@ -3205,7 +3236,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         other: Series | Hashable,
         func: Callable[[Hashable, Hashable], Hashable],
-        fill_value: Hashable = None,
+        fill_value: Hashable | None = None,
     ) -> Series:
         """
         Combine the Series with a Series or scalar according to `func`.
@@ -3430,6 +3461,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
+        if not PYPY and using_copy_on_write():
+            if sys.getrefcount(self) <= REF_COUNT:
+                warnings.warn(
+                    _chained_assignment_method_msg,
+                    ChainedAssignmentError,
+                    stacklevel=2,
+                )
 
         if not isinstance(other, Series):
             other = Series(other)
@@ -3448,7 +3486,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[False] = ...,
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3462,7 +3500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = ...,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = ...,
+        ascending: bool | Sequence[bool] = ...,
         inplace: Literal[True],
         kind: SortKind = ...,
         na_position: NaPosition = ...,
@@ -3471,16 +3509,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None:
         ...
 
+    @overload
+    def sort_values(
+        self,
+        *,
+        axis: Axis = ...,
+        ascending: bool | Sequence[bool] = ...,
+        inplace: bool = ...,
+        kind: SortKind = ...,
+        na_position: NaPosition = ...,
+        ignore_index: bool = ...,
+        key: ValueKeyFunc = ...,
+    ) -> Series | None:
+        ...
+
     def sort_values(
         self,
         *,
         axis: Axis = 0,
-        ascending: bool | int | Sequence[bool] | Sequence[int] = True,
+        ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         ignore_index: bool = False,
-        key: ValueKeyFunc = None,
+        key: ValueKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort by the values.
@@ -3636,7 +3688,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         if is_list_like(ascending):
-            ascending = cast(Sequence[Union[bool, int]], ascending)
+            ascending = cast(Sequence[bool], ascending)
             if len(ascending) != 1:
                 raise ValueError(
                     f"Length of ascending ({len(ascending)}) must be 1 for Series"
@@ -3724,14 +3776,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         *,
         axis: Axis = 0,
-        level: IndexLabel = None,
+        level: IndexLabel | None = None,
         ascending: bool | Sequence[bool] = True,
         inplace: bool = False,
         kind: SortKind = "quicksort",
         na_position: NaPosition = "last",
         sort_remaining: bool = True,
         ignore_index: bool = False,
-        key: IndexKeyFunc = None,
+        key: IndexKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort Series by index labels.
@@ -3910,6 +3962,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
+            warnings.warn(
+                "The behavior of Series.argsort in the presence of NA values is "
+                "deprecated. In a future version, NA values will be ordered "
+                "last instead of set to -1.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
@@ -4320,7 +4379,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(
-        self, level: IndexLabel = -1, fill_value: Hashable = None, sort: bool = True
+        self,
+        level: IndexLabel = -1,
+        fill_value: Hashable | None = None,
+        sort: bool = True,
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
@@ -4966,11 +5028,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def drop(
         self,
-        labels: IndexLabel = None,
+        labels: IndexLabel | None = None,
         *,
         axis: Axis = 0,
-        index: IndexLabel = None,
-        columns: IndexLabel = None,
+        index: IndexLabel | None = None,
+        columns: IndexLabel | None = None,
         level: Level | None = None,
         inplace: bool = False,
         errors: IgnoreRaise = "raise",
