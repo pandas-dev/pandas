@@ -48,7 +48,10 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
     from pandas import (
         DataFrame,
@@ -242,6 +245,9 @@ class StringMethods(NoNewAttributesMixin):
     def __getitem__(self, key):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
+
+    def __iter__(self) -> Iterator:
+        raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def _wrap_result(
         self,
@@ -438,22 +444,26 @@ class StringMethods(NoNewAttributesMixin):
             others = DataFrame(others, index=idx)
             return [others[x] for x in others]
         elif is_list_like(others, allow_sets=False):
-            others = list(others)  # ensure iterators do not get read twice etc
-
-            # in case of list-like `others`, all elements must be
-            # either Series/Index/np.ndarray (1-dim)...
-            if all(
-                isinstance(x, (ABCSeries, ABCIndex))
-                or (isinstance(x, np.ndarray) and x.ndim == 1)
-                for x in others
-            ):
-                los: list[Series] = []
-                while others:  # iterate through list and append each element
-                    los = los + self._get_series_list(others.pop(0))
-                return los
-            # ... or just strings
-            elif all(not is_list_like(x) for x in others):
-                return [Series(others, index=idx)]
+            try:
+                others = list(others)  # ensure iterators do not get read twice etc
+            except TypeError:
+                # e.g. ser.str, raise below
+                pass
+            else:
+                # in case of list-like `others`, all elements must be
+                # either Series/Index/np.ndarray (1-dim)...
+                if all(
+                    isinstance(x, (ABCSeries, ABCIndex))
+                    or (isinstance(x, np.ndarray) and x.ndim == 1)
+                    for x in others
+                ):
+                    los: list[Series] = []
+                    while others:  # iterate through list and append each element
+                        los = los + self._get_series_list(others.pop(0))
+                    return los
+                # ... or just strings
+                elif all(not is_list_like(x) for x in others):
+                    return [Series(others, index=idx)]
         raise TypeError(
             "others must be Series, Index, DataFrame, np.ndarray "
             "or list-like (either containing only strings or "
