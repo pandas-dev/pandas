@@ -3,7 +3,7 @@
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python==0.13.1",
-    "meson[ninja]==1.0.1",
+    "meson==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
     "oldest-supported-numpy>=2022.8.16",
@@ -239,11 +239,16 @@ select = [
   "PGH",
   # Ruff-specific rules
   "RUF",
+  # flake8-bandit: exec-builtin
+  "S102",
+  # Perflint
+  "PERF",
 ]
 
 ignore = [
+  ### Intentionally disabled
   # space before : (needed for how black formats slicing)
-  # "E203",  # not yet implemented
+  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -300,14 +305,21 @@ ignore = [
   # "PYI027",  # not yet implemented
   # while int | float can be shortened to float, the former is more explicit
   # "PYI041",  # not yet implemented
+  # incorrect-dict-iterator, flags valid Series.items usage
+  "PERF102",
+  # try-except-in-loop, becomes useless in Python 3.11
+  "PERF203",
 
-  # Additional checks that don't pass yet
+
+  ### TODO: Enable gradually
   # Useless statement
   "B018",
   # Within an except clause, raise exceptions with ...
   "B904",
   # Magic number
   "PLR2004",
+  # comparison-with-itself
+  "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
   # ambiguous-unicode-character-string
@@ -321,7 +333,9 @@ ignore = [
   # pairwise-over-zipped (>=PY310 only)
   "RUF007",
   # explicit-f-string-type-conversion
-  "RUF010"
+  "RUF010",
+  # mutable-class-default
+  "RUF012"
 ]
 
 exclude = [
@@ -331,7 +345,6 @@ exclude = [
   ".eggs/*.py",
   # vendored files
   "pandas/util/version/*",
-  "versioneer.py",
   # exclude asv benchmark environments from linting
   "env",
 ]
@@ -445,7 +458,6 @@ disable = [
   "super-init-not-called",
   "try-except-raise",
   "unnecessary-lambda",
-  "unspecified-encoding",
   "unused-argument",
   "unused-variable",
   "using-constant-test"
@@ -453,7 +465,7 @@ disable = [
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion = "7.0"
+minversion = "7.3.2"
 addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
@@ -483,6 +495,7 @@ filterwarnings = [
   "ignore:a closed node found in the registry:UserWarning:tables",
   "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
   "ignore:tostring:DeprecationWarning:tables",
+  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
   "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",

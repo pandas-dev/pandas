@@ -516,10 +516,10 @@ class TestDataFrameReshape:
 
         expected = DataFrame(
             np.array(
-                [[np.nan, 0], [0, np.nan], [np.nan, 0], [0, np.nan]], dtype=np.float64
+                [[0, np.nan], [np.nan, 0], [0, np.nan], [np.nan, 0]], dtype=np.float64
             ),
             index=expected_mi,
-            columns=Index(["a", "b"], name="third"),
+            columns=Index(["b", "a"], name="third"),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -1536,7 +1536,6 @@ class TestStackUnstackMultiLevel:
 
         # columns unsorted
         unstacked = ymd.unstack()
-        unstacked = unstacked.sort_index(axis=1, ascending=False)
         restacked = unstacked.stack()
         tm.assert_frame_equal(restacked, ymd)
 

@@ -21,6 +21,7 @@ from pandas import (
     bdate_range,
 )
 import pandas._testing as tm
+import pandas.core.common as com
 
 
 @pytest.mark.parametrize(
@@ -84,7 +85,10 @@ def test_cython_agg_boolean():
         }
     )
     result = frame.groupby("a")["b"].mean()
-    expected = frame.groupby("a")["b"].agg(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        expected = frame.groupby("a")["b"].agg(np.mean)
 
     tm.assert_series_equal(result, expected)
 
@@ -159,7 +163,10 @@ def test_cython_fail_agg():
 
     grouped = ts.groupby(lambda x: x.month)
     summed = grouped.sum()
-    expected = grouped.agg(np.sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        expected = grouped.agg(np.sum)
     tm.assert_series_equal(summed, expected)
 
 
@@ -182,7 +189,11 @@ def test__cython_agg_general(op, targop):
     labels = np.random.randint(0, 50, size=1000).astype(float)
 
     result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
-    expected = df.groupby(labels).agg(targop)
+    warn = FutureWarning if targop in com._cython_table else None
+    msg = f"using DataFrameGroupBy.{op}"
+    with tm.assert_produces_warning(warn, match=msg):
+        # GH#53425
+        expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
 
@@ -332,7 +343,25 @@ def test_cython_agg_nullable_int(op_name):
         # the result is not yet consistently using Int64/Float64 dtype,
         # so for now just checking the values by casting to float
         result = result.astype("float64")
+    else:
+        result = result.astype("int64")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_count_masked_returns_masked_dtype(dtype):
+    df = DataFrame(
+        {
+            "A": [1, 1],
+            "B": pd.array([1, pd.NA], dtype=dtype),
+            "C": pd.array([1, 1], dtype=dtype),
+        }
+    )
+    result = df.groupby("A").count()
+    expected = DataFrame(
+        [[1, 2]], index=Index([1], name="A"), columns=["B", "C"], dtype="Int64"
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("with_na", [True, False])

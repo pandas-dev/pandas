@@ -57,7 +57,15 @@ jobs:
             # Also install zh_CN (its encoding is gb2312) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
-          - name: "Copy-on-Write"
+          - name: "Copy-on-Write 3.9"
+            env_file: actions-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.10"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.11"
             env_file: actions-311.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
@@ -81,7 +89,7 @@ jobs:
       ENV_FILE: ci/deps/${{ matrix.env_file }}
       PATTERN: ${{ matrix.pattern }}
       EXTRA_APT: ${{ matrix.extra_apt || '' }}
-      LANG: ${{ matrix.lang || '' }}
+      LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
@@ -95,7 +103,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql
+        image: mysql:8.0.33
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
@@ -108,8 +116,9 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres
+        image: postgres:13
         env:
+          PGUSER: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: pandas
@@ -122,7 +131,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:4.1.4
+        image: motoserver/moto:4.1.13
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -165,7 +174,7 @@ jobs:
       uses: ./.github/actions/run-tests
       env:
         PATTERN: 'single_cpu'
-        PYTEST_WORKERS: 1
+        PYTEST_WORKERS: 0
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
@@ -185,8 +194,8 @@ jobs:
       PANDAS_CI: 1
       PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
-      # GH 47443: PYTEST_WORKERS > 1 crashes Windows builds with memory related errors
-      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '1' }}
+      # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
+      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
 
     steps:
       - name: Checkout
@@ -227,9 +236,9 @@ jobs:
           fi
       - name: Build environment and Run Tests
         run: |
-          /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
@@ -265,9 +274,9 @@ jobs:
           apk add musl-locales
       - name: Build environment
         run: |
-          /opt/python/cp39-cp39/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir

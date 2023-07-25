@@ -27,6 +27,13 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.endswith(pattern)
 
 
+def test_iter_raises():
+    # GH 54173
+    ser = Series(["foo", "bar"])
+    with pytest.raises(TypeError, match="'StringMethods' object is not iterable"):
+        iter(ser.str)
+
+
 # test integer/float dtypes (inferred by constructor) and mixed
 
 
