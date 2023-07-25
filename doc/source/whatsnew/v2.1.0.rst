@@ -538,6 +538,7 @@ I/O
 - Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)
 - Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)
 - Bug in :meth:`DataFrame.to_html` where ``colspace`` was incorrectly applied in case of multi index columns (:issue:`53885`)
+- Bug in :meth:`DataFrame.to_json` where :class:`DateTimeArray`/:class:`DateTimeIndex` with non nanosecond precision could not be serialized correctly (:issue:`53686`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 - Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)
 
