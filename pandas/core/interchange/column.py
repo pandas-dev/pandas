@@ -274,6 +274,8 @@ class PandasColumn(Column):
             DtypeKind.BOOL,
             DtypeKind.DATETIME,
         ):
+            # self.dtype[2] is an ArrowCTypes.TIMESTAMP where the tz will make
+            # it longer than 4 characters
             if self.dtype[0] == DtypeKind.DATETIME and len(self.dtype[2]) > 4:
                 np_arr = self._col.dt.tz_convert(None).to_numpy()
             else:
