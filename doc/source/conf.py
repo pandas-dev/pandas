@@ -348,10 +348,8 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
-
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
 if include_api:
     html_additional_pages = {

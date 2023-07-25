@@ -1366,9 +1366,9 @@ class TestPandasContainer:
 
     # TODO: there is a near-identical test for pytables; can we share?
     @pytest.mark.xfail(reason="GH#13774 encoding kwarg not supported", raises=TypeError)
-    def test_latin_encoding(self):
-        # GH 13774
-        values = [
+    @pytest.mark.parametrize(
+        "val",
+        [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
             [b"E\xc9, 17", b"a", b"b", b"c"],
             [b"EE, 17", b"", b"a", b"b", b"c"],
@@ -1378,26 +1378,20 @@ class TestPandasContainer:
             [b"A\xf8\xfc", b"", b"a", b"b", b"c"],
             [np.nan, b"", b"b", b"c"],
             [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
-        ]
-
-        values = [
-            [x.decode("latin-1") if isinstance(x, bytes) else x for x in y]
-            for y in values
-        ]
-
-        examples = []
-        for dtype in ["category", object]:
-            for val in values:
-                examples.append(Series(val, dtype=dtype))
-
-        def roundtrip(s, encoding="latin-1"):
-            with tm.ensure_clean("test.json") as path:
-                s.to_json(path, encoding=encoding)
-                retr = read_json(StringIO(path), encoding=encoding)
-                tm.assert_series_equal(s, retr, check_categorical=False)
-
-        for s in examples:
-            roundtrip(s)
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["category", object])
+    def test_latin_encoding(self, dtype, val):
+        # GH 13774
+        ser = Series(
+            [x.decode("latin-1") if isinstance(x, bytes) else x for x in val],
+            dtype=dtype,
+        )
+        encoding = "latin-1"
+        with tm.ensure_clean("test.json") as path:
+            ser.to_json(path, encoding=encoding)
+            retr = read_json(StringIO(path), encoding=encoding)
+            tm.assert_series_equal(ser, retr, check_categorical=False)
 
     def test_data_frame_size_after_to_json(self):
         # GH15344

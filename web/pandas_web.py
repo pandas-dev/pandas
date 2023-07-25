@@ -329,10 +329,10 @@ class Preprocessors:
 
             return int(match[1])
 
-        for pdep in sorted(pdeps["items"], key=sort_pdep):
-            context["pdeps"]["Under discussion"].append(
-                {"title": pdep["title"], "url": pdep["html_url"]}
-            )
+        context["pdeps"]["Under discussion"].extend(
+            {"title": pdep["title"], "url": pdep["html_url"]}
+            for pdep in sorted(pdeps["items"], key=sort_pdep)
+        )
 
         return context
 

@@ -458,9 +458,7 @@ class BaseBlockManager(DataManager):
 
             elif blk.is_object:
                 nbs = blk._split()
-                for nb in nbs:
-                    if nb.is_bool:
-                        new_blocks.append(nb)
+                new_blocks.extend(nb for nb in nbs if nb.is_bool)
 
         return self._combine(new_blocks, copy)
 

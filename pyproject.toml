@@ -240,12 +240,15 @@ select = [
   # Ruff-specific rules
   "RUF",
   # flake8-bandit: exec-builtin
-  "S102"
+  "S102",
+  # Perflint
+  "PERF",
 ]
 
 ignore = [
+  ### Intentionally disabled
   # space before : (needed for how black formats slicing)
-  # "E203",  # not yet implemented
+  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -302,8 +305,13 @@ ignore = [
   # "PYI027",  # not yet implemented
   # while int | float can be shortened to float, the former is more explicit
   # "PYI041",  # not yet implemented
+  # incorrect-dict-iterator, flags valid Series.items usage
+  "PERF102",
+  # try-except-in-loop, becomes useless in Python 3.11
+  "PERF203",
 
-  # Additional checks that don't pass yet
+
+  ### TODO: Enable gradually
   # Useless statement
   "B018",
   # Within an except clause, raise exceptions with ...

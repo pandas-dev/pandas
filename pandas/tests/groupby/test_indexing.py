@@ -188,12 +188,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[:arg]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if j * n_groups + i < n_groups * n_rows_per_group:
-                        indices.append(j * n_groups + i)
-
+            indices = [
+                j * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if j * n_groups + i < n_groups * n_rows_per_group
+            ]
             expected = df.iloc[indices]
 
         else:
@@ -203,12 +203,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[-arg:]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if (n_rows_per_group + j - size) * n_groups + i >= 0:
-                        indices.append((n_rows_per_group + j - size) * n_groups + i)
-
+            indices = [
+                (n_rows_per_group + j - size) * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if (n_rows_per_group + j - size) * n_groups + i >= 0
+            ]
             expected = df.iloc[indices]
 
         else:

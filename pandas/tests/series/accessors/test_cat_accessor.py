@@ -193,10 +193,9 @@ class TestCatAccessor:
         ]
 
         func_defs = [(fname, (), {}) for fname in func_names]
-
-        for f_def in special_func_defs:
-            if f_def[0] in dir(ser.dt):
-                func_defs.append(f_def)
+        func_defs.extend(
+            f_def for f_def in special_func_defs if f_def[0] in dir(ser.dt)
+        )
 
         for func, args, kwargs in func_defs:
             with warnings.catch_warnings():

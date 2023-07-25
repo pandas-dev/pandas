@@ -297,14 +297,14 @@ class TestMerge:
 
         for k, rval in rdict.items():
             if k not in ldict:
-                for rv in rval:
-                    vals.append(
-                        k
-                        + (
-                            np.nan,
-                            rv,
-                        )
+                vals.extend(
+                    k
+                    + (
+                        np.nan,
+                        rv,
                     )
+                    for rv in rval
+                )
 
         def align(df):
             df = df.sort_values(df.columns.tolist())
