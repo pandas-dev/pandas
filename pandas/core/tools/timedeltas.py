@@ -181,9 +181,9 @@ def to_timedelta(
             stacklevel=find_stack_level(),
         )
         if unit.lower() == "t":
-            unit = unit.replace(unit, "min")
+            unit = unit.replace(unit, "min")  # type: ignore[assignment]
         else:
-            unit = unit.replace(unit, "ms")
+            unit = unit.replace(unit, "ms")  # type: ignore[assignment]
 
     if unit is not None:
         unit = parse_timedelta_unit(unit)
