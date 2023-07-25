@@ -41,17 +41,33 @@ window
 
 
 class BaseIndexer:
-    """Base class for window bounds calculations."""
+    """
+    Base class for window bounds calculations.
+
+    Examples
+    --------
+    >>> from pandas.api.indexers import BaseIndexer
+    >>> class CustomIndexer(BaseIndexer):
+    ...     def get_window_bounds(self, num_values, min_periods, center, closed, step):
+    ...         start = np.empty(num_values, dtype=np.int64)
+    ...         end = np.empty(num_values, dtype=np.int64)
+    ...         for i in range(num_values):
+    ...             end[i] = i + self.window_size
+    ...         return start, end
+    >>> df = pd.DataFrame({"values": range(5)})
+    >>> indexer = CustomIndexer(window_size=2)
+    >>> df.rolling(indexer).sum()  # doctest: +SKIP
+        values
+    0	1.0
+    1	3.0
+    2	5.0
+    3	7.0
+    4	4.0
+    """
 
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ) -> None:
-        """
-        Parameters
-        ----------
-        **kwargs :
-            keyword arguments that will be available when get_window_bounds is called
-        """
         self.index_array = index_array
         self.window_size = window_size
         # Set user defined kwargs as attributes that can be used in get_window_bounds
@@ -127,7 +143,40 @@ class VariableWindowIndexer(BaseIndexer):
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
-    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay."""
+    """
+    Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Examples
+    --------
+    >>> from pandas.api.indexers import VariableOffsetWindowIndexer
+    >>> df = pd.DataFrame(range(10), index=pd.date_range("2020", periods=10))
+    >>> offset = pd.offsets.BDay(1)
+    >>> indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+    >>> df
+                0
+    2020-01-01  0
+    2020-01-02  1
+    2020-01-03  2
+    2020-01-04  3
+    2020-01-05  4
+    2020-01-06  5
+    2020-01-07  6
+    2020-01-08  7
+    2020-01-09  8
+    2020-01-10  9
+    >>> df.rolling(indexer).sum()
+                   0
+    2020-01-01   0.0
+    2020-01-02   1.0
+    2020-01-03   2.0
+    2020-01-04   3.0
+    2020-01-05   7.0
+    2020-01-06  12.0
+    2020-01-07   6.0
+    2020-01-08   7.0
+    2020-01-09   8.0
+    2020-01-10   9.0
+    """
 
     def __init__(
         self,
