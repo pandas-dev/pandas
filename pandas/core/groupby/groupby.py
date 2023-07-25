@@ -5025,7 +5025,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             add_suffix = True
         else:
-            if not isinstance(periods, int):
+            if not is_integer(periods):
                 raise TypeError(
                     f"Periods must be integer, but {periods} is {type(periods)}."
                 )
@@ -5036,7 +5036,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         shifted_dataframes = []
         for period in periods:
-            if not isinstance(period, int):
+            if not is_integer(period):
                 raise TypeError(
                     f"Periods must be integer, but {period} is {type(period)}."
                 )

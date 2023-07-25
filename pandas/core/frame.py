@@ -5566,7 +5566,6 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
 
         if is_list_like(periods):
-            # periods is not necessarily a list, but otherwise mypy complains.
             periods = cast(Sequence, periods)
             if axis == 1:
                 raise ValueError(
@@ -5578,7 +5577,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             shifted_dataframes = []
             for period in periods:
-                if not isinstance(period, int):
+                if not is_integer(period):
                     raise TypeError(
                         f"Periods must be integer, but {period} is {type(period)}."
                     )
