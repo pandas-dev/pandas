@@ -1669,9 +1669,6 @@ class Block(PandasObject):
         """
         raise AbstractMethodError(self)
 
-    def values_for_json(self) -> np.ndarray:
-        raise AbstractMethodError(self)
-
 
 class EABackedBlock(Block):
     """
@@ -1915,9 +1912,6 @@ class EABackedBlock(Block):
             values = values.astype(object)
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
-
-    def values_for_json(self) -> np.ndarray:
-        return np.asarray(self.values)
 
     @final
     def pad_or_backfill(
@@ -2205,9 +2199,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
             return self.values.astype(_dtype_obj)
         return self.values
 
-    def values_for_json(self) -> np.ndarray:
-        return self.values
-
     @cache_readonly
     def is_numeric(self) -> bool:  # type: ignore[override]
         dtype = self.values.dtype
@@ -2262,9 +2253,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
 
-    def values_for_json(self) -> np.ndarray:
-        return self.values._ndarray
-
 
 class DatetimeTZBlock(DatetimeLikeBlock):
     """implement a datetime64 block with a tz attribute"""
@@ -2272,10 +2260,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-
-    # Don't use values_for_json from DatetimeLikeBlock since it is
-    # an invalid optimization here(drop the tz)
-    values_for_json = NDArrayBackedExtensionBlock.values_for_json
 
 
 # -----------------------------------------------------------------
