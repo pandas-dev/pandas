@@ -686,6 +686,10 @@ class CategoricalConversionWarning(Warning):
 class LossySetitemError(Exception):
     """
     Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 
@@ -698,6 +702,10 @@ class NoBufferPresent(Exception):
 class InvalidComparison(Exception):
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 

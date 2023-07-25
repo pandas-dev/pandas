@@ -18,7 +18,7 @@ import pandas._testing as tm
 class TestToTimestamp:
     def test_to_timestamp_non_contiguous(self):
         # GH#44100
-        dti = date_range("2021-10-18", periods=9, freq="B")
+        dti = date_range("2021-10-18", periods=9, freq="D")
         pi = dti.to_period()
 
         result = pi[::2].to_timestamp()
