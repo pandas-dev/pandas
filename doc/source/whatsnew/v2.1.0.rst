@@ -132,6 +132,7 @@ to ``na_action=None``, like for all the other array types.
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :meth:`Series.ffill` and :meth:`Series.bfill` are now supported for objects with :class:`IntervalDtype` (:issue:`54247`)
 - :meth:`Categorical.map` and :meth:`CategoricalIndex.map` now have a ``na_action`` parameter.
   :meth:`Categorical.map` implicitly had a default value of ``"ignore"`` for ``na_action``. This has formally been deprecated and will be changed to ``None`` in the future.
   Also notice that :meth:`Series.map` has default ``na_action=None`` and calls to series with categorical data will now use ``na_action=None`` unless explicitly set otherwise (:issue:`44279`)
