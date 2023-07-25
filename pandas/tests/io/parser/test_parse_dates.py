@@ -2239,9 +2239,11 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_from_csv_with_mixed_offsets():
-    content = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
-    result = read_csv(StringIO(content), parse_dates=["a"])["a"]
+@xfail_pyarrow
+def test_from_csv_with_mixed_offsets(all_parsers):
+    parser = all_parsers
+    data = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])["a"]
     expected = Series(
         [
             Timestamp("2020-01-01 00:00:00+01:00"),
