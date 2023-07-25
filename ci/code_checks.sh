@@ -83,8 +83,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_array \
         pandas.util.hash_pandas_object \
         pandas_object \
-        pandas.api.interchange.from_dataframe \
-        pandas.DatetimeIndex.snap \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.api.extensions.ExtensionDtype \
@@ -101,7 +99,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionArray.interpolate \
         pandas.api.extensions.ExtensionArray.pad_or_backfill \
         pandas.api.extensions.ExtensionArray.ravel \
-        pandas.DataFrame.__dataframe__
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
