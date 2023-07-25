@@ -42,6 +42,7 @@ from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
 )
+from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -965,6 +966,15 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
+
+        if isinstance(freq, BDay):
+            # GH#53446
+            warnings.warn(
+                "PeriodDtype[B] is deprecated and will be removed in a future "
+                "version. Use a DatetimeIndex with freq='B' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         try:
             dtype_code = cls._cache_dtypes[freq]
@@ -2045,6 +2055,15 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __repr__(self) -> str:
         return self.name
+
+    def __hash__(self) -> int:
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, type(self)):
+            return super().__eq__(other)
+        return self.pyarrow_dtype == other.pyarrow_dtype
 
     @property
     def type(self):

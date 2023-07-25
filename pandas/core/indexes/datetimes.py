@@ -489,6 +489,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-02',
+        ...                        '2023-02-01', '2023-02-02'])
+        >>> idx
+        DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
+        dtype='datetime64[ns]', freq=None)
+        >>> idx.snap('MS')
+        DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
