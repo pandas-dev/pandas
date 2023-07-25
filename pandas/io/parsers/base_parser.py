@@ -1144,14 +1144,20 @@ def _make_date_converter(
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
-            result = tools.to_datetime(
-                ensure_object(strs),
-                format=date_fmt,
-                utc=False,
-                dayfirst=dayfirst,
-                errors="ignore",
-                cache=cache_dates,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    ".*parsing datetimes with mixed time zones will raise a warning",
+                    category=FutureWarning,
+                )
+                result = tools.to_datetime(
+                    ensure_object(strs),
+                    format=date_fmt,
+                    utc=False,
+                    dayfirst=dayfirst,
+                    errors="ignore",
+                    cache=cache_dates,
+                )
             if isinstance(result, DatetimeIndex):
                 arr = result.to_numpy()
                 arr.flags.writeable = True
