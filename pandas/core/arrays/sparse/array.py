@@ -720,21 +720,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
-        msg = "pad_or_backfill with 'method' requires high memory usage."
-        warnings.warn(
-            msg,
-            PerformanceWarning,
-            stacklevel=find_stack_level(),
+        # TODO(3.0): We can remove this method once deprecation for fillna method
+        #  keyword is enforced.
+        return super().pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
         )
-        new_values = np.asarray(self)
-        # pad_or_backfill_inplace modifies new_values inplace
-        # error: Argument "method" to "pad_or_backfill_inplace" has incompatible
-        # type "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
-        # "Literal['pad', 'backfill']"
-        pad_or_backfill_inplace(
-            new_values, method=method, limit=limit  # type: ignore[arg-type]
-        )
-        return type(self)(new_values, fill_value=self.fill_value)
 
     def fillna(
         self,

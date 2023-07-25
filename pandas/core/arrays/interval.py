@@ -898,7 +898,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
-        raise TypeError("Filling by method is not supported for IntervalArray.")
+        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
+        #  this method entirely.
+        return super().pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
 
     def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
         """
