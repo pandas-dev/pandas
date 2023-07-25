@@ -954,6 +954,45 @@ class TestPandasContainer:
         result = read_json(StringIO(json), date_unit=None)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_iso_non_nano_datetimes(self, unit):
+        # Test that numpy datetimes
+        # in an Index or a column with non-nano resolution can be serialized
+        # correctly
+        # GH53686
+        index = DatetimeIndex(
+            [np.datetime64("2023-01-01T11:22:33.123456", unit)],
+            dtype=f"datetime64[{unit}]",
+        )
+        df = DataFrame(
+            {
+                "date": Series(
+                    [np.datetime64("2022-01-01T11:22:33.123456", unit)],
+                    dtype=f"datetime64[{unit}]",
+                    index=index,
+                ),
+                "date_obj": Series(
+                    [np.datetime64("2023-01-01T11:22:33.123456", unit)],
+                    dtype=object,
+                    index=index,
+                ),
+            },
+        )
+
+        buf = StringIO()
+        df.to_json(buf, date_format="iso", date_unit=unit)
+        buf.seek(0)
+
+        # read_json always reads datetimes in nanosecond resolution
+        # TODO: check_dtype/check_index_type should be removable
+        # once read_json gets non-nano support
+        tm.assert_frame_equal(
+            read_json(buf, convert_dates=["date", "date_obj"]),
+            df,
+            check_index_type=False,
+            check_dtype=False,
+        )
+
     def test_weird_nested_json(self):
         # this used to core dump the parser
         s = r"""{
