@@ -91,15 +91,15 @@ See :ref:`integer_na` for more.
 
 Datetimes
 ---------
-.. note::   
-   If you are adding type checking to your application, you may need access to ``NaTType`` and ``NAType``.
+.. note::
+   If you are adding type checking to your                                                       application, you may need access to ``NaTType`` and ``NAType``.
 
    The code was previously as follows:
 .. ipython:: python
    from pandas._libs import NaTType
    from pandas._libs.missing import NAType
 
-``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing". 
+``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing".
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
