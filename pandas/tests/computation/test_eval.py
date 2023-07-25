@@ -702,7 +702,7 @@ class TestEval:
     def test_true_false_logic(self):
         # GH 25823
         # This behavior is deprecated in Python 3.12
-        with tm.maybe_produces_warning(DeprecationWarning, PY312)::
+        with tm.maybe_produces_warning(DeprecationWarning, PY312):
             assert pd.eval("not True") == -2
             assert pd.eval("not False") == -1
             assert pd.eval("True and not True") == 0
