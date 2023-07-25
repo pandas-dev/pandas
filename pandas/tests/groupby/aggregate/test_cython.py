@@ -336,9 +336,13 @@ def test_cython_agg_nullable_int(op_name):
         }
     )
     result = getattr(df.groupby("A")["B"], op_name)()
-    df2 = df.assign(B=df["B"])
+    df2 = df.assign(B=df["B"].astype("float64"))
     expected = getattr(df2.groupby("A")["B"], op_name)()
-
+    if op_name in ("mean", "median"):
+        convert_integer = False
+    else:
+        convert_integer = True
+    expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
 
 
