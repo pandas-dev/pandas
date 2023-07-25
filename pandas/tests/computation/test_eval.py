@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 from functools import reduce
 from itertools import product
 import operator
