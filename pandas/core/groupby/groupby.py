@@ -1869,8 +1869,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # preserve the kind of exception that raised
             raise type(err)(msg) from err
 
-        if ser.dtype == object and how not in ["idxmax", "idxmin"]:
-            # idxmin/idxmax uses the index dtype
+        if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
