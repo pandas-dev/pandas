@@ -49,6 +49,8 @@ IGNORE_VALIDATION = {
     "Styler.template_latex",
     "Styler.template_string",
     "Styler.loader",
+    "errors.InvalidComparison",
+    "errors.LossySetitemError",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
@@ -271,15 +273,15 @@ def pandas_validate(func_name: str):
         )
 
     if doc.see_also:
-        for rel_name in doc.see_also:
-            if rel_name.startswith("pandas."):
-                result["errors"].append(
-                    pandas_error(
-                        "SA05",
-                        reference_name=rel_name,
-                        right_reference=rel_name[len("pandas.") :],
-                    )
-                )
+        result["errors"].extend(
+            pandas_error(
+                "SA05",
+                reference_name=rel_name,
+                right_reference=rel_name[len("pandas.") :],
+            )
+            for rel_name in doc.see_also
+            if rel_name.startswith("pandas.")
+        )
 
     result["examples_errs"] = ""
     if doc.examples:
@@ -300,11 +302,11 @@ def pandas_validate(func_name: str):
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
-        for wrong_import in ("numpy", "pandas"):
-            if f"import {wrong_import}" in examples_source_code:
-                result["errors"].append(
-                    pandas_error("EX04", imported_library=wrong_import)
-                )
+        result["errors"].extend(
+            pandas_error("EX04", imported_library=wrong_import)
+            for wrong_import in ("numpy", "pandas")
+            if f"import {wrong_import}" in examples_source_code
+        )
 
     if doc.non_hyphenated_array_like():
         result["errors"].append(pandas_error("GL05"))
