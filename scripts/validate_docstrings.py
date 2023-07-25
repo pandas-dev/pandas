@@ -49,6 +49,8 @@ IGNORE_VALIDATION = {
     "Styler.template_latex",
     "Styler.template_string",
     "Styler.loader",
+    "errors.InvalidComparison",
+    "errors.LossySetitemError",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
