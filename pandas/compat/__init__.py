@@ -12,7 +12,10 @@ from __future__ import annotations
 import os
 import platform
 import sys
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas.compat._constants import (
     IS64,
@@ -35,7 +38,7 @@ if TYPE_CHECKING:
     from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: Any) -> F:
     """
     Bind the name/qualname attributes of the function.
     """

@@ -534,9 +534,9 @@ disallow_any_explicit = false # TODO
 disallow_any_generics = false # TODO
 disallow_subclassing_any = false # TODO
 # Untyped definitions and calls
-disallow_untyped_calls = false # TODO
-disallow_untyped_defs = false # TODO
-disallow_incomplete_defs = false # TODO
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 # None and Optional handling
@@ -561,6 +561,76 @@ strict_equality = true
 show_error_context = false
 show_column_numbers = false
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+  "pandas._config.config",  # TODO
+  "pandas._libs.*",
+  "pandas._testing.*",  # TODO
+  "pandas.arrays",  # TODO
+  "pandas.compat.numpy.function",  # TODO
+  "pandas.compat._optional",  # TODO
+  "pandas.compat.compressors",  # TODO
+  "pandas.compat.pickle_compat",  # TODO
+  #"pandas.core.*",
+  # "pandas.core.indexes.*", # TODO
+  "pandas.core.strings.*", # TODO
+  "pandas.core.tools.*", # TODO
+  "pandas.core.window.common", # TODO
+  "pandas.core.window.ewm", # TODO
+  "pandas.core.window.expanding", # TODO
+  "pandas.core.window.numba_", # TODO
+  "pandas.core.window.online", # TODO
+  "pandas.core.window.rolling", # TODO
+  "pandas.errors",  # TODO
+  "pandas.io.clipboard",  # TODO
+  "pandas.io.excel._base",  # TODO
+  "pandas.io.excel._odfreader",  # TODO
+  "pandas.io.excel._odswriter",  # TODO
+  "pandas.io.excel._openpyxl",  # TODO
+  "pandas.io.excel._pyxlsb",  # TODO
+  "pandas.io.excel._xlrd",  # TODO
+  "pandas.io.excel._xlsxwriter",  # TODO
+  "pandas.io.formats.console",  # TODO
+  "pandas.io.formats.css",  # TODO
+  "pandas.io.formats.excel",  # TODO
+  "pandas.io.formats.format",  # TODO
+  "pandas.io.formats.info",  # TODO
+  "pandas.io.formats.printing",  # TODO
+  "pandas.io.formats.style",  # TODO
+  "pandas.io.formats.style_render",  # TODO
+  "pandas.io.formats.xml",  # TODO
+  "pandas.io.json.*",  # TODO
+  "pandas.io.parsers.*",  # TODO
+  "pandas.io.sas.sas_xport",  # TODO
+  "pandas.io.sas.sas7bdat",  # TODO
+  "pandas.io.clipboards",  # TODO
+  "pandas.io.common",  # TODO
+  "pandas.io.gbq",  # TODO
+  "pandas.io.html",  # TODO
+  "pandas.io.gbq",  # TODO
+  "pandas.io.parquet",  # TODO
+  "pandas.io.pytables",  # TODO
+  "pandas.io.sql",  # TODO
+  "pandas.io.stata",  # TODO
+  "pandas.io.xml",  # TODO
+  "pandas.plotting.*",  # TODO
+  "pandas.tests.*",
+  "pandas.tseries.frequencies",  # TODO
+  "pandas.tseries.holiday",  # TODO
+  "pandas.util._decorators",  # TODO
+  "pandas.util._doctools",  # TODO
+  "pandas.util._print_versions",  # TODO
+  "pandas.util._test_decorators",  # TODO
+  "pandas.util._validators",  # TODO
+  "pandas.util",  # TODO
+  "pandas._version",
+  "pandas.conftest",
+  "pandas"
+]
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
 module = [

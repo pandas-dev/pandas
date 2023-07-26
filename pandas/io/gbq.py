@@ -215,7 +215,7 @@ def to_gbq(
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,
-    credentials=None,
+    credentials: Any = None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(

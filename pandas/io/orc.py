@@ -44,8 +44,8 @@ def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filesystem=None,
-    **kwargs,
+    filesystem: Any = None,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
