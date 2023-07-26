@@ -51,6 +51,7 @@ IGNORE_VALIDATION = {
     "Styler.loader",
     "errors.InvalidComparison",
     "errors.LossySetitemError",
+    "errors.NoBufferPresent",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
