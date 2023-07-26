@@ -2070,6 +2070,11 @@ class SQLiteTable(SQLTable):
     """
 
     def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._register_date_adapters()
+
+    def _register_date_adapters(self) -> None:
         # GH 8341
         # register an adapter callable for datetime.time object
         import sqlite3
@@ -2080,8 +2085,27 @@ class SQLiteTable(SQLTable):
             # This is faster than strftime
             return f"{t.hour:02d}:{t.minute:02d}:{t.second:02d}.{t.microsecond:06d}"
 
+        # Also register adapters for date/datetime and co
+        # xref https://docs.python.org/3.12/library/sqlite3.html#adapter-and-converter-recipes
+        # Python 3.12+ doesn't auto-register adapters for us anymore
+
+        adapt_date_iso = lambda val: val.isoformat()
+        adapt_datetime_iso = lambda val: val.isoformat()
+        adapt_datetime_epoch = lambda val: int(val.timestamp())
+
         sqlite3.register_adapter(time, _adapt_time)
-        super().__init__(*args, **kwargs)
+
+        sqlite3.register_adapter(date, adapt_date_iso)
+        sqlite3.register_adapter(datetime, adapt_datetime_iso)
+        sqlite3.register_adapter(datetime, adapt_datetime_epoch)
+
+        convert_date = lambda val: date.fromisoformat(val.decode())
+        convert_datetime = lambda val: datetime.fromisoformat(val.decode())
+        convert_timestamp = lambda val: datetime.fromtimestamp(int(val))
+
+        sqlite3.register_converter("date", convert_date)
+        sqlite3.register_converter("datetime", convert_datetime)
+        sqlite3.register_converter("timestamp", convert_timestamp)
 
     def sql_schema(self) -> str:
         return str(";\n".join(self.table))
