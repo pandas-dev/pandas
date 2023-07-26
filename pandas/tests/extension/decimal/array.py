@@ -281,6 +281,17 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def value_counts(self, dropna: bool = True):
         return value_counts(self.to_numpy(), dropna=dropna)
 
+    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  keyword in its fillna method.
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
+        self,
+        value=None,
+        method=None,
+        limit: int | None = None,
+    ):
+        return super().fillna(value=value, method=method, limit=limit, copy=True)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)

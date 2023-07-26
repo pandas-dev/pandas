@@ -10,6 +10,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -41,6 +42,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -1895,12 +1897,32 @@ class EABackedBlock(Block):
         using_cow: bool = False,
     ) -> list[Block]:
         values = self.values
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.fillna(method=method, limit=limit).T
+            new_values = values.T.fillna(method=method, limit=limit, copy=copy).T
         else:
-            new_values = values.fillna(method=method, limit=limit)
-        return [self.make_block_same_class(new_values)]
+            try:
+                new_values = values.fillna(method=method, limit=limit, copy=copy)
+            except TypeError:
+                # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = values.fillna(method=method, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
+                warnings.warn(
+                    # GH#53278
+                    "ExtensionArray.fillna added a 'copy' keyword in pandas "
+                    "2.1.0. In a future version, ExtensionArray subclasses will "
+                    "need to implement this keyword or an exception will be "
+                    "raised. In the interim, the keyword is ignored by "
+                    f"{type(self.values).__name__}.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        return [self.make_block_same_class(new_values, refs=refs)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -1938,8 +1960,29 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             refs = self.refs
             new_values = self.values
         else:
-            refs = None
-            new_values = self.values.fillna(value=value, method=None, limit=limit)
+            copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+            try:
+                new_values = self.values.fillna(
+                    value=value, method=None, limit=limit, copy=copy
+                )
+            except TypeError:
+                # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = self.values.fillna(value=value, method=None, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
+                warnings.warn(
+                    # GH#53278
+                    "ExtensionArray.fillna added a 'copy' keyword in pandas "
+                    "2.1.0. In a future version, ExtensionArray subclasses will "
+                    "need to implement this keyword or an exception will be "
+                    "raised. In the interim, the keyword is ignored by "
+                    f"{type(self.values).__name__}.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         nb = self.make_block_same_class(new_values, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 
