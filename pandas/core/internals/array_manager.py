@@ -7,7 +7,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
 )
 
@@ -38,7 +37,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
     SparseDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -57,7 +56,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
     TimedeltaArray,
 )
 from pandas.core.construction import (
@@ -90,6 +89,8 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -330,7 +331,8 @@ class BaseArrayManager(DataManager):
 
         def _convert(arr):
             if is_object_dtype(arr.dtype):
-                # extract PandasArray for tests that patch PandasArray._typ
+                # extract NumpyExtensionArray for tests that patch
+                #  NumpyExtensionArray._typ
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
@@ -346,10 +348,6 @@ class BaseArrayManager(DataManager):
 
     def to_native_types(self, **kwargs) -> Self:
         return self.apply(to_native_types, **kwargs)
-
-    @property
-    def is_mixed_type(self) -> bool:
-        return True
 
     @property
     def any_extension_types(self) -> bool:
@@ -1025,7 +1023,7 @@ class ArrayManager(BaseArrayManager):
 
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
+        elif isinstance(dtype, NumpyEADtype):
             dtype = dtype.numpy_dtype
         elif isinstance(dtype, ExtensionDtype):
             dtype = np.dtype("object")
@@ -1151,7 +1149,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """The array that Series.array returns"""
         arr = self.array
         if isinstance(arr, np.ndarray):
-            arr = PandasArray(arr)
+            arr = NumpyExtensionArray(arr)
         return arr
 
     @property

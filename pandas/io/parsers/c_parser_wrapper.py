@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Mapping,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -39,6 +34,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeArg,

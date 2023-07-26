@@ -230,9 +230,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]]
+        datetime_series[[5, [None, None]]]
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]] = 2
+        datetime_series[[5, [None, None]]] = 2
 
 
 def test_slice(string_series, object_series, using_copy_on_write):
@@ -284,11 +284,13 @@ def test_underlying_data_conversion(using_copy_on_write):
     df["val"] = 0
     df_original = df.copy()
     df
-    df["val"].update(s)
 
     if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["val"].update(s)
         expected = df_original
     else:
+        df["val"].update(s)
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}
         )

@@ -5,6 +5,7 @@ from collections import (
     defaultdict,
     namedtuple,
 )
+from collections.abc import Iterator
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -14,7 +15,6 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
 import warnings
 
 import numpy as np
@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
 )
 
@@ -188,7 +188,7 @@ class TestDataFrameConstructors:
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
-        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        obj = frame_or_series(frame_or_series(arr), dtype=NumpyEADtype(object))
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 

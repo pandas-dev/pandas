@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -577,12 +577,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
         right = repr(right)
 
     msg += f"""

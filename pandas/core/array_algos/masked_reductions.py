@@ -52,7 +52,7 @@ def _reductions(
     axis : int, optional, default None
     """
     if not skipna:
-        if mask.any(axis=axis) or check_below_min_count(values.shape, None, min_count):
+        if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
             return func(values, axis=axis, **kwargs)
@@ -119,11 +119,11 @@ def _minmax(
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
-            return func(values)
+            return func(values, axis=axis)
     else:
         subset = values[~mask]
         if subset.size:
-            return func(subset)
+            return func(subset, axis=axis)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA

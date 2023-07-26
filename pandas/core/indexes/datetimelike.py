@@ -11,7 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
     cast,
     final,
 )
@@ -33,7 +32,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    InvalidIndexError,
+    NullFrequencyError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -65,6 +67,7 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
     from pandas._typing import (
@@ -165,7 +168,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         hash(key)
         try:
             self.get_loc(key)
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, InvalidIndexError):
             return False
         return True
 
