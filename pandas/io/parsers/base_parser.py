@@ -1165,22 +1165,38 @@ def _make_date_converter(
             return result._values
         else:
             try:
-                result = tools.to_datetime(
-                    date_parser(*(unpack_if_single_element(arg) for arg in date_cols)),
-                    errors="ignore",
-                    cache=cache_dates,
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time zones "
+                        "will raise a warning",
+                        category=FutureWarning,
+                    )
+                    result = tools.to_datetime(
+                        date_parser(
+                            *(unpack_if_single_element(arg) for arg in date_cols)
+                        ),
+                        errors="ignore",
+                        cache=cache_dates,
+                    )
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(
-                        parsing.concat_date_cols(date_cols),
-                        parser=date_parser,
-                    ),
-                    errors="ignore",
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time zones "
+                        "will raise a warning",
+                        category=FutureWarning,
+                    )
+                    return tools.to_datetime(
+                        parsing.try_parse_dates(
+                            parsing.concat_date_cols(date_cols),
+                            parser=date_parser,
+                        ),
+                        errors="ignore",
+                    )
 
     return converter
 
