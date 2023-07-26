@@ -3274,7 +3274,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if not len(arr):
                     nan_arr = x.array[isna(x.array)]
                     if not len(nan_arr):
-                        return x.array._na_value
+                        return x.array.dtype._na_value
                     return nan_arr[0]
                 return arr[0]
 
