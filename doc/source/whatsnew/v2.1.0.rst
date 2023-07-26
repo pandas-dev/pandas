@@ -298,7 +298,7 @@ Other API changes
 Deprecate parsing datetimes with mixed time zones
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Parsing datetimes with mixed time zones is deprecated and will show a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
+Parsing datetimes with mixed time zones is deprecated and shows a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
 
 *Previous behavior*:
 
@@ -321,7 +321,8 @@ Parsing datetimes with mixed time zones is deprecated and will show a warning un
     and silence this warning.
   Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
 
-In order to opt in to the new behaviour and silence this warning please specify ``utc=True``:
+In order to silence this warning and avoid an error in a future version of pandas,
+please specify ``utc=True``:
 
 .. ipython:: python
 
