@@ -172,28 +172,6 @@ def __internal_pivot_table(
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
-        # gh-21133
-        # we want to down cast if
-        # the original values are ints
-        # as we grouped with a NaN value
-        # and then dropped, coercing to floats
-        for v in values:
-            if (
-                v in data
-                and is_integer_dtype(data[v])
-                and v in agged
-                and not is_integer_dtype(agged[v])
-            ):
-                if not isinstance(agged[v], ABCDataFrame) and isinstance(
-                    data[v].dtype, np.dtype
-                ):
-                    # exclude DataFrame case bc maybe_downcast_to_dtype expects
-                    #  ArrayLike
-                    # e.g. test_pivot_table_multiindex_columns_doctest_case
-                    #  agged.columns is a MultiIndex and 'v' is indexing only
-                    #  on its first level.
-                    agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
-
     table = agged
 
     # GH17038, this check should only happen if index is defined (not None)
