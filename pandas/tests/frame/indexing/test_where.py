@@ -144,6 +144,8 @@ class TestDataFrameIndexingWhere:
         check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
         _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
+    # Ignore deprecation warning in Python 3.12 for inverting a bool
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_where_invalid(self):
         # invalid conditions
         df = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])

@@ -872,6 +872,7 @@ class ExtensionArray:
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill NA/NaN values using the specified method.
@@ -895,6 +896,14 @@ class ExtensionArray:
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword in pad/backfill
+            cases.
 
         Returns
         -------
@@ -932,10 +941,16 @@ class ExtensionArray:
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
-                new_values = self.copy()
+                if not copy:
+                    new_values = self[:]
+                else:
+                    new_values = self.copy()
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1550,6 +1565,13 @@ class ExtensionArray:
         -----
         - Because ExtensionArrays are 1D-only, this is a no-op.
         - The "order" argument is ignored, is for compatibility with NumPy.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).ravel()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self
 
@@ -1565,6 +1587,15 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, 3])
+        >>> arr2 = pd.array([4, 5, 6])
+        >>> pd.arrays.IntegerArray._concat_same_type([arr1, arr2])
+        <IntegerArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: Int64
         """
         # Implementer note: this method will only be called with a sequence of
         # ExtensionArrays of this class and with the same dtype as self. This
