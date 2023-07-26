@@ -1661,6 +1661,13 @@ class ExtensionArray:
         -----
         - Because ExtensionArrays are 1D-only, this is a no-op.
         - The "order" argument is ignored, is for compatibility with NumPy.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).ravel()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self
 
@@ -1676,6 +1683,15 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, 3])
+        >>> arr2 = pd.array([4, 5, 6])
+        >>> pd.arrays.IntegerArray._concat_same_type([arr1, arr2])
+        <IntegerArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: Int64
         """
         # Implementer note: this method will only be called with a sequence of
         # ExtensionArrays of this class and with the same dtype as self. This
