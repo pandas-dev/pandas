@@ -283,13 +283,16 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
     #  lets us test the deprecation telling authors to implement pad_or_backfill
-    def fillna(
+    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  keyword in its fillna method.
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
         self,
         value=None,
         method=None,
         limit: int | None = None,
     ):
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):

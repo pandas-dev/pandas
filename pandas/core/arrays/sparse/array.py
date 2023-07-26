@@ -731,6 +731,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill missing values with `value`.
@@ -747,6 +748,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                an in-memory ndarray
 
         limit : int, optional
+
+        copy: bool, default True
+            Ignored for SparseArray.
 
         Returns
         -------

@@ -955,6 +955,7 @@ class ExtensionArray:
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill NA/NaN values using the specified method.
@@ -982,6 +983,14 @@ class ExtensionArray:
             filled.
 
             .. deprecated:: 2.1.0
+
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword in pad/backfill
+            cases.
 
         Returns
         -------
@@ -1028,10 +1037,16 @@ class ExtensionArray:
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
-                new_values = self.copy()
+                if not copy:
+                    new_values = self[:]
+                else:
+                    new_values = self.copy()
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1773,6 +1788,19 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
+
+    def _values_for_json(self) -> np.ndarray:
+        """
+        Specify how to render our entries in to_json.
+
+        Notes
+        -----
+        The dtype on the returned ndarray is not restricted, but for non-native
+        types that are not specifically handled in objToJSON.c, to_json is
+        liable to raise. In these cases, it may be safer to return an ndarray
+        of strings.
+        """
+        return np.asarray(self)
 
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool

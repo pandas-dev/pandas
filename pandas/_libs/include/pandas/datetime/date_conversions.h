@@ -18,7 +18,10 @@ int scaleNanosecToUnit(npy_int64 *value, NPY_DATETIMEUNIT unit);
 // up to precision `base` e.g. base="s" yields 2020-01-03T00:00:00Z
 // while base="ns" yields "2020-01-01T00:00:00.000000000Z"
 // len is mutated to save the length of the returned string
-char *int64ToIso(int64_t value, NPY_DATETIMEUNIT base, size_t *len);
+char *int64ToIso(int64_t value,
+                 NPY_DATETIMEUNIT valueUnit,
+                 NPY_DATETIMEUNIT base,
+                 size_t *len);
 
 // TODO(username): this function doesn't do a lot; should augment or
 // replace with scaleNanosecToUnit
