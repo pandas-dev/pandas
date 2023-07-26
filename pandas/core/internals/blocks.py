@@ -10,6 +10,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -41,6 +42,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -455,7 +457,11 @@ class Block(PandasObject):
 
     @final
     def _maybe_downcast(
-        self, blocks: list[Block], downcast=None, using_cow: bool = False
+        self,
+        blocks: list[Block],
+        downcast=None,
+        using_cow: bool = False,
+        caller: str | None = None,
     ) -> list[Block]:
         if downcast is False:
             return blocks
@@ -467,9 +473,23 @@ class Block(PandasObject):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
+            casted = extend_blocks(
                 [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
             )
+            if caller == "fillna":
+                if len(casted) != len(blocks) or not all(
+                    x.dtype == y.dtype for x, y in zip(casted, blocks)
+                ):
+                    # GH#11537
+                    warnings.warn(
+                        "Downcasting object dtype arrays on .fillna, .ffill, .bfill "
+                        "is deprecated and will change in a future version. "
+                        "Call result.infer_objects(copy=False) instead.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
+            return casted
 
         if downcast is None:
             return blocks
@@ -1349,7 +1369,9 @@ class Block(PandasObject):
             else:
                 # GH#45423 consistent downcasting on no-ops.
                 nb = self.copy(deep=not using_cow)
-                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
+                nbs = nb._maybe_downcast(
+                    [nb], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 return nbs
 
         if limit is not None:
@@ -1367,7 +1389,9 @@ class Block(PandasObject):
         #  different behavior in _maybe_downcast.
         return extend_blocks(
             [
-                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                blk._maybe_downcast(
+                    [blk], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 for blk in nbs
             ]
         )
@@ -1408,7 +1432,7 @@ class Block(PandasObject):
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="fillna")
 
     @final
     def interpolate(
@@ -1941,7 +1965,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             refs = None
             new_values = self.values.fillna(value=value, method=None, limit=limit)
         nb = self.make_block_same_class(new_values, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow=using_cow, caller="fillna")
 
     @cache_readonly
     def shape(self) -> Shape:
