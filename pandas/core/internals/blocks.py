@@ -480,7 +480,7 @@ class Block(PandasObject):
                 if len(casted) != len(blocks) or not all(
                     x.dtype == y.dtype for x, y in zip(casted, blocks)
                 ):
-                    # GH#11537
+                    # GH#54261
                     warnings.warn(
                         "Downcasting object dtype arrays on .fillna, .ffill, .bfill "
                         "is deprecated and will change in a future version. "
