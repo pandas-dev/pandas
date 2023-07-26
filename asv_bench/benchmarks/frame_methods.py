@@ -565,10 +565,7 @@ class Equals:
 
 
 class Interpolate:
-    params = [None, "infer"]
-    param_names = ["downcast"]
-
-    def setup(self, downcast):
+    def setup(self):
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
@@ -589,11 +586,11 @@ class Interpolate:
         self.df2.loc[1::5, "A"] = np.nan
         self.df2.loc[1::5, "C"] = np.nan
 
-    def time_interpolate(self, downcast):
-        self.df.interpolate(downcast=downcast)
+    def time_interpolate(self):
+        self.df.interpolate()
 
-    def time_interpolate_some_good(self, downcast):
-        self.df2.interpolate(downcast=downcast)
+    def time_interpolate_some_good(self):
+        self.df2.interpolate()
 
 
 class Shift:

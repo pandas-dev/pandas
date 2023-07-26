@@ -249,20 +249,20 @@ class TestDataFrameShift:
         else:
             tm.assert_numpy_array_equal(unshifted.dropna().values, ps.values[:-1])
 
-        shifted2 = ps.shift(1, "B")
-        shifted3 = ps.shift(1, offsets.BDay())
+        shifted2 = ps.shift(1, "D")
+        shifted3 = ps.shift(1, offsets.Day())
         tm.assert_equal(shifted2, shifted3)
-        tm.assert_equal(ps, shifted2.shift(-1, "B"))
+        tm.assert_equal(ps, shifted2.shift(-1, "D"))
 
         msg = "does not match PeriodIndex freq"
         with pytest.raises(ValueError, match=msg):
-            ps.shift(freq="D")
+            ps.shift(freq="W")
 
         # legacy support
-        shifted4 = ps.shift(1, freq="B")
+        shifted4 = ps.shift(1, freq="D")
         tm.assert_equal(shifted2, shifted4)
 
-        shifted5 = ps.shift(1, freq=offsets.BDay())
+        shifted5 = ps.shift(1, freq=offsets.Day())
         tm.assert_equal(shifted5, shifted4)
 
     def test_shift_other_axis(self):
@@ -492,10 +492,10 @@ class TestDataFrameShift:
         unshifted = shifted.shift(-1, freq="infer")
         tm.assert_equal(unshifted, ps)
 
-        shifted2 = ps.shift(freq="B")
+        shifted2 = ps.shift(freq="D")
         tm.assert_equal(shifted, shifted2)
 
-        shifted3 = ps.shift(freq=offsets.BDay())
+        shifted3 = ps.shift(freq=offsets.Day())
         tm.assert_equal(shifted, shifted3)
 
     def test_datetime_frame_shift_with_freq(self, datetime_frame, frame_or_series):
@@ -524,7 +524,7 @@ class TestDataFrameShift:
     def test_period_index_frame_shift_with_freq_error(self, frame_or_series):
         ps = tm.makePeriodFrame()
         ps = tm.get_obj(ps, frame_or_series)
-        msg = "Given freq M does not match PeriodIndex freq B"
+        msg = "Given freq M does not match PeriodIndex freq D"
         with pytest.raises(ValueError, match=msg):
             ps.shift(freq="M")
 
@@ -656,3 +656,12 @@ class TestDataFrameShift:
 
         shifted2 = df.shift(-6, axis=1, fill_value=None)
         tm.assert_frame_equal(shifted2, expected)
+
+    def test_shift_with_offsets_freq(self):
+        df = DataFrame({"x": [1, 2, 3]}, index=date_range("2000", periods=3))
+        shifted = df.shift(freq="1MS")
+        expected = DataFrame(
+            {"x": [1, 2, 3]},
+            index=date_range(start="02/01/2000", end="02/01/2000", periods=3),
+        )
+        tm.assert_frame_equal(shifted, expected)

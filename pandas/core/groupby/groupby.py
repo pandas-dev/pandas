@@ -99,10 +99,12 @@ from pandas.core import (
 from pandas.core._numba import executor
 from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
     ExtensionArray,
     FloatingArray,
+    IntegerArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -2247,6 +2249,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
+            if isinstance(bvalues, BaseMaskedArray):
+                return IntegerArray(
+                    counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
+                )
+            elif isinstance(bvalues, ArrowExtensionArray):
+                return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -2930,12 +2938,28 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         result = self.grouper.size()
+        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        if isinstance(self.obj, Series):
+            if isinstance(self.obj.array, ArrowExtensionArray):
+                dtype_backend = "pyarrow"
+            elif isinstance(self.obj.array, BaseMaskedArray):
+                dtype_backend = "numpy_nullable"
+        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
+
+        if dtype_backend is not None:
+            result = result.convert_dtypes(
+                infer_objects=False,
+                convert_string=False,
+                convert_boolean=False,
+                convert_floating=False,
+                dtype_backend=dtype_backend,
+            )
 
         with com.temp_setattr(self, "as_index", True):
             # size already has the desired behavior in GH#49519, but this makes the

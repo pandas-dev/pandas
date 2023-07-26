@@ -103,7 +103,7 @@ from pandas._testing.contexts import (
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
@@ -308,7 +308,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     if box_cls is pd.array:
         if isinstance(expected, RangeIndex):
             # pd.array would return an IntegerArray
-            expected = PandasArray(np.asarray(expected._values))
+            expected = NumpyExtensionArray(np.asarray(expected._values))
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
@@ -442,7 +442,8 @@ def makeTimedeltaIndex(
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
+    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
+    return pi
 
 
 def makeMultiIndex(k: int = 10, names=None, **kwargs):
