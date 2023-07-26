@@ -13,6 +13,8 @@ Usage
 """
 import argparse
 import csv
+import docutils.frontend
+import docutils.nodes
 import importlib
 import os
 import shutil
@@ -21,6 +23,7 @@ import sys
 import webbrowser
 
 import docutils
+import docutils.utils
 import docutils.parsers.rst
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -288,9 +291,27 @@ class DocBuilder:
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
 
+    def _linkcheck(self):
+        """
+        Check for broken links in the documentation.
+        """
+        cmd = ["sphinx-build", "-b", "linkcheck"]
+        if self.num_jobs:
+            cmd += ["-j", self.num_jobs]
+        if self.verbosity:
+            cmd.append(f"-{'v' * self.verbosity}")
+        cmd += [
+            "-d",
+            os.path.join(BUILD_PATH, "doctrees"),
+            SOURCE_PATH,
+            os.path.join(BUILD_PATH, "linkcheck"),
+        ]
+        subprocess.call(cmd)
+
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith("_")]
+    cmds.append("linkcheck")  # Add linkcheck to the available commands
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
@@ -349,6 +370,7 @@ def main():
         joined = ", ".join(cmds)
         raise ValueError(f"Unknown command {args.command}. Available options: {joined}")
 
+    
     # Below we update both os.environ and sys.path. The former is used by
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
@@ -369,8 +391,11 @@ def main():
         args.verbosity,
         args.warnings_are_errors,
     )
-    return getattr(builder, args.command)()
 
-
+    if args.command == "linkcheck":
+        builder._linkcheck()  # Call the linkcheck method
+    else:
+        return getattr(builder, args.command)()
+    
 if __name__ == "__main__":
     sys.exit(main())
