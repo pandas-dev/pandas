@@ -57,7 +57,7 @@ class BaseIndexer:
     ...         return start, end
     >>> df = pd.DataFrame({"values": range(5)})
     >>> indexer = CustomIndexer(window_size=2)
-    >>> df.rolling(indexer).sum()  # doctest: +SKIP
+    >>> df.rolling(indexer).sum()
         values
     0	1.0
     1	3.0
