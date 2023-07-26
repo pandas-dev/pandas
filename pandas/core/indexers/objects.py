@@ -52,6 +52,7 @@ class BaseIndexer:
     ...         start = np.empty(num_values, dtype=np.int64)
     ...         end = np.empty(num_values, dtype=np.int64)
     ...         for i in range(num_values):
+    ...             start[i] = i
     ...             end[i] = i + self.window_size
     ...         return start, end
     >>> df = pd.DataFrame({"values": range(5)})
