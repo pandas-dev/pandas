@@ -79,6 +79,9 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.register_matplotlib_converters \
         pandas.api.indexers.BaseIndexer \
         pandas.api.indexers.VariableOffsetWindowIndexer \
+        pandas.util.hash_array \
+        pandas.util.hash_pandas_object \
+        pandas_object \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.NumpyExtensionArray \
