@@ -160,7 +160,6 @@ Other enhancements
 - :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrameGroupby.agg` and :meth:`DataFrameGroupby.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine="numba"`` (:issue:`53486`)
-- :meth:`GroupBy.first` if series contains only NA values (which might be NaN), return the first NA value, else return np.nan (see `PR <https://github.com/pandas-dev/pandas/pull/53970>`_)
 - :meth:`Series.explode` now supports pyarrow-backed list types (:issue:`53602`)
 - :meth:`Series.str.join` now supports ``ArrowDtype(pa.string())`` (:issue:`53646`)
 - :meth:`SeriesGroupby.agg` and :meth:`DataFrameGroupby.agg` now support passing in multiple functions for ``engine="numba"`` (:issue:`53486`)
@@ -448,7 +447,6 @@ Datetimelike
 - Bug in constructing a :class:`Timestamp` with ``ts_input=pd.NA`` raising ``TypeError`` (:issue:`45481`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
 
-
 Timedelta
 ^^^^^^^^^
 - :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
@@ -499,7 +497,6 @@ Interval
 ^^^^^^^^
 - :meth:`pd.IntervalIndex.get_indexer` and :meth:`pd.IntervalIndex.get_indexer_nonunique` raising if ``target`` is read-only array (:issue:`53703`)
 - Bug in :class:`IntervalDtype` where the object could be kept alive when deleted (:issue:`54184`)
--
 
 Indexing
 ^^^^^^^^
@@ -615,7 +612,6 @@ ExtensionArray
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
 - Bug where the :class:`DataFrame` repr would not work when a column would have an :class:`ArrowDtype` with an ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes(e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept pyarrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
--
 
 Styler
 ^^^^^^
