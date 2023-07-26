@@ -20,7 +20,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,

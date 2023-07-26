@@ -300,7 +300,9 @@ class TestPivotTable:
         # GH 25814
         df = DataFrame({"A": interval_values, "B": 1})
         result = df.pivot_table(index="A", values="B", dropna=dropna)
-        expected = DataFrame({"B": 1.0}, index=Index(interval_values.unique(), name="A"))
+        expected = DataFrame(
+            {"B": 1.0}, index=Index(interval_values.unique(), name="A")
+        )
         if not dropna:
             expected = expected.astype(float)
         tm.assert_frame_equal(result, expected)
@@ -1558,7 +1560,9 @@ class TestPivotTable:
         exp_col1 = Index(["value1", "value1"])
         exp_col2 = Index(["a", "b"], name="label")
         exp_col = MultiIndex.from_arrays([exp_col1, exp_col2])
-        expected = DataFrame([[0.0, 3.0], [1.0, 4.0], [2.0, 5.0]], index=exp_idx, columns=exp_col)
+        expected = DataFrame(
+            [[0.0, 3.0], [1.0, 4.0], [2.0, 5.0]], index=exp_idx, columns=exp_col
+        )
         result = pivot_table(df, index=["dt1"], columns=["label"], values=["value1"])
         tm.assert_frame_equal(result, expected)
 
@@ -1573,7 +1577,12 @@ class TestPivotTable:
         expected1 = DataFrame(
             np.array(
                 [
-                    [0, 3, 1, 2,],
+                    [
+                        0,
+                        3,
+                        1,
+                        2,
+                    ],
                     [1, 4, 2, 1],
                     [2, 5, 1, 2],
                 ],
@@ -1776,7 +1785,7 @@ class TestPivotTable:
         expected = DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
-    def test_categorical_margins(self, observed, request):
+    def test_categorical_margins(self, observed):
         # GH 10989
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
@@ -1789,7 +1798,7 @@ class TestPivotTable:
         table = df.pivot_table("x", "y", "z", dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_categorical_margins_category(self, observed, request):
+    def test_categorical_margins_category(self, observed):
         df = DataFrame(
             {"x": np.arange(8), "y": np.arange(8) // 4, "z": np.arange(8) % 2}
         )
