@@ -85,7 +85,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.NumpyExtensionArray \
-        pandas.api.extensions.ExtensionArray._formatter \
         pandas.api.extensions.ExtensionArray._from_factorized \
         pandas.api.extensions.ExtensionArray._from_sequence \
         pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
