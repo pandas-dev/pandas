@@ -876,8 +876,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # we only fill where the indexer is null
         # not existing missing values
         # TODO(jreback) what if we have a non-na float as a fill value?
-        # NaN with uncertainties is scalar but does not register as `isna`,
-        # so use fact that NaN != NaN
         if allow_fill and notna(fill_value):
             fill_mask = np.asarray(indexer) == -1
             result[fill_mask] = fill_value
