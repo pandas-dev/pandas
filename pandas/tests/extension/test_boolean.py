@@ -28,7 +28,7 @@ from pandas.tests.extension import base
 
 
 def make_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] * 4 + [pd.NA] + [True, False] * 44 + [pd.NA] + [True, False]
 
 
 @pytest.fixture
