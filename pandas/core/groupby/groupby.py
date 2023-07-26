@@ -3272,7 +3272,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    nan_arr = x.array[isna(x.array)]
+                    if not len(nan_arr):
+                        return np.nan
+                    return nan_arr[0]
                 return arr[0]
 
             if isinstance(obj, DataFrame):
@@ -3331,7 +3334,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    nan_arr = x.array[isna(x.array)]
+                    if not len(nan_arr):
+                        return np.nan
+                    return nan_arr[-1]
                 return arr[-1]
 
             if isinstance(obj, DataFrame):
