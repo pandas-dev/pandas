@@ -689,6 +689,7 @@ contains NAs, an exception will be generated:
 However, these can be filled in using :meth:`~DataFrame.fillna` and it will work fine:
 
 .. ipython:: python
+   :okwarning:
 
    reindexed[crit.fillna(False)]
    reindexed[crit.fillna(True)]
