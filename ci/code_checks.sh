@@ -81,8 +81,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.util.hash_array \
         pandas.util.hash_pandas_object \
         pandas_object \
-        pandas.api.indexers.BaseIndexer \
-        pandas.api.indexers.VariableOffsetWindowIndexer \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
         pandas.arrays.NumpyExtensionArray \
