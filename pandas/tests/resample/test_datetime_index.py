@@ -1984,3 +1984,18 @@ def test_resample_empty_series_with_tz():
     )
     expected = Series([], index=expected_idx, name="values", dtype="float64")
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_quarters_non_unitary():
+    # https://github.com/pandas-dev/pandas/issues/29576
+
+    d = Series(
+        data=np.zeros(365), index=date_range("1950-01-01", "1950-12-31", freq="D")
+    )
+
+    actual = d.resample("2QS-MAR").mean()
+    expected = Series(
+        0.0, index=date_range(start="1949-09-01", periods=3, freq="2QS-MAR")
+    )
+
+    tm.assert_series_equal(expected, actual)
