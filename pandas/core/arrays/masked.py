@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
     overload,
 )
@@ -159,6 +160,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 f"Default 'empty' implementation is invalid for dtype='{dtype}'"
             )
         return result
+
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
+        return super()._formatter(boxed=True)
 
     @property
     def dtype(self) -> BaseMaskedDtype:
