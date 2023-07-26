@@ -13,8 +13,6 @@ Usage
 """
 import argparse
 import csv
-import docutils.frontend
-import docutils.nodes
 import importlib
 import os
 import shutil
@@ -23,7 +21,6 @@ import sys
 import webbrowser
 
 import docutils
-import docutils.utils
 import docutils.parsers.rst
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -291,7 +288,7 @@ class DocBuilder:
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
 
-    def _linkcheck(self):
+   def _linkcheck(self):
         """
         Check for broken links in the documentation.
         """
