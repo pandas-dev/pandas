@@ -443,7 +443,7 @@ class Block(PandasObject):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other) -> Block:
+    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -452,7 +452,21 @@ class Block(PandasObject):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values.dtype, other)
-
+        if warn_on_upcast:
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
+                "please explicitly cast to a compatible dtype first.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if self.dtype == new_dtype:
+            raise AssertionError(
+                f"Did not expect new dtype {new_dtype} to equal self.dtype "
+                f"{self.values.dtype}. Please report a bug at "
+                "https://github.com/pandas-dev/pandas/issues."
+            )
         return self.astype(new_dtype, copy=False)
 
     @final
@@ -1129,7 +1143,7 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
-            nb = self.coerce_to_target_dtype(value)
+            nb = self.coerce_to_target_dtype(value, warn_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
@@ -1195,7 +1209,9 @@ class Block(PandasObject):
 
                 if not is_list_like(new):
                     # using just new[indexer] can't save us the need to cast
-                    return self.coerce_to_target_dtype(new).putmask(mask, new)
+                    return self.coerce_to_target_dtype(
+                        new, warn_on_upcast=True
+                    ).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
                     nb = self.setitem(indexer, new[indexer], using_cow=using_cow)
