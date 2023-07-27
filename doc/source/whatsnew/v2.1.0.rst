@@ -329,6 +329,9 @@ please specify ``utc=True``:
   data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
   pd.to_datetime(data, utc=True)
 
+To create a ``Series`` with mixed offsets and ``object`` dtype, please use ``apply``
+and ``datetime.datetime.strptime``.
+
 Other Deprecations
 ~~~~~~~~~~~~~~~~~~
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
