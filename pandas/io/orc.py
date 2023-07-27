@@ -30,6 +30,9 @@ from pandas.io.common import (
 )
 
 if TYPE_CHECKING:
+    import fsspec
+    import pyarrow.fs
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
@@ -44,8 +47,8 @@ def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filesystem=None,
-    **kwargs,
+    filesystem: pyarrow.fs.FileSystem | fsspec.spec.AbstractFileSystem | None = None,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
