@@ -52,6 +52,7 @@ IGNORE_VALIDATION = {
     "errors.InvalidComparison",
     "errors.LossySetitemError",
     "errors.NoBufferPresent",
+    "errors.IncompatibilityWarning",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {

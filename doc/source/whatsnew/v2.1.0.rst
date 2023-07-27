@@ -295,8 +295,53 @@ Other API changes
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
 
-Deprecations
-~~~~~~~~~~~~
+Deprecate parsing datetimes with mixed time zones
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Parsing datetimes with mixed time zones is deprecated and shows a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+  In [7]: data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+
+  In [8]:  pd.to_datetime(data, utc=False)
+  Out[8]:
+  Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
+
+*New behavior*:
+
+.. code-block:: ipython
+
+  In [9]: pd.to_datetime(data, utc=False)
+  FutureWarning:
+    In a future version of pandas, parsing datetimes with mixed time zones will raise
+    a warning unless `utc=True`. Please specify `utc=True` to opt in to the new behaviour
+    and silence this warning. To create a `Series` with mixed offsets and `object` dtype,
+    please use `apply` and `datetime.datetime.strptime`.
+  Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
+
+In order to silence this warning and avoid an error in a future version of pandas,
+please specify ``utc=True``:
+
+.. ipython:: python
+
+    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+    pd.to_datetime(data, utc=True)
+
+To create a ``Series`` with mixed offsets and ``object`` dtype, please use ``apply``
+and ``datetime.datetime.strptime``:
+
+.. ipython:: python
+
+    import datetime as dt
+
+    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+    pd.Series(data).apply(lambda x: dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z'))
+
+Other Deprecations
+~~~~~~~~~~~~~~~~~~
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated 'downcast' keyword in :meth:`Index.fillna` (:issue:`53956`)
 - Deprecated 'fill_method' and 'limit' keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`, explicitly call ``ffill`` or ``bfill`` before calling ``pct_change`` instead (:issue:`53491`)
