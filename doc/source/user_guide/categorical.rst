@@ -779,6 +779,7 @@ Setting values by assigning categorical data will also check that the ``categori
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
     df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
