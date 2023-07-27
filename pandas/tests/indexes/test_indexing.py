@@ -176,10 +176,8 @@ class TestContains:
 
 class TestGetLoc:
     def test_get_loc_non_hashable(self, index):
-        # MultiIndex and Index raise TypeError, others InvalidIndexError
-
-        with pytest.raises((TypeError, InvalidIndexError), match="slice"):
-            index.get_loc(slice(0, 1))
+        with pytest.raises(InvalidIndexError, match="[0, 1]"):
+            index.get_loc([0, 1])
 
     def test_get_loc_non_scalar_hashable(self, index):
         # GH52877
