@@ -7,7 +7,7 @@ abstract: "Pandas is a powerful data structures for data analysis, time series, 
 license: BSD-3-Clause
 license-url: "https://github.com/pandas-dev/pandas/blob/main/LICENSE"
 repository-code: "https://github.com/pandas-dev/pandas"
-keywords: 
+keywords:
   - python
   - data science
 type: software
