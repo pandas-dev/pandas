@@ -217,7 +217,7 @@ def to_gbq(
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,
-    credentials: Any = None,
+    credentials: google.auth.credentials.Credentials | None = None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(
