@@ -912,6 +912,22 @@ class DataFrame(NDFrame, OpsMixin):
 
         `nan_as_null` currently has no effect; once support for nullable extension
         dtypes is added, this value should be propagated to columns.
+
+        Examples
+        --------
+        >>> df_not_necessarily_pandas = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
+        >>> interchange_object.column_names()
+        Index(['A', 'B'], dtype='object')
+        >>> df_pandas = (pd.api.interchange.from_dataframe
+        ...              (interchange_object.select_columns_by_name(['A'])))
+        >>> df_pandas
+             A
+        0    1
+        1    2
+
+        These methods (``column_names``, ``select_columns_by_name``) should work
+        for any dataframe library which implements the interchange protocol.
         """
 
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
@@ -1620,15 +1636,18 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         if isinstance(other, DataFrame):
+            common_type = find_common_type(list(self.dtypes) + list(other.dtypes))
             return self._constructor(
                 np.dot(lvals, rvals),
                 index=left.index,
                 columns=other.columns,
                 copy=False,
+                dtype=common_type,
             )
         elif isinstance(other, Series):
+            common_type = find_common_type(list(self.dtypes) + [other.dtypes])
             return self._constructor_sliced(
-                np.dot(lvals, rvals), index=left.index, copy=False
+                np.dot(lvals, rvals), index=left.index, copy=False, dtype=common_type
             )
         elif isinstance(rvals, (np.ndarray, Index)):
             result = np.dot(lvals, rvals)
@@ -2754,6 +2773,11 @@ class DataFrame(NDFrame, OpsMixin):
         <https://arrow.apache.org/docs/python/feather.html>`_. Requires a default
         index. For saving the DataFrame with your custom index use a method that
         supports custom indices e.g. `to_parquet`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        >>> df.to_feather("file.feather")  # doctest: +SKIP
         """
         from pandas.io.feather_format import to_feather
 
@@ -3640,16 +3664,25 @@ class DataFrame(NDFrame, OpsMixin):
             and dtypes
             and isinstance(dtypes[0], ExtensionDtype)
         ):
+            new_values: list
             if isinstance(dtypes[0], BaseMaskedDtype):
                 # We have masked arrays with the same dtype. We can transpose faster.
-                from pandas.core.arrays.masked import transpose_homogenous_masked_arrays
+                from pandas.core.arrays.masked import (
+                    transpose_homogeneous_masked_arrays,
+                )
 
-                if isinstance(self._mgr, ArrayManager):
-                    masked_arrays = self._mgr.arrays
-                else:
-                    masked_arrays = list(self._iter_column_arrays())
-                new_values = transpose_homogenous_masked_arrays(
-                    cast(list[BaseMaskedArray], masked_arrays)
+                new_values = transpose_homogeneous_masked_arrays(
+                    cast(Sequence[BaseMaskedArray], self._iter_column_arrays())
+                )
+            elif isinstance(dtypes[0], ArrowDtype):
+                # We have arrow EAs with the same dtype. We can transpose faster.
+                from pandas.core.arrays.arrow.array import (
+                    ArrowExtensionArray,
+                    transpose_homogeneous_pyarrow,
+                )
+
+                new_values = transpose_homogeneous_pyarrow(
+                    cast(Sequence[ArrowExtensionArray], self._iter_column_arrays())
                 )
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
@@ -3764,8 +3797,11 @@ class DataFrame(NDFrame, OpsMixin):
         Warning! The returned array is a view but doesn't handle Copy-on-Write,
         so this should be used with caution (for read-only purposes).
         """
-        for i in range(len(self.columns)):
-            yield self._get_column_array(i)
+        if isinstance(self._mgr, ArrayManager):
+            yield from self._mgr.arrays
+        else:
+            for i in range(len(self.columns)):
+                yield self._get_column_array(i)
 
     def _getitem_nocopy(self, key: list):
         """
@@ -5779,21 +5815,21 @@ class DataFrame(NDFrame, OpsMixin):
             # GH 49473 Use "lazy copy" with Copy-on-Write
             frame = self.copy(deep=None)
 
-        arrays = []
+        arrays: list[Index] = []
         names: list[Hashable] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
-                for i in range(self.index.nlevels):
-                    arrays.append(self.index._get_level_values(i))
+                arrays.extend(
+                    self.index._get_level_values(i) for i in range(self.index.nlevels)
+                )
             else:
                 arrays.append(self.index)
 
         to_remove: list[Hashable] = []
         for col in keys:
             if isinstance(col, MultiIndex):
-                for n in range(col.nlevels):
-                    arrays.append(col._get_level_values(n))
+                arrays.extend(col._get_level_values(n) for n in range(col.nlevels))
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
@@ -7023,7 +7059,7 @@ class DataFrame(NDFrame, OpsMixin):
         dropna: bool = True,
     ) -> Series:
         """
-        Return a Series containing counts of unique rows in the DataFrame.
+        Return a Series containing the frequency of each distinct row in the Dataframe.
 
         Parameters
         ----------
@@ -11254,13 +11290,21 @@ class DataFrame(NDFrame, OpsMixin):
             nanops.nanargmin, "argmin", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
-
-        # indices will always be 1d array since axis is not None and
-        # values is a 2d array for DataFrame
         # indices will always be np.ndarray since axis is not N
 
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         index = data._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = algorithms.take(
+            index._values, indices, allow_fill=True, fill_value=index._na_value
+        )
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmin")
 
@@ -11283,13 +11327,21 @@ class DataFrame(NDFrame, OpsMixin):
             nanops.nanargmax, "argmax", axis=axis, skipna=skipna, numeric_only=False
         )
         indices = res._values
+        # indices will always be 1d array since axis is not None
 
-        # indices will always be 1d array since axis is not None and
-        # values is a 2d array for DataFrame
-        assert isinstance(indices, (np.ndarray, ExtensionArray))  # for mypy
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         index = data._get_axis(axis)
-        result = [index[i] if i >= 0 else np.nan for i in indices]
+        result = algorithms.take(
+            index._values, indices, allow_fill=True, fill_value=index._na_value
+        )
         final_result = data._constructor_sliced(result, index=data._get_agg_axis(axis))
         return final_result.__finalize__(self, method="idxmax")
 

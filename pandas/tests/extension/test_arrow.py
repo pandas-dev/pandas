@@ -3122,6 +3122,14 @@ def test_iter_temporal(pa_type):
     assert result == expected
 
 
+def test_groupby_series_size_returns_pa_int(data):
+    # GH 54132
+    ser = pd.Series(data[:3], index=["a", "a", "b"])
+    result = ser.groupby(level=0).size()
+    expected = pd.Series([2, 1], dtype="int64[pyarrow]", index=["a", "b"])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "pa_type", tm.DATETIME_PYARROW_DTYPES + tm.TIMEDELTA_PYARROW_DTYPES
 )
@@ -3144,6 +3152,18 @@ def test_to_numpy_temporal(pa_type):
     expected = np.array(expected, dtype=object)
     assert result[0].unit == expected[0].unit
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_groupby_count_return_arrow_dtype(data_missing):
+    df = pd.DataFrame({"A": [1, 1], "B": data_missing, "C": data_missing})
+    result = df.groupby("A").count()
+    expected = pd.DataFrame(
+        [[1, 1]],
+        index=pd.Index([1], name="A"),
+        columns=["B", "C"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_arrowextensiondtype_dataframe_repr():

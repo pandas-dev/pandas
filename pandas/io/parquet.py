@@ -556,7 +556,63 @@ def read_parquet(
     Returns
     -------
     DataFrame
+
+    See Also
+    --------
+    DataFrame.to_parquet : Create a parquet object that serializes a DataFrame.
+
+    Examples
+    --------
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ...    )
+    >>> original_df
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
+    >>> df_parquet_bytes = original_df.to_parquet()
+    >>> from io import BytesIO
+    >>> restored_df = pd.read_parquet(BytesIO(df_parquet_bytes))
+    >>> restored_df
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
+    >>> restored_df.equals(original_df)
+    True
+    >>> restored_bar = pd.read_parquet(BytesIO(df_parquet_bytes), columns=["bar"])
+    >>> restored_bar
+        bar
+    0    5
+    1    6
+    2    7
+    3    8
+    4    9
+    >>> restored_bar.equals(original_df[['bar']])
+    True
+
+    The function uses `kwargs` that are passed directly to the engine.
+    In the following example, we use the `filters` argument of the pyarrow
+    engine to filter the rows of the DataFrame.
+
+    Since `pyarrow` is the default engine, we can omit the `engine` argument.
+    Note that the `filters` argument is implemented by the `pyarrow` engine,
+    which can benefit from multithreading and also potentially be more
+    economical in terms of memory.
+
+    >>> sel = [("foo", ">", 2)]
+    >>> restored_part = pd.read_parquet(BytesIO(df_parquet_bytes), filters=sel)
+    >>> restored_part
+        foo  bar
+    0    3    8
+    1    4    9
     """
+
     impl = get_engine(engine)
 
     if use_nullable_dtypes is not lib.no_default:
