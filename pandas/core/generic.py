@@ -85,10 +85,8 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import (
-    PY311,
-    PYPY,
-)
+from pandas.compat import PYPY
+from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -369,9 +367,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
+        For Series:
+
         >>> ser = pd.Series([1, 2, 3])
         >>> ser.attrs = {"A": [10, 20, 30]}
         >>> ser.attrs
+        {'A': [10, 20, 30]}
+
+        For DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+        >>> df.attrs = {"A": [10, 20, 30]}
+        >>> df.attrs
         {'A': [10, 20, 30]}
         """
         if self._attrs is None:
@@ -764,9 +771,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Interchange axes and swap values axes appropriately.
 
+        .. deprecated:: 2.1.0
+            ``swapaxes`` is deprecated and will be removed.
+            Please use ``transpose`` instead.
+
         Returns
         -------
         same as input
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.transpose`.
         """
         warnings.warn(
             # GH#51946
@@ -787,11 +802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         new_axes = [self._get_axis(mapping.get(k, k)) for k in range(self._AXIS_LEN)]
         new_values = self._values.swapaxes(i, j)  # type: ignore[union-attr]
-        if (
-            using_copy_on_write()
-            and self._mgr.is_single_block
-            and isinstance(self._mgr, BlockManager)
-        ):
+        if self._mgr.is_single_block and isinstance(self._mgr, BlockManager):
             # This should only get hit in case of having a single block, otherwise a
             # copy is made, we don't have to set up references.
             new_mgr = ndarray_to_mgr(
@@ -808,10 +819,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_mgr.blocks[0].refs.add_reference(
                 new_mgr.blocks[0]  # type: ignore[arg-type]
             )
-            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+            if not using_copy_on_write() and copy is not False:
+                new_mgr = new_mgr.copy(deep=True)
 
-        elif (copy or copy is None) and self._mgr.is_single_block:
-            new_values = new_values.copy()
+            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
 
         return self._constructor(
             new_values,
@@ -2406,7 +2417,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             the default is 'epoch'.
         double_precision : int, default 10
             The number of decimal places to use when encoding
-            floating point values.
+            floating point values. The possible maximal value is 15.
+            Passing double_precision greater than 15 will raise a ValueError.
         force_ascii : bool, default True
             Force encoded string to be ASCII.
         date_unit : str, default 'ms' (milliseconds)
@@ -4815,7 +4827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         prefix : str
             The string to add before each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add prefix on
 
             .. versionadded:: 2.0.0
@@ -4889,7 +4901,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         suffix : str
             The string to add after each label.
-        axis : {{0 or 'index', 1 or 'columns', None}}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to add suffix on
 
             .. versionadded:: 2.0.0
@@ -5779,6 +5791,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4     monkey
         5     parrot
         """
+        if using_copy_on_write():
+            return self.iloc[:n].copy()
         return self.iloc[:n]
 
     @final
@@ -5854,6 +5868,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         7   whale
         8   zebra
         """
+        if using_copy_on_write():
+            if n == 0:
+                return self.iloc[0:0].copy()
+            return self.iloc[-n:].copy()
         if n == 0:
             return self.iloc[0:0]
         return self.iloc[-n:]
@@ -6730,13 +6748,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             dtypes if the floats can be faithfully casted to integers.
 
             .. versionadded:: 1.2.0
-        dtype_backend : {"numpy_nullable", "pyarrow"}, default "numpy_nullable"
-            Which dtype_backend to use, e.g. whether a DataFrame should use nullable
-            dtypes for all dtypes that have a nullable
-            implementation when "numpy_nullable" is set, pyarrow is used for all
-            dtypes if "pyarrow" is set.
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
 
-            The dtype_backends are still experimential.
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
 
             .. versionadded:: 2.0
 
@@ -7093,8 +7112,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not PYPY and using_copy_on_write():
-                refcount = 2 if PY311 else 3
-                if sys.getrefcount(self) <= refcount:
+                if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7370,6 +7388,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.ffill` or :meth:`Series.ffill`.
         """
         warnings.warn(
             "DataFrame.pad/Series.pad is deprecated. Use "
@@ -7503,6 +7525,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         {klass} or None
             Object with missing values filled or None if ``inplace=True``.
+
+        Examples
+        --------
+        Please see examples for :meth:`DataFrame.bfill` or :meth:`Series.bfill`.
         """
         warnings.warn(
             "DataFrame.backfill/Series.backfill is deprecated. Use "
@@ -7612,6 +7638,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         if not is_bool(regex) and to_replace is not None:
             raise ValueError("'to_replace' must be 'None' if 'regex' is not a bool")
 
@@ -9212,12 +9247,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17T, dtype: int64
 
-        >>> ts.resample('17min', origin='2000-01-01').sum()
-        2000-10-01 23:24:00     3
-        2000-10-01 23:41:00    15
-        2000-10-01 23:58:00    45
-        2000-10-02 00:15:00    45
-        Freq: 17T, dtype: int64
+        >>> ts.resample('17W', origin='2000-01-01').sum()
+        2000-01-02      0
+        2000-04-30      0
+        2000-08-27      0
+        2000-12-24    108
+        Freq: 17W-SUN, dtype: int64
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:

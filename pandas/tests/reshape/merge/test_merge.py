@@ -2819,7 +2819,7 @@ def test_merge_datetime_different_resolution(tz, how):
 
 
 def test_merge_multiindex_single_level():
-    # GH #52331
+    # GH52331
     df = DataFrame({"col": ["A", "B"]})
     df2 = DataFrame(
         data={"b": [100]},

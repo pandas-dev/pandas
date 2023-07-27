@@ -7,10 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    ChainedAssignmentError,
-    PerformanceWarning,
-)
+from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -381,7 +378,7 @@ class TestDataFrameBlockInternals:
         assert first == second == 0
 
     def test_constructor_no_pandas_array(self):
-        # Ensure that PandasArray isn't allowed inside Series
+        # Ensure that NumpyExtensionArray isn't allowed inside Series
         # See https://github.com/pandas-dev/pandas/issues/23995 for more.
         arr = Series([1, 2, 3]).array
         result = DataFrame({"A": arr})
@@ -393,12 +390,14 @@ class TestDataFrameBlockInternals:
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+        df["c"] = pd.arrays.NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
         df2 = DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
+                "c": pd.arrays.NumpyExtensionArray(
+                    np.array([1, 2, None, 3], dtype=object)
+                ),
             }
         )
         assert type(df["c"]._mgr.blocks[0]) == NumpyBlock
@@ -414,7 +413,7 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
 
     # inplace update of a single column
     if using_copy_on_write:
-        with tm.assert_produces_warning(ChainedAssignmentError):
+        with tm.raises_chained_assignment_error():
             df["a"].fillna(1, inplace=True)
     else:
         df["a"].fillna(1, inplace=True)

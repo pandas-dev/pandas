@@ -143,6 +143,8 @@ class TestDataFrameIndexingWhere:
         check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
         _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
 
+    # Ignore deprecation warning in Python 3.12 for inverting a bool
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
     def test_where_invalid(self):
         # invalid conditions
         df = DataFrame(np.random.randn(5, 3), columns=["A", "B", "C"])
@@ -164,7 +166,7 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
-    def test_where_set(self, where_frame, float_string_frame):
+    def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
         def _check_set(df, cond, check_dtypes=True):
@@ -189,6 +191,8 @@ class TestDataFrameIndexingWhere:
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
+        if df is mixed_int_frame:
+            df = df.astype("float64")
 
         cond = df > 0
         _check_set(df, cond)
@@ -503,7 +507,8 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(result, expected)
 
         result = df.copy()
-        return_value = result.where(mask, ser, axis="index", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, ser, axis="index", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -518,7 +523,8 @@ class TestDataFrameIndexingWhere:
             }
         )
         result = df.copy()
-        return_value = result.where(mask, ser, axis="columns", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, ser, axis="columns", inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
@@ -569,11 +575,13 @@ class TestDataFrameIndexingWhere:
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        return_value = result.where(mask, d1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, d1, inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
         result = df.copy()
-        return_value = result.where(mask, d1, inplace=True, axis="index")
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            return_value = result.where(mask, d1, inplace=True, axis="index")
         assert return_value is None
         tm.assert_frame_equal(result, expected)
 
