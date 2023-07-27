@@ -3338,7 +3338,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    x.array.dtype.na_value
+                    return x.array.dtype.na_value
                 return arr[-1]
 
             if isinstance(obj, DataFrame):
