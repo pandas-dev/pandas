@@ -270,6 +270,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.arrays.IntegerArray._from_sequence([4, 5])
+        <IntegerArray>
+        [4, 5]
+        Length: 2, dtype: Int64
         """
         raise AbstractMethodError(cls)
 
@@ -313,6 +320,16 @@ class ExtensionArray:
         --------
         factorize : Top-level factorize method that dispatches here.
         ExtensionArray.factorize : Encode the extension array as an enumerated type.
+
+        Examples
+        --------
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
+        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> codes, uniques = pd.factorize(interv_arr)
+        >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
+        <IntervalArray>
+        [(0, 1], (1, 5]]
+        Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
 
