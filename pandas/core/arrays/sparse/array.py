@@ -78,7 +78,6 @@ from pandas.core.indexers import (
     check_array_indexer,
     unpack_tuple_and_ellipses,
 )
-from pandas.core.missing import pad_or_backfill_inplace
 from pandas.core.nanops import check_below_min_count
 
 from pandas.io.formats import printing
@@ -718,6 +717,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         value=None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill missing values with `value`.
@@ -734,6 +734,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                an in-memory ndarray
 
         limit : int, optional
+
+        copy: bool, default True
+            Ignored for SparseArray.
 
         Returns
         -------
@@ -757,21 +760,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise ValueError("Must specify one of 'method' or 'value'.")
 
         if method is not None:
-            msg = "fillna with 'method' requires high memory usage."
-            warnings.warn(
-                msg,
-                PerformanceWarning,
-                stacklevel=find_stack_level(),
-            )
-            new_values = np.asarray(self)
-            # pad_or_backfill_inplace modifies new_values inplace
-            # error: Argument "method" to "pad_or_backfill_inplace" has incompatible
-            # type "Literal['backfill', 'bfill', 'ffill', 'pad']"; expected
-            # "Literal['pad', 'backfill']"
-            pad_or_backfill_inplace(
-                new_values, method=method, limit=limit  # type: ignore[arg-type]
-            )
-            return type(self)(new_values, fill_value=self.fill_value)
+            return super().fillna(method=method, limit=limit)
 
         else:
             new_values = np.where(isna(self.sp_values), value, self.sp_values)
