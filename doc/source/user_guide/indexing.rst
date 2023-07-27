@@ -535,13 +535,15 @@ A single indexer that is out of bounds will raise an ``IndexError``.
 A list of indexers where any element is out of bounds will raise an
 ``IndexError``.
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-   >>> dfl.iloc[[4, 5, 6]]
-   IndexError: positional indexers are out-of-bounds
+   dfl.iloc[[4, 5, 6]]
 
-   >>> dfl.iloc[:, 4]
-   IndexError: single positional indexer is out-of-bounds
+.. ipython:: python
+   :okexcept:
+
+   dfl.iloc[:, 4]
 
 .. _indexing.callable:
 
@@ -1695,9 +1697,10 @@ Adding an ad hoc index
 
 If you create an index yourself, you can just assign it to the ``index`` field:
 
-.. code-block:: python
+.. ipython:: python
 
-   data.index = index
+   data.index = pd.Index([10, 20, 30, 40], name="a")
+   data
 
 .. _indexing.view_versus_copy:
 

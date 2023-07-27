@@ -906,18 +906,15 @@ maximum value for each column occurred:
    tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
-method. For instance, consider the following function you would like to apply:
+method.
 
 .. ipython:: python
 
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
 
-You may then apply this function as follows:
-
-.. code-block:: python
-
-   df.apply(subtract_and_divide, args=(5,), divide=3)
+   df_udf = pd.DataFrame(np.ones((2, 2)))
+   df_udf.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
