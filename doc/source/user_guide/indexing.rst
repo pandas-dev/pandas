@@ -244,17 +244,13 @@ You can use attribute access to modify an existing element of a Series or column
 if you try to use attribute access to create a new column, it creates a new attribute rather than a
 new column and will this raise a ``UserWarning``:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okwarning:
 
-    In [1]: df = pd.DataFrame({'one': [1., 2., 3.]})
-    In [2]: df.two = [4, 5, 6]
-    UserWarning: Pandas doesn't allow Series to be assigned into nonexistent columns - see https://pandas.pydata.org/pandas-docs/stable/indexing.html#attribute_access
-    In [3]: df
-    Out[3]:
-       one
-    0  1.0
-    1  2.0
-    2  3.0
+    df = pd.DataFrame({'one': [1., 2., 3.]})
+    df.two = [4, 5, 6]
+    df
+
 
 Slicing ranges
 --------------
@@ -304,17 +300,14 @@ Selection by label
    ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
    using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
 
-  .. ipython:: python
+   .. ipython:: python
+      :okexcept:
 
-     dfl = pd.DataFrame(np.random.randn(5, 4),
+      dfl = pd.DataFrame(np.random.randn(5, 4),
                         columns=list('ABCD'),
                         index=pd.date_range('20130101', periods=5))
-     dfl
-
-  .. code-block:: ipython
-
-     In [4]: dfl.loc[2:3]
-     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+      dfl
+      dfl.loc[2:3]
 
   String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
 
@@ -618,59 +611,6 @@ For getting *multiple* indexers, using ``.get_indexer``:
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
-.. _deprecate_loc_reindex_listlike:
-.. _indexing.deprecate_loc_reindex_listlike:
-
-Indexing with list with missing labels is deprecated
-----------------------------------------------------
-
-In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
-would raise a ``KeyError``). This behavior was changed and will now raise a ``KeyError`` if at least one label is missing.
-The recommended alternative is to use ``.reindex()``.
-
-For example.
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3])
-   s
-
-Selection with all keys found is unchanged.
-
-.. ipython:: python
-
-   s.loc[[1, 2]]
-
-Previous behavior
-
-.. code-block:: ipython
-
-   In [4]: s.loc[[1, 2, 3]]
-   Out[4]:
-   1    2.0
-   2    3.0
-   3    NaN
-   dtype: float64
-
-
-Current behavior
-
-.. code-block:: ipython
-
-   In [4]: s.loc[[1, 2, 3]]
-   Passing list-likes to .loc with any non-matching elements will raise
-   KeyError in the future, you can use .reindex() as an alternative.
-
-   See the documentation here:
-   https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
-
-   Out[4]:
-   1    2.0
-   2    3.0
-   3    NaN
-   dtype: float64
-
-
 Reindexing
 ~~~~~~~~~~
 
@@ -690,14 +630,11 @@ Alternatively, if you want to select only *valid* keys, the following is idiomat
 Having a duplicated index will raise for a ``.reindex()``:
 
 .. ipython:: python
+   :okexcept:
 
    s = pd.Series(np.arange(4), index=['a', 'a', 'b', 'c'])
    labels = ['c', 'd']
-
-.. code-block:: ipython
-
-   In [17]: s.reindex(labels)
-   ValueError: cannot reindex on an axis with duplicate labels
+   s.reindex(labels)
 
 Generally, you can intersect the desired labels with the current
 axis, and then reindex.
@@ -708,12 +645,11 @@ axis, and then reindex.
 
 However, this would *still* raise if your resulting index is duplicated.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [41]: labels = ['a', 'd']
-
-   In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
-   ValueError: cannot reindex on an axis with duplicate labels
+   labels = ['a', 'd']
+   s.loc[s.index.intersection(labels)].reindex(labels)
 
 
 .. _indexing.basics.partial_setting:

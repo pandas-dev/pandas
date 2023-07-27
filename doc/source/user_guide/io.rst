@@ -1212,36 +1212,23 @@ too many fields will raise an error by default:
 
 You can elect to skip bad lines:
 
-.. code-block:: ipython
+.. ipython:: python
+    :okwarning:
 
-    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
-    Skipping line 3: expected 3 fields, saw 4
-
-    Out[29]:
-       a  b   c
-    0  1  2   3
-    1  8  9  10
+    data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
+    pd.read_csv(StringIO(data), on_bad_lines="warn")
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [29]: external_list = []
-
-    In [30]: def bad_lines_func(line):
-        ...:     external_list.append(line)
-        ...:     return line[-3:]
-
-    In [31]: pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
-    Out[31]:
-       a  b   c
-    0  1  2   3
-    1  5  6   7
-    2  8  9  10
-
-    In [32]: external_list
-    Out[32]: [4, 5, 6, 7]
+    external_list = []
+    def bad_lines_func(line):
+        external_list.append(line)
+        return line[-3:]
+    pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
+    external_list
 
     .. versionadded:: 1.4.0
 
@@ -1250,7 +1237,7 @@ Bad lines caused by other errors will be silently skipped.
 
 For example:
 
-.. code-block:: ipython
+.. ipython:: python
 
    def bad_lines_func(line):
       print(line)
@@ -1264,29 +1251,17 @@ The line was not processed in this case, as a "bad line" here is caused by an es
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [33]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
-
-    Out[33]:
-       a  b   c
-    0  1  2   3
-    1  4  5   6
-    2  8  9  10
+   pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
 In case you want to keep all data including the lines with too many fields, you can
 specify a sufficient number of ``names``. This ensures that lines with not enough
 fields are filled with ``NaN``.
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [34]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
-
-   Out[34]:
-       a  b   c  d
-    0  1  2   3  NaN
-    1  4  5   6  7
-    2  8  9  10  NaN
+   pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
 .. _io.dialect:
 
@@ -4385,16 +4360,15 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
-    .. code-block:: ipython
+    .. ipython:: python
+      :okexcept:
 
-       In [8]: store.foo.bar.bah
-       AttributeError: 'HDFStore' object has no attribute 'foo'
+       store.foo.bar.bah
+
+    .. ipython:: python
 
        # you can directly access the actual PyTables node but using the root node
-       In [9]: store.root.foo.bar.bah
-       Out[9]:
-       /foo/bar/bah (Group) ''
-         children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
+       store.root.foo.bar.bah
 
     Instead, use explicit string based keys:
 
@@ -4547,7 +4521,8 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
 
    instead of this
 
-   .. code-block:: ipython
+   .. code-block:: python
+      :okexcept:
 
       string = "HolyMoly'"
       store.select('df', f'index == {string}')

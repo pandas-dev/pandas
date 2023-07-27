@@ -620,31 +620,23 @@ inefficient (and show a ``PerformanceWarning``). It will also
 return a copy of the data rather than a view:
 
 .. ipython:: python
+   :okwarning:
 
    dfm = pd.DataFrame(
        {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
    )
    dfm = dfm.set_index(["jim", "joe"])
    dfm
-
-.. code-block:: ipython
-
-   In [4]: dfm.loc[(1, 'z')]
-   PerformanceWarning: indexing past lexsort depth may impact performance.
-
-   Out[4]:
-              jolie
-   jim joe
-   1   z    0.64094
+   dfm.loc[(1, 'z')]
 
 .. _advanced.unsorted:
 
 Furthermore, if you try to index something that is not fully lexsorted, this can raise:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okwarning:
 
-    In [5]: dfm.loc[(0, 'y'):(1, 'z')]
-    UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
+   dfm.loc[(0, 'y'):(1, 'z')]
 
 The :meth:`~MultiIndex.is_monotonic_increasing` method on a ``MultiIndex`` shows if the
 index is sorted:
@@ -836,10 +828,10 @@ values **not** in the categories, similarly to how you can reindex **any** panda
       df5 = df5.set_index("B")
       df5.index
 
-   .. code-block:: ipython
+   .. ipython:: python
+      :okexcept:
 
-      In [1]: pd.concat([df4, df5])
-      TypeError: categories must match existing categories when appending
+      pd.concat([df4, df5])
 
 .. _advanced.rangeindex:
 
@@ -1062,15 +1054,14 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     # OK because 2 and 4 are in the index
     df.loc[2:4, :]
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
     # 0 is not in the index
-    In [9]: df.loc[0:4, :]
-    KeyError: 0
+    df.loc[0:4, :]
 
     # 3 is not a unique label
-    In [11]: df.loc[2:3, :]
-    KeyError: 'Cannot get right slice bound for non-unique label: 3'
+    df.loc[2:3, :]
 
 ``Index.is_monotonic_increasing`` and ``Index.is_monotonic_decreasing`` only check that
 an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with

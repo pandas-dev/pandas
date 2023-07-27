@@ -440,7 +440,6 @@ Indexing with a list with missing labels is deprecated
 Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
 This will now show a ``FutureWarning``. In the future this will raise a ``KeyError`` (:issue:`15747`).
 This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
-See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
 
 
 .. ipython:: python
