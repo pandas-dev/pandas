@@ -8707,7 +8707,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Start by creating a series with 4 one minute timestamps.
 
-        >>> index = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> index = pd.date_range('1/1/2000', periods=4, freq='min')
         >>> series = pd.Series([0.0, None, 2.0, 3.0], index=index)
         >>> df = pd.DataFrame({{'s': series}})
         >>> df
@@ -9019,7 +9019,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Start by creating a series with 9 one minute timestamps.
 
-        >>> index = pd.date_range('1/1/2000', periods=9, freq='T')
+        >>> index = pd.date_range('1/1/2000', periods=9, freq='min')
         >>> series = pd.Series(range(9), index=index)
         >>> series
         2000-01-01 00:00:00    0
@@ -9036,7 +9036,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Downsample the series into 3 minute bins and sum the values
         of the timestamps falling into a bin.
 
-        >>> series.resample('3T').sum()
+        >>> series.resample('3min').sum()
         2000-01-01 00:00:00     3
         2000-01-01 00:03:00    12
         2000-01-01 00:06:00    21
@@ -9052,7 +9052,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         To include this value close the right side of the bin interval as
         illustrated in the example below this one.
 
-        >>> series.resample('3T', label='right').sum()
+        >>> series.resample('3min', label='right').sum()
         2000-01-01 00:03:00     3
         2000-01-01 00:06:00    12
         2000-01-01 00:09:00    21
@@ -9061,7 +9061,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> series.resample('3T', label='right', closed='right').sum()
+        >>> series.resample('3min', label='right', closed='right').sum()
         2000-01-01 00:00:00     0
         2000-01-01 00:03:00     6
         2000-01-01 00:06:00    15
@@ -9105,7 +9105,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> def custom_resampler(arraylike):
         ...     return np.sum(arraylike) + 5
         ...
-        >>> series.resample('3T').apply(custom_resampler)
+        >>> series.resample('3min').apply(custom_resampler)
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26

@@ -994,7 +994,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Parameters
         ----------
-        sep : str, default 'T'
+        sep : str, default 'min'
             String used as the separator between the date and time.
 
         timespec : str, default 'auto'
@@ -1997,23 +1997,23 @@ timedelta}, default 'raise'
         >>> ts.round(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
         >>> ts.round(freq='S') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1H30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2088,7 +2088,7 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='H') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
         >>> ts.floor(freq='S') # seconds
@@ -2097,14 +2097,14 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='N') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1H30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2177,7 +2177,7 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
         >>> ts.ceil(freq='S') # seconds
@@ -2186,14 +2186,14 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='U') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1H30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
