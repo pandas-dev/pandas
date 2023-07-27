@@ -634,7 +634,7 @@ return a copy of the data rather than a view:
 Furthermore, if you try to index something that is not fully lexsorted, this can raise:
 
 .. ipython:: python
-   :okwarning:
+   :okexcept:
 
    dfm.loc[(0, 'y'):(1, 'z')]
 
