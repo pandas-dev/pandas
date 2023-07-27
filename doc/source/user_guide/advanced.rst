@@ -914,6 +914,7 @@ Selecting using an ``Interval`` will only return exact matches.
 Trying to select an ``Interval`` that is not exactly contained in the ``IntervalIndex`` will raise a ``KeyError``.
 
 .. ipython:: python
+   :okexcept:
 
    df.loc[pd.Interval(0.5, 2.5)]
 
