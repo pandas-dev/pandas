@@ -162,7 +162,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
-        return super()._formatter(boxed=True)
+        # NEP 51: https://github.com/numpy/numpy/pull/22449
+        return str
 
     @property
     def dtype(self) -> BaseMaskedDtype:
