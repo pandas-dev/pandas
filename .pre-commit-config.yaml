@@ -13,6 +13,7 @@ default_stages: [
     post-rewrite
 ]
 ci:
+    autofix_prs: false
     autoupdate_schedule: monthly
     # manual stage hooks
     skip: [pylint, pyright, mypy, autotyping]
