@@ -671,7 +671,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
-    def _maybe_promote(self, item) -> tuple[DtypeObj, Any]:
+    def _find_compatible_dtype(self, item) -> tuple[DtypeObj, Any]:
         from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
         if item in self.categories or is_valid_na_for_dtype(
@@ -1569,7 +1569,7 @@ class BaseMaskedDtype(ExtensionDtype):
         except (KeyError, NotImplementedError):
             return None
 
-    def _maybe_promote(self, item) -> tuple[DtypeObj, Any]:
+    def _find_compatible_dtype(self, item) -> tuple[DtypeObj, Any]:
         from pandas.core.dtypes.cast import maybe_promote
         from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -2316,7 +2316,7 @@ class ArrowDtype(StorageExtensionDtype):
         arr = array.cast(self.pyarrow_dtype, safe=True)
         return array_class(arr)
 
-    def _maybe_promote(self, item: Any) -> tuple[DtypeObj, Any]:
+    def _find_compatible_dtype(self, item: Any) -> tuple[DtypeObj, Any]:
         if isinstance(item, pa.Scalar):
             if not item.is_valid:
                 # TODO: ask joris for help making these checks more robust

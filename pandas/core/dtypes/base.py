@@ -392,7 +392,7 @@ class ExtensionDtype:
         """
         return True
 
-    def _maybe_promote(self, item: Any) -> tuple[DtypeObj, Any]:
+    def _find_compatible_dtype(self, item: Any) -> tuple[DtypeObj, Any]:
         """
         Find the minimal dtype that we need to upcast to in order to hold
         the given item.

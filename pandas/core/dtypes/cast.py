@@ -612,7 +612,7 @@ def _maybe_promote(dtype: DtypeObj, fill_value=np.nan):
     # a cached version.
 
     if not isinstance(dtype, np.dtype):
-        return dtype._maybe_promote(fill_value)
+        return dtype._find_compatible_dtype(fill_value)
 
     if not is_scalar(fill_value):
         # with object dtype there is nothing to promote, and the user can

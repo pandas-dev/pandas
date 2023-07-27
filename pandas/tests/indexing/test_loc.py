@@ -1956,6 +1956,28 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
+    def test_series_loc_setitem_with_expansion_categorical(self):
+        # NA value that can't be held in integer categories
+        ser = Series([1, 2, 3], dtype="category")
+        ser.loc[3] = pd.NaT
+        assert ser.dtype == object
+
+    def test_series_loc_setitem_with_expansion_interval(self):
+        idx = pd.interval_range(1, 3)
+        ser2 = Series(idx)
+        ser2.loc[2] = np.nan
+        assert ser2.dtype == "interval[float64, right]"
+
+        ser2.loc[3] = pd.NaT
+        assert ser2.dtype == object
+
+    def test_series_loc_setitem_with_expansion_list_object(self):
+        ser3 = Series(range(3))
+        ser3.loc[3] = []
+        assert ser3.dtype == object
+        item = ser3.loc[3]
+        assert isinstance(item, list) and len(item) == 0
+
     @pytest.mark.slow
     def test_loc_setitem_with_expansion_large_dataframe(self):
         # GH#10692
