@@ -1527,6 +1527,16 @@ class ExtensionArray:
             returns a string. By default, :func:`repr` is used
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
+
+        Examples
+        --------
+        >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
+        ...     def _formatter(self, boxed=False):
+        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        >>> MyExtensionArray(np.array([1, 2, 3, 4]))
+        <MyExtensionArray>
+        [1*, 2*, 3*, 4*]
+        Length: 4, dtype: int64
         """
         if boxed:
             return str
@@ -1565,6 +1575,13 @@ class ExtensionArray:
         -----
         - Because ExtensionArrays are 1D-only, this is a no-op.
         - The "order" argument is ignored, is for compatibility with NumPy.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).ravel()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self
 
@@ -1580,6 +1597,15 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, 3])
+        >>> arr2 = pd.array([4, 5, 6])
+        >>> pd.arrays.IntegerArray._concat_same_type([arr1, arr2])
+        <IntegerArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: Int64
         """
         # Implementer note: this method will only be called with a sequence of
         # ExtensionArrays of this class and with the same dtype as self. This
