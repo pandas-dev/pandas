@@ -1718,9 +1718,26 @@ at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
 for those not included in the main ``fsspec``
 distribution.
 
-You can also pass parameters directly to the backend driver. For example,
-if you do *not* have S3 credentials, you can still access public data by
-specifying an anonymous connection, such as
+You can also pass parameters directly to the backend driver. Because we can no
+longer utilize the ``AWS_S3_HOST`` environment variable, we can directly define a
+dictionary containing the endpoint_url and pass the object into the storage
+option parameter:
+
+.. code-block:: python
+
+   def s3so(worker_id):
+      worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
+      return dict(client_kwargs={"endpoint_url": f"http://127.0.0.1:555{worker_id}/"})
+
+   roundtripped_df = pd.read_json(
+         "s3://pandas-test/test-1", compression=compression, storage_options=s3so,
+      )
+
+More sample configurations and documentation can be found at `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/index.html?highlight=host#s3-compatible-storage>`__.
+
+If you do *not* have S3 credentials, you can still access public
+data by specifying an anonymous connection, such as
 
 .. versionadded:: 1.2.0
 
@@ -2992,7 +3009,7 @@ Read a URL with no options:
 Read in the content of the "books.xml" file and pass it to ``read_xml``
 as a string:
 
-.. ipython:: python
+.. ipython:: python :okexcept:
 
    file_path = "books.xml"
    with open(file_path, "w") as f:
