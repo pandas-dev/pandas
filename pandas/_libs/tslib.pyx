@@ -673,7 +673,8 @@ cdef _array_to_datetime_object(
             "In a future version of pandas, parsing datetimes with mixed time "
             "zones will raise a warning unless `utc=True`. "
             "Please specify `utc=True` to opt in to the new behaviour "
-            "and silence this warning.",
+            "and silence this warning. To create a `Series` with mixed offsets and "
+            "`object` dtype, please use `apply` and `datetime.datetime.strptime`",
             FutureWarning,
             stacklevel=find_stack_level(),
         )

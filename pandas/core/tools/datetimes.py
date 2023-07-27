@@ -357,7 +357,9 @@ def _return_parsed_timezone_results(
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
             "zones will raise a warning unless `utc=True`. Please specify `utc=True` "
-            "to opt in to the new behaviour and silence this warning.",
+            "to opt in to the new behaviour and silence this warning. "
+            "To create a `Series` with mixed offsets and `object` dtype, "
+            "please use `apply` and `datetime.datetime.strptime`",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -788,7 +790,8 @@ def to_datetime(
             In a future version of pandas, parsing datetimes with mixed time
             zones will raise a warning unless `utc=True`.
             Please specify `utc=True` to opt in to the new behaviour
-            and silence this warning.
+            and silence this warning. To create a `Series` with mixed offsets and
+            `object` dtype, please use `apply` and `datetime.datetime.strptime`.
 
         See also: pandas general documentation about `timezone conversion and
         localization
@@ -1021,7 +1024,9 @@ def to_datetime(
     ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
     time zones will raise a warning unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning.
+    to opt in to the new behaviour and silence this warning. To create a `Series`
+    with mixed offsets and `object` dtype, please use `apply` and
+    `datetime.datetime.strptime`.
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
@@ -1033,7 +1038,9 @@ def to_datetime(
     ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
     time zones will raise a warning unless `utc=True`. Please specify `utc=True`
-    to opt in to the new behaviour and silence this warning.
+    to opt in to the new behaviour and silence this warning. To create a `Series`
+    with mixed offsets and `object` dtype, please use `apply` and
+    `datetime.datetime.strptime`.
     Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
     |

@@ -318,7 +318,8 @@ Parsing datetimes with mixed time zones is deprecated and shows a warning unless
   FutureWarning:
     In a future version of pandas, parsing datetimes with mixed time zones will raise
     a warning unless `utc=True`. Please specify `utc=True` to opt in to the new behaviour
-    and silence this warning.
+    and silence this warning. To create a `Series` with mixed offsets and `object` dtype,
+    please use `apply` and `datetime.datetime.strptime`.
   Index([2020-01-01 00:00:00+06:00, 2020-01-01 00:00:00+01:00], dtype='object')
 
 In order to silence this warning and avoid an error in a future version of pandas,
@@ -326,11 +327,18 @@ please specify ``utc=True``:
 
 .. ipython:: python
 
-  data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
-  pd.to_datetime(data, utc=True)
+    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+    pd.to_datetime(data, utc=True)
 
 To create a ``Series`` with mixed offsets and ``object`` dtype, please use ``apply``
-and ``datetime.datetime.strptime``.
+and ``datetime.datetime.strptime``:
+
+.. ipython:: python
+
+    import datetime as dt
+
+    data = ["2020-01-01 00:00:00+06:00", "2020-01-01 00:00:00+01:00"]
+    pd.Series(data).apply(lambda x: dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z'))
 
 Other Deprecations
 ~~~~~~~~~~~~~~~~~~
