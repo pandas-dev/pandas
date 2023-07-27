@@ -1,23 +1,24 @@
 # github
-.github/                          @mroeschke
+.github/                          @https://github.com/mroeschke
 
 # ci
-ci/                               @mroeschke
+ci/                               @https://github.com/mroeschke
 
 # web
-web/                              @datapythonista
+web/                              @https://github.com/datapythonista
 
 # docs
-doc/cheatsheet                    @Dr-Irv
-doc/source/development            @noatamir
+doc/cheatsheet                    @https://github.com/Dr-Irv
+doc/source/development            @https://github.com/noatamir
 
 # pandas
-pandas/_libs/                     @WillAyd
-pandas/_libs/tslibs/*             @MarcoGorelli
-pandas/_typing.py                 @Dr-Irv
-pandas/core/groupby/*             @rhshadrach
-pandas/core/tools/datetimes.py    @MarcoGorelli
-pandas/io/excel/*                 @rhshadrach
-pandas/io/formats/style.py        @attack68
-pandas/io/formats/style_render.py @attack68
-pandas/io/formats/templates       @attack68
+pandas/_libs/                     @https://github.com/WillAyd
+pandas/_libs/tslibs/*             @https://github.com/MarcoGorelli
+pandas/_typing.py                 @https://github.com/Dr-Irv
+pandas/core/groupby/*             @https://github.com/rhshadrach
+pandas/core/tools/datetimes.py    @https://github.com/MarcoGorelli
+pandas/io/excel/*                 @https://github.com/rhshadrach
+pandas/io/formats/style.py        @https://github.com/attack68
+pandas/io/formats/style_render.py @https://github.com/attack68
+pandas/io/formats/templates       @https://github.com/attack68
+
