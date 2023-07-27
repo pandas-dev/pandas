@@ -111,6 +111,12 @@ class OptionError(AttributeError, KeyError):
     Exception raised for pandas.options.
 
     Backwards compatible with KeyError checks.
+
+    Examples
+    --------
+    >>> pd.options.context
+    Traceback (most recent call last):
+    OptionError: No such option
     """
 
 
