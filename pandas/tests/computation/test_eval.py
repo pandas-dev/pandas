@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY312
 from pandas.errors import (
     NumExprClobberingError,
     PerformanceWarning,
@@ -561,22 +562,16 @@ class TestEval:
         # TODO: 2022-01-29: result return list with numexpr 2.7.3 in CI
         # but cannot reproduce locally
         result = np.array(
-            pd.eval(
-                "[-True, True, ~True, +True,"
-                "-False, False, ~False, +False,"
-                "-37, 37, ~37, +37]"
-            ),
+            pd.eval("[-True, True, +True, -False, False, +False, -37, 37, ~37, +37]"),
             dtype=np.object_,
         )
         expected = np.array(
             [
                 -True,
                 True,
-                ~True,
                 +True,
                 -False,
                 False,
-                ~False,
                 +False,
                 -37,
                 37,
@@ -705,9 +700,13 @@ class TestEval:
 
     def test_true_false_logic(self):
         # GH 25823
-        assert pd.eval("not True") == -2
-        assert pd.eval("not False") == -1
-        assert pd.eval("True and not True") == 0
+        # This behavior is deprecated in Python 3.12
+        with tm.maybe_produces_warning(
+            DeprecationWarning, PY312, check_stacklevel=False
+        ):
+            assert pd.eval("not True") == -2
+            assert pd.eval("not False") == -1
+            assert pd.eval("True and not True") == 0
 
     def test_and_logic_string_match(self):
         # GH 25823
