@@ -65,6 +65,14 @@ class DecimalDtype(ExtensionDtype):
     def _is_numeric(self) -> bool:
         return True
 
+    def _find_compatible_dtype(self, item):
+        if isinstance(item, decimal.Decimal):
+            # TODO: need to watch out for precision?
+            # TODO: allow non-decimal numeric?
+            # TODO: allow np.nan, pd.NA?
+            return (self, item)
+        return (np.dtype(object), item)
+
 
 class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     __array_priority__ = 1000

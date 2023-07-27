@@ -577,3 +577,12 @@ def test_array_copy_on_write(using_copy_on_write):
             {"a": [decimal.Decimal(2), decimal.Decimal(3)]}, dtype=DecimalDtype()
         )
         tm.assert_equal(df2.values, expected.values)
+
+
+def test_setitem_with_expansion():
+    # GH#32346 dont upcast to object
+    arr = DecimalArray(make_data())
+    ser = pd.Series(arr[:3])
+
+    ser[3] = ser[0]
+    assert ser.dtype == arr.dtype
