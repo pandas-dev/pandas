@@ -63,7 +63,7 @@ class ExtensionDtype:
     * _is_numeric
     * _is_boolean
     * _get_common_dtype
-    * _maybe_promote
+    * _find_compatible_dtype
 
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
