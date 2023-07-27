@@ -913,11 +913,9 @@ Selecting using an ``Interval`` will only return exact matches.
 
 Trying to select an ``Interval`` that is not exactly contained in the ``IntervalIndex`` will raise a ``KeyError``.
 
-.. code-block:: python
+.. ipython:: python
 
-   In [7]: df.loc[pd.Interval(0.5, 2.5)]
-   ---------------------------------------------------------------------------
-   KeyError: Interval(0.5, 2.5, closed='right')
+   df.loc[pd.Interval(0.5, 2.5)]
 
 Selecting all ``Intervals`` that overlap a given ``Interval`` can be performed using the
 :meth:`~IntervalIndex.overlaps` method to create a boolean indexer.

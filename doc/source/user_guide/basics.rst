@@ -322,24 +322,21 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
 
 .. warning::
 
-   You might be tempted to do the following:
+   Asserting the truthiness of a pandas object will raise an error, as the testing of the emptiness
+   or values is ambiguous.
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-      >>> if df:
-      ...     pass
+      if df:
+          print(True)
 
-   Or
+   .. ipython:: python
+      :okexcept:
 
-   .. code-block:: python
+      df and df2
 
-      >>> df and df2
-
-   These will both raise errors, as you are trying to compare multiple values.::
-
-       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
-
-See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+   See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
@@ -911,7 +908,7 @@ maximum value for each column occurred:
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
 method. For instance, consider the following function you would like to apply:
 
-.. code-block:: python
+.. ipython:: python
 
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
