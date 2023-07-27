@@ -3,8 +3,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
+    Any,
 )
 
 from pandas._libs import lib
@@ -19,6 +18,11 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
@@ -32,8 +36,8 @@ if TYPE_CHECKING:
 def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
-    storage_options: StorageOptions = None,
-    **kwargs,
+    storage_options: StorageOptions | None = None,
+    **kwargs: Any,
 ) -> None:
     """
     Write a DataFrame to the binary Feather format.
@@ -67,9 +71,9 @@ def read_feather(
     path: FilePath | ReadBuffer[bytes],
     columns: Sequence[Hashable] | None = None,
     use_threads: bool = True,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-):
+) -> DataFrame:
     """
     Load a feather-format object from the file path.
 
@@ -88,19 +92,24 @@ def read_feather(
 
         .. versionadded:: 1.2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
     Returns
     -------
     type of object stored in file
+
+    Examples
+    --------
+    >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather

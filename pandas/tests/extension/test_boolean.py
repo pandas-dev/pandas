@@ -26,6 +26,13 @@ import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+]
+
 
 def make_data():
     return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
@@ -369,6 +376,31 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         elif op_name in ("min", "max"):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
+
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        arr = ser.array
+
+        if op_name in ["count", "kurt", "sem"]:
+            assert not hasattr(arr, op_name)
+            return
+
+        if op_name in ["mean", "median", "var", "std", "skew"]:
+            cmp_dtype = "Float64"
+        elif op_name in ["min", "max"]:
+            cmp_dtype = "boolean"
+        elif op_name in ["sum", "prod"]:
+            is_windows_or_32bit = is_platform_windows() or not IS64
+            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+        else:
+            raise TypeError("not supposed to reach this")
+
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):

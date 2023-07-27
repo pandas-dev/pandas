@@ -418,7 +418,7 @@ class StorageExtensionDtype(ExtensionDtype):
     name: str
     _metadata = ("storage",)
 
-    def __init__(self, storage=None) -> None:
+    def __init__(self, storage: str | None = None) -> None:
         self.storage = storage
 
     def __repr__(self) -> str:
