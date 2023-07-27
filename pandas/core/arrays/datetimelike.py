@@ -652,7 +652,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
                     msg = self._validation_error_message(value, True)
                     raise TypeError(msg)
 
-        # Do type inference if necessary up front (after unpacking PandasArray)
+        # Do type inference if necessary up front (after unpacking
+        # NumpyExtensionArray)
         # e.g. we passed PeriodIndex.values and got an ndarray of Periods
         value = extract_array(value, extract_numpy=True)
         value = pd_array(value)
@@ -2200,6 +2201,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     # --------------------------------------------------------------
     # ExtensionArray Interface
+
+    def _values_for_json(self) -> np.ndarray:
+        # Small performance bump vs the base class which calls np.asarray(self)
+        if isinstance(self.dtype, np.dtype):
+            return self._ndarray
+        return super()._values_for_json()
 
     def factorize(
         self,

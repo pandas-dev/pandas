@@ -1414,15 +1414,18 @@ def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
         assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
-@pytest.mark.parametrize("val, exp", [(5.5, True), (5, False)])
-def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
+@pytest.mark.parametrize(
+    "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
+)
+def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp, warn):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    df[indexer] = val
+    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+        df[indexer] = val
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))

@@ -61,10 +61,15 @@ class TestPeriodIndex:
 
     def test_constructor_use_start_freq(self):
         # GH #1118
-        p = Period("4/2/2012", freq="B")
-        expected = period_range(start="4/2/2012", periods=10, freq="B")
+        msg1 = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg1):
+            p = Period("4/2/2012", freq="B")
+        msg2 = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            expected = period_range(start="4/2/2012", periods=10, freq="B")
 
-        index = period_range(start=p, periods=10)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            index = period_range(start=p, periods=10)
         tm.assert_index_equal(index, expected)
 
     def test_constructor_field_arrays(self):
@@ -440,7 +445,9 @@ class TestPeriodIndex:
         pi = period_range(freq="D", start="1/1/2001", end="12/31/2009")
         assert len(pi) == 365 * 9 + 2
 
-        pi = period_range(freq="B", start="1/1/2001", end="12/31/2009")
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            pi = period_range(freq="B", start="1/1/2001", end="12/31/2009")
         assert len(pi) == 261 * 9
 
         pi = period_range(freq="H", start="1/1/2001", end="12/31/2001 23:00")
@@ -452,8 +459,9 @@ class TestPeriodIndex:
         pi = period_range(freq="S", start="1/1/2001", end="1/1/2001 23:59:59")
         assert len(pi) == 24 * 60 * 60
 
-        start = Period("02-Apr-2005", "B")
-        i1 = period_range(start=start, periods=20)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            start = Period("02-Apr-2005", "B")
+            i1 = period_range(start=start, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -470,15 +478,17 @@ class TestPeriodIndex:
         assert (i1 == i2).all()
         assert i1.freq == i2.freq
 
-        end_intv = Period("2005-05-01", "B")
-        i1 = period_range(start=start, end=end_intv)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            end_intv = Period("2005-05-01", "B")
+            i1 = period_range(start=start, end=end_intv)
 
-        # infer freq from first element
-        i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
+            # infer freq from first element
+            i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
         assert len(i2) == 2
         assert i2[0] == end_intv
 
-        i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
         assert len(i2) == 2
         assert i2[0] == end_intv
 
@@ -498,6 +508,10 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]
     )
+    @pytest.mark.filterwarnings(
+        r"ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_recreate_from_data(self, freq):
         org = period_range(start="2001/04/01", freq=freq, periods=1)
         idx = PeriodIndex(org.values, freq=freq)
