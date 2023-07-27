@@ -9490,7 +9490,7 @@ class DataFrame(NDFrame, OpsMixin):
                 if (self.dtypes == np.bool_).all():
                     # GH#43248
                     result = self ^ self.shift(periods=periods, axis=axis)
-                                        
+
                     if periods > 0:
                         result.iloc[:, :periods] = np.nan
                     else:
