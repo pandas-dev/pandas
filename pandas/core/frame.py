@@ -6392,7 +6392,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[True],
         ignore_index: bool = ...,
     ) -> None:
-      ...
+        ...
 
     @overload
     def drop_duplicates(
@@ -6403,7 +6403,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: Literal[False] = ...,
         ignore_index: bool = ...,
     ) -> DataFrame:
-      ...
+        ...
 
     @overload
     def drop_duplicates(
@@ -6414,7 +6414,7 @@ class DataFrame(NDFrame, OpsMixin):
         inplace: bool = ...,
         ignore_index: bool = ...,
     ) -> DataFrame | None:
-      ...
+        ...
 
     def drop_duplicates(
         self,
