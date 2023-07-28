@@ -23,5 +23,4 @@ Development
     extending
     developer
     policies
-    roadmap
     community
