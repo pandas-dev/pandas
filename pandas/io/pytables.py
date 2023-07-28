@@ -266,7 +266,7 @@ def to_hdf(
     format: str | None = None,
     index: bool = True,
     min_itemsize: int | dict[str, int] | None = None,
-    nan_rep: Any | None | None = None,
+    nan_rep=None,
     dropna: bool | None = None,
     data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",

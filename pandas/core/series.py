@@ -4960,7 +4960,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = None,
         fill_value: Scalar | None = None,
         limit: int | None = None,
-        tolerance: Any | None | None = None,
+        tolerance=None,
     ) -> Series:
         return super().reindex(
             index=index,
