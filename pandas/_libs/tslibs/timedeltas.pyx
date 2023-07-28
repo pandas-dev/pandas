@@ -1466,9 +1466,9 @@ cdef class _Timedelta(timedelta):
         """
         self._ensure_components()
         if self._ns:
-            return "N"
+            return "ns"
         elif self._us:
-            return "U"
+            return "us"
         elif self._ms:
             return "ms"
         elif self._s:

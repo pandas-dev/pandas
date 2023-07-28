@@ -110,16 +110,16 @@ class TestPeriodIndex:
 
     def test_constructor_nano(self):
         idx = period_range(
-            start=Period(ordinal=1, freq="N"), end=Period(ordinal=4, freq="N"), freq="N"
+            start=Period(ordinal=1, freq="ns"), end=Period(ordinal=4, freq="ns"), freq="ns"
         )
         exp = PeriodIndex(
             [
-                Period(ordinal=1, freq="N"),
-                Period(ordinal=2, freq="N"),
-                Period(ordinal=3, freq="N"),
-                Period(ordinal=4, freq="N"),
+                Period(ordinal=1, freq="ns"),
+                Period(ordinal=2, freq="ns"),
+                Period(ordinal=3, freq="ns"),
+                Period(ordinal=4, freq="ns"),
             ],
-            freq="N",
+            freq="ns",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -506,7 +506,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "min", "S", "ms", "U", "N", "H"]
+        "freq", ["M", "Q", "A", "D", "B", "min", "S", "ms", "us", "ns", "H"]
     )
     @pytest.mark.filterwarnings(
         r"ignore:Period with BDay freq is deprecated:FutureWarning"

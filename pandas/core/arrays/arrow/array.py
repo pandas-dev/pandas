@@ -2476,8 +2476,8 @@ class ArrowExtensionArray(
             "min": "minute",
             "S": "second",
             "ms": "millisecond",
-            "U": "microsecond",
-            "N": "nanosecond",
+            "us": "microsecond",
+            "ns": "nanosecond",
         }
         unit = pa_supported_unit.get(offset._prefix, None)
         if unit is None:

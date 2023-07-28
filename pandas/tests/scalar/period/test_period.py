@@ -109,10 +109,10 @@ class TestPeriodConstruction:
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="us")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.00101", freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="us")
         assert i1 == expected
 
         msg = "Must supply freq for ordinal value"
@@ -289,10 +289,10 @@ class TestPeriodConstruction:
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="us")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.00101", freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="us")
         assert i1 == expected
 
     def test_invalid_arguments(self):
@@ -357,10 +357,10 @@ class TestPeriodConstruction:
         # We see that there are 6 digits after the decimal, so get microsecond
         #  even though they are all zeros.
         p = Period("2007-01-01 07:10:15.123000")
-        assert p.freq == "U"
+        assert p.freq == "us"
 
         p = Period("2007-01-01 07:10:15.123400")
-        assert p.freq == "U"
+        assert p.freq == "us"
 
     def test_multiples(self):
         result1 = Period("1989", freq="2A")
@@ -724,12 +724,12 @@ class TestPeriodMethods:
             ("2000-12-15", None, "2000-12-15", "D"),
             (
                 "2000-12-15 13:45:26.123456789",
-                "N",
+                "ns",
                 "2000-12-15 13:45:26.123456789",
-                "N",
+                "ns",
             ),
-            ("2000-12-15 13:45:26.123456789", "U", "2000-12-15 13:45:26.123456", "U"),
-            ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "U"),
+            ("2000-12-15 13:45:26.123456789", "us", "2000-12-15 13:45:26.123456", "us"),
+            ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "us"),
             ("2000-12-15 13:45:26.123456789", "ms", "2000-12-15 13:45:26.123", "ms"),
             ("2000-12-15 13:45:26.123", None, "2000-12-15 13:45:26.123", "ms"),
             ("2000-12-15 13:45:26", "S", "2000-12-15 13:45:26", "S"),
@@ -815,8 +815,8 @@ class TestPeriodProperties:
             "min": ["minute", "MINUTE", "MINUTELY", "minutely"],
             "S": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
             "ms": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
-            "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
-            "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"],
+            "us": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
+            "ns": ["NANOSECOND", "NANOSECONDLY", "nanosecond"],
         }
 
         msg = INVALID_FREQ_ERR_MSG

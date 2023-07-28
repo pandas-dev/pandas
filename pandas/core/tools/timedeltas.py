@@ -16,6 +16,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
 )
+from pandas._libs.tslibs.dtypes import DEPR_ABBREVS
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
@@ -121,7 +122,8 @@ def to_timedelta(
         Must not be specified when `arg` context strings and ``errors="raise"``.
 
         .. deprecated:: 2.1.0
-            Units 'T' and 'L' are deprecated and will be removed in a future version.
+            Units 'T', 'L', 'U' and 'N' are deprecated and will be removed
+            in a future version.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -174,16 +176,14 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
-    if unit in {"T", "t", "L", "l"}:
+    if unit in DEPR_ABBREVS:
         warnings.warn(
-            f"Unit '{unit}' is deprecated and will be removed in a future version.",
+            f"Unit '{unit}' is deprecated and will be removed in a future version. "
+            f", please use '{DEPR_ABBREVS.get(unit)}' instead of '{unit}'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        if unit.lower() == "t":
-            unit = unit.replace(unit, "min")  # type: ignore[assignment]
-        else:
-            unit = unit.replace(unit, "ms")  # type: ignore[assignment]
+        unit = DEPR_ABBREVS.get(unit)  # type: ignore[assignment]
 
     if unit is not None:
         unit = parse_timedelta_unit(unit)

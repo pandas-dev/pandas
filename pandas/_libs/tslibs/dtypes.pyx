@@ -147,8 +147,8 @@ _period_code_map = {
     "min": PeriodDtypeCode.T,        # Minutely
     "S": PeriodDtypeCode.S,        # Secondly
     "ms": PeriodDtypeCode.L,       # Millisecondly
-    "U": PeriodDtypeCode.U,       # Microsecondly
-    "N": PeriodDtypeCode.N,       # Nanosecondly
+    "us": PeriodDtypeCode.U,       # Microsecondly
+    "ns": PeriodDtypeCode.N,       # Nanosecondly
 }
 
 _reverse_period_code_map = {
@@ -180,11 +180,24 @@ _attrname_to_abbrevs = {
     "minute": "min",
     "second": "S",
     "millisecond": "ms",
-    "microsecond": "U",
-    "nanosecond": "N",
+    "microsecond": "us",
+    "nanosecond": "ns",
 }
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
+
+# Map deprecated resolution abbreviations to correct resolution abbreviations
+DEPR_ABBREVS: dict[str, str]= {
+    "T": "min",
+    "t": "min",
+    "L": "ms",
+    "l": "ms",
+    "U": "us",
+    "u": "us",
+    "N": "ns",
+    "n": "ns",
+}
+cdef dict c_DEPR_ABBREVS = DEPR_ABBREVS
 
 
 class FreqGroup(Enum):
@@ -276,7 +289,7 @@ class Resolution(Enum):
         True
         """
         try:
-            if freq in {"T", "L"}:
+            if freq in DEPR_ABBREVS:
                 warnings.warn(
                     f"Code freq={freq} is deprecated "
                     "and will be removed in a future version.",

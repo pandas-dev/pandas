@@ -540,13 +540,11 @@ class TestTimedeltas:
                 "microsecond",
                 "micro",
                 "micros",
-                "u",
                 "US",
                 "Microseconds",
                 "Microsecond",
                 "Micro",
                 "Micros",
-                "U",
             ]
         ]
         + [
@@ -557,13 +555,11 @@ class TestTimedeltas:
                 "nanosecond",
                 "nano",
                 "nanos",
-                "n",
                 "NS",
                 "Nanoseconds",
                 "Nanosecond",
                 "Nano",
                 "Nanos",
-                "N",
             ]
         ],
     )

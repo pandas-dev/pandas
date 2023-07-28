@@ -1125,14 +1125,14 @@ cdef class Milli(Tick):
 
 cdef class Micro(Tick):
     _nanos_inc = 1000
-    _prefix = "U"
+    _prefix = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
 
 cdef class Nano(Tick):
     _nanos_inc = 1
-    _prefix = "N"
+    _prefix = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
@@ -4296,8 +4296,8 @@ _lite_rule_alias = {
     "Min": "min",
     "min": "min",
     "ms": "ms",
-    "us": "U",
-    "ns": "N",
+    "us": "us",
+    "ns": "ns",
 }
 
 _dont_uppercase = {"MS", "ms"}
@@ -4417,7 +4417,7 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
-                if prefix in {"D", "H", "min", "S", "ms", "U", "N"}:
+                if prefix in {"D", "H", "min", "S", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
