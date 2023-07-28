@@ -26,9 +26,10 @@ repos:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
     -   id: ruff
-        # TODO: remove this when ANN204 is enabled (ANN001 might have autofixes in the future)
-        name: ruff's autotyping/flake8-annotations autofixes
-        args: [--select, ANN, --fix-only, --exit-non-zero-on-fix]
+        # TODO: remove autofixe-only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
