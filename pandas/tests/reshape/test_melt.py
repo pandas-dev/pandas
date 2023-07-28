@@ -438,6 +438,7 @@ class TestMelt:
         tm.assert_frame_equal(result, expected)
 
     def test_melt_ea_columns(self):
+        # GH 54297
         df = DataFrame(
             {
                 "A": {0: "a", 1: "b", 2: "c"},
