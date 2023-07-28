@@ -894,7 +894,8 @@ class ExtensionArray:
         ...                 limit_direction="forward",
         ...                 index=pd.Index([1, 2, 3, 4]),
         ...                 fill_value=1,
-        ...                 copy=False, axis=0,
+        ...                 copy=False,
+        ...                 axis=0,
         ...                 limit_area="inside"
         ...                 )
         <NumpyExtensionArray>
