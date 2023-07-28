@@ -310,7 +310,7 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
 
 @pytest.mark.parametrize("unit", ["ns", "ms"])
 def test_from_timedelta_arrow_dtype(unit):
-    # GH
+    # GH 54298
     pytest.importorskip("pyarrow")
     expected = Series([timedelta(1)], dtype=f"duration[{unit}][pyarrow]")
     result = to_timedelta(expected)
