@@ -155,7 +155,7 @@ columns.
 
 .. warning::
 
-   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``, and ``.iloc``.
+   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``.
 
    This will **not** modify ``df`` because the column alignment is before value assignment.
 
@@ -171,6 +171,17 @@ columns.
 
       df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
+
+   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
+   because ``.iloc`` operates by position.
+
+   This will modify ``df`` because the column alignment is not done before value assignment.
+
+   .. ipython:: python
+
+      df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df[['A','B']]
 
 
 Attribute access
