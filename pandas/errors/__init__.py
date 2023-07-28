@@ -60,9 +60,8 @@ class PerformanceWarning(Warning):
          x    2
     1    z    3
          y    4
-    >>> df.loc[(1, 'z')]
-    Traceback (most recent call last):
-    PerformanceWarning: indexing past lexsort depth may impact performance.
+    >>> df.loc[(1, 'z')]  # doctest: +SKIP
+    # PerformanceWarning: indexing past lexsort depth may impact performance.
     df.loc[(1, 'z')]
               jolie
     jim  joe
