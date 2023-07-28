@@ -463,3 +463,17 @@ ToGbqIfexist = Literal["fail", "replace", "append"]
 
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
+
+Justify = Literal[
+    "left",
+    "right",
+    "center",
+    "justify",
+    "justify-all",
+    "start",
+    "end",
+    "inherit",
+    "match-parent",
+    "initial",
+    "unset",
+]
