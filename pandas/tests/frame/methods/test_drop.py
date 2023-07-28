@@ -172,7 +172,7 @@ class TestDataFrameDrop:
         lexsorted_mi = MultiIndex.from_tuples(
             [("a", ""), ("b1", "c1"), ("b2", "c2")], names=["b", "c"]
         )
-        lexsorted_df = DataFrame([[1, 3.0, 4.0]], columns=lexsorted_mi)
+        lexsorted_df = DataFrame([[1, 3, 4]], columns=lexsorted_mi)
         assert lexsorted_df.columns._is_lexsorted()
 
         # define the non-lexsorted version
