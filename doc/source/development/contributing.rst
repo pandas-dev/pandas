@@ -102,7 +102,7 @@ you can work seamlessly between your local repository and GitHub.
 .. _contributing.forking:
 
 Create a fork of pandas
---------------
+-----------------------
 
 You will need your own fork to work on the code. Go to the `pandas project
 page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
