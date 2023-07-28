@@ -401,7 +401,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         arr[mask] = None
         return arr, None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
             # extract_array doesn't extract NumpyExtensionArray subclasses

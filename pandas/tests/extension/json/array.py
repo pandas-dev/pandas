@@ -117,7 +117,7 @@ class JSONArray(ExtensionArray):
             # integer
             return type(self)([self.data[i] for i in item])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
