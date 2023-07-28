@@ -139,7 +139,7 @@ Rendering the pandas documentation
 ----------------------------------
 You can find the detailed documentation on how rendering the documentation with
 Sphinx works in the :ref:`contributing.howto-build-docs` section. To build the full
-docs you need to run the following command in the :ref:`/doc` directory::
+docs you need to run the following command in the /doc directory::
 
     $ cd doc
     $ python make.py html
