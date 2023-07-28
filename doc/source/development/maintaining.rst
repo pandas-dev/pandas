@@ -121,6 +121,8 @@ Here's a typical workflow for triaging a newly opened issue.
    unless it's know that this issue should be addressed in a specific release (say
    because it's a large regression).
 
+   Once you have completed the above, make sure to remove the "needs triage" label.
+
 .. _maintaining.regressions:
 
 Investigating regressions
@@ -296,8 +298,11 @@ Merging pull requests
 
 Only core team members can merge pull requests. We have a few guidelines.
 
-1. You should typically not self-merge your own pull requests. Exceptions include
-   things like small changes to fix CI (e.g. pinning a package version).
+1. You should typically not self-merge your own pull requests without approval.
+   Exceptions include things like small changes to fix CI
+   (e.g. pinning a package version). Self-merging with approval from other
+   core team members is fine if the change is something you're very confident
+   about.
 2. You should not merge pull requests that have an active discussion, or pull
    requests that has any ``-1`` votes from a core maintainer. pandas operates
    by consensus.
