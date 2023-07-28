@@ -305,6 +305,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         raise AbstractMethodError(cls)
 
@@ -882,6 +889,22 @@ class ExtensionArray:
     ) -> Self:
         """
         See DataFrame.interpolate.__doc__.
+
+        Examples
+        --------
+        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
+        >>> arr.interpolate(method="linear",
+        ...                 limit=3,
+        ...                 limit_direction="forward",
+        ...                 index=pd.Index([1, 2, 3, 4]),
+        ...                 fill_value=1,
+        ...                 copy=False,
+        ...                 axis=0,
+        ...                 limit_area="inside"
+        ...                 )
+        <NumpyExtensionArray>
+        [0.0, 1.0, 2.0, 3.0]
+        Length: 4, dtype: float64
         """
         # NB: we return type(self) even if copy=False
         raise NotImplementedError(
@@ -926,6 +949,14 @@ class ExtensionArray:
         Returns
         -------
         Same type as self
+
+        Examples
+        --------
+        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr.pad_or_backfill(method="backfill", limit=1)
+        <IntegerArray>
+        [<NA>, 2, 2, 3, <NA>, <NA>]
+        Length: 6, dtype: Int64
         """
 
         # If a 3rd-party EA has implemented this functionality in fillna,
@@ -981,7 +1012,7 @@ class ExtensionArray:
         ----------
         value : scalar, array-like
             If a scalar value is passed it is used to fill all missing values.
-            Alternatively, an array-like 'value' can be given. It's expected
+            Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series:
@@ -1308,6 +1339,11 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`. If needed, this can be
         overridden in the ``self._hash_pandas_object()`` method.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3])._values_for_factorize()
+        (array([1, 2, 3], dtype=object), nan)
         """
         return self.astype(object), np.nan
 
@@ -1810,6 +1846,11 @@ class ExtensionArray:
         Raises
         ------
         TypeError : subclass does not define reductions
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3])._reduce("min")
+        1
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -1856,12 +1897,24 @@ class ExtensionArray:
         Parameters
         ----------
         encoding : str
+            Encoding for data & key when strings.
         hash_key : str
+            Hash_key for string key to encode.
         categorize : bool
+            Whether to first categorize object arrays before hashing. This is more
+            efficient when the array contains duplicate values.
 
         Returns
         -------
         np.ndarray[uint64]
+
+        Examples
+        --------
+        >>> pd.array([1, 2])._hash_pandas_object(encoding='utf-8',
+        ...                                      hash_key="1000000000000000",
+        ...                                      categorize=False
+        ...                                      )
+        array([11381023671546835630,  4641644667904626417], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
 
