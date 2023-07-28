@@ -49,6 +49,7 @@ from pandas._typing import (
     ArrayLike,
     Axes,
     Axis,
+    AxisInt,
     DropKeep,
     DtypeObj,
     F,
@@ -7268,7 +7269,7 @@ class Index(IndexOpsMixin, PandasObject):
             make_invalid_op(opname)(self)
 
     @Appender(IndexOpsMixin.argmin.__doc__)
-    def argmin(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmin(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7287,7 +7288,7 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
-    def argmax(self, axis=None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmax(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7305,7 +7306,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return -1
         return super().argmax(skipna=skipna)
 
-    def min(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -7368,7 +7369,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def max(self, axis=None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
