@@ -1213,10 +1213,9 @@ too many fields will raise an error by default:
 You can elect to skip bad lines:
 
 .. ipython:: python
-    :okwarning:
 
     data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
-    pd.read_csv(StringIO(data), on_bad_lines="warn")
+    pd.read_csv(StringIO(data), on_bad_lines="skip")
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
