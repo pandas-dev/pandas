@@ -304,8 +304,7 @@ def test_interchange_from_non_pandas_tz_aware():
 
     arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
     arr = pc.assume_timezone(arr, "Asia/Kathmandu")
-    result = pa.table({"arr": arr}).to_pandas()
-
+    result = from_dataframe(pa.table({"arr": arr}).to_pandas())
     df = pd.DataFrame(
         ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
         columns=["arr"],
