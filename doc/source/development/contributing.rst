@@ -105,7 +105,7 @@ Create a fork of pandas
 -----------------------
 
 You will need your own copy of pandas (aka fork) to work on the code. Go to the `pandas project
-page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
+page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. Please uncheck the box to copy only the main branch before selecting ``Create Fork``.
 want to clone your fork to your machine
 
 .. code-block:: shell
