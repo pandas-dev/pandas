@@ -25,6 +25,11 @@ repos:
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+    -   id: ruff
+        # TODO: remove autofixe-only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
@@ -371,17 +376,6 @@ repos:
             /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
             |/tests/
             |/_testing/
-    -   id: autotyping
-        name: autotyping
-        entry: python -m scripts.run_autotyping
-        types_or: [python, pyi]
-        files: ^pandas
-        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
-        language: python
-        stages: [manual]
-        additional_dependencies:
-        - autotyping==23.3.0
-        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

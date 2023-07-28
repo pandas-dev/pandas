@@ -5329,7 +5329,7 @@ class Index(IndexOpsMixin, PandasObject):
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
     @final
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         raise TypeError("Index does not support mutable operations")
 
     def __getitem__(self, key):
