@@ -931,6 +931,8 @@ Parsing a CSV with mixed timezones
 pandas cannot natively represent a column or index with mixed timezones. If your CSV
 file contains columns with a mixture of timezones, the default result will be
 an object-dtype column with strings, even with ``parse_dates``.
+To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
+then call :func:`to_datetime` with ``utc=True``.
 
 
 .. ipython:: python
@@ -939,14 +941,6 @@ an object-dtype column with strings, even with ``parse_dates``.
    a
    2000-01-01T00:00:00+05:00
    2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(StringIO(content), parse_dates=["a"])
-   df["a"]
-
-To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
-then call :func:`to_datetime` with ``utc=True``.
-
-.. ipython:: python
-
    df = pd.read_csv(StringIO(content))
    df["a"] = pd.to_datetime(df["a"], utc=True)
    df["a"]

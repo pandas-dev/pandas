@@ -457,7 +457,7 @@ class TestChaining:
                 df.loc[2]["D"] = "foo"
             with tm.raises_chained_assignment_error():
                 df.loc[2]["C"] = "foo"
-            with tm.raises_chained_assignment_error():
+            with tm.raises_chained_assignment_error(extra_warnings=(FutureWarning,)):
                 df["C"][2] = "foo"
             tm.assert_frame_equal(df, df_original)
 
