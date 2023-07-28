@@ -225,7 +225,10 @@ class TestMultiIndexSetItem:
             tm.assert_numpy_array_equal(view, exp.values)
 
         # arr + 0.5 cannot be cast losslessly to int, so we upcast
-        df.loc[4, "c"] = arr + 0.5
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[4, "c"] = arr + 0.5
         result = df.loc[4, "c"]
         exp = exp + 0.5
         tm.assert_series_equal(result, exp)

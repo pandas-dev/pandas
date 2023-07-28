@@ -4031,7 +4031,7 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
@@ -6382,6 +6382,39 @@ class DataFrame(NDFrame, OpsMixin):
             return result
         self._update_inplace(result)
         return None
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[True],
+        ignore_index: bool = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: bool = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame | None:
+        ...
 
     def drop_duplicates(
         self,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
     overload,
 )
@@ -160,6 +161,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
         return result
 
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
+        # NEP 51: https://github.com/numpy/numpy/pull/22449
+        return str
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -185,7 +190,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(self._data[item], newmask)
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
@@ -195,16 +202,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._data.copy().T
-                new_mask = mask.copy().T
+                npvalues = self._data.T
+                new_mask = mask.T
+                if copy:
+                    npvalues = npvalues.copy()
+                    new_mask = new_mask.copy()
                 func(npvalues, limit=limit, mask=new_mask)
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
                 # fill with value
-                new_values = self.copy()
+                if copy:
+                    new_values = self.copy()
+                else:
+                    new_values = self[:]
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if copy:
+                new_values = self.copy()
+            else:
+                new_values = self[:]
         return new_values
 
     @classmethod

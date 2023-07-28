@@ -925,11 +925,20 @@ def test_column_as_series_set_with_upcast(
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
     elif using_copy_on_write or using_array_manager:
-        s[0] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
+            msg = "|".join(
+                [
+                    "A value is trying to be set on a copy of a slice from a DataFrame",
+                    "Setting an item of incompatible dtype is deprecated",
+                ]
+            )
+            with tm.assert_produces_warning(
+                (SettingWithCopyWarning, FutureWarning), match=msg
+            ):
                 s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
 
@@ -1020,7 +1029,10 @@ def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     ],
 )
 def test_set_value_copy_only_necessary_column(
-    using_copy_on_write, indexer_func, indexer, val
+    using_copy_on_write,
+    indexer_func,
+    indexer,
+    val,
 ):
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
@@ -1029,7 +1041,13 @@ def test_set_value_copy_only_necessary_column(
     df_orig = df.copy()
     view = df[:]
 
-    indexer_func(df)[indexer] = val
+    if val == "a" and indexer[0] != slice(None):
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype is deprecated"
+        ):
+            indexer_func(df)[indexer] = val
+    else:
+        indexer_func(df)[indexer] = val
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
