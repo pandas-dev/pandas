@@ -125,6 +125,7 @@ def test_to_array_error(values):
             "Cannot pass scalar",
             r"float\(\) argument must be a string or a (real )?number, not 'dict'",
             "could not convert string to float: 'foo'",
+            r"could not convert string to float: np\.str_\('foo'\)",
         ]
     )
     with pytest.raises((TypeError, ValueError), match=msg):

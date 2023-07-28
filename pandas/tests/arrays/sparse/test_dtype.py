@@ -197,7 +197,7 @@ def test_update_dtype(original, dtype, expected):
         (
             SparseDtype(str, "abc"),
             int,
-            re.escape("invalid literal for int() with base 10: 'abc'"),
+            r"invalid literal for int\(\) with base 10: ('abc'|np\.str_\('abc'\))",
         ),
     ],
 )
