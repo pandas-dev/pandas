@@ -295,3 +295,20 @@ def test_datetimetzdtype(tz, unit):
     )
     df = pd.DataFrame({"ts_tz": tz_data})
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+
+
+def test_interchange_from_non_pandas_tz_aware():
+    # GH 54239
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
+    arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
+    arr = pc.assume_timezone(arr, "Asia/Kathmandu")
+    result = pa.table({"arr": arr}).to_pandas()
+
+    df = pd.DataFrame(
+        ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
+        columns=["arr"],
+    )
+    expected = df.astype("datetime64[ns, Asia/Kathmandu]")
+    tm.assert_frame_equal(expected, result)
