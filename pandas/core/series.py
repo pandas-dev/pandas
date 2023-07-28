@@ -3030,7 +3030,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.autocorr()
         nan
         """
-        return self.corr(self.shift(lag))
+        return self.corr(cast(Series, self.shift(lag)))
 
     def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
         """
