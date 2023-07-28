@@ -5250,7 +5250,8 @@ class Index(IndexOpsMixin, PandasObject):
         #  in order to keep mypy happy
         raise TypeError(
             f"{cls.__name__}(...) must be called with a collection of some "
-            f"kind, {repr(data)} was passed"
+            f"kind, {repr(data) if not isinstance(data, np.generic) else str(data)} "
+            "was passed"
         )
 
     def _validate_fill_value(self, value):
@@ -5328,7 +5329,7 @@ class Index(IndexOpsMixin, PandasObject):
     __hash__: ClassVar[None]  # type: ignore[assignment]
 
     @final
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         raise TypeError("Index does not support mutable operations")
 
     def __getitem__(self, key):
@@ -6974,7 +6975,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask = indexer == -1
         if mask.any():
             if errors != "ignore":
-                raise KeyError(f"{list(labels[mask])} not found in axis")
+                raise KeyError(f"{labels[mask].tolist()} not found in axis")
             indexer = indexer[~mask]
         return self.delete(indexer)
 

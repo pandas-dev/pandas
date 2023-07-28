@@ -3030,7 +3030,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.autocorr()
         nan
         """
-        return self.corr(self.shift(lag))
+        return self.corr(cast(Series, self.shift(lag)))
 
     def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
         """
@@ -5988,7 +5988,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @Appender(ops.make_flex_doc("mul", "series"))
-    def mul(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def mul(
+        self,
+        other,
+        level: Level | None = None,
+        fill_value: float | None = None,
+        axis: Axis = 0,
+    ):
         return self._flex_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )
