@@ -302,7 +302,20 @@ Deprecated silent upcasting in setitem-like Series operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Setitem-like operations on Series (or DataFrame columns) which silently upcast the dtype are
-deprecated and show a warning.
+deprecated and show a warning. Examples of affected operations are:
+
+  - ``ser.fillna('foo', inplace=True)``
+  - ``ser.where(ser.isna(), 'foo', inplace=True)``
+  - ``ser.iloc[indexer] = 'foo'``
+  - ``ser.loc[indexer] = 'foo'``
+  - ``df.iloc[indexer, 0] = 'foo'``
+  - ``df.loc[indexer, 'a'] = 'foo'``
+  - ``ser[indexer] = 'foo'``
+
+where ``ser`` is a :class:`Series`, ``df`` is a :class:`DataFrame`, and ``indexer``
+could be a slice, a mask, a single value, a list or array of values, or any other
+allowed indexer.
+
 In a future version, these will raise an error and you should cast to a common dtype first.
 
 *Previous behavior*:
