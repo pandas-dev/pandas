@@ -47,7 +47,6 @@ class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
 
-
     Examples
     --------
     >>> df = pd.DataFrame({"jim": [0, 0, 1, 1],
