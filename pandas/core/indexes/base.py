@@ -51,6 +51,7 @@ from pandas._typing import (
     Axis,
     AxisInt,
     DropKeep,
+    Dtype,
     DtypeObj,
     F,
     IgnoreRaise,
@@ -1035,7 +1036,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._id = self._id
         return result
 
-    def astype(self, dtype, copy: bool = True):
+    def astype(self, dtype: Dtype | None = None, copy: bool = True):
         """
         Create an Index with values cast to dtypes.
 
@@ -1229,7 +1230,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis: AxisInt | None = None):
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -3216,7 +3217,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self, other
 
     @final
-    def union(self, other, sort=None):
+    def union(self, other, sort: bool | None = None):
         """
         Form the union of two Index objects.
 
@@ -3578,7 +3579,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def difference(self, other, sort=None):
+    def difference(self, other, sort: bool | None = None):
         """
         Return a new Index with elements of index not in `other`.
 
@@ -3662,7 +3663,9 @@ class Index(IndexOpsMixin, PandasObject):
         # We will override for MultiIndex to handle empty results
         return self._wrap_setop_result(other, result)
 
-    def symmetric_difference(self, other, result_name=None, sort=None):
+    def symmetric_difference(
+        self, other, result_name: str | None = None, sort: bool | None = None
+    ):
         """
         Compute the symmetric difference of two Index objects.
 
@@ -6450,7 +6453,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level=None) -> npt.NDArray[np.bool_]:
+    def isin(self, values, level: str | int = None) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
 
@@ -6750,7 +6753,9 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return slc
 
-    def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
+    def slice_locs(
+        self, start: str | None = None, end: str | None = None, step: int | None = None
+    ) -> tuple[int, int]:
         """
         Compute slice locations for input labels.
 
@@ -6838,7 +6843,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return start_slice, end_slice
 
-    def delete(self, loc) -> Self:
+    def delete(self, loc: int | list[int]) -> Self:
         """
         Make new Index with passed location(-s) deleted.
 
@@ -7269,7 +7274,9 @@ class Index(IndexOpsMixin, PandasObject):
             make_invalid_op(opname)(self)
 
     @Appender(IndexOpsMixin.argmin.__doc__)
-    def argmin(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmin(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         nv.validate_argmin(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7288,7 +7295,9 @@ class Index(IndexOpsMixin, PandasObject):
         return super().argmin(skipna=skipna)
 
     @Appender(IndexOpsMixin.argmax.__doc__)
-    def argmax(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs) -> int:
+    def argmax(
+        self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs
+    ) -> int:
         nv.validate_argmax(args, kwargs)
         nv.validate_minmax_axis(axis)
 
@@ -7306,7 +7315,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return -1
         return super().argmax(skipna=skipna)
 
-    def min(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs):
+    def min(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the minimum value of the Index.
 
@@ -7369,7 +7378,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return nanops.nanmin(self._values, skipna=skipna)
 
-    def max(self, axis: AxisInt|None = None, skipna: bool = True, *args, **kwargs):
+    def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
         Return the maximum value of the Index.
 
