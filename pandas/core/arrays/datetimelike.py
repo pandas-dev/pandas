@@ -2202,6 +2202,26 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     # --------------------------------------------------------------
     # ExtensionArray Interface
 
+    def _values_for_json(self, date_unit: str) -> np.ndarray:
+        # Small performance bump vs the base class which calls np.asarray(self)
+        if self.dtype.kind == "M":
+            if date_unit == "s":
+                return self.strftime("%Y-%M-%D %h-%m-%s")
+            elif date_unit == "ms":
+                raise NotImplementedError
+            elif date_unit == "us":
+                return self.strftime("%Y-%M-%D %h-%m-%s.%f")
+            elif date_unit == "ns":
+                return self.astype(str)
+            else:
+                raise NotImplementedError
+        elif self.dtype.kind == "m":
+            raise NotImplementedError
+        else:
+            return super()._values_for_json(date_unit)
+
+        return self._ndarray
+
     def factorize(
         self,
         use_na_sentinel: bool = True,

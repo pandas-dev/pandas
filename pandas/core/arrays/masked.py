@@ -185,7 +185,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(self._data[item], newmask)
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self._mask
@@ -195,16 +197,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if mask.any():
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._data.copy().T
-                new_mask = mask.copy().T
+                npvalues = self._data.T
+                new_mask = mask.T
+                if copy:
+                    npvalues = npvalues.copy()
+                    new_mask = new_mask.copy()
                 func(npvalues, limit=limit, mask=new_mask)
                 return self._simple_new(npvalues.T, new_mask.T)
             else:
                 # fill with value
-                new_values = self.copy()
+                if copy:
+                    new_values = self.copy()
+                else:
+                    new_values = self[:]
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if copy:
+                new_values = self.copy()
+            else:
+                new_values = self[:]
         return new_values
 
     @classmethod
@@ -1464,7 +1475,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._maybe_mask_result(res_values, result_mask)
 
 
-def transpose_homogenous_masked_arrays(
+def transpose_homogeneous_masked_arrays(
     masked_arrays: Sequence[BaseMaskedArray],
 ) -> list[BaseMaskedArray]:
     """Transpose masked arrays in a list, but faster.
@@ -1472,6 +1483,7 @@ def transpose_homogenous_masked_arrays(
     Input should be a list of 1-dim masked arrays of equal length and all have the
     same dtype. The caller is responsible for ensuring validity of input data.
     """
+    masked_arrays = list(masked_arrays)
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
     transposed_values = np.concatenate(values, axis=0)
 

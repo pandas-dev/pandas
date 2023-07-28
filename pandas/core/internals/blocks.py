@@ -10,6 +10,7 @@ from typing import (
     cast,
     final,
 )
+import warnings
 
 import numpy as np
 
@@ -41,6 +42,7 @@ from pandas._typing import (
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.astype import (
@@ -441,7 +443,7 @@ class Block(PandasObject):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other) -> Block:
+    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -450,7 +452,21 @@ class Block(PandasObject):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values.dtype, other)
-
+        if warn_on_upcast:
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
+                "please explicitly cast to a compatible dtype first.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if self.dtype == new_dtype:
+            raise AssertionError(
+                f"Did not expect new dtype {new_dtype} to equal self.dtype "
+                f"{self.values.dtype}. Please report a bug at "
+                "https://github.com/pandas-dev/pandas/issues."
+            )
         return self.astype(new_dtype, copy=False)
 
     @final
@@ -1109,7 +1125,7 @@ class Block(PandasObject):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
-            nb = self.coerce_to_target_dtype(value)
+            nb = self.coerce_to_target_dtype(value, warn_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
@@ -1175,7 +1191,9 @@ class Block(PandasObject):
 
                 if not is_list_like(new):
                     # using just new[indexer] can't save us the need to cast
-                    return self.coerce_to_target_dtype(new).putmask(mask, new)
+                    return self.coerce_to_target_dtype(
+                        new, warn_on_upcast=True
+                    ).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
                     nb = self.setitem(indexer, new[indexer], using_cow=using_cow)
@@ -1638,9 +1656,6 @@ class Block(PandasObject):
         """
         raise AbstractMethodError(self)
 
-    def values_for_json(self, date_unit) -> np.ndarray:
-        raise AbstractMethodError(self)
-
 
 class EABackedBlock(Block):
     """
@@ -1885,9 +1900,6 @@ class EABackedBlock(Block):
         # TODO(EA2D): reshape not needed with 2D EAs
         return np.asarray(values).reshape(self.shape)
 
-    def values_for_json(self, date_unit) -> np.ndarray:
-        return np.asarray(self.values)
-
     @final
     def pad_or_backfill(
         self,
@@ -1901,12 +1913,32 @@ class EABackedBlock(Block):
         using_cow: bool = False,
     ) -> list[Block]:
         values = self.values
+        copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.fillna(method=method, limit=limit).T
+            new_values = values.T.fillna(method=method, limit=limit, copy=copy).T
         else:
-            new_values = values.fillna(method=method, limit=limit)
-        return [self.make_block_same_class(new_values)]
+            try:
+                new_values = values.fillna(method=method, limit=limit, copy=copy)
+            except TypeError:
+                # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = values.fillna(method=method, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
+                warnings.warn(
+                    # GH#53278
+                    "ExtensionArray.fillna added a 'copy' keyword in pandas "
+                    "2.1.0. In a future version, ExtensionArray subclasses will "
+                    "need to implement this keyword or an exception will be "
+                    "raised. In the interim, the keyword is ignored by "
+                    f"{type(self.values).__name__}.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        return [self.make_block_same_class(new_values, refs=refs)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):
@@ -1944,8 +1976,29 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
             refs = self.refs
             new_values = self.values
         else:
-            refs = None
-            new_values = self.values.fillna(value=value, method=None, limit=limit)
+            copy, refs = self._get_refs_and_copy(using_cow, inplace)
+
+            try:
+                new_values = self.values.fillna(
+                    value=value, method=None, limit=limit, copy=copy
+                )
+            except TypeError:
+                # 3rd party EA that has not implemented copy keyword yet
+                refs = None
+                new_values = self.values.fillna(value=value, method=None, limit=limit)
+                # issue the warning *after* retrying, in case the TypeError
+                #  was caused by an invalid fill_value
+                warnings.warn(
+                    # GH#53278
+                    "ExtensionArray.fillna added a 'copy' keyword in pandas "
+                    "2.1.0. In a future version, ExtensionArray subclasses will "
+                    "need to implement this keyword or an exception will be "
+                    "raised. In the interim, the keyword is ignored by "
+                    f"{type(self.values).__name__}.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         nb = self.make_block_same_class(new_values, refs=refs)
         return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
 
@@ -2174,9 +2227,6 @@ class NumpyBlock(libinternals.NumpyBlock, Block):
             return self.values.astype(_dtype_obj)
         return self.values
 
-    def values_for_json(self, date_unit) -> np.ndarray:
-        return self.values
-
     @cache_readonly
     def is_numeric(self) -> bool:  # type: ignore[override]
         dtype = self.values.dtype
@@ -2231,24 +2281,6 @@ class DatetimeLikeBlock(NDArrayBackedExtensionBlock):
     is_numeric = False
     values: DatetimeArray | TimedeltaArray
 
-    def values_for_json(self, date_unit) -> np.ndarray:
-        values = self.values
-        if values.dtype.kind == "M":
-            if date_unit == "s":
-                return self.values.strftime("%Y-%M-%D %h-%m-%s")
-            elif date_unit == "ms":
-                raise NotImplementedError
-            elif date_unit == "us":
-                return self.values.strftime("%Y-%M-%D %h-%m-%s.%f")
-            elif date_unit == "ns":
-                return self.values.astype(str)
-            else:
-                raise NotImplementedError
-        else:
-            raise NotImplementedError
-
-        return self.values._ndarray
-
 
 class DatetimeTZBlock(DatetimeLikeBlock):
     """implement a datetime64 block with a tz attribute"""
@@ -2256,10 +2288,6 @@ class DatetimeTZBlock(DatetimeLikeBlock):
     values: DatetimeArray
 
     __slots__ = ()
-
-    # Don't use values_for_json from DatetimeLikeBlock since it is
-    # an invalid optimization here(drop the tz)
-    values_for_json = NDArrayBackedExtensionBlock.values_for_json
 
 
 # -----------------------------------------------------------------

@@ -9,6 +9,8 @@ from typing import (
 from pandas.compat._optional import import_optional_dependency
 
 if TYPE_CHECKING:
+    import google.auth
+
     from pandas import DataFrame
 
 
@@ -33,7 +35,7 @@ def read_gbq(
     dialect: str | None = None,
     location: str | None = None,
     configuration: dict[str, Any] | None = None,
-    credentials=None,
+    credentials: google.auth.credentials.Credentials | None = None,
     use_bqstorage_api: bool | None = None,
     max_results: int | None = None,
     progress_bar_type: str | None = None,
@@ -215,7 +217,7 @@ def to_gbq(
     table_schema: list[dict[str, str]] | None = None,
     location: str | None = None,
     progress_bar: bool = True,
-    credentials=None,
+    credentials: google.auth.credentials.Credentials | None = None,
 ) -> None:
     pandas_gbq = _try_import()
     pandas_gbq.to_gbq(

@@ -270,6 +270,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.arrays.IntegerArray._from_sequence([4, 5])
+        <IntegerArray>
+        [4, 5]
+        Length: 2, dtype: Int64
         """
         raise AbstractMethodError(cls)
 
@@ -313,6 +320,16 @@ class ExtensionArray:
         --------
         factorize : Top-level factorize method that dispatches here.
         ExtensionArray.factorize : Encode the extension array as an enumerated type.
+
+        Examples
+        --------
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
+        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> codes, uniques = pd.factorize(interv_arr)
+        >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
+        <IntervalArray>
+        [(0, 1], (1, 5]]
+        Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
 
@@ -872,6 +889,7 @@ class ExtensionArray:
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill NA/NaN values using the specified method.
@@ -895,6 +913,14 @@ class ExtensionArray:
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword in pad/backfill
+            cases.
 
         Returns
         -------
@@ -932,10 +958,16 @@ class ExtensionArray:
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
-                new_values = self.copy()
+                if not copy:
+                    new_values = self[:]
+                else:
+                    new_values = self.copy()
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1512,6 +1544,16 @@ class ExtensionArray:
             returns a string. By default, :func:`repr` is used
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
+
+        Examples
+        --------
+        >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
+        ...     def _formatter(self, boxed=False):
+        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        >>> MyExtensionArray(np.array([1, 2, 3, 4]))
+        <MyExtensionArray>
+        [1*, 2*, 3*, 4*]
+        Length: 4, dtype: int64
         """
         if boxed:
             return str
@@ -1550,6 +1592,13 @@ class ExtensionArray:
         -----
         - Because ExtensionArrays are 1D-only, this is a no-op.
         - The "order" argument is ignored, is for compatibility with NumPy.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).ravel()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self
 
@@ -1565,6 +1614,15 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, 3])
+        >>> arr2 = pd.array([4, 5, 6])
+        >>> pd.arrays.IntegerArray._concat_same_type([arr1, arr2])
+        <IntegerArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: Int64
         """
         # Implementer note: this method will only be called with a sequence of
         # ExtensionArrays of this class and with the same dtype as self. This
@@ -1677,6 +1735,19 @@ class ExtensionArray:
     # ------------------------------------------------------------------------
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
+
+    def _values_for_json(self, date_unit: str) -> np.ndarray:
+        """
+        Specify how to render our entries in to_json.
+
+        Notes
+        -----
+        The dtype on the returned ndarray is not restricted, but for non-native
+        types that are not specifically handled in objToJSON.c, to_json is
+        liable to raise. In these cases, it may be safer to return an ndarray
+        of strings.
+        """
+        return np.asarray(self)
 
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool
