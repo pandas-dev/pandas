@@ -247,9 +247,9 @@ new column and will this raise a ``UserWarning``:
 .. ipython:: python
    :okwarning:
 
-    df = pd.DataFrame({'one': [1., 2., 3.]})
-    df.two = [4, 5, 6]
-    df
+    df_new = pd.DataFrame({'one': [1., 2., 3.]})
+    df_new.two = [4, 5, 6]
+    df_new
 
 
 Slicing ranges
@@ -304,8 +304,8 @@ Selection by label
       :okexcept:
 
       dfl = pd.DataFrame(np.random.randn(5, 4),
-                        columns=list('ABCD'),
-                        index=pd.date_range('20130101', periods=5))
+                         columns=list('ABCD'),
+                         index=pd.date_range('20130101', periods=5))
       dfl
       dfl.loc[2:3]
 
@@ -620,6 +620,7 @@ The idiomatic way to achieve selecting potentially not-found elements is via ``.
 
 .. ipython:: python
 
+  s = pd.Series([1, 2, 3])
   s.reindex([1, 2, 3])
 
 Alternatively, if you want to select only *valid* keys, the following is idiomatic and efficient; it is guaranteed to preserve the dtype of the selection.
@@ -1695,12 +1696,13 @@ discards the index, instead of putting index values in the DataFrame's columns.
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you create an index yourself, you can just assign it to the ``index`` field:
+You can assign a custom index to the ``index`` attribute:
 
 .. ipython:: python
 
-   data.index = pd.Index([10, 20, 30, 40], name="a")
-   data
+   df_idx = pd.DataFrame(range(4))
+   df_idx.index = pd.Index([10, 20, 30, 40], name="a")
+   df_idx
 
 .. _indexing.view_versus_copy:
 
