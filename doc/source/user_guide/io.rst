@@ -1712,9 +1712,21 @@ at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
 for those not included in the main ``fsspec``
 distribution.
 
-You can also pass parameters directly to the backend driver. For example,
-if you do *not* have S3 credentials, you can still access public data by
-specifying an anonymous connection, such as
+You can also pass parameters directly to the backend driver. Since ``fsspec`` does not
+utilize the ``AWS_S3_HOST`` environment variable, we can directly define a
+dictionary containing the endpoint_url and pass the object into the storage
+option parameter:
+
+.. code-block:: python
+
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
+
+More sample configurations and documentation can be found at `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/index.html?highlight=host#s3-compatible-storage>`__.
+
+If you do *not* have S3 credentials, you can still access public
+data by specifying an anonymous connection, such as
 
 .. versionadded:: 1.2.0
 
