@@ -4265,12 +4265,16 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    A ``fixed`` format will raise a ``TypeError`` if you try to retrieve using a ``where``:
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
-       >>> pd.read_hdf("test_fixed.h5", "df", where="index>5")
-       TypeError: cannot pass a where specification when reading a fixed format.
-                  this store must be selected in its entirety
+      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+      pd.read_hdf("test_fixed.h5", "df", where="index>5")
+
+   .. ipython:: python
+      :suppress:
+
+      os.remove("test_fixed.h5")
 
 
 .. _io.hdf5-table:
@@ -4362,7 +4366,7 @@ will yield a tuple for each group key along with the relative keys of its conten
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
     .. ipython:: python
-      :okexcept:
+       :okexcept:
 
        store.foo.bar.bah
 
