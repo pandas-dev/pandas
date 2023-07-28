@@ -1252,6 +1252,7 @@ You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
 .. ipython:: python
+   :okexcept:
 
    pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
