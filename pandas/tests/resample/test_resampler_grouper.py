@@ -143,7 +143,7 @@ def test_groupby_with_origin():
 
     # test origin on 1970-01-01 00:00:00
     rng = date_range("1970-01-01 00:00:00", end, freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     middle_ts = rng[len(rng) // 2]
     ts2 = ts[middle_ts:end]
 
@@ -170,7 +170,7 @@ def test_groupby_with_origin():
     # test origin on 2049-10-18 20:00:00
 
     rng = date_range(start, "2049-10-18 20:00:00", freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     middle_ts = rng[len(rng) // 2]
     ts2 = ts[middle_ts:end]
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
