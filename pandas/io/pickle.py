@@ -24,6 +24,11 @@ if TYPE_CHECKING:
         WriteBuffer,
     )
 
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+
 
 @doc(
     storage_options=_shared_docs["storage_options"],
@@ -116,7 +121,7 @@ def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions | None = None,
-):
+) -> DataFrame | Series:
     """
     Load pickled pandas object (or any object) from file.
 

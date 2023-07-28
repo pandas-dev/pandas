@@ -1666,6 +1666,7 @@ class TestLocWithEllipsis:
         result = indexer(obj)[...]
         tm.assert_equal(result, obj)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
@@ -2974,6 +2975,8 @@ def test_loc_set_int_dtype():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_loc_periodindex_3_levels():
     # GH#24091
     p_index = PeriodIndex(
@@ -3257,6 +3260,8 @@ class TestLocSeries:
 
     def test_getitem_loc_str_periodindex(self):
         # GH#33964
-        index = pd.period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = pd.period_range(start="2000", periods=20, freq="B")
+            series = Series(range(20), index=index)
+            assert series.loc["2000-01-14"] == 9

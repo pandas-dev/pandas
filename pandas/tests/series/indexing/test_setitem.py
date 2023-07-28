@@ -1452,6 +1452,10 @@ class TestCoercionDatetime64(CoercionTest):
     def obj(self):
         return Series(date_range("2011-01-01", freq="D", periods=4))
 
+    @pytest.fixture
+    def warn(self):
+        return None
+
 
 @pytest.mark.parametrize(
     "val,exp_dtype,warn",
@@ -1488,6 +1492,10 @@ class TestCoercionTimedelta64(CoercionTest):
     @pytest.fixture
     def obj(self):
         return Series(timedelta_range("1 day", periods=4))
+
+    @pytest.fixture
+    def warn(self):
+        return None
 
 
 @pytest.mark.parametrize(

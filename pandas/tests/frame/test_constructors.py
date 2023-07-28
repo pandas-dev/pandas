@@ -23,15 +23,11 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
+from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
-from pandas.core.dtypes.common import (
-    is_complex_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
@@ -2553,12 +2549,7 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        if (
-            is_float_dtype(df.dtypes.iloc[0])
-            or is_integer_dtype(df.dtypes.iloc[0])
-            or is_complex_dtype(df.dtypes.iloc[0])
-            or is_object_dtype(df.dtypes.iloc[0])
-        ):
+        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuO"):
             warn = None
         else:
             warn = FutureWarning
