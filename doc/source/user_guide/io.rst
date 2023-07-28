@@ -849,8 +849,8 @@ column names:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-    df
+   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
+   df
 
 By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
@@ -1103,10 +1103,10 @@ By default, numbers with a thousands separator will be parsed as strings:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", sep="|")
-    df
+   df = pd.read_csv("tmp.csv", sep="|")
+   df
 
-    df.level.dtype
+   df.level.dtype
 
 The ``thousands`` keyword allows integers to be parsed correctly:
 
@@ -1217,6 +1217,8 @@ You can elect to skip bad lines:
     data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
     pd.read_csv(StringIO(data), on_bad_lines="skip")
 
+.. versionadded:: 1.4.0
+
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
 
@@ -1229,23 +1231,20 @@ The bad line will be a list of strings that was split by the ``sep``:
     pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
     external_list
 
-    .. versionadded:: 1.4.0
+.. note::
 
-Note that the callable function will handle only a line with too many fields.
-Bad lines caused by other errors will be silently skipped.
+   The callable function will handle only a line with too many fields.
+   Bad lines caused by other errors will be silently skipped.
 
-For example:
+   .. ipython:: python
 
-.. ipython:: python
+      bad_lines_func = lambda line: print(line)
 
-   def bad_lines_func(line):
-      print(line)
+      data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+      data
+      pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
 
-   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
-   data
-   pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
-
-The line was not processed in this case, as a "bad line" here is caused by an escape character.
+   The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
@@ -4432,19 +4431,19 @@ storing/selecting from homogeneous index ``DataFrames``.
 
 .. ipython:: python
 
-        index = pd.MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["foo", "bar"],
-        )
-        df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
-        df_mi
+   index = pd.MultiIndex(
+      levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+      codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+      names=["foo", "bar"],
+   )
+   df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+   df_mi
 
-        store.append("df_mi", df_mi)
-        store.select("df_mi")
+   store.append("df_mi", df_mi)
+   store.select("df_mi")
 
-        # the levels are automatically included as data columns
-        store.select("df_mi", "foo=bar")
+   # the levels are automatically included as data columns
+   store.select("df_mi", "foo=bar")
 
 .. note::
    The ``index`` keyword is reserved and cannot be use as a level name.
@@ -4526,7 +4525,6 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
    instead of this
 
    .. code-block:: python
-      :okexcept:
 
       string = "HolyMoly'"
       store.select('df', f'index == {string}')
