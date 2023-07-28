@@ -1244,7 +1244,7 @@ For example:
 
    data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
    data
-   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
+   pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
 
 The line was not processed in this case, as a "bad line" here is caused by an escape character.
 

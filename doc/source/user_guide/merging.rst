@@ -155,10 +155,10 @@ functionality below.
    reusing this function can create a significant performance hit. If you need
    to use the operation over several datasets, use a list comprehension.
 
-::
+   .. code-block:: python
 
-   frames = [ process_your_file(f) for f in files ]
-   result = pd.concat(frames)
+      frames = [process_your_file(f) for f in files]
+      result = pd.concat(frames)
 
 .. note::
 

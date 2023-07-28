@@ -1099,7 +1099,8 @@ accomplished as such:
 However, if you only had ``c`` and ``e``, determining the next element in the
 index can be somewhat complicated. For example, the following does not work:
 
-::
+.. ipython:: python
+   :okexcept:
 
     s.loc['c':'e' + 1]
 

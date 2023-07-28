@@ -1833,15 +1833,12 @@ chained indexing expression, you can set the :ref:`option <options>`
 
 This however is operating on a copy and will not work.
 
-::
+.. ipython:: python
+   :okwarning:
+   :okexcept:
 
-   >>> pd.set_option('mode.chained_assignment','warn')
-   >>> dfb[dfb['a'].str.startswith('o')]['c'] = 42
-   Traceback (most recent call last)
-        ...
-   SettingWithCopyWarning:
-        A value is trying to be set on a copy of a slice from a DataFrame.
-        Try using .loc[row_index,col_indexer] = value instead
+   with option_context('mode.chained_assignment','warn'):
+       dfb[dfb['a'].str.startswith('o')]['c'] = 42
 
 A chained assignment can also crop up in setting in a mixed dtype frame.
 
@@ -1878,15 +1875,12 @@ The following *can* work at times, but it is not guaranteed to, and therefore sh
 
 Last, the subsequent example will **not** work at all, and so should be avoided:
 
-::
+.. ipython:: python
+   :okwarning:
+   :okexcept:
 
-   >>> pd.set_option('mode.chained_assignment','raise')
-   >>> dfd.loc[0]['a'] = 1111
-   Traceback (most recent call last)
-        ...
-   SettingWithCopyError:
-        A value is trying to be set on a copy of a slice from a DataFrame.
-        Try using .loc[row_index,col_indexer] = value instead
+   with option_context('mode.chained_assignment','raise'):
+       dfd.loc[0]['a'] = 1111
 
 .. warning::
 
