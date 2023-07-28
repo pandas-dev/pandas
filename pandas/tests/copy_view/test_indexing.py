@@ -802,7 +802,17 @@ def test_series_subset_set_with_indexer(
     s_orig = s.copy()
     subset = s[:]
 
-    indexer_si(subset)[indexer] = 0
+    warn = None
+    msg = "Series.__setitem__ treating keys as positions is deprecated"
+    if (
+        indexer_si is tm.setitem
+        and isinstance(indexer, np.ndarray)
+        and indexer.dtype.kind == "i"
+    ):
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=msg):
+        indexer_si(subset)[indexer] = 0
     expected = Series([0, 0, 3], index=["a", "b", "c"])
     tm.assert_series_equal(subset, expected)
 
@@ -833,8 +843,9 @@ def test_del_frame(backend, using_copy_on_write):
     tm.assert_frame_equal(df2, df_orig[["a", "c"]])
     df2._mgr._verify_integrity()
 
-    # TODO in theory modifying column "b" of the parent wouldn't need a CoW
-    # but the weakref is still alive and so we still perform CoW
+    df.loc[0, "b"] = 200
+    assert np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+    df_orig = df.copy()
 
     df2.loc[0, "a"] = 100
     if using_copy_on_write:
@@ -914,11 +925,20 @@ def test_column_as_series_set_with_upcast(
             s[0] = "foo"
         expected = Series([1, 2, 3], name="a")
     elif using_copy_on_write or using_array_manager:
-        s[0] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
     else:
         with pd.option_context("chained_assignment", "warn"):
-            with tm.assert_produces_warning(SettingWithCopyWarning):
+            msg = "|".join(
+                [
+                    "A value is trying to be set on a copy of a slice from a DataFrame",
+                    "Setting an item of incompatible dtype is deprecated",
+                ]
+            )
+            with tm.assert_produces_warning(
+                (SettingWithCopyWarning, FutureWarning), match=msg
+            ):
                 s[0] = "foo"
         expected = Series(["foo", 2, 3], dtype=object, name="a")
 
@@ -1009,7 +1029,10 @@ def test_dataframe_add_column_from_series(backend, using_copy_on_write):
     ],
 )
 def test_set_value_copy_only_necessary_column(
-    using_copy_on_write, indexer_func, indexer, val
+    using_copy_on_write,
+    indexer_func,
+    indexer,
+    val,
 ):
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
@@ -1018,7 +1041,13 @@ def test_set_value_copy_only_necessary_column(
     df_orig = df.copy()
     view = df[:]
 
-    indexer_func(df)[indexer] = val
+    if val == "a" and indexer[0] != slice(None):
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype is deprecated"
+        ):
+            indexer_func(df)[indexer] = val
+    else:
+        indexer_func(df)[indexer] = val
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
@@ -1073,3 +1102,19 @@ def test_series_midx_tuples_slice(using_copy_on_write):
             index=pd.MultiIndex.from_tuples([((1, 2), 3), ((1, 2), 4), ((2, 3), 4)]),
         )
         tm.assert_series_equal(ser, expected)
+
+
+def test_loc_enlarging_with_dataframe(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3]})
+    rhs = DataFrame({"b": [1, 2, 3], "c": [4, 5, 6]})
+    rhs_orig = rhs.copy()
+    df.loc[:, ["b", "c"]] = rhs
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+        assert np.shares_memory(get_array(df, "c"), get_array(rhs, "c"))
+        assert not df._mgr._has_no_reference(1)
+    else:
+        assert not np.shares_memory(get_array(df, "b"), get_array(rhs, "b"))
+
+    df.iloc[0, 1] = 100
+    tm.assert_frame_equal(rhs, rhs_orig)

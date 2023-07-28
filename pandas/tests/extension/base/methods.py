@@ -21,10 +21,10 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_hash_pandas_object(self, data):
         # _hash_pandas_object should return a uint64 ndarray of the same length
         # as the data
+        from pandas.core.util.hashing import _default_hash_key
+
         res = data._hash_pandas_object(
-            encoding="utf-8",
-            hash_key=pd.core.util.hashing._default_hash_key,
-            categorize=False,
+            encoding="utf-8", hash_key=_default_hash_key, categorize=False
         )
         assert res.dtype == np.uint64
         assert res.shape == data.shape
@@ -107,7 +107,9 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort_missing(self, data_missing_for_sorting):
-        result = pd.Series(data_missing_for_sorting).argsort()
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = pd.Series(data_missing_for_sorting).argsort()
         expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         self.assert_series_equal(result, expected)
 
@@ -160,8 +162,16 @@ class BaseMethodsTests(BaseExtensionTests):
         self, data_missing_for_sorting, op_name, skipna, expected
     ):
         # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
+        warn = None
+        msg = "The behavior of Series.argmax/argmin"
+        if op_name.startswith("arg") and expected == -1:
+            warn = FutureWarning
+        if op_name.startswith("idx") and np.isnan(expected):
+            warn = FutureWarning
+            msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
-        result = getattr(ser, op_name)(skipna=skipna)
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(ser, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):

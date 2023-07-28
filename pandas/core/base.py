@@ -9,13 +9,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Hashable,
-    Iterator,
     Literal,
     cast,
     final,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -38,6 +37,7 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
@@ -69,6 +69,11 @@ from pandas.core.construction import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         DropKeep,
         NumpySorter,
@@ -77,6 +82,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import (
+        DataFrame,
         Index,
         Series,
     )
@@ -254,6 +260,21 @@ class SelectionMixin(Generic[NDFrameT]):
         """
         raise AbstractMethodError(self)
 
+    @final
+    def _infer_selection(self, key, subset: Series | DataFrame):
+        """
+        Infer the `selection` to pass to our constructor in _gotitem.
+        """
+        # Shared by Rolling and Resample
+        selection = None
+        if subset.ndim == 2 and (
+            (lib.is_scalar(key) and key in subset) or lib.is_list_like(key)
+        ):
+            selection = key
+        elif subset.ndim == 1 and lib.is_scalar(key) and key == subset.name:
+            selection = key
+        return selection
+
     def aggregate(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
 
@@ -300,6 +321,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -311,6 +334,12 @@ class IndexOpsMixin(OpsMixin):
         1    Bear
         2     Cow
         dtype: object
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.T
+        Index([1, 2, 3], dtype='int64')
         """,
     )
 
@@ -346,6 +375,14 @@ class IndexOpsMixin(OpsMixin):
         dtype: object
         >>> s.ndim
         1
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.ndim
+        1
         """
         return 1
 
@@ -357,12 +394,24 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         scalar
-            The first element of Series.
+            The first element of Series or Index.
 
         Raises
         ------
         ValueError
-            If the data is not length-1.
+            If the data is not length = 1.
+
+        Examples
+        --------
+        >>> s = pd.Series([1])
+        >>> s.item()
+        1
+
+        For an index:
+
+        >>> s = pd.Series([1], index=['a'])
+        >>> s.index.item()
+        'a'
         """
         if len(self) == 1:
             return next(iter(self))
@@ -375,6 +424,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -382,6 +433,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.nbytes
+        24
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.nbytes
         24
         """
         return self._values.nbytes
@@ -393,6 +452,8 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series:
+
         >>> s = pd.Series(['Ant', 'Bear', 'Cow'])
         >>> s
         0     Ant
@@ -400,6 +461,14 @@ class IndexOpsMixin(OpsMixin):
         2     Cow
         dtype: object
         >>> s.size
+        3
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+        >>> idx.size
         3
         """
         return len(self._values)
@@ -451,11 +520,11 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
-        For regular NumPy types like int, and float, a PandasArray
+        For regular NumPy types like int, and float, a NumpyExtensionArray
         is returned.
 
         >>> pd.Series([1, 2, 3]).array
-        <PandasArray>
+        <NumpyExtensionArray>
         [1, 2, 3]
         Length: 3, dtype: int64
 
@@ -668,15 +737,29 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmax()
         else:
+            result = nanops.nanargmax(delegate, skipna=skipna)
+            if result == -1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
-            return nanops.nanargmax(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            return result  # type: ignore[return-value]
 
     @doc(argmax, op="min", oppose="max", value="smallest")
     def argmin(
@@ -688,15 +771,29 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(delegate, ExtensionArray):
             if not skipna and delegate.isna().any():
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
                 return -1
             else:
                 return delegate.argmin()
         else:
+            result = nanops.nanargmin(delegate, skipna=skipna)
+            if result == -1:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.argmax/argmin "
+                    "with skipna=False and NAs, or with all-NAs is deprecated. "
+                    "In a future version this will raise ValueError.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             # error: Incompatible return value type (got "Union[int, ndarray]", expected
             # "int")
-            return nanops.nanargmin(  # type: ignore[return-value]
-                delegate, skipna=skipna
-            )
+            return result  # type: ignore[return-value]
 
     def tolist(self):
         """
@@ -717,8 +814,19 @@ class IndexOpsMixin(OpsMixin):
 
         Examples
         --------
+        For Series
+
         >>> s = pd.Series([1, 2, 3])
         >>> s.to_list()
+        [1, 2, 3]
+
+        For Index:
+
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Index([1, 2, 3], dtype='int64')
+
+        >>> idx.to_list()
         [1, 2, 3]
         """
         return self._values.tolist()
@@ -899,7 +1007,7 @@ class IndexOpsMixin(OpsMixin):
         NaN    1
         Name: count, dtype: int64
         """
-        return algorithms.value_counts(
+        return algorithms.value_counts_internal(
             self,
             sort=sort,
             ascending=ascending,
@@ -965,6 +1073,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_unique
+        True
+
+        >>> s = pd.Series([1, 2, 3, 1])
+        >>> s.is_unique
+        False
         """
         return self.nunique(dropna=False) == len(self)
 
@@ -976,6 +1094,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 2])
+        >>> s.is_monotonic_increasing
+        True
+
+        >>> s = pd.Series([3, 2, 1])
+        >>> s.is_monotonic_increasing
+        False
         """
         from pandas import Index
 
@@ -989,6 +1117,16 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         bool
+
+        Examples
+        --------
+        >>> s = pd.Series([3, 2, 2, 1])
+        >>> s.is_monotonic_decreasing
+        True
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.is_monotonic_decreasing
+        False
         """
         from pandas import Index
 
@@ -1018,6 +1156,12 @@ class IndexOpsMixin(OpsMixin):
         -----
         Memory usage does not include memory consumed by elements that
         are not components of the array if deep=False or if used on PyPy
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx.memory_usage()
+        24
         """
         if hasattr(self.array, "memory_usage"):
             return self.array.memory_usage(  # pyright: ignore[reportGeneralTypeIssues]
@@ -1193,7 +1337,7 @@ class IndexOpsMixin(OpsMixin):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if isinstance(value, ABCDataFrame):
             msg = (

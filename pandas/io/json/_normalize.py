@@ -7,12 +7,10 @@ from collections import (
     defaultdict,
 )
 import copy
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Iterable,
 )
 
 import numpy as np
@@ -23,6 +21,8 @@ import pandas as pd
 from pandas import DataFrame
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         IgnoreRaise,
         Scalar,
@@ -151,12 +151,7 @@ def _normalise_json(
             new_key = f"{key_string}{separator}{key}"
 
             if not key_string:
-                if sys.version_info < (3, 9):
-                    from pandas.util._str_methods import removeprefix
-
-                    new_key = removeprefix(new_key, separator)
-                else:
-                    new_key = new_key.removeprefix(separator)
+                new_key = new_key.removeprefix(separator)
 
             _normalise_json(
                 data=value,
@@ -535,5 +530,15 @@ def json_normalize(
             raise ValueError(
                 f"Conflicting metadata name {k}, need distinguishing prefix "
             )
-        result[k] = np.array(v, dtype=object).repeat(lengths)
+        # GH 37782
+
+        values = np.array(v, dtype=object)
+
+        if values.ndim > 1:
+            # GH 37782
+            values = np.empty((len(v),), dtype=object)
+            for i, v in enumerate(v):
+                values[i] = v
+
+        result[k] = values.repeat(lengths)
     return result

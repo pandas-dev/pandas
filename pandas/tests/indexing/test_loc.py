@@ -383,7 +383,10 @@ class TestLocBaseIndependent:
         df2 = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         ix = df1["a"] == 1
         newb2 = df2.loc[ix, "b"]
-        df1.loc[ix, "b"] = newb2
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df1.loc[ix, "b"] = newb2
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
@@ -1163,7 +1166,9 @@ class TestLocBaseIndependent:
         # GH6173, various appends to an empty dataframe
 
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         # appends to fit length of data
         df = DataFrame(columns=["x", "y"])
@@ -1174,7 +1179,9 @@ class TestLocBaseIndependent:
         # GH#37932 same as test_loc_setitem_empty_append_expands_rows
         #  but with mixed dtype so we go through take_split_path
         data = [1, 2, 3]
-        expected = DataFrame({"x": data, "y": [None] * len(data)})
+        expected = DataFrame(
+            {"x": data, "y": np.array([np.nan] * len(data), dtype=object)}
+        )
 
         df = DataFrame(columns=["x", "y"])
         df["x"] = df["x"].astype(np.int64)
@@ -1412,8 +1419,11 @@ class TestLocBaseIndependent:
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
-        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
-        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+            df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
     def test_loc_setitem_single_row_categorical(self):
@@ -1605,7 +1615,10 @@ class TestLocBaseIndependent:
         # dtype conversion on setting
         df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
         df["event"] = np.nan
-        df.loc[10, "event"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[10, "event"] = "foo"
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 3 + [np.dtype("object")],
@@ -1652,6 +1665,7 @@ class TestLocWithEllipsis:
         result = indexer(obj)[...]
         tm.assert_equal(result, obj)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_loc_iloc_getitem_leading_ellipses(self, series_with_simple_index, indexer):
         obj = series_with_simple_index
         key = 0 if (indexer is tm.iloc or len(obj) == 0) else obj.index[0]
@@ -2925,7 +2939,8 @@ def test_loc_setitem_uint8_upcast(value):
     # GH#26049
 
     df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
-    df.loc[2, "col1"] = value  # value that can't be held in uint8
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        df.loc[2, "col1"] = value  # value that can't be held in uint8
 
     expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
     tm.assert_frame_equal(df, expected)
@@ -2959,6 +2974,8 @@ def test_loc_set_int_dtype():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_loc_periodindex_3_levels():
     # GH#24091
     p_index = PeriodIndex(
@@ -3026,7 +3043,7 @@ class TestLocSeries:
     def test_loc_getitem_not_monotonic(self, datetime_series):
         d1, d2 = datetime_series.index[[5, 15]]
 
-        ts2 = datetime_series[::2][[1, 2, 0]]
+        ts2 = datetime_series[::2].iloc[[1, 2, 0]]
 
         msg = r"Timestamp\('2000-01-10 00:00:00'\)"
         with pytest.raises(KeyError, match=msg):
@@ -3184,7 +3201,7 @@ class TestLocSeries:
         result.loc[inds] = 5
 
         expected = string_series.copy()
-        expected[[3, 4, 7]] = 5
+        expected.iloc[[3, 4, 7]] = 5
         tm.assert_series_equal(result, expected)
 
         result.iloc[5:10] = 10
@@ -3242,6 +3259,8 @@ class TestLocSeries:
 
     def test_getitem_loc_str_periodindex(self):
         # GH#33964
-        index = pd.period_range(start="2000", periods=20, freq="B")
-        series = Series(range(20), index=index)
-        assert series.loc["2000-01-14"] == 9
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = pd.period_range(start="2000", periods=20, freq="B")
+            series = Series(range(20), index=index)
+            assert series.loc["2000-01-14"] == 9

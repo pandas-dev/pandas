@@ -19,7 +19,6 @@ from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -70,6 +69,41 @@ class TestStata:
             empty_ds.to_stata(path, write_index=False, version=version)
             empty_ds2 = read_stata(path)
             tm.assert_frame_equal(empty_ds, empty_ds2)
+
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_read_empty_dta_with_dtypes(self, version):
+        # GH 46240
+        # Fixing above bug revealed that types are not correctly preserved when
+        # writing empty DataFrames
+        empty_df_typed = DataFrame(
+            {
+                "i8": np.array([0], dtype=np.int8),
+                "i16": np.array([0], dtype=np.int16),
+                "i32": np.array([0], dtype=np.int32),
+                "i64": np.array([0], dtype=np.int64),
+                "u8": np.array([0], dtype=np.uint8),
+                "u16": np.array([0], dtype=np.uint16),
+                "u32": np.array([0], dtype=np.uint32),
+                "u64": np.array([0], dtype=np.uint64),
+                "f32": np.array([0], dtype=np.float32),
+                "f64": np.array([0], dtype=np.float64),
+            }
+        )
+        expected = empty_df_typed.copy()
+        # No uint# support. Downcast since values in range for int#
+        expected["u8"] = expected["u8"].astype(np.int8)
+        expected["u16"] = expected["u16"].astype(np.int16)
+        expected["u32"] = expected["u32"].astype(np.int32)
+        # No int64 supported at all. Downcast since values in range for int32
+        expected["u64"] = expected["u64"].astype(np.int32)
+        expected["i64"] = expected["i64"].astype(np.int32)
+
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            empty_df_typed.to_stata(path, write_index=False, version=version)
+            empty_reread = read_stata(path)
+            tm.assert_frame_equal(expected, empty_reread)
+            tm.assert_series_equal(expected.dtypes, empty_reread.dtypes)
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_index_col_none(self, version):
@@ -1797,9 +1831,10 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning) as w:
+        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
             encoded = read_stata(path)
-            assert len(w) == 151
+            # with filter_level="always", produces 151 warnings which can be slow
+            assert len(w) == 1
             assert w[0].message.args[0] == msg
 
         expected = DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
@@ -1929,13 +1964,13 @@ def test_statareader_warns_when_used_without_context(datapath):
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
-def test_compression(compression, version, use_dict, infer):
+def test_compression(compression, version, use_dict, infer, compression_to_extension):
     file_name = "dta_inferred_compression.dta"
     if compression:
         if use_dict:
             file_ext = compression
         else:
-            file_ext = _compression_to_extension[compression]
+            file_ext = compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -2056,7 +2091,7 @@ def test_iterator_value_labels():
         with read_stata(path, chunksize=100) as reader:
             for j, chunk in enumerate(reader):
                 for i in range(2):
-                    tm.assert_index_equal(chunk.dtypes[i].categories, expected)
+                    tm.assert_index_equal(chunk.dtypes.iloc[i].categories, expected)
                 tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
 
 
@@ -2099,10 +2134,12 @@ def test_compression_roundtrip(compression):
 
 @pytest.mark.parametrize("to_infer", [True, False])
 @pytest.mark.parametrize("read_infer", [True, False])
-def test_stata_compression(compression_only, read_infer, to_infer):
+def test_stata_compression(
+    compression_only, read_infer, to_infer, compression_to_extension
+):
     compression = compression_only
 
-    ext = _compression_to_extension[compression]
+    ext = compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(
@@ -2274,3 +2311,21 @@ def test_nullable_support(dtype, version):
         tm.assert_series_equal(df.a, reread.a)
         tm.assert_series_equal(reread.b, expected_b)
         tm.assert_series_equal(reread.c, expected_c)
+
+
+def test_empty_frame():
+    # GH 46240
+    # create an empty DataFrame with int64 and float64 dtypes
+    df = DataFrame(data={"a": range(3), "b": [1.0, 2.0, 3.0]}).head(0)
+    with tm.ensure_clean() as path:
+        df.to_stata(path, write_index=False, version=117)
+        # Read entire dataframe
+        df2 = read_stata(path)
+        assert "b" in df2
+        # Dtypes don't match since no support for int32
+        dtypes = Series({"a": np.dtype("int32"), "b": np.dtype("float64")})
+        tm.assert_series_equal(df2.dtypes, dtypes)
+        # read one column of empty .dta file
+        df3 = read_stata(path, columns=["a"])
+        assert "b" not in df3
+        tm.assert_series_equal(df3.dtypes, dtypes.loc[["a"]])

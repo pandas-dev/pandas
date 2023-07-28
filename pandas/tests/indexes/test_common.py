@@ -31,7 +31,7 @@ import pandas._testing as tm
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, index_flat):
+    def test_to_frame(self, name, index_flat, using_copy_on_write):
         # see GH#15230, GH#22580
         idx = index_flat
 
@@ -45,7 +45,8 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        assert df[idx_name].values is not idx.values
+        if not using_copy_on_write:
+            assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
@@ -242,6 +243,8 @@ class TestCommon:
             result = i.unique()
             tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_searchsorted_monotonic(self, index_flat, request):
         # GH17271
         index = index_flat
@@ -292,6 +295,7 @@ class TestCommon:
             with pytest.raises(ValueError, match=msg):
                 index._searchsorted_monotonic(value, side="left")
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates(self, index_flat, keep):
         # MultiIndex is tested separately
         index = index_flat
@@ -327,6 +331,7 @@ class TestCommon:
         expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
         tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates_no_duplicates(self, index_flat):
         # MultiIndex is tested separately
         index = index_flat
@@ -354,6 +359,7 @@ class TestCommon:
         with pytest.raises(TypeError, match=msg):
             index.drop_duplicates(inplace=True)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_has_duplicates(self, index_flat):
         # MultiIndex tested separately in:
         #   tests/indexes/multi/test_unique_and_duplicates.
@@ -433,12 +439,14 @@ class TestCommon:
         assert idx.hasnans is True
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
         index_with_missing.sort_values(na_position=na_position)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", ["first", "last"])
 def test_sort_values_with_missing(index_with_missing, na_position, request):
     # GH 35584. Test that sort_values works with missing values,

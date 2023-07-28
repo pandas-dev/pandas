@@ -34,7 +34,7 @@ class TestToLatex:
     def test_to_latex_to_file(self, float_frame):
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert float_frame.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_with_encoding(self):

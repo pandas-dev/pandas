@@ -220,11 +220,6 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-.. ipython:: python
-   :suppress:
-
-   df_orig = df
-
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
@@ -272,13 +267,9 @@ case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.copy()
    df2["three"]["a"] = 1.0
-
-.. ipython:: python
-
    df
    df2
    df + df2
@@ -675,7 +666,7 @@ matching index:
 Value counts (histogramming) / mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~Series.value_counts` Series method and top-level function computes a histogram
+The :meth:`~Series.value_counts` Series method computes a histogram
 of a 1D array of values. It can also be used as a function on regular arrays:
 
 .. ipython:: python
@@ -684,7 +675,6 @@ of a 1D array of values. It can also be used as a function on regular arrays:
    data
    s = pd.Series(data)
    s.value_counts()
-   pd.value_counts(data)
 
 The :meth:`~DataFrame.value_counts` method can be used to count combinations across multiple columns.
 By default all columns are used but a subset can be selected using the ``subset`` argument.
@@ -733,7 +723,6 @@ normally distributed data into equal-size quartiles like so:
    arr = np.random.randn(30)
    factor = pd.qcut(arr, [0, 0.25, 0.5, 0.75, 1])
    factor
-   pd.value_counts(factor)
 
 We can also pass infinite values to define the bins:
 
@@ -883,8 +872,8 @@ statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
-   df.apply(np.mean)
-   df.apply(np.mean, axis=1)
+   df.apply(lambda x: np.mean(x))
+   df.apply(lambda x: np.mean(x), axis=1)
    df.apply(lambda x: x.max() - x.min())
    df.apply(np.cumsum)
    df.apply(np.exp)
@@ -938,7 +927,6 @@ Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
 
 .. ipython:: python
-   :suppress:
 
    tsdf = pd.DataFrame(
        np.random.randn(10, 3),
@@ -946,9 +934,6 @@ Series operation on each column or row:
        index=pd.date_range("1/1/2000", periods=10),
    )
    tsdf.iloc[3:7] = np.nan
-
-.. ipython:: python
-
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
@@ -988,7 +973,7 @@ output:
 
 .. ipython:: python
 
-   tsdf.agg(np.sum)
+   tsdf.agg(lambda x: np.sum(x))
 
    tsdf.agg("sum")
 
@@ -1173,12 +1158,8 @@ and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
 .. ipython:: python
-   :suppress:
 
-   df4 = df_orig.copy()
-
-.. ipython:: python
-
+   df4 = df.copy()
    df4
 
    def f(x):
@@ -1282,14 +1263,9 @@ is a common enough operation that the :meth:`~DataFrame.reindex_like` method is
 available to make this simpler:
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.reindex(["a", "b", "c"], columns=["one", "two"])
    df3 = df2 - df2.mean()
-
-
-.. ipython:: python
-
    df2
    df3
    df.reindex_like(df2)
@@ -1364,7 +1340,7 @@ We illustrate these fill methods on a simple Series:
 
    rng = pd.date_range("1/3/2000", periods=8)
    ts = pd.Series(np.random.randn(8), index=rng)
-   ts2 = ts[[0, 3, 6]]
+   ts2 = ts.iloc[[0, 3, 6]]
    ts
    ts2
 
@@ -1377,12 +1353,12 @@ These methods require that the indexes are **ordered** increasing or
 decreasing.
 
 Note that the same result could have been achieved using
-:ref:`fillna <missing_data.fillna>` (except for ``method='nearest'``) or
+:ref:`ffill <missing_data.fillna>` (except for ``method='nearest'``) or
 :ref:`interpolate <missing_data.interpolate>`:
 
 .. ipython:: python
 
-   ts2.reindex(ts.index).fillna(method="ffill")
+   ts2.reindex(ts.index).ffill()
 
 :meth:`~Series.reindex` will raise a ValueError if the index is not monotonically
 increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
@@ -2128,7 +2104,7 @@ different numeric dtypes will **NOT** be combined. The following example will gi
        {
            "A": pd.Series(np.random.randn(8), dtype="float16"),
            "B": pd.Series(np.random.randn(8)),
-           "C": pd.Series(np.array(np.random.randn(8), dtype="uint8")),
+           "C": pd.Series(np.random.randint(0, 255, size=8), dtype="uint8"),  # [0,255] (range of uint8)
        }
    )
    df2

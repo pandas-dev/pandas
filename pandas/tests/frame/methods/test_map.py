@@ -19,7 +19,7 @@ def test_map(float_frame):
     float_frame.map(type)
 
     # GH 465: function returning tuples
-    result = float_frame.map(lambda x: (x, x))["A"][0]
+    result = float_frame.map(lambda x: (x, x))["A"].iloc[0]
     assert isinstance(result, tuple)
 
 

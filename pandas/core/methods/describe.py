@@ -12,8 +12,6 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
@@ -32,17 +30,22 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -193,16 +196,18 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data  # pyright: ignore
+        return data  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
     names: list[Hashable] = []
+    seen_names: set[Hashable] = set()
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
-            if name not in names:
+            if name not in seen_names:
+                seen_names.add(name)
                 names.append(name)
     return names
 

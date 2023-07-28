@@ -61,7 +61,7 @@ def validate_udf(func: Callable) -> None:
         )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_numba_agg_func(
     func: Callable[..., Scalar],
     nopython: bool,
@@ -92,7 +92,7 @@ def generate_numba_agg_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:
@@ -121,7 +121,7 @@ def generate_numba_agg_func(
     return group_agg
 
 
-@functools.lru_cache(maxsize=None)
+@functools.cache
 def generate_numba_transform_func(
     func: Callable[..., np.ndarray],
     nopython: bool,
@@ -152,7 +152,7 @@ def generate_numba_transform_func(
     -------
     Numba function
     """
-    numba_func = jit_user_function(func, nopython, nogil, parallel)
+    numba_func = jit_user_function(func)
     if TYPE_CHECKING:
         import numba
     else:

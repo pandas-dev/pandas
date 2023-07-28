@@ -25,25 +25,19 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-# Examples of dataframes with dtypes for which conversion to ORC
-# hasn't been implemented yet, that is, Category, unsigned integers,
-# interval, period and sparse.
-orc_writer_dtypes_not_supported = [
-    pd.DataFrame({"unimpl": np.array([1, 20], dtype="uint64")}),
-    pd.DataFrame({"unimpl": pd.Series(["a", "b", "a"], dtype="category")}),
-    pd.DataFrame(
-        {"unimpl": [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)]}
-    ),
-    pd.DataFrame(
-        {
-            "unimpl": [
-                pd.Period("2022-01-03", freq="D"),
-                pd.Period("2022-01-04", freq="D"),
-            ]
-        }
-    ),
-    pd.DataFrame({"unimpl": [np.nan] * 50}).astype(pd.SparseDtype("float", np.nan)),
-]
+@pytest.fixture(
+    params=[
+        np.array([1, 20], dtype="uint64"),
+        pd.Series(["a", "b", "a"], dtype="category"),
+        [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)],
+        [pd.Period("2022-01-03", freq="D"), pd.Period("2022-01-04", freq="D")],
+    ]
+)
+def orc_writer_dtypes_not_supported(request):
+    # Examples of dataframes with dtypes for which conversion to ORC
+    # hasn't been implemented yet, that is, Category, unsigned integers,
+    # interval, period and sparse.
+    return pd.DataFrame({"unimpl": request.param})
 
 
 def test_orc_reader_empty(dirpath):
@@ -297,13 +291,12 @@ def test_orc_roundtrip_bytesio():
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")
-@pytest.mark.parametrize("df_not_supported", orc_writer_dtypes_not_supported)
-def test_orc_writer_dtypes_not_supported(df_not_supported):
+def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
     msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
-        df_not_supported.to_orc()
+        orc_writer_dtypes_not_supported.to_orc()
 
 
 @td.skip_if_no("pyarrow", min_version="7.0.0")

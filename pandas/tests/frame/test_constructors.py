@@ -5,6 +5,7 @@ from collections import (
     defaultdict,
     namedtuple,
 )
+from collections.abc import Iterator
 from dataclasses import make_dataclass
 from datetime import (
     date,
@@ -14,7 +15,6 @@ from datetime import (
 import functools
 import random
 import re
-from typing import Iterator
 import warnings
 
 import numpy as np
@@ -23,6 +23,7 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
+from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -30,7 +31,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
 )
 
@@ -97,6 +98,7 @@ class TestDataFrameConstructors:
     def test_constructor_dict_with_tzaware_scalar(self):
         # GH#42505
         dt = Timestamp("2019-11-03 01:00:00-0700").tz_convert("America/Los_Angeles")
+        dt = dt.as_unit("ns")
 
         df = DataFrame({"dt": dt}, index=[0])
         expected = DataFrame({"dt": [dt]})
@@ -187,7 +189,7 @@ class TestDataFrameConstructors:
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
-        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        obj = frame_or_series(frame_or_series(arr), dtype=NumpyEADtype(object))
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
@@ -262,12 +264,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result, expected)
 
     def test_constructor_mixed(self, float_string_frame):
-        index, data = tm.getMixedTypeDict()
-
-        # TODO(wesm), incomplete test?
-        indexed_frame = DataFrame(data, index=index)  # noqa
-        unindexed_frame = DataFrame(data)  # noqa
-
         assert float_string_frame["foo"].dtype == np.object_
 
     def test_constructor_cast_failure(self):
@@ -932,7 +928,7 @@ class TestDataFrameConstructors:
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
                 Timestamp("2011-01-01", tz="US/Eastern"),
-                DatetimeTZDtype(tz="US/Eastern"),
+                DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
     )
@@ -1329,7 +1325,7 @@ class TestDataFrameConstructors:
             [[Timestamp("2021-01-01")]],
             [{"x": Timestamp("2021-01-01")}],
             {"x": [Timestamp("2021-01-01")]},
-            {"x": Timestamp("2021-01-01")},
+            {"x": Timestamp("2021-01-01").as_unit("ns")},
         ],
     )
     def test_constructor_one_element_data_list(self, data):
@@ -1820,7 +1816,6 @@ class TestDataFrameConstructors:
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
         floatname = np.dtype(np.float_).name
-        datetime64name = np.dtype("M8[ns]").name
         objectname = np.dtype(np.object_).name
 
         # single item
@@ -1838,7 +1833,7 @@ class TestDataFrameConstructors:
         expected = Series(
             [np.dtype("int64")]
             + [np.dtype(objectname)] * 2
-            + [np.dtype(datetime64name)] * 2,
+            + [np.dtype("M8[s]"), np.dtype("M8[us]")],
             index=list("ABCDE"),
         )
         tm.assert_series_equal(result, expected)
@@ -1918,7 +1913,7 @@ class TestDataFrameConstructors:
         df = DataFrame({"End Date": dt}, index=[0])
         assert df.iat[0, 0] == dt
         tm.assert_series_equal(
-            df.dtypes, Series({"End Date": "datetime64[ns, US/Eastern]"})
+            df.dtypes, Series({"End Date": "datetime64[us, US/Eastern]"})
         )
 
         df = DataFrame([{"End Date": dt}])
@@ -2554,8 +2549,14 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        df.iloc[0, 0] = 0
-        df.iloc[0, 1] = 0
+        # TODO: 'm' and 'M' should warn
+        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuOmM"):
+            warn = None
+        else:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            df.iloc[0, 0] = 0
+            df.iloc[0, 1] = 0
         if not copy:
             check_views(True)
 
@@ -2581,6 +2582,13 @@ class TestDataFrameConstructors:
             assert c[0] == 45  # i.e. df.iloc[0, 2]=45 *did* update c
             # TODO: we can check b[0] == 0 if we stop consolidating in
             #  setitem_with_indexer (except for datetimelike?)
+
+    def test_construct_from_dict_ea_series(self):
+        # GH#53744 - default of copy=True should also apply for Series with
+        # extension dtype
+        ser = Series([1, 2, 3], dtype="Int64")
+        df = DataFrame({"a": ser})
+        assert not np.shares_memory(ser.values._data, df["a"].values._data)
 
     def test_from_series_with_name_with_columns(self):
         # GH 7893
@@ -2719,6 +2727,24 @@ class TestDataFrameConstructorIndexInference:
             DataFrame({"A": ser2, "B": ser3, "D": ser1})
         with pytest.raises(TypeError, match=msg):
             DataFrame({"D": ser1, "A": ser2, "B": ser3})
+
+    @pytest.mark.parametrize(
+        "key_val, col_vals, col_type",
+        [
+            ["3", ["3", "4"], "utf8"],
+            [3, [3, 4], "int8"],
+        ],
+    )
+    def test_dict_data_arrow_column_expansion(self, key_val, col_vals, col_type):
+        # GH 53617
+        pa = pytest.importorskip("pyarrow")
+        cols = pd.arrays.ArrowExtensionArray(
+            pa.array(col_vals, type=pa.dictionary(pa.int8(), getattr(pa, col_type)()))
+        )
+        result = DataFrame({key_val: [1, 2]}, columns=cols)
+        expected = DataFrame([[1, np.nan], [2, np.nan]], columns=cols)
+        expected.iloc[:, 1] = expected.iloc[:, 1].astype(object)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorWithDtypeCoercion:
@@ -3053,15 +3079,22 @@ class TestFromScalar:
         with pytest.raises(TypeError, match=msg):
             constructor(scalar, dtype=dtype)
 
-    @pytest.mark.xfail(
-        reason="Timestamp constructor has been updated to cast dt64 to non-nano, "
-        "but DatetimeArray._from_sequence has not"
-    )
     @pytest.mark.parametrize("cls", [datetime, np.datetime64])
-    def test_from_out_of_bounds_ns_datetime(self, constructor, cls):
+    def test_from_out_of_bounds_ns_datetime(
+        self, constructor, cls, request, box, frame_or_series
+    ):
         # scalar that won't fit in nanosecond dt64, but will fit in microsecond
+        if box is list or (frame_or_series is Series and box is dict):
+            mark = pytest.mark.xfail(
+                reason="Timestamp constructor has been updated to cast dt64 to "
+                "non-nano, but DatetimeArray._from_sequence has not",
+                strict=True,
+            )
+            request.node.add_marker(mark)
+
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
+
         if cls is np.datetime64:
             scalar = np.datetime64(scalar, "D")
             exp_dtype = "M8[s]"  # closest reso to input
@@ -3082,13 +3115,19 @@ class TestFromScalar:
         dtype = tm.get_dtype(result)
         assert dtype == object
 
-    @pytest.mark.xfail(
-        reason="TimedeltaArray constructor has been updated to cast td64 to non-nano, "
-        "but TimedeltaArray._from_sequence has not"
-    )
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
-    def test_from_out_of_bounds_ns_timedelta(self, constructor, cls):
+    def test_from_out_of_bounds_ns_timedelta(
+        self, constructor, cls, request, box, frame_or_series
+    ):
         # scalar that won't fit in nanosecond td64, but will fit in microsecond
+        if box is list or (frame_or_series is Series and box is dict):
+            mark = pytest.mark.xfail(
+                reason="TimedeltaArray constructor has been updated to cast td64 "
+                "to non-nano, but TimedeltaArray._from_sequence has not",
+                strict=True,
+            )
+            request.node.add_marker(mark)
+
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:

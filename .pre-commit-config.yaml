@@ -14,24 +14,25 @@ default_stages: [
 ]
 ci:
     autofix_prs: false
+    autoupdate_schedule: monthly
+    # manual stage hooks
+    skip: [pylint, pyright, mypy]
 repos:
--   repo: local
+-   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
+    # black compiled with mypyc
+    rev: 23.3.0
     hooks:
-    # NOTE: we make `black` a local hook because if it's installed from
-    # PyPI (rather than from source) then it'll run twice as fast thanks to mypyc
-    -   id: black
-        name: black
-        description: "Black: The uncompromising Python code formatter"
-        entry: black
-        language: python
-        require_serial: true
-        types_or: [python, pyi]
-        additional_dependencies: [black==23.3.0]
--   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.264
+      - id: black
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.277
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+    -   id: ruff
+        # TODO: remove autofixe-only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
@@ -40,7 +41,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
@@ -53,23 +54,27 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
+    -   id: check-ast
+    -   id: check-case-conflict
+    -   id: check-toml
+    -   id: check-xml
+    -   id: check-yaml
+        exclude: ^ci/meta.yaml$
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
+    -   id: mixed-line-ending
+        args: [--fix=auto]
+        exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
+    -   id: fix-byte-order-marker
+    -   id: fix-encoding-pragma
+        args: [--remove]
     -   id: trailing-whitespace
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.1
     hooks:
     -   id: cpplint
-        # We don't lint all C files because we don't want to lint any that are built
-        # from Cython files nor do we want to lint C files that we didn't modify for
-        # this particular codebase (e.g. src/headers, src/klib). However,
-        # we can lint all header files since they aren't "generated" like C files are.
-        exclude: ^pandas/_libs/src/(klib|headers)/
+        exclude: ^pandas/_libs/include/pandas/vendored/klib
         args: [
             --quiet,
             '--extensions=c,h',
@@ -78,14 +83,12 @@ repos:
             --linelength=88,
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
--   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
+-   repo: https://github.com/pylint-dev/pylint
+    rev: v3.0.0a6
     hooks:
     -   id: pylint
         stages: [manual]
--   repo: https://github.com/pycqa/pylint
-    rev: v2.16.2
-    hooks:
+        args: [--load-plugins=pylint.extensions.redefined_loop_name]
     -   id: pylint
         alias: redefined-outer-name
         name: Redefining name from outer scope
@@ -104,13 +107,15 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.2
+    rev: v3.7.0
     hooks:
     -   id: pyupgrade
-        args: [--py38-plus]
+        args: [--py39-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
       - id: rst-backticks
       - id: rst-directive-colons
         types: [text]  # overwrite types: [rst]
@@ -133,8 +138,8 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.292
-    -   id: pyright_reportGeneralTypeIssues
+        - pyright@1.1.296
+    -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
@@ -151,7 +156,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-    -   id: stubtest
+    -   id: mypy
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
@@ -167,33 +172,16 @@ repos:
         exclude: ^pandas/core/interchange/
         language: python
         types: [python]
-    -   id: no-os-remove
-        name: Check code for instances of os.remove
-        entry: os\.remove
-        language: pygrep
-        types: [python]
-        files: ^pandas/tests/
-        exclude: |
-            (?x)^
-            pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
         entry: |
             (?x)
-            # outdated annotation syntax, missing error codes
+            # outdated annotation syntax
             \#\ type:\ (?!ignore)
-            |\#\ type:\s?ignore(?!\[)
 
             # foo._class__ instead of type(foo)
             |\.__class__
-
-            # np.bool/np.object instead of np.bool_/np.object_
-            |np\.bool[^_8`]
-            |np\.object[^_8`]
-
-            # imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
 
             # Numpy
             |from\ numpy\ import\ random
@@ -213,16 +201,8 @@ repos:
 
             # builtin filter function
             |(?<!def)[\(\s]filter\(
-
-            # exec
-            |[^a-zA-Z0-9_]exec\(
         types_or: [python, cython, rst]
         exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
-    -   id: cython-casting
-        name: Check Cython casting is `<type>obj`, not `<type> obj`
-        language: pygrep
-        entry: '[a-zA-Z0-9*]> '
-        files: (\.pyx|\.pxi.in)$
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
@@ -235,19 +215,6 @@ repos:
         entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
-    -   id: np-testing-array-equal
-        name: Check for usage of numpy testing or array_equal
-        language: pygrep
-        entry: '(numpy|np)(\.testing|\.array_equal)'
-        files: ^pandas/tests/
-        types: [python]
-    -   id: invalid-ea-testing
-        name: Check for invalid EA testing
-        language: pygrep
-        entry: 'tm\.assert_(series|frame)_equal'
-        files: ^pandas/tests/extension/base
-        types: [python]
-        exclude: ^pandas/tests/extension/base/base\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
@@ -281,6 +248,9 @@ repos:
 
             # pytest.warns (use tm.assert_produces_warning instead)
             |pytest\.warns
+
+            # os.remove
+            |os\.remove
         files: ^pandas/tests/
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-ea-tests
@@ -340,6 +310,11 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="strings_with_wrong_placed_whitespace"
         types_or: [python, cython]
+    -   id: unwanted-patterns-nodefault-used-not-only-for-typing
+        name: Check that `pandas._libs.lib.NoDefault` is used only for typing
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
+        types: [python]
     -   id: use-pd_array-in-core
         name: Import pandas.array as pd_array in core
         language: python
@@ -404,17 +379,6 @@ repos:
             /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
             |/tests/
             |/_testing/
-    -   id: autotyping
-        name: autotyping
-        entry: python -m scripts.run_autotyping
-        types_or: [python, pyi]
-        files: ^pandas
-        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
-        language: python
-        stages: [manual]
-        additional_dependencies:
-        - autotyping==23.3.0
-        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

@@ -9,9 +9,11 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython=0.29.33
+  - meson[ninja]=1.0.1
+  - meson-python=0.13.1
 
   # test dependencies
-  - pytest>=7.0.0
+  - pytest>=7.3.2
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-asyncio>=0.17.0
@@ -37,7 +39,7 @@ dependencies:
   - lxml>=4.8.0
   - matplotlib>=3.6.1
   - numba>=0.55.2
-  - numexpr>=2.8.0  # pin for "Run checks on imported code" job
+  - numexpr>=2.8.0
   - openpyxl>=3.0.10
   - odfpy>=1.4.1
   - py
@@ -68,26 +70,23 @@ dependencies:
   # benchmarks
   - asv>=0.5.1
 
-  # The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
+  ## The compiler packages are meta-packages and install the correct compiler (activation) packages on the respective platforms.
   - c-compiler
   - cxx-compiler
 
   # code checks
-  - black=23.3.0
-  - cpplint
-  - flake8=6.0.0
-  - isort>=5.2.1  # check that imports are in the right order
-  - mypy=1.2
+  - flake8=6.0.0  # run in subprocess over docstring examples
+  - mypy=1.4.1  # pre-commit uses locally installed mypy
+  - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=2.15.0
-  - pyupgrade
-  - ruff=0.0.215
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme<0.11
+  - pydata-sphinx-theme
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
@@ -116,6 +115,6 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
-      - sphinx-toggleprompt
+      - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1

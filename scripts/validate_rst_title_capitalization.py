@@ -16,7 +16,11 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from typing import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 
 CAPITALIZATION_EXCEPTIONS = {
     "pandas",
@@ -226,7 +230,7 @@ def find_titles(rst_file: str) -> Iterable[tuple[str, int]]:
         The corresponding line number of the heading.
     """
 
-    with open(rst_file) as fd:
+    with open(rst_file, encoding="utf-8") as fd:
         previous_line = ""
         for i, line in enumerate(fd):
             line_no_last_elem = line[:-1]

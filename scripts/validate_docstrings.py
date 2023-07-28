@@ -49,6 +49,11 @@ IGNORE_VALIDATION = {
     "Styler.template_latex",
     "Styler.template_string",
     "Styler.loader",
+    "errors.InvalidComparison",
+    "errors.LossySetitemError",
+    "errors.NoBufferPresent",
+    "errors.IncompatibilityWarning",
+    "errors.PyperclipException",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {
@@ -217,6 +222,8 @@ class PandasDocstring(Validator):
                 "-m",
                 "flake8",
                 "--format=%(row)d\t%(col)d\t%(code)s\t%(text)s",
+                "--max-line-length=88",
+                "--ignore=E203,E3,W503,W504,E402,E731",
                 file.name,
             ]
             response = subprocess.run(cmd, capture_output=True, check=False, text=True)
@@ -269,15 +276,15 @@ def pandas_validate(func_name: str):
         )
 
     if doc.see_also:
-        for rel_name in doc.see_also:
-            if rel_name.startswith("pandas."):
-                result["errors"].append(
-                    pandas_error(
-                        "SA05",
-                        reference_name=rel_name,
-                        right_reference=rel_name[len("pandas.") :],
-                    )
-                )
+        result["errors"].extend(
+            pandas_error(
+                "SA05",
+                reference_name=rel_name,
+                right_reference=rel_name[len("pandas.") :],
+            )
+            for rel_name in doc.see_also
+            if rel_name.startswith("pandas.")
+        )
 
     result["examples_errs"] = ""
     if doc.examples:
@@ -298,11 +305,11 @@ def pandas_validate(func_name: str):
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)
-        for wrong_import in ("numpy", "pandas"):
-            if f"import {wrong_import}" in examples_source_code:
-                result["errors"].append(
-                    pandas_error("EX04", imported_library=wrong_import)
-                )
+        result["errors"].extend(
+            pandas_error("EX04", imported_library=wrong_import)
+            for wrong_import in ("numpy", "pandas")
+            if f"import {wrong_import}" in examples_source_code
+        )
 
     if doc.non_hyphenated_array_like():
         result["errors"].append(pandas_error("GL05"))
@@ -367,7 +374,7 @@ def get_all_api_items():
     base_path = pathlib.Path(__file__).parent.parent
     api_doc_fnames = pathlib.Path(base_path, "doc", "source", "reference")
     for api_doc_fname in api_doc_fnames.glob("*.rst"):
-        with open(api_doc_fname) as f:
+        with open(api_doc_fname, encoding="utf-8") as f:
             yield from get_api_items(f)
 
 

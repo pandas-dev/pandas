@@ -71,6 +71,10 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__getitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
     ):
@@ -113,6 +117,10 @@ class TestFancy:
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__setitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
@@ -176,7 +184,10 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        df.loc[0, "c"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[0, "c"] = "foo"
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
@@ -192,7 +203,10 @@ class TestFancy:
         )
 
         left = df.copy()
-        left.loc["a", "bar"] = val
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = val
         right = DataFrame(
             [[0, val, 2], [3, 4, 5]],
             index=list("ab"),
@@ -209,7 +223,10 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        left.loc["a", "bar"] = "wxyz"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = "wxyz"
 
         right = DataFrame(
             [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
@@ -688,7 +705,8 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        run_tests(df, rhs, right_loc, right_iloc)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
         "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]
@@ -781,43 +799,49 @@ class TestMisc:
 class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
+        ([1, 2, 3], [np.nan, 2, 3], FutureWarning),
+        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0], None),
         # For datetime series, we should coerce to NaT.
         (
             [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
             [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            None,
         ),
         # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
+        (["foo", "bar", "baz"], [None, "bar", "baz"], None),
     ]
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_loc(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        start_dataframe.loc[0, ["foo"]] = None
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            start_dataframe.loc[0, ["foo"]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_setitem_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_none_coercion_loc_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            start_dataframe.loc[
+                start_dataframe["foo"] == start_dataframe["foo"][0]
+            ] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
@@ -831,7 +855,10 @@ class TestDataframeNoneCoercion:
                 "d": ["a", "b", "c"],
             }
         )
-        start_dataframe.iloc[0] = None
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            start_dataframe.iloc[0] = None
 
         exp = DataFrame(
             {

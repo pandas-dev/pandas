@@ -25,6 +25,7 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
+from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -189,7 +190,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return super().astype(dtype, copy=copy)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if is_list_like(value):
             if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
@@ -234,24 +235,29 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
-    def _reduce(self, name: str, *, skipna: bool = True, **kwargs):
-        if skipna:
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if skipna and self.isna().any():
             # If we don't have any NAs, we can ignore skipna
-            if self.isna().any():
-                other = self[~self.isna()]
-                return other._reduce(name, **kwargs)
-
-        if name == "sum" and len(self) == 0:
+            other = self[~self.isna()]
+            result = other._reduce(name, **kwargs)
+        elif name == "sum" and len(self) == 0:
             # GH#29630 avoid returning int 0 or np.bool_(False) on old numpy
-            return decimal.Decimal(0)
+            result = decimal.Decimal(0)
+        else:
+            try:
+                op = getattr(self.data, name)
+            except AttributeError as err:
+                raise NotImplementedError(
+                    f"decimal does not support the {name} operation"
+                ) from err
+            result = op(axis=0)
 
-        try:
-            op = getattr(self.data, name)
-        except AttributeError as err:
-            raise NotImplementedError(
-                f"decimal does not support the {name} operation"
-            ) from err
-        return op(axis=0)
+        if keepdims:
+            return type(self)([result])
+        else:
+            return result
 
     def _cmp_method(self, other, op):
         # For use with OpsMixin
@@ -273,9 +279,18 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        from pandas.core.algorithms import value_counts
-
         return value_counts(self.to_numpy(), dropna=dropna)
+
+    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  keyword in its fillna method.
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
+        self,
+        value=None,
+        method=None,
+        limit: int | None = None,
+    ):
+        return super().fillna(value=value, method=method, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):

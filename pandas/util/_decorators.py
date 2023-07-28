@@ -4,9 +4,9 @@ from functools import wraps
 import inspect
 from textwrap import dedent
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
     cast,
 )
 import warnings
@@ -17,6 +17,9 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 def deprecate(
@@ -195,7 +198,7 @@ def deprecate_kwarg(
                 else:
                     new_arg_value = old_arg_value
                     msg = (
-                        f"the {repr(old_arg_name)}' keyword is deprecated, "
+                        f"the {repr(old_arg_name)} keyword is deprecated, "
                         f"use {repr(new_arg_name)} instead."
                     )
 

@@ -50,7 +50,10 @@ class TestDatetimeLikeStatReductions:
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
-        parr = dti._data.to_period(freq)
+        warn = FutureWarning if freq == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            parr = dti._data.to_period(freq)
         obj = box(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
@@ -244,6 +247,7 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.skew()).all()
             else:
                 assert 0 == s.skew()
+                assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
     @td.skip_if_no_scipy
@@ -267,4 +271,5 @@ class TestSeriesStatReductions:
                 assert np.isnan(df.kurt()).all()
             else:
                 assert 0 == s.kurt()
+                assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()

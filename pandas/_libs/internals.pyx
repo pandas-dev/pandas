@@ -715,7 +715,7 @@ cdef class NumpyBlock(SharedBlock):
         #  set placement, ndim and refs
         self.values = values
 
-    cpdef NumpyBlock getitem_block_index(self, slice slicer):
+    cpdef NumpyBlock slice_block_rows(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -743,7 +743,7 @@ cdef class NDArrayBackedBlock(SharedBlock):
         #  set placement, ndim and refs
         self.values = values
 
-    cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
+    cpdef NDArrayBackedBlock slice_block_rows(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -899,7 +899,7 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _get_index_slice(self, slice slobj):
+    cdef BlockManager _slice_mgr_rows(self, slice slobj):
         cdef:
             SharedBlock blk, nb
             BlockManager mgr
@@ -907,7 +907,7 @@ cdef class BlockManager:
 
         nbs = []
         for blk in self.blocks:
-            nb = blk.getitem_block_index(slobj)
+            nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
@@ -926,7 +926,7 @@ cdef class BlockManager:
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            return self._get_index_slice(slobj)
+            return self._slice_mgr_rows(slobj)
         else:
             raise IndexError("Requested axis not found in manager")
 

@@ -183,10 +183,10 @@ def test_put_mixed_type(setup_path):
     df["bool3"] = True
     df["int1"] = 1
     df["int2"] = 2
-    df["timestamp1"] = Timestamp("20010102")
-    df["timestamp2"] = Timestamp("20010103")
-    df["datetime1"] = datetime.datetime(2001, 1, 2, 0, 0)
-    df["datetime2"] = datetime.datetime(2001, 1, 3, 0, 0)
+    df["timestamp1"] = Timestamp("20010102").as_unit("ns")
+    df["timestamp2"] = Timestamp("20010103").as_unit("ns")
+    df["datetime1"] = Timestamp("20010102").as_unit("ns")
+    df["datetime2"] = Timestamp("20010103").as_unit("ns")
     df.loc[df.index[3:6], ["obj1"]] = np.nan
     df = df._consolidate()
 
@@ -217,6 +217,7 @@ def test_put_mixed_type(setup_path):
         ["fixed", tm.makePeriodIndex],
     ],
 )
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types

@@ -213,7 +213,7 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
+cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) noexcept nogil:
     """NOTE: overwrites indexer with the result to avoid allocating another array"""
     cdef:
         Py_ssize_t i, n, idx
@@ -679,10 +679,10 @@ ctypedef fused by_t:
     uint64_t
 
 
-def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
-                                 numeric_t[:] right_values,
-                                 by_t[:] left_by_values,
-                                 by_t[:] right_by_values,
+def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                 ndarray[numeric_t] right_values,
+                                 ndarray[by_t] left_by_values,
+                                 ndarray[by_t] right_by_values,
                                  bint allow_exact_matches=True,
                                  tolerance=None,
                                  bint use_hashtable=True):
@@ -756,10 +756,10 @@ def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
-                                numeric_t[:] right_values,
-                                by_t[:] left_by_values,
-                                by_t[:] right_by_values,
+def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                ndarray[numeric_t] right_values,
+                                ndarray[by_t] left_by_values,
+                                ndarray[by_t] right_by_values,
                                 bint allow_exact_matches=1,
                                 tolerance=None,
                                 bint use_hashtable=True):
@@ -850,17 +850,7 @@ def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
         numeric_t bdiff, fdiff
 
     # search both forward and backward
-    # TODO(cython3):
-    # Bug in beta1 preventing Cython from choosing
-    # right specialization when one fused memview is None
-    # Doesn't matter what type we choose
-    # (nothing happens anyways since it is None)
-    # GH 51640
-    if left_by_values is not None and left_by_values.dtype != object:
-        by_dtype = f"{left_by_values.dtype}_t"
-    else:
-        by_dtype = object
-    bli, bri = asof_join_backward_on_X_by_Y[f"{left_values.dtype}_t", by_dtype](
+    bli, bri = asof_join_backward_on_X_by_Y(
         left_values,
         right_values,
         left_by_values,
@@ -869,7 +859,7 @@ def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
         tolerance,
         use_hashtable
     )
-    fli, fri = asof_join_forward_on_X_by_Y[f"{left_values.dtype}_t", by_dtype](
+    fli, fri = asof_join_forward_on_X_by_Y(
         left_values,
         right_values,
         left_by_values,

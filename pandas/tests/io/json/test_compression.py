@@ -1,4 +1,7 @@
-from io import BytesIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 
 import pytest
 
@@ -6,7 +9,6 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 def test_compression_roundtrip(compression):
@@ -23,7 +25,8 @@ def test_compression_roundtrip(compression):
         # explicitly ensure file was compressed.
         with tm.decompress_file(path, compression) as fh:
             result = fh.read().decode("utf8")
-        tm.assert_frame_equal(df, pd.read_json(result))
+            data = StringIO(result)
+        tm.assert_frame_equal(df, pd.read_json(data))
 
 
 def test_read_zipped_json(datapath):
@@ -38,25 +41,26 @@ def test_read_zipped_json(datapath):
 
 @td.skip_if_not_us_locale
 @pytest.mark.single_cpu
-def test_with_s3_url(compression, s3_resource, s3so):
-    # Bucket "pandas-test" created in tests/io/conftest.py
-
-    df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+def test_with_s3_url(compression, s3_public_bucket, s3so):
+    # Bucket created in tests/io/conftest.py
+    df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
 
     with tm.ensure_clean() as path:
         df.to_json(path, compression=compression)
         with open(path, "rb") as f:
-            s3_resource.Bucket("pandas-test").put_object(Key="test-1", Body=f)
+            s3_public_bucket.put_object(Key="test-1", Body=f)
 
     roundtripped_df = pd.read_json(
-        "s3://pandas-test/test-1", compression=compression, storage_options=s3so
+        f"s3://{s3_public_bucket.name}/test-1",
+        compression=compression,
+        storage_options=s3so,
     )
     tm.assert_frame_equal(df, roundtripped_df)
 
 
 def test_lines_with_compression(compression):
     with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+        df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
         df.to_json(path, orient="records", lines=True, compression=compression)
         roundtripped_df = pd.read_json(path, lines=True, compression=compression)
         tm.assert_frame_equal(df, roundtripped_df)
@@ -64,7 +68,7 @@ def test_lines_with_compression(compression):
 
 def test_chunksize_with_compression(compression):
     with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
+        df = pd.read_json(StringIO('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}'))
         df.to_json(path, orient="records", lines=True, compression=compression)
 
         with pd.read_json(
@@ -75,7 +79,7 @@ def test_chunksize_with_compression(compression):
 
 
 def test_write_unsupported_compression_type():
-    df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+    df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
     with tm.ensure_clean() as path:
         msg = "Unrecognized compression type: unsupported"
         with pytest.raises(ValueError, match=msg):
@@ -91,13 +95,15 @@ def test_read_unsupported_compression_type():
 
 @pytest.mark.parametrize("to_infer", [True, False])
 @pytest.mark.parametrize("read_infer", [True, False])
-def test_to_json_compression(compression_only, read_infer, to_infer):
+def test_to_json_compression(
+    compression_only, read_infer, to_infer, compression_to_extension
+):
     # see gh-15008
     compression = compression_only
 
     # We'll complete file extension subsequently.
     filename = "test."
-    filename += _compression_to_extension[compression]
+    filename += compression_to_extension[compression]
 
     df = pd.DataFrame({"A": [1]})
 

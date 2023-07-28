@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import pytest
 
+from pandas.compat import PY312
 from pandas.errors import (
     NumExprClobberingError,
     PerformanceWarning,
@@ -158,7 +159,7 @@ class TestEval:
             [
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')bool(\]|')",
+                r"(`|')bool(`|')",
                 "argument of type 'bool' is not iterable",
             ]
         )
@@ -203,7 +204,7 @@ class TestEval:
             [
                 r"only list-like( or dict-like)? objects are allowed to be "
                 r"passed to (DataFrame\.)?isin\(\), you passed a "
-                r"(\[|')float(\]|')",
+                r"(`|')float(`|')",
                 "argument of type 'float' is not iterable",
             ]
         )
@@ -561,22 +562,16 @@ class TestEval:
         # TODO: 2022-01-29: result return list with numexpr 2.7.3 in CI
         # but cannot reproduce locally
         result = np.array(
-            pd.eval(
-                "[-True, True, ~True, +True,"
-                "-False, False, ~False, +False,"
-                "-37, 37, ~37, +37]"
-            ),
+            pd.eval("[-True, True, +True, -False, False, +False, -37, 37, ~37, +37]"),
             dtype=np.object_,
         )
         expected = np.array(
             [
                 -True,
                 True,
-                ~True,
                 +True,
                 -False,
                 False,
-                ~False,
                 +False,
                 -37,
                 37,
@@ -622,8 +617,8 @@ class TestEval:
         ),
     )
     def test_disallow_scalar_bool_ops(self, ex, engine, parser):
-        x, a, b = np.random.randn(3), 1, 2  # noqa:F841
-        df = DataFrame(np.random.randn(3, 2))  # noqa:F841
+        x, a, b = np.random.randn(3), 1, 2  # noqa: F841
+        df = DataFrame(np.random.randn(3, 2))  # noqa: F841
 
         msg = "cannot evaluate scalar only bool ops|'BoolOp' nodes are not"
         with pytest.raises(NotImplementedError, match=msg):
@@ -657,7 +652,7 @@ class TestEval:
         tm.assert_numpy_array_equal(result, np.array([1.5]))
         assert result.shape == (1,)
 
-        x = np.array([False])  # noqa:F841
+        x = np.array([False])  # noqa: F841
         result = pd.eval("x", engine=engine, parser=parser)
         tm.assert_numpy_array_equal(result, np.array([False]))
         assert result.shape == (1,)
@@ -705,9 +700,13 @@ class TestEval:
 
     def test_true_false_logic(self):
         # GH 25823
-        assert pd.eval("not True") == -2
-        assert pd.eval("not False") == -1
-        assert pd.eval("True and not True") == 0
+        # This behavior is deprecated in Python 3.12
+        with tm.maybe_produces_warning(
+            DeprecationWarning, PY312, check_stacklevel=False
+        ):
+            assert pd.eval("not True") == -2
+            assert pd.eval("not False") == -1
+            assert pd.eval("True and not True") == 0
 
     def test_and_logic_string_match(self):
         # GH 25823
@@ -1103,7 +1102,7 @@ class TestOperations:
         tm.assert_frame_equal(df, df2)
 
     def test_failing_subscript_with_name_error(self):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         with pytest.raises(NameError, match="name 'x' is not defined"):
             self.eval("df[x > 2] > 2")
 
@@ -1172,7 +1171,7 @@ class TestOperations:
     def test_assignment_single_assign_local_overlap(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
         df = df.copy()
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         df.eval("a = 1 + b", inplace=True)
 
         expected = df.copy()
@@ -1182,7 +1181,7 @@ class TestOperations:
     def test_assignment_single_assign_name(self):
         df = DataFrame(np.random.randn(5, 2), columns=list("ab"))
 
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         old_a = df.a.copy()
         df.eval("a = a + b", inplace=True)
         result = old_a + df.b
@@ -1481,7 +1480,7 @@ class TestOperations:
                 pd.eval("[3] not in (1, 2, [[3]])", engine=engine, parser=parser)
 
     def test_check_many_exprs(self, engine, parser):
-        a = 1  # noqa:F841
+        a = 1  # noqa: F841
         expr = " * ".join("a" * 33)
         expected = 1
         res = pd.eval(expr, engine=engine, parser=parser)
@@ -1520,7 +1519,7 @@ class TestOperations:
 
     @pytest.mark.parametrize("char", ["|", "&"])
     def test_fails_ampersand_pipe(self, char, engine, parser):
-        df = DataFrame(np.random.randn(5, 3))  # noqa:F841
+        df = DataFrame(np.random.randn(5, 3))  # noqa: F841
         ex = f"(df + 2)[df > 1] > 0 {char} (df > 0)"
         if parser == "python":
             msg = "cannot evaluate scalar only bool ops"
@@ -1640,7 +1639,7 @@ class TestScope:
         assert lcls == lcls2
 
     def test_no_new_globals(self, engine, parser):
-        x = 1  # noqa:F841
+        x = 1  # noqa: F841
         gbls = globals().copy()
         pd.eval("x + 1", engine=engine, parser=parser)
         gbls2 = globals().copy()
@@ -1738,7 +1737,7 @@ def test_name_error_exprs(engine, parser):
 
 @pytest.mark.parametrize("express", ["a + @b", "@a + b", "@a + @b"])
 def test_invalid_local_variable_reference(engine, parser, express):
-    a, b = 1, 2  # noqa:F841
+    a, b = 1, 2  # noqa: F841
 
     if parser != "pandas":
         with pytest.raises(SyntaxError, match="The '@' prefix is only"):
@@ -1782,7 +1781,7 @@ def test_more_than_one_expression_raises(engine, parser):
 def test_bool_ops_fails_on_scalars(lhs, cmp, rhs, engine, parser):
     gen = {int: lambda: np.random.randint(10), float: np.random.randn}
 
-    mid = gen[lhs]()  # noqa:F841
+    mid = gen[lhs]()  # noqa: F841
     lhs = gen[lhs]()
     rhs = gen[rhs]()
 

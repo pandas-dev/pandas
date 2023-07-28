@@ -35,7 +35,7 @@ import pandas._testing as tm
         (
             ["lev4"],
             "lev3",
-            lib.NoDefault,
+            lib.no_default,
             [
                 [1.0, np.nan, 1.0, np.nan, 0.0, np.nan],
                 [np.nan, 1.0, np.nan, 1.0, np.nan, 1.0],
@@ -72,7 +72,7 @@ import pandas._testing as tm
         (
             ["lev1", "lev2"],
             "lev3",
-            lib.NoDefault,
+            lib.no_default,
             [[1, 2, 0, 1], [3, 4, 2, 3], [5, 6, 4, 5], [7, 8, 6, 7]],
             MultiIndex.from_tuples(
                 [("lev4", 1), ("lev4", 2), ("values", 1), ("values", 2)],

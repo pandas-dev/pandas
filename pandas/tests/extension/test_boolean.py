@@ -16,12 +16,22 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_bool_dtype
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
+
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+]
 
 
 def make_data():
@@ -367,6 +377,31 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        arr = ser.array
+
+        if op_name in ["count", "kurt", "sem"]:
+            assert not hasattr(arr, op_name)
+            return
+
+        if op_name in ["mean", "median", "var", "std", "skew"]:
+            cmp_dtype = "Float64"
+        elif op_name in ["min", "max"]:
+            cmp_dtype = "boolean"
+        elif op_name in ["sum", "prod"]:
+            is_windows_or_32bit = is_platform_windows() or not IS64
+            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+        else:
+            raise TypeError("not supposed to reach this")
+
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+        tm.assert_extension_array_equal(result, expected)
+
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
     pass
@@ -382,11 +417,18 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 class TestAccumulation(base.BaseAccumulateTests):
     def check_accumulate(self, s, op_name, skipna):
+        length = 64
+        if not IS64 or is_platform_windows():
+            if not s.dtype.itemsize == 8:
+                length = 32
+
         result = getattr(s, op_name)(skipna=skipna)
         expected = getattr(pd.Series(s.astype("float64")), op_name)(skipna=skipna)
-        tm.assert_series_equal(result, expected, check_dtype=False)
-        if op_name in ("cummin", "cummax"):
-            assert is_bool_dtype(result)
+        if op_name not in ("cummin", "cummax"):
+            expected = expected.astype(f"Int{length}")
+        else:
+            expected = expected.astype("boolean")
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):

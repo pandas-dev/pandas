@@ -90,7 +90,7 @@ def test_index_from_series(using_copy_on_write):
 
 def test_index_from_series_copy(using_copy_on_write):
     ser = Series([1, 2])
-    idx = Index(ser, copy=True)  # noqa
+    idx = Index(ser, copy=True)  # noqa: F841
     arr = get_array(ser)
     ser.iloc[0] = 100
     assert np.shares_memory(get_array(ser), arr)
@@ -153,3 +153,26 @@ def test_infer_objects(using_copy_on_write):
     view_.iloc[0, 0] = "aaaa"
     if using_copy_on_write:
         tm.assert_index_equal(idx, expected, check_names=False)
+
+
+def test_index_to_frame(using_copy_on_write):
+    idx = Index([1, 2, 3], name="a")
+    expected = idx.copy(deep=True)
+    df = idx.to_frame()
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df, "a"), idx._values)
+        assert not df._mgr._has_no_reference(0)
+    else:
+        assert not np.shares_memory(get_array(df, "a"), idx._values)
+
+    df.iloc[0, 0] = 100
+    tm.assert_index_equal(idx, expected)
+
+
+def test_index_values(using_copy_on_write):
+    idx = Index([1, 2, 3])
+    result = idx.values
+    if using_copy_on_write:
+        assert result.flags.writeable is False
+    else:
+        assert result.flags.writeable is True

@@ -6,15 +6,7 @@ from abc import (
 )
 import sys
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
-
-import numpy as np
+from typing import TYPE_CHECKING
 
 from pandas._config import get_option
 
@@ -22,6 +14,13 @@ from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         Dtype,
         WriteBuffer,
@@ -1099,4 +1098,4 @@ def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
     Create mapping between datatypes and their number of occurrences.
     """
     # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum().astype(np.intp)
+    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()

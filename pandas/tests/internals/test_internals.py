@@ -942,12 +942,17 @@ class TestIndexing:
 
             if isinstance(slobj, slice):
                 sliced = mgr.get_slice(slobj, axis=axis)
-            elif mgr.ndim == 1 and axis == 0:
-                sliced = mgr.getitem_mgr(slobj)
+            elif (
+                mgr.ndim == 1
+                and axis == 0
+                and isinstance(slobj, np.ndarray)
+                and slobj.dtype == bool
+            ):
+                sliced = mgr.get_rows_with_mask(slobj)
             else:
                 # BlockManager doesn't support non-slice, SingleBlockManager
                 #  doesn't support axis > 0
-                return
+                raise TypeError(slobj)
 
             mat_slobj = (slice(None),) * axis + (slobj,)
             tm.assert_numpy_array_equal(
@@ -977,14 +982,6 @@ class TestIndexing:
                     assert_slice_ok(
                         mgr, ax, np.array([True, True, False], dtype=np.bool_)
                     )
-
-                # fancy indexer
-                assert_slice_ok(mgr, ax, [])
-                assert_slice_ok(mgr, ax, list(range(mgr.shape[ax])))
-
-                if mgr.shape[ax] >= 3:
-                    assert_slice_ok(mgr, ax, [0, 1, 2])
-                    assert_slice_ok(mgr, ax, [-1, -2, -3])
 
     @pytest.mark.parametrize("mgr", MANAGERS)
     def test_take(self, mgr):
@@ -1410,23 +1407,23 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.arrays.PandasArray(np.array([1, 2]))
+    arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    # PandasArray, no dtype
+    # NumpyExtensionArray, no dtype
     result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
-        # new_block requires caller to unwrap PandasArray
+        # new_block requires caller to unwrap NumpyExtensionArray
         assert result.is_extension is False
 
-        # PandasArray, PandasDtype
+        # NumpyExtensionArray, NumpyEADtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
-        # ndarray, PandasDtype
+        # ndarray, NumpyEADtype
         result = block_maker(
             arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
         )
