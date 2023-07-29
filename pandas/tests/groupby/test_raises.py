@@ -572,6 +572,22 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = any(group.empty for group in gb.groups.values())
+    if (
+        not observed
+        and how != "transform"
+        and isinstance(by, list)
+        and isinstance(by[0], str)
+        and by == ["a", "b"]
+    ):
+        assert not empty_groups
+        # TODO: empty_groups should be true due to unobserved categorical combinations
+        empty_groups = True
+    if how == "transform":
+        # empty groups will be ignored
+        empty_groups = False
+    if isinstance(by, Grouper) and groupby_func in ["idxmin", "idxmax"] and observed:
+        # TODO: grouping by Grouper always treats observed as False
+        empty_groups = False
 
     klass, msg = {
         "all": (None, ""),
@@ -617,8 +633,12 @@ def test_groupby_raises_category_on_category(
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
         "first": (None, ""),
-        "idxmax": (None, "") if empty_groups else (None, ""),
-        "idxmin": (None, "") if empty_groups else (None, ""),
+        "idxmax": (ValueError, "empty group due to unobserved categories")
+        if empty_groups
+        else (None, ""),
+        "idxmin": (ValueError, "empty group due to unobserved categories")
+        if empty_groups
+        else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
         "mean": (TypeError, "category dtype does not support aggregation 'mean'"),

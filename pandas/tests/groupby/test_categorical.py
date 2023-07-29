@@ -1399,6 +1399,15 @@ def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
         return
 
     agg = getattr(series_groupby, reduction_func)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     assert len(result) == expected_length
@@ -1431,6 +1440,15 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     series_groupby = df.groupby(["cat_1", "cat_2"], observed=False)["value"]
     agg = getattr(series_groupby, reduction_func)
+
+    if reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            agg(*args)
+        return
+
     result = agg(*args)
 
     zero_or_nan = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1497,6 +1515,15 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
     df_grp = df.groupby(["cat_1", "cat_2"], observed=observed)
 
     args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(df_grp, reduction_func)(*args)
+        return
+
     res = getattr(df_grp, reduction_func)(*args)
 
     expected = _results_for_groupbys_with_missing_categories[reduction_func]
@@ -1888,6 +1915,15 @@ def test_category_order_reducer(
         df = df.set_index(keys)
     args = get_groupby_method_args(reduction_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        # idxmin and idxmax are designed to fail on empty inputs
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb, reduction_func)(*args)
+        return
+
     op_result = getattr(gb, reduction_func)(*args)
     if as_index:
         result = op_result.index.get_level_values("a").categories
@@ -2086,6 +2122,13 @@ def test_agg_list(request, as_index, observed, reduction_func, test_series, keys
     if test_series:
         gb = gb["b"]
     args = get_groupby_method_args(reduction_func, df)
+
+    if not observed and reduction_func in ["idxmin", "idxmax"] and keys == ["a1", "a2"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            gb.agg([reduction_func], *args)
+        return
 
     result = gb.agg([reduction_func], *args)
     expected = getattr(gb, reduction_func)(*args)

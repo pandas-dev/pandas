@@ -501,9 +501,7 @@ def test_null_is_null_for_dtype(
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
-def test_categorical_reducers(
-    request, reduction_func, observed, sort, as_index, index_kind
-):
+def test_categorical_reducers(reduction_func, observed, sort, as_index, index_kind):
     # Ensure there is at least one null value by appending to the end
     values = np.append(np.random.choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
@@ -532,6 +530,17 @@ def test_categorical_reducers(
         # Don't include the grouping columns so we can call reset_index
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
+
+    gb_keepna = df.groupby(
+        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
+    )
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb_keepna, reduction_func)(*args)
+        return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
@@ -563,9 +572,6 @@ def test_categorical_reducers(
         if as_index:
             expected = expected["size"].rename(None)
 
-    gb_keepna = df.groupby(
-        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
     if as_index or index_kind == "range" or reduction_func == "size":
         warn = None
     else:

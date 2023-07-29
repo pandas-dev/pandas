@@ -2007,13 +2007,18 @@ def test_empty_groupby(
         with pytest.raises(TypeError, match=msg):
             get_result()
 
-        if isinstance(columns, list):
+        if op in ["min", "max"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
             if op in ["idxmax", "idxmin"]:
                 expected = expected.astype(int)
             tm.assert_equal(result, expected)
+        elif op in ["idxmin", "idxmax"] and isinstance(columns, list):
+            with pytest.raises(
+                ValueError, match="empty group due to unobserved categories"
+            ):
+                get_result(numeric_only=True)
         return
 
     if op in ["prod", "sum", "skew"]:

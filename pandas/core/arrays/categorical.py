@@ -2704,7 +2704,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if how == "rank":
             assert self.ordered  # checked earlier
             npvalues = self._ndarray
-        elif how in ["first", "last", "min", "max"]:
+        elif how in ["first", "last", "min", "max", "idxmin", "idxmax"]:
             npvalues = self._ndarray
             result_mask = np.zeros(ngroups, dtype=bool)
         else:

@@ -74,7 +74,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
     ensure_dtype_can_hold_na,
-    na_value_for_dtype,
 )
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -1918,9 +1917,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         new_mgr = data.grouped_reduce(array_func)
-        if post_process is not None:
-            new_mgr = new_mgr.apply(post_process)
         res = self._wrap_agged_manager(new_mgr)
+        if post_process is not None:
+            res = post_process(res)
         out = self._wrap_aggregated_output(res)
         if self.axis == 1:
             out = out.infer_objects(copy=False)
@@ -3248,25 +3247,36 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             idxmax or idxmin for the groupby operation.
         """
 
-        def post_process(x):
-            if x.size == 0:
-                result = x.astype(self.obj.index.dtype)
+        def post_process(res):
+            if self.observed:
+                raise_err = False
             else:
-                index = self.obj.index
+                result_len = np.prod(
+                    [len(ping.group_index) for ping in self.grouper.groupings]
+                )
+                raise_err = len(res) < result_len or (res._values == -1).any(axis=None)
+            if raise_err:
+                raise ValueError(
+                    f"Can't get {how} of an empty group due to unobserved categories. "
+                    "Specify observed=True in groupby instead"
+                )
+            index = self.obj.index
+            if res.size == 0:
+                result = res.astype(index.dtype)
+            else:
                 if isinstance(index, MultiIndex):
                     index = index.to_flat_index()
-                result = index.take(x).values
-                mask = x == -1
-                if mask.any():
-                    dtype = ensure_dtype_can_hold_na(result.dtype)
-                    if dtype != result.dtype:
-                        result = result.astype(dtype)
-                    if isinstance(dtype, np.dtype):
-                        result = np.where(
-                            mask, na_value_for_dtype(result.dtype), result
-                        )
-                    else:
-                        result[mask] = na_value_for_dtype(result.dtype)
+
+                if isinstance(res, Series):
+                    result = res._constructor(
+                        index.take(res), index=res.index, name=res.name
+                    )
+                else:
+                    buf = {}
+                    for k, _ in enumerate(res.columns):
+                        buf[k] = index.take(res._ixs(k, axis=1))
+                    result = self.obj._constructor(buf, index=res.index)
+                    result.columns = res.columns
             return result
 
         result = self._agg_general(
