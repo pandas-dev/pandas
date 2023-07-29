@@ -883,7 +883,8 @@ cdef class TextReader:
             decoded_warning_message = PyUnicode_DecodeUTF8(
                 self.parser.warn_msg, strlen(self.parser.warn_msg),
                 self.encoding_errors)
-            warnings.warn(decoded_warning_message, ParserWarning, stacklevel=find_stack_level())
+            warnings.warn(decoded_warning_message, ParserWarning,
+                          stacklevel=find_stack_level())
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
