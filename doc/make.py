@@ -288,7 +288,7 @@ class DocBuilder:
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
 
-   def _linkcheck(self):
+   def linkcheck(self):
         """
         Check for broken links in the documentation.
         """
@@ -308,7 +308,6 @@ class DocBuilder:
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith("_")]
-    cmds.append("linkcheck")  # Add linkcheck to the available commands
 
     joined = ",".join(cmds)
     argparser = argparse.ArgumentParser(
@@ -390,7 +389,7 @@ def main():
     )
 
     if args.command == "linkcheck":
-        builder._linkcheck()  # Call the linkcheck method
+        builder.linkcheck()  # Call the linkcheck method
     else:
         return getattr(builder, args.command)()
     
