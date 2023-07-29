@@ -1868,13 +1868,14 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.randn(4, 4))
+    df = DataFrame(np.random.randn(4, 4), dtype=dtype)
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
-    np_arr = df.to_numpy()
+    np_arr = df.to_numpy(dtype=np.float64)
     if method in {"skew", "kurt"}:
         comp_mod = pytest.importorskip("scipy.stats")
         if method == "kurt":
@@ -1883,7 +1884,10 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only):
         tm.assert_almost_equal(result, expected)
     else:
         expected = getattr(np, method)(np_arr, axis=None)
-        assert result == expected
+        if dtype == "float64":
+            assert result == expected
+        else:
+            tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize(
