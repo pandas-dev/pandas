@@ -529,8 +529,13 @@ def from_dummies(
             )
         else:
             data_slice = data_to_decode.loc[:, prefix_slice]
-        cats_array = np.array(cats, dtype="object")
+        cats_array = data._constructor_sliced(cats, dtype=data.columns.dtype)
         # get indices of True entries along axis=1
-        cat_data[prefix] = cats_array[data_slice.to_numpy().nonzero()[1]]
+        true_values = data_slice.idxmax(axis=1)
+        indexer = data_slice.columns.get_indexer_for(true_values)
+        cat_data[prefix] = cats_array.take(indexer).set_axis(data.index)
 
-    return DataFrame(cat_data)
+    result = DataFrame(cat_data)
+    if sep is not None:
+        result.columns = result.columns.astype(data.columns.dtype)
+    return result
