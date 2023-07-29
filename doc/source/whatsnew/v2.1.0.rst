@@ -605,7 +605,7 @@ Plotting
 ^^^^^^^^
 - Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)
 - Fixed UserWarning in :meth:`DataFrame.plot.scatter` when invoked with ``c="b"`` (:issue:`53908`)
--
+- Fixed bug in :meth:`DataFrame.plot.scatter` wherein marker size was previously hardcoded to a default value (:issue:`54204`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

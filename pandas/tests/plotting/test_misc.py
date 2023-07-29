@@ -662,3 +662,33 @@ class TestDataFramePlots:
             (a.get_text() == b.get_text())
             for a, b in zip(s.plot.bar().get_xticklabels(), expected)
         )
+
+    def test_change_scatter_markersize_rcparams(self):
+        # GH 54204
+        # Ensure proper use of lines.markersize to style pandas scatter
+        # plots like matplotlib does
+        df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+
+        pandas_default = df.plot.scatter(
+            x="x", y="y", title="pandas scatter, default rc marker size"
+        )
+
+        mpl_default = mpl.pyplot.scatter(df["x"], df["y"])
+
+        # verify that pandas and matplotlib scatter
+        # default marker size are the same (s = 6^2 = 36)
+        assert (
+            pandas_default.collections[0].get_sizes()[0] == mpl_default.get_sizes()[0]
+        )
+
+        with mpl.rc_context({"lines.markersize": 10}):
+            pandas_changed = df.plot.scatter(
+                x="x", y="y", title="pandas scatter, changed rc marker size"
+            )
+            mpl_changed = mpl.pyplot.scatter(df["x"], df["y"])
+
+        # verify that pandas and matplotlib scatter
+        # default marker size are the same (s = 10^2 = 100)
+        assert (
+            pandas_changed.collections[0].get_sizes()[0] == mpl_changed.get_sizes()[0]
+        )
