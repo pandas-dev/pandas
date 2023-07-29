@@ -492,8 +492,9 @@ cdef class Interval(IntervalMixin):
     def __repr__(self) -> str:
 
         left, right = self._repr_base()
+        disp = str if isinstance(left, np.generic) else repr
         name = type(self).__name__
-        repr_str = f"{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})"
+        repr_str = f"{name}({disp(left)}, {disp(right)}, closed={repr(self.closed)})"
         return repr_str
 
     def __str__(self) -> str:

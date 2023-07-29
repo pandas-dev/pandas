@@ -30,6 +30,8 @@ from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 from pandas.tests.groupby import get_groupby_method_args
 
+pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
+
 
 def test_repr():
     # GH18203

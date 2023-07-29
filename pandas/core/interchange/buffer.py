@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 from pandas.core.interchange.dataframe_protocol import (
@@ -49,7 +51,7 @@ class PandasBuffer(Buffer):
         """
         return self._x.__array_interface__["data"][0]
 
-    def __dlpack__(self):
+    def __dlpack__(self) -> Any:
         """
         Represent this structure as DLPack interface.
         """
