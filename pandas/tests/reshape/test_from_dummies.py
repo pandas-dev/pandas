@@ -402,6 +402,7 @@ def test_with_prefix_default_category(
 
 
 def test_ea_categories():
+    # GH 54300
     df = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
     df.columns = df.columns.astype("string[python]")
     result = from_dummies(df)
@@ -410,6 +411,7 @@ def test_ea_categories():
 
 
 def test_ea_categories_with_sep():
+    # GH 54300
     df = DataFrame(
         {
             "col1_a": [1, 0, 1],
@@ -432,6 +434,7 @@ def test_ea_categories_with_sep():
 
 
 def test_maintain_original_index():
+    # GH 54300
     df = DataFrame(
         {"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]}, index=list("abcd")
     )
