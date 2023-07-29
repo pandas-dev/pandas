@@ -580,19 +580,6 @@ class ExcelFormatter:
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
 
-    @property
-    def header_style(self) -> dict[str, dict[str, str | bool]]:
-        return {
-            "font": {"bold": True},
-            "borders": {
-                "top": "thin",
-                "right": "thin",
-                "bottom": "thin",
-                "left": "thin",
-            },
-            "alignment": {"horizontal": "center", "vertical": "top"},
-        }
-
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
             val = self.na_rep
@@ -640,7 +627,7 @@ class ExcelFormatter:
                     row=lnum,
                     col=coloffset,
                     val=name,
-                    style=self.header_style,
+                    style=None,
                 )
 
             for lnum, (spans, levels, level_codes) in enumerate(
@@ -655,7 +642,7 @@ class ExcelFormatter:
                         row=lnum,
                         col=coloffset + i + 1,
                         val=values[i],
-                        style=self.header_style,
+                        style=None,
                         css_styles=getattr(self.styler, "ctx_columns", None),
                         css_row=lnum,
                         css_col=i,
@@ -671,7 +658,7 @@ class ExcelFormatter:
                     row=lnum,
                     col=coloffset + i + 1,
                     val=v,
-                    style=self.header_style,
+                    style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=lnum,
                     css_col=i,
@@ -704,7 +691,7 @@ class ExcelFormatter:
                     row=self.rowcounter,
                     col=colindex + coloffset,
                     val=colname,
-                    style=self.header_style,
+                    style=None,
                     css_styles=getattr(self.styler, "ctx_columns", None),
                     css_row=0,
                     css_col=colindex,
@@ -727,7 +714,7 @@ class ExcelFormatter:
             ] * len(self.columns)
             if functools.reduce(lambda x, y: x and y, (x != "" for x in row)):
                 gen2 = (
-                    ExcelCell(self.rowcounter, colindex, val, self.header_style)
+                    ExcelCell(self.rowcounter, colindex, val, None)
                     for colindex, val in enumerate(row)
                 )
                 self.rowcounter += 1
@@ -761,7 +748,7 @@ class ExcelFormatter:
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
-                yield ExcelCell(self.rowcounter - 1, 0, index_label, self.header_style)
+                yield ExcelCell(self.rowcounter - 1, 0, index_label, None)
 
             # write index_values
             index_values = self.df.index
@@ -773,7 +760,7 @@ class ExcelFormatter:
                     row=self.rowcounter + idx,
                     col=0,
                     val=idxval,
-                    style=self.header_style,
+                    style=None,
                     css_styles=getattr(self.styler, "ctx_index", None),
                     css_row=idx,
                     css_col=0,
@@ -809,7 +796,7 @@ class ExcelFormatter:
             # if index labels are not empty go ahead and dump
             if com.any_not_none(*index_labels) and self.header is not False:
                 for cidx, name in enumerate(index_labels):
-                    yield ExcelCell(self.rowcounter - 1, cidx, name, self.header_style)
+                    yield ExcelCell(self.rowcounter - 1, cidx, name, None)
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
@@ -836,7 +823,7 @@ class ExcelFormatter:
                             row=self.rowcounter + i,
                             col=gcolidx,
                             val=values[i],
-                            style=self.header_style,
+                            style=None,
                             css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=i,
                             css_col=gcolidx,
@@ -854,7 +841,7 @@ class ExcelFormatter:
                             row=self.rowcounter + idx,
                             col=gcolidx,
                             val=indexcolval,
-                            style=self.header_style,
+                            style=None,
                             css_styles=getattr(self.styler, "ctx_index", None),
                             css_row=idx,
                             css_col=gcolidx,

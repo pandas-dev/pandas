@@ -31,6 +31,28 @@ def assert_equal_cell_styles(cell1, cell2):
     assert cell1.protection.__dict__ == cell2.protection.__dict__
 
 
+def test_styler_default_values():
+    # GH 54154
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="custom")
+
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            # Check font, spacing, indentation
+            assert wb["custom"].cell(1, 1).font.bold is False
+            assert wb["custom"].cell(1, 1).alignment.horizontal is None
+            assert wb["custom"].cell(1, 1).alignment.vertical is None
+
+            # Check border
+            assert wb["custom"].cell(1, 1).border.bottom.color is None
+            assert wb["custom"].cell(1, 1).border.top.color is None
+            assert wb["custom"].cell(1, 1).border.left.color is None
+            assert wb["custom"].cell(1, 1).border.right.color is None
+
+
 @pytest.mark.parametrize(
     "engine",
     ["xlsxwriter", "openpyxl"],
@@ -121,6 +143,39 @@ shared_style_params = [
         "hair",
     ),
 ]
+
+
+@pytest.mark.parametrize(
+    "css",
+    ["background-color: #111222"],
+)
+def test_styler_custom_style(css):
+    # GH 54154
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([{"A": 1, "B": 2}, {"A": 1, "B": 2}])
+
+    with tm.ensure_clean(".xlsx") as path:
+        with ExcelWriter(path, engine="openpyxl") as writer:
+            styler = df.style.map(lambda x: css)
+            styler.to_excel(writer, sheet_name="custom", index=False)
+
+        with contextlib.closing(openpyxl.load_workbook(path)) as wb:
+            # Check font, spacing, indentation
+            assert wb["custom"].cell(1, 1).font.bold is False
+            assert wb["custom"].cell(1, 1).alignment.horizontal is None
+            assert wb["custom"].cell(1, 1).alignment.vertical is None
+
+            # Check border
+            assert wb["custom"].cell(1, 1).border.bottom.color is None
+            assert wb["custom"].cell(1, 1).border.top.color is None
+            assert wb["custom"].cell(1, 1).border.left.color is None
+            assert wb["custom"].cell(1, 1).border.right.color is None
+
+            # Check background color
+            assert wb["custom"].cell(2, 1).fill.fgColor.index == "00111222"
+            assert wb["custom"].cell(3, 1).fill.fgColor.index == "00111222"
+            assert wb["custom"].cell(2, 2).fill.fgColor.index == "00111222"
+            assert wb["custom"].cell(3, 2).fill.fgColor.index == "00111222"
 
 
 @pytest.mark.parametrize(
