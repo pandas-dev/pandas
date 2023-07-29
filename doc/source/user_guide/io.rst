@@ -3924,6 +3924,20 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
 
+.. note::
+
+    As of Pandas 3.0, by default spreadsheets created with the ``to_excel`` method
+    will not contain any styling. Users wishing to bold text, add bordered styles,
+    etc in a worksheet output by ``to_excel`` can do so by using ``Styler.to_excel``
+    to create styled excel files.
+
+
+.. code-block:: python
+
+    css = "border: 1pt solid #111222"
+    styler = df.style.map(lambda x: css)
+    styler.to_excel("path_to_file.xlsx", sheet_name="custom", index=False)
+
 Using the `Xlsxwriter`_ engine provides many options for controlling the
 format of an Excel worksheet created with the ``to_excel`` method.  Excellent examples can be found in the
 `Xlsxwriter`_ documentation here: https://xlsxwriter.readthedocs.io/working_with_pandas.html
