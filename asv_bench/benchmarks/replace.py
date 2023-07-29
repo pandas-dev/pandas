@@ -42,7 +42,7 @@ class ReplaceList:
     param_names = ["inplace"]
 
     def setup(self, inplace):
-        self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(4 * 10**7))
+        self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(10**7))
 
     def time_replace_list(self, inplace):
         self.df.replace([np.inf, -np.inf], np.nan, inplace=inplace)
