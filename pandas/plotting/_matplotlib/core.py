@@ -1325,9 +1325,14 @@ class ScatterPlot(PlanePlot):
         **kwargs,
     ) -> None:
         if s is None:
-            # hide the matplotlib default for size, in case we want to change
-            # the handling of this argument later
-            s = 20
+            #  The default size of the elements in a scatter plot
+            # is now based on the rcParam ``lines.markersize``.
+            # This means that if rcParams are temporarily changed,
+            # the marker size changes as well according to mpl.rc_context().
+            if mpl.rcParams["_internal.classic_mode"]:
+                s = 20
+            else:
+                s = mpl.rcParams["lines.markersize"] ** 2.0
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         self.s = s

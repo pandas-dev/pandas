@@ -864,3 +864,32 @@ def test_plot_bar_label_count_expected_success():
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])
+    def test_change_scatter_markersize_rcparams(self):
+        # GH 54204
+        # Ensure proper use of lines.markersize to style pandas scatter
+        # plots like matplotlib does
+        df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+
+        pandas_default = df.plot.scatter(
+            x="x", y="y", title="pandas scatter, default rc marker size"
+        )
+
+        mpl_default = mpl.pyplot.scatter(df["x"], df["y"])
+
+        # verify that pandas and matplotlib scatter
+        # default marker size are the same (s = 6^2 = 36)
+        assert (
+            pandas_default.collections[0].get_sizes()[0] == mpl_default.get_sizes()[0]
+        )
+
+        with mpl.rc_context({"lines.markersize": 10}):
+            pandas_changed = df.plot.scatter(
+                x="x", y="y", title="pandas scatter, changed rc marker size"
+            )
+            mpl_changed = mpl.pyplot.scatter(df["x"], df["y"])
+
+        # verify that pandas and matplotlib scatter
+        # default marker size are the same (s = 10^2 = 100)
+        assert (
+            pandas_changed.collections[0].get_sizes()[0] == mpl_changed.get_sizes()[0]
+        )
