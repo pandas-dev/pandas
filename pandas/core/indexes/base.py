@@ -1006,7 +1006,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self[:]
 
-    def view(self, cls=None) -> Self:
+    def view(self, cls=None) -> np.ndarray:
         # we need to see if we are subclassing an
         # index type here
         if cls is not None and not hasattr(cls, "_typ"):
