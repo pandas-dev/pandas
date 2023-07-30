@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
@@ -66,6 +67,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import array_equivalent
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -3219,7 +3221,12 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name, copy=False)
+        result = Series(values, index=index, name=self.name, copy=False)
+        if result.dtype.kind == "O" and using_pyarrow_string_dtype():
+            import pyarrow as pa
+
+            result = result.astype(pd.ArrowDtype(pa.string()))
+        return result
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3287,6 +3294,10 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
+            if values.dtype.kind == "O" and using_pyarrow_string_dtype():
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4669,6 +4680,10 @@ class AppendableFrameTable(AppendableTable):
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if values.dtype.kind == "O" and using_pyarrow_string_dtype():
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             frames.append(df)
 
         if len(frames) == 1:
