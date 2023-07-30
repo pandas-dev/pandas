@@ -512,7 +512,7 @@ class Apply:
         self.df.apply(lambda x: x.mean())
 
     def time_apply_np_mean(self):
-        self.df.apply(np.mean)
+        self.df.apply("mean")
 
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)
