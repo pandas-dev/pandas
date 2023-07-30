@@ -812,9 +812,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             self, indices, axis, allow_fill, fill_value, **kwargs
         )
 
-        if indices.ndim == 1:
-            maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
-            if isinstance(maybe_slice, slice):
-                freq = self._data._get_getitem_freq(maybe_slice)
-                result._data._freq = freq
+        maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
+        if isinstance(maybe_slice, slice):
+            freq = self._data._get_getitem_freq(maybe_slice)
+            result._data._freq = freq
         return result

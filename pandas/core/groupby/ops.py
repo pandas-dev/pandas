@@ -273,7 +273,7 @@ class WrappedCythonOp:
         elif how in ["idxmin", "idxmax"]:
             # The Cython implementation only produces the row number; we'll take
             # from the index using this in post processing
-            out_dtype = "int64"
+            out_dtype = "intp"
         else:
             if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"

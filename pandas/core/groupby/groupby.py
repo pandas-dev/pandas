@@ -3243,8 +3243,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         how: {"idxmin", "idxmax"}
             Whether to compute idxmin or idxmax.
-        alt: Callable
-            Fallback for non-Cython (e.g. object) types.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -3255,17 +3253,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def post_process(res):
-            if self.observed:
-                raise_err = False
-            else:
+            if not self.observed:
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
                 raise_err = len(res) < result_len or (res._values == -1).any(axis=None)
+            else:
+                raise_err = False
             if raise_err:
                 raise ValueError(
                     f"Can't get {how} of an empty group due to unobserved categories. "
-                    "Specify observed=True in groupby instead"
+                    "Specify observed=True in groupby instead."
                 )
             index = self.obj.index
             if res.size == 0:
