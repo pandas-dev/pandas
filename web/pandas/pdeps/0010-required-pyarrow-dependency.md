@@ -1,7 +1,7 @@
 # PDEP-10: PyArrow as a required dependency for default string inference implementation
 
 - Created: 17 April 2023
-- Status: Under discussion
+- Status: Accepted
 - Discussion: [#52711](https://github.com/pandas-dev/pandas/pull/52711)
               [#52509](https://github.com/pandas-dev/pandas/issues/52509)
 - Author: [Matthew Roeschke](https://github.com/mroeschke)
