@@ -131,7 +131,7 @@ and is a candidate for returning a view:
 ```
 
 Now, generally, pandas users won't expect `df2` or `df3` to be a view such that mutating
-`df2` or `df3` would mutate `df`. Making use of Copy-on-Write allows us to also avoid
+`df2` or `df3` would mutate `df`. Copy-on-Write allows us to also avoid
 unnecessary copies in methods such as the above (or in the variant using method chaining
 like `df.rename(columns=str.lower).set_index("a")`).
 
@@ -235,15 +235,15 @@ details of how indexing works, also need to understand those view / fancy indexi
 concepts of numpy.
 
 However, because DataFrames are not an array, the copy/view rules still differ from
-numpy's rules with current pandas. Slicing rows generally gives a view (following
-numpy), but slicing columns doesn't always give a view (this could be changed to match
-numpy however, see "Alternatives" 1b below). Fancy indexing rows (eg with a list of
+NumPy's rules with current pandas. Slicing rows generally gives a view (following
+NumPy), but slicing columns doesn't always give a view (this could be changed to match
+NumPy however, see "Alternatives" 1b below). Fancy indexing rows (eg with a list of
 (positional) labels) gives a copy, but fancy indexing columns _could_ give a view
 (currently this gives a copy as well, but one of the "Alternatives" (1b) is to have this
 always return a view).
 
 The proposal in this document is to decouple the pandas user-facing behaviour from those
-numpy concepts. Creating a subset of a DataFrame with a slice or with a mask would
+NumPy concepts. Creating a subset of a DataFrame with a slice or with a mask would
 behave in a similar way for the user (both return a new object and behave as a copy of
 the original). We still use the concept of views internally in pandas to optimize the
 implementation, but this becomes hidden from the user.
@@ -272,26 +272,23 @@ The [original document](https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jw
    ``.as_mutable_view()`` (name TBD).
 
 This document basically proposes an extended version of option 2 (Copy-on-Write). Some
-personal arguments in favor of Copy-on-Write compared to the other options:
+arguments in favor of Copy-on-Write compared to the other options:
 
-* If we also want to improve the copy/view efficiency of _methods_ (eg rename,
-  (re)set_index, drop columns, etc. See section above), we will need to implement a form
-  of Copy-on-Write anyway (Error-on-Write would not be appropriate for those
-  cases). Personally, I find this an important improvement that I would like to see
-  happen.
+* Copy-on-Write will improve the copy/view efficiency of _methods_ (eg rename,
+  (re)set_index, drop columns, etc. See section above). This will result in
+  lower memory usage and better performance.
 
-* This proposal can also be seen as a clear "well-defined rule", but using Copy-on-Write
-  under the hood as an implementation detail to delay the actual copy until it is
-  needed. And when it comes to clear rules, I think the rule of "always copy" is the
-  simplest "well-defined rule" we can get.
+* This proposal can also be seen as a clear "well-defined rule". Using Copy-on-Write
+  under the hood is an implementation detail to delay the actual copy until it is
+  needed. The rule of "always copy" is the simplest "well-defined rule" we can get.
 
   Other "well-defined rule" ideas above would always include some specific cases (and
-  deviations from the numpy rules). And even with clear rules a user still needs to know
+  deviations from the NumPy rules). And even with clear rules a user still needs to know
   the details of those rules to understand that `df['a'][df['b'] < 0] = 0` or
   `df[df['b'] < 0]['a'] = 0` does something differently (switched order of column/row
   indexing: the first mutates df (if selecting a column is a view) and the second
   doesn't). While with the "always copy" rule with Copy-on-Write, neither of those
-  examples would work to update `df`.
+  examples will work to update `df`.
 
 On the other hand, the proposal in this document does not give the user control over
 whether a subset should be a view (when possible) that mutates the parent when being
@@ -307,23 +304,26 @@ Other than the fact that this proposal would result in a backwards incompatible,
 breaking change in behaviour (see next section), there some other potential
 disadvantages:
 
-* Deviation from numpy: numpy uses the copy and view concepts, while in this proposal
+* Deviation from NumPy: NumPy uses the copy and view concepts, while in this proposal
   views would basically not exist anymore in pandas (for the user, at least; we would
   still use it internally as an implementation detail)
   * But as a counter argument: many pandas users are probably not familiar with those
-    concepts, and pandas already deviates from the exact rules in numpy.
+    concepts, and pandas already deviates from the exact rules in NumPy.
 * Performance cost of indexing and methods becomes harder to predict: because the copy
   of the data doesn't happen at the moment when actually creating the new object, but
   can happen at a later stage when modifying either the parent or child object, it
   becomes less transparent about when pandas copies data (but in general we should copy
-  less often).
+  less often). This is somewhat mitigated because Copy-on-Write will only copy the columns
+  that are mutated. Unrelated columns won't get copied.
 * Increased memory usage for some use cases: while the majority of use cases will
-  probably see an improvement in memory usage with this proposal, there are a few use
+  see an improvement in memory usage with this proposal, there are a few use
   cases where this might not be the case. Specifically in cases where pandas currently
   does return a view (eg slicing rows) and in the case you are fine with (or don't care
   about) the current behaviour of it being a view when mutating that subset (i.e.
   mutating the sliced subset also mutates the parent dataframe), in such a case the
-  proposal would introduce a new copy compared to the current behaviour.
+  proposal would introduce a new copy compared to the current behaviour. There is a
+  workaround for this though: The copy is not needed if the previous object goes out
+  of scope, e.g. the variable is reassigned to something else.
 
 ## Backward compatibility
 
@@ -335,26 +335,26 @@ change like this will in any case need to be accompanied with a major version bu
 example pandas 3.0).
 
 Doing a traditional deprecation cycle that lives in several minor feature releases will
-probably be too noisy. Indexing is too common an operation to include a warning (even if
-we limit it to just those operations that previously returned views). However, we can
-already implement this proposal and make it available before becoming the default
-behaviour, such that users can opt-in and test their code (this is possible starting with version 1.5
-with `pd.options.mode.copy_on_write = True`). Further, it should be possible to also
-provide a "warning" mode that raises warnings for all cases that will change behaviour
-under the Copy-on-Write proposal. If we have such a warning mode, we could also enable
-those warnings by default in a last release before the major version bump. We can then
+be too noisy. Indexing is too common an operation to include a warning (even if
+we limit it to just those operations that previously returned views). However, this proposal
+is already implemented and thus available. Users can opt-in and test their code 
+(this is possible starting with version 1.5
+with `pd.options.mode.copy_on_write = True`). 
+
+Further we will add a warning mode for pandas 2.2 that raises warnings for all cases that
+will change behaviour under the Copy-on-Write proposal. We can
 provide a clearly documented upgrade path to first enable the warnings, fix all
 warnings, and then enable the Copy-on-Write mode and ensure your code is still working,
 and then finally upgrade to the new major release.
 
 ## Implementation
 
-An initial implementation has been
-[merged](https://github.com/pandas-dev/pandas/pull/46958) and is available since pandas
-1.5 (and significantly improved in 2.0). It uses weakrefs to keep track of whether the
+The implementation is available since pandas
+1.5 (and significantly improved starting with pandas 2.0). It uses weakrefs to keep track of whether the
 data of a Dataframe/Series are viewing the data of another (pandas) object or are being
 viewed by another object. This way, whenever the series/dataframe gets modified, we can
-check if its data first needs to be copied before mutating it.
+check if its data first needs to be copied before mutating it 
+(see [here](https://pandas.pydata.org/docs/development/copy_on_write.html)).
 
 To test the implementation and experiment with the new behaviour, you can
 enable it with the following option:
@@ -422,7 +422,7 @@ Try using .loc[row_indexer,col_indexer] = value instead
 ```
 
 If you then modify your filtered dataframe (e.g. adding a column), you get the
-unnecessary SettingWIthCopyWarning (with confusing message). The only way to get rid of
+unnecessary SettingWithCopyWarning (with confusing message). The only way to get rid of
 the warning is by doing a defensive copy (`df_filtered = df[df["A"] > 1].copy()`, which
 results in copying the data twice in the current implementation, Copy-on-Write would
 not require ``.copy()`` anymore).
@@ -450,7 +450,7 @@ parent `df`.
 ### "Shallow" copies
 
 _Currently_, it is possible to create a "shallow" copy of a DataFrame with
-`copy((deep=False)`. This creates a new DataFrame object but without copying the
+`copy(deep=False)`. This creates a new DataFrame object but without copying the
 underlying index and data. Any changes to the data of the original will be reflected in
 the shallow copy (and vice versa). See the
 [docs](https://pandas.pydata.org/pandas-docs/version/1.5/reference/api/pandas.DataFrame.copy.html).
