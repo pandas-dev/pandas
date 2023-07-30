@@ -70,7 +70,7 @@ SettingWithCopyWarnings, or to ensure that you have a copy when a view _was_ ret
 
 ## Proposal
 
-For these reasons (consistency, performance, code clarity), this documents propose the
+For these reasons (consistency, performance, code clarity), this PDEP proposes the
 following changes:
 
 1. The result of _any_ indexing operation (subsetting a DataFrame or Series in any way,
@@ -338,7 +338,7 @@ Doing a traditional deprecation cycle that lives in several minor feature releas
 probably be too noisy. Indexing is too common an operation to include a warning (even if
 we limit it to just those operations that previously returned views). However, we can
 already implement this proposal and make it available before becoming the default
-behaviour, such that users can opt-in and test their code (this is currently possible
+behaviour, such that users can opt-in and test their code (this is possible starting with version 1.5
 with `pd.options.mode.copy_on_write = True`). Further, it should be possible to also
 provide a "warning" mode that raises warnings for all cases that will change behaviour
 under the Copy-on-Write proposal. If we have such a warning mode, we could also enable
@@ -421,7 +421,8 @@ Try using .loc[row_indexer,col_indexer] = value instead
 If you then modify your filtered dataframe (e.g. adding a column), you get the
 unnecessary SettingWIthCopyWarning (with confusing message). The only way to get rid of
 the warning is by doing a defensive copy (`df_filtered = df[df["A"] > 1].copy()`, which
-results in copying the data twice).
+results in copying the data twice in the current implementation, Copy-on-Write would
+not require ``.copy()`` anymore).
 
 _With the current proposal_, the filtered dataframe is never a view and the above
 workflow would work as expected without warning (and thus without needing the extra
@@ -556,7 +557,7 @@ explicitly
 [mentions](https://pola-rs.github.io/polars-book/user-guide/introduction.html#current-status)
 "Copy-on-Write" semantics as one its features.
 
-Based on some experiments, the user-facing behaviour seems similar to the behaviour
+Based on some experiments, the user-facing behaviour of Polars seems similar to the behaviour
 described in this proposal (mutating a DataFrame/Series never mutates a parent/child
 object, and so chained assignment also doesn't work)
 
@@ -568,7 +569,7 @@ object, and so chained assignment also doesn't work)
 
 Note: this proposal has been discussed before it was turned into a PDEP. The main
 discussion happened in [GH-36195](https://github.com/pandas-dev/pandas/issues/36195).
-This document is mofied from the original document discussing different options for
+This document is modified from the original document discussing different options for
 clear copy/view semantics started by Tom Augspurger
 ([google doc](https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jwURn3sK5k5eVewinxd8OUPk0/edit)).
 
