@@ -1502,6 +1502,20 @@ def test_where_mask_noop_on_single_column(using_copy_on_write, dtype, val, func)
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("func", ["mask", "where"])
+def test_chained_where_mask(using_copy_on_write, func):
+    df = DataFrame({"a": [1, 4, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
