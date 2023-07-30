@@ -324,13 +324,16 @@ class AggFunctions:
         )
         return df
 
-    def time_different_str_functions_singlecol(self, df):
-        df.groupby("key1").agg({"value1": "mean", "value2": "var", "value3": "sum"})
-
     def time_different_str_functions(self, df):
         df.groupby(["key1", "key2"]).agg(
             {"value1": "mean", "value2": "var", "value3": "sum"}
         )
+
+    def time_different_str_functions_multicol(self, df):
+        df.groupby(["key1", "key2"]).agg(["sum", "min", "max"])
+
+    def time_different_str_functions_singlecol(self, df):
+        df.groupby("key1").agg({"value1": "mean", "value2": "var", "value3": "sum"})
 
 
 class GroupStrings:
@@ -373,7 +376,7 @@ class MultiColumn:
     def time_col_select_lambda_sum(self, df):
         df.groupby(["key1", "key2"])["data1"].agg(lambda x: x.values.sum())
 
-    def time_col_select_numpy_sum(self, df):
+    def time_col_select_str_sum(self, df):
         df.groupby(["key1", "key2"])["data1"].agg("sum")
 
 
@@ -886,7 +889,7 @@ class Transform:
     def time_transform_lambda_max(self):
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
-    def time_transform_ufunc_max(self):
+    def time_transform_str_max(self):
         self.df.groupby(level="lev1").transform("max")
 
     def time_transform_lambda_max_tall(self):
