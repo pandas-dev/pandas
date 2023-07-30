@@ -215,7 +215,7 @@ And thus modifications to one will not propagate to the other:
 1
 ```
 
-In pandas, any getitem indexing operation returns _new_ objects, and also almost all
+In the current implementation, any getitem indexing operation returns _new_ objects, and also almost all
 DataFrame/Series methods return a _new_ object (except with `inplace=True` in some
 cases), and thus follow the above logic of never modifying its parent/child DataFrame or
 Series (using the lazy Copy-on-Write mechanism where possible).
@@ -356,7 +356,7 @@ data of a Dataframe/Series are viewing the data of another (pandas) object or ar
 viewed by another object. This way, whenever the series/dataframe gets modified, we can
 check if its data first needs to be copied before mutating it.
 
-To test the implementation and experiment with the new behaviour, you can can
+To test the implementation and experiment with the new behaviour, you can
 enable it with the following option:
 
 ```python
@@ -401,8 +401,11 @@ cases will stop working (e.g. the case above but switching the order):
 >>> df['B'][0:5] = 10
 ```
 
-It might be possible to detect this and raise an error (since it can never do what the
-user intended, an error could be appropriate / helpful).
+These cases will raise a warning ``ChainedAssignmentError``, because they can never
+accomplished what the user intended. There will be false-positive cases when these
+operations are triggered from Cython, because Cython uses a different reference counting
+mechanism. These cases should be rare, since calling pandas code from Cython does not
+have any performance benefits.
 
 ### Filtered dataframe
 
