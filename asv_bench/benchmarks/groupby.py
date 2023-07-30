@@ -887,7 +887,7 @@ class Transform:
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
     def time_transform_ufunc_max(self):
-        self.df.groupby(level="lev1").transform(np.max)
+        self.df.groupby(level="lev1").transform("max")
 
     def time_transform_lambda_max_tall(self):
         self.df_tall.groupby(level=0).transform(lambda x: np.max(x, axis=0))
