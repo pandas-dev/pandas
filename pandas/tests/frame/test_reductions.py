@@ -1884,10 +1884,7 @@ def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
         tm.assert_almost_equal(result, expected)
     else:
         expected = getattr(np, method)(np_arr, axis=None)
-        if dtype == "float64":
-            assert result == expected
-        else:
-            tm.assert_almost_equal(result, expected)
+        assert result == expected
 
 
 @pytest.mark.parametrize(
