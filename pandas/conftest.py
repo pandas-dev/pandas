@@ -32,9 +32,8 @@ import operator
 import os
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
 )
 
 from dateutil.tz import (
@@ -72,6 +71,12 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
 
 try:
     import pyarrow as pa
@@ -137,6 +142,10 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
+        ("Series.idxmin", "The behavior of Series.idxmin"),
+        ("Series.idxmax", "The behavior of Series.idxmax"),
+        ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
+        ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (

@@ -93,7 +93,8 @@ jobs:
         - [macos-12, macosx_*]
         - [windows-2022, win_amd64]
         # TODO: support PyPy?
-        python: [["cp39", "3.9"], ["cp310", "3.10"], ["cp311", "3.11"]]
+        # TODO: Enable Python 3.12 wheels when numpy releases a version that supports Python 3.12
+        python: [["cp39", "3.9"], ["cp310", "3.10"], ["cp311", "3.11"]]#, ["cp312", "3.12"]]
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
@@ -103,6 +104,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      # We need to build wheels from the sdist since the sdist
+      # removes unnecessary files from the release
       - name: Download sdist
         uses: actions/download-artifact@v3
         with:
@@ -110,13 +113,14 @@ jobs:
           path: ./dist
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.13.1
+        uses: pypa/cibuildwheel@v2.14.1
         # TODO: Build wheels from sdist again
         # There's some sort of weird race condition?
         # within Github that makes the sdist be missing files
-        #with:
-        #  package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
+        with:
+         package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
         env:
+          CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
       - name: Set up Python

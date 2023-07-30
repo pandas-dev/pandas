@@ -3,8 +3,12 @@ title: 'pandas-dev/pandas: Pandas'
 message: 'If you use this software, please cite it as below.'
 authors:
   - name: "The pandas development team"
+abstract: "Pandas is a powerful data structures for data analysis, time series, and statistics."
 license: BSD-3-Clause
 license-url: "https://github.com/pandas-dev/pandas/blob/main/LICENSE"
 repository-code: "https://github.com/pandas-dev/pandas"
+keywords:
+  - python
+  - data science
 type: software
 url: "https://github.com/pandas-dev/pandas"

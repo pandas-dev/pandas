@@ -5,6 +5,7 @@ related to inference and not otherwise tested in types/test_common.py
 """
 import collections
 from collections import namedtuple
+from collections.abc import Iterator
 from datetime import (
     date,
     datetime,
@@ -20,7 +21,6 @@ import re
 import sys
 from typing import (
     Generic,
-    Iterator,
     TypeVar,
 )
 
@@ -150,8 +150,9 @@ ll_params = [
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
     (Series([], dtype=object), True, "Series-empty"),
-    (Series(["a"]).str, False, "StringMethods"),
-    (Series([], dtype="O").str, False, "StringMethods-empty"),
+    # Series.str will still raise a TypeError if iterated
+    (Series(["a"]).str, True, "StringMethods"),
+    (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -1362,7 +1363,8 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        # with pd.array this becomes NumpyExtensionArray which ends up
+        #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
         assert lib.infer_dtype(values, skipna=skipna) == exp
 

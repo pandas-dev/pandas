@@ -155,7 +155,7 @@ columns.
 
 .. warning::
 
-   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``, and ``.iloc``.
+   pandas aligns all AXES when setting ``Series`` and ``DataFrame`` from ``.loc``.
 
    This will **not** modify ``df`` because the column alignment is before value assignment.
 
@@ -171,6 +171,17 @@ columns.
 
       df.loc[:, ['B', 'A']] = df[['A', 'B']].to_numpy()
       df[['A', 'B']]
+
+   However, pandas does not align AXES when setting ``Series`` and ``DataFrame`` from ``.iloc``
+   because ``.iloc`` operates by position.
+
+   This will modify ``df`` because the column alignment is not done before value assignment.
+
+   .. ipython:: python
+
+      df[['A', 'B']]
+      df.iloc[:, [1, 0]] = df[['A', 'B']]
+      df[['A','B']]
 
 
 Attribute access
@@ -1029,14 +1040,10 @@ input data shape. ``where`` is used under the hood as the implementation.
 The code below is equivalent to ``df.where(df < 0)``.
 
 .. ipython:: python
-   :suppress:
 
    dates = pd.date_range('1/1/2000', periods=8)
    df = pd.DataFrame(np.random.randn(8, 4),
                      index=dates, columns=['A', 'B', 'C', 'D'])
-
-.. ipython:: python
-
    df[df < 0]
 
 In addition, ``where`` takes an optional ``other`` argument for replacement of
@@ -1431,7 +1438,6 @@ This plot was created using a ``DataFrame`` with 3 columns each containing
 floating point values generated using ``numpy.random.randn()``.
 
 .. ipython:: python
-   :suppress:
 
    df = pd.DataFrame(np.random.randn(8, 4),
                      index=dates, columns=['A', 'B', 'C', 'D'])
@@ -1694,15 +1700,11 @@ DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
 To create a new, re-indexed DataFrame:
 
 .. ipython:: python
-   :suppress:
 
    data = pd.DataFrame({'a': ['bar', 'bar', 'foo', 'foo'],
                         'b': ['one', 'two', 'one', 'two'],
                         'c': ['z', 'y', 'x', 'w'],
                         'd': [1., 2., 3, 4]})
-
-.. ipython:: python
-
    data
    indexed1 = data.set_index('c')
    indexed1
@@ -1811,11 +1813,6 @@ you do something that might cost a few extra milliseconds!
 But it turns out that assigning to the product of chained indexing has
 inherently unpredictable results. To see this, think about how the Python
 interpreter executes this code:
-
-.. ipython:: python
-    :suppress:
-
-    value = None
 
 .. code-block:: python
 
