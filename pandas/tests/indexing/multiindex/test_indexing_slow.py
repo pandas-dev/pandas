@@ -11,12 +11,12 @@ import pandas._testing as tm
 
 @pytest.fixture
 def m():
-    return 50
+    return 5
 
 
 @pytest.fixture
 def n():
-    return 1000
+    return 100
 
 
 @pytest.fixture

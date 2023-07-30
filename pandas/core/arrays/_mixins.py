@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -58,6 +57,8 @@ from pandas.core.indexers import check_array_indexer
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
@@ -232,13 +233,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value)
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     @doc(ExtensionArray.shift)
-    def shift(self, periods: int = 1, fill_value=None, axis: AxisInt = 0):
+    def shift(self, periods: int = 1, fill_value=None):
+        # NB: shift is always along axis=0
+        axis = 0
         fill_value = self._validate_scalar(fill_value)
         new_values = shift(self._ndarray, periods, axis, fill_value)
 
@@ -293,7 +296,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     @doc(ExtensionArray.fillna)
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         value, method = validate_fillna_kwargs(
             value, method, validate_scalar_dict_value=False
         )
@@ -310,22 +315,31 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
                 func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._ndarray.T.copy()
+                npvalues = self._ndarray.T
+                if copy:
+                    npvalues = npvalues.copy()
                 func(npvalues, limit=limit, mask=mask.T)
                 npvalues = npvalues.T
 
-                # TODO: PandasArray didn't used to copy, need tests for this
+                # TODO: NumpyExtensionArray didn't used to copy, need tests
+                #  for this
                 new_values = self._from_backing_data(npvalues)
             else:
                 # fill with value
-                new_values = self.copy()
+                if copy:
+                    new_values = self.copy()
+                else:
+                    new_values = self[:]
                 new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
             if value is not None:
                 self._validate_setitem_value(value)
 
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     # ------------------------------------------------------------------------

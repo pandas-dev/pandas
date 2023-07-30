@@ -30,7 +30,7 @@ class ODFReader(BaseExcelReader):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         """
@@ -154,8 +154,7 @@ class ODFReader(BaseExcelReader):
                 # add blank rows to our table
                 table.extend([[self.empty_value]] * empty_rows)
                 empty_rows = 0
-                for _ in range(row_repeat):
-                    table.append(table_row)
+                table.extend(table_row for _ in range(row_repeat))
             if file_rows_needed is not None and len(table) >= file_rows_needed:
                 break
 

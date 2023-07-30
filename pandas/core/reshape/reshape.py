@@ -467,8 +467,7 @@ def _unstack_multiple(
         new_names = [data.columns.name] + cnames
 
         new_codes = [unstcols.codes[0]]
-        for rec in recons_codes:
-            new_codes.append(rec.take(unstcols.codes[-1]))
+        new_codes.extend(rec.take(unstcols.codes[-1]) for rec in recons_codes)
 
     new_columns = MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
@@ -528,7 +527,7 @@ def _unstack_frame(
 
     if not obj._can_fast_transpose:
         mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
-        return obj._constructor(mgr)
+        return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
             obj._values, value_columns=obj.columns, fill_value=fill_value
@@ -827,6 +826,11 @@ def _stack_multi_columns(
     )
 
     result = frame._constructor(new_data, index=new_index, columns=new_columns)
+
+    if frame.columns.nlevels > 1:
+        desired_columns = frame.columns._drop_level_numbers([level_num]).unique()
+        if not result.columns.equals(desired_columns):
+            result = result[desired_columns]
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...

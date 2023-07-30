@@ -8,9 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     overload,
 )
@@ -100,6 +98,11 @@ from pandas.core.ops import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas import (
         Index,
         Series,
@@ -886,7 +889,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -908,15 +913,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
 
         Returns
         -------
         filled : IntervalArray with NA/NaN filled
         """
+        if copy is False:
+            raise NotImplementedError
         if method is not None:
-            raise TypeError("Filling by method is not supported for IntervalArray.")
-        if limit is not None:
-            raise TypeError("limit is not supported for IntervalArray.")
+            return super().fillna(value=value, method=method, limit=limit)
 
         value_left, value_right = self._validate_scalar(value)
 
@@ -1644,8 +1654,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         na_tuple : bool, default True
-            Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
-            value itself if False, ``nan``.
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
 
         Returns
         -------
@@ -1657,12 +1667,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["to_tuples"]
         % {
-            "return_type": "ndarray",
+            "return_type": (
+                "ndarray (if self is IntervalArray) or Index (if self is IntervalIndex)"
+            ),
             "examples": textwrap.dedent(
                 """\
 
          Examples
          --------
+         For :class:`pandas.IntervalArray`:
+
          >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
          >>> idx
          <IntervalArray>
@@ -1670,6 +1684,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
          Length: 2, dtype: interval[int64, right]
          >>> idx.to_tuples()
          array([(0, 1), (1, 2)], dtype=object)
+
+         For :class:`pandas.IntervalIndex`:
+
+         >>> idx = pd.interval_range(start=0, end=2)
+         >>> idx
+         IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+         >>> idx.to_tuples()
+         Index([(0, 1), (1, 2)], dtype='object')
          """
             ),
         }

@@ -433,13 +433,13 @@ class TestPandasContainer:
         assert not df._is_mixed_type
 
         data = StringIO(df.to_json())
-        tm.assert_frame_equal(
-            read_json(data, dtype=dict(df.dtypes)),
-            df,
-            check_index_type=False,
-        )
+        result = read_json(data, dtype=dict(df.dtypes))
+        tm.assert_frame_equal(result, df, check_index_type=False)
+
+    def test_frame_empty_to_json(self):
         # GH 7445
-        result = DataFrame({"test": []}, index=[]).to_json(orient="columns")
+        df = DataFrame({"test": []}, index=[])
+        result = df.to_json(orient="columns")
         expected = '{"test":{}}'
         assert result == expected
 
@@ -954,6 +954,45 @@ class TestPandasContainer:
         result = read_json(StringIO(json), date_unit=None)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us"])
+    def test_iso_non_nano_datetimes(self, unit):
+        # Test that numpy datetimes
+        # in an Index or a column with non-nano resolution can be serialized
+        # correctly
+        # GH53686
+        index = DatetimeIndex(
+            [np.datetime64("2023-01-01T11:22:33.123456", unit)],
+            dtype=f"datetime64[{unit}]",
+        )
+        df = DataFrame(
+            {
+                "date": Series(
+                    [np.datetime64("2022-01-01T11:22:33.123456", unit)],
+                    dtype=f"datetime64[{unit}]",
+                    index=index,
+                ),
+                "date_obj": Series(
+                    [np.datetime64("2023-01-01T11:22:33.123456", unit)],
+                    dtype=object,
+                    index=index,
+                ),
+            },
+        )
+
+        buf = StringIO()
+        df.to_json(buf, date_format="iso", date_unit=unit)
+        buf.seek(0)
+
+        # read_json always reads datetimes in nanosecond resolution
+        # TODO: check_dtype/check_index_type should be removable
+        # once read_json gets non-nano support
+        tm.assert_frame_equal(
+            read_json(buf, convert_dates=["date", "date_obj"]),
+            df,
+            check_index_type=False,
+            check_dtype=False,
+        )
+
     def test_weird_nested_json(self):
         # this used to core dump the parser
         s = r"""{
@@ -994,14 +1033,13 @@ class TestPandasContainer:
 
         result = read_json(StringIO(s))
         res = result.reindex(index=df.index, columns=df.columns)
-        res = res.fillna(np.nan, downcast=False)
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = res.fillna(np.nan, downcast=False)
         tm.assert_frame_equal(res, df)
 
     @pytest.mark.network
-    @tm.network(
-        url="https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5",
-        check_before_test=True,
-    )
+    @pytest.mark.single_cpu
     @pytest.mark.parametrize(
         "field,dtype",
         [
@@ -1010,9 +1048,10 @@ class TestPandasContainer:
             ["updated_at", pd.DatetimeTZDtype(tz="UTC")],
         ],
     )
-    def test_url(self, field, dtype):
-        url = "https://api.github.com/repos/pandas-dev/pandas/issues?per_page=5"
-        result = read_json(url, convert_dates=True)
+    def test_url(self, field, dtype, httpserver):
+        data = '{"created_at": ["2023-06-23T18:21:36Z"], "closed_at": ["2023-06-23T18:21:36"], "updated_at": ["2023-06-23T18:21:36Z"]}\n'  # noqa: E501
+        httpserver.serve_content(content=data)
+        result = read_json(httpserver.url, convert_dates=True)
         assert result[field].dtype == dtype
 
     def test_timedelta(self):
@@ -1267,11 +1306,13 @@ class TestPandasContainer:
 
     @pytest.mark.single_cpu
     @td.skip_if_not_us_locale
-    def test_read_s3_jsonl(self, s3_resource, s3so):
+    def test_read_s3_jsonl(self, s3_public_bucket_with_data, s3so):
         # GH17200
 
         result = read_json(
-            "s3n://pandas-test/items.jsonl", lines=True, storage_options=s3so
+            f"s3n://{s3_public_bucket_with_data.name}/items.jsonl",
+            lines=True,
+            storage_options=s3so,
         )
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
@@ -1364,9 +1405,9 @@ class TestPandasContainer:
 
     # TODO: there is a near-identical test for pytables; can we share?
     @pytest.mark.xfail(reason="GH#13774 encoding kwarg not supported", raises=TypeError)
-    def test_latin_encoding(self):
-        # GH 13774
-        values = [
+    @pytest.mark.parametrize(
+        "val",
+        [
             [b"E\xc9, 17", b"", b"a", b"b", b"c"],
             [b"E\xc9, 17", b"a", b"b", b"c"],
             [b"EE, 17", b"", b"a", b"b", b"c"],
@@ -1376,26 +1417,20 @@ class TestPandasContainer:
             [b"A\xf8\xfc", b"", b"a", b"b", b"c"],
             [np.nan, b"", b"b", b"c"],
             [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
-        ]
-
-        values = [
-            [x.decode("latin-1") if isinstance(x, bytes) else x for x in y]
-            for y in values
-        ]
-
-        examples = []
-        for dtype in ["category", object]:
-            for val in values:
-                examples.append(Series(val, dtype=dtype))
-
-        def roundtrip(s, encoding="latin-1"):
-            with tm.ensure_clean("test.json") as path:
-                s.to_json(path, encoding=encoding)
-                retr = read_json(StringIO(path), encoding=encoding)
-                tm.assert_series_equal(s, retr, check_categorical=False)
-
-        for s in examples:
-            roundtrip(s)
+        ],
+    )
+    @pytest.mark.parametrize("dtype", ["category", object])
+    def test_latin_encoding(self, dtype, val):
+        # GH 13774
+        ser = Series(
+            [x.decode("latin-1") if isinstance(x, bytes) else x for x in val],
+            dtype=dtype,
+        )
+        encoding = "latin-1"
+        with tm.ensure_clean("test.json") as path:
+            ser.to_json(path, encoding=encoding)
+            retr = read_json(StringIO(path), encoding=encoding)
+            tm.assert_series_equal(ser, retr, check_categorical=False)
 
     def test_data_frame_size_after_to_json(self):
         # GH15344
@@ -1843,16 +1878,14 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.single_cpu
-    def test_to_s3(self, s3_resource, s3so):
+    def test_to_s3(self, s3_public_bucket, s3so):
         # GH 28375
-        mock_bucket_name, target_file = "pandas-test", "test.json"
+        mock_bucket_name, target_file = s3_public_bucket.name, "test.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
         df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
         timeout = 5
         while True:
-            if target_file in (
-                obj.key for obj in s3_resource.Bucket("pandas-test").objects.all()
-            ):
+            if target_file in (obj.key for obj in s3_public_bucket.objects.all()):
                 break
             time.sleep(0.1)
             timeout -= 0.1
