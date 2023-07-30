@@ -349,6 +349,7 @@ exclude = [
   ".eggs/*.py",
   # vendored files
   "pandas/util/version/*",
+  "pandas/io/clipboard/__init__.py",
   # exclude asv benchmark environments from linting
   "env",
 ]
