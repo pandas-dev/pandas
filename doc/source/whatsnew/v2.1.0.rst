@@ -77,6 +77,12 @@ Copy-on-Write improvements
   - DataFrame.update / Series.update
   - DataFrame.fillna / Series.fillna
   - DataFrame.replace / Series.replace
+  - DataFrame.clip / Series.clip
+  - DataFrame.where / Series.where
+  - DataFrame.mask / Series.mask
+  - DataFrame.interpolate / Series.interpolate
+  - DataFrame.ffill / Series.ffill
+  - DataFrame.bfill / Series.bfill
 
 .. _whatsnew_210.enhancements.enhancement2:
 
