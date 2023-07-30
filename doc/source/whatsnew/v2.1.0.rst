@@ -169,6 +169,7 @@ Other enhancements
 - Added :meth:`ExtensionArray.interpolate` used by :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` (:issue:`53659`)
 - Added ``engine_kwargs`` parameter to :meth:`DataFrame.to_excel` (:issue:`53220`)
 - Added a new parameter ``by_row`` to :meth:`Series.apply` and :meth:`DataFrame.apply`. When set to ``False`` the supplied callables will always operate on the whole Series or DataFrame (:issue:`53400`, :issue:`53601`).
+- :meth:`DataFrame.shift` and :meth:`Series.shift` now allow shifting by multiple periods by supplying a list of periods (:issue:`44424`)
 - Groupby aggregations (such as :meth:`DataFrameGroupby.sum`) now can preserve the dtype of the input instead of casting to ``float64`` (:issue:`44952`)
 - Improved error message when :meth:`DataFrameGroupBy.agg` failed (:issue:`52930`)
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
@@ -450,6 +451,7 @@ Performance improvements
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
+- Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
 - Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
 - Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single masked dtype, e.g. :class:`Int64` (:issue:`52836`)
