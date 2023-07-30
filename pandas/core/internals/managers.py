@@ -1629,7 +1629,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if using_copy_on_write():
+            if using_copy_on_write() and not copy:
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
