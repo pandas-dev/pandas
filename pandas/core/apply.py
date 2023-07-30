@@ -2,22 +2,14 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
-from contextlib import nullcontext
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    ContextManager,
     DefaultDict,
-    Dict,
-    Hashable,
-    Iterable,
-    Iterator,
-    List,
     Literal,
-    Sequence,
     cast,
 )
 import warnings
@@ -57,11 +49,17 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
-from pandas.core.base import SelectionMixin
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -72,7 +70,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
 
-ResType = Dict[int, Any]
+ResType = dict[int, Any]
 
 
 def frame_apply(
@@ -144,6 +142,18 @@ class Apply(metaclass=abc.ABCMeta):
     def apply(self) -> DataFrame | Series:
         pass
 
+    @abc.abstractmethod
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        pass
+
+    @abc.abstractmethod
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        pass
+
     def agg(self) -> DataFrame | Series | None:
         """
         Provide an implementation for the aggregators.
@@ -204,7 +214,7 @@ class Apply(metaclass=abc.ABCMeta):
             return obj.T.transform(func, 0, *args, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
-            func = cast(List[AggFuncTypeBase], func)
+            func = cast(list[AggFuncTypeBase], func)
             # Convert func equivalent dict
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
@@ -300,80 +310,76 @@ class Apply(metaclass=abc.ABCMeta):
         """
         return self.agg_or_apply_list_like(op_name="agg")
 
-    def agg_or_apply_list_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
-        from pandas.core.reshape.concat import concat
+    def compute_list_like(
+        self,
+        op_name: Literal["agg", "apply"],
+        selected_obj: Series | DataFrame,
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Hashable], list[Any]]:
+        """
+        Compute agg/apply results for like-like input.
 
+        Parameters
+        ----------
+        op_name : {"agg", "apply"}
+            Operation being performed.
+        selected_obj : Series or DataFrame
+            Data to perform operation on.
+        kwargs : dict
+            Keyword arguments to pass to the functions.
+
+        Returns
+        -------
+        keys : list[hashable]
+            Index labels for result.
+        results : list
+            Data for result. When aggregating with a Series, this can contain any
+            Python objects.
+        """
+        func = cast(list[AggFuncTypeBase], self.func)
         obj = self.obj
-        func = cast(List[AggFuncTypeBase], self.func)
-        kwargs = self.kwargs
-        if op_name == "apply":
-            if isinstance(self, FrameApply):
-                by_row = self.by_row
-
-            elif isinstance(self, SeriesApply):
-                by_row = "_compat" if self.by_row else False
-            else:
-                by_row = False
-            kwargs = {**kwargs, "by_row": by_row}
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        if not isinstance(obj, SelectionMixin):
-            # i.e. obj is Series or DataFrame
-            selected_obj = obj
-        elif obj._selected_obj.ndim == 1:
-            # For SeriesGroupBy this matches _obj_with_exclusions
-            selected_obj = obj._selected_obj
-        else:
-            selected_obj = obj._obj_with_exclusions
 
         results = []
         keys = []
 
-        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+        # degenerate case
+        if selected_obj.ndim == 1:
+            for a in func:
+                colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
+                args = (
+                    [self.axis, *self.args]
+                    if include_axis(op_name, colg)
+                    else self.args
+                )
+                new_res = getattr(colg, op_name)(a, *args, **kwargs)
+                results.append(new_res)
 
-        context_manager: ContextManager
-        if is_groupby:
-            # When as_index=False, we combine all results using indices
-            # and adjust index after
-            context_manager = com.temp_setattr(obj, "as_index", True)
+                # make sure we find a good name
+                name = com.get_callable_name(a) or a
+                keys.append(name)
+
         else:
-            context_manager = nullcontext()
+            indices = []
+            for index, col in enumerate(selected_obj):
+                colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
+                args = (
+                    [self.axis, *self.args]
+                    if include_axis(op_name, colg)
+                    else self.args
+                )
+                new_res = getattr(colg, op_name)(func, *args, **kwargs)
+                results.append(new_res)
+                indices.append(index)
+            keys = selected_obj.columns.take(indices)
 
-        def include_axis(colg) -> bool:
-            return isinstance(colg, ABCDataFrame) or (
-                isinstance(colg, ABCSeries) and op_name == "agg"
-            )
+        return keys, results
 
-        with context_manager:
-            # degenerate case
-            if selected_obj.ndim == 1:
-                for a in func:
-                    colg = obj._gotitem(selected_obj.name, ndim=1, subset=selected_obj)
-                    args = [self.axis, *self.args] if include_axis(colg) else self.args
-                    new_res = getattr(colg, op_name)(a, *args, **kwargs)
-                    results.append(new_res)
+    def wrap_results_list_like(
+        self, keys: list[Hashable], results: list[Series | DataFrame]
+    ):
+        from pandas.core.reshape.concat import concat
 
-                    # make sure we find a good name
-                    name = com.get_callable_name(a) or a
-                    keys.append(name)
-
-            else:
-                indices = []
-                for index, col in enumerate(selected_obj):
-                    colg = obj._gotitem(col, ndim=1, subset=selected_obj.iloc[:, index])
-                    args = [self.axis, *self.args] if include_axis(colg) else self.args
-                    new_res = getattr(colg, op_name)(func, *args, **kwargs)
-                    results.append(new_res)
-                    indices.append(index)
-                keys = selected_obj.columns.take(indices)
+        obj = self.obj
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -399,100 +405,93 @@ class Apply(metaclass=abc.ABCMeta):
         """
         return self.agg_or_apply_dict_like(op_name="agg")
 
-    def agg_or_apply_dict_like(
-        self, op_name: Literal["agg", "apply"]
-    ) -> DataFrame | Series:
-        from pandas import Index
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
-        from pandas.core.reshape.concat import concat
+    def compute_dict_like(
+        self,
+        op_name: Literal["agg", "apply"],
+        selected_obj: Series | DataFrame,
+        selection: Hashable | Sequence[Hashable],
+        kwargs: dict[str, Any],
+    ) -> tuple[list[Hashable], list[Any]]:
+        """
+        Compute agg/apply results for dict-like input.
 
-        assert op_name in ["agg", "apply"]
+        Parameters
+        ----------
+        op_name : {"agg", "apply"}
+            Operation being performed.
+        selected_obj : Series or DataFrame
+            Data to perform operation on.
+        selection : hashable or sequence of hashables
+            Used by GroupBy, Window, and Resample if selection is applied to the object.
+        kwargs : dict
+            Keyword arguments to pass to the functions.
 
+        Returns
+        -------
+        keys : list[hashable]
+            Index labels for result.
+        results : list
+            Data for result. When aggregating with a Series, this can contain any
+            Python object.
+        """
         obj = self.obj
         func = cast(AggFuncTypeDict, self.func)
-        kwargs = {}
-        if op_name == "apply":
-            by_row = "_compat" if self.by_row else False
-            kwargs.update({"by_row": by_row})
-
-        if getattr(obj, "axis", 0) == 1:
-            raise NotImplementedError("axis other than 0 is not supported")
-
-        if not isinstance(obj, SelectionMixin):
-            # i.e. obj is Series or DataFrame
-            selected_obj = obj
-            selection = None
-        else:
-            selected_obj = obj._selected_obj
-            selection = obj._selection
-
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
-
-        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-        context_manager: ContextManager
-        if is_groupby:
-            # When as_index=False, we combine all results using indices
-            # and adjust index after
-            context_manager = com.temp_setattr(obj, "as_index", True)
-        else:
-            context_manager = nullcontext()
 
         is_non_unique_col = (
             selected_obj.ndim == 2
             and selected_obj.columns.nunique() < len(selected_obj.columns)
         )
 
-        # Numba Groupby engine/engine-kwargs passthrough
-        if is_groupby:
-            engine = self.kwargs.get("engine", None)
-            engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
+        if selected_obj.ndim == 1:
+            # key only used for output
+            colg = obj._gotitem(selection, ndim=1)
+            results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
+            keys = list(func.keys())
+        elif is_non_unique_col:
+            # key used for column selection and output
+            # GH#51099
+            results = []
+            keys = []
+            for key, how in func.items():
+                indices = selected_obj.columns.get_indexer_for([key])
+                labels = selected_obj.columns.take(indices)
+                label_to_indices = defaultdict(list)
+                for index, label in zip(indices, labels):
+                    label_to_indices[label].append(index)
 
-        with context_manager:
-            if selected_obj.ndim == 1:
-                # key only used for output
-                colg = obj._gotitem(selection, ndim=1)
-                result_data = [
-                    getattr(colg, op_name)(how, **kwargs) for _, how in func.items()
+                key_data = [
+                    getattr(selected_obj._ixs(indice, axis=1), op_name)(how, **kwargs)
+                    for label, indices in label_to_indices.items()
+                    for indice in indices
                 ]
-                result_index = list(func.keys())
-            elif is_non_unique_col:
-                # key used for column selection and output
-                # GH#51099
-                result_data = []
-                result_index = []
-                for key, how in func.items():
-                    indices = selected_obj.columns.get_indexer_for([key])
-                    labels = selected_obj.columns.take(indices)
-                    label_to_indices = defaultdict(list)
-                    for index, label in zip(indices, labels):
-                        label_to_indices[label].append(index)
 
-                    key_data = [
-                        getattr(selected_obj._ixs(indice, axis=1), op_name)(
-                            how, **kwargs
-                        )
-                        for label, indices in label_to_indices.items()
-                        for indice in indices
-                    ]
+                keys += [key] * len(key_data)
+                results += key_data
+        else:
+            # key used for column selection and output
+            results = [
+                getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
+                for key, how in func.items()
+            ]
+            keys = list(func.keys())
 
-                    result_index += [key] * len(key_data)
-                    result_data += key_data
-            else:
-                # key used for column selection and output
-                result_data = [
-                    getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
-                    for key, how in func.items()
-                ]
-                result_index = list(func.keys())
+        return keys, results
+
+    def wrap_results_dict_like(
+        self,
+        selected_obj: Series | DataFrame,
+        result_index: list[Hashable],
+        result_data: list,
+    ):
+        from pandas import Index
+        from pandas.core.reshape.concat import concat
+
+        obj = self.obj
 
         # Avoid making two isinstance calls in all and any below
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
-        # combine results
         if all(is_ndframe):
             results = dict(zip(result_index, result_data))
             keys_to_use: Iterable[Hashable]
@@ -692,6 +691,50 @@ class NDFrameApply(Apply):
     @property
     def agg_axis(self) -> Index:
         return self.obj._get_agg_axis(self.axis)
+
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        obj = self.obj
+        kwargs = self.kwargs
+
+        if op_name == "apply":
+            if isinstance(self, FrameApply):
+                by_row = self.by_row
+
+            elif isinstance(self, SeriesApply):
+                by_row = "_compat" if self.by_row else False
+            else:
+                by_row = False
+            kwargs = {**kwargs, "by_row": by_row}
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        keys, results = self.compute_list_like(op_name, obj, kwargs)
+        result = self.wrap_results_list_like(keys, results)
+        return result
+
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        assert op_name in ["agg", "apply"]
+        obj = self.obj
+
+        kwargs = {}
+        if op_name == "apply":
+            by_row = "_compat" if self.by_row else False
+            kwargs.update({"by_row": by_row})
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        selection = None
+        result_index, result_data = self.compute_dict_like(
+            op_name, obj, selection, kwargs
+        )
+        result = self.wrap_results_dict_like(obj, result_index, result_data)
+        return result
 
 
 class FrameApply(NDFrameApply):
@@ -1241,7 +1284,7 @@ class SeriesApply(NDFrameApply):
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             warnings.warn(
-                "Returning a DataFrame from Series.apply when the supplied function"
+                "Returning a DataFrame from Series.apply when the supplied function "
                 "returns a Series is deprecated and will be removed in a future "
                 "version.",
                 FutureWarning,
@@ -1258,6 +1301,8 @@ class SeriesApply(NDFrameApply):
 
 
 class GroupByApply(Apply):
+    obj: GroupBy | Resampler | BaseWindow
+
     def __init__(
         self,
         obj: GroupBy[NDFrameT],
@@ -1283,8 +1328,73 @@ class GroupByApply(Apply):
     def transform(self):
         raise NotImplementedError
 
+    def agg_or_apply_list_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        obj = self.obj
+        kwargs = self.kwargs
+        if op_name == "apply":
+            kwargs = {**kwargs, "by_row": False}
 
-class ResamplerWindowApply(Apply):
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        if obj._selected_obj.ndim == 1:
+            # For SeriesGroupBy this matches _obj_with_exclusions
+            selected_obj = obj._selected_obj
+        else:
+            selected_obj = obj._obj_with_exclusions
+
+        # Only set as_index=True on groupby objects, not Window or Resample
+        # that inherit from this class.
+        with com.temp_setattr(
+            obj, "as_index", True, condition=hasattr(obj, "as_index")
+        ):
+            keys, results = self.compute_list_like(op_name, selected_obj, kwargs)
+        result = self.wrap_results_list_like(keys, results)
+        return result
+
+    def agg_or_apply_dict_like(
+        self, op_name: Literal["agg", "apply"]
+    ) -> DataFrame | Series:
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
+        assert op_name in ["agg", "apply"]
+
+        obj = self.obj
+        kwargs = {}
+        if op_name == "apply":
+            by_row = "_compat" if self.by_row else False
+            kwargs.update({"by_row": by_row})
+
+        if getattr(obj, "axis", 0) == 1:
+            raise NotImplementedError("axis other than 0 is not supported")
+
+        selected_obj = obj._selected_obj
+        selection = obj._selection
+
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
+
+        # Numba Groupby engine/engine-kwargs passthrough
+        if is_groupby:
+            engine = self.kwargs.get("engine", None)
+            engine_kwargs = self.kwargs.get("engine_kwargs", None)
+            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
+
+        with com.temp_setattr(
+            obj, "as_index", True, condition=hasattr(obj, "as_index")
+        ):
+            result_index, result_data = self.compute_dict_like(
+                op_name, selected_obj, selection, kwargs
+            )
+        result = self.wrap_results_dict_like(selected_obj, result_index, result_data)
+        return result
+
+
+class ResamplerWindowApply(GroupByApply):
     axis: AxisInt = 0
     obj: Resampler | BaseWindow
 
@@ -1296,7 +1406,7 @@ class ResamplerWindowApply(Apply):
         args,
         kwargs,
     ) -> None:
-        super().__init__(
+        super(GroupByApply, self).__init__(
             obj,
             func,
             raw=False,
@@ -1697,6 +1807,12 @@ def validate_func_kwargs(
         no_arg_message = "Must provide 'func' or named aggregation **kwargs."
         raise TypeError(no_arg_message)
     return columns, func
+
+
+def include_axis(op_name: Literal["agg", "apply"], colg: Series | DataFrame) -> bool:
+    return isinstance(colg, ABCDataFrame) or (
+        isinstance(colg, ABCSeries) and op_name == "agg"
+    )
 
 
 def warn_alias_replacement(

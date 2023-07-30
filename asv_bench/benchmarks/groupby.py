@@ -408,7 +408,7 @@ class Size:
         self.df.groupby(["key1", "key2"]).size()
 
     def time_category_size(self):
-        self.draws.groupby(self.cats).size()
+        self.draws.groupby(self.cats, observed=True).size()
 
 
 class Shift:
@@ -423,7 +423,7 @@ class Shift:
         self.df.groupby("g").shift(fill_value=99)
 
 
-class FillNA:
+class Fillna:
     def setup(self):
         N = 100
         self.df = DataFrame(
@@ -431,16 +431,16 @@ class FillNA:
         ).set_index("group")
 
     def time_df_ffill(self):
-        self.df.groupby("group").fillna(method="ffill")
+        self.df.groupby("group").ffill()
 
     def time_df_bfill(self):
-        self.df.groupby("group").fillna(method="bfill")
+        self.df.groupby("group").bfill()
 
     def time_srs_ffill(self):
-        self.df.groupby("group")["value"].fillna(method="ffill")
+        self.df.groupby("group")["value"].ffill()
 
     def time_srs_bfill(self):
-        self.df.groupby("group")["value"].fillna(method="bfill")
+        self.df.groupby("group")["value"].bfill()
 
 
 class GroupByMethods:
@@ -767,7 +767,10 @@ class String:
 
 
 class Categories:
-    def setup(self):
+    params = [True, False]
+    param_names = ["observed"]
+
+    def setup(self, observed):
         N = 10**5
         arr = np.random.random(N)
         data = {"a": Categorical(np.random.randint(10000, size=N)), "b": arr}
@@ -785,23 +788,23 @@ class Categories:
         }
         self.df_extra_cat = DataFrame(data)
 
-    def time_groupby_sort(self):
-        self.df.groupby("a")["b"].count()
+    def time_groupby_sort(self, observed):
+        self.df.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_nosort(self):
-        self.df.groupby("a", sort=False)["b"].count()
+    def time_groupby_nosort(self, observed):
+        self.df.groupby("a", observed=observed, sort=False)["b"].count()
 
-    def time_groupby_ordered_sort(self):
-        self.df_ordered.groupby("a")["b"].count()
+    def time_groupby_ordered_sort(self, observed):
+        self.df_ordered.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_ordered_nosort(self):
-        self.df_ordered.groupby("a", sort=False)["b"].count()
+    def time_groupby_ordered_nosort(self, observed):
+        self.df_ordered.groupby("a", observed=observed, sort=False)["b"].count()
 
-    def time_groupby_extra_cat_sort(self):
-        self.df_extra_cat.groupby("a")["b"].count()
+    def time_groupby_extra_cat_sort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_extra_cat_nosort(self):
-        self.df_extra_cat.groupby("a", sort=False)["b"].count()
+    def time_groupby_extra_cat_nosort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
 
 
 class Datelike:

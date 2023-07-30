@@ -19,6 +19,7 @@ from pandas.compat._constants import (
     ISMUSL,
     PY310,
     PY311,
+    PY312,
     PYPY,
 )
 import pandas.compat.compressors
@@ -28,13 +29,14 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under9p0,
     pa_version_under11p0,
+    pa_version_under13p0,
 )
 
 if TYPE_CHECKING:
     from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -183,9 +185,11 @@ __all__ = [
     "pa_version_under8p0",
     "pa_version_under9p0",
     "pa_version_under11p0",
+    "pa_version_under13p0",
     "IS64",
     "ISMUSL",
     "PY310",
     "PY311",
+    "PY312",
     "PYPY",
 ]

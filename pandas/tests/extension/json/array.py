@@ -25,7 +25,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    Mapping,
 )
 
 import numpy as np
@@ -45,6 +44,8 @@ from pandas.api.extensions import (
 from pandas.core.indexers import unpack_tuple_and_ellipses
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from pandas._typing import type_t
 
 
@@ -116,7 +117,7 @@ class JSONArray(ExtensionArray):
             # integer
             return type(self)([self.data[i] for i in item])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:

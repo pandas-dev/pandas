@@ -235,7 +235,7 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     warn_msg = f"DataFrameGroupBy.{reduction_func} with axis=1 is deprecated"
     if reduction_func in ("idxmax", "idxmin"):
         error = TypeError
-        msg = "reduction operation '.*' not allowed for this dtype"
+        msg = "'[<>]' not supported between instances of 'float' and 'str'"
         warn = FutureWarning
     else:
         error = ValueError
@@ -1313,8 +1313,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     multi_index_list = []
     for k, v in grp_col_dict.items():
         if isinstance(v, list):
-            for value in v:
-                multi_index_list.append([k, value])
+            multi_index_list.extend([k, value] for value in v)
         else:
             multi_index_list.append([k, v])
     multi_index = MultiIndex.from_tuples(tuple(multi_index_list))

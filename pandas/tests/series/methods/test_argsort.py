@@ -10,21 +10,33 @@ import pandas._testing as tm
 
 
 class TestSeriesArgsort:
+    def test_argsort_axis(self):
+        # GH#54257
+        ser = Series(range(3))
+
+        msg = "No axis named 2 for object type Series"
+        with pytest.raises(ValueError, match=msg):
+            ser.argsort(axis=2)
+
     def test_argsort_numpy(self, datetime_series):
         ser = datetime_series
-        func = np.argsort
-        tm.assert_numpy_array_equal(
-            func(ser).values, func(np.array(ser)), check_dtype=False
-        )
+
+        res = np.argsort(ser).values
+        expected = np.argsort(np.array(ser))
+        tm.assert_numpy_array_equal(res, expected)
 
         # with missing values
         ts = ser.copy()
         ts[::2] = np.NaN
 
-        result = func(ts)[1::2]
-        expected = func(np.array(ts.dropna()))
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            result = np.argsort(ts)[1::2]
+        expected = np.argsort(np.array(ts.dropna()))
 
-        tm.assert_numpy_array_equal(result.values, expected, check_dtype=False)
+        tm.assert_numpy_array_equal(result.values, expected)
 
     def test_argsort(self, datetime_series):
         argsorted = datetime_series.argsort()
@@ -41,7 +53,9 @@ class TestSeriesArgsort:
         expected = Series(range(5), dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
-        result = shifted.argsort()
+        msg = "The behavior of Series.argsort in the presence of NA values"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = shifted.argsort()
         expected = Series(list(range(4)) + [-1], dtype=np.intp)
         tm.assert_series_equal(result, expected)
 
