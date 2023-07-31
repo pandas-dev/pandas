@@ -195,7 +195,7 @@ class TestMethods(base.BaseMethodsTests):
         expected_uniques = data_for_grouping.take([0, 4])
 
         tm.assert_numpy_array_equal(labels, expected_labels)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         # override because we only have 2 unique values
