@@ -49,7 +49,8 @@ class TestSeriesMissingData:
         assert not isna(td1[0])
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        td1[1] = iNaT
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            td1[1] = iNaT
         assert not isna(td1[1])
         assert td1.dtype == np.object_
         assert td1[1] == iNaT

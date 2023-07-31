@@ -831,7 +831,10 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        df.loc["b", "timestamp"] = iNaT
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc["b", "timestamp"] = iNaT
         assert not isna(df.loc["b", "timestamp"])
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
@@ -862,7 +865,10 @@ class TestDataFrameIndexing:
         df = DataFrame(0, columns=list("ab"), index=range(6))
         df["b"] = pd.NaT
         df.loc[0, "b"] = datetime(2012, 1, 1)
-        df.loc[1, "b"] = 1
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc[1, "b"] = 1
         df.loc[[2, 3], "b"] = "x", "y"
         A = np.array(
             [

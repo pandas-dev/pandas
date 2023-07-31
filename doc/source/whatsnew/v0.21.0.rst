@@ -783,10 +783,15 @@ non-datetime-like item being assigned (:issue:`14145`).
 
 These now coerce to ``object`` dtype.
 
-.. ipython:: python
+.. code-block:: python
 
-   s[1] = 1
-   s
+   In [1]: s[1] = 1
+
+   In [2]: s
+   Out[2]:
+   0    2011-01-01 00:00:00
+   1                      1
+   dtype: object
 
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)

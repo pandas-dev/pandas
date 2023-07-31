@@ -296,8 +296,99 @@ Other API changes
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
 
-Deprecate parsing datetimes with mixed time zones
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecations
+~~~~~~~~~~~~
+
+Deprecated silent upcasting in setitem-like Series operations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Setitem-like operations on Series (or DataFrame columns) which silently upcast the dtype are
+deprecated and show a warning. Examples of affected operations are:
+
+  - ``ser.fillna('foo', inplace=True)``
+  - ``ser.where(ser.isna(), 'foo', inplace=True)``
+  - ``ser.iloc[indexer] = 'foo'``
+  - ``ser.loc[indexer] = 'foo'``
+  - ``df.iloc[indexer, 0] = 'foo'``
+  - ``df.loc[indexer, 'a'] = 'foo'``
+  - ``ser[indexer] = 'foo'``
+
+where ``ser`` is a :class:`Series`, ``df`` is a :class:`DataFrame`, and ``indexer``
+could be a slice, a mask, a single value, a list or array of values, or any other
+allowed indexer.
+
+In a future version, these will raise an error and you should cast to a common dtype first.
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+  In [1]: ser = pd.Series([1, 2, 3])
+
+  In [2]: ser
+  Out[2]:
+  0    1
+  1    2
+  2    3
+  dtype: int64
+
+  In [3]: ser[0] = 'not an int64'
+
+  In [4]: ser
+  Out[4]:
+  0    not an int64
+  1               2
+  2               3
+  dtype: object
+
+*New behavior*:
+
+.. code-block:: ipython
+
+  In [1]: ser = pd.Series([1, 2, 3])
+
+  In [2]: ser
+  Out[2]:
+  0    1
+  1    2
+  2    3
+  dtype: int64
+
+  In [3]: ser[0] = 'not an int64'
+  FutureWarning:
+    Setting an item of incompatible dtype is deprecated and will raise in a future error of pandas.
+    Value 'not an int64' has dtype incompatible with int64, please explicitly cast to a compatible dtype first.
+
+  In [4]: ser
+  Out[4]:
+  0    not an int64
+  1               2
+  2               3
+  dtype: object
+
+To retain the current behaviour, in the case above you could cast ``ser`` to ``object`` dtype first:
+
+.. ipython:: python
+
+  ser = pd.Series([1, 2, 3])
+  ser = ser.astype('object')
+  ser[0] = 'not an int64'
+  ser
+
+Depending on the use-case, it might be more appropriate to cast to a different dtype.
+In the following, for example, we cast to ``float64``:
+
+.. ipython:: python
+
+  ser = pd.Series([1, 2, 3])
+  ser = ser.astype('float64')
+  ser[0] = 1.1
+  ser
+
+For further reading, please see https://pandas.pydata.org/pdeps/0006-ban-upcasting.html.
+
+Deprecated parsing datetimes with mixed time zones
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing datetimes with mixed time zones is deprecated and shows a warning unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`50887`)
 
@@ -342,7 +433,7 @@ and ``datetime.datetime.strptime``:
     pd.Series(data).apply(lambda x: dt.datetime.strptime(x, '%Y-%m-%d %H:%M:%S%z'))
 
 Other Deprecations
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 - Deprecated 'broadcast_axis' keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
 - Deprecated 'downcast' keyword in :meth:`Index.fillna` (:issue:`53956`)
 - Deprecated 'fill_method' and 'limit' keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`, explicitly call ``ffill`` or ``bfill`` before calling ``pct_change`` instead (:issue:`53491`)
