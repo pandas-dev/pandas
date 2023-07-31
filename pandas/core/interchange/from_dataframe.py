@@ -67,7 +67,9 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
 
-    return _from_dataframe(df.__dataframe__(allow_copy=allow_copy))
+    return _from_dataframe(
+        df.__dataframe__(allow_copy=allow_copy), allow_copy=allow_copy
+    )
 
 
 def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
@@ -451,10 +453,9 @@ def buffer_to_ndarray(
         data_pointer = ctypes.cast(
             buffer.ptr + (offset * bit_width // 8), ctypes.POINTER(ctypes_type)
         )
-        return np.ctypeslib.as_array(
-            data_pointer,
-            shape=(length,),
-        )
+        if length > 0:
+            return np.ctypeslib.as_array(data_pointer, shape=(length,))
+        return np.array([], dtype=ctypes_type)
 
 
 def set_nulls(
