@@ -515,8 +515,7 @@ def set_nulls(
             data = data.astype(float)
             data[null_pos] = None
         except SettingWithCopyError:
-            # SettingWithCopyError happens if the `data` appears
-            # to have 'NaT'. If this happens, copy the `data`.
+            # `SettingWithCopyError` may happen for datetime-like with missing values.
             data = data.copy()
             data[null_pos] = None
 
