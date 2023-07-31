@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 import numpy as np
+from pandas.errors import SettingWithCopyError
 
 from pandas.compat._optional import import_optional_dependency
 
@@ -512,6 +513,9 @@ def set_nulls(
             # in numpy notation (bool, int, uint). If this happens,
             # cast the `data` to nullable float dtype.
             data = data.astype(float)
+            data[null_pos] = None
+        except SettingWithCopyError:
+            data = data.copy()
             data[null_pos] = None
 
     return data
