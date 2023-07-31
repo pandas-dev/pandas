@@ -260,7 +260,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.fillna(method=method)
+        result = arr.pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed

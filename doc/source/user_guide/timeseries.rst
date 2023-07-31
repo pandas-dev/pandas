@@ -289,10 +289,10 @@ Invalid data
 
 The default behavior, ``errors='raise'``, is to raise when unparsable:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
-    ValueError: Unknown datetime string format
+   pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
 
 Pass ``errors='ignore'`` to return the original input when unparsable:
 
@@ -2016,12 +2016,11 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
    p + datetime.timedelta(minutes=120)
    p + np.timedelta64(7200, "s")
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: p + pd.offsets.Minute(5)
-   Traceback
-      ...
-   ValueError: Input has different freq from Period(freq=H)
+   p + pd.offsets.Minute(5)
+
 
 If ``Period`` has other frequencies, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
 
@@ -2030,12 +2029,11 @@ If ``Period`` has other frequencies, only the same ``offsets`` can be added. Oth
    p = pd.Period("2014-07", freq="M")
    p + pd.offsets.MonthEnd(3)
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: p + pd.offsets.MonthBegin(3)
-   Traceback
-      ...
-   ValueError: Input has different freq from Period(freq=M)
+   p + pd.offsets.MonthBegin(3)
+
 
 Taking the difference of ``Period`` instances with the same frequency will
 return the number of frequency units between them:
@@ -2564,10 +2562,10 @@ twice within one day ("clocks fall back"). The following options are available:
 
 This will fail as there are ambiguous times (``'11/06/2011 01:00'``)
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [2]: rng_hourly.tz_localize('US/Eastern')
-   AmbiguousTimeError: Cannot infer dst time from Timestamp('2011-11-06 01:00:00'), try using the 'ambiguous' argument
+   rng_hourly.tz_localize('US/Eastern')
 
 Handle these ambiguous times by specifying the following.
 
@@ -2599,10 +2597,10 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 Localization of nonexistent times will raise an error by default.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [2]: dti.tz_localize('Europe/Warsaw')
-   NonExistentTimeError: 2015-03-29 02:30:00
+   dti.tz_localize('Europe/Warsaw')
 
 Transform nonexistent times to ``NaT`` or shift the times.
 
