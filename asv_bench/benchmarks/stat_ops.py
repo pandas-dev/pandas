@@ -6,7 +6,7 @@ ops = ["mean", "sum", "median", "std", "skew", "kurt", "prod", "sem", "var"]
 
 
 class FrameOps:
-    params = [ops, ["float", "int", "Int64"], [0, 1]]
+    params = [ops, ["float", "int", "Int64"], [0, 1, None]]
     param_names = ["op", "dtype", "axis"]
 
     def setup(self, op, dtype, axis):
