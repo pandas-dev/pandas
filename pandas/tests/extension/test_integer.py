@@ -17,6 +17,10 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
+)
 from pandas.core.arrays.integer import (
     Int8Dtype,
     Int16Dtype,
@@ -37,11 +41,23 @@ pytestmark = [
         "ignore:invalid value encountered in divide:RuntimeWarning"
     ),
     pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+    # overflow only relevant for Floating dtype cases cases
+    pytest.mark.filterwarnings("ignore:overflow encountered in reduce:RuntimeWarning"),
 ]
 
 
 def make_data():
     return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+
+
+def make_float_data():
+    return (
+        list(np.arange(0.1, 0.9, 0.1))
+        + [pd.NA]
+        + list(np.arange(1, 9.8, 0.1))
+        + [pd.NA]
+        + [9.9, 10.0]
+    )
 
 
 @pytest.fixture(
@@ -54,6 +70,8 @@ def make_data():
         UInt16Dtype,
         UInt32Dtype,
         UInt64Dtype,
+        Float32Dtype,
+        Float64Dtype,
     ]
 )
 def dtype(request):
@@ -62,7 +80,11 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return pd.array(make_data(), dtype=dtype)
+    if dtype.kind == "f":
+        data = make_float_data()
+    else:
+        data = make_data()
+    return pd.array(data, dtype=dtype)
 
 
 @pytest.fixture
@@ -72,16 +94,22 @@ def data_for_twos(dtype):
 
 @pytest.fixture
 def data_missing(dtype):
+    if dtype.kind == "f":
+        return pd.array([pd.NA, 0.1], dtype=dtype)
     return pd.array([pd.NA, 1], dtype=dtype)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
+    if dtype.kind == "f":
+        return pd.array([0.1, 0.2, 0.0], dtype=dtype)
     return pd.array([1, 2, 0], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
+    if dtype.kind == "f":
+        return pd.array([0.1, pd.NA, 0.0], dtype=dtype)
     return pd.array([1, pd.NA, 0], dtype=dtype)
 
 
@@ -98,9 +126,14 @@ def na_value():
 
 @pytest.fixture
 def data_for_grouping(dtype):
-    b = 1
-    a = 0
-    c = 2
+    if dtype.kind == "f":
+        b = 0.1
+        a = 0.0
+        c = 0.2
+    else:
+        b = 1
+        a = 0
+        c = 2
     na = pd.NA
     return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
 
