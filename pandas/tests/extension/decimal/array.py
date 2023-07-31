@@ -190,7 +190,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return super().astype(dtype, copy=copy)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if is_list_like(value):
             if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
@@ -280,6 +280,19 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def value_counts(self, dropna: bool = True):
         return value_counts(self.to_numpy(), dropna=dropna)
+
+    # We override fillna here to simulate a 3rd party EA that has done so. This
+    #  lets us test the deprecation telling authors to implement pad_or_backfill
+    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  keyword in its fillna method.
+    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
+    def fillna(  # type: ignore[override]
+        self,
+        value=None,
+        method=None,
+        limit: int | None = None,
+    ):
+        return super().fillna(value=value, method=method, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):

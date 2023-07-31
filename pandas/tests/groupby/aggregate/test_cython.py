@@ -338,12 +338,28 @@ def test_cython_agg_nullable_int(op_name):
     result = getattr(df.groupby("A")["B"], op_name)()
     df2 = df.assign(B=df["B"].astype("float64"))
     expected = getattr(df2.groupby("A")["B"], op_name)()
-
-    if op_name != "count":
-        # the result is not yet consistently using Int64/Float64 dtype,
-        # so for now just checking the values by casting to float
-        result = result.astype("float64")
+    if op_name in ("mean", "median"):
+        convert_integer = False
+    else:
+        convert_integer = True
+    expected = expected.convert_dtypes(convert_integer=convert_integer)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_count_masked_returns_masked_dtype(dtype):
+    df = DataFrame(
+        {
+            "A": [1, 1],
+            "B": pd.array([1, pd.NA], dtype=dtype),
+            "C": pd.array([1, 1], dtype=dtype),
+        }
+    )
+    result = df.groupby("A").count()
+    expected = DataFrame(
+        [[1, 2]], index=Index([1], name="A"), columns=["B", "C"], dtype="Int64"
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("with_na", [True, False])
