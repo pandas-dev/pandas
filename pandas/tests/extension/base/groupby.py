@@ -30,15 +30,25 @@ class BaseGroupbyTests(BaseExtensionTests):
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values, and the final entry has c==b
+            #  (see data_for_grouping docstring)
+            df = df.iloc[:-1]
+
         result = df.groupby("B", as_index=as_index).A.mean()
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
+        exp_vals = [3.0, 1.0, 4.0]
+        if is_bool:
+            exp_vals = exp_vals[:-1]
         if as_index:
             index = pd.Index(uniques, name="B")
-            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
+            expected = pd.Series(exp_vals, index=index, name="A")
             self.assert_series_equal(result, expected)
         else:
-            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
+            expected = pd.DataFrame({"B": uniques, "A": exp_vals})
             self.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
@@ -83,19 +93,38 @@ class BaseGroupbyTests(BaseExtensionTests):
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
+
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values, and the final entry has c==b
+            #  (see data_for_grouping docstring)
+            df = df.iloc[:-1]
+
         result = df.groupby("B", sort=False).A.mean()
         _, index = pd.factorize(data_for_grouping, sort=False)
 
         index = pd.Index(index, name="B")
-        expected = pd.Series([1.0, 3.0, 4.0], index=index, name="A")
+        exp_vals = [1.0, 3.0, 4.0]
+        if is_bool:
+            exp_vals = exp_vals[:-1]
+        expected = pd.Series(exp_vals, index=index, name="A")
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
+        is_bool = data_for_grouping.dtype._is_boolean
+
         valid = data_for_grouping[~data_for_grouping.isna()]
         df = pd.DataFrame({"A": [1, 1, 3, 3, 1, 4], "B": valid})
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values, and the final entry has c==b
+            #  (see data_for_grouping docstring)
+            df = df.iloc[:-1]
 
         result = df.groupby("B").A.transform(len)
         expected = pd.Series([3, 3, 2, 2, 3, 1], name="A")
+        if is_bool:
+            expected = expected[:-1]
 
         self.assert_series_equal(result, expected)
 
