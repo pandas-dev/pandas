@@ -461,7 +461,7 @@ class Block(PandasObject):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        if self.dtype == new_dtype:
+        if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "
                 f"{self.values.dtype}. Please report a bug at "
@@ -1723,11 +1723,11 @@ class EABackedBlock(Block):
 
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value)
+                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                nb = self.coerce_to_target_dtype(orig_value)
+                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             else:
@@ -1841,13 +1841,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
-                    blk = self.coerce_to_target_dtype(orig_new)
+                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_new)
+                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 else:
