@@ -280,10 +280,10 @@ class _FrequencyInferer:
             return _maybe_add_count("ms", delta / (pps // 1000))
         elif _is_multiple(delta, (pps // 1_000_000)):
             # Microseconds
-            return _maybe_add_count("U", delta / (pps // 1_000_000))
+            return _maybe_add_count("us", delta / (pps // 1_000_000))
         else:
             # Nanoseconds
-            return _maybe_add_count("N", delta)
+            return _maybe_add_count("ns", delta)
 
     @cache_readonly
     def day_deltas(self) -> list[int]:

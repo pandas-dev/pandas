@@ -145,8 +145,8 @@ class TestDatetimeIndex:
         assert isinstance(result.index[0], tuple)
 
     def assert_index_parameters(self, index):
-        assert index.freq == "40960N"
-        assert index.inferred_freq == "40960N"
+        assert index.freq == "40960ns"
+        assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400

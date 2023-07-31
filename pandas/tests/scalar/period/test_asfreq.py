@@ -684,7 +684,7 @@ class TestFreqConversion:
     def test_conv_microsecond(self):
         # GH#31475 Avoid floating point errors dropping the start_time to
         #  before the beginning of the Period
-        per = Period("2020-01-30 15:57:27.576166", freq="U")
+        per = Period("2020-01-30 15:57:27.576166", freq="us")
         assert per.ordinal == 1580399847576166
 
         start = per.start_time

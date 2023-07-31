@@ -28,7 +28,7 @@ class TestDatetimeIndexOps:
             ("min", "minute"),
             ("S", "second"),
             ("ms", "millisecond"),
-            ("U", "microsecond"),
+            ("us", "microsecond"),
         ],
     )
     def test_resolution(self, request, tz_naive_fixture, freq, expected):

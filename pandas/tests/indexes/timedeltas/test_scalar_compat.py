@@ -104,8 +104,8 @@ class TestVectorizedTimedelta:
 
         # note that negative times round DOWN! so don't give whole numbers
         for freq, s1, s2 in [
-            ("N", t1, t2),
-            ("U", t1, t2),
+            ("ns", t1, t2),
+            ("us", t1, t2),
             (
                 "ms",
                 t1a,

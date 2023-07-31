@@ -15,7 +15,7 @@ class TestResolution:
             ("min", "minute"),
             ("S", "second"),
             ("ms", "millisecond"),
-            ("U", "microsecond"),
+            ("us", "microsecond"),
         ],
     )
     def test_resolution(self, freq, expected):

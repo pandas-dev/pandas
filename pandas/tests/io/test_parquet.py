@@ -943,7 +943,7 @@ class TestParquetPyArrow(Base):
             ver = "2.6"
         else:
             ver = "2.0"
-        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
+        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):

@@ -41,8 +41,8 @@ from pandas.tseries import (
         (timedelta(hours=1), "H"),
         (timedelta(minutes=1), "min"),
         (timedelta(seconds=1), "S"),
-        (np.timedelta64(1, "ns"), "N"),
-        (timedelta(microseconds=1), "U"),
+        (np.timedelta64(1, "ns"), "ns"),
+        (timedelta(microseconds=1), "us"),
         (timedelta(microseconds=1000), "ms"),
     ]
 )
@@ -254,7 +254,7 @@ def test_infer_freq_tz_series(tz_naive_fixture):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["H", "3H", "10min", "3601S", "3600001ms", "3600000001U", "3600000000001N"]
+    "freq", ["H", "3H", "10min", "3601S", "3600001ms", "3600000001us", "3600000000001ns"]
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772

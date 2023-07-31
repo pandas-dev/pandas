@@ -123,7 +123,7 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
-    @pytest.mark.parametrize("freq", ["N", "U", "ms", "min", "S", "H", "D"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "ms", "min", "S", "H", "D"])
     def test_date_range_edges(self, freq):
         # GH#13672
         td = Timedelta(f"1{freq}")

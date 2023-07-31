@@ -385,7 +385,7 @@ class TestSeriesDatetimeValues:
         with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
-    @pytest.mark.parametrize("freq", ["ns", "U", "1000U"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "1000us"])
     def test_dt_round_nonnano_higher_resolution_no_op(self, freq):
         # GH 52761
         ser = Series(

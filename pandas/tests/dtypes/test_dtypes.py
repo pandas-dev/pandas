@@ -467,8 +467,8 @@ class TestPeriodDtype(Base):
         assert PeriodDtype("period[3D]") == PeriodDtype("period[3D]")
         assert PeriodDtype("period[3D]") is not PeriodDtype("period[3D]")
 
-        assert PeriodDtype("period[1S1U]") == PeriodDtype("period[1000001U]")
-        assert PeriodDtype("period[1S1U]") is not PeriodDtype("period[1000001U]")
+        assert PeriodDtype("period[1S1us]") == PeriodDtype("period[1000001us]")
+        assert PeriodDtype("period[1S1us]") is not PeriodDtype("period[1000001us]")
 
     def test_compat(self, dtype):
         assert not is_datetime64_ns_dtype(dtype)
@@ -505,9 +505,9 @@ class TestPeriodDtype(Base):
         assert PeriodDtype.is_dtype("period[D]")
         assert PeriodDtype.is_dtype("period[3D]")
         assert PeriodDtype.is_dtype(PeriodDtype("3D"))
-        assert PeriodDtype.is_dtype("period[U]")
+        assert PeriodDtype.is_dtype("period[us]")
         assert PeriodDtype.is_dtype("period[S]")
-        assert PeriodDtype.is_dtype(PeriodDtype("U"))
+        assert PeriodDtype.is_dtype(PeriodDtype("us"))
         assert PeriodDtype.is_dtype(PeriodDtype("S"))
 
         assert not PeriodDtype.is_dtype("D")
@@ -728,7 +728,7 @@ class TestIntervalDtype(Base):
 
         assert not IntervalDtype.is_dtype("D")
         assert not IntervalDtype.is_dtype("3D")
-        assert not IntervalDtype.is_dtype("U")
+        assert not IntervalDtype.is_dtype("us")
         assert not IntervalDtype.is_dtype("S")
         assert not IntervalDtype.is_dtype("foo")
         assert not IntervalDtype.is_dtype("IntervalA")

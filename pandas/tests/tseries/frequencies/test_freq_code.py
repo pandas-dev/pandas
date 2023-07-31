@@ -35,33 +35,19 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("min", "minute"),
         ("S", "second"),
         ("ms", "millisecond"),
-        ("U", "microsecond"),
-        ("N", "nanosecond"),
+        ("us", "microsecond"),
+        ("ns", "nanosecond"),
     ],
 )
 def test_get_attrname_from_abbrev(freqstr, expected):
-    msg = f"Code freq={freqstr} is deprecated and will be removed in a future version."
-
-    if freqstr in {"T", "L"}:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
-    else:
-        assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
+    assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["D", "H", "min", "S", "ms", "U", "N"])
+@pytest.mark.parametrize("freq", ["D", "H", "min", "S", "ms", "us", "ns"])
 def test_get_freq_roundtrip2(freq):
-    msg = f"Code freq={freq} is deprecated and will be removed in a future version."
-
-    if freq in {"T", "L"}:
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            obj = Resolution.get_reso_from_freqstr(freq)
-            result = _attrname_to_abbrevs[obj.attrname]
-            assert freq == result
-    else:
-        obj = Resolution.get_reso_from_freqstr(freq)
-        result = _attrname_to_abbrevs[obj.attrname]
-        assert freq == result
+    obj = Resolution.get_reso_from_freqstr(freq)
+    result = _attrname_to_abbrevs[obj.attrname]
+    assert freq == result
 
 
 @pytest.mark.parametrize(
@@ -71,7 +57,7 @@ def test_get_freq_roundtrip2(freq):
         ((62.4, "min"), (3744, "S")),
         ((1.04, "H"), (3744, "S")),
         ((1, "D"), (1, "D")),
-        ((0.342931, "H"), (1234551600, "U")),
+        ((0.342931, "H"), (1234551600, "us")),
         ((1.2345, "D"), (106660800, "ms")),
     ],
 )

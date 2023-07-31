@@ -155,7 +155,7 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     # GH 10603
     df = DataFrame(
         np.random.normal(size=(10000, 4)),
-        index=timedelta_range(start="0s", periods=10000, freq="3906250n"),
+        index=timedelta_range(start="0s", periods=10000, freq="3906250ns"),
     )
     if duplicates:
         # case with non-unique columns

@@ -643,12 +643,12 @@ class TestTimedeltas:
         [
             # This first case has s1, s2 being the same as t1,t2 below
             (
-                "N",
+                "ns",
                 Timedelta("1 days 02:34:56.789123456"),
                 Timedelta("-1 days 02:34:56.789123456"),
             ),
             (
-                "U",
+                "us",
                 Timedelta("1 days 02:34:56.789123000"),
                 Timedelta("-1 days 02:34:56.789123000"),
             ),
@@ -985,8 +985,8 @@ class TestTimedeltas:
         assert Timedelta(days=1, minutes=6).resolution_string == "min"
         assert Timedelta(days=1, seconds=6).resolution_string == "S"
         assert Timedelta(days=1, milliseconds=6).resolution_string == "ms"
-        assert Timedelta(days=1, microseconds=6).resolution_string == "U"
-        assert Timedelta(days=1, nanoseconds=6).resolution_string == "N"
+        assert Timedelta(days=1, microseconds=6).resolution_string == "us"
+        assert Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
 
     def test_resolution_deprecated(self):
         # GH#21344

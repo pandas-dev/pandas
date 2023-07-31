@@ -93,10 +93,10 @@ class TestNumpyEADtype:
         [
             "period[D]",
             "period[3M]",
-            "period[U]",
+            "period[us]",
             "Period[D]",
             "Period[3M]",
-            "Period[U]",
+            "Period[us]",
         ],
     )
     def test_period_dtype(self, dtype):
