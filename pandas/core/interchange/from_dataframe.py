@@ -5,9 +5,9 @@ import re
 from typing import Any
 
 import numpy as np
-from pandas.errors import SettingWithCopyError
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import SettingWithCopyError
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -515,6 +515,8 @@ def set_nulls(
             data = data.astype(float)
             data[null_pos] = None
         except SettingWithCopyError:
+            # SettingWithCopyError happens if the `data` appears
+            # to have 'NaT'. If this happens, copy the `data`.
             data = data.copy()
             data[null_pos] = None
 

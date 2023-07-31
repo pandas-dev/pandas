@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -298,8 +297,8 @@ def test_datetimetzdtype(tz, unit):
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-def test_interchange_from_non_pandas_tz_aware_raise_error():
-    # GH 54239
+def test_interchange_from_non_pandas_tz_aware():
+    # GH 54239, 54287
     pa = pytest.importorskip("pyarrow")
     import pyarrow.compute as pc
 
@@ -309,10 +308,9 @@ def test_interchange_from_non_pandas_tz_aware_raise_error():
     exchange_df = table.__dataframe__()
     result = from_dataframe(exchange_df)
 
-    df = pd.DataFrame(
+    expected = pd.DataFrame(
         ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
         columns=["arr"],
+        dtype="datetime64[us, Asia/Kathmandu]",
     )
-    expected = df.astype("datetime64[ns, Asia/Kathmandu]")
     tm.assert_frame_equal(expected, result)
-
