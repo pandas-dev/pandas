@@ -251,7 +251,7 @@ class TestTableOrient:
                 "recommender_id": {"row_0": 3},
                 "recommender_name_jp": {"row_0": "浦田"},
                 "recommender_name_en": {"row_0": "Urata"},
-                "name_jp": {"row_0": "博多人形（松尾吉将まつお よしまさ）"},
+                "name_jp": {"row_0": "博多人形(松尾吉将まつお よしまさ)"},
                 "name_en": {"row_0": "Hakata Dolls Matsuo"},
             }
         )

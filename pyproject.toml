@@ -326,8 +326,6 @@ ignore = [
   "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
-  # ambiguous-unicode-character-string
-  "RUF001",
   # ambiguous-unicode-character-docstring
   "RUF002",
   # ambiguous-unicode-character-comment
