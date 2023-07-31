@@ -74,7 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.plotting.register_matplotlib_converters \
         pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
-        pandas.arrays.NumpyExtensionArray \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
