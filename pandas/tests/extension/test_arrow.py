@@ -37,6 +37,7 @@ from pandas.compat import (
     pa_version_under8p0,
     pa_version_under9p0,
     pa_version_under11p0,
+    pa_version_under13p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -1005,7 +1006,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _is_temporal_supported(self, opname, pa_dtype):
         return not pa_version_under8p0 and (
-            opname in ("__add__", "__radd__")
+            (
+                opname in ("__add__", "__radd__")
+                or (
+                    opname
+                    in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                    and not pa_version_under13p0
+                )
+            )
             and pa.types.is_duration(pa_dtype)
             or opname in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
@@ -1054,7 +1062,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
+        elif arrow_temporal_supported and (
+            pa.types.is_time(pa_dtype)
+            or (
+                opname
+                in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                and pa.types.is_duration(pa_dtype)
+            )
+        ):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
@@ -3152,6 +3167,18 @@ def test_to_numpy_temporal(pa_type):
     expected = np.array(expected, dtype=object)
     assert result[0].unit == expected[0].unit
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_groupby_count_return_arrow_dtype(data_missing):
+    df = pd.DataFrame({"A": [1, 1], "B": data_missing, "C": data_missing})
+    result = df.groupby("A").count()
+    expected = pd.DataFrame(
+        [[1, 1]],
+        index=pd.Index([1], name="A"),
+        columns=["B", "C"],
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_arrowextensiondtype_dataframe_repr():

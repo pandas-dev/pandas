@@ -30,6 +30,9 @@ from pandas.io.common import (
 )
 
 if TYPE_CHECKING:
+    import fsspec
+    import pyarrow.fs
+
     from pandas._typing import (
         DtypeBackend,
         FilePath,
@@ -44,8 +47,8 @@ def read_orc(
     path: FilePath | ReadBuffer[bytes],
     columns: list[str] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filesystem=None,
-    **kwargs,
+    filesystem: pyarrow.fs.FileSystem | fsspec.spec.AbstractFileSystem | None = None,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Load an ORC object from the file path, returning a DataFrame.
@@ -95,6 +98,10 @@ def read_orc(
     a ``pyarrow.fs`` filesystem will be attempted to read the file. You can also pass a
     pyarrow or fsspec filesystem object into the filesystem keyword to override this
     behavior.
+
+    Examples
+    --------
+    >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
     # we require a newer version of pyarrow than we support for parquet
 

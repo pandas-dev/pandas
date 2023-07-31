@@ -83,6 +83,7 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pydata-sphinx-theme
