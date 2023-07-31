@@ -159,7 +159,7 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3
+    read_pickle is only guaranteed to be backwards compatible to pandas 1.0.0
     provided the object was serialized with to_pickle.
 
     Examples
