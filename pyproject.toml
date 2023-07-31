@@ -153,8 +153,8 @@ environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
 [tool.cibuildwheel.macos]
@@ -471,7 +471,7 @@ disable = [
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "7.3.2"
-addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
