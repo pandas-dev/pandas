@@ -300,8 +300,10 @@ class TestDatetimeIndex:
         assert not isinstance(result, DatetimeIndex)
 
         msg = "DatetimeIndex has mixed timezones"
+        msg_depr = "parsing datetimes with mixed time zones will raise a warning"
         with pytest.raises(TypeError, match=msg):
-            DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
+            with tm.assert_produces_warning(FutureWarning, match=msg_depr):
+                DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
