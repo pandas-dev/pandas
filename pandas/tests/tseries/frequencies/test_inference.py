@@ -254,7 +254,8 @@ def test_infer_freq_tz_series(tz_naive_fixture):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["H", "3H", "10min", "3601S", "3600001ms", "3600000001us", "3600000000001ns"]
+    "freq",
+    ["H", "3H", "10min", "3601S", "3600001ms", "3600000001us", "3600000000001ns"],
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772

@@ -110,7 +110,9 @@ class TestPeriodIndex:
 
     def test_constructor_nano(self):
         idx = period_range(
-            start=Period(ordinal=1, freq="ns"), end=Period(ordinal=4, freq="ns"), freq="ns"
+            start=Period(ordinal=1, freq="ns"),
+            end=Period(ordinal=4, freq="ns"),
+            freq="ns",
         )
         exp = PeriodIndex(
             [

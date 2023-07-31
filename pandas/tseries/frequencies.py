@@ -71,8 +71,8 @@ _offset_to_period_map = {
     "min": "min",
     "S": "S",
     "ms": "ms",
-    "U": "U",
-    "N": "N",
+    "us": "us",
+    "ns": "ns",
     "H": "H",
     "Q": "Q",
     "A": "A",
@@ -482,31 +482,31 @@ def is_subperiod(source, target) -> bool:
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
-        return source in {"D", "C", "B", "M", "H", "min", "S", "ms", "U", "N"}
+        return source in {"D", "C", "B", "M", "H", "min", "S", "ms", "us", "ns"}
     elif _is_quarterly(target):
-        return source in {"D", "C", "B", "M", "H", "min", "S", "ms", "U", "N"}
+        return source in {"D", "C", "B", "M", "H", "min", "S", "ms", "us", "ns"}
     elif _is_monthly(target):
-        return source in {"D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return source in {"D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif _is_weekly(target):
-        return source in {target, "D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return source in {target, "D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif target == "B":
-        return source in {"B", "H", "min", "S", "ms", "U", "N"}
+        return source in {"B", "H", "min", "S", "ms", "us", "ns"}
     elif target == "C":
-        return source in {"C", "H", "min", "S", "ms", "U", "N"}
+        return source in {"C", "H", "min", "S", "ms", "us", "ns"}
     elif target == "D":
-        return source in {"D", "H", "min", "S", "ms", "U", "N"}
+        return source in {"D", "H", "min", "S", "ms", "us", "ns"}
     elif target == "H":
-        return source in {"H", "min", "S", "ms", "U", "N"}
+        return source in {"H", "min", "S", "ms", "us", "ns"}
     elif target == "min":
-        return source in {"min", "S", "ms", "U", "N"}
+        return source in {"min", "S", "ms", "us", "ns"}
     elif target == "S":
-        return source in {"S", "ms", "U", "N"}
+        return source in {"S", "ms", "us", "ns"}
     elif target == "ms":
-        return source in {"ms", "U", "N"}
-    elif target == "U":
-        return source in {"U", "N"}
-    elif target == "N":
-        return source in {"N"}
+        return source in {"ms", "us", "ns"}
+    elif target == "us":
+        return source in {"us", "ns"}
+    elif target == "ns":
+        return source in {"ns"}
     else:
         return False
 
@@ -540,31 +540,31 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "M", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "min", "S", "ms", "us", "ns"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "M", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "M", "H", "min", "S", "ms", "us", "ns"}
     elif _is_monthly(source):
-        return target in {"D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif _is_weekly(source):
-        return target in {source, "D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return target in {source, "D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif source == "B":
-        return target in {"D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif source == "C":
-        return target in {"D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif source == "D":
-        return target in {"D", "C", "B", "H", "min", "S", "ms", "U", "N"}
+        return target in {"D", "C", "B", "H", "min", "S", "ms", "us", "ns"}
     elif source == "H":
-        return target in {"H", "min", "S", "ms", "U", "N"}
+        return target in {"H", "min", "S", "ms", "us", "ns"}
     elif source == "min":
-        return target in {"min", "S", "ms", "U", "N"}
+        return target in {"min", "S", "ms", "us", "ns"}
     elif source == "S":
-        return target in {"S", "ms", "U", "N"}
+        return target in {"S", "ms", "us", "ns"}
     elif source == "ms":
-        return target in {"ms", "U", "N"}
-    elif source == "U":
-        return target in {"U", "N"}
-    elif source == "N":
-        return target in {"N"}
+        return target in {"ms", "us", "ns"}
+    elif source == "us":
+        return target in {"us", "ns"}
+    elif source == "ns":
+        return target in {"ns"}
     else:
         return False
 
@@ -585,7 +585,7 @@ def _maybe_coerce_freq(code) -> str:
     assert code is not None
     if isinstance(code, DateOffset):
         code = code.rule_code
-    if code in {"min", "ms"}:
+    if code in {"min", "ms", "us", "ns"}:
         return code
     else:
         return code.upper()
