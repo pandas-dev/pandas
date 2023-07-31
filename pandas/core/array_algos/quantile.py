@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.compat.numpy import np_percentile_argname
-
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
@@ -150,7 +148,7 @@ def _nanpercentile_1d(
         # error: No overload variant of "percentile" matches argument
         # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
         # , "Dict[str, str]"  [call-overload]
-        **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+        method=interpolation,  # type: ignore[call-overload]
     )
 
 
@@ -224,5 +222,5 @@ def _nanpercentile(
             # error: No overload variant of "percentile" matches argument types
             # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
             # "int", "Dict[str, str]"  [call-overload]
-            **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+            method=interpolation,  # type: ignore[call-overload]
         )

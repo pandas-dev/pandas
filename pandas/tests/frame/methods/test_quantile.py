@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat.numpy import np_percentile_argname
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -262,7 +260,7 @@ class TestDataFrameQuantile:
             np.array([[1, 2, 3], [2, 3, 4]]),
             0.5,
             axis=0,
-            **{np_percentile_argname: "nearest"},
+            method="nearest",
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="int64")
         tm.assert_series_equal(result, expected)
@@ -276,7 +274,7 @@ class TestDataFrameQuantile:
             np.array([[1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]),
             0.5,
             axis=0,
-            **{np_percentile_argname: "nearest"},
+            method="nearest",
         )
         expected = Series(exp, index=[1, 2, 3], name=0.5, dtype="float64")
         tm.assert_series_equal(result, expected)
