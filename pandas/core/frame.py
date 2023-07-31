@@ -11696,7 +11696,7 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype = self.dtype
                 return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(np.arange(len(data)), q, interpolation=interpolation)
+            q_idx = np.quantile(np.arange(len(data)), q, method=interpolation)
 
             by = data.columns
             if len(by) > 1:
