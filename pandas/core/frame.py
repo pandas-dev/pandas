@@ -106,6 +106,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
@@ -4031,7 +4032,7 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
@@ -5578,19 +5579,47 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Sequence[int] = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        suffix: str | None = None,
     ) -> DataFrame:
-        axis = self._get_axis_number(axis)
-
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
             raise ValueError(
                 "Cannot pass both 'freq' and 'fill_value' to "
                 f"{type(self).__name__}.shift"
             )
+
+        axis = self._get_axis_number(axis)
+
+        if is_list_like(periods):
+            periods = cast(Sequence, periods)
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
+
+            shifted_dataframes = []
+            for period in periods:
+                if not is_integer(period):
+                    raise TypeError(
+                        f"Periods must be integer, but {period} is {type(period)}."
+                    )
+                period = cast(int, period)
+                shifted_dataframes.append(
+                    super()
+                    .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
+                    .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+                )
+            return concat(shifted_dataframes, axis=1)
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+        periods = cast(int, periods)
 
         ncols = len(self.columns)
         arrays = self._mgr.arrays
@@ -5815,21 +5844,21 @@ class DataFrame(NDFrame, OpsMixin):
             # GH 49473 Use "lazy copy" with Copy-on-Write
             frame = self.copy(deep=None)
 
-        arrays = []
+        arrays: list[Index] = []
         names: list[Hashable] = []
         if append:
             names = list(self.index.names)
             if isinstance(self.index, MultiIndex):
-                for i in range(self.index.nlevels):
-                    arrays.append(self.index._get_level_values(i))
+                arrays.extend(
+                    self.index._get_level_values(i) for i in range(self.index.nlevels)
+                )
             else:
                 arrays.append(self.index)
 
         to_remove: list[Hashable] = []
         for col in keys:
             if isinstance(col, MultiIndex):
-                for n in range(col.nlevels):
-                    arrays.append(col._get_level_values(n))
+                arrays.extend(col._get_level_values(n) for n in range(col.nlevels))
                 names.extend(col.names)
             elif isinstance(col, (Index, Series)):
                 # if Index then not MultiIndex (treated above)
@@ -6382,6 +6411,39 @@ class DataFrame(NDFrame, OpsMixin):
             return result
         self._update_inplace(result)
         return None
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[True],
+        ignore_index: bool = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: bool = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame | None:
+        ...
 
     def drop_duplicates(
         self,
@@ -10122,8 +10184,7 @@ class DataFrame(NDFrame, OpsMixin):
             * left: use calling frame's index (or column if on is specified)
             * right: use `other`'s index.
             * outer: form union of calling frame's index (or column if on is
-              specified) with `other`'s index, and sort it.
-              lexicographically.
+              specified) with `other`'s index, and sort it lexicographically.
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
@@ -10143,7 +10204,7 @@ class DataFrame(NDFrame, OpsMixin):
             If specified, checks if join is of specified type.
 
             * "one_to_one" or "1:1": check if join keys are unique in both left
-               and right datasets.
+              and right datasets.
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
@@ -11003,6 +11064,11 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
+            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+            if isinstance(dtype, ExtensionDtype):
+                df = df.astype(dtype, copy=False)
+                arr = concat_compat(list(df._iter_column_arrays()))
+                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return func(df.values)
         elif axis == 1:
             if len(df.index) == 0:
@@ -11292,6 +11358,15 @@ class DataFrame(NDFrame, OpsMixin):
         indices = res._values
         # indices will always be np.ndarray since axis is not N
 
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         index = data._get_axis(axis)
         result = algorithms.take(
             index._values, indices, allow_fill=True, fill_value=index._na_value
@@ -11319,6 +11394,15 @@ class DataFrame(NDFrame, OpsMixin):
         )
         indices = res._values
         # indices will always be 1d array since axis is not None
+
+        if (indices == -1).any():
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         index = data._get_axis(axis)
         result = algorithms.take(

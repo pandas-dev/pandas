@@ -1312,17 +1312,20 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
@@ -1341,11 +1344,13 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
         dti = pi.to_timestamp("S")[:-1]
         elem = element(dti)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]

@@ -665,3 +665,81 @@ class TestDataFrameShift:
             index=date_range(start="02/01/2000", end="02/01/2000", periods=3),
         )
         tm.assert_frame_equal(shifted, expected)
+
+    def test_shift_with_iterable_basic_functionality(self):
+        # GH#44424
+        data = {"a": [1, 2, 3], "b": [4, 5, 6]}
+        shifts = [0, 1, 2]
+
+        df = DataFrame(data)
+        shifted = df.shift(shifts)
+
+        expected = DataFrame(
+            {
+                "a_0": [1, 2, 3],
+                "b_0": [4, 5, 6],
+                "a_1": [np.NaN, 1.0, 2.0],
+                "b_1": [np.NaN, 4.0, 5.0],
+                "a_2": [np.NaN, np.NaN, 1.0],
+                "b_2": [np.NaN, np.NaN, 4.0],
+            }
+        )
+        tm.assert_frame_equal(expected, shifted)
+
+    def test_shift_with_iterable_series(self):
+        # GH#44424
+        data = {"a": [1, 2, 3]}
+        shifts = [0, 1, 2]
+
+        df = DataFrame(data)
+        s = df["a"]
+        tm.assert_frame_equal(s.shift(shifts), df.shift(shifts))
+
+    def test_shift_with_iterable_freq_and_fill_value(self):
+        # GH#44424
+        df = DataFrame(
+            np.random.randn(5), index=date_range("1/1/2000", periods=5, freq="H")
+        )
+
+        tm.assert_frame_equal(
+            # rename because shift with an iterable leads to str column names
+            df.shift([1], fill_value=1).rename(columns=lambda x: int(x[0])),
+            df.shift(1, fill_value=1),
+        )
+
+        tm.assert_frame_equal(
+            df.shift([1], freq="H").rename(columns=lambda x: int(x[0])),
+            df.shift(1, freq="H"),
+        )
+
+        msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
+        with pytest.raises(ValueError, match=msg):
+            df.shift([1, 2], fill_value=1, freq="H")
+
+    def test_shift_with_iterable_check_other_arguments(self):
+        # GH#44424
+        data = {"a": [1, 2], "b": [4, 5]}
+        shifts = [0, 1]
+        df = DataFrame(data)
+
+        # test suffix
+        shifted = df[["a"]].shift(shifts, suffix="_suffix")
+        expected = DataFrame({"a_suffix_0": [1, 2], "a_suffix_1": [np.nan, 1.0]})
+        tm.assert_frame_equal(shifted, expected)
+
+        # check bad inputs when doing multiple shifts
+        msg = "If `periods` contains multiple shifts, `axis` cannot be 1."
+        with pytest.raises(ValueError, match=msg):
+            df.shift(shifts, axis=1)
+
+        msg = "Periods must be integer, but s is <class 'str'>."
+        with pytest.raises(TypeError, match=msg):
+            df.shift(["s"])
+
+        msg = "If `periods` is an iterable, it cannot be empty."
+        with pytest.raises(ValueError, match=msg):
+            df.shift([])
+
+        msg = "Cannot specify `suffix` if `periods` is an int."
+        with pytest.raises(ValueError, match=msg):
+            df.shift(1, suffix="fails")

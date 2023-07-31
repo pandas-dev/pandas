@@ -899,12 +899,31 @@ class ArrowExtensionArray(
         """
         return type(self)(pc.drop_null(self._pa_array))
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
+
+        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
+        #  this method entirely.
+        return super().pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
+
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
@@ -912,11 +931,8 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None:
-            return super().fillna(value=value, method=method, limit=limit)
-
-        if method is not None:
-            return super().fillna(value=value, method=method, limit=limit)
+        if limit is not None or method is not None:
+            return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -959,7 +975,7 @@ class ArrowExtensionArray(
             #   a kernel for duration types.
             pass
 
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.

@@ -383,7 +383,10 @@ class TestLocBaseIndependent:
         df2 = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         ix = df1["a"] == 1
         newb2 = df2.loc[ix, "b"]
-        df1.loc[ix, "b"] = newb2
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df1.loc[ix, "b"] = newb2
         expected = DataFrame({"a": [0, 1, 1], "b": [100, 200, 300]}, dtype="uint64")
         tm.assert_frame_equal(df2, expected)
 
@@ -1416,8 +1419,11 @@ class TestLocBaseIndependent:
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
-        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
-        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+            df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
         tm.assert_frame_equal(df, exp)
 
     def test_loc_setitem_single_row_categorical(self):
@@ -1443,7 +1449,8 @@ class TestLocBaseIndependent:
         df.loc[0:1, "c"] = np.datetime64("2008-08-08")
         assert Timestamp("2008-08-08") == df.loc[0, "c"]
         assert Timestamp("2008-08-08") == df.loc[1, "c"]
-        df.loc[2, "c"] = date(2005, 5, 5)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df.loc[2, "c"] = date(2005, 5, 5)
         assert Timestamp("2005-05-05").date() == df.loc[2, "c"]
 
     @pytest.mark.parametrize("idxer", ["var", ["var"]])
@@ -1609,7 +1616,10 @@ class TestLocBaseIndependent:
         # dtype conversion on setting
         df = DataFrame(np.random.rand(30, 3), columns=tuple("ABC"))
         df["event"] = np.nan
-        df.loc[10, "event"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[10, "event"] = "foo"
         result = df.dtypes
         expected = Series(
             [np.dtype("float64")] * 3 + [np.dtype("object")],
@@ -2930,7 +2940,8 @@ def test_loc_setitem_uint8_upcast(value):
     # GH#26049
 
     df = DataFrame([1, 2, 3, 4], columns=["col1"], dtype="uint8")
-    df.loc[2, "col1"] = value  # value that can't be held in uint8
+    with tm.assert_produces_warning(FutureWarning, match="item of incompatible dtype"):
+        df.loc[2, "col1"] = value  # value that can't be held in uint8
 
     expected = DataFrame([1, 2, 300, 4], columns=["col1"], dtype="uint16")
     tm.assert_frame_equal(df, expected)
