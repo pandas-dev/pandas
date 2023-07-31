@@ -54,10 +54,7 @@ from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import (
-    function as nv,
-    np_percentile_argname,
-)
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -106,6 +103,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
@@ -10183,8 +10181,7 @@ class DataFrame(NDFrame, OpsMixin):
             * left: use calling frame's index (or column if on is specified)
             * right: use `other`'s index.
             * outer: form union of calling frame's index (or column if on is
-              specified) with `other`'s index, and sort it.
-              lexicographically.
+              specified) with `other`'s index, and sort it lexicographically.
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
@@ -10204,7 +10201,7 @@ class DataFrame(NDFrame, OpsMixin):
             If specified, checks if join is of specified type.
 
             * "one_to_one" or "1:1": check if join keys are unique in both left
-               and right datasets.
+              and right datasets.
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
@@ -11064,6 +11061,11 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
+            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+            if isinstance(dtype, ExtensionDtype):
+                df = df.astype(dtype, copy=False)
+                arr = concat_compat(list(df._iter_column_arrays()))
+                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return func(df.values)
         elif axis == 1:
             if len(df.index) == 0:
@@ -11699,9 +11701,7 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype = self.dtype
                 return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(  # type: ignore[call-overload]
-                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
-            )
+            q_idx = np.quantile(np.arange(len(data)), q, method=interpolation)
 
             by = data.columns
             if len(by) > 1:
