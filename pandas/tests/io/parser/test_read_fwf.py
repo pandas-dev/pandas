@@ -190,7 +190,7 @@ A   B     C            D            E
 
 
 def test_bytes_io_input():
-    data = BytesIO("שלום\nשלlם").encode()
+    data = BytesIO("שלום\nשלום".encode())  # noqa: RUF001
     result = read_fwf(data, widths=[2, 2], encoding="utf8")
     expected = DataFrame([["של", "ום"]], columns=["של", "ום"])
     tm.assert_frame_equal(result, expected)
