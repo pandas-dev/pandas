@@ -2031,6 +2031,19 @@ The repeated labels are:
     def data_label(self) -> str:
         """
         Return data label of Stata file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([(1,)], columns=["variable"])
+        >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
+        >>> data_label = "This is a data file."
+        >>> path = "/My_path/filename"
+        >>> df.to_stata(path, time_stamp=time_stamp,    # doctest: +SKIP
+        ...             data_label=data_label,  # doctest: +SKIP
+        ...             version=None)  # doctest: +SKIP
+        >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
+        ...     print(reader.data_label)  # doctest: +SKIP
+        This is a data file.
         """
         self._ensure_open()
         return self._data_label
