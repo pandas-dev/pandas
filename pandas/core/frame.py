@@ -4031,7 +4031,7 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if not PYPY and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
@@ -5578,19 +5578,47 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Sequence[int] = 1,
         freq: Frequency | None = None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
+        suffix: str | None = None,
     ) -> DataFrame:
-        axis = self._get_axis_number(axis)
-
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
             raise ValueError(
                 "Cannot pass both 'freq' and 'fill_value' to "
                 f"{type(self).__name__}.shift"
             )
+
+        axis = self._get_axis_number(axis)
+
+        if is_list_like(periods):
+            periods = cast(Sequence, periods)
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
+
+            shifted_dataframes = []
+            for period in periods:
+                if not is_integer(period):
+                    raise TypeError(
+                        f"Periods must be integer, but {period} is {type(period)}."
+                    )
+                period = cast(int, period)
+                shifted_dataframes.append(
+                    super()
+                    .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
+                    .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
+                )
+            return concat(shifted_dataframes, axis=1)
+        elif suffix:
+            raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+        periods = cast(int, periods)
 
         ncols = len(self.columns)
         arrays = self._mgr.arrays
@@ -6382,6 +6410,39 @@ class DataFrame(NDFrame, OpsMixin):
             return result
         self._update_inplace(result)
         return None
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[True],
+        ignore_index: bool = ...,
+    ) -> None:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: Literal[False] = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame:
+        ...
+
+    @overload
+    def drop_duplicates(
+        self,
+        subset: Hashable | Sequence[Hashable] | None = ...,
+        *,
+        keep: DropKeep = ...,
+        inplace: bool = ...,
+        ignore_index: bool = ...,
+    ) -> DataFrame | None:
+        ...
 
     def drop_duplicates(
         self,
