@@ -219,8 +219,8 @@ def _nanpercentile(
             values,
             qs,
             axis=1,
-            # error: No overload variant of "percentile" matches argument
-            # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
-            # , "Dict[str, str]"  [call-overload]
+            # error: No overload variant of "percentile" matches argument types
+            # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
+            # "int", "Dict[str, str]"  [call-overload]
             method=interpolation,  # type: ignore[call-overload]
         )
