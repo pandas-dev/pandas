@@ -155,10 +155,10 @@ functionality below.
    reusing this function can create a significant performance hit. If you need
    to use the operation over several datasets, use a list comprehension.
 
-::
+   .. code-block:: python
 
-   frames = [ process_your_file(f) for f in files ]
-   result = pd.concat(frames)
+      frames = [process_your_file(f) for f in files]
+      result = pd.concat(frames)
 
 .. note::
 
@@ -732,17 +732,12 @@ In the following example, there are duplicate values of ``B`` in the right
 ``DataFrame``. As this is not a one-to-one merge -- as specified in the
 ``validate`` argument -- an exception will be raised.
 
-
 .. ipython:: python
+   :okexcept:
 
-  left = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-  right = pd.DataFrame({"A": [4, 5, 6], "B": [2, 2, 2]})
-
-.. code-block:: ipython
-
-  In [53]: result = pd.merge(left, right, on="B", how="outer", validate="one_to_one")
-  ...
-  MergeError: Merge keys are not unique in right dataset; not a one-to-one merge
+   left = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+   right = pd.DataFrame({"A": [4, 5, 6], "B": [2, 2, 2]})
+   result = pd.merge(left, right, on="B", how="outer", validate="one_to_one")
 
 If the user is aware of the duplicates in the right ``DataFrame`` but wants to
 ensure there are no duplicates in the left DataFrame, one can use the

@@ -574,10 +574,10 @@ returns a ``DataFrame`` if ``expand=True``.
 
 It raises ``ValueError`` if ``expand=False``.
 
-.. code-block:: python
+.. ipython:: python
+   :okexcept:
 
-    >>> s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
-    ValueError: only one regex group is supported with Index
+    s.index.str.extract("(?P<letter>[a-zA-Z])([0-9]+)", expand=False)
 
 The table below summarizes the behavior of ``extract(expand=False)``
 (input subject in first column, number of groups in regex in

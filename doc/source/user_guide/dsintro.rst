@@ -31,9 +31,9 @@ Series
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
 labels are collectively referred to as the **index**. The basic method to create a :class:`Series` is to call:
 
-::
+.. code-block:: python
 
-    >>> s = pd.Series(data, index=index)
+   s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 

@@ -873,13 +873,12 @@ categoricals of the same categories and order information
 
 The below raises ``TypeError`` because the categories are ordered and not identical.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
-   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
-   In [3]: union_categoricals([a, b])
-   Out[3]:
-   TypeError: to union ordered Categoricals, all categories must be the same
+   a = pd.Categorical(["a", "b"], ordered=True)
+   b = pd.Categorical(["a", "b", "c"], ordered=True)
+   union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.
