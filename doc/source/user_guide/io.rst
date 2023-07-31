@@ -931,6 +931,8 @@ Parsing a CSV with mixed timezones
 pandas cannot natively represent a column or index with mixed timezones. If your CSV
 file contains columns with a mixture of timezones, the default result will be
 an object-dtype column with strings, even with ``parse_dates``.
+To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
+then call :func:`to_datetime` with ``utc=True``.
 
 
 .. ipython:: python
@@ -939,14 +941,6 @@ an object-dtype column with strings, even with ``parse_dates``.
    a
    2000-01-01T00:00:00+05:00
    2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(StringIO(content), parse_dates=["a"])
-   df["a"]
-
-To parse the mixed-timezone values as a datetime column, read in as ``object`` dtype and
-then call :func:`to_datetime` with ``utc=True``.
-
-.. ipython:: python
-
    df = pd.read_csv(StringIO(content))
    df["a"] = pd.to_datetime(df["a"], utc=True)
    df["a"]
@@ -1718,9 +1712,21 @@ at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
 for those not included in the main ``fsspec``
 distribution.
 
-You can also pass parameters directly to the backend driver. For example,
-if you do *not* have S3 credentials, you can still access public data by
-specifying an anonymous connection, such as
+You can also pass parameters directly to the backend driver. Since ``fsspec`` does not
+utilize the ``AWS_S3_HOST`` environment variable, we can directly define a
+dictionary containing the endpoint_url and pass the object into the storage
+option parameter:
+
+.. code-block:: python
+
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
+
+More sample configurations and documentation can be found at `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/index.html?highlight=host#s3-compatible-storage>`__.
+
+If you do *not* have S3 credentials, you can still access public
+data by specifying an anonymous connection, such as
 
 .. versionadded:: 1.2.0
 

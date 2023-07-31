@@ -6511,13 +6511,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 results.append(res_col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
-            # GH 18099/22869: columnwise conversion to extension dtype
-            # GH 24704: use iloc to handle duplicate column names
             # TODO(EA2D): special case not needed with 2D EAs
-            results = [
-                self.iloc[:, i].astype(dtype, copy=copy)
-                for i in range(len(self.columns))
-            ]
+            dtype = pandas_dtype(dtype)
+            if isinstance(dtype, ExtensionDtype) and all(
+                arr.dtype == dtype for arr in self._mgr.arrays
+            ):
+                return self.copy(deep=copy)
+            # GH 18099/22869: columnwise conversion to extension dtype
+            # GH 24704: self.items handles duplicate column names
+            results = [ser.astype(dtype, copy=copy) for _, ser in self.items()]
 
         else:
             # else, only a single dtype is given
@@ -9247,12 +9249,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17T, dtype: int64
 
-        >>> ts.resample('17min', origin='2000-01-01').sum()
-        2000-10-01 23:24:00     3
-        2000-10-01 23:41:00    15
-        2000-10-01 23:58:00    45
-        2000-10-02 00:15:00    45
-        Freq: 17T, dtype: int64
+        >>> ts.resample('17W', origin='2000-01-01').sum()
+        2000-01-02      0
+        2000-04-30      0
+        2000-08-27      0
+        2000-12-24    108
+        Freq: 17W-SUN, dtype: int64
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
@@ -10545,11 +10547,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @doc(klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
-    ) -> Self:
+        suffix: str | None = None,
+    ) -> Self | DataFrame:
         """
         Shift index by desired number of periods with an optional time `freq`.
 
@@ -10562,8 +10565,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        periods : int
+        periods : int or Sequence
             Number of periods to shift. Can be positive or negative.
+            If an iterable of ints, the data will be shifted once by each int.
+            This is equivalent to shifting by one value at a time and
+            concatenating all resulting frames. The resulting columns will have
+            the shift suffixed to their column names. For multiple periods,
+            axis must not be 1.
         freq : DateOffset, tseries.offsets, timedelta, or str, optional
             Offset to use from the tseries module or time rule (e.g. 'EOM').
             If `freq` is specified then the index values are shifted but the
@@ -10580,6 +10588,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For numeric data, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
+        suffix : str, optional
+            If str and periods is an iterable, this is added after the column
+            name and before the shift value for each shifted column name.
 
         Returns
         -------
@@ -10645,6 +10656,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2020-01-06    15    18    22
         2020-01-07    30    33    37
         2020-01-08    45    48    52
+
+        >>> df['Col1'].shift(periods=[0, 1, 2])
+                    Col1_0  Col1_1  Col1_2
+        2020-01-01      10     NaN     NaN
+        2020-01-02      20    10.0     NaN
+        2020-01-03      15    20.0    10.0
+        2020-01-04      30    15.0    20.0
+        2020-01-05      45    30.0    15.0
         """
         axis = self._get_axis_number(axis)
 
@@ -10657,6 +10676,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if periods == 0:
             return self.copy(deep=None)
+
+        if is_list_like(periods) and isinstance(self, ABCSeries):
+            return self.to_frame().shift(
+                periods=periods, freq=freq, axis=axis, fill_value=fill_value
+            )
+        periods = cast(int, periods)
 
         if freq is None:
             # when freq is None, data is shifted, index is not

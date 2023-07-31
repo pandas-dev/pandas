@@ -104,6 +104,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
     FloatingArray,
+    IntegerArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -2248,6 +2249,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
+            if isinstance(bvalues, BaseMaskedArray):
+                return IntegerArray(
+                    counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
+                )
+            elif isinstance(bvalues, ArrowExtensionArray):
+                return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -3272,7 +3279,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[0]
 
             if isinstance(obj, DataFrame):
@@ -3331,7 +3338,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[-1]
 
             if isinstance(obj, DataFrame):
@@ -4925,10 +4932,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=lib.no_default,
+        suffix: str | None = None,
     ):
         """
         Shift each group by periods observations.
@@ -4937,8 +4945,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        periods : int, default 1
-            Number of periods to shift.
+        periods : int | Sequence[int], default 1
+            Number of periods to shift. If a list of values, shift each group by
+            each period.
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
@@ -4953,6 +4962,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionchanged:: 2.1.0
                 Will raise a ``ValueError`` if ``freq`` is provided too.
+
+        suffix : str, optional
+            A string to add to each shifted column if there are multiple periods.
+            Ignored otherwise.
 
         Returns
         -------
@@ -5007,25 +5020,70 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             axis = 0
 
-        if freq is not None or axis != 0:
-            f = lambda x: x.shift(periods, freq, axis, fill_value)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+        if is_list_like(periods):
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            periods = cast(Sequence, periods)
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
 
-        if fill_value is lib.no_default:
-            fill_value = None
-        ids, _, ngroups = self.grouper.group_info
-        res_indexer = np.zeros(len(ids), dtype=np.int64)
+            add_suffix = True
+        else:
+            if not is_integer(periods):
+                raise TypeError(
+                    f"Periods must be integer, but {periods} is {type(periods)}."
+                )
+            if suffix:
+                raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+            periods = [cast(int, periods)]
+            add_suffix = False
 
-        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+        shifted_dataframes = []
+        for period in periods:
+            if not is_integer(period):
+                raise TypeError(
+                    f"Periods must be integer, but {period} is {type(period)}."
+                )
+            period = cast(int, period)
+            if freq is not None or axis != 0:
+                f = lambda x: x.shift(
+                    period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
+                )
+                shifted = self._python_apply_general(
+                    f, self._selected_obj, is_transform=True
+                )
+            else:
+                if fill_value is lib.no_default:
+                    fill_value = None
+                ids, _, ngroups = self.grouper.group_info
+                res_indexer = np.zeros(len(ids), dtype=np.int64)
 
-        obj = self._obj_with_exclusions
+                libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
 
-        res = obj._reindex_with_indexers(
-            {self.axis: (obj.axes[self.axis], res_indexer)},
-            fill_value=fill_value,
-            allow_dups=True,
+                obj = self._obj_with_exclusions
+
+                shifted = obj._reindex_with_indexers(
+                    {self.axis: (obj.axes[self.axis], res_indexer)},
+                    fill_value=fill_value,
+                    allow_dups=True,
+                )
+
+            if add_suffix:
+                if isinstance(shifted, Series):
+                    shifted = cast(NDFrameT, shifted.to_frame())
+                shifted = shifted.add_suffix(
+                    f"{suffix}_{period}" if suffix else f"_{period}"
+                )
+            shifted_dataframes.append(cast(Union[Series, DataFrame], shifted))
+
+        return (
+            shifted_dataframes[0]
+            if len(shifted_dataframes) == 1
+            else concat(shifted_dataframes, axis=1)
         )
-        return res
 
     @final
     @Substitution(name="groupby")
