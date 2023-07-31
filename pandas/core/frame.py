@@ -54,10 +54,7 @@ from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import (
-    function as nv,
-    np_percentile_argname,
-)
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -11699,9 +11696,7 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype = self.dtype
                 return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(  # type: ignore[call-overload]
-                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
-            )
+            q_idx = np.quantile(np.arange(len(data)), q, interpolation=interpolation)
 
             by = data.columns
             if len(by) > 1:
