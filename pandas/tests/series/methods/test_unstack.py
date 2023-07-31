@@ -133,7 +133,9 @@ def test_unstack_mixed_type_name_in_multiindex(
 
 
 def test_unstack_multi_index_categorical_values():
-    mi = tm.makeTimeDataFrame().stack(v3=True).index.rename(["major", "minor"])
+    mi = (
+        tm.makeTimeDataFrame().stack(future_stack=True).index.rename(["major", "minor"])
+    )
     ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
     result = ser.unstack()

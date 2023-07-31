@@ -359,7 +359,7 @@ class TestSlicing:
         # partial slice on a series mi
         ser = DataFrame(
             np.random.rand(1000, 1000), index=date_range("2000-1-1", periods=1000)
-        ).stack(v3=True)
+        ).stack(future_stack=True)
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]

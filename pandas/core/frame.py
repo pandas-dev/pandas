@@ -9174,7 +9174,7 @@ class DataFrame(NDFrame, OpsMixin):
         level: IndexLabel = -1,
         dropna: bool | lib.NoDefault = lib.no_default,
         sort: bool | lib.NoDefault = lib.no_default,
-        v3: bool = False,
+        future_stack: bool = False,
     ):
         """
         Stack the prescribed level(s) from columns to index.
@@ -9203,7 +9203,7 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
-        v3: bool, default False
+        future_stack: bool, default False
             Whether to use the new implementation that will replace the current
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
@@ -9247,7 +9247,7 @@ class DataFrame(NDFrame, OpsMixin):
              weight height
         cat       0      1
         dog       2      3
-        >>> df_single_level_cols.stack(v3=True)
+        >>> df_single_level_cols.stack(future_stack=True)
         cat  weight    0
              height    1
         dog  weight    2
@@ -9269,7 +9269,7 @@ class DataFrame(NDFrame, OpsMixin):
                  kg    pounds
         cat       1        2
         dog       2        4
-        >>> df_multi_level_cols1.stack(v3=True)
+        >>> df_multi_level_cols1.stack(future_stack=True)
                     weight
         cat kg           1
             pounds       2
@@ -9294,7 +9294,7 @@ class DataFrame(NDFrame, OpsMixin):
                 kg      m
         cat    1.0    2.0
         dog    3.0    4.0
-        >>> df_multi_level_cols2.stack(v3=True)
+        >>> df_multi_level_cols2.stack(future_stack=True)
                 weight  height
         cat kg     1.0     NaN
             m      NaN     2.0
@@ -9305,13 +9305,13 @@ class DataFrame(NDFrame, OpsMixin):
 
         The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack(0, v3=True)
+        >>> df_multi_level_cols2.stack(0, future_stack=True)
                      kg    m
         cat height  NaN  2.0
             weight  1.0  NaN
         dog height  NaN  4.0
             weight  3.0  NaN
-        >>> df_multi_level_cols2.stack([0, 1], v3=True)
+        >>> df_multi_level_cols2.stack([0, 1], future_stack=True)
         cat  height  m     2.0
              weight  kg    1.0
         dog  height  m     4.0
@@ -9345,7 +9345,7 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     2.0     NaN
             m      NaN     3.0
         """
-        if not v3:
+        if not future_stack:
             from pandas.core.reshape.reshape import (
                 stack,
                 stack_multiple,
@@ -9365,14 +9365,16 @@ class DataFrame(NDFrame, OpsMixin):
 
             if dropna is not lib.no_default:
                 raise ValueError(
-                    "Cannot specify dropna with v3=True, this argument will be "
-                    "removed in a future version of pandas"
+                    "dropna must be unspecified with future_stack=True as the new "
+                    "implementation does not introduce rows of NA values. This "
+                    "argument will be removed in a future version of pandas."
                 )
 
             if sort is not lib.no_default:
                 raise ValueError(
-                    "Cannot specify sort with v3=True, this argument will be "
-                    "removed in a future version of pandas"
+                    "Cannot specify sort with future_stack=True, this argument will be "
+                    "removed in a future version of pandas. Sort the result using "
+                    ".sort_index instead."
                 )
 
             if (

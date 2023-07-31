@@ -112,7 +112,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result2, original)
 
     def test_reset_index(self, float_frame):
-        stacked = float_frame.stack(v3=True)[::2]
+        stacked = float_frame.stack(future_stack=True)[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
         names = ["first", "second"]
@@ -749,7 +749,7 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(v3=True)[::2]
+    stacked_df = float_frame.stack(future_stack=True)[::2]
     stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
@@ -763,7 +763,7 @@ def test_reset_index_rename_multiindex(float_frame):
 
 def test_errorreset_index_rename(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(v3=True)[::2]
+    stacked_df = float_frame.stack(future_stack=True)[::2]
     stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
 
     with pytest.raises(

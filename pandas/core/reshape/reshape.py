@@ -503,7 +503,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         if isinstance(obj.index, MultiIndex):
             return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
         else:
-            return obj.T.stack(v3=True)
+            return obj.T.stack(future_stack=True)
     elif not isinstance(obj.index, MultiIndex):
         # GH 36113
         # Give nicer error messages when unstack a Series whose
@@ -615,7 +615,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
     else:
-        levels, (ilab, clab) = zip(*map(factorize, (frame.index, frame.columns)))
+        levels, (ilab, clab) = zip(*map(stack_factorize, (frame.index, frame.columns)))
         codes = ilab.repeat(K), np.tile(clab, N).ravel()
         new_index = MultiIndex(
             levels=levels,
@@ -887,7 +887,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         raise ValueError("Columns with duplicate values are not supported in stack")
 
     # If we need to drop `level` from columns, it needs to be in descending order
-    drop_levnums = sorted(level)[::-1]
+    drop_levnums = sorted(level, reverse=True)
     stack_cols = frame.columns._drop_level_numbers(
         [k for k in range(frame.columns.nlevels) if k not in level][::-1]
     )

@@ -1114,7 +1114,7 @@ def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack(v3=True)
+    expected = grouped.describe().stack(future_stack=True)
     tm.assert_series_equal(result, expected)
 
 
