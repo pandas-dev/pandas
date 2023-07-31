@@ -1783,7 +1783,7 @@ cdef group_min_max(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def group_idxmin_idxmax(
-    int64_t[:, ::1] out,
+    intp_t[:, ::1] out,
     int64_t[::1] counts,
     ndarray[numeric_object_t, ndim=2] values,
     const intp_t[::1] labels,
