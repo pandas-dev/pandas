@@ -4,10 +4,13 @@ from collections import defaultdict
 from collections.abc import (
     Hashable,
     Iterable,
-    cast,
+
 )
 import itertools
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
