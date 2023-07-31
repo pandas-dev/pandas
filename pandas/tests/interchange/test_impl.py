@@ -305,7 +305,9 @@ def test_interchange_from_non_pandas_tz_aware_raise_error():
 
     arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
     arr = pc.assume_timezone(arr, "Asia/Kathmandu")
+    table = pa.table({"arr": arr})
+    exchange_df = table.__dataframe__()
 
     msg = "modifications to a method of a datetimelike object are not supported."
     with pytest.raises(SettingWithCopyError, match=msg):
-        from_dataframe(pa.table({"arr": arr}))
+        from_dataframe(exchange_df)
