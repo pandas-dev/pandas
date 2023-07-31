@@ -18,6 +18,7 @@ from pandas._typing import (
     AxisInt,
     Dtype,
     F,
+    FillnaOptions,
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
@@ -295,6 +296,37 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        mask = self.isna()
+        if mask.any():
+            # (for now) when self.ndim == 2, we assume axis=0
+            func = missing.get_fill_func(method, ndim=self.ndim)
+
+            npvalues = self._ndarray.T
+            if copy:
+                npvalues = npvalues.copy()
+            func(npvalues, limit=limit, mask=mask.T)
+            npvalues = npvalues.T
+
+            if copy:
+                new_values = self._from_backing_data(npvalues)
+            else:
+                new_values = self
+
+        else:
+            if copy:
+                new_values = self.copy()
+            else:
+                new_values = self
+        return new_values
+
     @doc(ExtensionArray.fillna)
     def fillna(
         self, value=None, method=None, limit: int | None = None, copy: bool = True
@@ -312,7 +344,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         if mask.any():
             if method is not None:
-                # TODO: check value is None
                 # (for now) when self.ndim == 2, we assume axis=0
                 func = missing.get_fill_func(method, ndim=self.ndim)
                 npvalues = self._ndarray.T

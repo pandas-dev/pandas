@@ -155,16 +155,14 @@ class Dim2CompatTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("method", ["backfill", "pad"])
     def test_fillna_2d_method(self, data_missing, method):
+        # pad_or_backfill is always along axis=0
         arr = data_missing.repeat(2).reshape(2, 2)
         assert arr[0].isna().all()
         assert not arr[1].isna().any()
 
-        try:
-            result = arr.pad_or_backfill(method=method, limit=None)
-        except AttributeError:
-            result = arr.fillna(method=method, limit=None)
+        result = arr.pad_or_backfill(method=method, limit=None)
 
-        expected = data_missing.fillna(method=method).repeat(2).reshape(2, 2)
+        expected = data_missing.pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         self.assert_extension_array_equal(result, expected)
 
         # Reverse so that backfill is not a no-op.
@@ -172,12 +170,11 @@ class Dim2CompatTests(BaseExtensionTests):
         assert not arr2[0].isna().any()
         assert arr2[1].isna().all()
 
-        try:
-            result2 = arr2.pad_or_backfill(method=method, limit=None)
-        except AttributeError:
-            result2 = arr2.fillna(method=method, limit=None)
+        result2 = arr2.pad_or_backfill(method=method, limit=None)
 
-        expected2 = data_missing[::-1].fillna(method=method).repeat(2).reshape(2, 2)
+        expected2 = (
+            data_missing[::-1].pad_or_backfill(method=method).repeat(2).reshape(2, 2)
+        )
         self.assert_extension_array_equal(result2, expected2)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
