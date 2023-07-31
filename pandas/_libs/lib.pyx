@@ -1206,6 +1206,10 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     elif isinstance(obj, list):
         return True
     # then the generic implementation
+    try:
+        iter(obj)
+    except Exception:
+        return False
     return (
         # equiv: `isinstance(obj, abc.Iterable)`
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
