@@ -286,6 +286,19 @@ def test_empty_pyarrow(data):
     tm.assert_frame_equal(result, expected)
 
 
+def test_multi_chunk_pyarrow() -> None:
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    n_legs = pa.chunked_array([[2, 2, 4], [4, 5, 100]])
+    names = ["n_legs"]
+    table = pa.table([n_legs], names=names)
+    with pytest.raises(
+        RuntimeError,
+        match="To join chunks a copy is required which is "
+        "forbidden by allow_copy=False",
+    ):
+        pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
 @pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_datetimetzdtype(tz, unit):
