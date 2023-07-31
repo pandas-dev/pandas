@@ -35,11 +35,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    NumpyEADtype,
-    SparseDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -75,6 +71,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    ensure_np_dtype,
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
@@ -1021,14 +1018,7 @@ class ArrayManager(BaseArrayManager):
         if not dtype:
             dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-        elif isinstance(dtype, NumpyEADtype):
-            dtype = dtype.numpy_dtype
-        elif isinstance(dtype, ExtensionDtype):
-            dtype = np.dtype("object")
-        elif dtype == np.dtype(str):
-            dtype = np.dtype("object")
+        dtype = ensure_np_dtype(dtype)
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
