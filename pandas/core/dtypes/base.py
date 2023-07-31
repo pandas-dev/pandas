@@ -90,12 +90,13 @@ class ExtensionDtype:
     as only argument and is expected to return the appropriate pandas
     ExtensionArray for this dtype and the passed values::
 
-    >>> import pyarrow  # doctest: +SKIP
-    >>> from pd.api.extensions import ExtensionArray  # doctest: +SKIP
-    >>> class ExtensionDtype:  # doctest: +SKIP
-    ...     def __from_arrow__(self, array: pyarrow.Union[pyarrow.Array,
-    ...                        pyarrow.ChunkedArray]
-    ...                        ) -> ExtensionArray:  # doctest: +SKIP
+    >>> import pyarrow
+    >>> from pandas.api.extensions import ExtensionArray
+    >>> class ExtensionDtype:
+    ...     def __from_arrow__(
+    ...         self,
+    ...         array: pyarrow.Array | pyarrow.ChunkedArray
+    ...     ) -> ExtensionArray:
     ...         ...
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.

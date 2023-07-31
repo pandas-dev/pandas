@@ -2037,7 +2037,7 @@ The repeated labels are:
         >>> df = pd.DataFrame([(1,)], columns=["variable"])
         >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
         >>> data_label = "This is a data file."
-        >>> path = "/My_path/filename"
+        >>> path = "/My_path/filename.dta"
         >>> df.to_stata(path, time_stamp=time_stamp,    # doctest: +SKIP
         ...             data_label=data_label,  # doctest: +SKIP
         ...             version=None)  # doctest: +SKIP
