@@ -328,8 +328,6 @@ ignore = [
   "PLR5501",
   # ambiguous-unicode-character-docstring
   "RUF002",
-  # ambiguous-unicode-character-comment
-  "RUF003",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)

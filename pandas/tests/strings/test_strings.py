@@ -226,7 +226,7 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
     # 0x2605: ★ not number
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
-    # 0xFF13: ３ Em 3
+    # 0xFF13: ３ Em 3  # noqa: RUF003
     ser = Series(["A", "3", "¼", "★", "፸", "3", "four"], dtype=any_string_dtype)
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
