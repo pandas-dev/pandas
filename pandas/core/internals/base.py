@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
     final,
 )
 
@@ -25,6 +26,10 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas.core.dtypes.cast import (
     find_common_type,
     np_can_hold_element,
+)
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    SparseDtype,
 )
 
 from pandas.core.base import PandasObject
@@ -356,3 +361,16 @@ def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
         return None
 
     return find_common_type(dtypes)
+
+
+def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
+    # TODO: https://github.com/pandas-dev/pandas/issues/22791
+    # Give EAs some input on what happens here. Sparse needs this.
+    if isinstance(dtype, SparseDtype):
+        dtype = dtype.subtype
+        dtype = cast(np.dtype, dtype)
+    elif isinstance(dtype, ExtensionDtype):
+        dtype = np.dtype("object")
+    elif dtype == np.dtype(str):
+        dtype = np.dtype("object")
+    return dtype

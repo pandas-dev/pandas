@@ -1,7 +1,6 @@
 from datetime import datetime
 from functools import partial
 from io import StringIO
-from typing import List
 
 import numpy as np
 import pytest
@@ -87,7 +86,7 @@ def test_custom_grouper(index, unit):
     expect = Series(arr, index=idx)
 
     # GH2763 - return input dtype if we can
-    result = g.agg(np.sum)
+    result = g.agg("sum")
     tm.assert_series_equal(result, expect)
 
 
@@ -95,7 +94,7 @@ def test_custom_grouper_df(index, unit):
     b = Grouper(freq=Minute(5), closed="right", label="right")
     dti = index.as_unit(unit)
     df = DataFrame(np.random.rand(len(dti), 10), index=dti, dtype="float64")
-    r = df.groupby(b).agg(np.sum)
+    r = df.groupby(b).agg("sum")
 
     assert len(r.columns) == 10
     assert len(r.index) == 2593
@@ -791,24 +790,34 @@ def test_resample_offset(unit):
 
 
 @pytest.mark.parametrize(
-    "kwargs",
+    "kwargs, expected",
     [
-        {"origin": "1999-12-31 23:57:00"},
-        {"origin": Timestamp("1970-01-01 00:02:00")},
-        {"origin": "epoch", "offset": "2m"},
+        (
+            {"origin": "1999-12-31 23:57:00"},
+            ["1999-12-31 23:57:00", "2000-01-01 01:57:00"],
+        ),
+        (
+            {"origin": Timestamp("1970-01-01 00:02:00")},
+            ["1970-01-01 00:02:00", "2000-01-01 01:57:00"],
+        ),
+        (
+            {"origin": "epoch", "offset": "2m"},
+            ["1999-12-31 23:57:00", "2000-01-01 01:57:00"],
+        ),
         # origin of '1999-31-12 12:02:00' should be equivalent for this case
-        {"origin": "1999-12-31 12:02:00"},
-        {"offset": "-3m"},
+        (
+            {"origin": "1999-12-31 12:02:00"},
+            ["1999-12-31 12:02:00", "2000-01-01 01:57:00"],
+        ),
+        ({"offset": "-3m"}, ["1999-12-31 23:57:00", "2000-01-01 01:57:00"]),
     ],
 )
-def test_resample_origin(kwargs, unit):
+def test_resample_origin(kwargs, unit, expected):
     # GH 31809
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.randn(len(rng)), index=rng)
 
-    exp_rng = date_range(
-        "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min"
-    ).as_unit(unit)
+    exp_rng = date_range(expected[0], expected[1], freq="5min").as_unit(unit)
 
     resampled = ts.resample("5min", **kwargs).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -836,6 +845,31 @@ def test_resample_bad_offset(offset, unit):
     msg = f"'offset' should be a Timedelta convertible type. Got '{offset}' instead."
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", offset=offset)
+
+
+def test_resample_monthstart_origin():
+    # GH 53662
+    df = DataFrame({"ts": [datetime(1999, 12, 31, 0, 0, 0)], "values": [10.0]})
+    result = df.resample("2MS", on="ts", origin="1999-11-01")["values"].sum()
+    excepted = Series(
+        [10.0],
+        index=DatetimeIndex(
+            ["1999-11-01"], dtype="datetime64[ns]", name="ts", freq="2MS"
+        ),
+    )
+    tm.assert_index_equal(result.index, excepted.index)
+
+    df = DataFrame({"ts": [datetime(1999, 12, 31, 20)], "values": [10.0]})
+    result = df.resample(
+        "3YS", on="ts", closed="left", label="left", origin=datetime(1995, 1, 1)
+    )["values"].sum()
+    expected = Series(
+        [0, 10.0],
+        index=DatetimeIndex(
+            ["1995-01-01", "1998-01-01"], dtype="datetime64[ns]", name="ts", freq="3YS"
+        ),
+    )
+    tm.assert_index_equal(result.index, expected.index)
 
 
 def test_resample_origin_prime_freq(unit):
@@ -869,7 +903,7 @@ def test_resample_origin_prime_freq(unit):
     tm.assert_index_equal(resampled.index, exp_rng)
 
     exp_rng = date_range(
-        "2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min"
+        "2000-01-01 00:00:00", "2000-10-02 00:15:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min", origin="2000-01-01").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -888,14 +922,12 @@ def test_resample_origin_with_tz(unit):
     exp_rng = date_range(
         "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz
     ).as_unit(unit)
-    resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
-
-    # origin of '1999-31-12 12:02:00+03:00' should be equivalent for this case
-    resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
-    tm.assert_index_equal(resampled.index, exp_rng)
-
     resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample(
+        "5min", origin=Timestamp("1999-12-31 23:57:00", tz=tz)
+    ).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     with pytest.raises(ValueError, match=msg):
@@ -1335,7 +1367,7 @@ def test_resample_consistency(unit):
     tm.assert_series_equal(s10_2, rl)
 
 
-dates1: List[DatetimeNaTType] = [
+dates1: list[DatetimeNaTType] = [
     datetime(2014, 10, 1),
     datetime(2014, 9, 3),
     datetime(2014, 11, 5),
@@ -1344,7 +1376,7 @@ dates1: List[DatetimeNaTType] = [
     datetime(2014, 7, 15),
 ]
 
-dates2: List[DatetimeNaTType] = (
+dates2: list[DatetimeNaTType] = (
     dates1[:2] + [pd.NaT] + dates1[2:4] + [pd.NaT] + dates1[4:]
 )
 dates3 = [pd.NaT] + dates1 + [pd.NaT]
@@ -1847,7 +1879,9 @@ def test_resample_apply_product(duplicates, unit):
     if duplicates:
         df.columns = ["A", "A"]
 
-    result = df.resample("Q").apply(np.prod)
+    msg = "using DatetimeIndexResampler.prod"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.resample("Q").apply(np.prod)
     expected = DataFrame(
         np.array([[0, 24], [60, 210], [336, 720], [990, 1716]], dtype=np.int64),
         index=DatetimeIndex(

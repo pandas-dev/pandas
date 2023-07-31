@@ -108,10 +108,12 @@ class TestPeriodIndex:
         self, targ, conv, meth, month, simple_period_range_series
     ):
         ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"A-{month}")
-
-        result = getattr(ts.resample(targ, convention=conv), meth)()
-        expected = result.to_timestamp(targ, how=conv)
-        expected = expected.asfreq(targ, meth).to_period()
+        warn = FutureWarning if targ == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = getattr(ts.resample(targ, convention=conv), meth)()
+            expected = result.to_timestamp(targ, how=conv)
+            expected = expected.asfreq(targ, meth).to_period()
         tm.assert_series_equal(result, expected)
 
     def test_basic_downsample(self, simple_period_range_series):
@@ -187,18 +189,25 @@ class TestPeriodIndex:
     ):
         freq = f"Q-{month}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-        result = ts.resample(target, convention=convention).ffill()
-        expected = result.to_timestamp(target, how=convention)
-        expected = expected.asfreq(target, "ffill").to_period()
+        warn = FutureWarning if target == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ts.resample(target, convention=convention).ffill()
+            expected = result.to_timestamp(target, how=convention)
+            expected = expected.asfreq(target, "ffill").to_period()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("target", ["D", "B"])
     @pytest.mark.parametrize("convention", ["start", "end"])
     def test_monthly_upsample(self, target, convention, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
-        result = ts.resample(target, convention=convention).ffill()
-        expected = result.to_timestamp(target, how=convention)
-        expected = expected.asfreq(target, "ffill").to_period()
+
+        warn = None if target == "D" else FutureWarning
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ts.resample(target, convention=convention).ffill()
+            expected = result.to_timestamp(target, how=convention)
+            expected = expected.asfreq(target, "ffill").to_period()
         tm.assert_series_equal(result, expected)
 
     def test_resample_basic(self):
@@ -363,9 +372,13 @@ class TestPeriodIndex:
     def test_weekly_upsample(self, day, target, convention, simple_period_range_series):
         freq = f"W-{day}"
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-        result = ts.resample(target, convention=convention).ffill()
-        expected = result.to_timestamp(target, how=convention)
-        expected = expected.asfreq(target, "ffill").to_period()
+
+        warn = None if target == "D" else FutureWarning
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = ts.resample(target, convention=convention).ffill()
+            expected = result.to_timestamp(target, how=convention)
+            expected = expected.asfreq(target, "ffill").to_period()
         tm.assert_series_equal(result, expected)
 
     def test_resample_to_timestamps(self, simple_period_range_series):
@@ -524,7 +537,7 @@ class TestPeriodIndex:
         )
         result = (
             ts.resample("A")
-            .agg({"first": np.sum, "second": np.mean})
+            .agg({"first": "sum", "second": "mean"})
             .reindex(columns=["first", "second"])
         )
         tm.assert_frame_equal(result, expected)
