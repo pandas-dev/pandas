@@ -141,8 +141,7 @@ def melt(
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

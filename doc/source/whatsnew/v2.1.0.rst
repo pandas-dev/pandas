@@ -640,6 +640,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` coercing to ``object`` dtype when one column has ``pa.null()`` dtype (:issue:`53702`)
 - Bug in :func:`crosstab` when ``dropna=False`` would not keep ``np.nan`` in the result (:issue:`10772`)
+- Bug in :func:`melt` where the ``variable`` column would lose extension dtypes (:issue:`54297`)
 - Bug in :func:`merge_asof` raising ``KeyError`` for extension dtypes (:issue:`52904`)
 - Bug in :func:`merge_asof` raising ``ValueError`` for data backed by read-only ndarrays (:issue:`53513`)
 - Bug in :func:`merge_asof` with ``left_index=True`` or ``right_index=True`` with mismatched index dtypes giving incorrect results in some cases instead of raising ``MergeError`` (:issue:`53870`)
