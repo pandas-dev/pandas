@@ -244,7 +244,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         self,
         *,
         method: FillnaOptions,
-        limit: int | None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
