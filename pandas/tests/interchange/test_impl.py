@@ -299,7 +299,7 @@ def test_datetimetzdtype(tz, unit):
 
 def test_interchange_from_non_pandas_tz_aware():
     # GH 54239, 54287
-    pa = pytest.importorskip("pyarrow")
+    pa = pytest.importorskip("pyarrow", "11.0.0")
     import pyarrow.compute as pc
 
     arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
