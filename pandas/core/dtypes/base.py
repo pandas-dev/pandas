@@ -88,7 +88,7 @@ class ExtensionDtype:
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
     as only argument and is expected to return the appropriate pandas
-    ExtensionArray for this dtype and the passed values::
+    ExtensionArray for this dtype and the passed values:
 
     >>> import pyarrow
     >>> from pandas.api.extensions import ExtensionArray
