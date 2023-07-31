@@ -365,6 +365,67 @@ In Excel, there are `merging of tables can be done through a VLOOKUP
 * It will include all columns from the lookup table, instead of just a single specified column
 * It supports :ref:`more complex join operations <merging.join>`
 
+Missing data
+------------
+
+Detect Missing Values
+~~~~~~~~~~~~~~~~~~~~~
+
+Pandas has a built-in function 'isnull()' which returns a series/dataframe with boolean values. Whereas, in excel we have to use 'IF' along with 'ISBLANK'.
+
+.. image:: ../../_static/spreadsheets/identify_missing_values.png
+    :alt: Missing values identified in Excel using age column.
+    :align: center
+
+In Pandas:
+.. ipython:: python
+    df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
+    'Age':[np.nan,23,20,np.nan,21],
+    'Marks':[78,67,86,90,81],
+    'Gender':['F','M','M','F','M']})
+
+    df
+
+    df['Age'].isnull()
+
+    df
+
+Drop Missing Values
+~~~~~~~~~~~~~~~~~~~
+
+In Excel, if we want to remove rows containing missing values, we use 'Filter' and deselect 'Blank' from 'Filter' of column which we want to filter.
+
+.. image:: ../../_static/spreadsheets/drop_missing.png
+
+In pandas we have 'dropna()' function.
+.. ipython:: python
+    df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
+    'Age':[np.nan,23,20,np.nan,21],
+    'Marks':[78,67,86,90,81],
+    'Gender':['F','M','M','F','M']})
+
+    df
+
+    new_df = df.dropna()
+
+    new_df
+
+Filling Missing Values
+~~~~~~~~~~~~~~~~~~~~~~
+
+In Excel, we can use the fill method to fill missing cells.
+.. image:: ../../_static/spreadsheets/fill_missing.png
+
+In Pandas, we can use 'fillna()' to fill missing values.
+.. ipython:: python
+    df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
+    'Age':[np.nan,23,20,np.nan,21],
+    'Marks':[78,67,86,90,81],
+    'Gender':['F','M','M','F','M']})
+
+    df
+
+    df.fillna(method='bfill')
 
 Other considerations
 --------------------
