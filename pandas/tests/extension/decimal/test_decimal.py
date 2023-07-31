@@ -97,7 +97,52 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+    def test_fillna_frame(self, data_missing):
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_frame(data_missing)
+
+    def test_fillna_limit_pad(self, data_missing):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_pad(data_missing)
+
+    def test_fillna_limit_backfill(self, data_missing):
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna added a 'copy' keyword",
+                "Series.fillna with 'method' is deprecated",
+            ]
+        )
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series(self, data_missing):
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_series(data_missing)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class Reduce:
@@ -168,6 +213,18 @@ class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+        warn = FutureWarning if not using_copy_on_write else None
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            super().test_fillna_copy_frame(data_missing)
+
+    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+        warn = FutureWarning if not using_copy_on_write else None
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            super().test_fillna_copy_series(data_missing)
+
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         all_data = all_data[:10]

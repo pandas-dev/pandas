@@ -25,6 +25,11 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         Whether to only run the Python and Cython doctests. If you would like to run
         both doctests/regular tests, just append "--doctest-modules"/"--doctest-cython"
         to extra_args.
+
+    Examples
+    --------
+    >>> pd.test()  # doctest: +SKIP
+    running: pytest...
     """
     pytest = import_optional_dependency("pytest")
     import_optional_dependency("hypothesis")

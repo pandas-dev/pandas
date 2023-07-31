@@ -23,6 +23,7 @@ from numpy.ma import mrecords
 import pytest
 import pytz
 
+from pandas._libs import lib
 from pandas.errors import IntCastingNaNError
 import pandas.util._test_decorators as td
 
@@ -30,7 +31,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     IntervalDtype,
-    PandasDtype,
+    NumpyEADtype,
     PeriodDtype,
 )
 
@@ -188,7 +189,7 @@ class TestDataFrameConstructors:
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
-        obj = frame_or_series(frame_or_series(arr), dtype=PandasDtype(object))
+        obj = frame_or_series(frame_or_series(arr), dtype=NumpyEADtype(object))
         assert obj._mgr.arrays[0].dtype == object
         assert isinstance(obj._mgr.arrays[0].ravel()[0], scalar_type)
 
@@ -2548,8 +2549,13 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        df.iloc[0, 0] = 0
-        df.iloc[0, 1] = 0
+        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuO"):
+            warn = None
+        else:
+            warn = FutureWarning
+        with tm.assert_produces_warning(warn, match="incompatible dtype"):
+            df.iloc[0, 0] = 0
+            df.iloc[0, 1] = 0
         if not copy:
             check_views(True)
 

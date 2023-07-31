@@ -1312,17 +1312,20 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        self.check_series_setitem(elem, ii, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
@@ -1341,11 +1344,13 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
         dti = pi.to_timestamp("S")[:-1]
         elem = element(dti)
-        self.check_series_setitem(elem, pi, False)
+        with tm.assert_produces_warning(FutureWarning):
+            self.check_series_setitem(elem, pi, False)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
@@ -1407,23 +1412,23 @@ def test_block_shape():
 
 def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
-    arr = pd.arrays.PandasArray(np.array([1, 2]))
+    arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
-    # PandasArray, no dtype
+    # NumpyExtensionArray, no dtype
     result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
-        # new_block requires caller to unwrap PandasArray
+        # new_block requires caller to unwrap NumpyExtensionArray
         assert result.is_extension is False
 
-        # PandasArray, PandasDtype
+        # NumpyExtensionArray, NumpyEADtype
         result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
         # new_block no longer taked dtype keyword
-        # ndarray, PandasDtype
+        # ndarray, NumpyEADtype
         result = block_maker(
             arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
         )

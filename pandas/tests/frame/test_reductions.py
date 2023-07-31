@@ -968,11 +968,21 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmin(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmin with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmin(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmin"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmin_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -987,13 +997,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmin(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmin(numeric_only=numeric_only)
             expected = Series([2, 1], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1, 0], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
@@ -1008,11 +1017,21 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmax(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmax with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmax(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmax"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmax_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -1027,13 +1046,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmax(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmax(numeric_only=numeric_only)
             expected = Series([1, 0], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([1, 0, 1], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
@@ -1850,13 +1868,14 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.randn(4, 4))
+    df = DataFrame(np.random.randn(4, 4), dtype=dtype)
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
-    np_arr = df.to_numpy()
+    np_arr = df.to_numpy(dtype=np.float64)
     if method in {"skew", "kurt"}:
         comp_mod = pytest.importorskip("scipy.stats")
         if method == "kurt":
