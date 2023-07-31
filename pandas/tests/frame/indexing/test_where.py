@@ -742,7 +742,10 @@ class TestDataFrameIndexingWhere:
         tm.assert_equal(res, other.astype(np.int64))
 
         # unlike where, Block.putmask does not downcast
-        obj.mask(obj.notna(), other, inplace=True)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            obj.mask(obj.notna(), other, inplace=True)
         tm.assert_equal(obj, other.astype(object))
 
     @pytest.mark.parametrize(
@@ -782,7 +785,10 @@ class TestDataFrameIndexingWhere:
         tm.assert_frame_equal(res5, expected)
 
         # unlike where, Block.putmask does not downcast
-        df.mask(~mask2, 4, inplace=True)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.mask(~mask2, 4, inplace=True)
         tm.assert_frame_equal(df, expected.astype(object))
 
 
@@ -937,7 +943,10 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
         result = obj.mask(mask, tdnat)
         tm.assert_equal(result, expected)
 
-        obj.mask(mask, tdnat, inplace=True)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            obj.mask(mask, tdnat, inplace=True)
         tm.assert_equal(obj, expected)
 
 
@@ -1013,7 +1022,10 @@ def test_where_dt64_2d():
 
     # setting all of one column, none of the other
     expected = DataFrame({"A": other[:, 0], "B": dta[:, 1]})
-    _check_where_equivalences(df, mask, other, expected)
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        _check_where_equivalences(df, mask, other, expected)
 
     # setting part of one column, none of the other
     mask[1, 0] = True
@@ -1023,7 +1035,10 @@ def test_where_dt64_2d():
             "B": dta[:, 1],
         }
     )
-    _check_where_equivalences(df, mask, other, expected)
+    with tm.assert_produces_warning(
+        FutureWarning, match="Setting an item of incompatible dtype"
+    ):
+        _check_where_equivalences(df, mask, other, expected)
 
     # setting nothing in either column
     mask[:] = True

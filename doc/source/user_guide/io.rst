@@ -849,8 +849,8 @@ column names:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-    df
+   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
+   df
 
 By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
@@ -1103,10 +1103,10 @@ By default, numbers with a thousands separator will be parsed as strings:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", sep="|")
-    df
+   df = pd.read_csv("tmp.csv", sep="|")
+   df
 
-    df.level.dtype
+   df.level.dtype
 
 The ``thousands`` keyword allows integers to be parsed correctly:
 
@@ -1212,81 +1212,55 @@ too many fields will raise an error by default:
 
 You can elect to skip bad lines:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
-    Skipping line 3: expected 3 fields, saw 4
+    data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
+    pd.read_csv(StringIO(data), on_bad_lines="skip")
 
-    Out[29]:
-       a  b   c
-    0  1  2   3
-    1  8  9  10
+.. versionadded:: 1.4.0
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [29]: external_list = []
+    external_list = []
+    def bad_lines_func(line):
+        external_list.append(line)
+        return line[-3:]
+    pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
+    external_list
 
-    In [30]: def bad_lines_func(line):
-        ...:     external_list.append(line)
-        ...:     return line[-3:]
+.. note::
 
-    In [31]: pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
-    Out[31]:
-       a  b   c
-    0  1  2   3
-    1  5  6   7
-    2  8  9  10
+   The callable function will handle only a line with too many fields.
+   Bad lines caused by other errors will be silently skipped.
 
-    In [32]: external_list
-    Out[32]: [4, 5, 6, 7]
+   .. ipython:: python
 
-    .. versionadded:: 1.4.0
+      bad_lines_func = lambda line: print(line)
 
-Note that the callable function will handle only a line with too many fields.
-Bad lines caused by other errors will be silently skipped.
+      data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+      data
+      pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
 
-For example:
-
-.. code-block:: ipython
-
-   def bad_lines_func(line):
-      print(line)
-
-   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
-   data
-   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
-
-The line was not processed in this case, as a "bad line" here is caused by an escape character.
+   The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [33]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
-
-    Out[33]:
-       a  b   c
-    0  1  2   3
-    1  4  5   6
-    2  8  9  10
+   pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
 In case you want to keep all data including the lines with too many fields, you can
 specify a sufficient number of ``names``. This ensures that lines with not enough
 fields are filled with ``NaN``.
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [34]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
-
-   Out[34]:
-       a  b   c  d
-    0  1  2   3  NaN
-    1  4  5   6  7
-    2  8  9  10  NaN
+   pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
 .. _io.dialect:
 
@@ -1712,9 +1686,21 @@ at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
 for those not included in the main ``fsspec``
 distribution.
 
-You can also pass parameters directly to the backend driver. For example,
-if you do *not* have S3 credentials, you can still access public data by
-specifying an anonymous connection, such as
+You can also pass parameters directly to the backend driver. Since ``fsspec`` does not
+utilize the ``AWS_S3_HOST`` environment variable, we can directly define a
+dictionary containing the endpoint_url and pass the object into the storage
+option parameter:
+
+.. code-block:: python
+
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
+
+More sample configurations and documentation can be found at `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/index.html?highlight=host#s3-compatible-storage>`__.
+
+If you do *not* have S3 credentials, you can still access public
+data by specifying an anonymous connection, such as
 
 .. versionadded:: 1.2.0
 
@@ -4289,12 +4275,16 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    A ``fixed`` format will raise a ``TypeError`` if you try to retrieve using a ``where``:
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
-       >>> pd.read_hdf("test_fixed.h5", "df", where="index>5")
-       TypeError: cannot pass a where specification when reading a fixed format.
-                  this store must be selected in its entirety
+      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+      pd.read_hdf("test_fixed.h5", "df", where="index>5")
+
+   .. ipython:: python
+      :suppress:
+
+      os.remove("test_fixed.h5")
 
 
 .. _io.hdf5-table:
@@ -4385,16 +4375,15 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
-    .. code-block:: ipython
+    .. ipython:: python
+       :okexcept:
 
-       In [8]: store.foo.bar.bah
-       AttributeError: 'HDFStore' object has no attribute 'foo'
+       store.foo.bar.bah
+
+    .. ipython:: python
 
        # you can directly access the actual PyTables node but using the root node
-       In [9]: store.root.foo.bar.bah
-       Out[9]:
-       /foo/bar/bah (Group) ''
-         children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
+       store.root.foo.bar.bah
 
     Instead, use explicit string based keys:
 
@@ -4454,19 +4443,19 @@ storing/selecting from homogeneous index ``DataFrames``.
 
 .. ipython:: python
 
-        index = pd.MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["foo", "bar"],
-        )
-        df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
-        df_mi
+   index = pd.MultiIndex(
+      levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+      codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+      names=["foo", "bar"],
+   )
+   df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+   df_mi
 
-        store.append("df_mi", df_mi)
-        store.select("df_mi")
+   store.append("df_mi", df_mi)
+   store.select("df_mi")
 
-        # the levels are automatically included as data columns
-        store.select("df_mi", "foo=bar")
+   # the levels are automatically included as data columns
+   store.select("df_mi", "foo=bar")
 
 .. note::
    The ``index`` keyword is reserved and cannot be use as a level name.
@@ -4547,7 +4536,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
 
    instead of this
 
-   .. code-block:: ipython
+   .. code-block:: python
 
       string = "HolyMoly'"
       store.select('df', f'index == {string}')
