@@ -356,7 +356,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         # GH52096
         data = SparseArray([1, np.nan])
         result = data.map(func, na_action=na_action)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):

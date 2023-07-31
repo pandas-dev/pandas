@@ -108,7 +108,7 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
