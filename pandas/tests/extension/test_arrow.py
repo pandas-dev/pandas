@@ -65,6 +65,18 @@ from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.arrays.arrow.extension_types import ArrowPeriodType
 
 
+def _require_timezone_database(request):
+    if is_platform_windows() and is_ci_environment():
+        mark = pytest.mark.xfail(
+            raises=pa.ArrowInvalid,
+            reason=(
+                "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
+                "on CI to path to the tzdata for pyarrow."
+            ),
+        )
+        request.node.add_marker(mark)
+
+
 @pytest.fixture(params=tm.ALL_PYARROW_DTYPES, ids=str)
 def dtype(request):
     return ArrowDtype(pyarrow_dtype=request.param)
@@ -314,16 +326,8 @@ class TestConstructors(base.BaseConstructorsTests):
                 )
             )
         elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
-            if is_platform_windows() and is_ci_environment():
-                request.node.add_marker(
-                    pytest.mark.xfail(
-                        raises=pa.ArrowInvalid,
-                        reason=(
-                            "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                            "on CI to path to the tzdata for pyarrow."
-                        ),
-                    )
-                )
+            _require_timezone_database(request)
+
         pa_array = data._pa_array.cast(pa.string())
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
@@ -2552,16 +2556,8 @@ def test_dt_isocalendar():
 )
 def test_dt_day_month_name(method, exp, request):
     # GH 52388
-    if is_platform_windows() and is_ci_environment():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowInvalid,
-                reason=(
-                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                    "on CI to path to the tzdata for pyarrow."
-                ),
-            )
-        )
+    _require_timezone_database(request)
+
     ser = pd.Series([datetime(2023, 1, 1), None], dtype=ArrowDtype(pa.timestamp("ms")))
     result = getattr(ser.dt, method)()
     expected = pd.Series([exp, None], dtype=ArrowDtype(pa.string()))
@@ -2569,16 +2565,8 @@ def test_dt_day_month_name(method, exp, request):
 
 
 def test_dt_strftime(request):
-    if is_platform_windows() and is_ci_environment():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowInvalid,
-                reason=(
-                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                    "on CI to path to the tzdata for pyarrow."
-                ),
-            )
-        )
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
@@ -2689,16 +2677,8 @@ def test_dt_tz_localize_none():
 
 @pytest.mark.parametrize("unit", ["us", "ns"])
 def test_dt_tz_localize(unit, request):
-    if is_platform_windows() and is_ci_environment():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowInvalid,
-                reason=(
-                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                    "on CI to path to the tzdata for pyarrow."
-                ),
-            )
-        )
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp(unit)),
@@ -2720,16 +2700,8 @@ def test_dt_tz_localize(unit, request):
     ],
 )
 def test_dt_tz_localize_nonexistent(nonexistent, exp_date, request):
-    if is_platform_windows() and is_ci_environment():
-        request.node.add_marker(
-            pytest.mark.xfail(
-                raises=pa.ArrowInvalid,
-                reason=(
-                    "TODO: Set ARROW_TIMEZONE_DATABASE environment variable "
-                    "on CI to path to the tzdata for pyarrow."
-                ),
-            )
-        )
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=3, day=12, hour=2, minute=30), None],
         dtype=ArrowDtype(pa.timestamp("ns")),
