@@ -218,7 +218,7 @@ class PivotTable:
 
     def time_pivot_table_categorical(self):
         self.df2.pivot_table(
-            index="col1", values="col3", columns="col2", aggfunc=np.sum, fill_value=0
+            index="col1", values="col3", columns="col2", aggfunc="sum", fill_value=0
         )
 
     def time_pivot_table_categorical_observed(self):
@@ -226,7 +226,7 @@ class PivotTable:
             index="col1",
             values="col3",
             columns="col2",
-            aggfunc=np.sum,
+            aggfunc="sum",
             fill_value=0,
             observed=True,
         )

@@ -63,26 +63,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.errors.PerformanceWarning \
-        pandas.errors.PyperclipException \
-        pandas.errors.PyperclipWindowsException \
-        pandas.errors.UnsortedIndexError \
-        pandas.errors.UnsupportedFunctionCall \
         pandas.NaT \
-        pandas.io.stata.StataReader.data_label \
-        pandas.io.stata.StataReader.value_labels \
-        pandas.io.stata.StataReader.variable_labels \
         pandas.io.stata.StataWriter.write_file \
         pandas.plotting.deregister_matplotlib_converters \
         pandas.plotting.register_matplotlib_converters \
-        pandas.api.extensions.ExtensionDtype \
         pandas.api.extensions.ExtensionArray \
-        pandas.arrays.NumpyExtensionArray \
-        pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
-        pandas.api.extensions.ExtensionArray._hash_pandas_object \
-        pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.interpolate \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi
