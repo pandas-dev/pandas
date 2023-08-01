@@ -14,3 +14,71 @@
 *.xls binary
 *.xlsx binary
 pandas/_version.py export-subst
+
+
+*.bz2 export-ignore
+*.csv export-ignore
+*.data export-ignore
+*.dta export-ignore
+*.feather export-ignore
+*.tar export-ignore
+*.gz export-ignore
+*.h5 export-ignore
+*.html export-ignore
+*.json export-ignore
+*.jsonl export-ignore
+*.kml export-ignore
+*.msgpack export-ignore
+*.pdf export-ignore
+*.parquet export-ignore
+*.pickle export-ignore
+*.pkl export-ignore
+*.png export-ignore
+*.pptx export-ignore
+*.ods export-ignore
+*.odt export-ignore
+*.orc export-ignore
+*.sas7bdat export-ignore
+*.sav export-ignore
+*.so export-ignore
+*.txt export-ignore
+*.xls export-ignore
+*.xlsb export-ignore
+*.xlsm export-ignore
+*.xlsx export-ignore
+*.xpt export-ignore
+*.cpt export-ignore
+*.xml export-ignore
+*.xsl export-ignore
+*.xz export-ignore
+*.zip export-ignore
+*.zst export-ignore
+*~ export-ignore
+.DS_Store export-ignore
+.git* export-ignore
+
+*.py[ocd] export-ignore
+*.pxi export-ignore
+
+# Ignoring stuff from the top level
+.circleci export-ignore
+.github export-ignore
+asv_bench export-ignore
+ci export-ignore
+doc export-ignore
+gitpod export-ignore
+MANIFEST.in export-ignore
+scripts export-ignore
+typings export-ignore
+web export-ignore
+CITATION.cff export-ignore
+codecov.yml export-ignore
+Dockerfile export-ignore
+environment.yml export-ignore
+setup.py export-ignore
+
+
+# GH 39321
+# csv_dir_path fixture checks the existence of the directory
+# exclude the whole directory to avoid running related tests in sdist
+pandas/tests/io/parser/data export-ignore

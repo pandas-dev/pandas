@@ -359,6 +359,13 @@ cdef class _NaT(datetime):
 class NaTType(_NaT):
     """
     (N)ot-(A)-(T)ime, the time equivalent of NaN.
+
+    Examples
+    --------
+    >>> pd.DataFrame([pd.Timestamp("2023"), np.nan], columns=["col_1"])
+            col_1
+    0  2023-01-01
+    1         NaT
     """
 
     def __new__(cls):

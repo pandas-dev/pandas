@@ -251,7 +251,7 @@ class TestTableOrient:
                 "recommender_id": {"row_0": 3},
                 "recommender_name_jp": {"row_0": "浦田"},
                 "recommender_name_en": {"row_0": "Urata"},
-                "name_jp": {"row_0": "博多人形（松尾吉将まつお よしまさ）"},
+                "name_jp": {"row_0": "博多人形(松尾吉将まつお よしまさ)"},
                 "name_en": {"row_0": "Hakata Dolls Matsuo"},
             }
         )
@@ -651,7 +651,7 @@ class TestTableOrient:
     def test_mi_falsey_name(self):
         # GH 16203
         df = DataFrame(
-            np.random.randn(4, 4),
+            np.random.default_rng(2).standard_normal((4, 4)),
             index=pd.MultiIndex.from_product([("A", "B"), ("a", "b")]),
         )
         result = [x["name"] for x in build_table_schema(df)["fields"]]
