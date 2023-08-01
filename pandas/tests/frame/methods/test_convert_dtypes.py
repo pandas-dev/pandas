@@ -178,7 +178,7 @@ class TestConvertDtypes:
             "duration[ms][pyarrow]"
         )
 
-        df = pd.concat([timestamp_series, duration_series], axis=1)
-        converted = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = pd.concat([timestamp_series, duration_series], axis=1)
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
 
-        tm.assert_frame_equal(df, converted)
+        tm.assert_frame_equal(expected, result)
