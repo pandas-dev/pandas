@@ -876,7 +876,7 @@ class SetitemCastingEquivalents:
                 dtype="interval[float64]",
             ),
             1,
-            None,
+            FutureWarning,
             id="interval_int_na_value",
         ),
         pytest.param(
@@ -1094,8 +1094,8 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
         return 0
 
     @pytest.fixture
-    def warn(self):
-        return None
+    def warn(self, is_inplace):
+        return None if is_inplace else FutureWarning
 
 
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
@@ -1165,7 +1165,10 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         obj = Series(idx)
         val = Interval(0.5, 1.5)
 
-        obj[0] = val
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
 
     @pytest.fixture
@@ -1189,7 +1192,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     @pytest.fixture
     def warn(self):
-        return None
+        return FutureWarning
 
 
 class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1439,8 +1442,12 @@ class TestCoercionFloat32(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(Timestamp("2012-01-01"), "datetime64[ns]"), (1, object), ("x", object)],
+    "val,exp_dtype,warn",
+    [
+        (Timestamp("2012-01-01"), "datetime64[ns]", None),
+        (1, object, FutureWarning),
+        ("x", object, FutureWarning),
+    ],
 )
 class TestCoercionDatetime64(CoercionTest):
     # previously test_setitem_series_datetime64 in tests.indexing.test_coercion
@@ -1455,13 +1462,13 @@ class TestCoercionDatetime64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
+    "val,exp_dtype,warn",
     [
-        (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+        (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]", None),
         # pre-2.0, a mis-matched tz would end up casting to object
-        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]"),
-        (Timestamp("2012-01-01"), object),
-        (1, object),
+        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]", None),
+        (Timestamp("2012-01-01"), object, FutureWarning),
+        (1, object, FutureWarning),
     ],
 )
 class TestCoercionDatetime64TZ(CoercionTest):
@@ -1477,8 +1484,12 @@ class TestCoercionDatetime64TZ(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(Timedelta("12 day"), "timedelta64[ns]"), (1, object), ("x", object)],
+    "val,exp_dtype,warn",
+    [
+        (Timedelta("12 day"), "timedelta64[ns]", None),
+        (1, object, FutureWarning),
+        ("x", object, FutureWarning),
+    ],
 )
 class TestCoercionTimedelta64(CoercionTest):
     # previously test_setitem_series_timedelta64 in tests.indexing.test_coercion
@@ -1508,7 +1519,7 @@ class TestPeriodIntervalCoercion(CoercionTest):
 
     @pytest.fixture
     def warn(self):
-        return None
+        return FutureWarning
 
 
 def test_20643():

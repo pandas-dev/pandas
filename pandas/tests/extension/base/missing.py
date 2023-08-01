@@ -95,7 +95,7 @@ class BaseMissingTests(BaseExtensionTests):
         assert result is not data
         self.assert_extension_array_equal(result, data)
 
-        result = data.fillna(method="backfill")
+        result = data.pad_or_backfill(method="backfill")
         assert result is not data
         self.assert_extension_array_equal(result, data)
 

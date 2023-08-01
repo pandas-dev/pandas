@@ -105,7 +105,7 @@ class TestMissing(base.BaseMissingTests):
             super().test_fillna_frame(data_missing)
 
     def test_fillna_limit_pad(self, data_missing):
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
@@ -123,6 +123,13 @@ class TestMissing(base.BaseMissingTests):
         ):
             super().test_fillna_limit_backfill(data_missing)
 
+    def test_fillna_no_op_returns_copy(self, data):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
@@ -131,7 +138,7 @@ class TestMissing(base.BaseMissingTests):
             super().test_fillna_series(data_missing)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
