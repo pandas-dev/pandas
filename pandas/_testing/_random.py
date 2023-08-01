@@ -17,7 +17,8 @@ def rands_array(
     Generate an array of byte strings.
     """
     retval = (
-        np.random.choice(RANDS_CHARS, size=nchars * np.prod(size), replace=replace)
+        np.random.default_rng(2)
+        .choice(RANDS_CHARS, size=nchars * np.prod(size), replace=replace)
         .view((np.str_, nchars))
         .reshape(size)
     )
@@ -31,4 +32,4 @@ def rands(nchars) -> str:
     See `rands_array` if you want to create an array of random strings.
 
     """
-    return "".join(np.random.choice(RANDS_CHARS, nchars))
+    return "".join(np.random.default_rng(2).choice(RANDS_CHARS, nchars))

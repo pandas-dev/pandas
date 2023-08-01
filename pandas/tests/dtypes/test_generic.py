@@ -19,7 +19,7 @@ class TestABCClasses:
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
-    sparse_array = pd.arrays.SparseArray(np.random.randn(10))
+    sparse_array = pd.arrays.SparseArray(np.random.default_rng(2).standard_normal(10))
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
@@ -33,7 +33,7 @@ class TestABCClasses:
             "ABCPeriodArray",
             pd.arrays.PeriodArray([2000, 2001, 2002], dtype="period[D]"),
         ),
-        ("ABCPandasArray", pd.arrays.PandasArray(np.array([0, 1, 2]))),
+        ("ABCNumpyExtensionArray", pd.arrays.NumpyExtensionArray(np.array([0, 1, 2]))),
         ("ABCPeriodIndex", period_index),
         ("ABCCategoricalIndex", categorical_df.index),
         ("ABCSeries", pd.Series([1, 2, 3])),

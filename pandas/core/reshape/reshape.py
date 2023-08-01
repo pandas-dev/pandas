@@ -467,8 +467,7 @@ def _unstack_multiple(
         new_names = [data.columns.name] + cnames
 
         new_codes = [unstcols.codes[0]]
-        for rec in recons_codes:
-            new_codes.append(rec.take(unstcols.codes[-1]))
+        new_codes.extend(rec.take(unstcols.codes[-1]) for rec in recons_codes)
 
     new_columns = MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
