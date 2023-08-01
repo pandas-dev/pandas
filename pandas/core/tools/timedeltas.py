@@ -179,11 +179,11 @@ def to_timedelta(
     if unit in DEPR_ABBREVS:
         warnings.warn(
             f"Unit '{unit}' is deprecated and will be removed in a future version. "
-            f", please use '{DEPR_ABBREVS.get(unit)}' instead of '{unit}'.",
+            f"Please use '{DEPR_ABBREVS.get(unit)}' instead of '{unit}'.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-        unit = DEPR_ABBREVS.get(unit)  # type: ignore[assignment]
+        unit = DEPR_ABBREVS.get(unit)
 
     if unit is not None:
         unit = parse_timedelta_unit(unit)

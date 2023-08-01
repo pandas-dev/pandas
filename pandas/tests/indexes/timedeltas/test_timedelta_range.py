@@ -49,9 +49,13 @@ class TestTimedeltas:
             ("t", "minute"),
             ("L", "millisecond"),
             ("l", "millisecond"),
+            ("U", "microsecond"),
+            ("u", "microsecond"),
+            ("N", "nanosecond"),
+            ("n", "nanosecond"),
         ],
     )
-    def test_timedelta_units_t_l_deprecated(self, depr_unit, unit):
+    def test_timedelta_units_t_l_u_n_deprecated(self, depr_unit, unit):
         depr_msg = f"Unit '{depr_unit}' is deprecated."
 
         expected = to_timedelta(np.arange(5), unit=unit)

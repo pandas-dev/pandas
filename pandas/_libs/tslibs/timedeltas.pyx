@@ -1450,11 +1450,11 @@ cdef class _Timedelta(timedelta):
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.resolution_string
-        'N'
+        'ns'
 
         >>> td = pd.Timedelta('1 days 2 min 3 us')
         >>> td.resolution_string
-        'U'
+        'us'
 
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.resolution_string
@@ -1462,7 +1462,7 @@ cdef class _Timedelta(timedelta):
 
         >>> td = pd.Timedelta(36, unit='us')
         >>> td.resolution_string
-        'U'
+        'us'
         """
         self._ensure_components()
         if self._ns:

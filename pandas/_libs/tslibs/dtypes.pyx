@@ -291,12 +291,12 @@ class Resolution(Enum):
         try:
             if freq in DEPR_ABBREVS:
                 warnings.warn(
-                    f"Code freq={freq} is deprecated "
-                    "and will be removed in a future version.",
+                    f"Code freq={freq} is deprecated and will be removed in a future "
+                    f"version. Please use {DEPR_ABBREVS.get(freq)} instead of {freq}.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                freq = freq.replace("T", "min").replace("L", "ms")
+                freq = DEPR_ABBREVS[freq]
             attr_name = _abbrev_to_attrnames[freq]
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
@@ -307,14 +307,15 @@ class Resolution(Enum):
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
-            if split_freq[0] in {"T", "L"}:
+            if split_freq[0] in DEPR_ABBREVS:
                 warnings.warn(
-                    f"Code freq={split_freq[0]} is deprecated "
-                    "and will be removed in a future version.",
+                    f"Code freq={split_freq[0]} is deprecated and will be removed in "
+                    f"a future version. Please use {DEPR_ABBREVS.get(split_freq[0])} "
+                    f"instead of {split_freq[0]}.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-                split_freq[0] = split_freq[0].replace("T", "min").replace("L", "ms")
+                split_freq[0] = DEPR_ABBREVS[split_freq[0]]
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
