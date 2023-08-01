@@ -27,10 +27,11 @@ from pandas.tests.extension import base
 
 
 def make_data(fill_value):
+    rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = rng.uniform(size=100)
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = rng.integers(1, 100, size=100, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -317,9 +318,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = ser.where(cond, other)
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         tm.assert_series_equal(result, expected)
-
-    def test_combine_first(self, data, request):
-        super().test_combine_first(data)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):

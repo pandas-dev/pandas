@@ -21,7 +21,7 @@ import pandas._testing as tm
 
 
 def test_getitem(step):
-    frame = DataFrame(np.random.randn(5, 5))
+    frame = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
     r = frame.rolling(window=5, step=step)
     tm.assert_index_equal(r._selected_obj.columns, frame[::step].columns)
 
