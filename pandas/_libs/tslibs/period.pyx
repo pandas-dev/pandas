@@ -1,4 +1,7 @@
 import re
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport numpy as cnp
 from cpython.object cimport (
@@ -37,6 +40,8 @@ from libc.time cimport (
     strftime,
     tm,
 )
+
+from pandas._libs.tslibs.dtypes cimport c_DEPR_ABBREVS
 
 # import datetime C API
 import_datetime()
@@ -1935,6 +1940,14 @@ cdef class _Period(PeriodMixin):
         >>> period.asfreq('H')
         Period('2023-01-01 23:00', 'H')
         """
+        if freq in c_DEPR_ABBREVS:
+            warnings.warn(
+                f"Code freq={freq} is deprecated and will be removed in a future "
+                f"version. Please use {c_DEPR_ABBREVS.get(freq)} instead of {freq}.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            freq = c_DEPR_ABBREVS[freq]
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
         base1 = self._dtype._dtype_code

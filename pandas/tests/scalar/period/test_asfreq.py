@@ -115,6 +115,10 @@ class TestFreqConversion:
         assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "S") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
+        msg = "Code freq=T is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ival_A.asfreq("T", "S") == ival_A_to_T_start
+            assert ival_A.asfreq("T", "E") == ival_A_to_T_end
         assert ival_A.asfreq("S", "S") == ival_A_to_S_start
         assert ival_A.asfreq("S", "E") == ival_A_to_S_end
 
