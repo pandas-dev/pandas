@@ -1,7 +1,10 @@
 """ feather-format compat """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -34,7 +37,7 @@ def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
     storage_options: StorageOptions | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Write a DataFrame to the binary Feather format.
@@ -70,7 +73,7 @@ def read_feather(
     use_threads: bool = True,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-):
+) -> DataFrame:
     """
     Load a feather-format object from the file path.
 
@@ -103,6 +106,10 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+
+    Examples
+    --------
+    >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather

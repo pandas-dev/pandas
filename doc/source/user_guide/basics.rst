@@ -322,24 +322,21 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
 
 .. warning::
 
-   You might be tempted to do the following:
+   Asserting the truthiness of a pandas object will raise an error, as the testing of the emptiness
+   or values is ambiguous.
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-      >>> if df:
-      ...     pass
+      if df:
+          print(True)
 
-   Or
+   .. ipython:: python
+      :okexcept:
 
-   .. code-block:: python
+      df and df2
 
-      >>> df and df2
-
-   These will both raise errors, as you are trying to compare multiple values.::
-
-       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
-
-See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+   See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
@@ -404,13 +401,12 @@ objects of the same length:
 Trying to compare ``Index`` or ``Series`` objects of different lengths will
 raise a ValueError:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
-    ValueError: Series lengths must match to compare
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
 
-    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
-    ValueError: Series lengths must match to compare
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
 
 Note that this is different from the NumPy behavior where a comparison can
 be broadcast:
@@ -910,18 +906,15 @@ maximum value for each column occurred:
    tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
-method. For instance, consider the following function you would like to apply:
+method.
 
-.. code-block:: python
+.. ipython:: python
 
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
 
-You may then apply this function as follows:
-
-.. code-block:: python
-
-   df.apply(subtract_and_divide, args=(5,), divide=3)
+   df_udf = pd.DataFrame(np.ones((2, 2)))
+   df_udf.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
