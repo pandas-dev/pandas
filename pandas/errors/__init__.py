@@ -46,6 +46,26 @@ class NullFrequencyError(ValueError):
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"jim": [0, 0, 1, 1],
+    ...                    "joe": ["x", "x", "z", "y"],
+    ...                    "jolie": [1, 2, 3, 4]})
+    >>> df = df.set_index(["jim", "joe"])
+    >>> df
+              jolie
+    jim  joe
+    0    x    1
+         x    2
+    1    z    3
+         y    4
+    >>> df.loc[(1, 'z')]  # doctest: +SKIP
+    # PerformanceWarning: indexing past lexsort depth may impact performance.
+    df.loc[(1, 'z')]
+              jolie
+    jim  joe
+    1    z        3
     """
 
 
@@ -54,6 +74,17 @@ class UnsupportedFunctionCall(ValueError):
     Exception raised when attempting to call a unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": [0, 0, 1, 1],
+    ...                    "B": ["x", "x", "z", "y"],
+    ...                    "C": [1, 2, 3, 4]}
+    ...                   )
+    >>> np.cumsum(df.groupby(["A"]))
+    Traceback (most recent call last):
+    UnsupportedFunctionCall: numpy operations are not valid with groupby.
+    Use .groupby(...).cumsum() instead
     """
 
 
@@ -62,6 +93,25 @@ class UnsortedIndexError(KeyError):
     Error raised when slicing a MultiIndex which has not been lexsorted.
 
     Subclass of `KeyError`.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"cat": [0, 0, 1, 1],
+    ...                    "color": ["white", "white", "brown", "black"],
+    ...                    "lives": [4, 4, 3, 7]},
+    ...                   )
+    >>> df = df.set_index(["cat", "color"])
+    >>> df
+                lives
+    cat  color
+    0    white    4
+         white    4
+    1    brown    3
+         black    7
+    >>> df.loc[(0, "black"):(1, "white")]
+    Traceback (most recent call last):
+    UnsortedIndexError: 'Key length (2) was greater
+    than MultiIndex lexsort depth (1)'
     """
 
 
@@ -686,6 +736,10 @@ class CategoricalConversionWarning(Warning):
 class LossySetitemError(Exception):
     """
     Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 
@@ -698,6 +752,10 @@ class NoBufferPresent(Exception):
 class InvalidComparison(Exception):
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 

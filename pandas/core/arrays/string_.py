@@ -362,7 +362,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
         values[self.isna()] = None
         return pa.array(values, type=type, from_pandas=True)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
             # extract_array doesn't extract NumpyExtensionArray subclasses

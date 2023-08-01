@@ -30,6 +30,8 @@ from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 from pandas.tests.groupby import get_groupby_method_args
 
+pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
+
 
 def test_repr():
     # GH18203
@@ -1400,7 +1402,7 @@ def test_groupby_dtype_inference_empty():
 
 
 def test_groupby_unit64_float_conversion():
-    #  GH: 30859 groupby converts unit64 to floats sometimes
+    # GH: 30859 groupby converts unit64 to floats sometimes
     df = DataFrame({"first": [1], "second": [1], "value": [16148277970000000000]})
     result = df.groupby(["first", "second"])["value"].max()
     expected = Series(
@@ -3122,3 +3124,12 @@ def test_groupby_with_Time_Grouper():
     df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
 
     tm.assert_frame_equal(df, expected_output)
+
+
+def test_groupby_series_with_datetimeindex_month_name():
+    # GH 48509
+    s = Series([0, 1, 0], index=date_range("2022-01-01", periods=3), name="jan")
+    result = s.groupby(s).count()
+    expected = Series([2, 1], name="jan")
+    expected.index.name = "jan"
+    tm.assert_series_equal(result, expected)

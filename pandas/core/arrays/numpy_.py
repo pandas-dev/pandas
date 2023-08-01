@@ -73,6 +73,13 @@ class NumpyExtensionArray(  # type: ignore[misc]
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
+    <NumpyExtensionArray>
+    [0, 1, 2, 3]
+    Length: 4, dtype: int64
     """
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
@@ -237,7 +244,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         self,
         *,
         method: FillnaOptions,
-        limit: int | None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
