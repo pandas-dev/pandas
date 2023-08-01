@@ -122,7 +122,10 @@ class TestSeriesToCSV:
             # GH 21241, 21118
             (Series(["abc", "def", "ghi"], name="X"), "ascii"),
             (Series(["123", "你好", "世界"], name="中文"), "gb2312"),
-            (Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"), "cp737"),
+            (
+                Series(["123", "Γειά σου", "Κόσμε"], name="Ελληνικά"),  # noqa: RUF001
+                "cp737",
+            ),
         ],
     )
     def test_to_csv_compression(self, s, encoding, compression):

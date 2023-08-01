@@ -286,7 +286,7 @@ class TestStata:
                 ["Cat", "Bogota", "Bogotá", 1, 1.0, "option b Ünicode", 1.0],
                 ["Dog", "Boston", "Uzunköprü", np.nan, np.nan, np.nan, np.nan],
                 ["Plane", "Rome", "Tromsø", 0, 0.0, "option a", 0.0],
-                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],
+                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],  # noqa: RUF001
                 ["", "", "", 0, 0.3332999, "option a", 1 / 3.0],
             ],
             columns=[

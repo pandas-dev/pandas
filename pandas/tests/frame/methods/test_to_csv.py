@@ -957,7 +957,10 @@ class TestDataFrameToCSV:
             (DataFrame([["abc", "def", "ghi"]], columns=["X", "Y", "Z"]), "ascii"),
             (DataFrame(5 * [[123, "你好", "世界"]], columns=["X", "Y", "Z"]), "gb2312"),
             (
-                DataFrame(5 * [[123, "Γειά σου", "Κόσμε"]], columns=["X", "Y", "Z"]),
+                DataFrame(
+                    5 * [[123, "Γειά σου", "Κόσμε"]],  # noqa: RUF001
+                    columns=["X", "Y", "Z"],
+                ),
                 "cp737",
             ),
         ],

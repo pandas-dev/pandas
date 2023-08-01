@@ -441,7 +441,7 @@ def read_sql_query(
         rows to include in each chunk.
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
 
         .. versionadded:: 1.3.0
     dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
@@ -597,7 +597,7 @@ def read_sql(
         .. versionadded:: 2.0
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
-        {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}.
+        {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
         The argument is ignored if a table is passed instead of a query.
 
         .. versionadded:: 2.0.0
@@ -1759,7 +1759,7 @@ class SQLDatabase(PandasSQL):
             of rows to include in each chunk.
         dtype : Type name or dict of columns
             Data type for data or columns. E.g. np.float64 or
-            {‘a’: np.float64, ‘b’: np.int32, ‘c’: ‘Int64’}
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
 
             .. versionadded:: 1.3.0
 
