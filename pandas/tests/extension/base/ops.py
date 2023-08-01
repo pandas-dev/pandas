@@ -29,6 +29,12 @@ class BaseOpsUtil(BaseExtensionTests):
 
         self._check_op(ser, op, other, op_name, exc)
 
+    # Subclasses are not expected to need to override _check_op or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
@@ -38,11 +44,7 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
-    # Subclasses are not expected to need to override _check_op. Ideally any
-    #  relevant overriding can be done in _cast_pointwise_result, get_op_from_name,
-    #  and the specification of `exc`. If you find a use case that still requires
-    #  overriding _check_op, please let us know at
-    #  github.com/pandas-dev/pandas/issues
+    # see comment on _combine
     @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
