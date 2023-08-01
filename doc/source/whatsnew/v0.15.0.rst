@@ -185,7 +185,7 @@ Constructing a ``TimedeltaIndex`` with a regular range
 .. ipython:: python
 
    pd.timedelta_range('1 days', periods=5, freq='D')
-   pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+   pd.timedelta_range(start='1 days', end='2 days', freq='30min')
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 

@@ -188,7 +188,7 @@ class Grouper:
     2000-10-02 00:12:00    18
     2000-10-02 00:19:00    21
     2000-10-02 00:26:00    24
-    Freq: 7T, dtype: int64
+    Freq: 7min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min')).sum()
     2000-10-01 23:14:00     0
@@ -196,7 +196,7 @@ class Grouper:
     2000-10-01 23:48:00    21
     2000-10-02 00:05:00    54
     2000-10-02 00:22:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0
@@ -204,7 +204,7 @@ class Grouper:
     2000-10-01 23:52:00    27
     2000-10-02 00:09:00    39
     2000-10-02 00:26:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
     2000-01-02      0
@@ -221,14 +221,14 @@ class Grouper:
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
@@ -239,7 +239,7 @@ class Grouper:
     2000-10-01 23:50:00    36
     2000-10-02 00:07:00    39
     2000-10-02 00:24:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
     """
 
     sort: bool

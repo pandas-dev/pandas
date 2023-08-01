@@ -9033,7 +9033,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:06:00    6
         2000-01-01 00:07:00    7
         2000-01-01 00:08:00    8
-        Freq: T, dtype: int64
+        Freq: min, dtype: int64
 
         Downsample the series into 3 minute bins and sum the values
         of the timestamps falling into a bin.
@@ -9042,7 +9042,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:00:00     3
         2000-01-01 00:03:00    12
         2000-01-01 00:06:00    21
-        Freq: 3T, dtype: int64
+        Freq: 3min, dtype: int64
 
         Downsample the series into 3 minute bins as above, but label each
         bin using the right edge instead of the left. Please note that the
@@ -9058,7 +9058,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:03:00     3
         2000-01-01 00:06:00    12
         2000-01-01 00:09:00    21
-        Freq: 3T, dtype: int64
+        Freq: 3min, dtype: int64
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
@@ -9068,7 +9068,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:03:00     6
         2000-01-01 00:06:00    15
         2000-01-01 00:09:00    15
-        Freq: 3T, dtype: int64
+        Freq: 3min, dtype: int64
 
         Upsample the series into 30 second bins.
 
@@ -9111,7 +9111,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:00:00     8
         2000-01-01 00:03:00    17
         2000-01-01 00:06:00    26
-        Freq: 3T, dtype: int64
+        Freq: 3min, dtype: int64
 
         For a Series with a PeriodIndex, the keyword `convention` can be
         used to control whether to use the start or end of `rule`.
@@ -9231,7 +9231,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:12:00    18
         2000-10-02 00:19:00    21
         2000-10-02 00:26:00    24
-        Freq: 7T, dtype: int64
+        Freq: 7min, dtype: int64
 
         >>> ts.resample('17min').sum()
         2000-10-01 23:14:00     0
@@ -9239,7 +9239,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:48:00    21
         2000-10-02 00:05:00    54
         2000-10-02 00:22:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
 
         >>> ts.resample('17min', origin='epoch').sum()
         2000-10-01 23:18:00     0
@@ -9247,7 +9247,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:52:00    27
         2000-10-02 00:09:00    39
         2000-10-02 00:26:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
 
         >>> ts.resample('17W', origin='2000-01-01').sum()
         2000-01-02      0
@@ -9264,14 +9264,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
 
         >>> ts.resample('17min', offset='23h30min').sum()
         2000-10-01 23:30:00     9
         2000-10-01 23:47:00    21
         2000-10-02 00:04:00    54
         2000-10-02 00:21:00    24
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
 
         If you want to take the largest Timestamp as the end of the bins:
 
@@ -9280,7 +9280,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:52:00    18
         2000-10-02 00:09:00    27
         2000-10-02 00:26:00    63
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
 
         In contrast with the `start_day`, you can use `end_day` to take the ceiling
         midnight of the largest Timestamp as the end of the bins and drop the bins
@@ -9291,7 +9291,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-01 23:55:00    15
         2000-10-02 00:12:00    45
         2000-10-02 00:29:00    45
-        Freq: 17T, dtype: int64
+        Freq: 17min, dtype: int64
         """
         from pandas.core.resample import get_resampler
 

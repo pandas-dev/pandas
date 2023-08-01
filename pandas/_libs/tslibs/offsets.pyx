@@ -621,10 +621,10 @@ cdef class BaseOffset:
         '2BH'
 
         >>> pd.offsets.Nano().freqstr
-        'N'
+        'ns'
 
         >>> pd.offsets.Nano(-3).freqstr
-        '-3N'
+        '-3ns'
         """
         try:
             code = self.rule_code
@@ -4257,13 +4257,13 @@ prefix_mapping = {
         CustomBusinessHour,  # 'CBH'
         MonthEnd,  # 'M'
         MonthBegin,  # 'MS'
-        Nano,  # 'N'
+        Nano,  # 'ns'
         SemiMonthEnd,  # 'SM'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
         Second,  # 'S'
         Minute,  # 'min'
-        Micro,  # 'U'
+        Micro,  # 'us'
         QuarterEnd,  # 'Q'
         QuarterBegin,  # 'QS'
         Milli,  # 'ms'

@@ -178,7 +178,7 @@ class ResampleDatetetime64:
     # GH 7754
     def setup(self):
         rng3 = date_range(
-            start="2000-01-01 00:00:00", end="2000-01-01 10:00:00", freq="555000U"
+            start="2000-01-01 00:00:00", end="2000-01-01 10:00:00", freq="555000us"
         )
         self.dt_ts = Series(5, rng3, dtype="datetime64[ns]")
 

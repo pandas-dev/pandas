@@ -2094,7 +2094,7 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='S') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
@@ -2183,7 +2183,7 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='S') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
         ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
