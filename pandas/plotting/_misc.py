@@ -97,14 +97,13 @@ def register() -> None:
         ...                    })
         >>> plot = df.plot.line(x='ts', y='y')
 
-        Unsetting the register manually an error will be raised:
+    Unsetting the register manually an error will be raised:
 
-        >>> pd.set_option("plotting.matplotlib.register_converters",
-        ...               False
-        ...               )  # doctest: +SKIP
-        >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
-        Traceback (most recent call last):
-        TypeError: float() argument must be a string or a real number, not 'Period'
+    >>> pd.set_option("plotting.matplotlib.register_converters",
+    ...               False)  # doctest: +SKIP
+    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    Traceback (most recent call last):
+    TypeError: float() argument must be a string or a real number, not 'Period'
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register()
