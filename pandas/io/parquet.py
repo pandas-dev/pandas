@@ -271,9 +271,10 @@ class PyArrowImpl(BaseImpl):
             if manager == "array":
                 result = result._as_manager("array", copy=False)
 
-            result.attrs = ast.literal_eval(
-                pa_table.schema.metadata[b"df.attrs"].decode("utf-8")
-            )
+            if pa_table.schema.metadata:
+                if b"df.attrs" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"df.attrs"]
+                    result.attrs = ast.literal_eval(df_metadata.decode("utf-8"))
             return result
         finally:
             if handles is not None:
