@@ -103,7 +103,7 @@ I want to visually compare the :math:`NO_2` values measured in London versus Par
 .. ipython:: python
 
     @savefig 04_airqual_scatter.png
-    air_quality.plot.scatter(x="station_london", y="station_paris", alpha=0.5)
+    air_quality.plot.scatter(x="station_london", y="station_paris", s = 20, alpha=0.5)
     plt.show()
 
 .. raw:: html
