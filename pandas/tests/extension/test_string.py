@@ -181,22 +181,7 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    def test_value_counts_with_normalize(self, data):
-        data = data[:10].unique()
-        values = np.array(data[~data.isna()])
-        ser = pd.Series(data, dtype=data.dtype)
-
-        result = ser.value_counts(normalize=True).sort_index()
-
-        expected = pd.Series(
-            [1 / len(values)] * len(values), index=result.index, name="proportion"
-        )
-        if getattr(data.dtype, "storage", "") == "pyarrow":
-            expected = expected.astype("double[pyarrow]")
-        else:
-            expected = expected.astype("Float64")
-
-        self.assert_series_equal(result, expected)
+    pass
 
 
 class TestCasting(base.BaseCastingTests):
@@ -225,20 +210,6 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, uniques = pd.factorize(data_for_grouping, sort=True)
-
-        if as_index:
-            index = pd.Index(uniques, name="B")
-            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
-            self.assert_series_equal(result, expected)
-        else:
-            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
-            self.assert_frame_equal(result, expected)
-
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
