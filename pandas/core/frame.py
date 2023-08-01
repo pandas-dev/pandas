@@ -11084,22 +11084,23 @@ class DataFrame(NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
-            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
-            if isinstance(dtype, ExtensionDtype) and name != "kurt":
-                name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
-                df = df.astype(dtype, copy=False)
-                arr = concat_compat(list(df._iter_column_arrays()))
-                nrows, ncols = df.shape
-                row_index = np.tile(np.arange(nrows), ncols)
-                col_index = np.repeat(np.arange(ncols), nrows)
-                ser = Series(arr, index=col_index)
-                result = ser.groupby(row_index).agg(name, **kwds)
-                result.index = df.index
-                if not skipna and name not in ("any", "all"):
-                    mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
-                    other = -1 if name in ("idxmax", "idxmin") else lib.no_default
-                    result = result.mask(mask, other)
-                return result
+            if df.shape[1] and name != "kurt":
+                dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+                if isinstance(dtype, ExtensionDtype):
+                    name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
+                    df = df.astype(dtype, copy=False)
+                    arr = concat_compat(list(df._iter_column_arrays()))
+                    nrows, ncols = df.shape
+                    row_index = np.tile(np.arange(nrows), ncols)
+                    col_index = np.repeat(np.arange(ncols), nrows)
+                    ser = Series(arr, index=col_index)
+                    result = ser.groupby(row_index).agg(name, **kwds)
+                    result.index = df.index
+                    if not skipna and name not in ("any", "all"):
+                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
+                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
+                        result = result.mask(mask, other)
+                    return result
 
             df = df.T
 

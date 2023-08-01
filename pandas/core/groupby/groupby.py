@@ -105,6 +105,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
+    SparseArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -1905,7 +1906,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                if how in ["any", "all", "std", "sem"]:
+                if how in ["any", "all"] and isinstance(values, SparseArray):
+                    pass
+                elif how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
