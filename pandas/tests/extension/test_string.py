@@ -197,7 +197,7 @@ class TestMethods(base.BaseMethodsTests):
         else:
             expected = expected.astype("Float64")
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -210,7 +210,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         result = getattr(ser, op_name)(other)
         dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
         expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
@@ -235,10 +235,10 @@ class TestGroupBy(base.BaseGroupbyTests):
         if as_index:
             index = pd.Index(uniques, name="B")
             expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         else:
             expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
-            self.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):

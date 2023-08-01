@@ -48,7 +48,7 @@ class BaseMethodsTests(BaseExtensionTests):
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
@@ -69,13 +69,13 @@ class BaseMethodsTests(BaseExtensionTests):
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis="columns")
         expected = pd.Series([0, 1])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_series_count(self, data_missing):
         # GH#26835
@@ -98,7 +98,7 @@ class BaseMethodsTests(BaseExtensionTests):
         result = pd.Series(data_for_sorting).argsort()
         # argsort result gets passed to take, so should be np.intp
         expected = pd.Series(np.array([2, 0, 1], dtype=np.intp))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_argsort_missing_array(self, data_missing_for_sorting):
         result = data_missing_for_sorting.argsort()
@@ -111,7 +111,7 @@ class BaseMethodsTests(BaseExtensionTests):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = pd.Series(data_missing_for_sorting).argsort()
         expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
         # GH 24382
@@ -216,7 +216,7 @@ class BaseMethodsTests(BaseExtensionTests):
             else:
                 expected = ser.iloc[[1, 0, 2]]
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(
@@ -228,7 +228,7 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = ser.iloc[[2, 0, 1]]
         else:
             expected = ser.iloc[[0, 2, 1]]
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending):
@@ -237,7 +237,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.DataFrame(
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
@@ -292,7 +292,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
         result.iloc[0, 0] = filled_val
 
-        self.assert_frame_equal(df, df_orig)
+        tm.assert_frame_equal(df, df_orig)
 
     def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -303,7 +303,7 @@ class BaseMethodsTests(BaseExtensionTests):
         result = ser.fillna(filled_val)
         result.iloc[0] = filled_val
 
-        self.assert_series_equal(ser, ser_orig)
+        tm.assert_series_equal(ser, ser_orig)
 
     def test_fillna_length_mismatch(self, data_missing):
         msg = "Length of 'value' does not match."
@@ -324,7 +324,7 @@ class BaseMethodsTests(BaseExtensionTests):
             [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
             dtype=self._combine_le_expected_dtype,
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 <= x2)
@@ -332,7 +332,7 @@ class BaseMethodsTests(BaseExtensionTests):
             [a <= val for a in list(orig_data1)],
             dtype=self._combine_le_expected_dtype,
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_combine_add(self, data_repeated):
         # GH 20825
@@ -346,14 +346,14 @@ class BaseMethodsTests(BaseExtensionTests):
                     [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
                 )
             )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series(
             orig_data1._from_sequence([a + val for a in list(orig_data1)])
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_combine_first(self, data):
         # https://github.com/pandas-dev/pandas/issues/24147
@@ -361,7 +361,7 @@ class BaseMethodsTests(BaseExtensionTests):
         b = pd.Series(data[2:5], index=[2, 3, 4])
         result = a.combine_first(b)
         expected = pd.Series(data[:5])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("frame", [True, False])
     @pytest.mark.parametrize(
@@ -379,10 +379,10 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = pd.concat(
                 [expected, pd.Series([1] * 5, name="B").shift(periods)], axis=1
             )
-            compare = self.assert_frame_equal
+            compare = tm.assert_frame_equal
         else:
             result = data.shift(periods)
-            compare = self.assert_series_equal
+            compare = tm.assert_series_equal
 
         compare(result, expected)
 
@@ -408,7 +408,7 @@ class BaseMethodsTests(BaseExtensionTests):
         s = pd.Series(data)
         result = s.diff(periods)
         expected = pd.Series(op(data, data.shift(periods)))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         df = pd.DataFrame({"A": data, "B": [1.0] * 5})
         result = df.diff(periods)
@@ -417,7 +417,7 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             b = [0, 0, 0, np.nan, np.nan]
         expected = pd.DataFrame({"A": expected, "B": b})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "periods, indices",
@@ -469,7 +469,7 @@ class BaseMethodsTests(BaseExtensionTests):
             data = data.to_frame()
         a = pd.util.hash_pandas_object(data)
         b = pd.util.hash_pandas_object(data)
-        self.assert_equal(a, b)
+        tm.assert_equal(a, b)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         if data_for_sorting.dtype._is_boolean:
@@ -544,10 +544,10 @@ class BaseMethodsTests(BaseExtensionTests):
 
         if as_frame:
             expected = expected.to_frame(name="a")
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         ser.mask(~cond, inplace=True)
-        self.assert_equal(ser, expected)
+        tm.assert_equal(ser, expected)
 
         # array other
         ser = orig.copy()
@@ -562,10 +562,10 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         if as_frame:
             expected = expected.to_frame(name="a")
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         ser.mask(~cond, other, inplace=True)
-        self.assert_equal(ser, expected)
+        tm.assert_equal(ser, expected)
 
     @pytest.mark.parametrize("repeats", [0, 1, 2, [1, 2, 3]])
     def test_repeat(self, data, repeats, as_series, use_numpy):
@@ -581,7 +581,7 @@ class BaseMethodsTests(BaseExtensionTests):
         if as_series:
             expected = pd.Series(expected, index=arr.index.repeat(repeats))
 
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "repeats, kwargs, error, msg",
