@@ -14,6 +14,10 @@ from cpython.datetime cimport (
 )
 import warnings
 
+from pandas._libs.tslibs.dtypes cimport (
+    c_OFFSET_DEPR_FREQSTR,
+    c_REVERSE_OFFSET_DEPR_FREQSTR,
+)
 import_datetime()
 
 import numpy as np
@@ -2598,7 +2602,7 @@ cdef class QuarterEnd(QuarterOffset):
     Timestamp('2022-03-31 00:00:00')
     """
     _default_starting_month = 3
-    _prefix = "Q"
+    _prefix = "QE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4267,7 +4271,7 @@ prefix_mapping = {
         Second,  # 'S'
         Minute,  # 'T'
         Micro,  # 'U'
-        QuarterEnd,  # 'Q'
+        QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
         Milli,  # 'L'
         Hour,  # 'H'
@@ -4412,21 +4416,23 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name == "M":
+                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
+                    msg = f"\'{name}\' will be deprecated, please use "
+                    "\'{c_OFFSET_DEPR_FREQSTR.get(name)}\'"
                     warnings.warn(
-                        "\'M\' will be deprecated, please use \'ME\' "
-                        "for \'month end\'",
+                        msg,
                         UserWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = "ME"
-                if is_period is True and name == "ME":
+                    name = c_OFFSET_DEPR_FREQSTR[name]
+                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     raise ValueError(
-                        r"for Period, please use \'M\' "
-                        "instead of \'ME\'"
+                        "for Period, please use "
+                        "\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                        "instead of \'{name}\'"
                     )
-                elif is_period is True and name == "M":
-                    name = "ME"
+                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
