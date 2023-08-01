@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import partial
 from io import (
     BytesIO,
@@ -7,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import threading
-from typing import Iterator
 from urllib.error import URLError
 
 import numpy as np
@@ -157,7 +157,7 @@ class TestReadHtml:
             tm.makeCustomDataframe(
                 4,
                 3,
-                data_gen_f=lambda *args: np.random.rand(),
+                data_gen_f=lambda *args: np.random.default_rng(2).random(),
                 c_idx_names=False,
                 r_idx_names=False,
             )
@@ -1278,7 +1278,7 @@ class TestReadHtml:
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
-        df = DataFrame(np.random.randn(10, 4), index=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=rng)
 
         result = df.to_html()
         assert "2000-01-01" in result

@@ -27,6 +27,13 @@ def test_startswith_endswith_non_str_patterns(pattern):
         ser.str.endswith(pattern)
 
 
+def test_iter_raises():
+    # GH 54173
+    ser = Series(["foo", "bar"])
+    with pytest.raises(TypeError, match="'StringMethods' object is not iterable"):
+        iter(ser.str)
+
+
 # test integer/float dtypes (inferred by constructor) and mixed
 
 
@@ -219,8 +226,10 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     # 0x00bc: ¼ VULGAR FRACTION ONE QUARTER
     # 0x2605: ★ not number
     # 0x1378: ፸ ETHIOPIC NUMBER SEVENTY
-    # 0xFF13: ３ Em 3
-    ser = Series(["A", "3", "¼", "★", "፸", "３", "four"], dtype=any_string_dtype)
+    # 0xFF13: ３ Em 3  # noqa: RUF003
+    ser = Series(
+        ["A", "3", "¼", "★", "፸", "３", "four"], dtype=any_string_dtype  # noqa: RUF001
+    )
     expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
@@ -239,7 +248,7 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     ],
 )
 def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
-    values = ["A", np.nan, "¼", "★", np.nan, "３", "four"]
+    values = ["A", np.nan, "¼", "★", np.nan, "３", "four"]  # noqa: RUF001
     ser = Series(values, dtype=any_string_dtype)
     expected_dtype = "object" if any_string_dtype == "object" else "boolean"
     expected = Series(expected, dtype=expected_dtype)
@@ -557,12 +566,12 @@ def test_decode_errors_kwarg():
     "form, expected",
     [
         ("NFKC", ["ABC", "ABC", "123", np.nan, "アイエ"]),
-        ("NFC", ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"]),
+        ("NFC", ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"]),  # noqa: RUF001
     ],
 )
 def test_normalize(form, expected, any_string_dtype):
     ser = Series(
-        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],
+        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],  # noqa: RUF001
         index=["a", "b", "c", "d", "e"],
         dtype=any_string_dtype,
     )
@@ -573,7 +582,7 @@ def test_normalize(form, expected, any_string_dtype):
 
 def test_normalize_bad_arg_raises(any_string_dtype):
     ser = Series(
-        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],
+        ["ABC", "ＡＢＣ", "１２３", np.nan, "ｱｲｴ"],  # noqa: RUF001
         index=["a", "b", "c", "d", "e"],
         dtype=any_string_dtype,
     )
@@ -582,7 +591,7 @@ def test_normalize_bad_arg_raises(any_string_dtype):
 
 
 def test_normalize_index():
-    idx = Index(["ＡＢＣ", "１２３", "ｱｲｴ"])
+    idx = Index(["ＡＢＣ", "１２３", "ｱｲｴ"])  # noqa: RUF001
     expected = Index(["ABC", "123", "アイエ"])
     result = idx.str.normalize("NFKC")
     tm.assert_index_equal(result, expected)

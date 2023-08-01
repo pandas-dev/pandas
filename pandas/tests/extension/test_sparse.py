@@ -27,10 +27,11 @@ from pandas.tests.extension import base
 
 
 def make_data(fill_value):
+    rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = rng.uniform(size=100)
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = rng.integers(1, 100, size=100, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -223,11 +224,6 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         self.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_limit_pad(self, data_missing):
-        warns = (PerformanceWarning, FutureWarning)
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_pad(data_missing)
-
     def test_fillna_limit_backfill(self, data_missing):
         warns = (PerformanceWarning, FutureWarning)
         with tm.assert_produces_warning(warns, check_stacklevel=False):
@@ -238,12 +234,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             request.node.add_marker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            super().test_fillna_no_op_returns_copy(data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            super().test_fillna_series_method(data_missing, fillna_method)
+        super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self):

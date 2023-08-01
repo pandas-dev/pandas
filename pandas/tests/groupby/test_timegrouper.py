@@ -725,17 +725,17 @@ class TestGroupBy:
         # 32-bit under 1.9-dev indexing issue
 
         df = DataFrame({"A": range(2), "B": [Timestamp("2000-01-1")] * 2})
-        result = df.groupby("A")["B"].transform(min)
+        result = df.groupby("A")["B"].transform("min")
         expected = Series([Timestamp("2000-01-1")] * 2, name="B")
         tm.assert_series_equal(result, expected)
 
     def test_groupby_with_timezone_selection(self):
         # GH 11616
         # Test that column selection returns output in correct timezone.
-        np.random.seed(42)
+
         df = DataFrame(
             {
-                "factor": np.random.randint(0, 3, size=60),
+                "factor": np.random.default_rng(2).integers(0, 3, size=60),
                 "time": date_range("01/01/2000 00:00", periods=60, freq="s", tz="UTC"),
             }
         )
@@ -918,11 +918,11 @@ class TestGroupBy:
             lambda values, index: np.nanmean(values), engine="numba"
         )
 
-        expected = gb["Quantity"].aggregate(np.nanmean)
+        expected = gb["Quantity"].aggregate("mean")
         tm.assert_series_equal(result, expected)
 
         result_df = gb[["Quantity"]].aggregate(
             lambda values, index: np.nanmean(values), engine="numba"
         )
-        expected_df = gb[["Quantity"]].aggregate(np.nanmean)
+        expected_df = gb[["Quantity"]].aggregate("mean")
         tm.assert_frame_equal(result_df, expected_df)

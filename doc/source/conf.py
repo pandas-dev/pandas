@@ -348,10 +348,8 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
-
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
 if include_api:
     html_additional_pages = {
@@ -586,14 +584,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
-        else:
-            return MethodDocumenter.format_name(self).removesuffix(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):

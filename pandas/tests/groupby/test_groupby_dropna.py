@@ -231,7 +231,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         ["A", "B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    agg_dict = {"c": sum, "d": max, "e": "min"}
+    agg_dict = {"c": "sum", "d": "max", "e": "min"}
     grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
@@ -278,7 +278,7 @@ def test_groupby_dropna_datetime_like_data(
     else:
         indexes = [datetime1, datetime2, np.nan]
 
-    grouped = df.groupby("dt", dropna=dropna).agg({"values": sum})
+    grouped = df.groupby("dt", dropna=dropna).agg({"values": "sum"})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
@@ -514,7 +514,7 @@ def test_categorical_reducers(
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     # Ensure there is at least one null value by appending to the end
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -594,7 +594,7 @@ def test_categorical_transformers(
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
         request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
 
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -649,7 +649,7 @@ def test_categorical_transformers(
 @pytest.mark.parametrize("method", ["head", "tail"])
 def test_categorical_head_tail(method, observed, sort, as_index):
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -674,7 +674,7 @@ def test_categorical_head_tail(method, observed, sort, as_index):
 
 def test_categorical_agg():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -686,7 +686,7 @@ def test_categorical_agg():
 
 def test_categorical_transform():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )

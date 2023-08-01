@@ -26,6 +26,13 @@ import pandas._testing as tm
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in divide:RuntimeWarning"
+    ),
+    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
+]
+
 
 def make_data():
     return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
@@ -76,8 +83,9 @@ def na_value():
 def data_for_grouping(dtype):
     b = True
     a = False
+    c = b
     na = np.nan
-    return pd.array([b, b, na, na, a, a, b], dtype=dtype)
+    return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -181,55 +189,6 @@ class TestReshaping(base.BaseReshapingTests):
 class TestMethods(base.BaseMethodsTests):
     _combine_le_expected_dtype = "boolean"
 
-    def test_factorize(self, data_for_grouping):
-        # override because we only have 2 unique values
-        labels, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
-        expected_labels = np.array([0, 0, -1, -1, 1, 1, 0], dtype=np.intp)
-        expected_uniques = data_for_grouping.take([0, 4])
-
-        tm.assert_numpy_array_equal(labels, expected_labels)
-        self.assert_extension_array_equal(uniques, expected_uniques)
-
-    def test_searchsorted(self, data_for_sorting, as_series):
-        # override because we only have 2 unique values
-        data_for_sorting = pd.array([True, False], dtype="boolean")
-        b, a = data_for_sorting
-        arr = type(data_for_sorting)._from_sequence([a, b])
-
-        if as_series:
-            arr = pd.Series(arr)
-        assert arr.searchsorted(a) == 0
-        assert arr.searchsorted(a, side="right") == 1
-
-        assert arr.searchsorted(b) == 1
-        assert arr.searchsorted(b, side="right") == 2
-
-        result = arr.searchsorted(arr.take([0, 1]))
-        expected = np.array([0, 1], dtype=np.intp)
-
-        tm.assert_numpy_array_equal(result, expected)
-
-        # sorter
-        sorter = np.array([1, 0])
-        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
-
-    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
-        # override because there are only 2 unique values
-
-        # data_for_sorting -> [B, C, A] with A < B < C -> here True, True, False
-        assert data_for_sorting.argmax() == 0
-        assert data_for_sorting.argmin() == 2
-
-        # with repeated values -> first occurrence
-        data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
-        assert data.argmax() == 1
-        assert data.argmin() == 0
-
-        # with missing values
-        # data_missing_for_sorting -> [B, NA, A] with A < B and NA missing.
-        assert data_missing_for_sorting.argmax() == 0
-        assert data_missing_for_sorting.argmin() == 2
-
 
 class TestCasting(base.BaseCastingTests):
     pass
@@ -241,105 +200,9 @@ class TestGroupby(base.BaseGroupbyTests):
     unique values, base tests uses 3 groups.
     """
 
-    def test_grouping_grouper(self, data_for_grouping):
-        df = pd.DataFrame(
-            {"A": ["B", "B", None, None, "A", "A", "B"], "B": data_for_grouping}
-        )
-        gr1 = df.groupby("A").grouper.groupings[0]
-        gr2 = df.groupby("B").grouper.groupings[0]
-
-        tm.assert_numpy_array_equal(gr1.grouping_vector, df.A.values)
-        tm.assert_extension_array_equal(gr2.grouping_vector, data_for_grouping)
-
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, uniques = pd.factorize(data_for_grouping, sort=True)
-
-        if as_index:
-            index = pd.Index(uniques, name="B")
-            expected = pd.Series([3.0, 1.0], index=index, name="A")
-            self.assert_series_equal(result, expected)
-        else:
-            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0]})
-            self.assert_frame_equal(result, expected)
-
-    def test_groupby_agg_extension(self, data_for_grouping):
-        # GH#38980 groupby agg on extension type fails for non-numeric types
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-
-        expected = df.iloc[[0, 2, 4]]
-        expected = expected.set_index("A")
-
-        result = df.groupby("A").agg({"B": "first"})
-        self.assert_frame_equal(result, expected)
-
-        result = df.groupby("A").agg("first")
-        self.assert_frame_equal(result, expected)
-
-        result = df.groupby("A").first()
-        self.assert_frame_equal(result, expected)
-
-    def test_groupby_extension_no_sort(self, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        result = df.groupby("B", sort=False).A.mean()
-        _, index = pd.factorize(data_for_grouping, sort=False)
-
-        index = pd.Index(index, name="B")
-        expected = pd.Series([1.0, 3.0], index=index, name="A")
-        self.assert_series_equal(result, expected)
-
-    def test_groupby_extension_transform(self, data_for_grouping):
-        valid = data_for_grouping[~data_for_grouping.isna()]
-        df = pd.DataFrame({"A": [1, 1, 3, 3, 1], "B": valid})
-
-        result = df.groupby("B").A.transform(len)
-        expected = pd.Series([3, 3, 2, 2, 3], name="A")
-
-        self.assert_series_equal(result, expected)
-
-    def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        df.groupby("B", group_keys=False).apply(groupby_apply_op)
-        df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
-        df.groupby("A", group_keys=False).apply(groupby_apply_op)
-        df.groupby("A", group_keys=False).B.apply(groupby_apply_op)
-
-    def test_groupby_apply_identity(self, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
-        result = df.groupby("A").B.apply(lambda x: x.array)
-        expected = pd.Series(
-            [
-                df.B.iloc[[0, 1, 6]].array,
-                df.B.iloc[[2, 3]].array,
-                df.B.iloc[[4, 5]].array,
-            ],
-            index=pd.Index([1, 2, 3], name="A"),
-            name="B",
-        )
-        self.assert_series_equal(result, expected)
-
-    def test_in_numeric_groupby(self, data_for_grouping):
-        df = pd.DataFrame(
-            {
-                "A": [1, 1, 2, 2, 3, 3, 1],
-                "B": data_for_grouping,
-                "C": [1, 1, 1, 1, 1, 1, 1],
-            }
-        )
-        result = df.groupby("A").sum().columns
-
-        if data_for_grouping.dtype._is_numeric:
-            expected = pd.Index(["B", "C"])
-        else:
-            expected = pd.Index(["C"])
-
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize("min_count", [0, 10])
     def test_groupby_sum_mincount(self, data_for_grouping, min_count):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping})
+        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": data_for_grouping[:-1]})
         result = df.groupby("A").sum(min_count=min_count)
         if min_count == 0:
             expected = pd.DataFrame(
@@ -369,6 +232,31 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         elif op_name in ("min", "max"):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
+
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        arr = ser.array
+
+        if op_name in ["count", "kurt", "sem"]:
+            assert not hasattr(arr, op_name)
+            pytest.skip(f"{op_name} not an array method")
+
+        if op_name in ["mean", "median", "var", "std", "skew"]:
+            cmp_dtype = "Float64"
+        elif op_name in ["min", "max"]:
+            cmp_dtype = "boolean"
+        elif op_name in ["sum", "prod"]:
+            is_windows_or_32bit = is_platform_windows() or not IS64
+            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+        else:
+            raise TypeError("not supposed to reach this")
+
+        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):

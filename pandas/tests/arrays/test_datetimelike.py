@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import array
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -23,7 +24,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     TimedeltaArray,
 )
@@ -48,7 +49,10 @@ def period_index(freqstr):
     the PeriodIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates
-    pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    with warnings.catch_warnings():
+        # suppress deprecation of Period[B]
+        warnings.simplefilter("ignore")
+        pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
 
@@ -152,7 +156,7 @@ class SharedTests:
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
-        np.random.shuffle(data)
+        np.random.default_rng(2).shuffle(data)
 
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")
@@ -192,6 +196,9 @@ class SharedTests:
         result = arr.take([-1, 1], allow_fill=True, fill_value=NaT)
         assert result[0] is NaT
 
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
     def test_take_fill_str(self, arr1d):
         # Cast str fill_value matching other fill_value-taking methods
         result = arr1d.take([-1, 1], allow_fill=True, fill_value=str(arr1d[-1]))
@@ -251,7 +258,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.fillna(method=method)
+        result = arr.pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed
@@ -425,7 +432,7 @@ class SharedTests:
             pd.Series,
             np.array,
             list,
-            PandasArray,
+            NumpyExtensionArray,
         ],
     )
     def test_setitem_object_dtype(self, box, arr1d):
@@ -439,7 +446,7 @@ class SharedTests:
         elif box is np.array:
             # if we do np.array(x).astype(object) then dt64 and td64 cast to ints
             vals = np.array(vals.astype(object))
-        elif box is PandasArray:
+        elif box is NumpyExtensionArray:
             vals = box(np.asarray(vals, dtype=object))
         else:
             vals = box(vals).astype(object)
@@ -745,6 +752,7 @@ class TestDatetimeArray(SharedTests):
         assert asobj.dtype == "O"
         assert list(asobj) == list(dti)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_period(self, datetime_index, freqstr):
         dti = datetime_index
         arr = DatetimeArray(dti)
@@ -999,6 +1007,8 @@ class TestTimedeltaArray(SharedTests):
             arr.take([-1, 1], allow_fill=True, fill_value=value)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 class TestPeriodArray(SharedTests):
     index_cls = PeriodIndex
     array_cls = PeriodArray
@@ -1291,7 +1301,7 @@ def test_period_index_construction_from_strings(klass):
 def test_from_pandas_array(dtype):
     # GH#24615
     data = np.array([1, 2, 3], dtype=dtype)
-    arr = PandasArray(data)
+    arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
 

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -50,6 +47,8 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -178,7 +177,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
+        Note that the only NumPy dtype allowed is `datetime64[ns]`.
     copy : bool, default False
         Make a copy of input ndarray.
     name : label, default None
@@ -328,7 +327,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> Self:
         if closed is not lib.no_default:
             # GH#52628
@@ -394,11 +393,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
+
         from pandas.io.formats.format import is_dates_only
+
+        delta = getattr(self.freq, "delta", None)
+
+        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+            return False
 
         # error: Argument 1 to "is_dates_only" has incompatible type
         # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
         # DatetimeArray, Index, DatetimeIndex]"
+
         return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
 
     def __reduce__(self):
@@ -481,6 +487,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-02',
+        ...                        '2023-02-01', '2023-02-02'])
+        >>> idx
+        DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
+        dtype='datetime64[ns]', freq=None)
+        >>> idx.snap('MS')
+        DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
@@ -666,18 +683,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return Index.slice_indexer(self, start, end, step)
 
         mask = np.array(True)
-        raise_mask = np.array(True)
+        in_index = True
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
-            raise_mask = start_casted == self
+            in_index &= (start_casted == self).any()
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
-            raise_mask = (end_casted == self) | raise_mask
+            in_index &= (end_casted == self).any()
 
-        if not raise_mask.any():
+        if not in_index:
             raise KeyError(
                 "Value based partial slicing on non-monotonic DatetimeIndexes "
                 "with non-existing keys is not allowed.",
@@ -809,7 +826,7 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: Hashable = None,
+    name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
     unit: str | None = None,
@@ -1010,7 +1027,7 @@ def bdate_range(
     freq: Frequency = "B",
     tz=None,
     normalize: bool = True,
-    name: Hashable = None,
+    name: Hashable | None = None,
     weekmask=None,
     holidays=None,
     inclusive: IntervalClosedType = "both",

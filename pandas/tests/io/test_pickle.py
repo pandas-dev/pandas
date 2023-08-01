@@ -459,7 +459,7 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
 @td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
     with tm.ensure_clean():
-        mockurl = "memory://afile"
+        mockurl = "memory://mockfile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)
@@ -527,7 +527,7 @@ def test_pickle_dataframe_with_multilevel_index(
 def test_pickle_timeseries_periodindex():
     # GH#2891
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
-    ts = Series(np.random.randn(len(prng)), prng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts)
     assert new_ts.index.freq == "M"
 
