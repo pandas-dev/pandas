@@ -663,7 +663,12 @@ class NumpyStringArray(BaseNumpyStringArray):
     _storage = "numpy"
 
     def __init__(self, values, copy: bool = False) -> None:
-        values = np.asarray(values, dtype=get_string_dtype())
+        try:
+            values = np.asarray(values, dtype=get_string_dtype())
+        except (TypeError, ValueError):
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
+        if values.size == 0:
+            raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         super().__init__(values, copy=copy)
 
     @classmethod

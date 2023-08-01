@@ -528,7 +528,7 @@ def get_string_dtype():
 
     import stringdtype
 
-    return stringdtype.StringDType(na_object=libmissing.NA)
+    return stringdtype.StringDType(na_object=libmissing.NA, coerce=False)
 
 
 def is_string_dtype(arr_or_dtype) -> bool:
