@@ -115,14 +115,22 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
         # GH 24382
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        exp_argmax = 1
+        exp_argmax_repeated = 3
+        if is_bool:
+            # See data_for_sorting docstring
+            exp_argmax = 0
+            exp_argmax_repeated = 1
 
         # data_for_sorting -> [B, C, A] with A < B < C
-        assert data_for_sorting.argmax() == 1
+        assert data_for_sorting.argmax() == exp_argmax
         assert data_for_sorting.argmin() == 2
 
         # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
-        assert data.argmax() == 3
+        assert data.argmax() == exp_argmax_repeated
         assert data.argmin() == 0
 
         # with missing values
@@ -244,8 +252,15 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_factorize(self, data_for_grouping):
         codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
-        expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
-        expected_uniques = data_for_grouping.take([0, 4, 7])
+
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 0], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4])
+        else:
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
         tm.assert_extension_array_equal(uniques, expected_uniques)
@@ -457,6 +472,9 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_equal(a, b)
 
     def test_searchsorted(self, data_for_sorting, as_series):
+        if data_for_sorting.dtype._is_boolean:
+            return self._test_searchsorted_bool_dtypes(data_for_sorting, as_series)
+
         b, c, a = data_for_sorting
         arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
@@ -478,6 +496,32 @@ class BaseMethodsTests(BaseExtensionTests):
 
         # sorter
         sorter = np.array([1, 2, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
+    def _test_searchsorted_bool_dtypes(self, data_for_sorting, as_series):
+        # We call this from test_searchsorted in cases where we have a
+        #  boolean-like dtype. The non-bool test assumes we have more than 2
+        #  unique values.
+        dtype = data_for_sorting.dtype
+        data_for_sorting = pd.array([True, False], dtype=dtype)
+        b, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b])
+
+        if as_series:
+            arr = pd.Series(arr)
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        result = arr.searchsorted(arr.take([0, 1]))
+        expected = np.array([0, 1], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
     def test_where_series(self, data, na_value, as_frame):

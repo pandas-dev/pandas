@@ -3489,7 +3489,7 @@ class Styler(StylerRenderer):
             Left bound, in [0, q_right), for the target quantile range.
         q_right : float, default 1
             Right bound, in (q_left, 1], for the target quantile range.
-        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
             quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}

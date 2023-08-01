@@ -37,6 +37,7 @@ from pandas.compat import (
     pa_version_under8p0,
     pa_version_under9p0,
     pa_version_under11p0,
+    pa_version_under13p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -586,38 +587,6 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
-    def test_groupby_extension_no_sort(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_no_sort(data_for_grouping)
-
-    def test_groupby_extension_transform(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_transform(data_for_grouping)
-
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=ValueError,
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
-
     def test_in_numeric_groupby(self, data_for_grouping):
         dtype = data_for_grouping.dtype
         if is_string_dtype(dtype):
@@ -844,13 +813,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+        if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"No pyarrow kernel for {pa_dtype}",
@@ -887,16 +850,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
-    def test_factorize(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_factorize(data_for_grouping)
-
     _combine_le_expected_dtype = "bool[pyarrow]"
 
     def test_combine_add(self, data_repeated, request):
@@ -912,16 +865,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         else:
             super().test_combine_add(data_repeated)
 
-    def test_searchsorted(self, data_for_sorting, as_series, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_searchsorted(data_for_sorting, as_series)
-
     def test_basic_equals(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
@@ -929,21 +872,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
-
-    @classmethod
-    def assert_equal(cls, left, right, **kwargs):
-        if isinstance(left, pd.DataFrame):
-            left_pa_type = left.iloc[:, 0].dtype.pyarrow_dtype
-            right_pa_type = right.iloc[:, 0].dtype.pyarrow_dtype
-        else:
-            left_pa_type = left.dtype.pyarrow_dtype
-            right_pa_type = right.dtype.pyarrow_dtype
-        if pa.types.is_decimal(left_pa_type) or pa.types.is_decimal(right_pa_type):
-            # decimal precision can resize in the result type depending on data
-            # just compare the float values
-            left = left.astype("float[pyarrow]")
-            right = right.astype("float[pyarrow]")
-        tm.assert_equal(left, right, **kwargs)
 
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
@@ -991,6 +919,29 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     unit = "us"
 
             pa_expected = pa_expected.cast(f"duration[{unit}]")
+
+        elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
+            original_dtype.pyarrow_dtype
+        ):
+            # decimal precision can resize in the result type depending on data
+            # just compare the float values
+            alt = op(obj, other)
+            alt_dtype = tm.get_dtype(alt)
+            assert isinstance(alt_dtype, ArrowDtype)
+            if op is operator.pow and isinstance(other, Decimal):
+                # TODO: would it make more sense to retain Decimal here?
+                alt_dtype = ArrowDtype(pa.float64())
+            elif (
+                op is operator.pow
+                and isinstance(other, pd.Series)
+                and other.dtype == original_dtype
+            ):
+                # TODO: would it make more sense to retain Decimal here?
+                alt_dtype = ArrowDtype(pa.float64())
+            else:
+                assert pa.types.is_decimal(alt_dtype.pyarrow_dtype)
+            return expected.astype(alt_dtype)
+
         else:
             pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
 
@@ -1005,7 +956,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _is_temporal_supported(self, opname, pa_dtype):
         return not pa_version_under8p0 and (
-            opname in ("__add__", "__radd__")
+            (
+                opname in ("__add__", "__radd__")
+                or (
+                    opname
+                    in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                    and not pa_version_under13p0
+                )
+            )
             and pa.types.is_duration(pa_dtype)
             or opname in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
@@ -1054,7 +1012,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
+        elif arrow_temporal_supported and (
+            pa.types.is_time(pa_dtype)
+            or (
+                opname
+                in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                and pa.types.is_duration(pa_dtype)
+            )
+        ):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(
@@ -1118,6 +1083,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1150,6 +1116,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1203,6 +1170,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
@@ -2104,7 +2072,7 @@ def test_str_slice_replace(start, stop, repl, exp):
         ["!|,", "isalnum", False],
         ["aaa", "isalpha", True],
         ["!!!", "isalpha", False],
-        ["٠", "isdecimal", True],
+        ["٠", "isdecimal", True],  # noqa: RUF001
         ["~!", "isdecimal", False],
         ["2", "isdigit", True],
         ["~", "isdigit", False],
