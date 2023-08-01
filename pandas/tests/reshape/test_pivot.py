@@ -2625,3 +2625,30 @@ class TestPivot:
 
         expected = Index([], dtype="object", name="b")
         tm.assert_index_equal(pivot.columns, expected)
+
+    def test_pivot_table_handles_explicit_datetime_types(self):
+        # GH#43574
+        df = DataFrame(
+            [
+                {"a": "x", "date_str": "2023-01-01", "amount": 1},
+                {"a": "y", "date_str": "2023-01-02", "amount": 2},
+                {"a": "z", "date_str": "2023-01-03", "amount": 3},
+            ]
+        )
+        df["date"] = pd.to_datetime(df["date_str"])
+
+        with tm.assert_produces_warning(False):
+            pivot = df.pivot_table(
+                index=["a", "date"], values=["amount"], aggfunc="sum", margins=True
+            )
+
+        expected = MultiIndex.from_tuples(
+            [
+                ("x", datetime.strptime("2023-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("y", datetime.strptime("2023-01-02 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("z", datetime.strptime("2023-01-03 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("All", ""),
+            ],
+            names=["a", "date"],
+        )
+        tm.assert_index_equal(pivot.index, expected)
