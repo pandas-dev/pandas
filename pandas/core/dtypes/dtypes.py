@@ -912,6 +912,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._unit = state["unit"]
 
 
+def _capitalize_first_letter(s):
+    return s[:1].upper() + s[1:]
+
+
 @register_extension_dtype
 class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     """
@@ -1054,7 +1058,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
-            return other in [self.name, self.name.title()]
+            return other in [self.name, _capitalize_first_letter(self.name)]
 
         return super().__eq__(other)
 
