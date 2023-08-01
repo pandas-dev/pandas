@@ -341,6 +341,7 @@ class TestDataFrameToCSV:
         "r_idx_type, c_idx_type", [("i", "i"), ("s", "s"), ("s", "dt"), ("p", "p")]
     )
     @pytest.mark.parametrize("ncols", [1, 2, 3, 4])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_csv_idx_types(self, nrows, r_idx_type, c_idx_type, ncols):
         df = tm.makeCustomDataframe(
             nrows, ncols, r_idx_type=r_idx_type, c_idx_type=c_idx_type
@@ -956,7 +957,10 @@ class TestDataFrameToCSV:
             (DataFrame([["abc", "def", "ghi"]], columns=["X", "Y", "Z"]), "ascii"),
             (DataFrame(5 * [[123, "你好", "世界"]], columns=["X", "Y", "Z"]), "gb2312"),
             (
-                DataFrame(5 * [[123, "Γειά σου", "Κόσμε"]], columns=["X", "Y", "Z"]),
+                DataFrame(
+                    5 * [[123, "Γειά σου", "Κόσμε"]],  # noqa: RUF001
+                    columns=["X", "Y", "Z"],
+                ),
                 "cp737",
             ),
         ],

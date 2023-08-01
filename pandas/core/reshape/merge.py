@@ -2207,13 +2207,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            # TODO(cython3):
-            # Bug in beta1 preventing Cython from choosing
-            # right specialization when one fused memview is None
-            # Doesn't matter what type we choose
-            # (nothing happens anyways since it is None)
-            # GH 51640
-            return func[f"{left_values.dtype}_t", object](
+            return func(
                 left_values,
                 right_values,
                 None,
@@ -2342,7 +2336,7 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
-    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+    how : {'left', 'right', 'outer', 'inner'}, default 'inner'
         Type of merge.
 
     Returns
