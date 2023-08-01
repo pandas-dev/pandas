@@ -1299,6 +1299,7 @@ cdef class Seen:
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
         bint interval_        # seen_interval
+        bint str_             # seen_str
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1325,6 +1326,7 @@ cdef class Seen:
         self.datetimetz_ = False
         self.period_ = False
         self.interval_ = False
+        self.str_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2615,6 +2617,13 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif isinstance(val, str):
+            if convert_non_numeric:
+                seen.str_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2669,6 +2678,35 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
+    elif seen.str_:
+        if is_string_array(objects):
+            from pandas._config import get_option
+            opt = get_option("future.infer_string")
+            if opt is True:
+                import pyarrow as pa
+
+                from pandas.core.dtypes.dtypes import ArrowDtype
+
+                obj = pa.array(objects)
+                dtype = ArrowDtype(obj.type)
+                return dtype.construct_array_type()(obj)
+            # elif opt is False:
+            #    # explicitly set to keep the old behavior and avoid the warning
+            #    pass
+            # else:
+            #    from pandas.util._exceptions import find_stack_level
+            #    warnings.warn(
+            #        "Pandas type inference with a sequence of `str` "
+            #        "objects is deprecated. In a future version, this will give "
+            #        "string[pyarrow] dtype, which will require pyarrow to be "
+            #        "installed. To opt in to the new behavior immediately set "
+            #        "`pd.set_option('future.infer_string', True)`. To keep the "
+            #        "old behavior pass `dtype=object`.",
+            #        FutureWarning,
+            #        stacklevel=find_stack_level(),
+            #    )
+
+        seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex

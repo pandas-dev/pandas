@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import lib
 from pandas._libs.missing import (
     NA,
@@ -796,6 +798,23 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
+        opt = get_option("future.infer_string")
+        if opt is True:
+            import pyarrow as pa
+
+            pa_dtype = pa.string()
+            dtype = ArrowDtype(pa_dtype)
+        # elif opt is None:
+        #    warnings.warn(
+        #        "Pandas type inference with a `str` "
+        #        "object is deprecated. In a future version, this will give "
+        #        "string[pyarrow] dtype, which will require pyarrow to be "
+        #        "installed. To opt in to the new behavior immediately set "
+        #        "`pd.set_option('future.infer_string', True)`. To keep the "
+        #        "old behavior pass `dtype=object`.",
+        #        FutureWarning,
+        #        stacklevel=find_stack_level(),
+        #    )
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
