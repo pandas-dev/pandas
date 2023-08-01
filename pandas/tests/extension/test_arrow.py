@@ -939,7 +939,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             pa_expected = pa_expected.cast(f"duration[{unit}]")
 
         elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
-            original_dtype.pyarrow_dtype
+            orig_pa_type
         ):
             # decimal precision can resize in the result type depending on data
             # just compare the float values
@@ -961,7 +961,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return expected.astype(alt_dtype)
 
         else:
-            pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
+            pa_expected = pa_expected.cast(orig_pa_type)
 
         pd_expected = type(expected_data._values)(pa_expected)
         if was_frame:
