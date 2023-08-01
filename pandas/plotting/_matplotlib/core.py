@@ -1203,10 +1203,14 @@ class ScatterPlot(PlanePlot):
             # is now based on the rcParam ``lines.markersize``.
             # This means that if rcParams are temporarily changed,
             # the marker size changes as well according to mpl.rc_context().
-            if mpl.rcParams["_internal.classic_mode"]:
-                s = 20
-            else:
-                s = mpl.rcParams["lines.markersize"] ** 2.0
+            warnings.warn(
+                """The default of s=20 is deprecated and
+                has changed to mpl.rcParams['lines.markersize'].
+                Specify `s` to suppress this warning""",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            s = mpl.rcParams["lines.markersize"] ** 2.0
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         super().__init__(data, x, y, s=s, **kwargs)
