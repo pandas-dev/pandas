@@ -76,6 +76,9 @@ def data_for_sorting():
 
     This should be three items [B, C, A] with
     A < B < C
+
+    For boolean dtypes (for which there are only 2 values available),
+    set B=C=True
     """
     raise NotImplementedError
 
@@ -117,7 +120,10 @@ def data_for_grouping():
 
     Expected to be like [B, B, NA, NA, A, A, B, C]
 
-    Where A < B < C and NA is missing
+    Where A < B < C and NA is missing.
+
+    If a dtype has _is_boolean = True, i.e. only 2 unique non-NA entries,
+    then set C=B.
     """
     raise NotImplementedError
 
