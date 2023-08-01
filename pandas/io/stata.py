@@ -3768,7 +3768,7 @@ class StataWriterUTF8(StataWriter117):
                     and c != "_"
                 )
                 or 128 <= ord(c) < 192
-                or c in {"×", "÷"}
+                or c in {"×", "÷"}  # noqa: RUF001
             ):
                 name = name.replace(c, "_")
 
