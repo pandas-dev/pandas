@@ -64,7 +64,9 @@ class TestRank:
         tm.assert_almost_equal(ranks1.values, exp1)
 
         # integers
-        df = DataFrame(np.random.randint(0, 5, size=40).reshape((10, 4)))
+        df = DataFrame(
+            np.random.default_rng(2).integers(0, 5, size=40).reshape((10, 4))
+        )
 
         result = df.rank()
         exp = df.astype(float).rank()
@@ -126,7 +128,9 @@ class TestRank:
     def test_rank_does_not_mutate(self):
         # GH#18521
         # Check rank does not mutate DataFrame
-        df = DataFrame(np.random.randn(10, 3), dtype="float64")
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), dtype="float64"
+        )
         expected = df.copy()
         df.rank()
         result = df
@@ -229,7 +233,7 @@ class TestRank:
         import scipy.stats  # noqa: F401
         from scipy.stats import rankdata
 
-        xs = np.random.randint(0, 21, (100, 26))
+        xs = np.random.default_rng(2).integers(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
         cols = [chr(ord("z") - i) for i in range(xs.shape[1])]
 
@@ -407,12 +411,12 @@ class TestRank:
         exp_order = np.array(range(len(values)), dtype="float64") + 1.0
         if dtype in dtype_na_map:
             na_value = dtype_na_map[dtype]
-            nan_indices = np.random.choice(range(len(values)), 5)
+            nan_indices = np.random.default_rng(2).choice(range(len(values)), 5)
             values = np.insert(values, nan_indices, na_value)
             exp_order = np.insert(exp_order, nan_indices, np.nan)
 
         # Shuffle the testing array and expected results in the same way
-        random_order = np.random.permutation(len(values))
+        random_order = np.random.default_rng(2).permutation(len(values))
         obj = frame_or_series(values[random_order])
         expected = frame_or_series(exp_order[random_order], dtype="float64")
         result = obj.rank()

@@ -15,7 +15,3 @@ class BaseExtensionTests:
     @classmethod
     def assert_frame_equal(cls, left, right, *args, **kwargs):
         return tm.assert_frame_equal(left, right, *args, **kwargs)
-
-    @classmethod
-    def assert_extension_array_equal(cls, left, right, *args, **kwargs):
-        return tm.assert_extension_array_equal(left, right, *args, **kwargs)

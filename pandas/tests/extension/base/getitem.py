@@ -160,7 +160,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, type(data))
 
         expected = data[np.array([], dtype="int64")]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array
@@ -209,7 +209,7 @@ class BaseGetitemTests(BaseExtensionTests):
         mask[:5] = True
         expected = data.take([0, 1, 2, 3, 4])
         result = data[mask]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         expected = pd.Series(expected)
         result = pd.Series(data)[mask]
@@ -224,7 +224,7 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[mask]
         expected = data[mask.fillna(False)]
 
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         s = pd.Series(data)
 
@@ -243,7 +243,7 @@ class BaseGetitemTests(BaseExtensionTests):
         assert len(result) == 3
         assert isinstance(result, type(data))
         expected = data.take([0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         expected = pd.Series(expected)
         result = pd.Series(data)[idx]
@@ -287,22 +287,22 @@ class BaseGetitemTests(BaseExtensionTests):
     def test_getitem_ellipsis_and_slice(self, data):
         # GH#40353 this is called from slice_block_rows
         result = data[..., :]
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[:, ...]
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[..., :3]
-        self.assert_extension_array_equal(result, data[:3])
+        tm.assert_extension_array_equal(result, data[:3])
 
         result = data[:3, ...]
-        self.assert_extension_array_equal(result, data[:3])
+        tm.assert_extension_array_equal(result, data[:3])
 
         result = data[..., ::2]
-        self.assert_extension_array_equal(result, data[::2])
+        tm.assert_extension_array_equal(result, data[::2])
 
         result = data[::2, ...]
-        self.assert_extension_array_equal(result, data[::2])
+        tm.assert_extension_array_equal(result, data[::2])
 
     def test_get(self, data):
         # GH 20882
@@ -381,7 +381,7 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = data.take([0, -n, n - 1, -1])
         expected = data.take([0, 0, n - 1, n - 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_non_na_fill_value(self, data_missing):
         fill_value = data_missing[1]  # valid
@@ -392,7 +392,7 @@ class BaseGetitemTests(BaseExtensionTests):
         )
         result = arr.take([-1, 1], fill_value=fill_value, allow_fill=True)
         expected = arr.take([1, 1])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError, match=""):

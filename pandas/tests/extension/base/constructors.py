@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
@@ -10,11 +11,11 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 class BaseConstructorsTests(BaseExtensionTests):
     def test_from_sequence_from_cls(self, data):
         result = type(data)._from_sequence(data, dtype=data.dtype)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         data = data[:0]
         result = type(data)._from_sequence(data, dtype=data.dtype)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
     def test_array_from_scalars(self, data):
         scalars = [data[0], data[1], data[2]]
@@ -107,7 +108,7 @@ class BaseConstructorsTests(BaseExtensionTests):
     def test_pandas_array(self, data):
         # pd.array(extension_array) should be idempotent...
         result = pd.array(data)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
     def test_pandas_array_dtype(self, data):
         # ... but specifying dtype will override idempotency

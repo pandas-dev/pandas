@@ -27,10 +27,11 @@ from pandas.tests.extension import base
 
 
 def make_data(fill_value):
+    rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = rng.uniform(size=100)
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = rng.integers(1, 100, size=100, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -319,9 +320,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
-    def test_combine_first(self, data, request):
-        super().test_combine_first(data)
-
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
@@ -357,7 +355,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         # GH52096
         data = SparseArray([1, np.nan])
         result = data.map(func, na_action=na_action)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):

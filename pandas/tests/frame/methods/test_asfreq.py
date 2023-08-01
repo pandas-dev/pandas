@@ -71,7 +71,9 @@ class TestAsFreq:
     def test_tz_aware_asfreq_smoke(self, tz, frame_or_series):
         dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
 
-        obj = frame_or_series(np.random.randn(len(dr)), index=dr)
+        obj = frame_or_series(
+            np.random.default_rng(2).standard_normal(len(dr)), index=dr
+        )
 
         # it works!
         obj.asfreq("T")
@@ -80,7 +82,7 @@ class TestAsFreq:
         rng = date_range("1/1/2000 09:30", periods=20)
         norm = date_range("1/1/2000", periods=20)
 
-        vals = np.random.randn(20, 3)
+        vals = np.random.default_rng(2).standard_normal((20, 3))
 
         obj = DataFrame(vals, index=rng)
         expected = DataFrame(vals, index=norm)
@@ -103,7 +105,9 @@ class TestAsFreq:
 
     def test_asfreq_ts(self, frame_or_series):
         index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
-        obj = DataFrame(np.random.randn(len(index), 3), index=index)
+        obj = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 3)), index=index
+        )
         obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.asfreq("D", how="end")
@@ -185,7 +189,7 @@ class TestAsFreq:
 
     def test_asfreq_with_date_object_index(self, frame_or_series):
         rng = date_range("1/1/2000", periods=20)
-        ts = frame_or_series(np.random.randn(20), index=rng)
+        ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]

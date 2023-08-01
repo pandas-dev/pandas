@@ -31,7 +31,7 @@ from pandas.tests.extension import base
 
 def make_data():
     while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -187,7 +187,7 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestCasting(base.BaseCastingTests):

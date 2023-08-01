@@ -65,7 +65,13 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
-        if na_value_for_dtype(data.dtype) is pd.NA:
+
+        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+            data.dtype, pd.ArrowDtype
+        ):
+            # TODO: avoid special-casing
+            expected = expected.astype("double[pyarrow]")
+        elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
 
@@ -115,14 +121,22 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
         # GH 24382
+        is_bool = data_for_sorting.dtype._is_boolean
+
+        exp_argmax = 1
+        exp_argmax_repeated = 3
+        if is_bool:
+            # See data_for_sorting docstring
+            exp_argmax = 0
+            exp_argmax_repeated = 1
 
         # data_for_sorting -> [B, C, A] with A < B < C
-        assert data_for_sorting.argmax() == 1
+        assert data_for_sorting.argmax() == exp_argmax
         assert data_for_sorting.argmin() == 2
 
         # with repeated values -> first occurrence
         data = data_for_sorting.take([2, 0, 0, 1, 1, 2])
-        assert data.argmax() == 3
+        assert data.argmax() == exp_argmax_repeated
         assert data.argmin() == 0
 
         # with missing values
@@ -244,18 +258,25 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_factorize(self, data_for_grouping):
         codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
-        expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
-        expected_uniques = data_for_grouping.take([0, 4, 7])
+
+        is_bool = data_for_grouping.dtype._is_boolean
+        if is_bool:
+            # only 2 unique values
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 0], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4])
+        else:
+            expected_codes = np.array([0, 0, -1, -1, 1, 1, 0, 2], dtype=np.intp)
+            expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_factorize_equivalence(self, data_for_grouping):
         codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
         codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
-        self.assert_extension_array_equal(uniques_1, uniques_2)
+        tm.assert_extension_array_equal(uniques_1, uniques_2)
         assert len(uniques_1) == len(pd.unique(uniques_1))
         assert uniques_1.dtype == data_for_grouping.dtype
 
@@ -265,7 +286,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -413,7 +434,7 @@ class BaseMethodsTests(BaseExtensionTests):
         subset = data[:2]
         result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [-4, -1, 0, 1, 4])
     def test_shift_empty_array(self, data, periods):
@@ -421,7 +442,7 @@ class BaseMethodsTests(BaseExtensionTests):
         empty = data[:0]
         result = empty.shift(periods)
         expected = empty
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
         # GH#31502
@@ -436,11 +457,11 @@ class BaseMethodsTests(BaseExtensionTests):
         fill_value = data[0]
         result = arr.shift(1, fill_value=fill_value)
         expected = data.take([0, 0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = arr.shift(-2, fill_value=fill_value)
         expected = data.take([2, 3, 0, 0])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_not_hashable(self, data):
         # We are in general mutable, so not hashable
@@ -457,6 +478,9 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_equal(a, b)
 
     def test_searchsorted(self, data_for_sorting, as_series):
+        if data_for_sorting.dtype._is_boolean:
+            return self._test_searchsorted_bool_dtypes(data_for_sorting, as_series)
+
         b, c, a = data_for_sorting
         arr = data_for_sorting.take([2, 0, 1])  # to get [a, b, c]
 
@@ -478,6 +502,32 @@ class BaseMethodsTests(BaseExtensionTests):
 
         # sorter
         sorter = np.array([1, 2, 0])
+        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+
+    def _test_searchsorted_bool_dtypes(self, data_for_sorting, as_series):
+        # We call this from test_searchsorted in cases where we have a
+        #  boolean-like dtype. The non-bool test assumes we have more than 2
+        #  unique values.
+        dtype = data_for_sorting.dtype
+        data_for_sorting = pd.array([True, False], dtype=dtype)
+        b, a = data_for_sorting
+        arr = type(data_for_sorting)._from_sequence([a, b])
+
+        if as_series:
+            arr = pd.Series(arr)
+        assert arr.searchsorted(a) == 0
+        assert arr.searchsorted(a, side="right") == 1
+
+        assert arr.searchsorted(b) == 1
+        assert arr.searchsorted(b, side="right") == 2
+
+        result = arr.searchsorted(arr.take([0, 1]))
+        expected = np.array([0, 1], dtype=np.intp)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+        # sorter
+        sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
     def test_where_series(self, data, na_value, as_frame):
@@ -558,19 +608,19 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_delete(self, data):
         result = data.delete(0)
         expected = data[1:]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = data.delete([1, 3])
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_insert(self, data):
         # insert at the beginning
         result = data[1:].insert(0, data[0])
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[1:].insert(-len(data[1:]), data[0])
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         # insert at the middle
         result = data[:-1].insert(4, data[-1])
@@ -579,7 +629,7 @@ class BaseMethodsTests(BaseExtensionTests):
         taker[5:] = taker[4:-1]
         taker[4] = len(data) - 1
         expected = data.take(taker)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_insert_invalid(self, data, invalid_scalar):
         item = invalid_scalar
@@ -634,3 +684,7 @@ class BaseMethodsTests(BaseExtensionTests):
         # other types
         assert data.equals(None) is False
         assert data[[0]].equals(data[0]) is False
+
+    def test_equals_same_data_different_object(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34660
+        assert pd.Series(data).equals(pd.Series(data))

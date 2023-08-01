@@ -31,7 +31,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
     parser = all_parsers
 
     df = DataFrame(
-        np.random.rand(5, 2).round(4),
+        np.random.default_rng(2).random((5, 2)).round(4),
         columns=list("AB"),
         index=["1A", "1B", "1C", "1D", "1E"],
     )

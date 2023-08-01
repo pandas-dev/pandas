@@ -94,7 +94,7 @@ class TestResetIndex:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_frame_reset_index_tzaware_index(self, tz):
         dr = date_range("2012-06-02", periods=10, tz=tz)
-        df = DataFrame(np.random.randn(len(dr)), dr)
+        df = DataFrame(np.random.default_rng(2).standard_normal(len(dr)), dr)
         roundtripped = df.reset_index().set_index("index")
         xp = df.index.tz
         rs = roundtripped.index.tz
@@ -250,7 +250,7 @@ class TestResetIndex:
         assert reset["time"].dtype == np.float64
 
     def test_reset_index_multiindex_col(self):
-        vals = np.random.randn(3, 3).astype(object)
+        vals = np.random.default_rng(2).standard_normal((3, 3)).astype(object)
         idx = ["x", "y", "z"]
         full = np.hstack(([[x] for x in idx], vals))
         df = DataFrame(
@@ -309,13 +309,21 @@ class TestResetIndex:
         # GH#6322, testing reset_index on MultiIndexes
         # when we have a nan or all nan
         df = DataFrame(
-            {"A": ["a", "b", "c"], "B": [0, 1, np.nan], "C": np.random.rand(3)}
+            {
+                "A": ["a", "b", "c"],
+                "B": [0, 1, np.nan],
+                "C": np.random.default_rng(2).random(3),
+            }
         )
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
 
         df = DataFrame(
-            {"A": [np.nan, "b", "c"], "B": [0, 1, 2], "C": np.random.rand(3)}
+            {
+                "A": [np.nan, "b", "c"],
+                "B": [0, 1, 2],
+                "C": np.random.default_rng(2).random(3),
+            }
         )
         rs = df.set_index(["A", "B"]).reset_index()
         tm.assert_frame_equal(rs, df)
@@ -328,7 +336,7 @@ class TestResetIndex:
             {
                 "A": ["a", "b", "c"],
                 "B": [np.nan, np.nan, np.nan],
-                "C": np.random.rand(3),
+                "C": np.random.default_rng(2).random(3),
             }
         )
         rs = df.set_index(["A", "B"]).reset_index()
@@ -593,7 +601,11 @@ class TestResetIndex:
     def test_reset_index_delevel_infer_dtype(self):
         tuples = list(product(["foo", "bar"], [10, 20], [1.0, 1.1]))
         index = MultiIndex.from_tuples(tuples, names=["prm0", "prm1", "prm2"])
-        df = DataFrame(np.random.randn(8, 3), columns=["A", "B", "C"], index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 3)),
+            columns=["A", "B", "C"],
+            index=index,
+        )
         deleveled = df.reset_index()
         assert is_integer_dtype(deleveled["prm1"])
         assert is_float_dtype(deleveled["prm2"])
