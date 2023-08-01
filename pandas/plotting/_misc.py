@@ -81,6 +81,24 @@ def register() -> None:
     See Also
     --------
     deregister_matplotlib_converters : Remove pandas formatters and converters.
+
+    Examples
+    --------
+    .. plot::
+       :context: close-figs
+
+        >>> pd.plotting.register_matplotlib_converters()
+        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
+        ...                    'y': [1, 2]
+        ...                    })
+        >>> plot = df.plot.line(x='ts', y='y')
+
+        With the following, an error will be raised:
+
+        >>> pd.set_option("plotting.matplotlib.register_converters",
+        ...               False
+        ...               )  # doctest: +SKIP
+        >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register()
