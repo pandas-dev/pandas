@@ -172,9 +172,9 @@ class TestConvertDtypes:
         # GH 54191
         pytest.importorskip("pyarrow")
         timestamp_series = pd.Series(
-            pd.date_range("2020-01-01", "2020-01-02", freq="1min")
+            pd.date_range("2020-01-01", "2020-01-02", freq="1440min")
         ).astype("timestamp[ms][pyarrow]")
-        duration_series = pd.Series(pd.timedelta_range("1s", "10s", freq="1s")).astype(
+        duration_series = pd.Series(pd.timedelta_range("1s", "2s", freq="1s")).astype(
             "duration[ms][pyarrow]"
         )
 
