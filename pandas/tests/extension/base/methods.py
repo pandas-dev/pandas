@@ -66,7 +66,7 @@ class BaseMethodsTests(BaseExtensionTests):
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
 
-        if data.type == "string[pyarrow]" or isinstance(data.dtype, pd.ArrowDtype):
+        if data.dtype == "string[pyarrow]" or isinstance(data.dtype, pd.ArrowDtype):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
         elif na_value_for_dtype(data.dtype) is pd.NA:
