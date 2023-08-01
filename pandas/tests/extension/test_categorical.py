@@ -177,12 +177,12 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series(
             [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):

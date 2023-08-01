@@ -146,7 +146,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         expected = pd.concat(
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "columns",
@@ -222,7 +222,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         sarr = sarr.fillna(0)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
-        self.assert_equal(sarr.isna(), expected)
+        tm.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_backfill(self, data_missing):
         warns = (PerformanceWarning, FutureWarning)
@@ -259,7 +259,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             }
         )
 
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
@@ -311,13 +311,13 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         cond = np.array([True, False, True, True])
         result = ser.where(cond, other)
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
@@ -370,7 +370,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         #  for a non-sparse dtype.
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series([str(x) for x in data[:5]], dtype=object)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data):

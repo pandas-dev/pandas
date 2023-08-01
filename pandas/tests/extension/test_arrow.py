@@ -352,7 +352,7 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         result = result.astype("Float64")
         expected = getattr(ser.astype("Float64"), op_name)(skipna=skipna)
-        self.assert_series_equal(result, expected, check_dtype=False)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
@@ -762,7 +762,7 @@ class TestBaseParsing(base.BaseParsingTests):
             dtype_backend=dtype_backend,
         )
         expected = df
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestBaseUnaryOps(base.BaseUnaryOpsTests):
@@ -1215,7 +1215,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             expected = ser.combine(other, comparison_op)
             expected[8] = na_value
             expected[97] = na_value
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         else:
             exc = None
@@ -1227,7 +1227,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             if exc is None:
                 # Didn't error, then should match point-wise behavior
                 expected = ser.combine(other, comparison_op)
-                self.assert_series_equal(result, expected)
+                tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, comparison_op)

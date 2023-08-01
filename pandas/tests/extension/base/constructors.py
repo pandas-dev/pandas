@@ -39,27 +39,27 @@ class BaseConstructorsTests(BaseExtensionTests):
     def test_series_constructor_no_data_with_index(self, dtype, na_value):
         result = pd.Series(index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # GH 33559 - empty index
         result = pd.Series(index=[], dtype=dtype)
         expected = pd.Series([], index=pd.Index([], dtype="object"), dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
         result = pd.Series(na_value, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_series_constructor_scalar_with_index(self, data, dtype):
         scalar = data[0]
         result = pd.Series(scalar, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = pd.Series(scalar, index=["foo"], dtype=dtype)
         expected = pd.Series([scalar], index=["foo"], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("from_series", [True, False])
     def test_dataframe_constructor_from_dict(self, data, from_series):
@@ -91,19 +91,19 @@ class BaseConstructorsTests(BaseExtensionTests):
 
         expected = pd.Series(data)
         result = pd.Series(list(data), dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = pd.Series(list(data), dtype=str(dtype))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # gh-30280
 
         expected = pd.DataFrame(data).astype(dtype)
         result = pd.DataFrame(list(data), dtype=dtype)
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = pd.DataFrame(list(data), dtype=str(dtype))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_pandas_array(self, data):
         # pd.array(extension_array) should be idempotent...
@@ -114,7 +114,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         # ... but specifying dtype will override idempotency
         result = pd.array(data, dtype=np.dtype(object))
         expected = pd.arrays.NumpyExtensionArray(np.asarray(data, dtype=object))
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_construct_empty_dataframe(self, dtype):
         # GH 33623
@@ -122,7 +122,7 @@ class BaseConstructorsTests(BaseExtensionTests):
         expected = pd.DataFrame(
             {"a": pd.array([], dtype=dtype)}, index=pd.RangeIndex(0)
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()

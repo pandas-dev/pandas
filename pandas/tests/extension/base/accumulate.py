@@ -1,6 +1,7 @@
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -20,7 +21,7 @@ class BaseAccumulateTests(BaseExtensionTests):
             )
 
         expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
-        self.assert_series_equal(result, expected, check_dtype=False)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
