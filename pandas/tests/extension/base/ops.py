@@ -213,4 +213,4 @@ class BaseUnaryOpsTests(BaseOpsUtil):
                 ufunc(data)
         else:
             alt = ufunc(data)
-            self.assert_extension_array_equal(result, alt)
+            tm.assert_extension_array_equal(result, alt)

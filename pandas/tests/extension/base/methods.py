@@ -263,14 +263,14 @@ class BaseMethodsTests(BaseExtensionTests):
             expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_factorize_equivalence(self, data_for_grouping):
         codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
         codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
         tm.assert_numpy_array_equal(codes_1, codes_2)
-        self.assert_extension_array_equal(uniques_1, uniques_2)
+        tm.assert_extension_array_equal(uniques_1, uniques_2)
         assert len(uniques_1) == len(pd.unique(uniques_1))
         assert uniques_1.dtype == data_for_grouping.dtype
 
@@ -280,7 +280,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected_uniques = type(data)._from_sequence([], dtype=data[:0].dtype)
 
         tm.assert_numpy_array_equal(codes, expected_codes)
-        self.assert_extension_array_equal(uniques, expected_uniques)
+        tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
@@ -428,7 +428,7 @@ class BaseMethodsTests(BaseExtensionTests):
         subset = data[:2]
         result = subset.shift(periods)
         expected = subset.take(indices, allow_fill=True)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [-4, -1, 0, 1, 4])
     def test_shift_empty_array(self, data, periods):
@@ -436,7 +436,7 @@ class BaseMethodsTests(BaseExtensionTests):
         empty = data[:0]
         result = empty.shift(periods)
         expected = empty
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_shift_zero_copies(self, data):
         # GH#31502
@@ -451,11 +451,11 @@ class BaseMethodsTests(BaseExtensionTests):
         fill_value = data[0]
         result = arr.shift(1, fill_value=fill_value)
         expected = data.take([0, 0, 1, 2])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = arr.shift(-2, fill_value=fill_value)
         expected = data.take([2, 3, 0, 0])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_not_hashable(self, data):
         # We are in general mutable, so not hashable
@@ -602,19 +602,19 @@ class BaseMethodsTests(BaseExtensionTests):
     def test_delete(self, data):
         result = data.delete(0)
         expected = data[1:]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         result = data.delete([1, 3])
         expected = data._concat_same_type([data[[0]], data[[2]], data[4:]])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_insert(self, data):
         # insert at the beginning
         result = data[1:].insert(0, data[0])
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data[1:].insert(-len(data[1:]), data[0])
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         # insert at the middle
         result = data[:-1].insert(4, data[-1])
@@ -623,7 +623,7 @@ class BaseMethodsTests(BaseExtensionTests):
         taker[5:] = taker[4:-1]
         taker[4] = len(data) - 1
         expected = data.take(taker)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_insert_invalid(self, data, invalid_scalar):
         item = invalid_scalar

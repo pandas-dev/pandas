@@ -4,6 +4,7 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.internals.blocks import NumpyBlock
 from pandas.tests.extension.base.base import BaseExtensionTests
 
@@ -84,4 +85,4 @@ class BaseCastingTests(BaseExtensionTests):
         # https://github.com/pandas-dev/pandas/issues/28488
         result = data.astype(data.dtype, copy=copy)
         assert (result is data) is (not copy)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)

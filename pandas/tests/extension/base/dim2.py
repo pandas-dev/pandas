@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
 )
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
 from pandas.tests.extension.base.base import BaseExtensionTests
 
@@ -39,7 +40,7 @@ class Dim2CompatTests(BaseExtensionTests):
 
         result = arr2d.swapaxes(0, 1)
         expected = arr2d.T
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_delete_2d(self, data):
         arr2d = data.repeat(3).reshape(-1, 3)
@@ -47,12 +48,12 @@ class Dim2CompatTests(BaseExtensionTests):
         # axis = 0
         result = arr2d.delete(1, axis=0)
         expected = data.delete(1).repeat(3).reshape(-1, 3)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         # axis = 1
         result = arr2d.delete(1, axis=1)
         expected = data.repeat(2).reshape(-1, 2)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_take_2d(self, data):
         arr2d = data.reshape(-1, 1)
@@ -60,7 +61,7 @@ class Dim2CompatTests(BaseExtensionTests):
         result = arr2d.take([0, 0, -1], axis=0)
 
         expected = data.take([0, 0, -1]).reshape(-1, 1)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_repr_2d(self, data):
         # this could fail in a corner case where an element contained the name
@@ -88,7 +89,7 @@ class Dim2CompatTests(BaseExtensionTests):
         arr2d = data.reshape(1, -1)
 
         result = arr2d[0]
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         with pytest.raises(IndexError):
             arr2d[1]
@@ -97,18 +98,18 @@ class Dim2CompatTests(BaseExtensionTests):
             arr2d[-2]
 
         result = arr2d[:]
-        self.assert_extension_array_equal(result, arr2d)
+        tm.assert_extension_array_equal(result, arr2d)
 
         result = arr2d[:, :]
-        self.assert_extension_array_equal(result, arr2d)
+        tm.assert_extension_array_equal(result, arr2d)
 
         result = arr2d[:, 0]
         expected = data[[0]]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         # dimension-expanding getitem on 1D
         result = data[:, np.newaxis]
-        self.assert_extension_array_equal(result, arr2d.T)
+        tm.assert_extension_array_equal(result, arr2d.T)
 
     def test_iter_2d(self, data):
         arr2d = data.reshape(1, -1)
@@ -140,13 +141,13 @@ class Dim2CompatTests(BaseExtensionTests):
         # axis=0
         result = left._concat_same_type([left, right], axis=0)
         expected = data._concat_same_type([data] * 4).reshape(-1, 2)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         # axis=1
         result = left._concat_same_type([left, right], axis=1)
         assert result.shape == (len(data), 4)
-        self.assert_extension_array_equal(result[:, :2], left)
-        self.assert_extension_array_equal(result[:, 2:], right)
+        tm.assert_extension_array_equal(result[:, :2], left)
+        tm.assert_extension_array_equal(result[:, 2:], right)
 
         # axis > 1 -> invalid
         msg = "axis 2 is out of bounds for array of dimension 2"
@@ -163,7 +164,7 @@ class Dim2CompatTests(BaseExtensionTests):
         result = arr.pad_or_backfill(method=method, limit=None)
 
         expected = data_missing.pad_or_backfill(method=method).repeat(2).reshape(2, 2)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
         # Reverse so that backfill is not a no-op.
         arr2 = arr[::-1]
@@ -175,7 +176,7 @@ class Dim2CompatTests(BaseExtensionTests):
         expected2 = (
             data_missing[::-1].pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         )
-        self.assert_extension_array_equal(result2, expected2)
+        tm.assert_extension_array_equal(result2, expected2)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis_none(self, data, method):
@@ -251,18 +252,18 @@ class Dim2CompatTests(BaseExtensionTests):
                 fill_value = 1 if method == "prod" else 0
                 expected = expected.fillna(fill_value)
 
-            self.assert_extension_array_equal(result, expected)
+            tm.assert_extension_array_equal(result, expected)
         elif method == "median":
             # std and var are not dtype-preserving
             expected = data
-            self.assert_extension_array_equal(result, expected)
+            tm.assert_extension_array_equal(result, expected)
         elif method in ["mean", "std", "var"]:
             if is_integer_dtype(data) or is_bool_dtype(data):
                 data = data.astype("Float64")
             if method == "mean":
-                self.assert_extension_array_equal(result, data)
+                tm.assert_extension_array_equal(result, data)
             else:
-                self.assert_extension_array_equal(result, data - data)
+                tm.assert_extension_array_equal(result, data - data)
 
     @pytest.mark.parametrize("method", ["mean", "median", "var", "std", "sum", "prod"])
     def test_reductions_2d_axis1(self, data, method):

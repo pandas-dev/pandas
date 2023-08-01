@@ -36,7 +36,7 @@ class BaseMissingTests(BaseExtensionTests):
     def test_dropna_array(self, data_missing):
         result = data_missing.dropna()
         expected = data_missing[[1]]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_dropna_series(self, data_missing):
         ser = pd.Series(data_missing)
@@ -67,7 +67,7 @@ class BaseMissingTests(BaseExtensionTests):
         valid = data_missing[1]
         result = data_missing.fillna(valid)
         expected = data_missing.fillna(valid)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.filterwarnings(
         "ignore:Series.fillna with 'method' is deprecated:FutureWarning"
@@ -93,11 +93,11 @@ class BaseMissingTests(BaseExtensionTests):
         valid = data[0]
         result = data.fillna(valid)
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data.pad_or_backfill(method="backfill")
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

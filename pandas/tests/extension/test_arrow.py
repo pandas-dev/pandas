@@ -695,11 +695,11 @@ class TestBaseMissing(base.BaseMissingTests):
         valid = data[0]
         result = data.fillna(valid)
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data.fillna(method="backfill")
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestBasePrinting(base.BasePrintingTests):

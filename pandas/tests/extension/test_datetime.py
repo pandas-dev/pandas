@@ -19,6 +19,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
@@ -119,7 +120,7 @@ class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
