@@ -83,9 +83,9 @@ class TestPivotTable:
                     "shiny",
                     "shiny",
                 ],
-                "D": np.random.randn(11),
-                "E": np.random.randn(11),
-                "F": np.random.randn(11),
+                "D": np.random.default_rng(2).standard_normal(11),
+                "E": np.random.default_rng(2).standard_normal(11),
+                "F": np.random.default_rng(2).standard_normal(11),
             }
         )
 
@@ -1068,7 +1068,13 @@ class TestPivotTable:
 
     def test_pivot_table_retains_tz(self):
         dti = date_range("2016-01-01", periods=3, tz="Europe/Amsterdam")
-        df = DataFrame({"A": np.random.randn(3), "B": np.random.randn(3), "C": dti})
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).standard_normal(3),
+                "B": np.random.default_rng(2).standard_normal(3),
+                "C": dti,
+            }
+        )
         result = df.pivot_table(index=["B", "C"], dropna=False)
 
         # check tz retention
@@ -1103,7 +1109,7 @@ class TestPivotTable:
                 "a": ["a", "a", "a", "a", "b", "b", "b", "b"] * 2,
                 "b": [0, 0, 0, 0, 1, 1, 1, 1] * 2,
                 "c": (["foo"] * 4 + ["bar"] * 4) * 2,
-                "value": np.random.randn(16),
+                "value": np.random.default_rng(2).standard_normal(16),
             }
         )
 
@@ -1143,15 +1149,15 @@ class TestPivotTable:
             dtype=[("Index", object), ("Symbol", object)],
         )
         items = np.empty(n, dtype=dtype)
-        iproduct = np.random.randint(0, len(products), n)
+        iproduct = np.random.default_rng(2).integers(0, len(products), n)
         items["Index"] = products["Index"][iproduct]
         items["Symbol"] = products["Symbol"][iproduct]
         dr = date_range(date(2000, 1, 1), date(2010, 12, 31))
-        dates = dr[np.random.randint(0, len(dr), n)]
+        dates = dr[np.random.default_rng(2).integers(0, len(dr), n)]
         items["Year"] = dates.year
         items["Month"] = dates.month
         items["Day"] = dates.day
-        items["Price"] = np.random.lognormal(4.0, 2.0, n)
+        items["Price"] = np.random.default_rng(2).lognormal(4.0, 2.0, n)
 
         df = DataFrame(items)
 
@@ -1684,7 +1690,7 @@ class TestPivotTable:
     @pytest.mark.parametrize("i", range(1, 367))
     def test_daily(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="D")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         annual = pivot_table(
             DataFrame(ts), index=ts.index.year, columns=ts.index.dayofyear
@@ -1703,7 +1709,7 @@ class TestPivotTable:
     @pytest.mark.parametrize("i", range(1, 13))
     def test_monthly(self, i):
         rng = date_range("1/1/2000", "12/31/2004", freq="M")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         annual = pivot_table(DataFrame(ts), index=ts.index.year, columns=ts.index.month)
         annual.columns = annual.columns.droplevel(0)
@@ -2619,3 +2625,30 @@ class TestPivot:
 
         expected = Index([], dtype="object", name="b")
         tm.assert_index_equal(pivot.columns, expected)
+
+    def test_pivot_table_handles_explicit_datetime_types(self):
+        # GH#43574
+        df = DataFrame(
+            [
+                {"a": "x", "date_str": "2023-01-01", "amount": 1},
+                {"a": "y", "date_str": "2023-01-02", "amount": 2},
+                {"a": "z", "date_str": "2023-01-03", "amount": 3},
+            ]
+        )
+        df["date"] = pd.to_datetime(df["date_str"])
+
+        with tm.assert_produces_warning(False):
+            pivot = df.pivot_table(
+                index=["a", "date"], values=["amount"], aggfunc="sum", margins=True
+            )
+
+        expected = MultiIndex.from_tuples(
+            [
+                ("x", datetime.strptime("2023-01-01 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("y", datetime.strptime("2023-01-02 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("z", datetime.strptime("2023-01-03 00:00:00", "%Y-%m-%d %H:%M:%S")),
+                ("All", ""),
+            ],
+            names=["a", "date"],
+        )
+        tm.assert_index_equal(pivot.index, expected)

@@ -2204,7 +2204,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Ensure index is type stable (should always use int index)
         return self._constructor(
             res_values, index=range(len(res_values)), name=self.name, copy=False
-        )
+        ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
         """
