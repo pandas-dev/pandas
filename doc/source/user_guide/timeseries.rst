@@ -603,7 +603,7 @@ would include matching times on an included date:
    dft = pd.DataFrame(
        np.random.randn(100000, 1),
        columns=["A"],
-       index=pd.date_range("20130101", periods=100000, freq="T"),
+       index=pd.date_range("20130101", periods=100000, freq="min"),
    )
    dft
    dft.loc["2013"]
@@ -905,11 +905,11 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
     :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
     :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
-    :class:`~pandas.tseries.offsets.Minute`, ``'T'`` or ``'min'``,"one minute"
+    :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
     :class:`~pandas.tseries.offsets.Second`, ``'S'``, "one second"
-    :class:`~pandas.tseries.offsets.Milli`, ``'L'`` or ``'ms'``, "one millisecond"
-    :class:`~pandas.tseries.offsets.Micro`, ``'U'`` or ``'us'``, "one microsecond"
-    :class:`~pandas.tseries.offsets.Nano`, ``'N'``, "one nanosecond"
+    :class:`~pandas.tseries.offsets.Milli`, ``'ms'``, "one millisecond"
+    :class:`~pandas.tseries.offsets.Micro`, ``'us'``, "one microsecond"
+    :class:`~pandas.tseries.offsets.Nano`, ``'ns'``, "one nanosecond"
 
 ``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
 methods for moving a date forward or backward respectively to a valid offset
@@ -1264,11 +1264,11 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BAS, BYS", "business year start frequency"
     "BH", "business hour frequency"
     "H", "hourly frequency"
-    "T, min", "minutely frequency"
+    "min", "minutely frequency"
     "S", "secondly frequency"
-    "L, ms", "milliseconds"
-    "U, us", "microseconds"
-    "N", "nanoseconds"
+    "ms", "milliseconds"
+    "us", "microseconds"
+    "ns", "nanoseconds"
 
 .. note::
 
@@ -1318,11 +1318,11 @@ frequencies. We will refer to these aliases as *period aliases*.
     "Q", "quarterly frequency"
     "A, Y", "yearly frequency"
     "H", "hourly frequency"
-    "T, min", "minutely frequency"
+    "min", "minutely frequency"
     "S", "secondly frequency"
-    "L, ms", "milliseconds"
-    "U, us", "microseconds"
-    "N", "nanoseconds"
+    "ms", "milliseconds"
+    "us", "microseconds"
+    "ns", "nanoseconds"
 
 
 Combining aliases
@@ -1343,7 +1343,7 @@ You can combine together day and intraday offsets:
 
    pd.date_range(start, periods=10, freq="2h20min")
 
-   pd.date_range(start, periods=10, freq="1D10U")
+   pd.date_range(start, periods=10, freq="1D10us")
 
 Anchored offsets
 ~~~~~~~~~~~~~~~~
@@ -1725,11 +1725,11 @@ For upsampling, you can specify a way to upsample and the ``limit`` parameter to
 
    # from secondly to every 250 milliseconds
 
-   ts[:2].resample("250L").asfreq()
+   ts[:2].resample("250ms").asfreq()
 
-   ts[:2].resample("250L").ffill()
+   ts[:2].resample("250ms").ffill()
 
-   ts[:2].resample("250L").ffill(limit=2)
+   ts[:2].resample("250ms").ffill(limit=2)
 
 Sparse resampling
 ~~~~~~~~~~~~~~~~~
@@ -1752,7 +1752,7 @@ If we want to resample to the full range of the series:
 
 .. ipython:: python
 
-    ts.resample("3T").sum()
+    ts.resample("3min").sum()
 
 We can instead only resample those groups where we have points as follows:
 
@@ -1766,7 +1766,7 @@ We can instead only resample those groups where we have points as follows:
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
 
-    ts.groupby(partial(round, freq="3T")).sum()
+    ts.groupby(partial(round, freq="3min")).sum()
 
 .. _timeseries.aggregate:
 
@@ -1786,7 +1786,7 @@ Resampling a ``DataFrame``, the default will be to act on all columns with the s
        index=pd.date_range("1/1/2012", freq="S", periods=1000),
        columns=["A", "B", "C"],
    )
-   r = df.resample("3T")
+   r = df.resample("3min")
    r.mean()
 
 We can select a specific column or columns using standard getitem.
@@ -2155,7 +2155,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
    dfp = pd.DataFrame(
        np.random.randn(600, 1),
        columns=["A"],
-       index=pd.period_range("2013-01-01 9:00", periods=600, freq="T"),
+       index=pd.period_range("2013-01-01 9:00", periods=600, freq="min"),
    )
    dfp
    dfp.loc["2013-01-01 10H"]
