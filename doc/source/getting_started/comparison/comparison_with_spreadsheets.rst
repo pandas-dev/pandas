@@ -378,7 +378,9 @@ Pandas has a built-in function 'isnull()' which returns a series/dataframe with 
     :align: center
 
 In Pandas:
+
 .. ipython:: python
+
     df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
     'Age':[np.nan,23,20,np.nan,21],
     'Marks':[78,67,86,90,81],
@@ -398,7 +400,9 @@ In Excel, if we want to remove rows containing missing values, we use 'Filter' a
 .. image:: ../../_static/spreadsheets/drop_missing.png
 
 In pandas we have 'dropna()' function.
+
 .. ipython:: python
+
     df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
     'Age':[np.nan,23,20,np.nan,21],
     'Marks':[78,67,86,90,81],
@@ -417,7 +421,9 @@ In Excel, we can use the fill method to fill missing cells.
 .. image:: ../../_static/spreadsheets/fill_missing.png
 
 In Pandas, we can use 'fillna()' to fill missing values.
+
 .. ipython:: python
+    
     df = pd.DataFrame({'Name':['Maria','Jose','Mikil','Nushi','Mohammed'],
     'Age':[np.nan,23,20,np.nan,21],
     'Marks':[78,67,86,90,81],
