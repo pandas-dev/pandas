@@ -6,7 +6,10 @@ from collections.abc import (
     Iterable,
 )
 import itertools
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -455,10 +458,12 @@ def from_dummies(
             f"Received 'data' of type: {type(data).__name__}"
         )
 
-    if data.isna().any().any():
+    col_isna_mask = cast(Series, data.isna().any())
+
+    if col_isna_mask.any():
         raise ValueError(
             "Dummy DataFrame contains NA value in column: "
-            f"'{data.isna().any().idxmax()}'"
+            f"'{col_isna_mask.idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies

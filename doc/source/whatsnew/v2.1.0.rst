@@ -772,8 +772,10 @@ Styler
 
 Metadata
 ^^^^^^^^
+- Fixed metadata propagation in :meth:`DataFrame.max`, :meth:`DataFrame.min`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`Series.mode`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.squeeze`, and :meth:`DataFrame.describe` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.std` (:issue:`28283`)
+-
 
 Other
 ^^^^^
