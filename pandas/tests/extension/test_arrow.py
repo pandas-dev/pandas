@@ -873,21 +873,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
 
-    @classmethod
-    def assert_equal(cls, left, right, **kwargs):
-        if isinstance(left, pd.DataFrame):
-            left_pa_type = left.iloc[:, 0].dtype.pyarrow_dtype
-            right_pa_type = right.iloc[:, 0].dtype.pyarrow_dtype
-        else:
-            left_pa_type = left.dtype.pyarrow_dtype
-            right_pa_type = right.dtype.pyarrow_dtype
-        if pa.types.is_decimal(left_pa_type) or pa.types.is_decimal(right_pa_type):
-            # decimal precision can resize in the result type depending on data
-            # just compare the float values
-            left = left.astype("float[pyarrow]")
-            right = right.astype("float[pyarrow]")
-        tm.assert_equal(left, right, **kwargs)
-
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip("_")
         if short_opname == "rtruediv":
@@ -934,6 +919,29 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     unit = "us"
 
             pa_expected = pa_expected.cast(f"duration[{unit}]")
+
+        elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
+            original_dtype.pyarrow_dtype
+        ):
+            # decimal precision can resize in the result type depending on data
+            # just compare the float values
+            alt = op(obj, other)
+            alt_dtype = tm.get_dtype(alt)
+            assert isinstance(alt_dtype, ArrowDtype)
+            if op is operator.pow and isinstance(other, Decimal):
+                # TODO: would it make more sense to retain Decimal here?
+                alt_dtype = ArrowDtype(pa.float64())
+            elif (
+                op is operator.pow
+                and isinstance(other, pd.Series)
+                and other.dtype == original_dtype
+            ):
+                # TODO: would it make more sense to retain Decimal here?
+                alt_dtype = ArrowDtype(pa.float64())
+            else:
+                assert pa.types.is_decimal(alt_dtype.pyarrow_dtype)
+            return expected.astype(alt_dtype)
+
         else:
             pa_expected = pa_expected.cast(original_dtype.pyarrow_dtype)
 
@@ -1075,6 +1083,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1107,6 +1116,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             # BaseOpsUtil._combine always returns int64, while ArrowExtensionArray does
             # not upcast
@@ -1160,6 +1170,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_duration(pa_dtype)
             or pa.types.is_timestamp(pa_dtype)
             or pa.types.is_date(pa_dtype)
+            or pa.types.is_decimal(pa_dtype)
         ):
             monkeypatch.setattr(TestBaseArithmeticOps, "_combine", self._patch_combine)
         self.check_opname(ser, op_name, other, exc=self.series_array_exc)
