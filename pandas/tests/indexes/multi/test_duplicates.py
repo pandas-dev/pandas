@@ -239,7 +239,7 @@ def test_duplicated_hashtable_impl(keep, monkeypatch):
     # GH 9125
     n, k = 6, 10
     levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    codes = [np.random.choice(n, k * n) for _ in levels]
+    codes = [np.random.default_rng(2).choice(n, k * n) for _ in levels]
     with monkeypatch.context() as m:
         m.setattr(libindex, "_SIZE_CUTOFF", 50)
         mi = MultiIndex(levels=levels, codes=codes)
@@ -266,7 +266,7 @@ def test_duplicated_with_nan_multi_shape(n, m):
     codes = product(range(-1, n), range(-1, m))
     mi = MultiIndex(
         levels=[list("abcde")[:n], list("WXYZ")[:m]],
-        codes=np.random.permutation(list(codes)).T,
+        codes=np.random.default_rng(2).permutation(list(codes)).T,
     )
     assert len(mi) == (n + 1) * (m + 1)
     assert not mi.has_duplicates

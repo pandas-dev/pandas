@@ -87,7 +87,7 @@ class TestRename:
     def test_rename_chainmap(self, args, kwargs):
         # see gh-23859
         colAData = range(1, 11)
-        colBdata = np.random.randn(10)
+        colBdata = np.random.default_rng(2).standard_normal(10)
 
         df = DataFrame({"A": colAData, "B": colBdata})
         result = df.rename(*args, **kwargs)

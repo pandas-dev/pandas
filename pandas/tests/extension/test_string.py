@@ -55,9 +55,9 @@ def dtype(string_storage):
 
 @pytest.fixture
 def data(dtype, chunked):
-    strings = np.random.choice(list(string.ascii_letters), size=100)
+    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
-        strings = np.random.choice(list(string.ascii_letters), size=100)
+        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
 
     arr = dtype.construct_array_type()._from_sequence(strings)
     return split_array(arr) if chunked else arr

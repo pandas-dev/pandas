@@ -21,7 +21,7 @@ class TestDataFrameNonuniqueIndexes:
     def test_setattr_columns_vs_construct_with_columns(self):
         # assignment
         # GH 3687
-        arr = np.random.randn(3, 2)
+        arr = np.random.default_rng(2).standard_normal((3, 2))
         idx = list(range(2))
         df = DataFrame(arr, columns=["A", "A"])
         df.columns = idx
@@ -164,7 +164,7 @@ class TestDataFrameNonuniqueIndexes:
     def test_column_dups_indexes(self):
         # check column dups with index equal and not equal to df's index
         df = DataFrame(
-            np.random.randn(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["A", "B", "A"],
         )
@@ -182,13 +182,17 @@ class TestDataFrameNonuniqueIndexes:
         # multiple assignments that change dtypes
         # the location indexer is a slice
         # GH 6120
-        df = DataFrame(np.random.randn(5, 2), columns=["that", "that"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["that", "that"]
+        )
         expected = DataFrame(1.0, index=range(5), columns=["that", "that"])
 
         df["that"] = 1.0
         check(df, expected)
 
-        df = DataFrame(np.random.rand(5, 2), columns=["that", "that"])
+        df = DataFrame(
+            np.random.default_rng(2).random((5, 2)), columns=["that", "that"]
+        )
         expected = DataFrame(1, index=range(5), columns=["that", "that"])
 
         df["that"] = 1
@@ -295,8 +299,12 @@ class TestDataFrameNonuniqueIndexes:
 
     def test_dups_across_blocks(self, using_array_manager):
         # dups across blocks
-        df_float = DataFrame(np.random.randn(10, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(10, 3).astype("int64"))
+        df_float = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), dtype="float64"
+        )
+        df_int = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)).astype("int64")
+        )
         df_bool = DataFrame(True, index=df_float.index, columns=df_float.columns)
         df_object = DataFrame("foo", index=df_float.index, columns=df_float.columns)
         df_dt = DataFrame(

@@ -130,7 +130,9 @@ nan 2
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
     df = DataFrame(
-        np.random.rand(5, 2), columns=list("AB"), index=["1A", "1B", "1C", "1D", "1E"]
+        np.random.default_rng(2).random((5, 2)),
+        columns=list("AB"),
+        index=["1A", "1B", "1C", "1D", "1E"],
     )
 
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:

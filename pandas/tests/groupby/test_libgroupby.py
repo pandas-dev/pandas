@@ -18,11 +18,11 @@ import pandas._testing as tm
 
 class GroupVarTestMixin:
     def test_group_var_generic_1d(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 1))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(15, 1).astype(self.dtype)
+        values = 10 * prng.random((15, 1)).astype(self.dtype)
         labels = np.tile(np.arange(5), (3,)).astype("intp")
 
         expected_out = (
@@ -35,11 +35,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_1d_flat_labels(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((1, 1))).astype(self.dtype)
         counts = np.zeros(1, dtype="int64")
-        values = 10 * prng.rand(5, 1).astype(self.dtype)
+        values = 10 * prng.random((5, 1)).astype(self.dtype)
         labels = np.zeros(5, dtype="intp")
 
         expected_out = np.array([[values.std(ddof=1) ** 2]])
@@ -51,11 +51,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_all_finite(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
         expected_out = np.std(values.reshape(2, 5, 2), ddof=1, axis=0) ** 2
@@ -66,11 +66,11 @@ class GroupVarTestMixin:
         tm.assert_numpy_array_equal(counts, expected_counts)
 
     def test_group_var_generic_2d_some_nan(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = (np.nan * np.ones((5, 2))).astype(self.dtype)
         counts = np.zeros(5, dtype="int64")
-        values = 10 * prng.rand(10, 2).astype(self.dtype)
+        values = 10 * prng.random((10, 2)).astype(self.dtype)
         values[:, 1] = np.nan
         labels = np.tile(np.arange(5), (2,)).astype("intp")
 
@@ -109,11 +109,11 @@ class TestGroupVarFloat64(GroupVarTestMixin):
     rtol = 1e-5
 
     def test_group_var_large_inputs(self):
-        prng = np.random.RandomState(1234)
+        prng = np.random.default_rng(2)
 
         out = np.array([[np.nan]], dtype=self.dtype)
         counts = np.array([0], dtype="int64")
-        values = (prng.rand(10**6) + 10**12).astype(self.dtype)
+        values = (prng.random(10**6) + 10**12).astype(self.dtype)
         values.shape = (10**6, 1)
         labels = np.zeros(10**6, dtype="intp")
 
@@ -133,7 +133,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_group_ohlc(dtype):
-    obj = np.array(np.random.randn(20), dtype=dtype)
+    obj = np.array(np.random.default_rng(2).standard_normal(20), dtype=dtype)
 
     bins = np.array([6, 12, 20])
     out = np.zeros((3, 4), dtype)

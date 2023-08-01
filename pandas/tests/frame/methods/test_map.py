@@ -56,7 +56,7 @@ def test_map_keeps_dtype(na_action):
 
 def test_map_str():
     # GH 2786
-    df = DataFrame(np.random.random((3, 4)))
+    df = DataFrame(np.random.default_rng(2).random((3, 4)))
     df2 = df.copy()
     cols = ["a", "a", "a", "a"]
     df.columns = cols
@@ -73,7 +73,7 @@ def test_map_str():
 )
 def test_map_datetimelike(col, val):
     # datetime/timedelta
-    df = DataFrame(np.random.random((3, 4)))
+    df = DataFrame(np.random.default_rng(2).random((3, 4)))
     df[col] = val
     result = df.map(str)
     assert result.loc[0, col] == str(df.loc[0, col])
@@ -106,7 +106,7 @@ def test_map_na_ignore(float_frame):
     # GH 23803
     strlen_frame = float_frame.map(lambda x: len(str(x)))
     float_frame_with_na = float_frame.copy()
-    mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
+    mask = np.random.default_rng(2).integers(0, 2, size=float_frame.shape, dtype=bool)
     float_frame_with_na[mask] = pd.NA
     strlen_frame_na_ignore = float_frame_with_na.map(
         lambda x: len(str(x)), na_action="ignore"

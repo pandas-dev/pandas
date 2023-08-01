@@ -41,7 +41,7 @@ def get_test_data(ngroups=8, n=50):
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
 
-    np.random.shuffle(arr)
+    np.random.default_rng(2).shuffle(arr)
     return arr
 
 
@@ -113,8 +113,8 @@ class TestMerge:
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(50),
-                "data2": np.random.randn(50),
+                "data1": np.random.default_rng(2).standard_normal(50),
+                "data2": np.random.default_rng(2).standard_normal(50),
             }
         )
 
@@ -128,19 +128,25 @@ class TestMerge:
             {
                 "key1": get_test_data(n=10),
                 "key2": get_test_data(ngroups=4, n=10),
-                "value": np.random.randn(10),
+                "value": np.random.default_rng(2).standard_normal(10),
             }
         )
 
     @pytest.fixture
     def left(self):
         return DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
 
     @pytest.fixture
     def right(self):
-        return DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        return DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
     def test_merge_inner_join_empty(self):
         # GH 15328
@@ -178,9 +184,15 @@ class TestMerge:
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
-        right = DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        right = DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
         merged1 = merge(
             left, right, left_on="key", right_index=True, how="left", sort=False
@@ -200,9 +212,15 @@ class TestMerge:
 
     def test_merge_index_singlekey_inner(self):
         left = DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
-        right = DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        right = DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
         # inner join
         result = merge(left, right, left_on="key", right_index=True, how="inner")
@@ -598,8 +616,8 @@ class TestMerge:
         # GH#2098
 
         d = {
-            "var1": np.random.randint(0, 10, size=10),
-            "var2": np.random.randint(0, 10, size=10),
+            "var1": np.random.default_rng(2).integers(0, 10, size=10),
+            "var2": np.random.default_rng(2).integers(0, 10, size=10),
             "var3": [
                 datetime(2012, 1, 12),
                 datetime(2011, 2, 4),
@@ -616,7 +634,9 @@ class TestMerge:
         df = DataFrame.from_dict(d)
         var3 = df.var3.unique()
         var3 = np.sort(var3)
-        new = DataFrame.from_dict({"var3": var3, "var8": np.random.random(7)})
+        new = DataFrame.from_dict(
+            {"var3": var3, "var8": np.random.default_rng(2).random(7)}
+        )
 
         result = df.merge(new, on="var3", sort=False)
         exp = merge(df, new, on="var3", sort=False)
@@ -1819,20 +1839,18 @@ class TestMergeDtypes:
 
 @pytest.fixture
 def left():
-    np.random.seed(1234)
     return DataFrame(
         {
-            "X": Series(np.random.choice(["foo", "bar"], size=(10,))).astype(
-                CDT(["foo", "bar"])
-            ),
-            "Y": np.random.choice(["one", "two", "three"], size=(10,)),
+            "X": Series(
+                np.random.default_rng(2).choice(["foo", "bar"], size=(10,))
+            ).astype(CDT(["foo", "bar"])),
+            "Y": np.random.default_rng(2).choice(["one", "two", "three"], size=(10,)),
         }
     )
 
 
 @pytest.fixture
 def right():
-    np.random.seed(1234)
     return DataFrame(
         {"X": Series(["foo", "bar"]).astype(CDT(["foo", "bar"])), "Z": [1, 2]}
     )

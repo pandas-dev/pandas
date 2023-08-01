@@ -333,7 +333,7 @@ class TestHashTableUnsorted:
     ):
         # Test for memory errors after internal vector
         # reallocations (GH 7157)
-        # Changed from using np.random.rand to range
+        # Changed from using np.random.default_rng(2).rand to range
         # which could cause flaky CI failures when safely_resizes=False
         vals = np.array(range(1000), dtype=dtype)
 
@@ -660,14 +660,14 @@ def test_unique_label_indices_intp(writable):
 
 
 def test_unique_label_indices():
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
+    a = np.random.default_rng(2).integers(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
-    a[np.random.choice(len(a), 10)] = -1
+    a[np.random.default_rng(2).choice(len(a), 10)] = -1
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right, check_dtype=False)

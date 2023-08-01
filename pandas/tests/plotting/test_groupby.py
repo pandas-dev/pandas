@@ -20,28 +20,31 @@ pytest.importorskip("matplotlib")
 class TestDataFrameGroupByPlots:
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
-        weight = Series(np.random.normal(166, 20, size=n))
-        gender = np.random.RandomState(42).choice(["male", "female"], size=n)
+        weight = Series(np.random.default_rng(2).normal(166, 20, size=n))
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
 
         weight.groupby(gender).plot()
 
     def test_series_groupby_plotting_nominally_works_hist(self):
         n = 10
-        height = Series(np.random.normal(60, 10, size=n))
-        gender = np.random.RandomState(42).choice(["male", "female"], size=n)
+        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         height.groupby(gender).hist()
 
     def test_series_groupby_plotting_nominally_works_alpha(self):
         n = 10
-        height = Series(np.random.normal(60, 10, size=n))
-        gender = np.random.RandomState(42).choice(["male", "female"], size=n)
+        height = Series(np.random.default_rng(2).normal(60, 10, size=n))
+        gender = np.random.default_rng(2).choice(["male", "female"], size=n)
         # Regression test for GH8733
         height.groupby(gender).plot(alpha=0.5)
 
     def test_plotting_with_float_index_works(self):
         # GH 7025
         df = DataFrame(
-            {"def": [1, 1, 1, 2, 2, 2, 3, 3, 3], "val": np.random.randn(9)},
+            {
+                "def": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                "val": np.random.default_rng(2).standard_normal(9),
+            },
             index=[1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0],
         )
 
@@ -50,7 +53,10 @@ class TestDataFrameGroupByPlots:
     def test_plotting_with_float_index_works_apply(self):
         # GH 7025
         df = DataFrame(
-            {"def": [1, 1, 1, 2, 2, 2, 3, 3, 3], "val": np.random.randn(9)},
+            {
+                "def": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                "val": np.random.default_rng(2).standard_normal(9),
+            },
             index=[1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0],
         )
         df.groupby("def")["val"].apply(lambda x: x.plot())
@@ -95,7 +101,11 @@ class TestDataFrameGroupByPlots:
         expected_labels = column or [["a"], ["b"]]
 
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
         g = df.groupby("c")
 
         for axes in g.hist(legend=True, column=column):
@@ -107,7 +117,11 @@ class TestDataFrameGroupByPlots:
     def test_groupby_hist_frame_with_legend_raises(self, column):
         # GH 6279 - DataFrameGroupBy histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
         g = df.groupby("c")
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
@@ -116,7 +130,11 @@ class TestDataFrameGroupByPlots:
     def test_groupby_hist_series_with_legend(self):
         # GH 6279 - SeriesGroupBy histogram can have a legend
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
         g = df.groupby("c")
 
         for ax in g["a"].hist(legend=True):
@@ -126,7 +144,11 @@ class TestDataFrameGroupByPlots:
     def test_groupby_hist_series_with_legend_raises(self):
         # GH 6279 - SeriesGroupBy histogram with legend and label raises
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
-        df = DataFrame(np.random.randn(30, 2), index=index, columns=["a", "b"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)),
+            index=index,
+            columns=["a", "b"],
+        )
         g = df.groupby("c")
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):

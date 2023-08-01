@@ -17,7 +17,9 @@ from pandas import (
 
 def test_info_categorical_column_just_works():
     n = 2500
-    data = np.array(list("abcdefghij")).take(np.random.randint(0, 10, size=n))
+    data = np.array(list("abcdefghij")).take(
+        np.random.default_rng(2).integers(0, 10, size=n, dtype=int)
+    )
     s = Series(data).astype("category")
     s.isna()
     buf = StringIO()
@@ -90,7 +92,7 @@ def test_info_memory():
 
 
 def test_info_wide():
-    s = Series(np.random.randn(101))
+    s = Series(np.random.default_rng(2).standard_normal(101))
     msg = "Argument `max_cols` can only be passed in DataFrame.info, not Series.info"
     with pytest.raises(ValueError, match=msg):
         s.info(max_cols=1)
@@ -108,7 +110,7 @@ def test_info_shows_dtypes():
     ]
     n = 10
     for dtype in dtypes:
-        s = Series(np.random.randint(2, size=n).astype(dtype))
+        s = Series(np.random.default_rng(2).integers(2, size=n).astype(dtype))
         buf = StringIO()
         s.info(buf=buf)
         res = buf.getvalue()
@@ -168,7 +170,7 @@ def test_info_memory_usage_bug_on_multiindex():
         [list(uppercase), date_range("20160101", periods=N)],
         names=["id", "date"],
     )
-    s = Series(np.random.randn(N * M), index=index)
+    s = Series(np.random.default_rng(2).standard_normal(N * M), index=index)
 
     unstacked = s.unstack("id")
     assert s.values.nbytes == unstacked.values.nbytes

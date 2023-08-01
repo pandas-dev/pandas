@@ -133,7 +133,7 @@ class TestDataFrameFilter:
     def test_filter_regex_non_string(self):
         # GH#5798 trying to filter on non-string columns should drop,
         #  not raise
-        df = DataFrame(np.random.random((3, 2)), columns=["STRING", 123])
+        df = DataFrame(np.random.default_rng(2).random((3, 2)), columns=["STRING", 123])
         result = df.filter(regex="STRING")
         expected = df[["STRING"]]
         tm.assert_frame_equal(result, expected)

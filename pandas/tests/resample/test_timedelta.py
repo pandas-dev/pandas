@@ -81,7 +81,7 @@ def test_resample_timedelta_idempotency():
 def test_resample_offset_with_timedeltaindex():
     # GH 10530 & 31809
     rng = timedelta_range(start="0s", periods=25, freq="s")
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     with_base = ts.resample("2s", offset="5s").mean()
     without_base = ts.resample("2s").mean()
@@ -154,7 +154,7 @@ def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
 def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
     # GH 10603
     df = DataFrame(
-        np.random.normal(size=(10000, 4)),
+        np.random.default_rng(2).normal(size=(10000, 4)),
         index=timedelta_range(start="0s", periods=10000, freq="3906250n"),
     )
     if duplicates:

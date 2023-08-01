@@ -7,7 +7,7 @@ import pandas._testing as tm
 
 def test_mask():
     # compare with tested results in test_where
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.where(~cond, np.nan)
@@ -56,7 +56,7 @@ def test_mask_casts2():
 
 
 def test_mask_inplace():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.copy()

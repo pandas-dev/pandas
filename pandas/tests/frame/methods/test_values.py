@@ -72,7 +72,9 @@ class TestDataFrameValues:
 
         expected = series.astype("object")
 
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
+        df = DataFrame(
+            {"a": series, "b": np.random.default_rng(2).standard_normal(len(series))}
+        )
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()

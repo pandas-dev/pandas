@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -23,7 +21,7 @@ from pandas.core.indexes.frozen import FrozenList
 
 def test_sortlevel(idx):
     tuples = list(idx)
-    random.shuffle(tuples)
+    np.random.default_rng(2).shuffle(tuples)
 
     index = MultiIndex.from_tuples(tuples)
 
@@ -140,7 +138,11 @@ def test_unsortedindex():
 def test_unsortedindex_doc_examples():
     # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
     dfm = DataFrame(
-        {"jim": [0, 0, 1, 1], "joe": ["x", "x", "z", "y"], "jolie": np.random.rand(4)}
+        {
+            "jim": [0, 0, 1, 1],
+            "joe": ["x", "x", "z", "y"],
+            "jolie": np.random.default_rng(2).random(4),
+        }
     )
 
     dfm = dfm.set_index(["jim", "joe"])
@@ -239,14 +241,14 @@ def test_remove_unused_levels_large(first_type, second_type):
     # because tests should be deterministic (and this test in particular
     # checks that levels are removed, which is not the case for every
     # random input):
-    rng = np.random.RandomState(4)  # seed is arbitrary value that works
+    rng = np.random.default_rng(10)  # seed is arbitrary value that works
 
     size = 1 << 16
     df = DataFrame(
         {
-            "first": rng.randint(0, 1 << 13, size).astype(first_type),
-            "second": rng.randint(0, 1 << 10, size).astype(second_type),
-            "third": rng.rand(size),
+            "first": rng.integers(0, 1 << 13, size).astype(first_type),
+            "second": rng.integers(0, 1 << 10, size).astype(second_type),
+            "third": rng.random(size),
         }
     )
     df = df.groupby(["first", "second"]).sum()

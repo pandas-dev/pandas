@@ -38,7 +38,7 @@ def switch_numexpr_min_elements(request):
 
 
 def _permute(obj):
-    return obj.take(np.random.permutation(len(obj)))
+    return obj.take(np.random.default_rng(2).permutation(len(obj)))
 
 
 class TestSeriesFlexArithmetic:
@@ -155,7 +155,7 @@ class TestSeriesArithmetic:
 
     def test_add_series_with_period_index(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ts + ts[::2]
         expected = ts + ts
@@ -369,15 +369,15 @@ class TestSeriesArithmetic:
 class TestSeriesFlexComparison:
     @pytest.mark.parametrize("axis", [0, None, "index"])
     def test_comparison_flex_basic(self, axis, comparison_op):
-        left = Series(np.random.randn(10))
-        right = Series(np.random.randn(10))
+        left = Series(np.random.default_rng(2).standard_normal(10))
+        right = Series(np.random.default_rng(2).standard_normal(10))
         result = getattr(left, comparison_op.__name__)(right, axis=axis)
         expected = comparison_op(left, right)
         tm.assert_series_equal(result, expected)
 
     def test_comparison_bad_axis(self, comparison_op):
-        left = Series(np.random.randn(10))
-        right = Series(np.random.randn(10))
+        left = Series(np.random.default_rng(2).standard_normal(10))
+        right = Series(np.random.default_rng(2).standard_normal(10))
 
         msg = "No axis named 1 for object type"
         with pytest.raises(ValueError, match=msg):
@@ -714,14 +714,16 @@ class TestTimeSeriesArithmetic:
     def test_series_add_tz_mismatch_converts_to_utc(self):
         rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
 
-        perm = np.random.permutation(100)[:90]
+        perm = np.random.default_rng(2).permutation(100)[:90]
         ser1 = Series(
-            np.random.randn(90), index=rng.take(perm).tz_convert("US/Eastern")
+            np.random.default_rng(2).standard_normal(90),
+            index=rng.take(perm).tz_convert("US/Eastern"),
         )
 
-        perm = np.random.permutation(100)[:90]
+        perm = np.random.default_rng(2).permutation(100)[:90]
         ser2 = Series(
-            np.random.randn(90), index=rng.take(perm).tz_convert("Europe/Berlin")
+            np.random.default_rng(2).standard_normal(90),
+            index=rng.take(perm).tz_convert("Europe/Berlin"),
         )
 
         result = ser1 + ser2
@@ -735,7 +737,7 @@ class TestTimeSeriesArithmetic:
 
     def test_series_add_aware_naive_raises(self):
         rng = date_range("1/1/2011", periods=10, freq="H")
-        ser = Series(np.random.randn(len(rng)), index=rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         ser_utc = ser.tz_localize("utc")
 
@@ -757,7 +759,7 @@ class TestTimeSeriesArithmetic:
 
     def test_align_date_objects_with_datetimeindex(self):
         rng = date_range("1/1/2000", periods=20)
-        ts = Series(np.random.randn(20), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts_slice = ts[5:]
         ts2 = ts_slice.copy()

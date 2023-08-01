@@ -46,14 +46,13 @@ def tests_value_counts_index_names_category_column():
 
 # our starting frame
 def seed_df(seed_nans, n, m):
-    np.random.seed(1234)
     days = date_range("2015-08-24", periods=10)
 
     frame = DataFrame(
         {
-            "1st": np.random.choice(list("abcd"), n),
-            "2nd": np.random.choice(days, n),
-            "3rd": np.random.randint(1, m + 1, n),
+            "1st": np.random.default_rng(2).choice(list("abcd"), n),
+            "2nd": np.random.default_rng(2).choice(days, n),
+            "3rd": np.random.default_rng(2).integers(1, m + 1, n),
         }
     )
 

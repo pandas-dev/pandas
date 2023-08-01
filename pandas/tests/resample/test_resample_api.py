@@ -24,7 +24,7 @@ def dti():
 
 @pytest.fixture
 def _test_series(dti):
-    return Series(np.random.rand(len(dti)), dti)
+    return Series(np.random.default_rng(2).random(len(dti)), dti)
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ def test_groupby_resample_on_api():
         {
             "key": ["A", "B"] * 5,
             "dates": date_range("2016-01-01", periods=10),
-            "values": np.random.randn(10),
+            "values": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -278,7 +278,9 @@ def test_transform_frame(on):
     # GH#47079
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
     if on == "date":
         # Move date to being a column; result will then have a RangeIndex
@@ -341,7 +343,7 @@ def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
-        np.random.randn(1000, 3),
+        np.random.default_rng(2).standard_normal((1000, 3)),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=["A", "B", "C"],
     )
@@ -356,7 +358,7 @@ def test_agg_consistency():
 def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
-        np.random.randn(1000, 2),
+        np.random.default_rng(2).standard_normal((1000, 2)),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=[1, "a"],
     )
@@ -375,10 +377,11 @@ def test_agg_consistency_int_str_column_mix():
 def test_agg():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -488,10 +491,11 @@ def test_agg():
 def test_agg_misc():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -585,10 +589,12 @@ def test_agg_misc():
 )
 def test_multi_agg_axis_1_raises(func):
     # GH#46904
-    np.random.seed(1234)
+
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         res = df.resample("M", axis=1)
@@ -599,10 +605,11 @@ def test_multi_agg_axis_1_raises(func):
 
 
 def test_agg_nested_dicts():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -1005,10 +1012,11 @@ def test_args_kwargs_depr(method, raises):
 
 
 def test_df_axis_param_depr():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
 
     # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."

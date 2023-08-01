@@ -21,7 +21,7 @@ class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
         ts = Timestamp("20130101").as_unit("ns")._value
         dti = DatetimeIndex([ts + 50 + i for i in range(100)])
-        ser = Series(np.random.randn(100), index=dti)
+        ser = Series(np.random.default_rng(2).standard_normal(100), index=dti)
 
         first_value = ser.asof(ser.index[0])
 
@@ -39,7 +39,7 @@ class TestSeriesAsof:
         # array or list or dates
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
-        ts = Series(np.random.randn(N), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
@@ -119,7 +119,7 @@ class TestSeriesAsof:
         # array or list or dates
         N = 50
         rng = period_range("1/1/1990", periods=N, freq="H")
-        ts = Series(np.random.randn(N), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="37min")
 
@@ -177,7 +177,7 @@ class TestSeriesAsof:
         # subset with Series
         N = 10
         rng = date_range("1/1/1990", periods=N, freq="53s")
-        s = Series(np.random.randn(N), index=rng)
+        s = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 

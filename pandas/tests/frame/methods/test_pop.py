@@ -54,7 +54,7 @@ class TestDataFramePop:
 
         tuples = sorted(zip(*arrays))
         index = MultiIndex.from_tuples(tuples)
-        df = DataFrame(np.random.randn(4, 6), columns=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
         df1 = df.copy()
         df2 = df.copy()

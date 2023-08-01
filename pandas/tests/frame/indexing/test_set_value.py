@@ -51,7 +51,11 @@ class TestSetValue:
         assert res.loc["foobar", "baz"] == "sam"
 
     def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
+        df_orig = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=range(3),
+            columns=list("ABC"),
+        )
 
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created

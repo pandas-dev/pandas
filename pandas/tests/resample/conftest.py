@@ -52,7 +52,7 @@ def simple_date_range_series():
 
     def _simple_date_range_series(start, end, freq="D"):
         rng = date_range(start, end, freq=freq)
-        return Series(np.random.randn(len(rng)), index=rng)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_date_range_series
 
@@ -73,7 +73,7 @@ def simple_period_range_series():
                 category=FutureWarning,
             )
             rng = period_range(start, end, freq=freq)
-        return Series(np.random.randn(len(rng)), index=rng)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_period_range_series
 

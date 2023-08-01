@@ -123,9 +123,9 @@ class TestAppend:
     def test_append_different_columns(self, sort):
         df = DataFrame(
             {
-                "bools": np.random.randn(10) > 0,
-                "ints": np.random.randint(0, 10, 10),
-                "floats": np.random.randn(10),
+                "bools": np.random.default_rng(2).standard_normal(10) > 0,
+                "ints": np.random.default_rng(2).integers(0, 10, 10),
+                "floats": np.random.default_rng(2).standard_normal(10),
                 "strings": ["foo", "bar"] * 5,
             }
         )

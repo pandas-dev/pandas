@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 class TestRepeat:
     def test_repeat(self):
-        ser = Series(np.random.randn(3), index=["a", "b", "c"])
+        ser = Series(np.random.default_rng(2).standard_normal(3), index=["a", "b", "c"])
 
         reps = ser.repeat(5)
         exp = Series(ser.values.repeat(5), index=ser.index.values.repeat(5))

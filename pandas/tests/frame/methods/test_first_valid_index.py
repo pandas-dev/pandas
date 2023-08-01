@@ -48,7 +48,7 @@ class TestFirstValidIndex:
     def test_first_last_valid(self, index_func):
         N = 30
         index = index_func(N)
-        mat = np.random.randn(N)
+        mat = np.random.default_rng(2).standard_normal(N)
         mat[:5] = np.nan
         mat[-5:] = np.nan
 

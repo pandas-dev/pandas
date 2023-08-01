@@ -28,8 +28,8 @@ from pandas.tests.extension import base
 
 def make_data():
     N = 100
-    left_array = np.random.uniform(size=N).cumsum()
-    right_array = left_array + np.random.uniform(size=N)
+    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=N)
     return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 

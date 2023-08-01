@@ -76,7 +76,7 @@ def test_apply_map_same_length_inference_bug():
 
 @pytest.mark.parametrize("convert_dtype", [True, False])
 def test_apply_convert_dtype_deprecated(convert_dtype):
-    ser = Series(np.random.randn(10))
+    ser = Series(np.random.default_rng(2).standard_normal(10))
 
     def func(x):
         return x if x > 0 else np.nan

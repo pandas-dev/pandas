@@ -34,7 +34,7 @@ def test_mutate_groups():
             + ["d"] * 2
             + ["e"] * 2,
             "cat3": [f"g{x}" for x in range(1, 15)],
-            "val": np.random.randint(100, size=14),
+            "val": np.random.default_rng(2).integers(100, size=14),
         }
     )
 

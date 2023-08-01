@@ -332,7 +332,9 @@ class TestPartialSetting:
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
-            np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=dates,
+            columns=["A", "B", "C", "D"],
         )
 
         expected = pd.concat(

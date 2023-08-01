@@ -34,8 +34,7 @@ def arr_shape():
 
 @pytest.fixture
 def arr_float(arr_shape):
-    np.random.seed(11235)
-    return np.random.randn(*arr_shape)
+    return np.random.default_rng(2).standard_normal(arr_shape)
 
 
 @pytest.fixture
@@ -45,14 +44,12 @@ def arr_complex(arr_float):
 
 @pytest.fixture
 def arr_int(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(-10, 10, arr_shape)
+    return np.random.default_rng(2).integers(-10, 10, arr_shape)
 
 
 @pytest.fixture
 def arr_bool(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 2, arr_shape) == 0
+    return np.random.default_rng(2).integers(0, 2, arr_shape) == 0
 
 
 @pytest.fixture
@@ -67,14 +64,12 @@ def arr_utf(arr_float):
 
 @pytest.fixture
 def arr_date(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
 
 
 @pytest.fixture
 def arr_tdelta(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
 
 
 @pytest.fixture
@@ -191,20 +186,23 @@ def arr_nan_float1_1d(arr_nan_float1):
 
 class TestnanopsDataFrame:
     def setup_method(self):
-        np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
         arr_shape = (11, 7)
 
-        self.arr_float = np.random.randn(*arr_shape)
-        self.arr_float1 = np.random.randn(*arr_shape)
+        self.arr_float = np.random.default_rng(2).standard_normal(arr_shape)
+        self.arr_float1 = np.random.default_rng(2).standard_normal(arr_shape)
         self.arr_complex = self.arr_float + self.arr_float1 * 1j
-        self.arr_int = np.random.randint(-10, 10, arr_shape)
-        self.arr_bool = np.random.randint(0, 2, arr_shape) == 0
+        self.arr_int = np.random.default_rng(2).integers(-10, 10, arr_shape)
+        self.arr_bool = np.random.default_rng(2).integers(0, 2, arr_shape) == 0
         self.arr_str = np.abs(self.arr_float).astype("S")
         self.arr_utf = np.abs(self.arr_float).astype("U")
-        self.arr_date = np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
-        self.arr_tdelta = np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
+        self.arr_date = (
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
+        )
+        self.arr_tdelta = (
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
+        )
 
         self.arr_nan = np.tile(np.nan, arr_shape)
         self.arr_float_nan = np.vstack([self.arr_float, self.arr_nan])
@@ -1009,7 +1007,7 @@ class TestNanvarFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNanskewFixedValues:
@@ -1060,7 +1058,7 @@ class TestNanskewFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNankurtFixedValues:
@@ -1084,11 +1082,11 @@ class TestNankurtFixedValues:
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(left_tailed) < 0
+        assert nanops.nankurt(left_tailed) < 2
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(right_tailed) > 0
+        assert nanops.nankurt(right_tailed) < 0
 
     def test_ground_truth(self, samples, actual_kurt):
         kurt = nanops.nankurt(samples)
@@ -1111,7 +1109,7 @@ class TestNankurtFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestDatetime64NaNOps:

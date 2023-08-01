@@ -24,7 +24,7 @@ class TestToNumpy:
 
     @td.skip_array_manager_invalid_test
     def test_to_numpy_copy(self, using_copy_on_write):
-        arr = np.random.randn(4, 3)
+        arr = np.random.default_rng(2).standard_normal((4, 3))
         df = DataFrame(arr)
         if using_copy_on_write:
             assert df.values.base is not arr

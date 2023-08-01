@@ -149,7 +149,7 @@ def test_time_rule_frame(raw, frame, compare_func, roll_func, kwargs, minp):
     ],
 )
 def test_nans(compare_func, roll_func, kwargs):
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
@@ -164,7 +164,7 @@ def test_nans(compare_func, roll_func, kwargs):
     assert not isna(result.iloc[-6])
     assert isna(result.iloc[-5])
 
-    obj2 = Series(np.random.randn(20))
+    obj2 = Series(np.random.default_rng(2).standard_normal(20))
     result = getattr(obj2.rolling(10, min_periods=5), roll_func)(**kwargs)
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
@@ -176,7 +176,7 @@ def test_nans(compare_func, roll_func, kwargs):
 
 
 def test_nans_count():
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
     result = obj.rolling(50, min_periods=30).count()
@@ -240,7 +240,7 @@ def test_min_periods_count(series, step):
     ],
 )
 def test_center(roll_func, kwargs, minp):
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
@@ -463,8 +463,12 @@ def test_rolling_median_resample():
 def test_rolling_median_memory_error():
     # GH11722
     n = 20000
-    Series(np.random.randn(n)).rolling(window=2, center=False).median()
-    Series(np.random.randn(n)).rolling(window=2, center=False).median()
+    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+        window=2, center=False
+    ).median()
+    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+        window=2, center=False
+    ).median()
 
 
 @pytest.mark.parametrize(

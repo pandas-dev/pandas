@@ -29,7 +29,7 @@ from pandas.tseries.offsets import (
 
 
 def test_qcut():
-    arr = np.random.randn(1000)
+    arr = np.random.default_rng(2).standard_normal(1000)
 
     # We store the bins as Index that have been
     # rounded to comparisons are a bit tricky.
@@ -47,14 +47,14 @@ def test_qcut():
 
 
 def test_qcut_bounds():
-    arr = np.random.randn(1000)
+    arr = np.random.default_rng(2).standard_normal(1000)
 
     factor = qcut(arr, 10, labels=False)
     assert len(np.unique(factor)) == 10
 
 
 def test_qcut_specify_quantiles():
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     factor = qcut(arr, [0, 0.25, 0.5, 0.75, 1.0])
 
     expected = qcut(arr, 4)
@@ -82,7 +82,7 @@ def test_qcut_include_lowest():
 
 
 def test_qcut_nas():
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     arr[:20] = np.nan
 
     result = qcut(arr, 4)

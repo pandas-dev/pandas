@@ -92,7 +92,8 @@ class TestIteration:
             tm.assert_series_equal(ser, expected)
 
         df = DataFrame(
-            {"floats": np.random.randn(5), "ints": range(5)}, columns=["floats", "ints"]
+            {"floats": np.random.default_rng(2).standard_normal(5), "ints": range(5)},
+            columns=["floats", "ints"],
         )
 
         for tup in df.itertuples(index=False):

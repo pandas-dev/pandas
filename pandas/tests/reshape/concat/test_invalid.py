@@ -34,7 +34,7 @@ class TestInvalidConcat:
 
     def test_concat_generator_obj(self):
         # generator ok though
-        concat(DataFrame(np.random.rand(5, 5)) for _ in range(3))
+        concat(DataFrame(np.random.default_rng(2).random((5, 5))) for _ in range(3))
 
     def test_concat_textreader_obj(self):
         # text reader ok

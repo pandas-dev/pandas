@@ -290,7 +290,6 @@ class TestTimestamp:
         assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
-        np.random.seed(7_960_929)
         ns = [Timestamp.min._value, Timestamp.max._value, 1000]
 
         for n in ns:

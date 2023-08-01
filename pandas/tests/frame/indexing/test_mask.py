@@ -18,14 +18,14 @@ import pandas._testing as tm
 
 class TestDataFrameMask:
     def test_mask(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         cond = df > 0
 
         rs = df.where(cond, np.nan)
         tm.assert_frame_equal(rs, df.mask(df <= 0))
         tm.assert_frame_equal(rs, df.mask(~cond))
 
-        other = DataFrame(np.random.randn(5, 3))
+        other = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         rs = df.where(cond, other)
         tm.assert_frame_equal(rs, df.mask(df <= 0, other))
         tm.assert_frame_equal(rs, df.mask(~cond, other))
@@ -40,7 +40,7 @@ class TestDataFrameMask:
 
     def test_mask_inplace(self):
         # GH#8801
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         cond = df > 0
 
         rdf = df.copy()
@@ -85,7 +85,7 @@ class TestDataFrameMask:
 
     def test_mask_dtype_bool_conversion(self):
         # GH#3733
-        df = DataFrame(data=np.random.randn(100, 50))
+        df = DataFrame(data=np.random.default_rng(2).standard_normal((100, 50)))
         df = df.where(df > 0)  # create nans
         bools = df > 0
         mask = isna(df)

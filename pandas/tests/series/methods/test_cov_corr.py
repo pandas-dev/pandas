@@ -45,8 +45,8 @@ class TestSeriesCov:
     @pytest.mark.parametrize("dtype", ["float64", "Float64"])
     def test_cov_ddof(self, test_ddof, dtype):
         # GH#34611
-        np_array1 = np.random.rand(10)
-        np_array2 = np.random.rand(10)
+        np_array1 = np.random.default_rng(2).random(10)
+        np_array2 = np.random.default_rng(2).random(10)
 
         s1 = Series(np_array1, dtype=dtype)
         s2 = Series(np_array2, dtype=dtype)
@@ -142,8 +142,8 @@ class TestSeriesCorr:
 
     def test_corr_invalid_method(self):
         # GH PR #22298
-        s1 = Series(np.random.randn(10))
-        s2 = Series(np.random.randn(10))
+        s1 = Series(np.random.default_rng(2).standard_normal(10))
+        s2 = Series(np.random.default_rng(2).standard_normal(10))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             s1.corr(s2, method="____")

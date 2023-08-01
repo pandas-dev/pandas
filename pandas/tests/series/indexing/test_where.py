@@ -121,7 +121,7 @@ def test_where_unsafe():
 
 
 def test_where():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.where(cond).dropna()
@@ -150,7 +150,7 @@ def test_where():
 
 
 def test_where_error():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     msg = "Array conditional must be same shape as self"
@@ -326,7 +326,7 @@ def test_broadcast(size, mask, item, box):
 
 
 def test_where_inplace():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.copy()

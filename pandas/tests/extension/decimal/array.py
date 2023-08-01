@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import decimal
 import numbers
-import random
 import sys
 from typing import TYPE_CHECKING
 
@@ -304,7 +303,7 @@ def to_decimal(values, context=None):
 
 
 def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
 
 
 DecimalArray._add_arithmetic_ops()

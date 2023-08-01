@@ -224,7 +224,10 @@ class TestSetitemSlices:
         assert (ser == 0).all()
 
     def test_setitem_slice_integers(self):
-        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+        ser = Series(
+            np.random.default_rng(2).standard_normal(8),
+            index=[2, 4, 6, 8, 10, 12, 14, 16],
+        )
 
         ser[:4] = 0
         assert (ser[:4] == 0).all()
@@ -258,7 +261,9 @@ class TestSetitemBooleanMask:
 
     def test_setitem_mask_align_and_promote(self):
         # GH#8387: test that changing types does not break alignment
-        ts = Series(np.random.randn(100), index=np.arange(100, 0, -1)).round(5)
+        ts = Series(
+            np.random.default_rng(2).standard_normal(100), index=np.arange(100, 0, -1)
+        ).round(5)
         mask = ts > 0
         left = ts.copy()
         right = ts[mask].copy().map(str)

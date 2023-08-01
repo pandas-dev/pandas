@@ -238,7 +238,7 @@ def test_nth():
 
     # GH 7559
     # from the vbench
-    df = DataFrame(np.random.randint(1, 10, (100, 2)), dtype="int64")
+    df = DataFrame(np.random.default_rng(2).integers(1, 10, (100, 2)), dtype="int64")
     s = df[1]
     g = df[0]
     expected = s.groupby(g).first()

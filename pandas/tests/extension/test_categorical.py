@@ -31,7 +31,7 @@ from pandas.tests.extension import base
 
 def make_data():
     while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different

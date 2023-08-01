@@ -85,7 +85,7 @@ def test_nans(sp_func, roll_func):
     import scipy.stats
 
     compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
@@ -100,7 +100,7 @@ def test_nans(sp_func, roll_func):
     assert not isna(result.iloc[-6])
     assert isna(result.iloc[-5])
 
-    obj2 = Series(np.random.randn(20))
+    obj2 = Series(np.random.default_rng(2).standard_normal(20))
     result = getattr(obj2.rolling(10, min_periods=5), roll_func)()
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
@@ -128,7 +128,7 @@ def test_min_periods(series, minp, roll_func, step):
 
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_center(roll_func):
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
@@ -186,7 +186,7 @@ def test_rolling_skew_edge_cases(step):
 
     expected = Series([np.NaN] * 5)[::step]
     # yields all NaN (window too small)
-    d = Series(np.random.randn(5))
+    d = Series(np.random.default_rng(2).standard_normal(5))
     x = d.rolling(window=2, step=step).skew()
     tm.assert_series_equal(expected, x)
 
@@ -207,7 +207,7 @@ def test_rolling_kurt_edge_cases(step):
 
     # yields all NaN (window too small)
     expected = Series([np.NaN] * 5)[::step]
-    d = Series(np.random.randn(5))
+    d = Series(np.random.default_rng(2).standard_normal(5))
     x = d.rolling(window=3, step=step).kurt()
     tm.assert_series_equal(expected, x)
 

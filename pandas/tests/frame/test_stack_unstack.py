@@ -347,7 +347,7 @@ class TestDataFrameReshape:
                 "state": ["IL", "MI", "NC"],
                 "index": ["a", "b", "c"],
                 "some_categories": Series(["a", "b", "c"]).astype("category"),
-                "A": np.random.rand(3),
+                "A": np.random.default_rng(2).random(3),
                 "B": 1,
                 "C": "foo",
                 "D": pd.Timestamp("20010102"),
@@ -384,7 +384,9 @@ class TestDataFrameReshape:
 
     def test_stack_ints(self):
         columns = MultiIndex.from_tuples(list(itertools.product(range(3), repeat=3)))
-        df = DataFrame(np.random.randn(30, 27), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 27)), columns=columns
+        )
 
         tm.assert_frame_equal(df.stack(level=[1, 2]), df.stack(level=1).stack(level=1))
         tm.assert_frame_equal(
@@ -409,7 +411,9 @@ class TestDataFrameReshape:
             ],
             names=["exp", "animal", "hair_length"],
         )
-        df = DataFrame(np.random.randn(4, 4), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=columns
+        )
 
         animal_hair_stacked = df.stack(level=["animal", "hair_length"])
         exp_hair_stacked = df.stack(level=["exp", "hair_length"])
@@ -453,7 +457,9 @@ class TestDataFrameReshape:
             ],
             names=["exp", "animal", "hair_length"],
         )
-        df = DataFrame(np.random.randn(4, 4), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=columns
+        )
 
         exp_animal_stacked = df.stack(level=["exp", "animal"])
         animal_hair_stacked = df.stack(level=["animal", "hair_length"])
@@ -973,7 +979,7 @@ class TestDataFrameReshape:
                 "1st": [1, 2, 1, 2, 1, 2],
                 "2nd": date_range("2014-02-01", periods=6, freq="D"),
                 "jim": 100 + np.arange(6),
-                "joe": (np.random.randn(6) * 10).round(2),
+                "joe": (np.random.default_rng(2).standard_normal(6) * 10).round(2),
             }
         )
 
@@ -1384,10 +1390,10 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     mi = MultiIndex.from_product([range(5), ["A", "B", "C"]])
     df = DataFrame(
         {
-            0: np.random.randn(15),
-            1: np.random.randn(15).astype(np.int64),
-            2: np.random.randn(15),
-            3: np.random.randn(15),
+            0: np.random.default_rng(2).standard_normal(15),
+            1: np.random.default_rng(2).standard_normal(15).astype(np.int64),
+            2: np.random.default_rng(2).standard_normal(15),
+            3: np.random.default_rng(2).standard_normal(15),
         },
         index=mi,
     )
@@ -1504,7 +1510,7 @@ class TestStackUnstackMultiLevel:
             [(0, "foo", 0), (0, "bar", 0), (1, "baz", 1), (1, "qux", 1)]
         )
 
-        s = Series(np.random.randn(4), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(4), index=index)
 
         unstacked = s.unstack([1, 2])
         expected = unstacked.dropna(axis=1, how="all")
@@ -1891,7 +1897,7 @@ Thu,Lunch,Yes,51.51,17"""
         id_col = ([1] * 3) + ([2] * 3)
         name = (["a"] * 3) + (["b"] * 3)
         date = pd.to_datetime(["2013-01-03", "2013-01-04", "2013-01-05"] * 2)
-        var1 = np.random.randint(0, 100, 6)
+        var1 = np.random.default_rng(2).integers(0, 100, 6)
         df = DataFrame({"ID": id_col, "NAME": name, "DATE": date, "VAR1": var1})
 
         multi = df.set_index(["DATE", "ID"])
@@ -1940,12 +1946,12 @@ Thu,Lunch,Yes,51.51,17"""
 
         df = DataFrame(
             {
-                "A": np.random.randint(100, size=NUM_ROWS),
-                "B": np.random.randint(300, size=NUM_ROWS),
-                "C": np.random.randint(-7, 7, size=NUM_ROWS),
-                "D": np.random.randint(-19, 19, size=NUM_ROWS),
-                "E": np.random.randint(3000, size=NUM_ROWS),
-                "F": np.random.randn(NUM_ROWS),
+                "A": np.random.default_rng(2).integers(100, size=NUM_ROWS),
+                "B": np.random.default_rng(3).integers(300, size=NUM_ROWS),
+                "C": np.random.default_rng(4).integers(-7, 7, size=NUM_ROWS),
+                "D": np.random.default_rng(5).integers(-19, 19, size=NUM_ROWS),
+                "E": np.random.default_rng(6).integers(3000, size=NUM_ROWS),
+                "F": np.random.default_rng(7).standard_normal(NUM_ROWS),
             }
         )
 
@@ -1961,7 +1967,7 @@ Thu,Lunch,Yes,51.51,17"""
 
         index = MultiIndex(levels, codes)
 
-        df = DataFrame(np.random.randn(4, 2), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 2)), index=index)
 
         result = df.unstack()
         assert len(result.columns) == 4
@@ -1983,7 +1989,7 @@ Thu,Lunch,Yes,51.51,17"""
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
             df = DataFrame(
-                np.random.randn(2**16, 2),
+                np.random.default_rng(2).standard_normal((2**16, 2)),
                 index=[np.arange(2**16), np.arange(2**16)],
             )
             msg = "The following operation may generate"

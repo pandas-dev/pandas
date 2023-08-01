@@ -335,7 +335,7 @@ class TestDataFrameBlockInternals:
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
-                np.random.random((4, 4)),
+                np.random.default_rng(2).random((4, 4)),
                 index=("a", "b", "c", "d"),
                 columns=("e", "f", "g", "h"),
             )

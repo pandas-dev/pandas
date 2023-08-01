@@ -18,7 +18,7 @@ class TestAutoCorr:
 
         # Choose a random lag between 1 and length of Series - 2
         # and compare the result with the Series corr() function
-        n = 1 + np.random.randint(max(1, len(datetime_series) - 2))
+        n = 1 + np.random.default_rng(2).integers(max(1, len(datetime_series) - 2))
         corr1 = datetime_series.corr(datetime_series.shift(n))
         corr2 = datetime_series.autocorr(lag=n)
 

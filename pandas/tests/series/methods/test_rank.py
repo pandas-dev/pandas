@@ -141,7 +141,7 @@ class TestSeriesRank:
             [-50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10, 2, 40],
             dtype="float64",
         )
-        random_order = np.random.permutation(len(values))
+        random_order = np.random.default_rng(2).permutation(len(values))
         iseries = Series(values[random_order])
         exp = Series(random_order + 1.0, dtype="float64")
         iranks = iseries.rank()
@@ -322,9 +322,9 @@ class TestSeriesRank:
     def test_rank_methods_series(self, method, op, value):
         from scipy.stats import rankdata
 
-        xs = np.random.randn(9)
+        xs = np.random.default_rng(2).standard_normal(9)
         xs = np.concatenate([xs[i:] for i in range(0, 9, 2)])  # add duplicates
-        np.random.shuffle(xs)
+        np.random.default_rng(2).shuffle(xs)
 
         index = [chr(ord("a") + i) for i in range(len(xs))]
         vals = op(xs, value)

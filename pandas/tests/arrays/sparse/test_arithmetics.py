@@ -475,8 +475,8 @@ def test_mismatched_length_cmp_op(cons):
 @pytest.mark.parametrize("fill_value", [np.nan, 3])
 def test_binary_operators(op, fill_value):
     op = getattr(operator, op)
-    data1 = np.random.randn(20)
-    data2 = np.random.randn(20)
+    data1 = np.random.default_rng(2).standard_normal(20)
+    data2 = np.random.default_rng(2).standard_normal(20)
 
     data1[::2] = fill_value
     data2[::3] = fill_value

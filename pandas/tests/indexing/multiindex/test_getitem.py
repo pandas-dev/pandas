@@ -45,7 +45,7 @@ def test_series_getitem_duplicates_multiindex(level0_value):
         codes=[[0, 0, 0, 1, 2, 2, 2, 2, 2, 2], [1, 3, 4, 6, 0, 2, 2, 3, 5, 7]],
         names=["tag", "day"],
     )
-    arr = np.random.randn(len(index), 1)
+    arr = np.random.default_rng(2).standard_normal((len(index), 1))
     df = DataFrame(arr, index=index, columns=["val"])
 
     # confirm indexing on missing value raises KeyError
@@ -187,7 +187,7 @@ def test_frame_mixed_depth_get():
 
     tuples = sorted(zip(*arrays))
     index = MultiIndex.from_tuples(tuples)
-    df = DataFrame(np.random.randn(4, 6), columns=index)
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 
     result = df["a"]
     expected = df["a", "", ""].rename("a")

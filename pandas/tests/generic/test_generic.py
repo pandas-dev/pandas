@@ -46,7 +46,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
 
             arr = np.repeat(arr, new_shape).reshape(shape)
     else:
-        arr = np.random.randn(*shape)
+        arr = np.random.default_rng(2).standard_normal(shape)
     return box(arr, dtype=dtype, **kwargs)
 
 

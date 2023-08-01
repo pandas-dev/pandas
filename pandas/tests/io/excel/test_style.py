@@ -38,7 +38,7 @@ def assert_equal_cell_styles(cell1, cell2):
 def test_styler_to_excel_unstyled(engine):
     # compare DataFrame.to_excel and Styler.to_excel when no styles applied
     pytest.importorskip(engine)
-    df = DataFrame(np.random.randn(2, 2))
+    df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine=engine) as writer:
             df.to_excel(writer, sheet_name="dataframe")
@@ -130,7 +130,7 @@ shared_style_params = [
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
 def test_styler_to_excel_basic(engine, css, attrs, expected):
     pytest.importorskip(engine)
-    df = DataFrame(np.random.randn(1, 1))
+    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
@@ -161,7 +161,7 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
 @pytest.mark.parametrize("css, attrs, expected", shared_style_params)
 def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     pytest.importorskip(engine)
-    df = DataFrame(np.random.randn(1, 1))
+    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
 
     styler = df.style
     styler.map_index(lambda x: css, axis=0)
@@ -230,7 +230,7 @@ def test_styler_to_excel_border_style(engine, border_style):
     expected = border_style
 
     pytest.importorskip(engine)
-    df = DataFrame(np.random.randn(1, 1))
+    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
@@ -260,7 +260,7 @@ def test_styler_custom_converter():
     def custom_converter(css):
         return {"font": {"color": {"rgb": "111222"}}}
 
-    df = DataFrame(np.random.randn(1, 1))
+    df = DataFrame(np.random.default_rng(2).standard_normal((1, 1)))
     styler = df.style.map(lambda x: "color: #888999")
     with tm.ensure_clean(".xlsx") as path:
         with ExcelWriter(path, engine="openpyxl") as writer:
