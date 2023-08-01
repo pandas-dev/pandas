@@ -140,9 +140,10 @@ def deregister() -> None:
         ...                    })
         >>> plot = df.plot.line(x='ts', y='y')
 
-    Using deregister an error will be raised:
+    Unsetting the register manually an error will be raised:
 
-    >>> pd.plotting.deregister_matplotlib_converters()  # doctest: +SKIP
+    >>> pd.set_option("plotting.matplotlib.register_converters",
+    ...               False)  # doctest: +SKIP
     >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
     Traceback (most recent call last):
     TypeError: float() argument must be a string or a real number, not 'Period'
