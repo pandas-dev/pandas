@@ -382,7 +382,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
 
         if op_name in ["count", "kurt", "sem"]:
             assert not hasattr(arr, op_name)
-            return
+            pytest.skip(f"{op_name} not an array method")
 
         if op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
