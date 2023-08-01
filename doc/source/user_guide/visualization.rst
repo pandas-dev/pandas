@@ -626,7 +626,7 @@ It is recommended to specify ``color`` and ``label`` keywords to distinguish eac
 
    ax = df.plot.scatter(x="a", y="b", color="DarkBlue", label="Group 1")
    @savefig scatter_plot_repeated.png
-   df.plot.scatter(x="c", y="d", color="DarkGreen", label="Group 2", ax=ax);
+   df.plot.scatter(x="c", y="d", color="DarkGreen", label="Group 2", ax=ax, s = 20);
 
 .. ipython:: python
    :suppress:
