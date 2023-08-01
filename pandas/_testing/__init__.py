@@ -54,10 +54,7 @@ from pandas._testing._io import (
     round_trip_pickle,
     write_to_compressed,
 )
-from pandas._testing._random import (
-    rands,
-    rands_array,
-)
+from pandas._testing._random import rands_array
 from pandas._testing._warnings import (
     assert_produces_warning,
     maybe_produces_warning,

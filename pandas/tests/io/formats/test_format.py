@@ -214,10 +214,9 @@ class TestDataFrameFormatting:
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": [
-                        tm.rands(
-                            np.random.default_rng(2).integers(max_len - 1, max_len + 1)
-                        )
-                        for i in range(10)
+                        "a"
+                        * np.random.default_rng(2).integers(max_len - 1, max_len + 1)
+                        for _ in range(10)
                     ],
                 }
             )

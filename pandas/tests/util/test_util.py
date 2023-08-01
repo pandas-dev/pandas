@@ -6,11 +6,6 @@ from pandas import compat
 import pandas._testing as tm
 
 
-def test_rands():
-    r = tm.rands(10)
-    assert len(r) == 10
-
-
 def test_rands_array_1d():
     arr = tm.rands_array(5, size=10)
     assert arr.shape == (10,)

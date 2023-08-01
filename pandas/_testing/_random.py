@@ -23,13 +23,3 @@ def rands_array(
         .reshape(size)
     )
     return retval.astype(dtype)
-
-
-def rands(nchars) -> str:
-    """
-    Generate one random byte string.
-
-    See `rands_array` if you want to create an array of random strings.
-
-    """
-    return "".join(np.random.default_rng(2).choice(RANDS_CHARS, nchars))
