@@ -682,3 +682,7 @@ class BaseMethodsTests(BaseExtensionTests):
         # other types
         assert data.equals(None) is False
         assert data[[0]].equals(data[0]) is False
+
+    def test_equals_same_data_different_object(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34660
+        assert pd.Series(data).equals(pd.Series(data))

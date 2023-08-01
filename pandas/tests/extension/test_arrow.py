@@ -855,10 +855,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         else:
             super().test_combine_add(data_repeated)
 
-    def test_basic_equals(self, data):
-        # https://github.com/pandas-dev/pandas/issues/34660
-        assert pd.Series(data).equals(pd.Series(data))
-
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError

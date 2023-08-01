@@ -318,9 +318,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         self.assert_series_equal(result, expected)
 
-    def test_combine_first(self, data, request):
-        super().test_combine_first(data)
-
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
