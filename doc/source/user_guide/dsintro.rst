@@ -570,7 +570,7 @@ greater than 5, calculate the ratio, and plot:
            SepalRatio=lambda x: x.SepalWidth / x.SepalLength,
            PetalRatio=lambda x: x.PetalWidth / x.PetalLength,
        )
-       .plot(kind="scatter", x="SepalRatio", y="PetalRatio")
+       .plot(kind="scatter", x="SepalRatio", y="PetalRatio", s = 20)
    )
 
 Since a function is passed in, the function is computed on the DataFrame
