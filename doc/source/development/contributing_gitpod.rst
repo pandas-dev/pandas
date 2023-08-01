@@ -77,6 +77,7 @@ repository:
 
       $ python -m pytest pandas
 
+   Note that this command takes a while to run, so once you've confirmed it's running you may want to cancel it using ctrl-c.
 
 Quick workspace tour
 --------------------
@@ -138,9 +139,9 @@ Rendering the pandas documentation
 ----------------------------------
 You can find the detailed documentation on how rendering the documentation with
 Sphinx works in the :ref:`contributing.howto-build-docs` section. To build the full
-docs you need to run the following command in the docs directory::
+docs you need to run the following command in the ``/doc`` directory::
 
-    $ cd docs
+    $ cd doc
     $ python make.py html
 
 Alternatively you can build a single page with::
