@@ -12,6 +12,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
+    is_integer,
     pandas_dtype,
 )
 
@@ -71,7 +72,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def __init__(self, values, dtype=None, copy=False, context=None) -> None:
         for i, val in enumerate(values):
-            if is_float(val):
+            if is_float(val) or is_integer(val):
                 if np.isnan(val):
                     values[i] = DecimalDtype.na_value
                 else:
