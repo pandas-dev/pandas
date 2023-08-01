@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import final
+
 import numpy as np
 import pytest
 
@@ -10,6 +12,15 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        # In _check_op we check that the result of a pointwise operation
+        #  (found via _combine) matches the result of the vectorized
+        #  operation obj.__op_name__(other).
+        #  In some cases pandas dtype inference on the scalar result may not
+        #  give a matching dtype even if both operations are behaving "correctly".
+        #  In these cases, do extra required casting here.
+        return pointwise_result
+
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
@@ -27,12 +38,19 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
+    # Subclasses are not expected to need to override _check_op. Ideally any
+    #  relevant overriding can be done in _cast_pointwise_result, get_op_from_name,
+    #  and the specification of `exc`. If you find a use case that still requires
+    #  overriding _check_op, please let us know at
+    #  github.com/pandas-dev/pandas/issues
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
         if exc is None:
             result = op(ser, other)
             expected = self._combine(ser, other, op)
+            expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
             tm.assert_equal(result, expected)
         else:
