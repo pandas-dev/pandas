@@ -1192,8 +1192,13 @@ class TestParquetFastParquet(Base):
         actual_partition_cols = fastparquet.ParquetFile(str(tmp_path), False).cats
         assert len(actual_partition_cols) == 2
 
-    def test_df_attrs_persistence(self):
-        pass
+    def test_df_attrs_persistence(self, tmp_path):
+        path = tmp_path / "test_df_metadata.p"
+        df = pd.DataFrame(data={1: [1]})
+        df.attrs = {"Test attribute": 1}
+        df.to_parquet(path)
+        new_df = read_parquet(path)
+        assert new_df.attrs == df.attrs
 
     def test_error_on_using_partition_cols_and_partition_on(
         self, tmp_path, fp, df_full
