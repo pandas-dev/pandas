@@ -186,15 +186,17 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             with pytest.raises(exc):
                 op(s, other)
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(ser, op_name, other, exc=None)
-
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=None):
-        super()._check_divmod_op(ser, op, other, None)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
@@ -206,9 +208,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         else:
             with pytest.raises(exc):
                 op(ser, other)
-
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        super().check_opname(ser, op_name, other, exc=None)
 
     def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"

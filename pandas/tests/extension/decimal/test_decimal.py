@@ -325,8 +325,14 @@ def test_astype_dispatches(frame):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    series_array_exc = None
+
+    def get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        return None
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators

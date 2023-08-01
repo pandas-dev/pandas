@@ -118,31 +118,10 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        # we implement substitution...
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+    def get_expected_exception(self, op_name, obj, other):
+        if op_name in self.implements:
+            return None
+        return super().get_expected_exception(op_name, obj, other)
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         super()._check_divmod_op(s, op, other, exc=TypeError)
