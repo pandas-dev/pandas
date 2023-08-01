@@ -5209,8 +5209,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            Returns DataFrame or None DataFrame with the specified 
-            index or column labels removed or None if inplace=True
+            Returns DataFrame or None DataFrame with the specified
+            index or column labels removed or None if inplace=True.
 
         Raises
         ------
