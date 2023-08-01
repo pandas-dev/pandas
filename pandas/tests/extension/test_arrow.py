@@ -37,6 +37,7 @@ from pandas.compat import (
     pa_version_under8p0,
     pa_version_under9p0,
     pa_version_under11p0,
+    pa_version_under13p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -586,38 +587,6 @@ class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
-    def test_groupby_extension_no_sort(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_no_sort(data_for_grouping)
-
-    def test_groupby_extension_transform(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_transform(data_for_grouping)
-
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=ValueError,
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_groupby_extension_agg(as_index, data_for_grouping)
-
     def test_in_numeric_groupby(self, data_for_grouping):
         dtype = data_for_grouping.dtype
         if is_string_dtype(dtype):
@@ -844,13 +813,7 @@ class TestBaseMethods(base.BaseMethodsTests):
         self, data_for_sorting, data_missing_for_sorting, na_value, request
     ):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        elif pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
+        if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason=f"No pyarrow kernel for {pa_dtype}",
@@ -887,16 +850,6 @@ class TestBaseMethods(base.BaseMethodsTests):
             data_missing_for_sorting, op_name, skipna, expected
         )
 
-    def test_factorize(self, data_for_grouping, request):
-        pa_dtype = data_for_grouping.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_factorize(data_for_grouping)
-
     _combine_le_expected_dtype = "bool[pyarrow]"
 
     def test_combine_add(self, data_repeated, request):
@@ -911,16 +864,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
         else:
             super().test_combine_add(data_repeated)
-
-    def test_searchsorted(self, data_for_sorting, as_series, request):
-        pa_dtype = data_for_sorting.dtype.pyarrow_dtype
-        if pa.types.is_boolean(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{pa_dtype} only has 2 unique possible values",
-                )
-            )
-        super().test_searchsorted(data_for_sorting, as_series)
 
     def test_basic_equals(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
@@ -1005,7 +948,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def _is_temporal_supported(self, opname, pa_dtype):
         return not pa_version_under8p0 and (
-            opname in ("__add__", "__radd__")
+            (
+                opname in ("__add__", "__radd__")
+                or (
+                    opname
+                    in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                    and not pa_version_under13p0
+                )
+            )
             and pa.types.is_duration(pa_dtype)
             or opname in ("__sub__", "__rsub__")
             and pa.types.is_temporal(pa_dtype)
@@ -1054,7 +1004,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                     f"for {pa_dtype}"
                 )
             )
-        elif arrow_temporal_supported and pa.types.is_time(pa_dtype):
+        elif arrow_temporal_supported and (
+            pa.types.is_time(pa_dtype)
+            or (
+                opname
+                in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
+                and pa.types.is_duration(pa_dtype)
+            )
+        ):
             mark = pytest.mark.xfail(
                 raises=TypeError,
                 reason=(

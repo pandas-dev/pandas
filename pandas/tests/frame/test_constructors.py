@@ -2549,8 +2549,7 @@ class TestDataFrameConstructors:
             check_views()
 
         # TODO: most of the rest of this test belongs in indexing tests
-        # TODO: 'm' and 'M' should warn
-        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuOmM"):
+        if lib.is_np_dtype(df.dtypes.iloc[0], "fciuO"):
             warn = None
         else:
             warn = FutureWarning
