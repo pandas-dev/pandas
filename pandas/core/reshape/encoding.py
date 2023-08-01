@@ -4,7 +4,6 @@ from collections import defaultdict
 from collections.abc import (
     Hashable,
     Iterable,
-
 )
 import itertools
 from typing import (
