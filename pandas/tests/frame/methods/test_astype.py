@@ -264,7 +264,7 @@ class TestAstype:
 
     def test_astype_duplicate_col_series_arg(self):
         # GH#44417
-        vals = np.random.randn(3, 4)
+        vals = np.random.default_rng(2).standard_normal((3, 4))
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes
         dtypes.iloc[0] = str
