@@ -643,7 +643,7 @@ Enhancements
 
   .. ipython:: python
 
-     pd.date_range('2013-01-01', periods=5, freq='5N')
+     pd.date_range('2013-01-01', periods=5, freq='5ns')
 
   or with frequency as offset
 
