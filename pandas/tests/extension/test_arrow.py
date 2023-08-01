@@ -354,25 +354,19 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         expected = getattr(ser.astype("Float64"), op_name)(skipna=skipna)
         tm.assert_series_equal(result, expected, check_dtype=False)
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pa_type = data.dtype.pyarrow_dtype
-        if (
-            (
-                pa.types.is_integer(pa_type)
-                or pa.types.is_floating(pa_type)
-                or pa.types.is_duration(pa_type)
-            )
-            and all_numeric_accumulations == "cumsum"
-            and not pa_version_under9p0
-        ):
-            pytest.skip("These work, are tested by test_accumulate_series.")
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        pa_type = ser.dtype.pyarrow_dtype
 
-        op_name = all_numeric_accumulations
-        ser = pd.Series(data)
-
-        with pytest.raises(NotImplementedError):
-            getattr(ser, op_name)(skipna=skipna)
+        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                return False
+        elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
+            if op_name in ["cumsum", "cumprod"]:
+                return False
+        elif pa.types.is_duration(pa_type):
+            if op_name == "cumprod":
+                return False
+        return True
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna, request):
@@ -380,21 +374,10 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
 
-        do_skip = False
-        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op_name in ["cumsum", "cumprod"]:
-                do_skip = True
-        elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
-            if op_name in ["cumsum", "cumprod"]:
-                do_skip = True
-        elif pa.types.is_duration(pa_type):
-            if op_name == "cumprod":
-                do_skip = True
-
-        if do_skip:
-            pytest.skip(
-                f"{op_name} should *not* work, we test in "
-                "test_accumulate_series_raises that these correctly raise."
+        if not self._supports_accumulation(ser, op_name):
+            # The base class test will check that we raise
+            return super().test_accumulate_series(
+                data, all_numeric_accumulations, skipna
             )
 
         if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
