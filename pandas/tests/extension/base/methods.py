@@ -65,7 +65,13 @@ class BaseMethodsTests(BaseExtensionTests):
         else:
             expected = pd.Series(0.0, index=result.index, name="proportion")
             expected[result > 0] = 1 / len(values)
-        if na_value_for_dtype(data.dtype) is pd.NA:
+
+        if getattr(data.dtype, "storage", "") == "pyarrow" or isinstance(
+            data.dtype, pd.ArrowDtype
+        ):
+            # TODO: avoid special-casing
+            expected = expected.astype("double[pyarrow]")
+        elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
 
@@ -678,3 +684,7 @@ class BaseMethodsTests(BaseExtensionTests):
         # other types
         assert data.equals(None) is False
         assert data[[0]].equals(data[0]) is False
+
+    def test_equals_same_data_different_object(self, data):
+        # https://github.com/pandas-dev/pandas/issues/34660
+        assert pd.Series(data).equals(pd.Series(data))
