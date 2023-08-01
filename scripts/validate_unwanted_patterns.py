@@ -392,9 +392,11 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
             if isinstance(value, ast.AST):
                 nodes.append((next_in_annotation, value))
             elif isinstance(value, list):
-                for value in reversed(value):
-                    if isinstance(value, ast.AST):
-                        nodes.append((next_in_annotation, value))
+                nodes.extend(
+                    (next_in_annotation, value)
+                    for value in reversed(value)
+                    if isinstance(value, ast.AST)
+                )
 
 
 def main(

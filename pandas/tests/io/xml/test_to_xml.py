@@ -154,7 +154,6 @@ def equalize_decl(doc):
             '<?xml version="1.0" encoding="utf-8"?',
             "<?xml version='1.0' encoding='utf-8'?",
         )
-
     return doc
 
 
@@ -705,6 +704,39 @@ def test_default_namespace(parser, geom_df):
     assert output == expected
 
 
+def test_unused_namespaces(parser, geom_df):
+    expected = """\
+<?xml version='1.0' encoding='utf-8'?>
+<data xmlns:oth="http://other.org" xmlns:ex="http://example.com">
+  <row>
+    <index>0</index>
+    <shape>square</shape>
+    <degrees>360</degrees>
+    <sides>4.0</sides>
+  </row>
+  <row>
+    <index>1</index>
+    <shape>circle</shape>
+    <degrees>360</degrees>
+    <sides/>
+  </row>
+  <row>
+    <index>2</index>
+    <shape>triangle</shape>
+    <degrees>180</degrees>
+    <sides>3.0</sides>
+  </row>
+</data>"""
+
+    output = geom_df.to_xml(
+        namespaces={"oth": "http://other.org", "ex": "http://example.com"},
+        parser=parser,
+    )
+    output = equalize_decl(output)
+
+    assert output == expected
+
+
 # PREFIX
 
 
@@ -750,7 +782,7 @@ def test_missing_prefix_in_nmsp(parser, geom_df):
 def test_namespace_prefix_and_default(parser, geom_df):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
-<doc:data xmlns="http://example.com" xmlns:doc="http://other.org">
+<doc:data xmlns:doc="http://other.org" xmlns="http://example.com">
   <doc:row>
     <doc:index>0</doc:index>
     <doc:shape>square</doc:shape>
@@ -777,13 +809,6 @@ def test_namespace_prefix_and_default(parser, geom_df):
         parser=parser,
     )
     output = equalize_decl(output)
-
-    if output is not None:
-        # etree and lxml differs on order of namespace prefixes
-        output = output.replace(
-            'xmlns:doc="http://other.org" xmlns="http://example.com"',
-            'xmlns="http://example.com" xmlns:doc="http://other.org"',
-        )
 
     assert output == expected
 
