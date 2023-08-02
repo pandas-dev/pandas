@@ -156,7 +156,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             if op_name == "__rpow__":
                 # for rpow, combine does not propagate NaN
                 expected[result.isna()] = np.nan
-            self.assert_equal(result, expected)
+            tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(obj, other)
