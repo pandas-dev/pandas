@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
@@ -152,7 +153,7 @@ class TestMissing(base.BaseMissingTests):
     def test_dropna_array(self, data_missing):
         result = data_missing.dropna()
         expected = data_missing[[1]]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_fillna_no_op_returns_copy(self, data):
         data = data[~data.isna()]
@@ -160,11 +161,11 @@ class TestMissing(base.BaseMissingTests):
         valid = data[0]
         result = data.fillna(valid)
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data.fillna(method="backfill")
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestNoReduce(base.BaseNoReduceTests):
@@ -181,22 +182,7 @@ class TestNoReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    def test_value_counts_with_normalize(self, data):
-        data = data[:10].unique()
-        values = np.array(data[~data.isna()])
-        ser = pd.Series(data, dtype=data.dtype)
-
-        result = ser.value_counts(normalize=True).sort_index()
-
-        expected = pd.Series(
-            [1 / len(values)] * len(values), index=result.index, name="proportion"
-        )
-        if getattr(data.dtype, "storage", "") == "pyarrow":
-            expected = expected.astype("double[pyarrow]")
-        else:
-            expected = expected.astype("Float64")
-
-        self.assert_series_equal(result, expected)
+    pass
 
 
 class TestCasting(base.BaseCastingTests):
@@ -209,7 +195,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         result = getattr(ser, op_name)(other)
         dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
         expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
@@ -225,20 +211,6 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, uniques = pd.factorize(data_for_grouping, sort=True)
-
-        if as_index:
-            index = pd.Index(uniques, name="B")
-            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
-            self.assert_series_equal(result, expected)
-        else:
-            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
-            self.assert_frame_equal(result, expected)
-
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)

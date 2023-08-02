@@ -63,7 +63,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX01)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.plotting.deregister_matplotlib_converters \
         pandas.api.extensions.ExtensionArray \
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 

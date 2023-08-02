@@ -46,10 +46,10 @@ class BaseGroupbyTests(BaseExtensionTests):
         if as_index:
             index = pd.Index(uniques, name="B")
             expected = pd.Series(exp_vals, index=index, name="A")
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         else:
             expected = pd.DataFrame({"B": uniques, "A": exp_vals})
-            self.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension(self, data_for_grouping):
         # GH#38980 groupby agg on extension type fails for non-numeric types
@@ -59,13 +59,13 @@ class BaseGroupbyTests(BaseExtensionTests):
         expected = expected.set_index("A")
 
         result = df.groupby("A").agg({"B": "first"})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.groupby("A").agg("first")
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.groupby("A").first()
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
         # GH#41720
@@ -89,7 +89,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         )
         gb = df.groupby("grps")
         result = gb.agg(td=("td", "cumsum"))
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
@@ -108,7 +108,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         if is_bool:
             exp_vals = exp_vals[:-1]
         expected = pd.Series(exp_vals, index=index, name="A")
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
         is_bool = data_for_grouping.dtype._is_boolean
@@ -126,7 +126,7 @@ class BaseGroupbyTests(BaseExtensionTests):
         if is_bool:
             expected = expected[:-1]
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
@@ -148,7 +148,7 @@ class BaseGroupbyTests(BaseExtensionTests):
             index=pd.Index([1, 2, 3, 4], name="A"),
             name="B",
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_in_numeric_groupby(self, data_for_grouping):
         df = pd.DataFrame(
