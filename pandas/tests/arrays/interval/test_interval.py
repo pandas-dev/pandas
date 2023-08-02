@@ -215,7 +215,7 @@ class TestReductions:
         MAX = arr[-1]
 
         indexer = np.arange(len(arr))
-        np.random.shuffle(indexer)
+        np.random.default_rng(2).shuffle(indexer)
         arr = arr.take(indexer)
 
         arr_na = arr.insert(2, np.nan)

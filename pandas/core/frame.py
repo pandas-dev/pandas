@@ -5209,8 +5209,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            DataFrame without the removed index or column labels or
-            None if ``inplace=True``.
+            Returns DataFrame or None DataFrame with the specified
+            index or column labels removed or None if inplace=True.
 
         Raises
         ------
@@ -7131,7 +7131,7 @@ class DataFrame(NDFrame, OpsMixin):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don’t include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
             .. versionadded:: 1.3.0
 
@@ -9968,7 +9968,7 @@ class DataFrame(NDFrame, OpsMixin):
         func : callable
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
-            If ‘ignore’, propagate NaN values, without passing them to func.
+            If 'ignore', propagate NaN values, without passing them to func.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10054,7 +10054,7 @@ class DataFrame(NDFrame, OpsMixin):
         func : callable
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
-            If ‘ignore’, propagate NaN values, without passing them to func.
+            If 'ignore', propagate NaN values, without passing them to func.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -11137,12 +11137,13 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
-        return self._logical_func(  # type: ignore[return-value]
+    ) -> Series | bool:
+        result = self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="any")
+        return result
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -11151,12 +11152,13 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
-        return self._logical_func(  # type: ignore[return-value]
+    ) -> Series | bool:
+        result = self._logical_func(
             "all", nanops.nanall, axis, bool_only, skipna, **kwargs
         )
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="all")
+        return result
 
     @doc(make_doc("min", ndim=2))
     def min(
@@ -11166,7 +11168,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().min(axis, skipna, numeric_only, **kwargs)
+        result = super().min(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="min")
+        return result
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -11176,7 +11181,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().max(axis, skipna, numeric_only, **kwargs)
+        result = super().max(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="max")
+        return result
 
     @doc(make_doc("sum", ndim=2))
     def sum(
@@ -11199,7 +11207,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="prod")
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11209,7 +11218,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().mean(axis, skipna, numeric_only, **kwargs)
+        result = super().mean(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="mean")
+        return result
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11219,7 +11231,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().median(axis, skipna, numeric_only, **kwargs)
+        result = super().median(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="median")
+        return result
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11230,7 +11245,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sem")
+        return result
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11241,7 +11259,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="var")
+        return result
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11252,8 +11273,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        result = cast(Series, super().std(axis, skipna, ddof, numeric_only, **kwargs))
-        return result.__finalize__(self, method="std")
+        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="std")
+        return result
 
     @doc(make_doc("skew", ndim=2))
     def skew(
@@ -11263,7 +11286,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().skew(axis, skipna, numeric_only, **kwargs)
+        result = super().skew(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="skew")
+        return result
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11273,7 +11299,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().kurt(axis, skipna, numeric_only, **kwargs)
+        result = super().kurt(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="kurt")
+        return result
 
     kurtosis = kurt
     product = prod

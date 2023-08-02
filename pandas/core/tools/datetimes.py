@@ -916,7 +916,7 @@ def to_datetime(
     - **DataFrame/dict-like** are converted to :class:`Series` with
       :class:`datetime64` dtype. For each row a datetime is created from assembling
       the various dataframe columns. Column keys can be common abbreviations
-      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      like ['year', 'month', 'day', 'minute', 'second', 'ms', 'us', 'ns']) or
       plurals of the same.
 
     The following causes are responsible for :class:`datetime.datetime` objects

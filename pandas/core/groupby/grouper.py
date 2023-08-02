@@ -15,6 +15,7 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -969,7 +970,7 @@ def get_grouper(
             # series is part of the object
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
@@ -978,11 +979,13 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, InvalidIndexError):
+        except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
             # InvalidIndexError raised on key-types inappropriate for index,
             #  e.g. DatetimeIndex.get_loc(tuple())
+            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
+            # and gpr.name is month str
             return False
 
     for gpr, level in zip(keys, levels):
