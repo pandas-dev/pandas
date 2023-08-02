@@ -93,9 +93,9 @@ khuint64_t PANDAS_INLINE asuint64(double key) {
     return val;
 }
 
-khuint32_t PANDAS_INLINE asuint32(float key) {
+khuint32_t PANDAS_INLINE asuint32(double key) {
     khuint32_t val;
-    memcpy(&val, &key, sizeof(float));
+    memcpy(&val, &key, sizeof(double));
     return val;
 }
 
@@ -115,9 +115,9 @@ khuint32_t PANDAS_INLINE kh_float64_hash_func(double val){
     return murmur2_64to32(as_int);
 }
 
-khuint32_t PANDAS_INLINE kh_float32_hash_func(float val){
+khuint32_t PANDAS_INLINE kh_float32_hash_func(double val){
     // 0.0 and -0.0 should have the same hash:
-    if (val == 0.0f){
+    if (val == 0.0){
         return ZERO_HASH;
     }
     // all nans should have the same hash:
