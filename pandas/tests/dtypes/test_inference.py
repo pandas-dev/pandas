@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
     ensure_int32,
     is_bool,
     is_complex,
-    is_cursor,
     is_datetime64_any_dtype,
     is_datetime64_dtype,
     is_datetime64_ns_dtype,
@@ -148,10 +147,10 @@ class MockDBCursor:
     @property
     def description(self):
         return [
-            ('First', 0, None, None, None, None, False),
-            ('Second', 0, None, None, None, None, False),
-            ('Third', 1, None, None, None, None, True),
-            ('Fourth', 2, None, None, None, None, True),
+            ("First", 0, None, None, None, None, False),
+            ("Second", 0, None, None, None, None, False),
+            ("Third", 1, None, None, None, None, True),
+            ("Fourth", 2, None, None, None, None, True),
         ]
 
     @property
@@ -162,7 +161,7 @@ class MockDBCursor:
         return
 
     def fetchall(self):
-        return [('a', 'b', 1.2, 3)]
+        return [("a", "b", 1.2, 3)]
 
     def close(self):
         return
@@ -2036,6 +2035,6 @@ def test_is_cursor():
     arr = MockNumpyLikeArray([[0, 1]])
 
     assert not is_cursor(arr)
-    assert not is_cursor('')
+    assert not is_cursor("")
     assert not is_cursor(1)
     assert not is_cursor(1.23)
