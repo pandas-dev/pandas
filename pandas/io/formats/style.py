@@ -3607,7 +3607,7 @@ class Styler(StylerRenderer):
         ...                                          "template.tpl",
         ...                                          )  # doctest: +SKIP
         >>> df = pd.DataFrame({"A": [1, 2]})
-        >>> EasyStyler(df)
+        >>> EasyStyler(df)  # doctest: +SKIP
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
