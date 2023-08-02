@@ -34,7 +34,7 @@ class BaseOpsUtil(BaseExtensionTests):
             result = op(ser, other)
             expected = self._combine(ser, other, op)
             assert isinstance(result, type(ser))
-            self.assert_equal(result, expected)
+            tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)
@@ -47,8 +47,8 @@ class BaseOpsUtil(BaseExtensionTests):
                 expected_div, expected_mod = ser // other, ser % other
             else:
                 expected_div, expected_mod = other // ser, other % ser
-            self.assert_series_equal(result_div, expected_div)
-            self.assert_series_equal(result_mod, expected_mod)
+            tm.assert_series_equal(result_div, expected_div)
+            tm.assert_series_equal(result_mod, expected_mod)
         else:
             with pytest.raises(exc):
                 divmod(ser, other)
@@ -111,7 +111,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         ser = pd.Series(data)
         result = ser + data
         expected = pd.Series(data + data)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(
@@ -140,7 +140,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         else:
             exc = None
@@ -152,7 +152,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
-                self.assert_series_equal(result, expected)
+                tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)
@@ -192,7 +192,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         ser = pd.Series(data, name="name")
         result = ~ser
         expected = pd.Series(~data, name="name")
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
@@ -213,4 +213,4 @@ class BaseUnaryOpsTests(BaseOpsUtil):
                 ufunc(data)
         else:
             alt = ufunc(data)
-            self.assert_extension_array_equal(result, alt)
+            tm.assert_extension_array_equal(result, alt)

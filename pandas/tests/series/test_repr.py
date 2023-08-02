@@ -67,7 +67,12 @@ class TestSeriesRepr:
 
     @pytest.mark.parametrize("args", [(), (0, -1)])
     def test_float_range(self, args):
-        str(Series(np.random.randn(1000), index=np.arange(1000, *args)))
+        str(
+            Series(
+                np.random.default_rng(2).standard_normal(1000),
+                index=np.arange(1000, *args),
+            )
+        )
 
     def test_empty_object(self):
         # empty
@@ -114,14 +119,16 @@ class TestSeriesRepr:
 
     def test_tuple_name(self):
         biggie = Series(
-            np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+            np.random.default_rng(2).standard_normal(1000),
+            index=np.arange(1000),
+            name=("foo", "bar", "baz"),
         )
         repr(biggie)
 
     @pytest.mark.parametrize("arg", [100, 1001])
     def test_tidy_repr_name_0(self, arg):
         # tidy repr
-        ser = Series(np.random.randn(arg), name=0)
+        ser = Series(np.random.default_rng(2).standard_normal(arg), name=0)
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
@@ -149,7 +156,12 @@ class TestSeriesRepr:
         repr(a)  # should not raise exception
 
     def test_repr_bool_fails(self, capsys):
-        s = Series([DataFrame(np.random.randn(2, 2)) for i in range(5)])
+        s = Series(
+            [
+                DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
+                for i in range(5)
+            ]
+        )
 
         # It works (with no Cython exception barf)!
         repr(s)
@@ -197,13 +209,13 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        ts = Series(np.random.randn(len(index)), index)
+        ts = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
         assert repr(ts).splitlines()[-1].startswith("Freq:")
 
-        ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
+        ts2 = ts.iloc[np.random.default_rng(2).integers(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
 
     def test_latex_repr(self):
