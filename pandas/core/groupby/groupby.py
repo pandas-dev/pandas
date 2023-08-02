@@ -1906,6 +1906,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
+                # TODO: avoid special casing SparseArray here
                 if how in ["any", "all"] and isinstance(values, SparseArray):
                     pass
                 elif how in ["any", "all", "std", "sem"]:
