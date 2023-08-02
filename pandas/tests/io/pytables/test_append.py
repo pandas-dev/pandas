@@ -134,7 +134,7 @@ def test_append_series(setup_path):
         mi["C"] = "foo"
         mi.loc[3:5, "C"] = "bar"
         mi.set_index(["C", "B"], inplace=True)
-        s = mi.stack()
+        s = mi.stack(future_stack=True)
         s.index = s.index.droplevel(2)
         store.append("mi", s)
         tm.assert_series_equal(store["mi"], s, check_index_type=True)
