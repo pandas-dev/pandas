@@ -418,7 +418,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack()
+        row_margin = row_margin.stack(future_stack=True)
 
         # slight hack
         new_order = [len(cols)] + list(range(len(cols)))

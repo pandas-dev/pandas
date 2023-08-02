@@ -68,7 +68,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(dropna=False)
+    exp = DataFrame(expd).T.stack(future_stack=True)
     exp.index.names = ["A", "B"]
     exp.name = "C"
 

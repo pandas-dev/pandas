@@ -127,7 +127,7 @@ stacked level becomes the new lowest level in a :class:`MultiIndex` on the colum
 
 .. ipython:: python
 
-   stacked = df2.stack()
+   stacked = df2.stack(future_stack=True)
    stacked
 
 With a "stacked" :class:`DataFrame` or :class:`Series` (having a :class:`MultiIndex` as the
@@ -163,7 +163,7 @@ will result in a **sorted** copy of the original :class:`DataFrame` or :class:`S
    index = pd.MultiIndex.from_product([[2, 1], ["a", "b"]])
    df = pd.DataFrame(np.random.randn(4), index=index, columns=["A"])
    df
-   all(df.unstack().stack() == df.sort_index())
+   all(df.unstack().stack(future_stack=True) == df.sort_index())
 
 The above code will raise a ``TypeError`` if the call to :meth:`~DataFrame.sort_index` is
 removed.
@@ -191,16 +191,16 @@ processed individually.
     df = pd.DataFrame(np.random.randn(4, 4), columns=columns)
     df
 
-    df.stack(level=["animal", "hair_length"])
+    df.stack(level=["animal", "hair_length"], future_stack=True)
 
 The list of levels can contain either level names or level numbers (but
 not a mixture of the two).
 
 .. ipython:: python
 
-    # df.stack(level=['animal', 'hair_length'])
+    # df.stack(level=['animal', 'hair_length'], future_stack=True)
     # from above is equivalent to:
-    df.stack(level=[1, 2])
+    df.stack(level=[1, 2], future_stack=True)
 
 Missing data
 ~~~~~~~~~~~~
@@ -233,8 +233,8 @@ which level in the columns to stack:
 
 .. ipython:: python
 
-   df2.stack("exp")
-   df2.stack("animal")
+   df2.stack("exp", future_stack=True)
+   df2.stack("animal", future_stack=True)
 
 Unstacking can result in missing values if subgroups do not have the same
 set of labels.  By default, missing values will be replaced with the default
@@ -345,12 +345,12 @@ some very expressive and fast data manipulations.
 .. ipython:: python
 
    df
-   df.stack().mean(1).unstack()
+   df.stack(future_stack=True).mean(1).unstack()
 
    # same result, another way
    df.T.groupby(level=1).mean()
 
-   df.stack().groupby(level=1).mean()
+   df.stack(future_stack=True).groupby(level=1).mean()
 
    df.mean().unstack(0)
 
@@ -460,7 +460,7 @@ as having a multi-level index:
 
 .. ipython:: python
 
-    table.stack()
+    table.stack(future_stack=True)
 
 .. _reshaping.crosstabulations:
 

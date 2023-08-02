@@ -416,7 +416,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(dropna=self.observed)
+            res_ser = res_df.stack(future_stack=True)
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
