@@ -38,9 +38,6 @@ def test_maybe_upcast(any_real_numpy_dtype):
 
 def test_maybe_upcast_no_na(any_real_numpy_dtype):
     # GH#36712
-    if any_real_numpy_dtype == "float32":
-        pytest.skip()
-
     arr = np.array([1, 2, 3], dtype=any_real_numpy_dtype)
     result = _maybe_upcast(arr, use_dtype_backend=True)
 
