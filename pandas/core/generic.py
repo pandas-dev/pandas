@@ -381,8 +381,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.attrs
         {'A': [10, 20, 30]}
         """
-        if self._attrs is None:
-            self._attrs = {}
         return self._attrs
 
     @attrs.setter
@@ -2126,6 +2124,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             typ = state.get("_typ")
             if typ is not None:
                 attrs = state.get("_attrs", {})
+                if attrs is None:  # should not happen, but better be on the safe side
+                    attrs = {}
                 object.__setattr__(self, "_attrs", attrs)
                 flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
@@ -5633,7 +5633,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Keep labels from axis for which "like in label == True".
         regex : str (regular expression)
             Keep labels from axis for which re.search(regex, label) == True.
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             The axis to filter on, expressed either as an index (int)
             or axis name (str). By default this is the info axis, 'columns' for
             DataFrame. For `Series` this parameter is unused and defaults to `None`.
@@ -5922,7 +5922,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                 np.random.Generator objects now accepted
 
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type. For `Series` this parameter is unused and defaults to `None`.
         ignore_index : bool, default False
@@ -6511,13 +6511,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 results.append(res_col)
 
         elif is_extension_array_dtype(dtype) and self.ndim > 1:
-            # GH 18099/22869: columnwise conversion to extension dtype
-            # GH 24704: use iloc to handle duplicate column names
             # TODO(EA2D): special case not needed with 2D EAs
-            results = [
-                self.iloc[:, i].astype(dtype, copy=copy)
-                for i in range(len(self.columns))
-            ]
+            dtype = pandas_dtype(dtype)
+            if isinstance(dtype, ExtensionDtype) and all(
+                arr.dtype == dtype for arr in self._mgr.arrays
+            ):
+                return self.copy(deep=copy)
+            # GH 18099/22869: columnwise conversion to extension dtype
+            # GH 24704: self.items handles duplicate column names
+            results = [ser.astype(dtype, copy=copy) for _, ser in self.items()]
 
         else:
             # else, only a single dtype is given

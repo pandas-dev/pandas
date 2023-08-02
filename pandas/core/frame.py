@@ -54,10 +54,7 @@ from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.numpy import (
-    function as nv,
-    np_percentile_argname,
-)
+from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
@@ -106,6 +103,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
@@ -5211,8 +5209,8 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame or None
-            DataFrame without the removed index or column labels or
-            None if ``inplace=True``.
+            Returns DataFrame or None DataFrame with the specified
+            index or column labels removed or None if inplace=True.
 
         Raises
         ------
@@ -7133,7 +7131,7 @@ class DataFrame(NDFrame, OpsMixin):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don’t include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
             .. versionadded:: 1.3.0
 
@@ -9168,7 +9166,13 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
+    def stack(
+        self,
+        level: IndexLabel = -1,
+        dropna: bool | lib.NoDefault = lib.no_default,
+        sort: bool | lib.NoDefault = lib.no_default,
+        future_stack: bool = False,
+    ):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9196,6 +9200,11 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
+        future_stack : bool, default False
+            Whether to use the new implementation that will replace the current
+            implementation in pandas 3.0. When True, dropna and sort have no impact
+            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
+            notes <whatsnew_210.enhancements.new_stack>` for more details.
 
         Returns
         -------
@@ -9235,7 +9244,7 @@ class DataFrame(NDFrame, OpsMixin):
              weight height
         cat       0      1
         dog       2      3
-        >>> df_single_level_cols.stack()
+        >>> df_single_level_cols.stack(future_stack=True)
         cat  weight    0
              height    1
         dog  weight    2
@@ -9257,7 +9266,7 @@ class DataFrame(NDFrame, OpsMixin):
                  kg    pounds
         cat       1        2
         dog       2        4
-        >>> df_multi_level_cols1.stack()
+        >>> df_multi_level_cols1.stack(future_stack=True)
                     weight
         cat kg           1
             pounds       2
@@ -9282,7 +9291,7 @@ class DataFrame(NDFrame, OpsMixin):
                 kg      m
         cat    1.0    2.0
         dog    3.0    4.0
-        >>> df_multi_level_cols2.stack()
+        >>> df_multi_level_cols2.stack(future_stack=True)
                 weight  height
         cat kg     1.0     NaN
             m      NaN     2.0
@@ -9293,17 +9302,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack(0)
+        >>> df_multi_level_cols2.stack(0, future_stack=True)
                      kg    m
-        cat height  NaN  2.0
-            weight  1.0  NaN
-        dog height  NaN  4.0
-            weight  3.0  NaN
-        >>> df_multi_level_cols2.stack([0, 1])
-        cat  height  m     2.0
-             weight  kg    1.0
-        dog  height  m     4.0
-             weight  kg    3.0
+        cat weight  1.0  NaN
+            height  NaN  2.0
+        dog weight  3.0  NaN
+            height  NaN  4.0
+        >>> df_multi_level_cols2.stack([0, 1], future_stack=True)
+        cat  weight  kg    1.0
+             height  m     2.0
+        dog  weight  kg    3.0
+             height  m     4.0
         dtype: float64
 
         **Dropping missing values**
@@ -9333,15 +9342,52 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     2.0     NaN
             m      NaN     3.0
         """
-        from pandas.core.reshape.reshape import (
-            stack,
-            stack_multiple,
-        )
+        if not future_stack:
+            from pandas.core.reshape.reshape import (
+                stack,
+                stack_multiple,
+            )
 
-        if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            if dropna is lib.no_default:
+                dropna = True
+            if sort is lib.no_default:
+                sort = True
+
+            if isinstance(level, (tuple, list)):
+                result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            else:
+                result = stack(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+            from pandas.core.reshape.reshape import stack_v3
+
+            if dropna is not lib.no_default:
+                raise ValueError(
+                    "dropna must be unspecified with future_stack=True as the new "
+                    "implementation does not introduce rows of NA values. This "
+                    "argument will be removed in a future version of pandas."
+                )
+
+            if sort is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify sort with future_stack=True, this argument will be "
+                    "removed in a future version of pandas. Sort the result using "
+                    ".sort_index instead."
+                )
+
+            if (
+                isinstance(level, (tuple, list))
+                and not all(lev in self.columns.names for lev in level)
+                and not all(isinstance(lev, int) for lev in level)
+            ):
+                raise ValueError(
+                    "level should contain all level names or all level "
+                    "numbers, not a mixture of the two."
+                )
+
+            if not isinstance(level, (tuple, list)):
+                level = [level]
+            level = [self.columns._get_level_number(lev) for lev in level]
+            result = stack_v3(self, level)
 
         return result.__finalize__(self, method="stack")
 
@@ -9970,7 +10016,7 @@ class DataFrame(NDFrame, OpsMixin):
         func : callable
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
-            If ‘ignore’, propagate NaN values, without passing them to func.
+            If 'ignore', propagate NaN values, without passing them to func.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10056,7 +10102,7 @@ class DataFrame(NDFrame, OpsMixin):
         func : callable
             Python function, returns a single value from a single value.
         na_action : {None, 'ignore'}, default None
-            If ‘ignore’, propagate NaN values, without passing them to func.
+            If 'ignore', propagate NaN values, without passing them to func.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10183,8 +10229,7 @@ class DataFrame(NDFrame, OpsMixin):
             * left: use calling frame's index (or column if on is specified)
             * right: use `other`'s index.
             * outer: form union of calling frame's index (or column if on is
-              specified) with `other`'s index, and sort it.
-              lexicographically.
+              specified) with `other`'s index, and sort it lexicographically.
             * inner: form intersection of calling frame's index (or column if
               on is specified) with `other`'s index, preserving the order
               of the calling's one.
@@ -10204,7 +10249,7 @@ class DataFrame(NDFrame, OpsMixin):
             If specified, checks if join is of specified type.
 
             * "one_to_one" or "1:1": check if join keys are unique in both left
-               and right datasets.
+              and right datasets.
             * "one_to_many" or "1:m": check if join keys are unique in left dataset.
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
@@ -11064,6 +11109,11 @@ class DataFrame(NDFrame, OpsMixin):
         if numeric_only:
             df = _get_data()
         if axis is None:
+            dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+            if isinstance(dtype, ExtensionDtype):
+                df = df.astype(dtype, copy=False)
+                arr = concat_compat(list(df._iter_column_arrays()))
+                return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
             return func(df.values)
         elif axis == 1:
             if len(df.index) == 0:
@@ -11135,12 +11185,13 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
-        return self._logical_func(  # type: ignore[return-value]
+    ) -> Series | bool:
+        result = self._logical_func(
             "any", nanops.nanany, axis, bool_only, skipna, **kwargs
         )
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="any")
+        return result
 
     @doc(make_doc("all", ndim=2))
     def all(
@@ -11149,12 +11200,13 @@ class DataFrame(NDFrame, OpsMixin):
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
-    ) -> Series:
-        # error: Incompatible return value type (got "Union[Series, bool]",
-        # expected "Series")
-        return self._logical_func(  # type: ignore[return-value]
+    ) -> Series | bool:
+        result = self._logical_func(
             "all", nanops.nanall, axis, bool_only, skipna, **kwargs
         )
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="all")
+        return result
 
     @doc(make_doc("min", ndim=2))
     def min(
@@ -11164,7 +11216,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().min(axis, skipna, numeric_only, **kwargs)
+        result = super().min(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="min")
+        return result
 
     @doc(make_doc("max", ndim=2))
     def max(
@@ -11174,7 +11229,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().max(axis, skipna, numeric_only, **kwargs)
+        result = super().max(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="max")
+        return result
 
     @doc(make_doc("sum", ndim=2))
     def sum(
@@ -11197,7 +11255,8 @@ class DataFrame(NDFrame, OpsMixin):
         min_count: int = 0,
         **kwargs,
     ):
-        return super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        result = super().prod(axis, skipna, numeric_only, min_count, **kwargs)
+        return result.__finalize__(self, method="prod")
 
     @doc(make_doc("mean", ndim=2))
     def mean(
@@ -11207,7 +11266,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().mean(axis, skipna, numeric_only, **kwargs)
+        result = super().mean(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="mean")
+        return result
 
     @doc(make_doc("median", ndim=2))
     def median(
@@ -11217,7 +11279,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().median(axis, skipna, numeric_only, **kwargs)
+        result = super().median(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="median")
+        return result
 
     @doc(make_doc("sem", ndim=2))
     def sem(
@@ -11228,7 +11293,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().sem(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="sem")
+        return result
 
     @doc(make_doc("var", ndim=2))
     def var(
@@ -11239,7 +11307,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        result = super().var(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="var")
+        return result
 
     @doc(make_doc("std", ndim=2))
     def std(
@@ -11250,8 +11321,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        result = cast(Series, super().std(axis, skipna, ddof, numeric_only, **kwargs))
-        return result.__finalize__(self, method="std")
+        result = super().std(axis, skipna, ddof, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="std")
+        return result
 
     @doc(make_doc("skew", ndim=2))
     def skew(
@@ -11261,7 +11334,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().skew(axis, skipna, numeric_only, **kwargs)
+        result = super().skew(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="skew")
+        return result
 
     @doc(make_doc("kurt", ndim=2))
     def kurt(
@@ -11271,7 +11347,10 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
-        return super().kurt(axis, skipna, numeric_only, **kwargs)
+        result = super().kurt(axis, skipna, numeric_only, **kwargs)
+        if isinstance(result, Series):
+            result = result.__finalize__(self, method="kurt")
+        return result
 
     kurtosis = kurt
     product = prod
@@ -11699,9 +11778,7 @@ class DataFrame(NDFrame, OpsMixin):
                     dtype = self.dtype
                 return self._constructor([], index=q, columns=data.columns, dtype=dtype)
 
-            q_idx = np.quantile(  # type: ignore[call-overload]
-                np.arange(len(data)), q, **{np_percentile_argname: interpolation}
-            )
+            q_idx = np.quantile(np.arange(len(data)), q, method=interpolation)
 
             by = data.columns
             if len(by) > 1:

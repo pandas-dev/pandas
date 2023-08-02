@@ -89,7 +89,7 @@ class TestGetitem(base.BaseGetitemTests):
         arr = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
         result = arr.take([0, -1], allow_fill=True, fill_value=decimal.Decimal("-1.0"))
         expected = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("-1.0")])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestIndex(base.BaseIndexTests):
@@ -105,7 +105,7 @@ class TestMissing(base.BaseMissingTests):
             super().test_fillna_frame(data_missing)
 
     def test_fillna_limit_pad(self, data_missing):
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
@@ -123,6 +123,13 @@ class TestMissing(base.BaseMissingTests):
         ):
             super().test_fillna_limit_backfill(data_missing)
 
+    def test_fillna_no_op_returns_copy(self, data):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
@@ -131,7 +138,7 @@ class TestMissing(base.BaseMissingTests):
             super().test_fillna_series(data_missing)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
@@ -260,20 +267,16 @@ class TestPrinting(base.BasePrintingTests):
         assert "Decimal: " in repr(ser)
 
 
-@pytest.mark.xfail(
-    reason=(
-        "DecimalArray constructor raises bc _from_sequence wants Decimals, not ints."
-        "Easy to fix, just need to do it."
-    ),
-    raises=TypeError,
-)
-def test_series_constructor_coerce_data_to_extension_dtype_raises():
-    xpr = (
-        "Cannot cast data to extension dtype 'decimal'. Pass the "
-        "extension array directly."
+def test_series_constructor_coerce_data_to_extension_dtype():
+    dtype = DecimalDtype()
+    ser = pd.Series([0, 1, 2], dtype=dtype)
+
+    arr = DecimalArray(
+        [decimal.Decimal(0), decimal.Decimal(1), decimal.Decimal(2)],
+        dtype=dtype,
     )
-    with pytest.raises(ValueError, match=xpr):
-        pd.Series([0, 1, 2], dtype=DecimalDtype())
+    exp = pd.Series(arr)
+    tm.assert_series_equal(ser, exp)
 
 
 def test_series_constructor_with_dtype():
@@ -360,7 +363,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def test_compare_array(self, data, comparison_op):
         s = pd.Series(data)
 
-        alter = np.random.choice([-1, 0, 1], len(data))
+        alter = np.random.default_rng(2).choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
         self._compare_other(s, data, comparison_op, other)

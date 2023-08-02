@@ -458,7 +458,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.var(ddof=4))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nanvar(arr, axis=0)
         assert not (result < 0).any()
 
@@ -469,13 +469,19 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("meth", ["sem", "var", "std"])
     def test_numeric_only_flag(self, meth):
         # GH 9201
-        df1 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "100" below
         df1 = df1.astype({"foo": object})
         # set one entry to a number in str format
         df1.loc[0, "foo"] = "100"
 
-        df2 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "a" below
         df2 = df2.astype({"foo": object})
         # set one entry to a non-number str
@@ -502,7 +508,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.std(ddof=4) / np.sqrt(len(x)))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nansem(arr, axis=0)
         assert not (result < 0).any()
 
@@ -937,7 +943,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_extensionarray_numeric_only_true(self):
         # https://github.com/pandas-dev/pandas/issues/33256
-        arr = np.random.randint(1000, size=(10, 5))
+        arr = np.random.default_rng(2).integers(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
         expected = DataFrame(arr).mean().astype("Float64")
@@ -1143,7 +1149,7 @@ class TestDataFrameAnalytics:
     def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
         # make sure op works on mixed-type frame
         mixed = float_string_frame
-        mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
+        mixed["_bool_"] = np.random.default_rng(2).standard_normal(len(mixed)) > 0.5
 
         getattr(mixed, opname)(axis=axis, bool_only=bool_only)
 
@@ -1868,13 +1874,14 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.randn(4, 4))
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), dtype=dtype)
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
-    np_arr = df.to_numpy()
+    np_arr = df.to_numpy(dtype=np.float64)
     if method in {"skew", "kurt"}:
         comp_mod = pytest.importorskip("scipy.stats")
         if method == "kurt":

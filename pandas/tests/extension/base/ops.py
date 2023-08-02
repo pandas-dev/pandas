@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import final
+
 import numpy as np
 import pytest
 
@@ -10,6 +12,15 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        # In _check_op we check that the result of a pointwise operation
+        #  (found via _combine) matches the result of the vectorized
+        #  operation obj.__op_name__(other).
+        #  In some cases pandas dtype inference on the scalar result may not
+        #  give a matching dtype even if both operations are behaving "correctly".
+        #  In these cases, do extra required casting here.
+        return pointwise_result
+
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
@@ -18,6 +29,12 @@ class BaseOpsUtil(BaseExtensionTests):
 
         self._check_op(ser, op, other, op_name, exc)
 
+    # Subclasses are not expected to need to override _check_op or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
@@ -27,14 +44,17 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
+    # see comment on _combine
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
         if exc is None:
             result = op(ser, other)
             expected = self._combine(ser, other, op)
+            expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
-            self.assert_equal(result, expected)
+            tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)
@@ -47,8 +67,8 @@ class BaseOpsUtil(BaseExtensionTests):
                 expected_div, expected_mod = ser // other, ser % other
             else:
                 expected_div, expected_mod = other // ser, other % ser
-            self.assert_series_equal(result_div, expected_div)
-            self.assert_series_equal(result_mod, expected_mod)
+            tm.assert_series_equal(result_div, expected_div)
+            tm.assert_series_equal(result_mod, expected_mod)
         else:
             with pytest.raises(exc):
                 divmod(ser, other)
@@ -111,7 +131,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         ser = pd.Series(data)
         result = ser + data
         expected = pd.Series(data + data)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
     def test_direct_arith_with_ndframe_returns_not_implemented(
@@ -140,7 +160,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
         else:
             exc = None
@@ -152,7 +172,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
-                self.assert_series_equal(result, expected)
+                tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)
@@ -192,7 +212,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         ser = pd.Series(data, name="name")
         result = ~ser
         expected = pd.Series(~data, name="name")
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
@@ -213,4 +233,4 @@ class BaseUnaryOpsTests(BaseOpsUtil):
                 ufunc(data)
         else:
             alt = ufunc(data)
-            self.assert_extension_array_equal(result, alt)
+            tm.assert_extension_array_equal(result, alt)
