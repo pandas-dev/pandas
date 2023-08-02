@@ -158,7 +158,7 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
 
 
 skip_if_mpl = pytest.mark.skipif(
-    not bool(safe_import("matplotlib")), reason="matplotlib is present"
+    bool(safe_import("matplotlib")), reason="matplotlib is present"
 )
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
