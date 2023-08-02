@@ -424,7 +424,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         if data.dtype.numpy_dtype != object:
             if not isinstance(key, slice) or key != slice(None):
                 expected = pd.DataFrame({"data": data.to_numpy()})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 @skip_nested
