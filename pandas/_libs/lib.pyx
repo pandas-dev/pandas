@@ -1208,6 +1208,8 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     # then the generic implementation
     try:
         iter(obj)
+    except TypeError:
+        pass
     except Exception:
         return False
     return (
