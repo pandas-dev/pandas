@@ -9200,7 +9200,7 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
-        future_stack: bool, default False
+        future_stack : bool, default False
             Whether to use the new implementation that will replace the current
             implementation in pandas 3.0. When True, dropna and sort have no impact
             on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
