@@ -722,16 +722,45 @@ accepts the special syntax in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGr
   to make it clearer what the arguments are. As usual, the aggregation can
   be a callable or a string alias.
 
+Example:
+-------
+
+Consider the following DataFrame `animals`:
+
 .. ipython:: python
 
-   animals
+    import pandas as pd
 
-   animals.groupby("kind").agg(
-       min_height=pd.NamedAgg(column="height", aggfunc="min"),
-       max_height=pd.NamedAgg(column="height", aggfunc="max"),
-       average_weight=pd.NamedAgg(column="weight", aggfunc="mean"),
-   )
+    animals = pd.DataFrame({
+        'kind': ['cat', 'dog', 'cat', 'dog'],
+        'height': [9.1, 6.0, 9.5, 34.0],
+        'weight': [7.9, 7.5, 9.9, 198.0]
+    })
 
+To demonstrate "named aggregation," let's group the DataFrame by the 'kind' column and apply different aggregations to the 'height' and 'weight' columns:
+
+.. ipython:: python
+
+   result = animals.groupby('kind').agg(
+        min_height=pd.NamedAgg(column='height', aggfunc='min'),
+        max_height=pd.NamedAgg(column='height', aggfunc='max'),
+        average_weight=pd.NamedAgg(column='weight', aggfunc='mean')
+    )
+
+In the above example, we used "named aggregation" to specify custom output column names (`min_height`, `max_height`, and `average_weight`) for each aggregation. The result will be a new DataFrame with the aggregated values, and the output column names will be as specified.
+
+The resulting DataFrame will look like this:
+
+.. code-block:: bash
+
+       min_height  max_height  average_weight
+    kind
+    cat          9.1         9.5            8.90
+    dog          6.0        34.0          102.75
+
+In this example, the 'min_height' column contains the minimum height for each group, the 'max_height' column contains the maximum height, and the 'average_weight' column contains the average weight for each group.
+
+By using "named aggregation," you can easily control the output column names and have more descriptive results when performing aggregations with `groupby.agg`.
 
 :class:`NamedAgg` is just a ``namedtuple``. Plain tuples are allowed as well.
 

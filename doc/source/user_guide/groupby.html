@@ -1,0 +1,2945 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.20.1: https://docutils.sourceforge.io/" />
+<title>groupby.rst</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger (goodger@python.org)
+:Id: $Id: html4css1.css 8954 2022-01-20 10:10:25Z milde $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See https://docutils.sourceforge.io/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* used to remove borders from tables and images */
+.borderless, table.borderless td, table.borderless th {
+  border: 0 }
+
+table.borderless td, table.borderless th {
+  /* Override padding for "table.docutils td" with "! important".
+     The right padding separates the table cells. */
+  padding: 0 0.5em 0 0 ! important }
+
+.first {
+  /* Override more specific margin styles with "! important". */
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+.subscript {
+  vertical-align: sub;
+  font-size: smaller }
+
+.superscript {
+  vertical-align: super;
+  font-size: smaller }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+object[type="image/svg+xml"], object[type="application/x-shockwave-flash"] {
+  overflow: hidden;
+}
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title, .code .error {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin: 0 0 0.5em 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left, .figure.align-left, object.align-left, table.align-left {
+  clear: left ;
+  float: left ;
+  margin-right: 1em }
+
+img.align-right, .figure.align-right, object.align-right, table.align-right {
+  clear: right ;
+  float: right ;
+  margin-left: 1em }
+
+img.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+table.align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+  text-align: left }
+
+.align-center {
+  clear: both ;
+  text-align: center }
+
+.align-right {
+  text-align: right }
+
+/* reset inner alignment in figures */
+div.align-right {
+  text-align: inherit }
+
+/* div.align-center * { */
+/*   text-align: left } */
+
+.align-top    {
+  vertical-align: top }
+
+.align-middle {
+  vertical-align: middle }
+
+.align-bottom {
+  vertical-align: bottom }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font: inherit }
+
+pre.literal-block, pre.doctest-block, pre.math, pre.code {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+pre.code .ln { color: grey; } /* line numbers */
+pre.code, code { background-color: #eeeeee }
+pre.code .comment, code .comment { color: #5C6576 }
+pre.code .keyword, code .keyword { color: #3B0D06; font-weight: bold }
+pre.code .literal.string, code .literal.string { color: #0C5404 }
+pre.code .name.builtin, code .name.builtin { color: #352B84 }
+pre.code .deleted, code .deleted { background-color: #DEB0A1}
+pre.code .inserted, code .inserted { background-color: #A3D289}
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid 1px gray;
+  margin-left: 1px }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid 1px black;
+  margin-left: 1px }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+/* "booktabs" style (no vertical lines) */
+table.docutils.booktabs {
+  border: 0px;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+  border-collapse: collapse;
+}
+table.docutils.booktabs * {
+  border: 0px;
+}
+table.docutils.booktabs th {
+  border-bottom: thin solid;
+  text-align: left;
+}
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document">
+
+
+<p id="groupby">{{ header }}</p>
+<div class="section" id="group-by-split-apply-combine">
+<h1>Group by: split-apply-combine</h1>
+<p>By &quot;group by&quot; we are referring to a process involving one or more of the following
+steps:</p>
+<ul class="simple">
+<li><strong>Splitting</strong> the data into groups based on some criteria.</li>
+<li><strong>Applying</strong> a function to each group independently.</li>
+<li><strong>Combining</strong> the results into a data structure.</li>
+</ul>
+<p>Out of these, the split step is the most straightforward. In fact, in many
+situations we may wish to split the data set into groups and do something with
+those groups. In the apply step, we might wish to do one of the
+following:</p>
+<ul>
+<li><p class="first"><strong>Aggregation</strong>: compute a summary statistic (or statistics) for each
+group. Some examples:</p>
+<blockquote>
+<ul class="simple">
+<li>Compute group sums or means.</li>
+<li>Compute group sizes / counts.</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><strong>Transformation</strong>: perform some group-specific computations and return a
+like-indexed object. Some examples:</p>
+<blockquote>
+<ul class="simple">
+<li>Standardize data (zscore) within a group.</li>
+<li>Filling NAs within groups with a value derived from each group.</li>
+</ul>
+</blockquote>
+</li>
+<li><p class="first"><strong>Filtration</strong>: discard some groups, according to a group-wise computation
+that evaluates to True or False. Some examples:</p>
+<blockquote>
+<ul class="simple">
+<li>Discard data that belong to groups with only a few members.</li>
+<li>Filter out data based on the group sum or mean.</li>
+</ul>
+</blockquote>
+</li>
+</ul>
+<p>Many of these operations are defined on GroupBy objects. These operations are similar
+to those of the <a href="#system-message-1"><span class="problematic" id="problematic-1">:ref:`aggregating API &lt;basics.aggregate&gt;`</span></a>,
+<a href="#system-message-2"><span class="problematic" id="problematic-2">:ref:`window API &lt;window.overview&gt;`</span></a>, and <a href="#system-message-3"><span class="problematic" id="problematic-3">:ref:`resample API &lt;timeseries.aggregate&gt;`</span></a>.</p>
+<div class="system-message" id="system-message-1">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 39); <em><a href="#problematic-1">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-2">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 39); <em><a href="#problematic-2">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-3">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 39); <em><a href="#problematic-3">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>It is possible that a given operation does not fall into one of these categories or
+is some combination of them. In such a case, it may be possible to compute the
+operation using GroupBy's <tt class="docutils literal">apply</tt> method. This method will examine the results of the
+apply step and try to sensibly combine them into a single result if it doesn't fit into either
+of the above three categories.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">An operation that is split into multiple steps using built-in GroupBy operations
+will be more efficient than using the <tt class="docutils literal">apply</tt> method with a user-defined Python
+function.</p>
+</div>
+<p>Since the set of object instance methods on pandas data structures is generally
+rich and expressive, we often simply want to invoke, say, a DataFrame function
+on each group. The name GroupBy should be quite familiar to those who have used
+a SQL-based tool (or <tt class="docutils literal">itertools</tt>), in which you can write code like:</p>
+<pre class="code sql literal-block">
+SELECT Column1, Column2, mean(Column3), sum(Column4)
+FROM SomeTable
+GROUP BY Column1, Column2
+</pre>
+<p>We aim to make operations like this natural and easy to express using
+pandas. We'll address each area of GroupBy functionality then provide some
+non-trivial examples / use cases.</p>
+<p>See the <a href="#system-message-4"><span class="problematic" id="problematic-4">:ref:`cookbook&lt;cookbook.grouping&gt;`</span></a> for some advanced strategies.</p>
+<div class="system-message" id="system-message-4">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 71); <em><a href="#problematic-4">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="section" id="splitting-an-object-into-groups">
+<span id="groupby-split"></span><h2>Splitting an object into groups</h2>
+<p>The abstract definition of grouping is to provide a mapping of labels to
+group names. To create a GroupBy object (more on what the GroupBy object is
+later), you may do the following:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 82)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    speeds = pd.DataFrame(
+        [
+            (&quot;bird&quot;, &quot;Falconiformes&quot;, 389.0),
+            (&quot;bird&quot;, &quot;Psittaciformes&quot;, 24.0),
+            (&quot;mammal&quot;, &quot;Carnivora&quot;, 80.2),
+            (&quot;mammal&quot;, &quot;Primates&quot;, np.nan),
+            (&quot;mammal&quot;, &quot;Carnivora&quot;, 58),
+        ],
+        index=[&quot;falcon&quot;, &quot;parrot&quot;, &quot;lion&quot;, &quot;monkey&quot;, &quot;leopard&quot;],
+        columns=(&quot;class&quot;, &quot;order&quot;, &quot;max_speed&quot;),
+    )
+    speeds
+
+    grouped = speeds.groupby(&quot;class&quot;)
+    grouped = speeds.groupby([&quot;class&quot;, &quot;order&quot;])
+
+</pre>
+</div>
+<p>The mapping can be specified many different ways:</p>
+<ul class="simple">
+<li>A Python function, to be called on each of the index labels.</li>
+<li>A list or NumPy array of the same length as the index.</li>
+<li>A dict or <tt class="docutils literal">Series</tt>, providing a <tt class="docutils literal">label <span class="pre">-&gt;</span> group name</tt> mapping.</li>
+<li>For <tt class="docutils literal">DataFrame</tt> objects, a string indicating either a column name or
+an index level name to be used to group.</li>
+<li>A list of any of the above things.</li>
+</ul>
+<p>Collectively we refer to the grouping objects as the <strong>keys</strong>. For example,
+consider the following <tt class="docutils literal">DataFrame</tt>:</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">A string passed to <tt class="docutils literal">groupby</tt> may refer to either a column or an index level.
+If a string matches both a column name and an index level name, a
+<tt class="docutils literal">ValueError</tt> will be raised.</p>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 118)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           &quot;A&quot;: [&quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;foo&quot;],
+           &quot;B&quot;: [&quot;one&quot;, &quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;two&quot;, &quot;two&quot;, &quot;one&quot;, &quot;three&quot;],
+           &quot;C&quot;: np.random.randn(8),
+           &quot;D&quot;: np.random.randn(8),
+       }
+   )
+   df
+
+</pre>
+</div>
+<p>On a DataFrame, we obtain a GroupBy object by calling <a href="#system-message-5"><span class="problematic" id="problematic-5">:meth:`~DataFrame.groupby`</span></a>.
+This method returns a <tt class="docutils literal">pandas.api.typing.DataFrameGroupBy</tt> instance.
+We could naturally group by either the <tt class="docutils literal">A</tt> or <tt class="docutils literal">B</tt> columns, or both:</p>
+<div class="system-message" id="system-message-5">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 130); <em><a href="#problematic-5">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 134)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby(&quot;A&quot;)
+   grouped = df.groupby([&quot;A&quot;, &quot;B&quot;])
+
+</pre>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><tt class="docutils literal"><span class="pre">df.groupby('A')</span></tt> is just syntactic sugar for <tt class="docutils literal"><span class="pre">df.groupby(df['A'])</span></tt>.</p>
+</div>
+<p>If we also have a MultiIndex on columns <tt class="docutils literal">A</tt> and <tt class="docutils literal">B</tt>, we can group by all
+the columns except the one we specify:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 146)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df2 = df.set_index([&quot;A&quot;, &quot;B&quot;])
+   grouped = df2.groupby(level=df2.index.names.difference([&quot;B&quot;]))
+   grouped.sum()
+
+</pre>
+</div>
+<p>The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
+a transpose:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 155)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython::
+
+    In [4]: def get_letter_type(letter):
+       ...:     if letter.lower() in 'aeiou':
+       ...:         return 'vowel'
+       ...:     else:
+       ...:         return 'consonant'
+       ...:
+
+    In [5]: grouped = df.T.groupby(get_letter_type)
+
+</pre>
+</div>
+<p>pandas <a href="#system-message-6"><span class="problematic" id="problematic-6">:class:`~pandas.Index`</span></a> objects support duplicate values. If a
+non-unique index is used as the group key in a groupby operation, all values
+for the same index value will be considered to be in one group and thus the
+output of aggregation functions will only contain unique index values:</p>
+<div class="system-message" id="system-message-6">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 166); <em><a href="#problematic-6">backlink</a></em></p>
+Unknown interpreted text role &quot;class&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 171)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   lst = [1, 2, 3, 1, 2, 3]
+
+   s = pd.Series([1, 2, 3, 10, 20, 30], lst)
+
+   grouped = s.groupby(level=0)
+
+   grouped.first()
+
+   grouped.last()
+
+   grouped.sum()
+
+</pre>
+</div>
+<p>Note that <strong>no splitting occurs</strong> until it's needed. Creating the GroupBy object
+only verifies that you've passed a valid mapping.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Many kinds of complicated data manipulations can be expressed in terms of
+GroupBy operations (though it can't be guaranteed to be the most efficient implementation).
+You can get quite creative with the label mapping functions.</p>
+</div>
+<div class="section" id="groupby-sorting-1">
+<span id="groupby-sorting"></span><h3>GroupBy sorting</h3>
+<p>By default the group keys are sorted during the <tt class="docutils literal">groupby</tt> operation. You may however pass <tt class="docutils literal">sort=False</tt> for potential speedups. With <tt class="docutils literal">sort=False</tt> the order among group-keys follows the order of appearance of the keys in the original dataframe:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 201)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df2 = pd.DataFrame({&quot;X&quot;: [&quot;B&quot;, &quot;B&quot;, &quot;A&quot;, &quot;A&quot;], &quot;Y&quot;: [1, 2, 3, 4]})
+   df2.groupby([&quot;X&quot;]).sum()
+   df2.groupby([&quot;X&quot;], sort=False).sum()
+
+
+</pre>
+</div>
+<p>Note that <tt class="docutils literal">groupby</tt> will preserve the order in which <em>observations</em> are sorted <em>within</em> each group.
+For example, the groups created by <tt class="docutils literal">groupby()</tt> below are in the order they appeared in the original <tt class="docutils literal">DataFrame</tt>:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 211)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df3 = pd.DataFrame({&quot;X&quot;: [&quot;A&quot;, &quot;B&quot;, &quot;A&quot;, &quot;B&quot;], &quot;Y&quot;: [1, 4, 3, 2]})
+   df3.groupby([&quot;X&quot;]).get_group(&quot;A&quot;)
+
+   df3.groupby([&quot;X&quot;]).get_group(&quot;B&quot;)
+
+
+</pre>
+</div>
+<div class="section" id="groupby-dropna-1">
+<span id="groupby-dropna"></span><h4>GroupBy dropna</h4>
+<p>By default <tt class="docutils literal">NA</tt> values are excluded from group keys during the <tt class="docutils literal">groupby</tt> operation. However,
+in case you want to include <tt class="docutils literal">NA</tt> values in group keys, you could pass <tt class="docutils literal">dropna=False</tt> to achieve it.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 227)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    df_list = [[1, 2, 3], [1, None, 4], [2, 1, 3], [1, 2, 2]]
+    df_dropna = pd.DataFrame(df_list, columns=[&quot;a&quot;, &quot;b&quot;, &quot;c&quot;])
+
+    df_dropna
+
+</pre>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 234)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    # Default ``dropna`` is set to True, which will exclude NaNs in keys
+    df_dropna.groupby(by=[&quot;b&quot;], dropna=True).sum()
+
+    # In order to allow NaN in keys, set ``dropna`` to False
+    df_dropna.groupby(by=[&quot;b&quot;], dropna=False).sum()
+
+</pre>
+</div>
+<p>The default setting of <tt class="docutils literal">dropna</tt> argument is <tt class="docutils literal">True</tt> which means <tt class="docutils literal">NA</tt> are not included in group keys.</p>
+</div>
+</div>
+<div class="section" id="groupby-object-attributes">
+<span id="groupby-attributes"></span><h3>GroupBy object attributes</h3>
+<p>The <tt class="docutils literal">groups</tt> attribute is a dictionary whose keys are the computed unique groups
+and corresponding values are the axis labels belonging to each group. In the
+above example we have:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 254)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby(&quot;A&quot;).groups
+   df.T.groupby(get_letter_type).groups
+
+</pre>
+</div>
+<p>Calling the standard Python <tt class="docutils literal">len</tt> function on the GroupBy object just returns
+the length of the <tt class="docutils literal">groups</tt> dict, so it is largely just a convenience:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 262)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby([&quot;A&quot;, &quot;B&quot;])
+   grouped.groups
+   len(grouped)
+
+
+</pre>
+</div>
+<p id="groupby-tabcompletion"><tt class="docutils literal">GroupBy</tt> will tab complete column names (and other attributes):</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 273)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   n = 10
+   weight = np.random.normal(166, 20, size=n)
+   height = np.random.normal(60, 10, size=n)
+   time = pd.date_range(&quot;1/1/2000&quot;, periods=n)
+   gender = np.random.choice([&quot;male&quot;, &quot;female&quot;], size=n)
+   df = pd.DataFrame(
+       {&quot;height&quot;: height, &quot;weight&quot;: weight, &quot;gender&quot;: gender}, index=time
+   )
+   df
+   gb = df.groupby(&quot;gender&quot;)
+
+
+</pre>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 287)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython::
+
+   &#64;verbatim
+   In [1]: gb.&lt;TAB&gt;  # noqa: E225, E999
+   gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
+   gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
+   gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
+
+</pre>
+</div>
+</div>
+<div class="section" id="groupby-with-multiindex">
+<span id="groupby-multiindex"></span><h3>GroupBy with MultiIndex</h3>
+<p>With <a href="#system-message-7"><span class="problematic" id="problematic-7">:ref:`hierarchically-indexed data &lt;advanced.hierarchical&gt;`</span></a>, it's quite
+natural to group by one of the levels of the hierarchy.</p>
+<div class="system-message" id="system-message-7">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 300); <em><a href="#problematic-7">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>Let's create a Series with a two-level <tt class="docutils literal">MultiIndex</tt>.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 305)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+
+   arrays = [
+       [&quot;bar&quot;, &quot;bar&quot;, &quot;baz&quot;, &quot;baz&quot;, &quot;foo&quot;, &quot;foo&quot;, &quot;qux&quot;, &quot;qux&quot;],
+       [&quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;],
+   ]
+   index = pd.MultiIndex.from_arrays(arrays, names=[&quot;first&quot;, &quot;second&quot;])
+   s = pd.Series(np.random.randn(8), index=index)
+   s
+
+</pre>
+</div>
+<p>We can then group by one of the levels in <tt class="docutils literal">s</tt>.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 318)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = s.groupby(level=0)
+   grouped.sum()
+
+</pre>
+</div>
+<p>If the MultiIndex has names specified, these can be passed instead of the level
+number:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 326)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   s.groupby(level=&quot;second&quot;).sum()
+
+</pre>
+</div>
+<p>Grouping with multiple levels is supported.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 332)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   arrays = [
+       [&quot;bar&quot;, &quot;bar&quot;, &quot;baz&quot;, &quot;baz&quot;, &quot;foo&quot;, &quot;foo&quot;, &quot;qux&quot;, &quot;qux&quot;],
+       [&quot;doo&quot;, &quot;doo&quot;, &quot;bee&quot;, &quot;bee&quot;, &quot;bop&quot;, &quot;bop&quot;, &quot;bop&quot;, &quot;bop&quot;],
+       [&quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;],
+   ]
+   index = pd.MultiIndex.from_arrays(arrays, names=[&quot;first&quot;, &quot;second&quot;, &quot;third&quot;])
+   s = pd.Series(np.random.randn(8), index=index)
+   s
+   s.groupby(level=[&quot;first&quot;, &quot;second&quot;]).sum()
+
+</pre>
+</div>
+<p>Index level names may be supplied as keys.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 346)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   s.groupby([&quot;first&quot;, &quot;second&quot;]).sum()
+
+</pre>
+</div>
+<p>More on the <tt class="docutils literal">sum</tt> function and aggregation later.</p>
+</div>
+<div class="section" id="grouping-dataframe-with-index-levels-and-columns">
+<h3>Grouping DataFrame with Index levels and columns</h3>
+<p>A DataFrame may be grouped by a combination of columns and index levels. You
+can specify both column and index names, or use a <a href="#system-message-8"><span class="problematic" id="problematic-8">:class:`Grouper`</span></a>.</p>
+<div class="system-message" id="system-message-8">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 354); <em><a href="#problematic-8">backlink</a></em></p>
+Unknown interpreted text role &quot;class&quot;.</div>
+<p>Let's first create a DataFrame with a MultiIndex:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 359)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   arrays = [
+       [&quot;bar&quot;, &quot;bar&quot;, &quot;baz&quot;, &quot;baz&quot;, &quot;foo&quot;, &quot;foo&quot;, &quot;qux&quot;, &quot;qux&quot;],
+       [&quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;, &quot;one&quot;, &quot;two&quot;],
+   ]
+
+   index = pd.MultiIndex.from_arrays(arrays, names=[&quot;first&quot;, &quot;second&quot;])
+
+   df = pd.DataFrame({&quot;A&quot;: [1, 1, 1, 1, 2, 2, 3, 3], &quot;B&quot;: np.arange(8)}, index=index)
+
+   df
+
+</pre>
+</div>
+<p>Then we group <tt class="docutils literal">df</tt> by the <tt class="docutils literal">second</tt> index level and the <tt class="docutils literal">A</tt> column.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 374)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([pd.Grouper(level=1), &quot;A&quot;]).sum()
+
+</pre>
+</div>
+<p>Index levels may also be specified by name.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 380)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([pd.Grouper(level=&quot;second&quot;), &quot;A&quot;]).sum()
+
+</pre>
+</div>
+<p>Index level names may be specified as keys directly to <tt class="docutils literal">groupby</tt>.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 386)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([&quot;second&quot;, &quot;A&quot;]).sum()
+
+</pre>
+</div>
+</div>
+<div class="section" id="dataframe-column-selection-in-groupby">
+<h3>DataFrame column selection in GroupBy</h3>
+<p>Once you have created the GroupBy object from a DataFrame, you might want to do
+something different for each of the columns. Thus, by using <tt class="docutils literal">[]</tt> on the GroupBy
+object in a similar way as the one used to get a column from a DataFrame, you can do:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 397)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           &quot;A&quot;: [&quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;bar&quot;, &quot;foo&quot;, &quot;foo&quot;],
+           &quot;B&quot;: [&quot;one&quot;, &quot;one&quot;, &quot;two&quot;, &quot;three&quot;, &quot;two&quot;, &quot;two&quot;, &quot;one&quot;, &quot;three&quot;],
+           &quot;C&quot;: np.random.randn(8),
+           &quot;D&quot;: np.random.randn(8),
+       }
+   )
+
+   df
+
+   grouped = df.groupby([&quot;A&quot;])
+   grouped_C = grouped[&quot;C&quot;]
+   grouped_D = grouped[&quot;D&quot;]
+
+</pre>
+</div>
+<p>This is mainly syntactic sugar for the alternative, which is much more verbose:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 416)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df[&quot;C&quot;].groupby(df[&quot;A&quot;])
+
+</pre>
+</div>
+<p>Additionally, this method avoids recomputing the internal grouping information
+derived from the passed key.</p>
+</div>
+</div>
+<div class="section" id="iterating-through-groups">
+<span id="groupby-iterating-label"></span><h2>Iterating through groups</h2>
+<p>With the GroupBy object in hand, iterating through the grouped data is very
+natural and functions similarly to <a href="#system-message-9"><span class="problematic" id="problematic-9">:py:func:`itertools.groupby`</span></a>:</p>
+<div class="system-message" id="system-message-9">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 428); <em><a href="#problematic-9">backlink</a></em></p>
+Unknown interpreted text role &quot;py:func&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 431)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython::
+
+   In [4]: grouped = df.groupby('A')
+
+   In [5]: for name, group in grouped:
+      ...:     print(name)
+      ...:     print(group)
+      ...:
+
+</pre>
+</div>
+<p>In the case of grouping by multiple keys, the group name will be a tuple:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 442)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython::
+
+   In [5]: for name, group in df.groupby(['A', 'B']):
+      ...:     print(name)
+      ...:     print(group)
+      ...:
+
+</pre>
+</div>
+<p>See <a href="#system-message-10"><span class="problematic" id="problematic-10">:ref:`timeseries.iterating-label`</span></a>.</p>
+<div class="system-message" id="system-message-10">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 449); <em><a href="#problematic-10">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="section" id="selecting-a-group">
+<h2>Selecting a group</h2>
+<p>A single group can be selected using
+<a href="#system-message-11"><span class="problematic" id="problematic-11">:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`</span></a>:</p>
+<div class="system-message" id="system-message-11">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 454); <em><a href="#problematic-11">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 457)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped.get_group(&quot;bar&quot;)
+
+</pre>
+</div>
+<p>Or for an object grouped on multiple columns:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 463)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([&quot;A&quot;, &quot;B&quot;]).get_group((&quot;bar&quot;, &quot;one&quot;))
+
+</pre>
+</div>
+</div>
+<div class="section" id="aggregation">
+<span id="groupby-aggregate"></span><h2>Aggregation</h2>
+<p>An aggregation is a GroupBy operation that reduces the dimension of the grouping
+object. The result of an aggregation is, or at least is treated as,
+a scalar value for each column in a group. For example, producing the sum of each
+column in a group of values.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 477)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals = pd.DataFrame(
+       {
+           &quot;kind&quot;: [&quot;cat&quot;, &quot;dog&quot;, &quot;cat&quot;, &quot;dog&quot;],
+           &quot;height&quot;: [9.1, 6.0, 9.5, 34.0],
+           &quot;weight&quot;: [7.9, 7.5, 9.9, 198.0],
+       }
+   )
+   animals
+   animals.groupby(&quot;kind&quot;).sum()
+
+</pre>
+</div>
+<p>In the result, the keys of the groups appear in the index by default. They can be
+instead included in the columns by passing <tt class="docutils literal">as_index=False</tt>.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 492)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals.groupby(&quot;kind&quot;, as_index=False).sum()
+
+</pre>
+</div>
+<div class="section" id="built-in-aggregation-methods">
+<span id="groupby-aggregate-builtin"></span><h3>Built-in aggregation methods</h3>
+<p>Many common aggregations are built-in to GroupBy objects as methods. Of the methods
+listed below, those with a <tt class="docutils literal">*</tt> do <em>not</em> have a Cython-optimized implementation.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><p class="first"><a href="#system-message-12"><span class="problematic" id="problematic-12">:meth:`~.DataFrameGroupBy.any`</span></a></p>
+<div class="last system-message" id="system-message-12">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-12">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute whether any of the values in the groups are truthy</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-13"><span class="problematic" id="problematic-13">:meth:`~.DataFrameGroupBy.all`</span></a></p>
+<div class="last system-message" id="system-message-13">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-13">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute whether all of the values in the groups are truthy</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-14"><span class="problematic" id="problematic-14">:meth:`~.DataFrameGroupBy.count`</span></a></p>
+<div class="last system-message" id="system-message-14">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-14">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the number of non-NA values in the groups</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-15"><span class="problematic" id="problematic-15">:meth:`~.DataFrameGroupBy.cov`</span></a> *</p>
+<div class="last system-message" id="system-message-15">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-15">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the covariance of the groups</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-16"><span class="problematic" id="problematic-16">:meth:`~.DataFrameGroupBy.first`</span></a></p>
+<div class="last system-message" id="system-message-16">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-16">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the first occurring value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-17"><span class="problematic" id="problematic-17">:meth:`~.DataFrameGroupBy.idxmax`</span></a> *</p>
+<div class="last system-message" id="system-message-17">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-17">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the index of the maximum value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-18"><span class="problematic" id="problematic-18">:meth:`~.DataFrameGroupBy.idxmin`</span></a> *</p>
+<div class="last system-message" id="system-message-18">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-18">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the index of the minimum value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-19"><span class="problematic" id="problematic-19">:meth:`~.DataFrameGroupBy.last`</span></a></p>
+<div class="last system-message" id="system-message-19">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-19">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the last occurring value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-20"><span class="problematic" id="problematic-20">:meth:`~.DataFrameGroupBy.max`</span></a></p>
+<div class="last system-message" id="system-message-20">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-20">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the maximum value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-21"><span class="problematic" id="problematic-21">:meth:`~.DataFrameGroupBy.mean`</span></a></p>
+<div class="last system-message" id="system-message-21">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-21">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the mean of each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-22"><span class="problematic" id="problematic-22">:meth:`~.DataFrameGroupBy.median`</span></a></p>
+<div class="last system-message" id="system-message-22">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-22">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the median of each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-23"><span class="problematic" id="problematic-23">:meth:`~.DataFrameGroupBy.min`</span></a></p>
+<div class="last system-message" id="system-message-23">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-23">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the minimum value in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-24"><span class="problematic" id="problematic-24">:meth:`~.DataFrameGroupBy.nunique`</span></a></p>
+<div class="last system-message" id="system-message-24">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-24">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the number of unique values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-25"><span class="problematic" id="problematic-25">:meth:`~.DataFrameGroupBy.prod`</span></a></p>
+<div class="last system-message" id="system-message-25">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-25">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the product of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-26"><span class="problematic" id="problematic-26">:meth:`~.DataFrameGroupBy.quantile`</span></a></p>
+<div class="last system-message" id="system-message-26">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-26">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute a given quantile of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-27"><span class="problematic" id="problematic-27">:meth:`~.DataFrameGroupBy.sem`</span></a></p>
+<div class="last system-message" id="system-message-27">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-27">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the standard error of the mean of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-28"><span class="problematic" id="problematic-28">:meth:`~.DataFrameGroupBy.size`</span></a></p>
+<div class="last system-message" id="system-message-28">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-28">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the number of values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-29"><span class="problematic" id="problematic-29">:meth:`~.DataFrameGroupBy.skew`</span></a> *</p>
+<div class="last system-message" id="system-message-29">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-29">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the skew of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-30"><span class="problematic" id="problematic-30">:meth:`~.DataFrameGroupBy.std`</span></a></p>
+<div class="last system-message" id="system-message-30">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-30">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the standard deviation of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-31"><span class="problematic" id="problematic-31">:meth:`~.DataFrameGroupBy.sum`</span></a></p>
+<div class="last system-message" id="system-message-31">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-31">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the sum of the values in each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-32"><span class="problematic" id="problematic-32">:meth:`~.DataFrameGroupBy.var`</span></a></p>
+<div class="last system-message" id="system-message-32">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 509); <em><a href="#problematic-32">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the variance of the values in each group</td>
+</tr>
+</tbody>
+</table>
+<p>Some examples:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 533)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby(&quot;A&quot;)[[&quot;C&quot;, &quot;D&quot;]].max()
+   df.groupby([&quot;A&quot;, &quot;B&quot;]).mean()
+
+</pre>
+</div>
+<p>Another simple aggregation example is to compute the size of each group.
+This is included in GroupBy as the <tt class="docutils literal">size</tt> method. It returns a Series whose
+index are the group names and whose values are the sizes of each group.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 542)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby([&quot;A&quot;, &quot;B&quot;])
+   grouped.size()
+
+</pre>
+</div>
+<p>While the <a href="#system-message-33"><span class="problematic" id="problematic-33">:meth:`~.DataFrameGroupBy.describe`</span></a> method is not itself a reducer, it
+can be used to conveniently produce a collection of summary statistics about each of
+the groups.</p>
+<div class="system-message" id="system-message-33">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 547); <em><a href="#problematic-33">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 551)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped.describe()
+
+</pre>
+</div>
+<p>Another aggregation example is to compute the number of unique values of each group.
+This is similar to the <tt class="docutils literal">value_counts</tt> function, except that it only counts the
+number of unique values.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 559)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   ll = [['foo', 1], ['foo', 2], ['foo', 2], ['bar', 1], ['bar', 1]]
+   df4 = pd.DataFrame(ll, columns=[&quot;A&quot;, &quot;B&quot;])
+   df4
+   df4.groupby(&quot;A&quot;)[&quot;B&quot;].nunique()
+
+</pre>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Aggregation functions <strong>will not</strong> return the groups that you are aggregating over
+as named <em>columns</em>, when <tt class="docutils literal">as_index=True</tt>, the default. The grouped columns will
+be the <strong>indices</strong> of the returned object.</p>
+<p class="last">Passing <tt class="docutils literal">as_index=False</tt> <strong>will</strong> return the groups that you are aggregating over, if they are
+named <strong>indices</strong> or <em>columns</em>.</p>
+</div>
+</div>
+<div class="section" id="the-meth-dataframegroupby-aggregate-method">
+<span id="groupby-aggregate-agg"></span><h3>The <a href="#system-message-34"><span class="problematic" id="problematic-34">:meth:`~.DataFrameGroupBy.aggregate`</span></a> method</h3>
+<div class="system-message" id="system-message-34">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 578); <em><a href="#problematic-34">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>The <a href="#system-message-35"><span class="problematic" id="problematic-35">:meth:`~.DataFrameGroupBy.aggregate`</span></a> method can accept many different types of
+inputs. This section details using string aliases for various GroupBy methods; other
+inputs are detailed in the sections below.</p>
+<div class="last system-message" id="system-message-35">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 582); <em><a href="#problematic-35">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</div>
+<p>Any reduction method that pandas implements can be passed as a string to
+<a href="#system-message-36"><span class="problematic" id="problematic-36">:meth:`~.DataFrameGroupBy.aggregate`</span></a>. Users are encouraged to use the shorthand,
+<tt class="docutils literal">agg</tt>. It will operate as if the corresponding method was called.</p>
+<div class="system-message" id="system-message-36">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 586); <em><a href="#problematic-36">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 590)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby(&quot;A&quot;)
+   grouped[[&quot;C&quot;, &quot;D&quot;]].aggregate(&quot;sum&quot;)
+
+   grouped = df.groupby([&quot;A&quot;, &quot;B&quot;])
+   grouped.agg(&quot;sum&quot;)
+
+</pre>
+</div>
+<p>The result of the aggregation will have the group names as the
+new index along the grouped axis. In the case of multiple keys, the result is a
+<a href="#system-message-37"><span class="problematic" id="problematic-37">:ref:`MultiIndex &lt;advanced.hierarchical&gt;`</span></a> by default. As mentioned above, this can be
+changed by using the <tt class="docutils literal">as_index</tt> option:</p>
+<div class="system-message" id="system-message-37">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 598); <em><a href="#problematic-37">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 603)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby([&quot;A&quot;, &quot;B&quot;], as_index=False)
+   grouped.agg(&quot;sum&quot;)
+
+   df.groupby(&quot;A&quot;, as_index=False)[[&quot;C&quot;, &quot;D&quot;]].agg(&quot;sum&quot;)
+
+</pre>
+</div>
+<p>Note that you could use the <a href="#system-message-38"><span class="problematic" id="problematic-38">:meth:`DataFrame.reset_index`</span></a> DataFrame function to achieve
+the same result as the column names are stored in the resulting <tt class="docutils literal">MultiIndex</tt>, although
+this will make an extra copy.</p>
+<div class="system-message" id="system-message-38">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 610); <em><a href="#problematic-38">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 614)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([&quot;A&quot;, &quot;B&quot;]).agg(&quot;sum&quot;).reset_index()
+
+</pre>
+</div>
+</div>
+<div class="section" id="aggregation-with-user-defined-functions">
+<span id="groupby-aggregate-udf"></span><h3>Aggregation with User-Defined Functions</h3>
+<p>Users can also provide their own User-Defined Functions (UDFs) for custom aggregations.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>When aggregating with a UDF, the UDF should not mutate the
+provided <tt class="docutils literal">Series</tt>. See <a href="#system-message-39"><span class="problematic" id="problematic-39">:ref:`gotchas.udf-mutation`</span></a> for more information.</p>
+<div class="last system-message" id="system-message-39">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 627); <em><a href="#problematic-39">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Aggregating with a UDF is often less performant than using
+the pandas built-in methods on GroupBy. Consider breaking up a complex operation
+into a chain of operations that utilize the built-in methods.</p>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 636)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals
+   animals.groupby(&quot;kind&quot;)[[&quot;height&quot;]].agg(lambda x: set(x))
+
+</pre>
+</div>
+<p>The resulting dtype will reflect that of the aggregating function. If the results from different groups have
+different dtypes, then a common dtype will be determined in the same way as <tt class="docutils literal">DataFrame</tt> construction.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 644)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals.groupby(&quot;kind&quot;)[[&quot;height&quot;]].agg(lambda x: x.astype(int).sum())
+
+</pre>
+</div>
+</div>
+<div class="section" id="applying-multiple-functions-at-once">
+<span id="groupby-aggregate-multifunc"></span><h3>Applying multiple functions at once</h3>
+<p>With grouped <tt class="docutils literal">Series</tt> you can also pass a list or dict of functions to do
+aggregation with, outputting a DataFrame:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 656)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped = df.groupby(&quot;A&quot;)
+   grouped[&quot;C&quot;].agg([&quot;sum&quot;, &quot;mean&quot;, &quot;std&quot;])
+
+</pre>
+</div>
+<p>On a grouped <tt class="docutils literal">DataFrame</tt>, you can pass a list of functions to apply to each
+column, which produces an aggregated result with a hierarchical index:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 664)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped[[&quot;C&quot;, &quot;D&quot;]].agg([&quot;sum&quot;, &quot;mean&quot;, &quot;std&quot;])
+
+
+</pre>
+</div>
+<p>The resulting aggregations are named after the functions themselves. If you
+need to rename, then you can add in a chained operation for a <tt class="docutils literal">Series</tt> like this:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 672)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   (
+       grouped[&quot;C&quot;]
+       .agg([&quot;sum&quot;, &quot;mean&quot;, &quot;std&quot;])
+       .rename(columns={&quot;sum&quot;: &quot;foo&quot;, &quot;mean&quot;: &quot;bar&quot;, &quot;std&quot;: &quot;baz&quot;})
+   )
+
+</pre>
+</div>
+<p>For a grouped <tt class="docutils literal">DataFrame</tt>, you can rename in a similar manner:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 682)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   (
+       grouped[[&quot;C&quot;, &quot;D&quot;]].agg([&quot;sum&quot;, &quot;mean&quot;, &quot;std&quot;]).rename(
+           columns={&quot;sum&quot;: &quot;foo&quot;, &quot;mean&quot;: &quot;bar&quot;, &quot;std&quot;: &quot;baz&quot;}
+       )
+   )
+
+</pre>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>In general, the output column names should be unique, but pandas will allow
+you apply to the same function (or two functions with the same name) to the same
+column.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 696)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped[&quot;C&quot;].agg([&quot;sum&quot;, &quot;sum&quot;])
+
+
+</pre>
+</div>
+<p>pandas also allows you to provide multiple lambdas. In this case, pandas
+will mangle the name of the (nameless) lambda functions, appending <tt class="docutils literal">_&lt;i&gt;</tt>
+to each subsequent lambda.</p>
+<div class="last system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 705)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped[&quot;C&quot;].agg([lambda x: x.max() - x.min(), lambda x: x.median() - x.mean()])
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="named-aggregation">
+<span id="groupby-aggregate-named"></span><h3>Named aggregation</h3>
+<p>To support column-specific aggregation <em>with control over the output column names</em>, pandas
+accepts the special syntax in <a href="#system-message-40"><span class="problematic" id="problematic-40">:meth:`.DataFrameGroupBy.agg`</span></a> and <a href="#system-message-41"><span class="problematic" id="problematic-41">:meth:`.SeriesGroupBy.agg`</span></a>, known as &quot;named aggregation&quot;, where</p>
+<div class="system-message" id="system-message-40">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 715); <em><a href="#problematic-40">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message" id="system-message-41">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 715); <em><a href="#problematic-41">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<ul>
+<li><p class="first">The keywords are the <em>output</em> column names</p>
+</li>
+<li><p class="first">The values are tuples whose first element is the column to select
+and the second element is the aggregation to apply to that column. pandas
+provides the <a href="#system-message-42"><span class="problematic" id="problematic-42">:class:`NamedAgg`</span></a> namedtuple with the fields <tt class="docutils literal">['column', 'aggfunc']</tt>
+to make it clearer what the arguments are. As usual, the aggregation can
+be a callable or a string alias.</p>
+<div class="system-message" id="system-message-42">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 719); <em><a href="#problematic-42">backlink</a></em></p>
+<p>Unknown interpreted text role &quot;class&quot;.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="example">
+<h2>Example:</h2>
+<p>Consider the following DataFrame <cite>animals</cite>:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 730)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    import pandas as pd
+
+    animals = pd.DataFrame({
+        'kind': ['cat', 'dog', 'cat', 'dog'],
+        'height': [9.1, 6.0, 9.5, 34.0],
+        'weight': [7.9, 7.5, 9.9, 198.0]
+    })
+
+</pre>
+</div>
+<p>To demonstrate &quot;named aggregation,&quot; let's group the DataFrame by the 'kind' column and apply different aggregations to the 'height' and 'weight' columns:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 742)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   result = animals.groupby('kind').agg(
+        min_height=pd.NamedAgg(column='height', aggfunc='min'),
+        max_height=pd.NamedAgg(column='height', aggfunc='max'),
+        average_weight=pd.NamedAgg(column='weight', aggfunc='mean')
+    )
+
+</pre>
+</div>
+<p>In the above example, we used &quot;named aggregation&quot; to specify custom output column names (<cite>min_height</cite>, <cite>max_height</cite>, and <cite>average_weight</cite>) for each aggregation. The result will be a new DataFrame with the aggregated values, and the output column names will be as specified.</p>
+<p>The resulting DataFrame will look like this:</p>
+<pre class="code bash literal-block">
+   min_height  max_height  average_weight
+kind
+cat          9.1         9.5            8.90
+dog          6.0        34.0          102.75
+</pre>
+<p>In this example, the 'min_height' column contains the minimum height for each group, the 'max_height' column contains the maximum height, and the 'average_weight' column contains the average weight for each group.</p>
+<p>By using &quot;named aggregation,&quot; you can easily control the output column names and have more descriptive results when performing aggregations with <cite>groupby.agg</cite>.</p>
+<p><a href="#system-message-43"><span class="problematic" id="problematic-43">:class:`NamedAgg`</span></a> is just a <tt class="docutils literal">namedtuple</tt>. Plain tuples are allowed as well.</p>
+<div class="system-message" id="system-message-43">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 765); <em><a href="#problematic-43">backlink</a></em></p>
+Unknown interpreted text role &quot;class&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 767)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals.groupby(&quot;kind&quot;).agg(
+       min_height=(&quot;height&quot;, &quot;min&quot;),
+       max_height=(&quot;height&quot;, &quot;max&quot;),
+       average_weight=(&quot;weight&quot;, &quot;mean&quot;),
+   )
+
+
+</pre>
+</div>
+<p>If the column names you want are not valid Python keywords, construct a dictionary
+and unpack the keyword arguments</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 779)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals.groupby(&quot;kind&quot;).agg(
+       **{
+           &quot;total weight&quot;: pd.NamedAgg(column=&quot;weight&quot;, aggfunc=&quot;sum&quot;)
+       }
+   )
+
+</pre>
+</div>
+<p>When using named aggregation, additional keyword arguments are not passed through
+to the aggregation functions; only pairs
+of <tt class="docutils literal">(column, aggfunc)</tt> should be passed as <tt class="docutils literal">**kwargs</tt>. If your aggregation functions
+require additional arguments, apply them partially with <a href="#system-message-44"><span class="problematic" id="problematic-44">:meth:`functools.partial`</span></a>.</p>
+<div class="system-message" id="system-message-44">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 787); <em><a href="#problematic-44">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<p>Named aggregation is also valid for Series groupby aggregations. In this case there's
+no column selection, so the values are just the functions.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 795)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   animals.groupby(&quot;kind&quot;).height.agg(
+       min_height=&quot;min&quot;,
+       max_height=&quot;max&quot;,
+   )
+
+</pre>
+</div>
+<div class="section" id="applying-different-functions-to-dataframe-columns">
+<h3>Applying different functions to DataFrame columns</h3>
+<p>By passing a dict to <tt class="docutils literal">aggregate</tt> you can apply a different aggregation to the
+columns of a DataFrame:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 808)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped.agg({&quot;C&quot;: &quot;sum&quot;, &quot;D&quot;: lambda x: np.std(x, ddof=1)})
+
+</pre>
+</div>
+<p>The function names can also be strings. In order for a string to be valid it
+must be implemented on GroupBy:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 815)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped.agg({&quot;C&quot;: &quot;sum&quot;, &quot;D&quot;: &quot;std&quot;})
+
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="transformation">
+<span id="groupby-transform"></span><h2>Transformation</h2>
+<p>A transformation is a GroupBy operation whose result is indexed the same
+as the one being grouped. Common examples include <a href="#system-message-45"><span class="problematic" id="problematic-45">:meth:`~.DataFrameGroupBy.cumsum`</span></a> and
+<a href="#system-message-46"><span class="problematic" id="problematic-46">:meth:`~.DataFrameGroupBy.diff`</span></a>.</p>
+<div class="system-message" id="system-message-45">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 824); <em><a href="#problematic-45">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message" id="system-message-46">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 824); <em><a href="#problematic-46">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 828)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    speeds
+    grouped = speeds.groupby(&quot;class&quot;)[&quot;max_speed&quot;]
+    grouped.cumsum()
+    grouped.diff()
+
+</pre>
+</div>
+<p>Unlike aggregations, the groupings that are used to split
+the original object are not included in the result.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Since transformations do not include the groupings that are used to split the result,
+the arguments <tt class="docutils literal">as_index</tt> and <tt class="docutils literal">sort</tt> in <a href="#system-message-47"><span class="problematic" id="problematic-47">:meth:`DataFrame.groupby`</span></a> and
+<a href="#system-message-48"><span class="problematic" id="problematic-48">:meth:`Series.groupby`</span></a> have no effect.</p>
+<div class="system-message" id="system-message-47">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 840); <em><a href="#problematic-47">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="last system-message" id="system-message-48">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 840); <em><a href="#problematic-48">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</div>
+<p>A common use of a transformation is to add the result back into the original DataFrame.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 846)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    result = speeds.copy()
+    result[&quot;cumsum&quot;] = grouped.cumsum()
+    result[&quot;diff&quot;] = grouped.diff()
+    result
+
+</pre>
+</div>
+<div class="section" id="built-in-transformation-methods">
+<h3>Built-in transformation methods</h3>
+<p>The following methods on GroupBy act as transformations. Of these methods, only
+<tt class="docutils literal">fillna</tt> does not have a Cython-optimized implementation.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><p class="first"><a href="#system-message-49"><span class="problematic" id="problematic-49">:meth:`~.DataFrameGroupBy.bfill`</span></a></p>
+<div class="last system-message" id="system-message-49">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-49">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Back fill NA values within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-50"><span class="problematic" id="problematic-50">:meth:`~.DataFrameGroupBy.cumcount`</span></a></p>
+<div class="last system-message" id="system-message-50">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-50">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the cumulative count within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-51"><span class="problematic" id="problematic-51">:meth:`~.DataFrameGroupBy.cummax`</span></a></p>
+<div class="last system-message" id="system-message-51">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-51">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the cumulative max within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-52"><span class="problematic" id="problematic-52">:meth:`~.DataFrameGroupBy.cummin`</span></a></p>
+<div class="last system-message" id="system-message-52">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-52">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the cumulative min within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-53"><span class="problematic" id="problematic-53">:meth:`~.DataFrameGroupBy.cumprod`</span></a></p>
+<div class="last system-message" id="system-message-53">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-53">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the cumulative product within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-54"><span class="problematic" id="problematic-54">:meth:`~.DataFrameGroupBy.cumsum`</span></a></p>
+<div class="last system-message" id="system-message-54">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-54">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the cumulative sum within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-55"><span class="problematic" id="problematic-55">:meth:`~.DataFrameGroupBy.diff`</span></a></p>
+<div class="last system-message" id="system-message-55">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-55">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the difference between adjacent values within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-56"><span class="problematic" id="problematic-56">:meth:`~.DataFrameGroupBy.ffill`</span></a></p>
+<div class="last system-message" id="system-message-56">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-56">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Forward fill NA values within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-57"><span class="problematic" id="problematic-57">:meth:`~.DataFrameGroupBy.fillna`</span></a></p>
+<div class="last system-message" id="system-message-57">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-57">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Fill NA values within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-58"><span class="problematic" id="problematic-58">:meth:`~.DataFrameGroupBy.pct_change`</span></a></p>
+<div class="last system-message" id="system-message-58">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-58">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the percent change between adjacent values within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-59"><span class="problematic" id="problematic-59">:meth:`~.DataFrameGroupBy.rank`</span></a></p>
+<div class="last system-message" id="system-message-59">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-59">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Compute the rank of each value within each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-60"><span class="problematic" id="problematic-60">:meth:`~.DataFrameGroupBy.shift`</span></a></p>
+<div class="last system-message" id="system-message-60">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 864); <em><a href="#problematic-60">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Shift values up or down within each group</td>
+</tr>
+</tbody>
+</table>
+<p>In addition, passing any built-in aggregation method as a string to
+<a href="#system-message-61"><span class="problematic" id="problematic-61">:meth:`~.DataFrameGroupBy.transform`</span></a> (see the next section) will broadcast the result
+across the group, producing a transformed result. If the aggregation method is
+Cython-optimized, this will be performant as well.</p>
+<div class="system-message" id="system-message-61">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 877); <em><a href="#problematic-61">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</div>
+<div class="section" id="the-meth-dataframegroupby-transform-method">
+<span id="groupby-transformation-transform"></span><h3>The <a href="#system-message-62"><span class="problematic" id="problematic-62">:meth:`~.DataFrameGroupBy.transform`</span></a> method</h3>
+<div class="system-message" id="system-message-62">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 884); <em><a href="#problematic-62">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<p>Similar to the <a href="#system-message-63"><span class="problematic" id="problematic-63">:ref:`aggregation method &lt;groupby.aggregate.agg&gt;`</span></a>, the
+<a href="#system-message-64"><span class="problematic" id="problematic-64">:meth:`~.DataFrameGroupBy.transform`</span></a> method can accept string aliases to the built-in
+transformation methods in the previous section. It can <em>also</em> accept string aliases to
+the built-in aggregation methods. When an aggregation method is provided, the result
+will be broadcast across the group.</p>
+<div class="system-message" id="system-message-63">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 887); <em><a href="#problematic-63">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-64">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 887); <em><a href="#problematic-64">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 893)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    speeds
+    grouped = speeds.groupby(&quot;class&quot;)[[&quot;max_speed&quot;]]
+    grouped.transform(&quot;cumsum&quot;)
+    grouped.transform(&quot;sum&quot;)
+
+</pre>
+</div>
+<p>In addition to string aliases, the <a href="#system-message-65"><span class="problematic" id="problematic-65">:meth:`~.DataFrameGroupBy.transform`</span></a> method can
+also accept User-Defined Functions (UDFs). The UDF must:</p>
+<div class="system-message" id="system-message-65">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 900); <em><a href="#problematic-65">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<ul>
+<li><p class="first">Return a result that is either the same size as the group chunk or
+broadcastable to the size of the group chunk (e.g., a scalar,
+<tt class="docutils literal">grouped.transform(lambda x: <span class="pre">x.iloc[-1])</span></tt>).</p>
+</li>
+<li><p class="first">Operate column-by-column on the group chunk.  The transform is applied to
+the first group chunk using chunk.apply.</p>
+</li>
+<li><p class="first">Not perform in-place operations on the group chunk. Group chunks should
+be treated as immutable, and changes to a group chunk may produce unexpected
+results. See <a href="#system-message-66"><span class="problematic" id="problematic-66">:ref:`gotchas.udf-mutation`</span></a> for more information.</p>
+<div class="system-message" id="system-message-66">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 908); <em><a href="#problematic-66">backlink</a></em></p>
+<p>Unknown interpreted text role &quot;ref&quot;.</p>
+</div>
+</li>
+<li><p class="first">(Optionally) operates on all columns of the entire group chunk at once. If this is
+supported, a fast path is used starting from the <em>second</em> chunk.</p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Transforming by supplying <tt class="docutils literal">transform</tt> with a UDF is
+often less performant than using the built-in methods on GroupBy.
+Consider breaking up a complex operation into a chain of operations that utilize
+the built-in methods.</p>
+<p>All of the examples in this section can be made more performant by calling
+built-in methods instead of using <tt class="docutils literal">transform</tt>.
+See <a href="#system-message-67"><span class="problematic" id="problematic-67">:ref:`below for examples &lt;groupby_efficient_transforms&gt;`</span></a>.</p>
+<div class="last system-message" id="system-message-67">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 921); <em><a href="#problematic-67">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 925)</p>
+<p>Unknown directive type &quot;versionchanged&quot;.</p>
+<pre class="literal-block">
+.. versionchanged:: 2.0.0
+
+    When using ``.transform`` on a grouped DataFrame and the transformation function
+    returns a DataFrame, pandas now aligns the result's index
+    with the input's index. You can call ``.to_numpy()`` within the transformation
+    function to avoid alignment.
+
+</pre>
+</div>
+<p>Similar to <a href="#system-message-68"><span class="problematic" id="problematic-68">:ref:`groupby.aggregate.agg`</span></a>, the resulting dtype will reflect that of the
+transformation function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as <tt class="docutils literal">DataFrame</tt> construction.</p>
+<div class="system-message" id="system-message-68">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 932); <em><a href="#problematic-68">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>Suppose we wish to standardize the data within each group:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 938)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   index = pd.date_range(&quot;10/1/1999&quot;, periods=1100)
+   ts = pd.Series(np.random.normal(0.5, 2, 1100), index)
+   ts = ts.rolling(window=100, min_periods=100).mean().dropna()
+
+   ts.head()
+   ts.tail()
+
+   transformed = ts.groupby(lambda x: x.year).transform(
+       lambda x: (x - x.mean()) / x.std()
+   )
+
+
+</pre>
+</div>
+<p>We would expect the result to now have mean 0 and standard deviation 1 within
+each group, which we can easily check:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 955)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   # Original Data
+   grouped = ts.groupby(lambda x: x.year)
+   grouped.mean()
+   grouped.std()
+
+   # Transformed Data
+   grouped_trans = transformed.groupby(lambda x: x.year)
+   grouped_trans.mean()
+   grouped_trans.std()
+
+</pre>
+</div>
+<p>We can also visually compare the original and transformed data sets.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 969)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   compare = pd.DataFrame({&quot;Original&quot;: ts, &quot;Transformed&quot;: transformed})
+
+   &#64;savefig groupby_transform_plot.png
+   compare.plot()
+
+</pre>
+</div>
+<p>Transformation functions that have lower dimension outputs are broadcast to
+match the shape of the input array.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 979)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   ts.groupby(lambda x: x.year).transform(lambda x: x.max() - x.min())
+
+</pre>
+</div>
+<p>Another common data transform is to replace missing data with the group mean.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 985)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   cols = [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;]
+   values = np.random.randn(1000, 3)
+   values[np.random.randint(0, 1000, 100), 0] = np.nan
+   values[np.random.randint(0, 1000, 50), 1] = np.nan
+   values[np.random.randint(0, 1000, 200), 2] = np.nan
+   data_df = pd.DataFrame(values, columns=cols)
+   data_df
+
+   countries = np.array([&quot;US&quot;, &quot;UK&quot;, &quot;GR&quot;, &quot;JP&quot;])
+   key = countries[np.random.randint(0, 4, 1000)]
+
+   grouped = data_df.groupby(key)
+
+   # Non-NA count in each group
+   grouped.count()
+
+   transformed = grouped.transform(lambda x: x.fillna(x.mean()))
+
+</pre>
+</div>
+<p>We can verify that the group means have not changed in the transformed data,
+and that the transformed data contains no NAs.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1008)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   grouped_trans = transformed.groupby(key)
+
+   grouped.mean()  # original group means
+   grouped_trans.mean()  # transformation did not change group means
+
+   grouped.count()  # original has some missing data points
+   grouped_trans.count()  # counts after transformation
+   grouped_trans.size()  # Verify non-NA count equals group size
+
+</pre>
+</div>
+<p id="groupby-efficient-transforms">As mentioned in the note above, each of the examples in this section can be computed
+more efficiently using built-in methods. In the code below, the inefficient way
+using a UDF is commented out and the faster alternative appears below.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1025)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    # ts.groupby(lambda x: x.year).transform(
+    #     lambda x: (x - x.mean()) / x.std()
+    # )
+    grouped = ts.groupby(lambda x: x.year)
+    result = (ts - grouped.transform(&quot;mean&quot;)) / grouped.transform(&quot;std&quot;)
+
+    # ts.groupby(lambda x: x.year).transform(lambda x: x.max() - x.min())
+    grouped = ts.groupby(lambda x: x.year)
+    result = grouped.transform(&quot;max&quot;) - grouped.transform(&quot;min&quot;)
+
+    # grouped = data_df.groupby(key)
+    # grouped.transform(lambda x: x.fillna(x.mean()))
+    grouped = data_df.groupby(key)
+    result = data_df.fillna(grouped.transform(&quot;mean&quot;))
+
+</pre>
+</div>
+</div>
+<div class="section" id="window-and-resample-operations">
+<span id="groupby-transform-window-resample"></span><h3>Window and resample operations</h3>
+<p>It is possible to use <tt class="docutils literal">resample()</tt>, <tt class="docutils literal">expanding()</tt> and
+<tt class="docutils literal">rolling()</tt> as methods on groupbys.</p>
+<p>The example below will apply the <tt class="docutils literal">rolling()</tt> method on the samples of
+the column B, based on the groups of column A.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1053)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df_re = pd.DataFrame({&quot;A&quot;: [1] * 10 + [5] * 10, &quot;B&quot;: np.arange(20)})
+   df_re
+
+   df_re.groupby(&quot;A&quot;).rolling(4).B.mean()
+
+
+</pre>
+</div>
+<p>The <tt class="docutils literal">expanding()</tt> method will accumulate a given operation
+(<tt class="docutils literal">sum()</tt> in the example) for all the members of each particular
+group.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1065)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df_re.groupby(&quot;A&quot;).expanding().sum()
+
+
+</pre>
+</div>
+<p>Suppose you want to use the <tt class="docutils literal">resample()</tt> method to get a daily
+frequency in each group of your dataframe, and wish to complete the
+missing values with the <tt class="docutils literal">ffill()</tt> method.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1074)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df_re = pd.DataFrame(
+       {
+           &quot;date&quot;: pd.date_range(start=&quot;2016-01-01&quot;, periods=4, freq=&quot;W&quot;),
+           &quot;group&quot;: [1, 1, 2, 2],
+           &quot;val&quot;: [5, 6, 7, 8],
+       }
+   ).set_index(&quot;date&quot;)
+   df_re
+
+   df_re.groupby(&quot;group&quot;).resample(&quot;1D&quot;).ffill()
+
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="filtration">
+<span id="groupby-filter"></span><h2>Filtration</h2>
+<p>A filtration is a GroupBy operation the subsets the original grouping object. It
+may either filter out entire groups, part of groups, or both. Filtrations return
+a filtered version of the calling object, including the grouping columns when provided.
+In the following example, <tt class="docutils literal">class</tt> is included in the result.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1097)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    speeds
+    speeds.groupby(&quot;class&quot;).nth(1)
+
+</pre>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Unlike aggregations, filtrations do not add the group keys to the index of the
+result. Because of this, passing <tt class="docutils literal">as_index=False</tt> or <tt class="docutils literal">sort=True</tt> will not
+affect these methods.</p>
+</div>
+<p>Filtrations will respect subsetting the columns of the GroupBy object.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1110)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    speeds.groupby(&quot;class&quot;)[[&quot;order&quot;, &quot;max_speed&quot;]].nth(1)
+
+</pre>
+</div>
+<div class="section" id="built-in-filtrations">
+<h3>Built-in filtrations</h3>
+<p>The following methods on GroupBy act as filtrations. All these methods have a
+Cython-optimized implementation.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="80%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><p class="first"><a href="#system-message-69"><span class="problematic" id="problematic-69">:meth:`~.DataFrameGroupBy.head`</span></a></p>
+<div class="last system-message" id="system-message-69">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1125); <em><a href="#problematic-69">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Select the top row(s) of each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-70"><span class="problematic" id="problematic-70">:meth:`~.DataFrameGroupBy.nth`</span></a></p>
+<div class="last system-message" id="system-message-70">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1125); <em><a href="#problematic-70">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Select the nth row(s) of each group</td>
+</tr>
+<tr><td><p class="first"><a href="#system-message-71"><span class="problematic" id="problematic-71">:meth:`~.DataFrameGroupBy.tail`</span></a></p>
+<div class="last system-message" id="system-message-71">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1125); <em><a href="#problematic-71">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+</td>
+<td>Select the bottom row(s) of each group</td>
+</tr>
+</tbody>
+</table>
+<p>Users can also use transformations along with Boolean indexing to construct complex
+filtrations within groups. For example, suppose we are given groups of products and
+their volumes, and we wish to subset the data to only the largest products capturing no
+more than 90% of the total volume within each group.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1134)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    product_volumes = pd.DataFrame(
+        {
+            &quot;group&quot;: list(&quot;xxxxyyy&quot;),
+            &quot;product&quot;: list(&quot;abcdefg&quot;),
+            &quot;volume&quot;: [10, 30, 20, 15, 40, 10, 20],
+        }
+    )
+    product_volumes
+
+    # Sort by volume to select the largest products first
+    product_volumes = product_volumes.sort_values(&quot;volume&quot;, ascending=False)
+    grouped = product_volumes.groupby(&quot;group&quot;)[&quot;volume&quot;]
+    cumpct = grouped.cumsum() / grouped.transform(&quot;sum&quot;)
+    cumpct
+    significant_products = product_volumes[cumpct &lt;= 0.9]
+    significant_products.sort_values([&quot;group&quot;, &quot;product&quot;])
+
+</pre>
+</div>
+</div>
+<div class="section" id="the-class-dataframegroupby-filter-method">
+<h3>The <a href="#system-message-72"><span class="problematic" id="problematic-72">:class:`~DataFrameGroupBy.filter`</span></a> method</h3>
+<div class="system-message" id="system-message-72">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1153); <em><a href="#problematic-72">backlink</a></em></p>
+Unknown interpreted text role &quot;class&quot;.</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Filtering by supplying <tt class="docutils literal">filter</tt> with a User-Defined Function (UDF) is
+often less performant than using the built-in methods on GroupBy.
+Consider breaking up a complex operation into a chain of operations that utilize
+the built-in methods.</p>
+</div>
+<p>The <tt class="docutils literal">filter</tt> method takes a User-Defined Function (UDF) that, when applied to
+an entire group, returns either <tt class="docutils literal">True</tt> or <tt class="docutils literal">False</tt>. The result of the <tt class="docutils literal">filter</tt>
+method is then the subset of groups for which the UDF returned <tt class="docutils literal">True</tt>.</p>
+<p>Suppose we want to take only elements that belong to groups with a group sum greater
+than 2.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1170)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   sf = pd.Series([1, 1, 2, 3, 3, 3])
+   sf.groupby(sf).filter(lambda x: x.sum() &gt; 2)
+
+</pre>
+</div>
+<p>Another useful operation is filtering out elements that belong to groups
+with only a couple members.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1178)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   dff = pd.DataFrame({&quot;A&quot;: np.arange(8), &quot;B&quot;: list(&quot;aabbbbcc&quot;)})
+   dff.groupby(&quot;B&quot;).filter(lambda x: len(x) &gt; 2)
+
+</pre>
+</div>
+<p>Alternatively, instead of dropping the offending groups, we can return a
+like-indexed objects where the groups that do not pass the filter are filled
+with NaNs.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1187)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   dff.groupby(&quot;B&quot;).filter(lambda x: len(x) &gt; 2, dropna=False)
+
+</pre>
+</div>
+<p>For DataFrames with multiple columns, filters should explicitly specify a column as the filter criterion.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1193)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   dff[&quot;C&quot;] = np.arange(8)
+   dff.groupby(&quot;B&quot;).filter(lambda x: len(x[&quot;C&quot;]) &gt; 2)
+
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="flexible-apply">
+<span id="groupby-apply"></span><h2>Flexible <tt class="docutils literal">apply</tt></h2>
+<p>Some operations on the grouped data might not fit into the aggregation,
+transformation, or filtration categories. For these, you can use the <tt class="docutils literal">apply</tt>
+function.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><tt class="docutils literal">apply</tt> has to try to infer from the result whether it should act as a reducer,
+transformer, <em>or</em> filter, depending on exactly what is passed to it. Thus the
+grouped column(s) may be included in the output or not. While
+it tries to intelligently guess how to behave, it can sometimes guess wrong.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">All of the examples in this section can be more reliably, and more efficiently,
+computed using other pandas functionality.</p>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1219)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df
+   grouped = df.groupby(&quot;A&quot;)
+
+   # could also just call .describe()
+   grouped[&quot;C&quot;].apply(lambda x: x.describe())
+
+</pre>
+</div>
+<p>The dimension of the returned result can also change:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1229)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    grouped = df.groupby('A')['C']
+
+    def f(group):
+        return pd.DataFrame({'original': group,
+                             'demeaned': group - group.mean()})
+
+    grouped.apply(f)
+
+</pre>
+</div>
+<p>Similar to <a href="#system-message-73"><span class="problematic" id="problematic-73">:ref:`groupby.aggregate.agg`</span></a>, the resulting dtype will reflect that of the
+apply function. If the results from different groups have different dtypes, then
+a common dtype will be determined in the same way as <tt class="docutils literal">DataFrame</tt> construction.</p>
+<div class="system-message" id="system-message-73">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1239); <em><a href="#problematic-73">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="section" id="control-grouped-column-s-placement-with-group-keys">
+<h3>Control grouped column(s) placement with <tt class="docutils literal">group_keys</tt></h3>
+<p>To control whether the grouped column(s) are included in the indices, you can use
+the argument <tt class="docutils literal">group_keys</tt> which defaults to <tt class="docutils literal">True</tt>. Compare</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1249)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    df.groupby(&quot;A&quot;, group_keys=True).apply(lambda x: x)
+
+</pre>
+</div>
+<p>with</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1255)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    df.groupby(&quot;A&quot;, group_keys=False).apply(lambda x: x)
+
+
+</pre>
+</div>
+</div>
+</div>
+<div class="section" id="numba-accelerated-routines">
+<h2>Numba Accelerated Routines</h2>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1263)</p>
+<p>Unknown directive type &quot;versionadded&quot;.</p>
+<pre class="literal-block">
+.. versionadded:: 1.1
+
+</pre>
+</div>
+<p>If <a class="reference external" href="https://numba.pydata.org/">Numba</a> is installed as an optional dependency, the <tt class="docutils literal">transform</tt> and
+<tt class="docutils literal">aggregate</tt> methods support <tt class="docutils literal"><span class="pre">engine='numba'</span></tt> and <tt class="docutils literal">engine_kwargs</tt> arguments.
+See <a href="#system-message-74"><span class="problematic" id="problematic-74">:ref:`enhancing performance with Numba &lt;enhancingperf.numba&gt;`</span></a> for general usage of the arguments
+and performance considerations.</p>
+<div class="system-message" id="system-message-74">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1265); <em><a href="#problematic-74">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>The function signature must start with <tt class="docutils literal">values, index</tt> <strong>exactly</strong> as the data belonging to each group
+will be passed into <tt class="docutils literal">values</tt>, and the group index will be passed into <tt class="docutils literal">index</tt>.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">When using <tt class="docutils literal"><span class="pre">engine='numba'</span></tt>, there will be no &quot;fall back&quot; behavior internally. The group
+data and group index will be passed as NumPy arrays to the JITed user defined function, and no
+alternative execution attempts will be tried.</p>
+</div>
+</div>
+<div class="section" id="other-useful-features">
+<h2>Other useful features</h2>
+<div class="section" id="exclusion-of-nuisance-columns">
+<h3>Exclusion of &quot;nuisance&quot; columns</h3>
+<p>Again consider the example DataFrame we've been looking at:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1287)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df
+
+</pre>
+</div>
+<p>Suppose we wish to compute the standard deviation grouped by the <tt class="docutils literal">A</tt>
+column. There is a slight problem, namely that we don't care about the data in
+column <tt class="docutils literal">B</tt> because it is not numeric. We refer to these non-numeric columns as
+&quot;nuisance&quot; columns. You can avoid nuisance columns by specifying <tt class="docutils literal">numeric_only=True</tt>:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1296)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby(&quot;A&quot;).std(numeric_only=True)
+
+</pre>
+</div>
+<p>Note that <tt class="docutils literal"><span class="pre">df.groupby('A').colname.std().</span></tt> is more efficient than
+<tt class="docutils literal"><span class="pre">df.groupby('A').std().colname</span></tt>. So if the result of an aggregation function
+is only needed over one column (here <tt class="docutils literal">colname</tt>), it may be filtered
+<em>before</em> applying the aggregation function.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1305)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    from decimal import Decimal
+
+    df_dec = pd.DataFrame(
+        {
+            &quot;id&quot;: [1, 2, 1, 2],
+            &quot;int_column&quot;: [1, 2, 3, 4],
+            &quot;dec_column&quot;: [
+                Decimal(&quot;0.50&quot;),
+                Decimal(&quot;0.15&quot;),
+                Decimal(&quot;0.25&quot;),
+                Decimal(&quot;0.40&quot;),
+            ],
+        }
+    )
+
+    # Decimal columns can be sum'd explicitly by themselves...
+    df_dec.groupby([&quot;id&quot;])[[&quot;dec_column&quot;]].sum()
+
+    # ...but cannot be combined with standard data types or they will be excluded
+    df_dec.groupby([&quot;id&quot;])[[&quot;int_column&quot;, &quot;dec_column&quot;]].sum()
+
+    # Use .agg function to aggregate over standard and &quot;nuisance&quot; data types
+    # at the same time
+    df_dec.groupby([&quot;id&quot;]).agg({&quot;int_column&quot;: &quot;sum&quot;, &quot;dec_column&quot;: &quot;sum&quot;})
+
+</pre>
+</div>
+</div>
+<div class="section" id="handling-of-un-observed-categorical-values">
+<span id="groupby-observed"></span><h3>Handling of (un)observed Categorical values</h3>
+<p>When using a <tt class="docutils literal">Categorical</tt> grouper (as a single grouper, or as part of multiple groupers), the <tt class="docutils literal">observed</tt> keyword
+controls whether to return a cartesian product of all possible groupers values (<tt class="docutils literal">observed=False</tt>) or only those
+that are observed groupers (<tt class="docutils literal">observed=True</tt>).</p>
+<p>Show all values:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1343)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   pd.Series([1, 1, 1]).groupby(
+       pd.Categorical([&quot;a&quot;, &quot;a&quot;, &quot;a&quot;], categories=[&quot;a&quot;, &quot;b&quot;]), observed=False
+   ).count()
+
+</pre>
+</div>
+<p>Show only the observed values:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1351)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   pd.Series([1, 1, 1]).groupby(
+       pd.Categorical([&quot;a&quot;, &quot;a&quot;, &quot;a&quot;], categories=[&quot;a&quot;, &quot;b&quot;]), observed=True
+   ).count()
+
+</pre>
+</div>
+<p>The returned dtype of the grouped will <em>always</em> include <em>all</em> of the categories that were grouped.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1359)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   s = (
+       pd.Series([1, 1, 1])
+       .groupby(pd.Categorical([&quot;a&quot;, &quot;a&quot;, &quot;a&quot;], categories=[&quot;a&quot;, &quot;b&quot;]), observed=False)
+       .count()
+   )
+   s.index.dtype
+
+</pre>
+</div>
+</div>
+<div class="section" id="na-and-nat-group-handling">
+<span id="groupby-missing"></span><h3>NA and NaT group handling</h3>
+<p>If there are any NaN or NaT values in the grouping key, these will be
+automatically excluded. In other words, there will never be an &quot;NA group&quot; or
+&quot;NaT group&quot;. This was not the case in older versions of pandas, but users were
+generally discarding the NA group anyway (and supporting it was an
+implementation headache).</p>
+</div>
+<div class="section" id="grouping-with-ordered-factors">
+<h3>Grouping with ordered factors</h3>
+<p>Categorical variables represented as instances of pandas's <tt class="docutils literal">Categorical</tt> class
+can be used as group keys. If so, the order of the levels will be preserved:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1385)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   data = pd.Series(np.random.randn(100))
+
+   factor = pd.qcut(data, [0, 0.25, 0.5, 0.75, 1.0])
+
+   data.groupby(factor, observed=False).mean()
+
+</pre>
+</div>
+</div>
+<div class="section" id="grouping-with-a-grouper-specification">
+<span id="groupby-specify"></span><h3>Grouping with a grouper specification</h3>
+<p>You may need to specify a bit more data to properly group. You can
+use the <tt class="docutils literal">pd.Grouper</tt> to provide this local control.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1401)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   import datetime
+
+   df = pd.DataFrame(
+       {
+           &quot;Branch&quot;: &quot;A A A A A A A B&quot;.split(),
+           &quot;Buyer&quot;: &quot;Carl Mark Carl Carl Joe Joe Joe Carl&quot;.split(),
+           &quot;Quantity&quot;: [1, 3, 5, 1, 8, 1, 9, 3],
+           &quot;Date&quot;: [
+               datetime.datetime(2013, 1, 1, 13, 0),
+               datetime.datetime(2013, 1, 1, 13, 5),
+               datetime.datetime(2013, 10, 1, 20, 0),
+               datetime.datetime(2013, 10, 2, 10, 0),
+               datetime.datetime(2013, 10, 1, 20, 0),
+               datetime.datetime(2013, 10, 2, 10, 0),
+               datetime.datetime(2013, 12, 2, 12, 0),
+               datetime.datetime(2013, 12, 2, 14, 0),
+           ],
+       }
+   )
+
+   df
+
+</pre>
+</div>
+<p>Groupby a specific column with the desired frequency. This is like resampling.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1427)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([pd.Grouper(freq=&quot;1M&quot;, key=&quot;Date&quot;), &quot;Buyer&quot;])[[&quot;Quantity&quot;]].sum()
+
+</pre>
+</div>
+<p>When <tt class="docutils literal">freq</tt> is specified, the object returned by <tt class="docutils literal">pd.Grouper</tt> will be an
+instance of <tt class="docutils literal">pandas.api.typing.TimeGrouper</tt>. You have an ambiguous specification
+in that you have a named index and a column that could be potential groupers.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1435)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = df.set_index(&quot;Date&quot;)
+   df[&quot;Date&quot;] = df.index + pd.offsets.MonthEnd(2)
+   df.groupby([pd.Grouper(freq=&quot;6M&quot;, key=&quot;Date&quot;), &quot;Buyer&quot;])[[&quot;Quantity&quot;]].sum()
+
+   df.groupby([pd.Grouper(freq=&quot;6M&quot;, level=&quot;Date&quot;), &quot;Buyer&quot;])[[&quot;Quantity&quot;]].sum()
+
+
+</pre>
+</div>
+</div>
+<div class="section" id="taking-the-first-rows-of-each-group">
+<h3>Taking the first rows of each group</h3>
+<p>Just like for a DataFrame or Series you can call head and tail on a groupby:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1449)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=[&quot;A&quot;, &quot;B&quot;])
+   df
+
+   g = df.groupby(&quot;A&quot;)
+   g.head(1)
+
+   g.tail(1)
+
+</pre>
+</div>
+<p>This shows the first or last n rows from each group.</p>
+</div>
+<div class="section" id="taking-the-nth-row-of-each-group">
+<span id="groupby-nth"></span><h3>Taking the nth row of each group</h3>
+<p>To select the nth item from each group, use <a href="#system-message-75"><span class="problematic" id="problematic-75">:meth:`.DataFrameGroupBy.nth`</span></a> or
+<a href="#system-message-76"><span class="problematic" id="problematic-76">:meth:`.SeriesGroupBy.nth`</span></a>. Arguments supplied can be any integer, lists of integers,
+slices, or lists of slices; see below for examples. When the nth element of a group
+does not exist an error is <em>not</em> raised; instead no corresponding rows are returned.</p>
+<div class="system-message" id="system-message-75">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1466); <em><a href="#problematic-75">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message" id="system-message-76">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1466); <em><a href="#problematic-76">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<p>In general this operation acts as a filtration. In certain cases it will also return
+one row per group, making it also a reduction. However because in general it can
+return zero or multiple rows per group, pandas treats it as a filtration in all cases.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1475)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=[&quot;A&quot;, &quot;B&quot;])
+   g = df.groupby(&quot;A&quot;)
+
+   g.nth(0)
+   g.nth(-1)
+   g.nth(1)
+
+</pre>
+</div>
+<p>If the nth element of a group does not exist, then no corresponding row is included
+in the result. In particular, if the specified <tt class="docutils literal">n</tt> is larger than any group, the
+result will be an empty DataFrame.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1488)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   g.nth(5)
+
+</pre>
+</div>
+<p>If you want to select the nth not-null item, use the <tt class="docutils literal">dropna</tt> kwarg. For a DataFrame this should be either <tt class="docutils literal">'any'</tt> or <tt class="docutils literal">'all'</tt> just like you would pass to dropna:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1494)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   # nth(0) is the same as g.first()
+   g.nth(0, dropna=&quot;any&quot;)
+   g.first()
+
+   # nth(-1) is the same as g.last()
+   g.nth(-1, dropna=&quot;any&quot;)
+   g.last()
+
+   g.B.nth(0, dropna=&quot;all&quot;)
+
+</pre>
+</div>
+<p>You can also select multiple rows from each group by specifying multiple nth values as a list of ints.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1508)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   business_dates = pd.date_range(start=&quot;4/1/2014&quot;, end=&quot;6/30/2014&quot;, freq=&quot;B&quot;)
+   df = pd.DataFrame(1, index=business_dates, columns=[&quot;a&quot;, &quot;b&quot;])
+   # get the first, 4th, and last date index for each month
+   df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
+
+</pre>
+</div>
+<p>You may also use slices or lists of slices.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1517)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df.groupby([df.index.year, df.index.month]).nth[1:]
+   df.groupby([df.index.year, df.index.month]).nth[1:, :-1]
+
+</pre>
+</div>
+</div>
+<div class="section" id="enumerate-group-items">
+<h3>Enumerate group items</h3>
+<p>To see the order in which each row appears within its group, use the
+<tt class="docutils literal">cumcount</tt> method:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1528)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   dfg = pd.DataFrame(list(&quot;aaabba&quot;), columns=[&quot;A&quot;])
+   dfg
+
+   dfg.groupby(&quot;A&quot;).cumcount()
+
+   dfg.groupby(&quot;A&quot;).cumcount(ascending=False)
+
+</pre>
+</div>
+</div>
+<div class="section" id="enumerate-groups">
+<span id="groupby-ngroup"></span><h3>Enumerate groups</h3>
+<p>To see the ordering of the groups (as opposed to the order of rows
+within a group given by <tt class="docutils literal">cumcount</tt>) you can use
+<a href="#system-message-77"><span class="problematic" id="problematic-77">:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`</span></a>.</p>
+<div class="system-message" id="system-message-77">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1542); <em><a href="#problematic-77">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<p>Note that the numbers given to the groups match the order in which the
+groups would be seen when iterating over the groupby object, not the
+order they are first observed.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1552)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   dfg = pd.DataFrame(list(&quot;aaabba&quot;), columns=[&quot;A&quot;])
+   dfg
+
+   dfg.groupby(&quot;A&quot;).ngroup()
+
+   dfg.groupby(&quot;A&quot;).ngroup(ascending=False)
+
+</pre>
+</div>
+</div>
+<div class="section" id="plotting">
+<h3>Plotting</h3>
+<p>Groupby also works with some plotting methods.  In this case, suppose we
+suspect that the values in column 1 are 3 times higher on average in group &quot;B&quot;.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1568)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   np.random.seed(1234)
+   df = pd.DataFrame(np.random.randn(50, 2))
+   df[&quot;g&quot;] = np.random.choice([&quot;A&quot;, &quot;B&quot;], size=50)
+   df.loc[df[&quot;g&quot;] == &quot;B&quot;, 1] += 3
+
+</pre>
+</div>
+<p>We can easily visualize this with a boxplot:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1577)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+   :okwarning:
+
+   &#64;savefig groupby_boxplot.png
+   df.groupby(&quot;g&quot;).boxplot()
+
+</pre>
+</div>
+<p>The result of calling <tt class="docutils literal">boxplot</tt> is a dictionary whose keys are the values
+of our grouping column <tt class="docutils literal">g</tt> (&quot;A&quot; and &quot;B&quot;). The values of the resulting dictionary
+can be controlled by the <tt class="docutils literal">return_type</tt> keyword of <tt class="docutils literal">boxplot</tt>.
+See the <a href="#system-message-78"><span class="problematic" id="problematic-78">:ref:`visualization documentation&lt;visualization.box&gt;`</span></a> for more.</p>
+<div class="system-message" id="system-message-78">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1583); <em><a href="#problematic-78">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p>For historical reasons, <tt class="docutils literal"><span class="pre">df.groupby(&quot;g&quot;).boxplot()</span></tt> is not equivalent
+to <tt class="docutils literal"><span class="pre">df.boxplot(by=&quot;g&quot;)</span></tt>. See <a href="#system-message-79"><span class="problematic" id="problematic-79">:ref:`here&lt;visualization.box.return&gt;`</span></a> for
+an explanation.</p>
+<div class="last system-message" id="system-message-79">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1590); <em><a href="#problematic-79">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+</div>
+<div class="section" id="piping-function-calls">
+<span id="groupby-pipe"></span><h3>Piping function calls</h3>
+<p>Similar to the functionality provided by <tt class="docutils literal">DataFrame</tt> and <tt class="docutils literal">Series</tt>, functions
+that take <tt class="docutils literal">GroupBy</tt> objects can be chained together using a <tt class="docutils literal">pipe</tt> method to
+allow for a cleaner, more readable syntax. To read about <tt class="docutils literal">.pipe</tt> in general terms,
+see <a href="#system-message-80"><span class="problematic" id="problematic-80">:ref:`here &lt;basics.pipe&gt;`</span></a>.</p>
+<div class="system-message" id="system-message-80">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1599); <em><a href="#problematic-80">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>Combining <tt class="docutils literal">.groupby</tt> and <tt class="docutils literal">.pipe</tt> is often useful when you need to reuse
+GroupBy objects.</p>
+<p>As an example, imagine having a DataFrame with columns for stores, products,
+revenue and quantity sold. We'd like to do a groupwise calculation of <em>prices</em>
+(i.e. revenue/quantity) per store and per product. We could do this in a
+multi-step operation, but expressing it in terms of piping can make the
+code more readable. First we set the data:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1613)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   n = 1000
+   df = pd.DataFrame(
+       {
+           &quot;Store&quot;: np.random.choice([&quot;Store_1&quot;, &quot;Store_2&quot;], n),
+           &quot;Product&quot;: np.random.choice([&quot;Product_1&quot;, &quot;Product_2&quot;], n),
+           &quot;Revenue&quot;: (np.random.random(n) * 50 + 10).round(2),
+           &quot;Quantity&quot;: np.random.randint(1, 10, size=n),
+       }
+   )
+   df.head(2)
+
+</pre>
+</div>
+<p>Now, to find prices per store/product, we can simply do:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1628)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   (
+       df.groupby([&quot;Store&quot;, &quot;Product&quot;])
+       .pipe(lambda grp: grp.Revenue.sum() / grp.Quantity.sum())
+       .unstack()
+       .round(2)
+   )
+
+</pre>
+</div>
+<p>Piping can also be expressive when you want to deliver a grouped object to some
+arbitrary function, for example:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1640)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   def mean(groupby):
+       return groupby.mean()
+
+
+   df.groupby([&quot;Store&quot;, &quot;Product&quot;]).pipe(mean)
+
+</pre>
+</div>
+<p>Here <tt class="docutils literal">mean</tt> takes a GroupBy object and finds the mean of the Revenue and Quantity
+columns respectively for each Store-Product combination. The <tt class="docutils literal">mean</tt> function can
+be any function that takes in a GroupBy object; the <tt class="docutils literal">.pipe</tt> will pass the GroupBy
+object as a parameter into the function you specify.</p>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples</h2>
+<div class="section" id="regrouping-by-factor">
+<h3>Regrouping by factor</h3>
+<p>Regroup columns of a DataFrame according to their sum, and sum the aggregated ones.</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1661)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame({&quot;a&quot;: [1, 0, 0], &quot;b&quot;: [0, 1, 0], &quot;c&quot;: [1, 0, 0], &quot;d&quot;: [2, 3, 4]})
+   df
+   dft = df.T
+   dft.groupby(dft.sum()).sum()
+
+</pre>
+</div>
+</div>
+<div class="section" id="multi-column-factorization">
+<span id="groupby-multicolumn-factorization"></span><h3>Multi-column factorization</h3>
+<p>By using <a href="#system-message-81"><span class="problematic" id="problematic-81">:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`</span></a>, we can extract
+information about the groups in a way similar to <a href="#system-message-82"><span class="problematic" id="problematic-82">:func:`factorize`</span></a> (as described
+further in the <a href="#system-message-83"><span class="problematic" id="problematic-83">:ref:`reshaping API &lt;reshaping.factorize&gt;`</span></a>) but which applies
+naturally to multiple columns of mixed type and different
+sources. This can be useful as an intermediate categorical-like step
+in processing, when the relationships between the group rows are more
+important than their content, or as input to an algorithm which only
+accepts the integer encoding. (For more information about support in
+pandas for full categorical data, see the <a href="#system-message-84"><span class="problematic" id="problematic-84">:ref:`Categorical
+introduction &lt;categorical&gt;`</span></a> and the
+<a href="#system-message-85"><span class="problematic" id="problematic-85">:ref:`API documentation &lt;api.arrays.categorical&gt;`</span></a>.)</p>
+<div class="system-message" id="system-message-81">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1673); <em><a href="#problematic-81">backlink</a></em></p>
+Unknown interpreted text role &quot;meth&quot;.</div>
+<div class="system-message" id="system-message-82">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1673); <em><a href="#problematic-82">backlink</a></em></p>
+Unknown interpreted text role &quot;func&quot;.</div>
+<div class="system-message" id="system-message-83">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1673); <em><a href="#problematic-83">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-84">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1673); <em><a href="#problematic-84">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-85">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1673); <em><a href="#problematic-85">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1685)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+    dfg = pd.DataFrame({&quot;A&quot;: [1, 1, 2, 3, 2], &quot;B&quot;: list(&quot;aaaba&quot;)})
+
+    dfg
+
+    dfg.groupby([&quot;A&quot;, &quot;B&quot;]).ngroup()
+
+    dfg.groupby([&quot;A&quot;, [0, 0, 0, 1, 1]]).ngroup()
+
+</pre>
+</div>
+</div>
+<div class="section" id="groupby-by-indexer-to-resample-data">
+<h3>Groupby by indexer to 'resample' data</h3>
+<p>Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.</p>
+<p>In order for resample to work on indices that are non-datetimelike, the following procedure can be utilized.</p>
+<p>In the following examples, <strong>df.index // 5</strong> returns a binary array which is used to determine what gets selected for the groupby operation.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The example below shows how we can downsample by consolidation of samples into fewer ones.
+Here by using <strong>df.index // 5</strong>, we are aggregating the samples in bins. By applying <strong>std()</strong>
+function, we aggregate the information contained in many samples into a small subset of values
+which is their standard deviation thereby reducing the number of samples.</p>
+</div>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1711)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame(np.random.randn(10, 2))
+   df
+   df.index // 5
+   df.groupby(df.index // 5).std()
+
+</pre>
+</div>
+</div>
+<div class="section" id="returning-a-series-to-propagate-names">
+<h3>Returning a Series to propagate names</h3>
+<p>Group DataFrame columns, compute a set of metrics and return a named Series.
+The Series name is used as the name for the column index. This is especially
+useful in conjunction with reshaping operations such as stacking, in which the
+column index name will be used as the name of the inserted column:</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/Users/immanuellaumoren/Two-Sigma/pandas/doc/source/user_guide/groupby.rst</tt>, line 1726)</p>
+<p>Unknown directive type &quot;ipython&quot;.</p>
+<pre class="literal-block">
+.. ipython:: python
+
+   df = pd.DataFrame(
+       {
+           &quot;a&quot;: [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2],
+           &quot;b&quot;: [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1],
+           &quot;c&quot;: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+           &quot;d&quot;: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+       }
+   )
+
+   def compute_metrics(x):
+       result = {&quot;b_sum&quot;: x[&quot;b&quot;].sum(), &quot;c_mean&quot;: x[&quot;c&quot;].mean()}
+       return pd.Series(result, name=&quot;metrics&quot;)
+
+   result = df.groupby(&quot;a&quot;).apply(compute_metrics)
+
+   result
+
+   result.stack()
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
