@@ -228,6 +228,7 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
+        filters=None,
         use_nullable_dtypes: bool = False,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
@@ -257,7 +258,11 @@ class PyArrowImpl(BaseImpl):
         )
         try:
             pa_table = self.api.parquet.read_table(
-                path_or_handle, columns=columns, filesystem=filesystem, **kwargs
+                path_or_handle,
+                columns=columns,
+                filesystem=filesystem,
+                filters=filters,
+                **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
 
@@ -335,6 +340,7 @@ class FastParquetImpl(BaseImpl):
         self,
         path,
         columns=None,
+        filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
@@ -375,7 +381,7 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, **kwargs)
+            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -487,6 +493,7 @@ def read_parquet(
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
+    filters: list[tuple] | list[list[tuple]] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -517,7 +524,6 @@ def read_parquet(
         if you wish to use its implementation.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
     {storage_options}
 
         .. versionadded:: 1.3.0
@@ -547,6 +553,24 @@ def read_parquet(
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine="pyarrow"``.
+
+        .. versionadded:: 2.1.0
+
+    filters : List[Tuple] or List[List[Tuple]], default None
+        To filter out data.
+        Filter syntax: [[(column, op, val), ...],...]
+        where op is [==, =, >, >=, <, <=, !=, in, not in]
+        The innermost tuples are transposed into a set of filters applied
+        through an `AND` operation.
+        The outer list combines these sets of filters through an `OR`
+        operation.
+        A single list of tuples can also be used, meaning that no `OR`
+        operation between set of filters is to be conducted.
+
+        Using this argument will NOT result in row-wise filtering of the final
+        partitions unless ``engine="pyarrow"`` is also specified.  For
+        other engines, filtering is only performed at the partition level, that is,
+        to prevent the loading of some row-groups and/or files.
 
         .. versionadded:: 2.1.0
 
@@ -632,6 +656,7 @@ def read_parquet(
     return impl.read(
         path,
         columns=columns,
+        filters=filters,
         storage_options=storage_options,
         use_nullable_dtypes=use_nullable_dtypes,
         dtype_backend=dtype_backend,
