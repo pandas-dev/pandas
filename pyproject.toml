@@ -245,6 +245,8 @@ select = [
   "RUF",
   # flake8-bandit: exec-builtin
   "S102",
+  # numpy-legacy-random
+  "NPY002",
   # Perflint
   "PERF",
 ]
@@ -326,12 +328,6 @@ ignore = [
   "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
-  # ambiguous-unicode-character-string
-  "RUF001",
-  # ambiguous-unicode-character-docstring
-  "RUF002",
-  # ambiguous-unicode-character-comment
-  "RUF003",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
@@ -356,7 +352,7 @@ exclude = [
 
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
-"asv_bench/*" = ["TID"]
+"asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028"]

@@ -19,10 +19,7 @@ import numpy as np
 import pytest
 
 from pandas.core.dtypes.cast import can_hold_element
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    NumpyEADtype,
-)
+from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -176,17 +173,7 @@ skip_nested = pytest.mark.usefixtures("skip_numpy_object")
 
 
 class BaseNumPyTests:
-    @classmethod
-    def assert_series_equal(cls, left, right, *args, **kwargs):
-        # base class tests hard-code expected values with numpy dtypes,
-        #  whereas we generally want the corresponding NumpyEADtype
-        if (
-            isinstance(right, pd.Series)
-            and not isinstance(right.dtype, ExtensionDtype)
-            and isinstance(left.dtype, NumpyEADtype)
-        ):
-            right = right.astype(NumpyEADtype(right.dtype))
-        return tm.assert_series_equal(left, right, *args, **kwargs)
+    pass
 
 
 class TestCasting(BaseNumPyTests, base.BaseCastingTests):
@@ -437,7 +424,7 @@ class TestSetitem(BaseNumPyTests, base.BaseSetitemTests):
         if data.dtype.numpy_dtype != object:
             if not isinstance(key, slice) or key != slice(None):
                 expected = pd.DataFrame({"data": data.to_numpy()})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 @skip_nested

@@ -318,7 +318,7 @@ class TestCommon:
 
         # make duplicated index
         n = len(unique_idx)
-        duplicated_selection = np.random.choice(n, int(n * 1.5))
+        duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
         idx = holder(unique_idx.values[duplicated_selection])
 
         # Series.duplicated is tested separately

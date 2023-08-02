@@ -89,7 +89,7 @@ class TestGetitem(base.BaseGetitemTests):
         arr = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
         result = arr.take([0, -1], allow_fill=True, fill_value=decimal.Decimal("-1.0"))
         expected = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("-1.0")])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestIndex(base.BaseIndexTests):
@@ -267,20 +267,16 @@ class TestPrinting(base.BasePrintingTests):
         assert "Decimal: " in repr(ser)
 
 
-@pytest.mark.xfail(
-    reason=(
-        "DecimalArray constructor raises bc _from_sequence wants Decimals, not ints."
-        "Easy to fix, just need to do it."
-    ),
-    raises=TypeError,
-)
-def test_series_constructor_coerce_data_to_extension_dtype_raises():
-    xpr = (
-        "Cannot cast data to extension dtype 'decimal'. Pass the "
-        "extension array directly."
+def test_series_constructor_coerce_data_to_extension_dtype():
+    dtype = DecimalDtype()
+    ser = pd.Series([0, 1, 2], dtype=dtype)
+
+    arr = DecimalArray(
+        [decimal.Decimal(0), decimal.Decimal(1), decimal.Decimal(2)],
+        dtype=dtype,
     )
-    with pytest.raises(ValueError, match=xpr):
-        pd.Series([0, 1, 2], dtype=DecimalDtype())
+    exp = pd.Series(arr)
+    tm.assert_series_equal(ser, exp)
 
 
 def test_series_constructor_with_dtype():
@@ -367,7 +363,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def test_compare_array(self, data, comparison_op):
         s = pd.Series(data)
 
-        alter = np.random.choice([-1, 0, 1], len(data))
+        alter = np.random.default_rng(2).choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
         self._compare_other(s, data, comparison_op, other)
