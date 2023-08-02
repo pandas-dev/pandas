@@ -595,22 +595,33 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
                 [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
             ),
             "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
-            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
+            "timedelta": pd.array(
+                [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
+            ),
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }
     )
 
-    if "adbc" in conn:
+    if conn == "sqlite_adbc_conn":
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="date/timedelta not implemented in ADBC",
+                reason="timedelta not implemented in ADBC sqlite driver",
                 strict=True,
             )
         )
 
+    if "adbc" in conn:
+        exp_warning = FutureWarning
+        match_str = "is_sparse is deprecated"
+    else:
+        exp_warning = UserWarning
+        match_str = "time 'timedelta'"
+
     conn = request.getfixturevalue(conn)
 
-    with tm.assert_produces_warning(UserWarning, match="time 'timedelta'"):
+    with tm.assert_produces_warning(
+        exp_warning, match=match_str, check_stacklevel=False
+    ):
         df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
