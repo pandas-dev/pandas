@@ -156,7 +156,7 @@ class SharedTests:
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
-        np.random.shuffle(data)
+        np.random.default_rng(2).shuffle(data)
 
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")
@@ -258,7 +258,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.fillna(method=method)
+        result = arr.pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed

@@ -215,6 +215,7 @@ class TestSeriesConvertDtypes:
             "uint32",
             "int64",
             "uint64",
+            "interval[int64, right]",
         ]:
             with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
                 result[result.notna()] = np.nan
