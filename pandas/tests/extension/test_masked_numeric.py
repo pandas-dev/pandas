@@ -289,9 +289,8 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
 
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan

@@ -262,6 +262,9 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
+
     def check_accumulate(self, s, op_name, skipna):
         length = 64
         if not IS64 or is_platform_windows():
@@ -275,10 +278,6 @@ class TestAccumulation(base.BaseAccumulateTests):
         else:
             expected = expected.astype("boolean")
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
 
 
 class TestParsing(base.BaseParsingTests):
