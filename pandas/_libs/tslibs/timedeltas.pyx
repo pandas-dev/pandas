@@ -1,6 +1,8 @@
 import collections
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 from cpython.object cimport (
     Py_EQ,
@@ -41,6 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -124,7 +127,6 @@ cdef dict timedelta_abbrevs = {
     "minute": "m",
     "min": "m",
     "minutes": "m",
-    "t": "m",
     "s": "s",
     "seconds": "s",
     "sec": "s",
@@ -134,20 +136,17 @@ cdef dict timedelta_abbrevs = {
     "millisecond": "ms",
     "milli": "ms",
     "millis": "ms",
-    "l": "ms",
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
     "µs": "us",
     "micro": "us",
     "micros": "us",
-    "u": "us",
     "ns": "ns",
     "nanoseconds": "ns",
     "nano": "ns",
     "nanos": "ns",
     "nanosecond": "ns",
-    "n": "ns",
 }
 
 _no_input = object()
@@ -725,6 +724,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
+    elif unit in c_DEPR_ABBREVS:
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a "
+            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = c_DEPR_ABBREVS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -1435,11 +1443,11 @@ cdef class _Timedelta(timedelta):
 
         * Days:         'D'
         * Hours:        'H'
-        * Minutes:      'T'
+        * Minutes:      'min'
         * Seconds:      'S'
-        * Milliseconds: 'L'
-        * Microseconds: 'U'
-        * Nanoseconds:  'N'
+        * Milliseconds: 'ms'
+        * Microseconds: 'us'
+        * Nanoseconds:  'ns'
 
         Returns
         -------

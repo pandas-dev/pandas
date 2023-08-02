@@ -765,8 +765,8 @@ def test_factorize_sort_without_freq():
     [
         ("min", "T"),
         ("ms", "L"),
-        ("ns", "N"),
         ("us", "U"),
+        ("ns", "N"),
     ],
 )
 def test_frequencies_t_l_u_n_deprecated(freq, freq_depr):
