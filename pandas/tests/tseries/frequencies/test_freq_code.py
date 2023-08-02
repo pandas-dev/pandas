@@ -71,7 +71,7 @@ def test_resolution_bumping(args, expected):
 @pytest.mark.parametrize(
     "args",
     [
-        (0.5, "N"),
+        (0.5, "ns"),
         # Too much precision in the input can prevent.
         (0.3429324798798269273987982, "H"),
     ],
@@ -102,7 +102,7 @@ def test_compatibility(freqstr, expected):
 @pytest.mark.parametrize("freq", ["T", "L", "N", "U"])
 def test_units_t_l_deprecated_from__attrname_to_abbrevs(freq):
     # GH 52536
-    msg = f"Code freq={freq} is deprecated and will be removed in a future version."
+    msg = f"'{freq}' is deprecated and will be removed in a future version."
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         Resolution.get_reso_from_freqstr(freq)

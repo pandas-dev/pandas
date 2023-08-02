@@ -896,3 +896,21 @@ class TestPeriodIndex:
             [3.0, np.nan], index=PeriodIndex(["2018Q1", "2018Q2"], freq="Q-DEC")
         )
         tm.assert_series_equal(result, expected)
+
+    def test_resample_t_l_deprecated(self):
+        msg_t = "'T' is deprecated and will be removed in a future version."
+        msg_l = "'L' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg_l):
+            rng_l = period_range(
+                "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="L"
+            )
+        ser = Series(np.arange(len(rng_l)), index=rng_l)
+
+        rng = period_range(
+            "2020-01-01 00:00:00 00:00", "2020-01-01 00:00:00 00:01", freq="min"
+        )
+        expected = Series([29999.5, 60000.0], index=rng)
+        with tm.assert_produces_warning(FutureWarning, match=msg_t):
+            result = ser.resample("T").mean()
+        tm.assert_series_equal(result, expected)

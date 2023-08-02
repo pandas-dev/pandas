@@ -1,5 +1,8 @@
 import re
 import time
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.datetime cimport (
@@ -50,7 +53,10 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_lastbday,
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
-from pandas._libs.tslibs.dtypes cimport periods_per_day
+from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
+    periods_per_day,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -4417,6 +4423,15 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
+                if prefix in c_DEPR_ABBREVS:
+                    warnings.warn(
+                        f"\'{prefix}\' is deprecated and will be removed in a "
+                        f"future version. Please use \'{c_DEPR_ABBREVS.get(prefix)}\' "
+                        f"instead of \'{prefix}\'.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    prefix = c_DEPR_ABBREVS[prefix]
                 if prefix in {"D", "H", "min", "S", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the

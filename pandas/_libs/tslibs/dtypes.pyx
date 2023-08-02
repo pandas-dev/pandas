@@ -291,8 +291,9 @@ class Resolution(Enum):
         try:
             if freq in DEPR_ABBREVS:
                 warnings.warn(
-                    f"Code freq={freq} is deprecated and will be removed in a future "
-                    f"version. Please use {DEPR_ABBREVS.get(freq)} instead of {freq}.",
+                    f"\'{freq}\' is deprecated and will be removed in a future "
+                    f"version. Please use \'{DEPR_ABBREVS.get(freq)}\' "
+                    "instead of \'{freq}\'.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
@@ -309,9 +310,9 @@ class Resolution(Enum):
                 raise
             if split_freq[0] in DEPR_ABBREVS:
                 warnings.warn(
-                    f"Code freq={split_freq[0]} is deprecated and will be removed in "
-                    f"a future version. Please use {DEPR_ABBREVS.get(split_freq[0])} "
-                    f"instead of {split_freq[0]}.",
+                    f"\'{split_freq[0]}\' is deprecated and will be removed in a "
+                    f"future version. Please use \'{DEPR_ABBREVS.get(split_freq[0])}\' "
+                    f"instead of \'{split_freq[0]}\'.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
