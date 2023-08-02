@@ -1139,7 +1139,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "rands",
     "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_localpath",
