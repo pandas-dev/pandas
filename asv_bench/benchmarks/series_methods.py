@@ -104,7 +104,7 @@ class Fillna:
             data = np.arange(N)
             na_value = NA
         elif dtype in ("string", "string[pyarrow]"):
-            data = tm.rands_array(5, N)
+            data = np.array(["a"] * N, dtype=object)
             na_value = NA
         else:
             raise NotImplementedError
