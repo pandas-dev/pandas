@@ -130,10 +130,10 @@ class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def get_expected_exception(self, op_name, obj, other):
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name in self.implements:
             return None
-        return super().get_expected_exception(op_name, obj, other)
+        return super()._get_expected_exception(op_name, obj, other)
 
     def test_add_series_with_extension_array(self, data):
         # Datetime + Datetime not implemented

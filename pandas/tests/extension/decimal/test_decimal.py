@@ -331,7 +331,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     frame_scalar_exc = None
     series_array_exc = None
 
-    def get_expected_exception(
+    def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         return None

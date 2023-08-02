@@ -118,10 +118,10 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def get_expected_exception(self, op_name, obj, other):
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name in self.implements:
             return None
-        return super().get_expected_exception(op_name, obj, other)
+        return super()._get_expected_exception(op_name, obj, other)
 
     def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
         super()._check_divmod_op(s, op, other, exc=TypeError)

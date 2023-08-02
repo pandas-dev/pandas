@@ -989,7 +989,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             and pa.types.is_temporal(pa_dtype)
         )
 
-    def get_expected_exception(
+    def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         if op_name == "divmod" or op_name == "rdivmod":

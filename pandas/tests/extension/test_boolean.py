@@ -119,7 +119,7 @@ class TestMissing(base.BaseMissingTests):
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def get_expected_exception(self, op_name, obj, other):
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
             # match behavior with non-masked bool dtype
             return NotImplementedError

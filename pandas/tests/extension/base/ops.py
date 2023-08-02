@@ -14,7 +14,7 @@ class BaseOpsUtil(BaseExtensionTests):
     frame_scalar_exc: type[Exception] | None = TypeError
     series_array_exc: type[Exception] | None = TypeError
 
-    def get_expected_exception(
+    def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | None:
         # Find the Exception, if any we expect to raise calling
@@ -35,7 +35,7 @@ class BaseOpsUtil(BaseExtensionTests):
         return tm.get_op_from_name(op_name)
 
     def check_opname(self, ser: pd.Series, op_name: str, other):
-        exc = self.get_expected_exception(op_name, ser, other)
+        exc = self._get_expected_exception(op_name, ser, other)
         op = self.get_op_from_name(op_name)
 
         self._check_op(ser, op, other, op_name, exc)
@@ -67,9 +67,9 @@ class BaseOpsUtil(BaseExtensionTests):
     def _check_divmod_op(self, ser: pd.Series, op, other, exc=Exception):
         # divmod has multiple return values, so check separately
         if op is divmod:
-            exc = self.get_expected_exception("divmod", ser, other)
+            exc = self._get_expected_exception("divmod", ser, other)
         else:
-            exc = self.get_expected_exception("rdivmod", ser, other)
+            exc = self._get_expected_exception("rdivmod", ser, other)
         if exc is None:
             result_div, result_mod = op(ser, other)
             if op is divmod:
