@@ -940,19 +940,6 @@ class TestReaders:
 
         tm.assert_frame_equal(expected, actual)
 
-    @td.skip_if_no("py.path")
-    def test_read_from_py_localpath(self, read_ext):
-        # GH12655
-        from py.path import local as LocalPath
-
-        str_path = os.path.join("test1" + read_ext)
-        expected = pd.read_excel(str_path, sheet_name="Sheet1", index_col=0)
-
-        path_obj = LocalPath().join("test1" + read_ext)
-        actual = pd.read_excel(path_obj, sheet_name="Sheet1", index_col=0)
-
-        tm.assert_frame_equal(expected, actual)
-
     def test_close_from_py_localpath(self, read_ext):
         # GH31467
         str_path = os.path.join("test1" + read_ext)

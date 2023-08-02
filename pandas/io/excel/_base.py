@@ -1442,7 +1442,7 @@ class ExcelFile:
 
     Parameters
     ----------
-    path_or_buffer : str, bytes, path object (pathlib.Path or py._path.local.LocalPath),
+    path_or_buffer : str, bytes, pathlib.Path,
         A file-like object, xlrd workbook or openpyxl workbook.
         If a string or path object, expected to be a path to a
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.

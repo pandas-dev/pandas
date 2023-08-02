@@ -21,7 +21,6 @@ from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
 )
-from pandas.util import _test_decorators as td
 
 from pandas.io.pytables import TableIterator
 
@@ -324,25 +323,6 @@ def test_read_from_pathlib_path(tmp_path, setup_path):
     )
     filename = tmp_path / setup_path
     path_obj = Path(filename)
-
-    expected.to_hdf(path_obj, "df", mode="a")
-    actual = read_hdf(path_obj, "df")
-
-    tm.assert_frame_equal(expected, actual)
-
-
-@td.skip_if_no("py.path")
-def test_read_from_py_localpath(tmp_path, setup_path):
-    # GH11773
-    from py.path import local as LocalPath
-
-    expected = DataFrame(
-        np.random.default_rng(2).random((4, 5)),
-        index=list("abcd"),
-        columns=list("ABCDE"),
-    )
-    filename = tmp_path / setup_path
-    path_obj = LocalPath(filename)
 
     expected.to_hdf(path_obj, "df", mode="a")
     actual = read_hdf(path_obj, "df")

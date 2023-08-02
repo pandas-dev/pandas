@@ -67,15 +67,6 @@ def test_path_path_lib(all_parsers):
     tm.assert_frame_equal(df, result)
 
 
-def test_path_local_path(all_parsers):
-    parser = all_parsers
-    df = tm.makeDataFrame()
-    result = tm.round_trip_localpath(
-        df.to_csv, lambda p: parser.read_csv(p, index_col=0)
-    )
-    tm.assert_frame_equal(df, result)
-
-
 def test_nonexistent_path(all_parsers):
     # gh-2428: pls no segfault
     # gh-14086: raise more helpful FileNotFoundError

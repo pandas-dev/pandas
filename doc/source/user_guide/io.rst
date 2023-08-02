@@ -61,8 +61,8 @@ Basic
 +++++
 
 filepath_or_buffer : various
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
+  URL (including http, ftp, and S3
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`

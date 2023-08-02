@@ -49,7 +49,6 @@ from pandas import (
     bdate_range,
 )
 from pandas._testing._io import (
-    round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
     write_to_compressed,
@@ -1130,7 +1129,6 @@ __all__ = [
     "rands",
     "reset_display_options",
     "raises_chained_assignment_error",
-    "round_trip_localpath",
     "round_trip_pathlib",
     "round_trip_pickle",
     "setitem",

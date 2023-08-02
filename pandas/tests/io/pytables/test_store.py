@@ -828,21 +828,6 @@ def test_pickle_path_localpath():
     tm.assert_frame_equal(df, result)
 
 
-def test_path_localpath_hdfstore():
-    df = tm.makeDataFrame()
-
-    def writer(path):
-        with HDFStore(path) as store:
-            df.to_hdf(store, "df")
-
-    def reader(path):
-        with HDFStore(path) as store:
-            return read_hdf(store, "df")
-
-    result = tm.round_trip_localpath(writer, reader)
-    tm.assert_frame_equal(df, result)
-
-
 @pytest.mark.parametrize("propindexes", [True, False])
 def test_copy(propindexes):
     df = tm.makeDataFrame()

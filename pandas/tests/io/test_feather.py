@@ -132,11 +132,6 @@ class TestFeather:
         result = tm.round_trip_pathlib(df.to_feather, read_feather)
         tm.assert_frame_equal(df, result)
 
-    def test_path_localpath(self):
-        df = tm.makeDataFrame().reset_index()
-        result = tm.round_trip_localpath(df.to_feather, read_feather)
-        tm.assert_frame_equal(df, result)
-
     def test_passthrough_keywords(self):
         df = tm.makeDataFrame().reset_index()
         self.check_round_trip(df, write_kwargs={"version": 1})

@@ -224,12 +224,6 @@ def test_pickle_path_pathlib():
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
-    df = tm.makeDataFrame()
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
 # ---------------------
 # test pickle compression
 # ---------------------
