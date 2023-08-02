@@ -1068,7 +1068,7 @@ class TestParquetPyArrow(Base):
     def test_df_attrs_persistence(self, tmp_path, pa):
         path = tmp_path / "test_df_metadata.p"
         df = pd.DataFrame(data={1: [1]})
-        df.attrs = {"Test attribute": 1}
+        df.attrs = {"test_attribute": 1}
         df.to_parquet(path, engine=pa)
         new_df = read_parquet(path, engine=pa)
         assert new_df.attrs == df.attrs
