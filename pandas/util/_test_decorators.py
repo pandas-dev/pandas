@@ -127,9 +127,10 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
     evaluated during test collection. An attempt will be made to import the
     specified ``package`` and optionally ensure it meets the ``min_version``
 
-    The mark can be used as either a decorator for a test function or to be
+    The mark can be used as either a decorator for a test class or to be
     applied to parameters in pytest.mark.parametrize calls or parametrized
-    fixtures.
+    fixtures. Use pytest.importorskip if an imported moduled is later needed
+    or for test functions.
 
     If the import and version check are unsuccessful, then the test function
     (or test case when used in conjunction with parametrization) will be
