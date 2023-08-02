@@ -1875,7 +1875,7 @@ class TestPandasContainer:
         ],
     )
     def test_json_multiindex(self, dataframe, expected):
-        series = dataframe.stack()
+        series = dataframe.stack(future_stack=True)
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1914,7 +1914,7 @@ class TestPandasContainer:
             True,
             index=pd.date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack()
+        ).stack(future_stack=True)
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"

@@ -216,7 +216,7 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         exp = tm.SubclassedSeries(
             [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
         )
@@ -253,10 +253,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -277,7 +277,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_stack_multi_mixed(self):
@@ -315,10 +315,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -339,7 +339,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
