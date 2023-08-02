@@ -146,45 +146,20 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
-        if exc is None:
-            sdtype = tm.get_dtype(s)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        sdtype = tm.get_dtype(obj)
+        expected = pointwise_result
 
-            if hasattr(other, "dtype") and isinstance(other.dtype, np.dtype):
-                if sdtype.kind == "f":
-                    if other.dtype.kind == "f":
-                        # other is np.float64 and would therefore always result
-                        # in upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
-
-                else:
-                    # i.e. sdtype.kind in "iu""
-                    if other.dtype.kind in "iu" and sdtype.is_unsigned_integer:
-                        # TODO: comment below is inaccurate; other can be int8
-                        #  int16, ...
-                        #  and the trouble is that e.g. if s is UInt8 and other
-                        #  is int8, then result is UInt16
-                        # other is np.int64 and would therefore always result in
-                        # upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
-
-            result = op(s, other)
-            expected = self._combine(s, other, op)
-
-            if sdtype.kind in "iu":
-                if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                    expected = expected.fillna(np.nan).astype("Float64")
-                else:
-                    # combine method result in 'biggest' (int64) dtype
-                    expected = expected.astype(sdtype)
+        if sdtype.kind in "iu":
+            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
+                expected = expected.fillna(np.nan).astype("Float64")
             else:
-                # combine method result in 'biggest' (float64) dtype
+                # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(sdtype)
-
-            tm.assert_equal(result, expected)
         else:
-            with pytest.raises(exc):
-                op(s, other)
+            # combine method result in 'biggest' (float64) dtype
+            expected = expected.astype(sdtype)
+        return expected
 
     def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
         # overwriting to indicate ops don't raise an error
@@ -195,17 +170,8 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _check_op(
-        self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
-    ):
-        if exc is None:
-            result = op(ser, other)
-            # Override to do the astype to boolean
-            expected = ser.combine(other, op).astype("boolean")
-            tm.assert_series_equal(result, expected)
-        else:
-            with pytest.raises(exc):
-                op(ser, other)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        return pointwise_result.astype("boolean")
 
     def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
         super().check_opname(ser, op_name, other, exc=None)
@@ -324,9 +290,8 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
 
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan
