@@ -47,6 +47,7 @@ def test_dt64_array(dtype_unit):
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
+        ([], None, FloatingArray._from_sequence([])),
         ([1, 2], None, IntegerArray._from_sequence([1, 2])),
         ([1, 2], object, NumpyExtensionArray(np.array([1, 2], dtype=object))),
         (

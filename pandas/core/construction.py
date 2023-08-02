@@ -352,7 +352,7 @@ def array(
             return IntegerArray._from_sequence(data, copy=copy)
 
         elif (
-            inferred_dtype in ("floating", "mixed-integer-float")
+            inferred_dtype in ("floating", "mixed-integer-float", "empty")
             and getattr(data, "dtype", None) != np.float16
         ):
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
