@@ -1963,6 +1963,7 @@ def test_fails_on_non_numeric(kernel):
 )
 @pytest.mark.parametrize("min_count", [0, 2])
 def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
+    # GH 54341
     df = DataFrame(
         {
             "a": Series([0, 1, 2, 3], dtype=any_numeric_ea_dtype),
