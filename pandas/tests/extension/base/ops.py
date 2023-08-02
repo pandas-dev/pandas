@@ -45,17 +45,20 @@ class BaseOpsUtil(BaseExtensionTests):
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
+    # Subclasses are not expected to need to override check_opname, _check_op,
+    #  _check_divmod_op, or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
     def check_opname(self, ser: pd.Series, op_name: str, other):
         exc = self._get_expected_exception(op_name, ser, other)
         op = self.get_op_from_name(op_name)
 
         self._check_op(ser, op, other, op_name, exc)
 
-    # Subclasses are not expected to need to override _check_op or _combine.
-    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
-    #  get_op_from_name, and the specification of `exc`. If you find a use
-    #  case that still requires overriding _check_op or _combine, please let
-    #  us know at github.com/pandas-dev/pandas/issues
+    # see comment on check_opname
     @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
@@ -66,7 +69,7 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
-    # see comment on _combine
+    # see comment on check_opname
     @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
@@ -84,12 +87,14 @@ class BaseOpsUtil(BaseExtensionTests):
             with pytest.raises(exc):
                 op(ser, other)
 
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=Exception):
-        # divmod has multiple return values, so check separately
+    # see comment on check_opname
+    @final
+    def _check_divmod_op(self, ser: pd.Series, op, other):
+        # check that divmod behavior matches behavior of floordiv+mod
         if op is divmod:
-            exc = self._get_expected_exception("divmod", ser, other)
+            exc = self._get_expected_exception("__divmod__", ser, other)
         else:
-            exc = self._get_expected_exception("rdivmod", ser, other)
+            exc = self._get_expected_exception("__rdivmod__", ser, other)
         if exc is None:
             result_div, result_mod = op(ser, other)
             if op is divmod:
@@ -141,8 +146,8 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 
     def test_divmod(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, 1, exc=self.divmod_exc)
-        self._check_divmod_op(1, ops.rdivmod, ser, exc=self.divmod_exc)
+        self._check_divmod_op(ser, divmod, 1)
+        self._check_divmod_op(1, ops.rdivmod, ser)
 
     def test_divmod_series_array(self, data, data_for_twos):
         ser = pd.Series(data)

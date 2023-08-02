@@ -358,10 +358,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(s, op, other, exc=None)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def test_compare_scalar(self, data, comparison_op):
