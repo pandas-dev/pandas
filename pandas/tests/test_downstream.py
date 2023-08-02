@@ -39,7 +39,7 @@ def test_dask(df):
 
     try:
         pytest.importorskip("toolz")
-        dd = pytest.importorskip("dask")
+        dd = pytest.importorskip("dask.dataframe")
 
         ddf = dd.from_pandas(df, npartitions=3)
         assert ddf.A is not None
