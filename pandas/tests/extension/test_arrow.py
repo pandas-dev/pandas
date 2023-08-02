@@ -856,11 +856,11 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
         return tm.get_op_from_name(op_name)
 
-    def _combine(self, obj, other, op):
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
         # while ArrowExtensionArray maintains original type
-        expected = base.BaseArithmeticOpsTests._combine(self, obj, other, op)
+        expected = pointwise_result
 
         was_frame = False
         if isinstance(expected, pd.DataFrame):
@@ -878,7 +878,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 pa.types.is_floating(orig_pa_type)
                 or (
                     pa.types.is_integer(orig_pa_type)
-                    and op.__name__ not in ["truediv", "rtruediv"]
+                    and op_name not in ["__truediv__", "__rtruediv__"]
                 )
                 or pa.types.is_duration(orig_pa_type)
                 or pa.types.is_timestamp(orig_pa_type)
@@ -889,7 +889,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 #  ArrowExtensionArray does not upcast
                 return expected
         elif not (
-            (op is operator.floordiv and pa.types.is_integer(orig_pa_type))
+            (op_name == "__floordiv__" and pa.types.is_integer(orig_pa_type))
             or pa.types.is_duration(orig_pa_type)
             or pa.types.is_timestamp(orig_pa_type)
             or pa.types.is_date(orig_pa_type)
@@ -926,14 +926,14 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         ):
             # decimal precision can resize in the result type depending on data
             # just compare the float values
-            alt = op(obj, other)
+            alt = getattr(obj, op_name)(other)
             alt_dtype = tm.get_dtype(alt)
             assert isinstance(alt_dtype, ArrowDtype)
-            if op is operator.pow and isinstance(other, Decimal):
+            if op_name == "__pow__" and isinstance(other, Decimal):
                 # TODO: would it make more sense to retain Decimal here?
                 alt_dtype = ArrowDtype(pa.float64())
             elif (
-                op is operator.pow
+                op_name == "__pow__"
                 and isinstance(other, pd.Series)
                 and other.dtype == original_dtype
             ):

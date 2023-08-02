@@ -2737,6 +2737,30 @@ supported types."""
     def write_file(self) -> None:
         """
         Export DataFrame object to Stata dta format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"fully_labelled": [1, 2, 3, 3, 1],
+        ...                    "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+        ...                    "Y": [7, 7, 9, 8, 10],
+        ...                    "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        ...                    })
+        >>> path = "/My_path/filename.dta"
+        >>> labels = {"fully_labelled": {1: "one", 2: "two", 3: "three"},
+        ...           "partially_labelled": {1.0: "one", 2.0: "two"},
+        ...           }
+        >>> writer = pd.io.stata.StataWriter(path,
+        ...                                  df,
+        ...                                  value_labels=labels)  # doctest: +SKIP
+        >>> writer.write_file()  # doctest: +SKIP
+        >>> df = pd.read_stata(path)  # doctest: +SKIP
+        >>> df  # doctest: +SKIP
+            index fully_labelled  partially_labeled  Y  Z
+        0       0            one                one  7  j
+        1       1            two                two  7  k
+        2       2          three                NaN  9  l
+        3       3          three                9.0  8  k
+        4       4            one                NaN 10  j
         """
         with get_handle(
             self._fname,
