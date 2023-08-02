@@ -52,6 +52,9 @@ IGNORE_VALIDATION = {
     "errors.InvalidComparison",
     "errors.LossySetitemError",
     "errors.NoBufferPresent",
+    "errors.IncompatibilityWarning",
+    "errors.PyperclipException",
+    "errors.PyperclipWindowsException",
 }
 PRIVATE_CLASSES = ["NDFrame", "IndexOpsMixin"]
 ERROR_MSGS = {

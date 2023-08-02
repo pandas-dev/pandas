@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """

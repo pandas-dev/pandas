@@ -31,7 +31,7 @@ from pandas.tests.extension import base
 
 def make_data():
     while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -157,9 +157,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestAccumulate(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -177,17 +175,17 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series(
             [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestCasting(base.BaseCastingTests):
