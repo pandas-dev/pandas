@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import final
+
 import numpy as np
 import pytest
 
@@ -31,6 +33,15 @@ class BaseOpsUtil(BaseExtensionTests):
         else:
             return self.frame_scalar_exc
 
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        # In _check_op we check that the result of a pointwise operation
+        #  (found via _combine) matches the result of the vectorized
+        #  operation obj.__op_name__(other).
+        #  In some cases pandas dtype inference on the scalar result may not
+        #  give a matching dtype even if both operations are behaving "correctly".
+        #  In these cases, do extra required casting here.
+        return pointwise_result
+
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
@@ -40,6 +51,12 @@ class BaseOpsUtil(BaseExtensionTests):
 
         self._check_op(ser, op, other, op_name, exc)
 
+    # Subclasses are not expected to need to override _check_op or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
@@ -49,6 +66,8 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
+    # see comment on _combine
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
@@ -58,6 +77,7 @@ class BaseOpsUtil(BaseExtensionTests):
         if exc is None:
             result = op(ser, other)
             expected = self._combine(ser, other, op)
+            expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
             tm.assert_equal(result, expected)
         else:
