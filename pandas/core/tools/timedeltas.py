@@ -123,7 +123,8 @@ def to_timedelta(
 
         .. deprecated:: 2.1.0
             Units 'T', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version.
+            in a future version. Please use 'min', 'ms', 'us', and 'ns' instead of
+            'T', 'L', 'U' and 'N'.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
