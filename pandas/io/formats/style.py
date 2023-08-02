@@ -3603,10 +3603,11 @@ class Styler(StylerRenderer):
         Examples
         --------
         >>> from pandas.io.formats.style import Styler
-        >>> df = pd.DataFrame({"A": [1, 2]})
         >>> EasyStyler = Styler.from_custom_template("path/to/template",
         ...                                          "template.tpl",
         ...                                          )  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2]})
+        >>> EasyStyler(df)
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.
