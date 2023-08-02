@@ -2213,7 +2213,7 @@ class ADBCDatabase(PandasSQL):
                 "'index_label' is not implemented for ADBC drivers"
             )
         if schema:
-            raise NotImplementedError("'shcema' is not implemented for ADBC drivers")
+            raise NotImplementedError("'schema' is not implemented for ADBC drivers")
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
         if dtype:
