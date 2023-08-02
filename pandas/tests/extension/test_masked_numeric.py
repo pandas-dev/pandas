@@ -181,7 +181,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # combine method result in 'biggest' (float64) dtype
                 expected = expected.astype(sdtype)
 
-            self.assert_equal(result, expected)
+            tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(s, other)
@@ -202,7 +202,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
             result = op(ser, other)
             # Override to do the astype to boolean
             expected = ser.combine(other, op).astype("boolean")
-            self.assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)

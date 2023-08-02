@@ -110,7 +110,7 @@ class NumericOps:
         result = ser == "a"
         expected = pd.Series([False, pd.NA], dtype="boolean")
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_ufunc_with_out(self, dtype):
         arr = pd.array([1, 2, 3], dtype=dtype)

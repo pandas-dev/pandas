@@ -112,7 +112,7 @@ def test_constructor_with_win_type_invalid(frame_or_series):
 @td.skip_if_no_scipy
 def test_window_with_args(step):
     # make sure that we are aggregating window functions correctly with arg
-    r = Series(np.random.randn(100)).rolling(
+    r = Series(np.random.default_rng(2).standard_normal(100)).rolling(
         window=10, min_periods=1, win_type="gaussian", step=step
     )
     expected = concat([r.mean(std=10), r.mean(std=0.01)], axis=1)
@@ -223,7 +223,7 @@ def test_cmov_window_corner(step):
     assert len(result) == 0
 
     # shorter than window
-    vals = Series(np.random.randn(5))
+    vals = Series(np.random.default_rng(2).standard_normal(5))
     result = vals.rolling(10, win_type="boxcar", step=step).mean()
     assert np.isnan(result).all()
     assert len(result) == len(range(0, 5, step or 1))
@@ -324,7 +324,7 @@ def test_cmov_window_frame(f, xp, step):
 @pytest.mark.parametrize("min_periods", [0, 1, 2, 3, 4, 5])
 @td.skip_if_no_scipy
 def test_cmov_window_na_min_periods(step, min_periods):
-    vals = Series(np.random.randn(10))
+    vals = Series(np.random.default_rng(2).standard_normal(10))
     vals[4] = np.nan
     vals[8] = np.nan
 
