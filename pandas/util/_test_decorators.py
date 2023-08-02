@@ -82,15 +82,6 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl() -> bool:
-    mod = safe_import("matplotlib")
-    if mod:
-        mod.use("Agg")
-        return False
-    else:
-        return True
-
-
 def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
@@ -165,10 +156,9 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
     )
 
 
-skip_if_no_mpl = pytest.mark.skipif(
-    _skip_if_no_mpl(), reason="Missing matplotlib dependency"
+skip_if_mpl = pytest.mark.skipif(
+    not bool(safe_import("matplotlib")), reason="matplotlib is present"
 )
-skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_not_us_locale = pytest.mark.skipif(
