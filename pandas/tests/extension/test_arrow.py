@@ -355,7 +355,9 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         tm.assert_series_equal(result, expected, check_dtype=False)
 
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
-        pa_type = ser.dtype.pyarrow_dtype
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_type = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
 
         if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
             if op_name in ["cumsum", "cumprod"]:
