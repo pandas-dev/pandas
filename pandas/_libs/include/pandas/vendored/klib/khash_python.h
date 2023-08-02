@@ -3,13 +3,13 @@
 
 
 typedef struct {
-    float real;
-    float imag;
-    } khcomplex64_t;
+    double real;
+    double imag;
+} khcomplex64_t;
 typedef struct {
     double real;
     double imag;
-    } khcomplex128_t;
+} khcomplex128_t;
 
 
 
