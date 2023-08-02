@@ -35,6 +35,8 @@ is_list_like = lib.is_list_like
 
 is_iterator = lib.is_iterator
 
+is_cursor = lib.is_cursor
+
 
 def is_number(obj) -> TypeGuard[Number | np.number]:
     """

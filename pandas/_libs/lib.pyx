@@ -1219,6 +1219,35 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
     )
 
 
+def is_cursor(obj: object) -> bool:
+    """
+    Check if the object is a DB-API cursor.
+
+    Parameters
+    ----------
+    obj : object
+        Object to check.
+
+    Returns
+    -------
+    bool
+        Whether `obj` appears to be a DB-API cursor object.
+    """
+    return c_is_cursor(obj)
+
+
+cdef bint c_is_cursor(object obj) except -1:
+    return (
+        # check for required methods
+        hasattr(obj, "fetchall")
+        and hasattr(obj, "execute")
+        and hasattr(obj, "close")
+        # check for column descriptions field
+        and getattr(obj, "description", None) is not None
+        and is_list_like(getattr(obj, "description", None))
+    )
+
+
 def is_pyarrow_array(obj):
     """
     Return True if given object is a pyarrow Array or ChunkedArray.

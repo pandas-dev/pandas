@@ -89,6 +89,7 @@ from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
     is_array_like,
     is_bool_dtype,
+    is_cursor,
     is_dataclass,
     is_dict_like,
     is_float,
@@ -798,6 +799,8 @@ class DataFrame(NDFrame, OpsMixin):
                     # GH#44616 big perf improvement for e.g. pytorch tensor
                     data = np.asarray(data)
                 else:
+                    if columns is None and is_cursor(data):
+                        columns = [x[0] for x in data.description]
                     data = list(data)
             if len(data) > 0:
                 if is_dataclass(data[0]):

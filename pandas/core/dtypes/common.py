@@ -35,6 +35,7 @@ from pandas.core.dtypes.inference import (
     is_array_like,
     is_bool,
     is_complex,
+    is_cursor,
     is_dataclass,
     is_decimal,
     is_dict_like,
