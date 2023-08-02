@@ -489,11 +489,11 @@ def read_parquet(
     path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
     columns: list[str] | None = None,
-    filters: list[tuple] | list[list[tuple]] | None = None,
     storage_options: StorageOptions | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
+    filters: list[tuple] | list[list[tuple]] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -524,22 +524,6 @@ def read_parquet(
         if you wish to use its implementation.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-    filters : List[Tuple] or List[List[Tuple]], default None
-        To filter out data.
-        Filter syntax: [[(column, op, val), ...],...]
-        where op is [==, =, >, >=, <, <=, !=, in, not in]
-        The innermost tuples are transposed into a set of filters applied
-        through an `AND` operation.
-        The outer list combines these sets of filters through an `OR`
-        operation.
-        A single list of tuples can also be used, meaning that no `OR`
-        operation between set of filters is to be conducted.
-
-        Using this argument will NOT result in row-wise filtering of the final
-        partitions unless ``engine="pyarrow"`` is also specified.  For
-        other engines, filtering is only performed at the partition level, that is,
-        to prevent the loading of some row-groups and/or files.
-
     {storage_options}
 
         .. versionadded:: 1.3.0
@@ -569,6 +553,24 @@ def read_parquet(
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine="pyarrow"``.
+
+        .. versionadded:: 2.1.0
+
+    filters : List[Tuple] or List[List[Tuple]], default None
+        To filter out data.
+        Filter syntax: [[(column, op, val), ...],...]
+        where op is [==, =, >, >=, <, <=, !=, in, not in]
+        The innermost tuples are transposed into a set of filters applied
+        through an `AND` operation.
+        The outer list combines these sets of filters through an `OR`
+        operation.
+        A single list of tuples can also be used, meaning that no `OR`
+        operation between set of filters is to be conducted.
+
+        Using this argument will NOT result in row-wise filtering of the final
+        partitions unless ``engine="pyarrow"`` is also specified.  For
+        other engines, filtering is only performed at the partition level, that is,
+        to prevent the loading of some row-groups and/or files.
 
         .. versionadded:: 2.1.0
 
