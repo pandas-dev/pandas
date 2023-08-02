@@ -13,6 +13,8 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+import operator
+
 import numpy as np
 import pytest
 
@@ -23,6 +25,7 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.tests.extension import base
 
@@ -125,41 +128,40 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
             # match behavior with non-masked bool dtype
             exc = NotImplementedError
+        elif op_name in self.implements:
+            # exception message would include "numpy boolean subtract""
+            exc = TypeError
+
         super().check_opname(s, op_name, other, exc=exc)
 
-    def _check_op(self, obj, op, other, op_name, exc=NotImplementedError):
-        if exc is None:
-            if op_name in self.implements:
-                msg = r"numpy boolean subtract"
-                with pytest.raises(TypeError, match=msg):
-                    op(obj, other)
-                return
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        if op_name in (
+            "__floordiv__",
+            "__rfloordiv__",
+            "__pow__",
+            "__rpow__",
+            "__mod__",
+            "__rmod__",
+        ):
+            # combine keeps boolean type
+            pointwise_result = pointwise_result.astype("Int8")
 
-            result = op(obj, other)
-            expected = self._combine(obj, other, op)
+        elif op_name in ("__truediv__", "__rtruediv__"):
+            # combine with bools does not generate the correct result
+            #  (numpy behaviour for div is to regard the bools as numeric)
+            if op_name == "__truediv__":
+                op = operator.truediv
+            else:
+                op = roperator.rtruediv
+            pointwise_result = self._combine(obj.astype(float), other, op)
+            pointwise_result = pointwise_result.astype("Float64")
 
-            if op_name in (
-                "__floordiv__",
-                "__rfloordiv__",
-                "__pow__",
-                "__rpow__",
-                "__mod__",
-                "__rmod__",
-            ):
-                # combine keeps boolean type
-                expected = expected.astype("Int8")
-            elif op_name in ("__truediv__", "__rtruediv__"):
-                # combine with bools does not generate the correct result
-                #  (numpy behaviour for div is to regard the bools as numeric)
-                expected = self._combine(obj.astype(float), other, op)
-                expected = expected.astype("Float64")
-            if op_name == "__rpow__":
-                # for rpow, combine does not propagate NaN
-                expected[result.isna()] = np.nan
-            tm.assert_equal(result, expected)
-        else:
-            with pytest.raises(exc):
-                op(obj, other)
+        if op_name == "__rpow__":
+            # for rpow, combine does not propagate NaN
+            result = getattr(obj, op_name)(other)
+            pointwise_result[result.isna()] = np.nan
+
+        return pointwise_result
 
     @pytest.mark.xfail(
         reason="Inconsistency between floordiv and divmod; we raise for floordiv "
