@@ -29,8 +29,8 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
         "kh_complex_hash_equal" (khcomplex128_t a, khcomplex128_t b) nogil
 
     ctypedef struct khcomplex64_t:
-        double real
-        double imag
+        float real
+        float imag
 
     bint are_equivalent_khcomplex64_t \
         "kh_complex_hash_equal" (khcomplex64_t a, khcomplex64_t b) nogil
