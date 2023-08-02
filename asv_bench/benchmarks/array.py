@@ -54,7 +54,7 @@ class IntervalArray:
 class StringArray:
     def setup(self):
         N = 100_000
-        values = np.array(["a"] * N, dtype=object)
+        values = np.array([str(i) for i in range(N)], dtype=object)
         self.values_obj = np.array(values, dtype="object")
         self.values_str = np.array(values, dtype="U")
         self.values_list = values.tolist()
@@ -78,7 +78,7 @@ class ArrowStringArray:
             import pyarrow as pa
         except ImportError:
             raise NotImplementedError
-        strings = np.array(["a"] * 10_000, dtype=object)
+        strings = np.array([str(i) for i in range(10_000)], dtype=object)
         if multiple_chunks:
             chunks = [strings[i : i + 100] for i in range(0, len(strings), 100)]
             self.array = pd.arrays.ArrowStringArray(pa.chunked_array(chunks))
@@ -125,7 +125,7 @@ class ArrowExtensionArray:
         elif dtype == "int64[pyarrow]":
             data = np.arange(N)
         elif dtype == "string[pyarrow]":
-            data = np.array(["a"] * N, dtype=object)
+            data = np.array([str(i) for i in range(N)], dtype=object)
         elif dtype == "timestamp[ns][pyarrow]":
             data = pd.date_range("2000-01-01", freq="s", periods=N)
         else:
