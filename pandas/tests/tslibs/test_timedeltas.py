@@ -147,22 +147,3 @@ def test_ints_to_pytimedelta_unsupported(unit):
     msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
     with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
-
-
-@pytest.mark.parametrize(
-    "unit,unit_depr",
-    [
-        ("min", "T"),
-        ("ms", "L"),
-        ("ns", "N"),
-        ("us", "U"),
-    ],
-)
-def test_units_t_l_u_n_deprecated(unit, unit_depr):
-    # GH 52536
-    msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
-
-    expected = Timedelta(1, unit=unit)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = Timedelta(1, unit=unit_depr)
-    tm.assert_equal(result, expected)

@@ -576,7 +576,7 @@ class TestTimedeltas:
             dtype="m8[ns]",
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
-        msg = f"Unit '{unit}' is deprecated and will be removed in a future version."
+        msg = f"'{unit}' is deprecated and will be removed in a future version."
 
         if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
             warn = FutureWarning
@@ -1039,3 +1039,22 @@ def test_timedelta_attribute_precision():
     result += td.nanoseconds
     expected = td._value
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "unit,unit_depr",
+    [
+        ("min", "T"),
+        ("ms", "L"),
+        ("ns", "N"),
+        ("us", "U"),
+    ],
+)
+def test_units_t_l_u_n_deprecated(unit, unit_depr):
+    # GH 52536
+    msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+
+    expected = Timedelta(1, unit=unit)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = Timedelta(1, unit=unit_depr)
+    tm.assert_equal(result, expected)

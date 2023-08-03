@@ -1270,7 +1270,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "us", "microseconds"
     "ns", "nanoseconds"
 
-.. warning::
+.. deprecated:: 2.1.0
 
    Aliases ``T``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
    ``min``, ``ms``, ``us``, and ``ns``.
@@ -1329,7 +1329,7 @@ frequencies. We will refer to these aliases as *period aliases*.
     "us", "microseconds"
     "ns", "nanoseconds"
 
-.. warning::
+.. deprecated:: 2.1.0
 
    Aliases ``T``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
    ``min``, ``ms``, ``us``, and ``ns``.

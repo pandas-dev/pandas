@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -16,12 +15,10 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
 )
-from pandas._libs.tslibs.dtypes import DEPR_ABBREVS
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.generic import (
@@ -177,15 +174,6 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
-    if unit in DEPR_ABBREVS:
-        warnings.warn(
-            f"Unit '{unit}' is deprecated and will be removed in a future version. "
-            f"Please use '{DEPR_ABBREVS.get(unit)}' instead of '{unit}'.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-        unit = DEPR_ABBREVS.get(unit)
-
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 

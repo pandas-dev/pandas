@@ -1723,7 +1723,7 @@ class Timedelta(_Timedelta):
         * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
-        .. note::
+        .. deprecated:: 2.1.0
 
             Values `T`, `L`, `U`, and `N` are deprecated in favour of the values
             `min`, `ms`, `us`, and `ns`.

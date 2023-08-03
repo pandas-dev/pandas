@@ -56,7 +56,9 @@ class TestTimedeltas:
         ],
     )
     def test_timedelta_units_t_l_u_n_deprecated(self, depr_unit, unit):
-        depr_msg = f"Unit '{depr_unit}' is deprecated."
+        depr_msg = (
+            f"'{depr_unit}' is deprecated and will be removed in a future version."
+        )
 
         expected = to_timedelta(np.arange(5), unit=unit)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
