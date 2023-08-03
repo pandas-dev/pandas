@@ -19,7 +19,6 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under13p0,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -830,7 +829,6 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @td.skip_if_no("s3fs")  # also requires flask
     @pytest.mark.parametrize(
         "partition_col",
         [
@@ -841,6 +839,7 @@ class TestParquetPyArrow(Base):
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
+        pytest.importorskip("s3fs")
         # GH #26388
         expected_df = df_compat.copy()
 
@@ -868,15 +867,15 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    @td.skip_if_no("pyarrow")
     def test_read_file_like_obj_support(self, df_compat):
+        pytest.importorskip("pyarrow")
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
         df_from_buf = read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
-    @td.skip_if_no("pyarrow")
     def test_expand_user(self, df_compat, monkeypatch):
+        pytest.importorskip("pyarrow")
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
@@ -928,10 +927,10 @@ class TestParquetPyArrow(Base):
         out_df = df.astype(bool)
         check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
 
-    @td.skip_if_no("pyarrow")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype="Int64"),
@@ -944,17 +943,17 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow")
     def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "c": pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)]),
@@ -1003,9 +1002,9 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(0, 3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, pa)
@@ -1098,6 +1097,14 @@ class TestParquetPyArrow(Base):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, pa)
+
+    def test_df_attrs_persistence(self, tmp_path, pa):
+        path = tmp_path / "test_df_metadata.p"
+        df = pd.DataFrame(data={1: [1]})
+        df.attrs = {"test_attribute": 1}
+        df.to_parquet(path, engine=pa)
+        new_df = read_parquet(path, engine=pa)
+        assert new_df.attrs == df.attrs
 
 
 class TestParquetFastParquet(Base):
