@@ -353,3 +353,26 @@ def test_from_obscure_array(dtype, array_likes):
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
+
+
+class TestConsortiumStandard:
+    """
+    Test some basic methods of the dataframe consortium standard.
+
+    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
+    this is just to check that the entry point works as expected.
+    """
+
+    def test_dataframe(self) -> None:
+        df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df = df_pd.__dataframe_consortium_standard__()
+        result = df.get_column_names()
+        expected = ["a", "b"]
+        assert result == expected
+
+    def test_series(self) -> None:
+        ser = Series([1, 2, 3])
+        col = ser.__column_consortium_standard__()
+        result = col.get_value(1)
+        expected = 2
+        assert result == expected
