@@ -78,7 +78,7 @@ Copy-on-Write improvements
   - DataFrame.fillna / Series.fillna
   - DataFrame.replace / Series.replace
 
-.. _whatsnew_210.enhancements.enhancement2:
+.. _whatsnew_210.enhancements.map_na_action:
 
 ``map(func, na_action="ignore")`` now works for all array types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -127,6 +127,45 @@ Notice also that in this version, :meth:`DataFrame.map` been added and :meth:`Da
 Also, note that :meth:`Categorical.map` implicitly has had its ``na_action`` set to ``"ignore"`` by default.
 This has been deprecated and will :meth:`Categorical.map` in the future change the default
 to ``na_action=None``, like for all the other array types.
+
+.. _whatsnew_210.enhancements.new_stack:
+
+New implementation of :meth:`DataFrame.stack`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pandas has reimplemented :meth:`DataFrame.stack`. To use the new implementation, pass the argument ``future_stack=True``. This will become the only option in pandas 3.0.
+
+The previous implementation had two main behavioral downsides.
+
+ 1. The previous implementation would unnecessarily introduce NA values into the result. The user could have NA values automatically removed by passing ``dropna=True`` (the default), but doing this could also remove NA values from the result that existed in the input. See the examples below.
+ 2. The previous implementation with ``sort=True`` (the default) would sometimes sort part of the resulting index, and sometimes not. If the input's columns are *not* a :class:`MultiIndex`, then the resulting index would never be sorted. If the columns are a :class:`MultiIndex`, then in most cases the level(s) in the resulting index that come from stacking the column level(s) would be sorted. In rare cases such level(s) would be sorted in a non-standard order, depending on how the columns were created.
+
+The new implementation (``future_stack=True``) will no longer unnecessarily introduce NA values when stacking multiple levels and will never sort. As such, the arguments ``dropna`` and ``sort`` are not utilized and must remain unspecified when using ``future_stack=True``. These arguments will be removed in the next major release.
+
+.. ipython:: python
+
+    columns = pd.MultiIndex.from_tuples([("B", "d"), ("A", "c")])
+    df = pd.DataFrame([[0, 2], [1, 3]], index=["z", "y"], columns=columns)
+    df
+
+In the previous version (``future_stack=False``), the default of ``dropna=True`` would remove unnecessarily introduced NA values but still coerce the dtype to ``float64`` in the process. In the new version, no NAs are introduced and so there is no coercion of the dtype.
+
+.. ipython:: python
+    :okwarning:
+
+    df.stack([0, 1], future_stack=False, dropna=True)
+    df.stack([0, 1], future_stack=True)
+
+If the input contains NA values, the previous version would drop those as well with ``dropna=True`` or introduce new NA values with ``dropna=False``. The new version persists all values from the input.
+
+.. ipython:: python
+    :okwarning:
+
+    df = pd.DataFrame([[0, 2], [np.nan, np.nan]], columns=columns)
+    df
+    df.stack([0, 1], future_stack=False, dropna=True)
+    df.stack([0, 1], future_stack=False, dropna=False)
+    df.stack([0, 1], future_stack=True)
 
 .. _whatsnew_210.enhancements.other:
 
@@ -669,6 +708,7 @@ I/O
 ^^^
 - :meth:`DataFrame.to_orc` now raising ``ValueError`` when non-default :class:`Index` is given (:issue:`51828`)
 - :meth:`DataFrame.to_sql` now raising ``ValueError`` when the name param is left empty while using SQLAlchemy to connect (:issue:`52675`)
+- Added ``filters`` parameter to :func:`read_parquet` to filter out data, compatible with both ``engines`` (:issue:`53212`)
 - Bug in :func:`json_normalize`, fix json_normalize cannot parse metadata fields list type (:issue:`37782`)
 - Bug in :func:`read_csv` where it would error when ``parse_dates`` was set to a list or dictionary with ``engine="pyarrow"`` (:issue:`47961`)
 - Bug in :func:`read_csv`, with ``engine="pyarrow"`` erroring when specifying a ``dtype`` with ``index_col`` (:issue:`53229`)
