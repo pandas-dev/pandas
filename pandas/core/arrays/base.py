@@ -239,6 +239,12 @@ class ExtensionArray:
 
     By default, ExtensionArrays are not hashable.  Immutable subclasses may
     override this behavior.
+
+    Examples
+    --------
+    Please see the following:
+
+    https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
