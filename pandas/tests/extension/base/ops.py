@@ -24,7 +24,7 @@ class BaseOpsUtil(BaseExtensionTests):
 
         # The self.foo_bar_exc pattern isn't great in part because it can depend
         #  on op_name or dtypes, but we use it here for backward-compatibility.
-        if op_name in ["divmod", "rdivmod"]:
+        if op_name in ["__divmod__", "__rdivmod__"]:
             return self.divmod_exc
         if isinstance(obj, pd.Series) and isinstance(other, pd.Series):
             return self.series_array_exc
