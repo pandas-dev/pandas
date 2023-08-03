@@ -1391,7 +1391,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         - FR is Friday
         - SA is Saturday
         - SU is Sunday.
-        
+
         Parameters that **add** to the offset (like Timedelta):
 
         - years
