@@ -176,8 +176,8 @@ Other enhancements
 - Performance improvement in :func:`concat` with homogeneous ``np.float64`` or ``np.float32`` dtypes (:issue:`52685`)
 - Performance improvement in :meth:`DataFrame.filter` when ``items`` is given (:issue:`52941`)
 - Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype objects (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)
+- Added ``PANDAS_ATTRS`` to :attr:`Schema.metadata` in :class:`PyArrowImpl` for parquet metadata persistence using pyarrow engine (:issue:`54346`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`51722`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
