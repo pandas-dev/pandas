@@ -31,6 +31,7 @@ from typing import (
     Any,
     Callable,
     Final,
+    Union,
     cast,
 )
 from unicodedata import east_asian_width
@@ -1157,11 +1158,14 @@ class DataFrameRenderer:
         csv_formatter.save()
 
         if created_buffer:
+            path_or_buf = cast(Union[BytesIO, StringIO], path_or_buf)
             content = path_or_buf.getvalue()
-            if isinstance(path_or_buf, BytesIO):
+            if isinstance(content, bytes):
                 # Need to decode into string since the
                 # pyarrow engine only writes binary data
+                # content = cast(bytes, content)
                 content = content.decode("utf-8")
+                # content = cast(str, content)
             path_or_buf.close()
             return content
 

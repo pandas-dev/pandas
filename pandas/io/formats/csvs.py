@@ -12,15 +12,20 @@ from collections.abc import (
 import csv as csvlib
 import os
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
+    AnyStr,
     cast,
 )
 
 import numpy as np
 
 from pandas._libs import writers as libwriters
-from pandas.compat import pa_version_under11p0
+from pandas.compat import (
+    pa_version_under8p0,
+    pa_version_under11p0,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import cache_readonly
 
@@ -258,9 +263,12 @@ class CSVFormatter:
             is_text=self.engine == "python",
         ) as handles:
             # Note: self.encoding is irrelevant here
-            self._save(handles.handle)
 
-    def _save_pyarrow(self, handle) -> None:
+            # This is a mypy bug?
+            # error: Cannot infer type argument 1 of "_save" of "CSVFormatter"  [misc]
+            self._save(handles.handle)  # type: ignore[misc]
+
+    def _save_pyarrow(self, handle: IO[AnyStr]) -> None:
         pa = import_optional_dependency("pyarrow")
         pa_csv = import_optional_dependency("pyarrow.csv")
         # Convert index to column and rename name to empty string
@@ -289,11 +297,13 @@ class CSVFormatter:
                 f"Quoting option {self.quoting} is not supported with engine='pyarrow'"
             )
 
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "include_header": self._need_to_save_header,
             "batch_size": self.chunksize,
-            "delimiter": self.sep,
         }
+
+        if not pa_version_under8p0:
+            kwargs["delimiter"] = self.sep
 
         if not pa_version_under11p0:
             kwargs["quoting_style"] = pa_quoting
@@ -301,7 +311,7 @@ class CSVFormatter:
         write_options = pa_csv.WriteOptions(**kwargs)
         pa_csv.write_csv(table, handle, write_options)
 
-    def _save(self, handle) -> None:
+    def _save(self, handle: IO[AnyStr]) -> None:
         if self.engine == "pyarrow":
             self._save_pyarrow(handle)
         else:
