@@ -15,6 +15,7 @@ class BaseOpsUtil(BaseExtensionTests):
     series_scalar_exc: type[Exception] | None = TypeError
     frame_scalar_exc: type[Exception] | None = TypeError
     series_array_exc: type[Exception] | None = TypeError
+    divmod_exc: type[Exception] | None = TypeError
 
     def _get_expected_exception(
         self, op_name: str, obj, other

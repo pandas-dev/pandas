@@ -981,7 +981,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             return self.divmod_exc
 
         dtype = tm.get_dtype(obj)
-        pa_dtype = dtype.pyarrow_dtype
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
 
         arrow_temporal_supported = self._is_temporal_supported(op_name, pa_dtype)
         if op_name in {
