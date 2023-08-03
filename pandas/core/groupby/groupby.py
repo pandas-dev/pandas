@@ -3236,6 +3236,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         how: Literal["idxmax", "idxmin"],
         numeric_only: bool = False,
+        skipna: bool = True,
     ) -> Series | DataFrame:
         """Compute idxmax/idxmin.
 
@@ -3245,6 +3246,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Whether to compute idxmin or idxmax.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
 
         Returns
         -------
@@ -3253,11 +3257,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def post_process(res):
+            has_na_value = (res._values == -1).any(axis=None)
             if not self.observed:
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
-                raise_err = len(res) < result_len or (res._values == -1).any(axis=None)
+                raise_err = len(res) < result_len or (
+                    # When there is one categorical grouping, unobserved categories
+                    # are included in the computation
+                    len(self.grouper.groupings) == 1
+                    and self.grouper.groupings[0]._passed_categorical
+                    and has_na_value
+                )
             else:
                 raise_err = False
             if raise_err:
@@ -3265,6 +3276,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
                 )
+            elif has_na_value:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{how} with all-NA "
+                    "values, or any-NA and skipna=False, is deprecated. In a future "
+                    "version this will raise ValueError",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             index = self.obj.index
             if res.size == 0:
                 result = res.astype(index.dtype)
@@ -3277,9 +3297,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         index.take(res), index=res.index, name=res.name
                     )
                 else:
+                    from pandas.core.dtypes.missing import na_value_for_dtype
+
+                    na_value = na_value_for_dtype(index.dtype, compat=False)
                     buf = {}
                     for k, _ in enumerate(res.columns):
-                        buf[k] = index.take(res._ixs(k, axis=1))
+                        buf[k] = index.array.take(
+                            res._ixs(k, axis=1), allow_fill=True, fill_value=na_value
+                        )
                     result = self.obj._constructor(buf, index=res.index)
                     result.columns = res.columns
             return result

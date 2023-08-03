@@ -1190,7 +1190,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if result.empty:
                 result = result.astype(self.obj.index.dtype)
         else:
-            result = self._idxmin_idxmax("idxmin")
+            result = self._idxmin_idxmax("idxmin", skipna=skipna)
         return result
 
     @doc(Series.idxmax.__doc__)
@@ -1205,7 +1205,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if result.empty:
                 result = result.astype(self.obj.index.dtype)
         else:
-            result = self._idxmin_idxmax("idxmax")
+            result = self._idxmin_idxmax("idxmax", skipna=skipna)
         return result
 
     @doc(Series.corr.__doc__)
@@ -2222,7 +2222,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # expression has type "Series | DataFrame", variable has type "DataFrame"
             result = self._idxmin_idxmax(  # type: ignore[assignment]
-                "idxmax", numeric_only
+                "idxmax", numeric_only, skipna=skipna
             )
         return result
 
@@ -2312,7 +2312,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             axis = self.axis
 
-        if axis == 1:
+        if axis == 1 or not skipna:
 
             def func(df):
                 return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
@@ -2326,7 +2326,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             # expression has type "Series | DataFrame", variable has type "DataFrame"
             result = self._idxmin_idxmax(  # type: ignore[assignment]
-                "idxmin", numeric_only
+                "idxmin", numeric_only, skipna=skipna
             )
         return result
 

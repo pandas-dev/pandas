@@ -98,13 +98,14 @@ def df_with_cat_col():
 
 
 def _call_and_check(klass, msg, how, gb, groupby_func, args):
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
+    if klass is None or klass is FutureWarning:
+        with tm.assert_produces_warning(klass, match=msg):
+            if how == "method":
+                getattr(gb, groupby_func)(*args)
+            elif how == "agg":
+                gb.agg(groupby_func, *args)
+            else:
+                gb.transform(groupby_func, *args)
     else:
         with pytest.raises(klass, match=msg):
             if how == "method":
@@ -690,6 +691,10 @@ def test_groupby_raises_category_on_category(
             ),
         ),
     }[groupby_func]
+
+    # if groupby_func in ["idxmin", "idxmax"] and how == "transform":
+    #     klass = FutureWarning
+    #     msg = "The behavior of SeriesGroupBy.idxmax with all-NA values"
 
     _call_and_check(klass, msg, how, gb, groupby_func, args)
 
