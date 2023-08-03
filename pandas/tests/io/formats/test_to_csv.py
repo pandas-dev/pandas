@@ -581,7 +581,7 @@ z
 """
         with tm.ensure_clean("test.txt") as path:
             # TODO: open in bytes mode for pyarrow
-            with open(path, encoding="utf-8") as f:
+            with open(path, "w", encoding="utf-8") as f:
                 f.write("manual header\n")
                 df.to_csv(f, header=None, index=None, engine=engine)
             with open(path, encoding="utf-8") as f:
