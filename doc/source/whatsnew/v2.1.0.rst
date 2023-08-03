@@ -638,6 +638,7 @@ Timedelta
 - :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
 - Bug in :class:`Timedelta` with Numpy timedelta64 objects not properly raising ``ValueError`` (:issue:`52806`)
+- Bug in :func:`to_timedelta` converting :class:`Series` or :class:`DataFrame` containing :class:`ArrowDtype` of ``pyarrow.duration`` to numpy ``timedelta64`` (:issue:`54298`)
 - Bug in :meth:`Timedelta.__hash__`, raising an ``OutOfBoundsTimedelta`` on certain large values of second resolution (:issue:`54037`)
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
