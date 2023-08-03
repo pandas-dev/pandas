@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 from typing import (
     TYPE_CHECKING,
@@ -184,6 +185,12 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
+        if df.attrs:
+            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+            existing_metadata = table.schema.metadata
+            merged_metadata = {**existing_metadata, **df_metadata}
+            table = table.replace_schema_metadata(merged_metadata)
+
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -268,6 +275,11 @@ class PyArrowImpl(BaseImpl):
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)
+
+            if pa_table.schema.metadata:
+                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+                    result.attrs = json.loads(df_metadata)
             return result
         finally:
             if handles is not None:
