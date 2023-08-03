@@ -22,7 +22,7 @@ class BaseOpsUtil(BaseExtensionTests):
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
 
-        # The self.foo_bar_exc pattern isn't great in part because it can depend
+        # The self.obj_bar_exc pattern isn't great in part because it can depend
         #  on op_name or dtypes, but we use it here for backward-compatibility.
         if op_name in ["__divmod__", "__rdivmod__"]:
             return self.divmod_exc
