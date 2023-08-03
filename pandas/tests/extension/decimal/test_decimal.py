@@ -146,6 +146,9 @@ class TestMissing(base.BaseMissingTests):
 
 
 class Reduce:
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, s, op_name, skipna):
         if op_name in ["median", "skew", "kurt", "sem"]:
             msg = r"decimal does not support the .* operation"
@@ -204,11 +207,7 @@ class Reduce:
         tm.assert_series_equal(result, expected)
 
 
-class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
-    pass
-
-
-class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
+class TestReduce(Reduce, base.BaseReduceTests):
     pass
 
 

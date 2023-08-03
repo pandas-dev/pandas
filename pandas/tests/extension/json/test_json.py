@@ -175,7 +175,7 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.xfail(reason="Unhashable")
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 

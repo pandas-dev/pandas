@@ -220,7 +220,10 @@ class TestGroupby(base.BaseGroupbyTests):
             tm.assert_frame_equal(result, expected)
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, s, op_name, skipna):
         if op_name == "count":
             result = getattr(s, op_name)()
@@ -259,10 +262,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
             expected = pd.array([exp_value], dtype=cmp_dtype)
         tm.assert_extension_array_equal(result, expected)
-
-
-class TestBooleanReduce(base.BaseBooleanReduceTests):
-    pass
 
 
 class TestPrinting(base.BasePrintingTests):

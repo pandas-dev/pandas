@@ -303,25 +303,27 @@ class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
     pass
 
 
-class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
+class TestReduce(BaseNumPyTests, base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        if tm.get_dtype(obj).kind == "O":
+            return op_name in ["sum", "min", "max", "any", "all"]
+        return True
+
     def check_reduce(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
+        res_op = getattr(s, op_name)
         # avoid coercing int -> float. Just cast to the actual numpy type.
-        expected = getattr(s.astype(s.dtype._dtype), op_name)(skipna=skipna)
+        exp_op = getattr(s.astype(s.dtype._dtype), op_name)
+        if op_name == "count":
+            result = res_op()
+            expected = exp_op()
+        else:
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("tests not written yet")
     def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
         pass
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(self, data, all_boolean_reductions, skipna):
-        super().test_reduce_series(data, all_boolean_reductions, skipna)
-
-
-@skip_nested
-class TestBooleanReduce(BaseNumPyTests, base.BaseBooleanReduceTests):
-    pass
 
 
 class TestMissing(BaseNumPyTests, base.BaseMissingTests):

@@ -408,7 +408,10 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         self.check_accumulate(ser, op_name, skipna)
 
 
-class TestBaseNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, ser, op_name, skipna):
         pa_dtype = ser.dtype.pyarrow_dtype
         if op_name == "count":
@@ -429,7 +432,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
         opname = all_numeric_reductions
 
@@ -497,7 +500,40 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             "median",
         }:
             request.node.add_marker(xfail_mark)
-        super().test_reduce_series(data, all_numeric_reductions, skipna)
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_boolean(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_boolean_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+            # We *might* want to make this behave like the non-pyarrow cases,
+            #  but have not yet decided.
+            request.node.add_marker(xfail_mark)
+
+        op_name = all_boolean_reductions
+        ser = pd.Series(data)
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+
+            with pytest.raises(TypeError, match="does not support reduction"):
+                getattr(ser, op_name)(skipna=skipna)
+
+            return
+
+        result = getattr(ser, op_name)(skipna=skipna)
+        assert result is (op_name == "any")
 
     def check_reduce_frame(self, ser, op_name, skipna):
         arr = ser.array
@@ -538,41 +574,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         # GH 52679
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
-
-
-class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.node.add_marker(xfail_mark)
-
-        op_name = all_boolean_reductions
-        ser = pd.Series(data)
-
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
-            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
-            #  behavior which does not support this.
-
-            with pytest.raises(TypeError, match="does not support reduction"):
-                getattr(ser, op_name)(skipna=skipna)
-
-            return
-
-        result = getattr(ser, op_name)(skipna=skipna)
-        assert result is (op_name == "any")
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
