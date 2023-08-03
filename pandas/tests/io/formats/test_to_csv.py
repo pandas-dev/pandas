@@ -21,7 +21,22 @@ def engine(request):
     return request.param
 
 
+@pytest.fixture
+def pyarrow_xfail(request):
+    """
+    Fixture that xfails a test if the engine is pyarrow.
+    """
+    engine = request.getfixturevalue("engine")
+    if engine == "pyarrow":
+        mark = pytest.mark.xfail(reason="pyarrow doesn't support this.")
+        request.node.add_marker(mark)
+
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+
+
 class TestToCSV:
+    @xfail_pyarrow
     def test_to_csv_with_single_column(self, engine):
         # see gh-18676, https://bugs.python.org/issue32255
         #
@@ -59,6 +74,7 @@ class TestToCSV:
             df.to_csv(path, engine=engine)
             tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
+    @xfail_pyarrow
     def test_to_csv_quotechar(self, engine):
         df = DataFrame({"col": [1, 2]})
         expected = """\
@@ -131,12 +147,14 @@ $1$,$2$
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
+    @xfail_pyarrow
     def test_csv_to_string(self, engine):
         df = DataFrame({"col": [1, 2]})
         expected_rows = [",col", "0,1", "1,2"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(engine=engine) == expected
 
+    @xfail_pyarrow
     def test_to_csv_decimal(self, engine):
         # see gh-781
         df = DataFrame({"col1": [1], "col2": ["a"], "col3": [10.1]})
@@ -176,7 +194,8 @@ $1$,$2$
         # same for a multi-index
         assert df.set_index(["a", "b"]).to_csv(engine=engine, decimal="^") == expected
 
-    def test_to_csv_float_format(self):
+    @xfail_pyarrow
+    def test_to_csv_float_format(self, engine):
         # testing if float_format is taken into account for the index
         # GH 11553
         df = DataFrame({"a": [0, 1], "b": [2.2, 3.3], "c": 1})
@@ -191,7 +210,8 @@ $1$,$2$
             == expected
         )
 
-    def test_to_csv_na_rep(self):
+    @xfail_pyarrow
+    def test_to_csv_na_rep(self, engine):
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
@@ -222,6 +242,7 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str([",0", "0,a", "1,ZZZZZ", "2,c"])
         assert expected == csv
 
+    @xfail_pyarrow
     def test_to_csv_na_rep_nullable_string(self, nullable_string_dtype, engine):
         # GH 29975
         # Make sure full na_rep shows up when a dtype is provided
@@ -231,6 +252,7 @@ $1$,$2$
         )
         assert expected == csv
 
+    @xfail_pyarrow
     def test_to_csv_date_format(self, engine):
         # GH 10209
         df_sec = DataFrame({"A": pd.date_range("20130101", periods=5, freq="s")})
@@ -302,6 +324,7 @@ $1$,$2$
             == expected_ymd_sec
         )
 
+    @xfail_pyarrow
     def test_to_csv_different_datetime_formats(self, engine):
         # GH#21734
         df = DataFrame(
@@ -318,6 +341,7 @@ $1$,$2$
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert df.to_csv(index=False, engine=engine) == expected
 
+    @xfail_pyarrow
     def test_to_csv_date_format_in_categorical(self, engine):
         # GH#40754
         ser = pd.Series(pd.to_datetime(["2021-03-27", pd.NaT], format="%Y-%m-%d"))
@@ -335,6 +359,7 @@ $1$,$2$
             ser.to_csv(index=False, engine=engine, date_format="%Y-%m-%d") == expected
         )
 
+    @xfail_pyarrow
     def test_to_csv_float_ea_float_format(self, engine):
         # GH#45991
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
@@ -345,6 +370,7 @@ $1$,$2$
         )
         assert result == expected
 
+    @xfail_pyarrow
     def test_to_csv_float_ea_no_float_format(self, engine):
         # GH#45991
         df = DataFrame({"a": [1.1, 2.02, pd.NA, 6.000006], "b": "c"})
@@ -355,6 +381,7 @@ $1$,$2$
         )
         assert result == expected
 
+    @xfail_pyarrow
     def test_to_csv_multi_index(self, engine):
         # see gh-6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
@@ -391,6 +418,7 @@ $1$,$2$
         exp = tm.convert_rows_list_to_csv_str(exp_rows)
         assert df.to_csv(index=False, engine=engine) == exp
 
+    @xfail_pyarrow
     @pytest.mark.parametrize(
         "ind,expected",
         [
@@ -415,6 +443,7 @@ $1$,$2$
         result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
         assert result == expected
 
+    @xfail_pyarrow
     def test_to_csv_string_array_ascii(self, engine):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -429,6 +458,7 @@ $1$,$2$
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_ascii
 
+    @xfail_pyarrow
     def test_to_csv_string_array_utf8(self, engine):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -443,6 +473,7 @@ $1$,$2$
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected_utf8
 
+    @xfail_pyarrow
     def test_to_csv_string_with_lf(self, engine):
         # GH 20353
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
@@ -477,6 +508,7 @@ $1$,$2$
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
+    @xfail_pyarrow
     def test_to_csv_string_with_crlf(self, engine):
         # GH 20353
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
@@ -516,6 +548,7 @@ $1$,$2$
             with open(path, "rb") as f:
                 assert f.read() == expected_crlf
 
+    @xfail_pyarrow
     def test_to_csv_stdout_file(self, capsys, engine):
         # GH 21561
         df = DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["name_1", "name_2"])
@@ -528,6 +561,7 @@ $1$,$2$
         assert captured.out == expected_ascii
         assert not sys.stdout.closed
 
+    @xfail_pyarrow
     @pytest.mark.xfail(
         compat.is_platform_windows(),
         reason=(
@@ -553,6 +587,7 @@ z
             with open(path, encoding="utf-8") as f:
                 assert f.read() == expected
 
+    @xfail_pyarrow
     def test_to_csv_write_to_open_file_with_newline_py3(self, engine):
         # see gh-21696
         # see gh-20353
@@ -651,6 +686,7 @@ z
             archived_file = zp.filelist[0].filename
             assert archived_file == expected_arcname
 
+    @xfail_pyarrow
     @pytest.mark.parametrize("df_new_type", ["Int64"])
     def test_to_csv_na_rep_long_string(self, df_new_type, engine):
         # see gh-25099
@@ -665,6 +701,7 @@ z
 
         assert expected == result
 
+    @xfail_pyarrow
     def test_to_csv_timedelta_precision(self, engine):
         # GH 6783
         s = pd.Series([1, 1]).astype("timedelta64[ns]")
@@ -679,6 +716,7 @@ z
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
 
+    @xfail_pyarrow
     def test_na_rep_truncated(self, engine):
         # https://github.com/pandas-dev/pandas/issues/31447
         result = pd.Series(range(8, 12)).to_csv(na_rep="-", engine=engine)
@@ -693,6 +731,7 @@ z
         expected = tm.convert_rows_list_to_csv_str([",0", "0,1.1", "1,2.2"])
         assert result == expected
 
+    @xfail_pyarrow
     @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
     def test_to_csv_errors(self, errors, engine):
         # GH 22610
@@ -717,6 +756,7 @@ z
                 df.to_csv(handle, mode=mode, engine=engine)
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
+    @xfail_pyarrow
     @pytest.mark.parametrize("mode", ["wb", "w"])
     def test_to_csv_encoding_binary_handle(self, mode, engine):
         """
