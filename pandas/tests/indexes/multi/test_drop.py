@@ -152,7 +152,7 @@ def test_drop_with_nan_in_index(nulls_fixture):
         mi.drop(pd.Timestamp("2001"), level="date")
 
 
-@pytest.mark.filterwarnings("ignore::PerformanceWarning")
+@pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_drop_with_non_monotonic_duplicates():
     # GH#33494
     mi = MultiIndex.from_tuples([(1, 2), (2, 3), (1, 2)])

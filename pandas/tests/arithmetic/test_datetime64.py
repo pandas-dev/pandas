@@ -1165,7 +1165,7 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
-    @pytest.mark.filterwarnings("ignore::PerformanceWarning")
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_dt64arr_addsub_time_objects_raises(self, box_with_array, tz_naive_fixture):
         # https://github.com/pandas-dev/pandas/issues/10329
 
@@ -1366,7 +1366,7 @@ class TestDatetime64DateOffsetArithmetic:
 
     # TODO: redundant with test_dt64arr_add_sub_DateOffset?  that includes
     #  tz-aware cases which this does not
-    @pytest.mark.filterwarnings("ignore::PerformanceWarning")
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize(
         "cls_and_kwargs",
         [
