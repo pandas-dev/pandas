@@ -11132,9 +11132,16 @@ class DataFrame(NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
+            # kurtosis excluded since groupby does not implement it
             if df.shape[1] and name != "kurt":
                 dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
                 if isinstance(dtype, ExtensionDtype):
+                    # GH 54341: fastpath for EA-backed axis=1 reductions
+                    # This flattens the frame into a single 1D array while keeping
+                    # track of the row and column indices of the original frame. Once
+                    # flattened, grouping by the row indices and aggregating should
+                    # be equivalent to transposing the original frame and aggregating
+                    # with axis=0.
                     name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
                     df = df.astype(dtype, copy=False)
                     arr = concat_compat(list(df._iter_column_arrays()))
