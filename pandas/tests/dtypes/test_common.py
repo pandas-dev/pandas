@@ -54,7 +54,7 @@ class TestNumpyEADtype:
             float,
             np.dtype("float64"),
             "object0",
-            "object_"
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
