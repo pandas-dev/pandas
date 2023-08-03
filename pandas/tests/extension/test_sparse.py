@@ -157,8 +157,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+    @pytest.mark.parametrize("future_stack", [True, False])
+    def test_stack(self, data, columns, future_stack):
+        super().test_stack(data, columns, future_stack)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -475,6 +476,4 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
 
 
 class TestNoNumericAccumulations(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
