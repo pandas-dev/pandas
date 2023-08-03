@@ -218,15 +218,13 @@ class TestGetIndexer:
             idx.get_indexer(idx, method="invalid")
 
     def test_get_indexer_requires_unique(self):
-        np.random.seed(123456789)
-
         ci = CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
         oidx = Index(np.array(ci))
 
         msg = "Reindexing only valid with uniquely valued Index objects"
 
         for n in [1, 2, 5, len(ci)]:
-            finder = oidx[np.random.randint(0, len(ci), size=n)]
+            finder = oidx[np.random.default_rng(2).integers(0, len(ci), size=n)]
 
             with pytest.raises(InvalidIndexError, match=msg):
                 ci.get_indexer(finder)

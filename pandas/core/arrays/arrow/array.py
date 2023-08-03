@@ -899,12 +899,31 @@ class ArrowExtensionArray(
         """
         return type(self)(pc.drop_null(self._pa_array))
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        if not self._hasna:
+            # TODO(CoW): Not necessary anymore when CoW is the default
+            return self.copy()
+
+        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
+        #  this method entirely.
+        return super().pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
+
     @doc(ExtensionArray.fillna)
     def fillna(
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
@@ -912,11 +931,8 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None:
-            return super().fillna(value=value, method=method, limit=limit)
-
-        if method is not None:
-            return super().fillna(value=value, method=method, limit=limit)
+        if limit is not None or method is not None:
+            return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -959,7 +975,7 @@ class ArrowExtensionArray(
             #   a kernel for duration types.
             pass
 
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     def isin(self, values) -> npt.NDArray[np.bool_]:
         # short-circuit to return all False array.
@@ -2564,3 +2580,19 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
+
+
+def transpose_homogeneous_pyarrow(
+    arrays: Sequence[ArrowExtensionArray],
+) -> list[ArrowExtensionArray]:
+    """Transpose arrow extension arrays in a list, but faster.
+
+    Input should be a list of arrays of equal length and all have the same
+    dtype. The caller is responsible for ensuring validity of input data.
+    """
+    arrays = list(arrays)
+    nrows, ncols = len(arrays[0]), len(arrays)
+    indices = np.arange(nrows * ncols).reshape(ncols, nrows).T.flatten()
+    arr = pa.chunked_array([chunk for arr in arrays for chunk in arr._pa_array.chunks])
+    arr = arr.take(indices)
+    return [ArrowExtensionArray(arr.slice(i * ncols, ncols)) for i in range(nrows)]
