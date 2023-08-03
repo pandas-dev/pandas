@@ -1,5 +1,4 @@
 from datetime import datetime
-import random
 
 import numpy as np
 import pytest
@@ -129,14 +128,14 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
 @pytest.mark.parametrize(
     "data",
     [
-        lambda: random.randint(-100, 100),
-        lambda: random.randint(1, 100),
-        lambda: random.random(),
-        lambda: random.choice([True, False]),
+        lambda: np.random.default_rng(2).integers(-100, 100),
+        lambda: np.random.default_rng(2).integers(1, 100),
+        lambda: np.random.default_rng(2).random(),
+        lambda: np.random.default_rng(2).choice([True, False]),
         lambda: datetime(
-            year=random.randint(1900, 2100),
-            month=random.randint(1, 12),
-            day=random.randint(1, 20),
+            year=np.random.default_rng(2).integers(1900, 2100),
+            month=np.random.default_rng(2).integers(1, 12),
+            day=np.random.default_rng(2).integers(1, 20),
         ),
     ],
 )
@@ -177,8 +176,8 @@ def test_missing_from_masked():
 
     df2 = df.__dataframe__()
 
-    rng = np.random.RandomState(42)
-    dict_null = {col: rng.randint(low=0, high=len(df)) for col in df.columns}
+    rng = np.random.default_rng(2)
+    dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
@@ -308,3 +307,22 @@ def test_datetimetzdtype(tz, unit):
     )
     df = pd.DataFrame({"ts_tz": tz_data})
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+
+
+def test_interchange_from_non_pandas_tz_aware():
+    # GH 54239, 54287
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    import pyarrow.compute as pc
+
+    arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
+    arr = pc.assume_timezone(arr, "Asia/Kathmandu")
+    table = pa.table({"arr": arr})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+
+    expected = pd.DataFrame(
+        ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
+        columns=["arr"],
+        dtype="datetime64[us, Asia/Kathmandu]",
+    )
+    tm.assert_frame_equal(expected, result)

@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import SettingWithCopyError
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -513,6 +514,10 @@ def set_nulls(
             # in numpy notation (bool, int, uint). If this happens,
             # cast the `data` to nullable float dtype.
             data = data.astype(float)
+            data[null_pos] = None
+        except SettingWithCopyError:
+            # `SettingWithCopyError` may happen for datetime-like with missing values.
+            data = data.copy()
             data[null_pos] = None
 
     return data

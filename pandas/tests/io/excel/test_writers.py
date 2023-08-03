@@ -357,7 +357,7 @@ class TestExcelWriter:
             col_df.to_excel(path)
 
     def test_excel_sheet_by_name_raise(self, path):
-        gt = DataFrame(np.random.randn(10, 2))
+        gt = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         gt.to_excel(path)
 
         with ExcelFile(path) as xl:
@@ -465,7 +465,9 @@ class TestExcelWriter:
     def test_int_types(self, np_type, path):
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
-        df = DataFrame(np.random.randint(-10, 10, size=(10, 2)), dtype=np_type)
+        df = DataFrame(
+            np.random.default_rng(2).integers(-10, 10, size=(10, 2)), dtype=np_type
+        )
         df.to_excel(path, "test1")
 
         with ExcelFile(path) as reader:
@@ -480,7 +482,7 @@ class TestExcelWriter:
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, path):
         # Test np.float values read come back as float.
-        df = DataFrame(np.random.random_sample(10), dtype=np_type)
+        df = DataFrame(np.random.default_rng(2).random(10), dtype=np_type)
         df.to_excel(path, "test1")
 
         with ExcelFile(path) as reader:
@@ -565,7 +567,7 @@ class TestExcelWriter:
         frame.to_excel(path, "test1", index=False)
 
         # test index_label
-        df = DataFrame(np.random.randn(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(path, "test1", index_label=["test"], merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -574,7 +576,7 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.randn(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(
             path,
             "test1",
@@ -588,7 +590,7 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.randn(10, 2)) >= 0
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(path, "test1", index_label="test", merge_cells=merge_cells)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -613,7 +615,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_excel_roundtrip_indexname(self, merge_cells, path):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         df.index.name = "foo"
 
         df.to_excel(path, merge_cells=merge_cells)
@@ -689,7 +691,9 @@ class TestExcelWriter:
         # see gh-19242
         #
         # Test writing Interval without labels.
-        df = DataFrame(np.random.randint(-10, 10, size=(20, 1)), dtype=np.int64)
+        df = DataFrame(
+            np.random.default_rng(2).integers(-10, 10, size=(20, 1)), dtype=np.int64
+        )
         expected = df.copy()
 
         df["new"] = pd.cut(df[0], 10)
@@ -704,7 +708,9 @@ class TestExcelWriter:
         # see gh-19242
         #
         # Test writing Interval with labels.
-        df = DataFrame(np.random.randint(-10, 10, size=(20, 1)), dtype=np.int64)
+        df = DataFrame(
+            np.random.default_rng(2).integers(-10, 10, size=(20, 1)), dtype=np.int64
+        )
         expected = df.copy()
         intervals = pd.cut(
             df[0], 10, labels=["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
@@ -722,7 +728,9 @@ class TestExcelWriter:
         #
         # Test writing timedelta to xls.
         df = DataFrame(
-            np.random.randint(-10, 10, size=(20, 1)), columns=["A"], dtype=np.int64
+            np.random.default_rng(2).integers(-10, 10, size=(20, 1)),
+            columns=["A"],
+            dtype=np.int64,
         )
         expected = df.copy()
 
@@ -761,7 +769,13 @@ class TestExcelWriter:
 
     # GH13511
     def test_to_excel_multiindex_nan_label(self, merge_cells, path):
-        df = DataFrame({"A": [None, 2, 3], "B": [10, 20, 30], "C": np.random.sample(3)})
+        df = DataFrame(
+            {
+                "A": [None, 2, 3],
+                "B": [10, 20, 30],
+                "C": np.random.default_rng(2).random(3),
+            }
+        )
         df = df.set_index(["A", "B"])
 
         df.to_excel(path, merge_cells=merge_cells)
@@ -1106,7 +1120,7 @@ class TestExcelWriter:
     def test_bytes_io(self, engine):
         # see gh-7074
         with BytesIO() as bio:
-            df = DataFrame(np.random.randn(10, 2))
+            df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
 
             # Pass engine explicitly, as there is no file path to infer from.
             with ExcelWriter(bio, engine=engine) as writer:

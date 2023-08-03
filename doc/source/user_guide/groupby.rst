@@ -1713,4 +1713,4 @@ column index name will be used as the name of the inserted column:
 
    result
 
-   result.stack()
+   result.stack(future_stack=True)

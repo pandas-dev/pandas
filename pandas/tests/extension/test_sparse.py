@@ -27,10 +27,11 @@ from pandas.tests.extension import base
 
 
 def make_data(fill_value):
+    rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = rng.uniform(size=100)
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = rng.integers(1, 100, size=100, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -145,7 +146,7 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         expected = pd.concat(
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "columns",
@@ -156,8 +157,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+    @pytest.mark.parametrize("future_stack", [True, False])
+    def test_stack(self, data, columns, future_stack):
+        super().test_stack(data, columns, future_stack)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -221,7 +223,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         sarr = sarr.fillna(0)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
-        self.assert_equal(sarr.isna(), expected)
+        tm.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_backfill(self, data_missing):
         warns = (PerformanceWarning, FutureWarning)
@@ -258,7 +260,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             }
         )
 
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
@@ -310,16 +312,13 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         cond = np.array([True, False, True, True])
         result = ser.where(cond, other)
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
-        self.assert_series_equal(result, expected)
-
-    def test_combine_first(self, data, request):
-        super().test_combine_first(data)
+        tm.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
@@ -356,7 +355,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         # GH52096
         data = SparseArray([1, np.nan])
         result = data.map(func, na_action=na_action)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
@@ -372,7 +371,7 @@ class TestCasting(BaseSparseTests, base.BaseCastingTests):
         #  for a non-sparse dtype.
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series([str(x) for x in data[:5]], dtype=object)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data):
@@ -477,6 +476,4 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
 
 
 class TestNoNumericAccumulations(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
