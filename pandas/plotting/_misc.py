@@ -43,6 +43,20 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     Returns
     -------
     matplotlib table object
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+            >>> import matplotlib.pyplot as plt
+            >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+            >>> fix, ax = plt.subplots()
+            >>> ax.axis('off')
+            (0.0, 1.0, 0.0, 1.0)
+            >>> table = pd.plotting.table(ax, df, loc='center',
+            ...                           cellLoc='center', colWidths=list([.2, .2]))
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
@@ -67,6 +81,29 @@ def register() -> None:
     See Also
     --------
     deregister_matplotlib_converters : Remove pandas formatters and converters.
+
+    Examples
+    --------
+    .. plot::
+       :context: close-figs
+
+        The following line is done automatically by pandas so
+        the plot can be rendered:
+
+        >>> pd.plotting.register_matplotlib_converters()
+
+        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
+        ...                    'y': [1, 2]
+        ...                    })
+        >>> plot = df.plot.line(x='ts', y='y')
+
+    Unsetting the register manually an error will be raised:
+
+    >>> pd.set_option("plotting.matplotlib.register_converters",
+    ...               False)  # doctest: +SKIP
+    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    Traceback (most recent call last):
+    TypeError: float() argument must be a string or a real number, not 'Period'
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.register()
@@ -87,6 +124,29 @@ def deregister() -> None:
     --------
     register_matplotlib_converters : Register pandas formatters and converters
         with matplotlib.
+
+    Examples
+    --------
+    .. plot::
+       :context: close-figs
+
+        The following line is done automatically by pandas so
+        the plot can be rendered:
+
+        >>> pd.plotting.register_matplotlib_converters()
+
+        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
+        ...                    'y': [1, 2]
+        ...                    })
+        >>> plot = df.plot.line(x='ts', y='y')
+
+    Unsetting the register manually an error will be raised:
+
+    >>> pd.set_option("plotting.matplotlib.register_converters",
+    ...               False)  # doctest: +SKIP
+    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    Traceback (most recent call last):
+    TypeError: float() argument must be a string or a real number, not 'Period'
     """
     plot_backend = _get_plot_backend("matplotlib")
     plot_backend.deregister()
@@ -552,6 +612,21 @@ class _Options(dict):
     Allows for parameter aliasing so you can just use parameter names that are
     the same as the plot function parameters, but is stored in a canonical
     format that makes it easy to breakdown into groups later.
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+             >>> np.random.seed(42)
+             >>> df = pd.DataFrame({'A': np.random.randn(10),
+             ...                   'B': np.random.randn(10)},
+             ...                   index=pd.date_range("1/1/2000",
+             ...                   freq='4MS', periods=10))
+             >>> with pd.plotting.plot_params.use("x_compat", True):
+             ...     _ = df["A"].plot(color="r")
+             ...     _ = df["B"].plot(color="g")
     """
 
     # alias so the names are same as plotting method parameter names

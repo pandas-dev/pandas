@@ -250,7 +250,7 @@ def test_apply_with_mixed_dtype():
     # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
     df = DataFrame(
         {
-            "foo1": np.random.randn(6),
+            "foo1": np.random.default_rng(2).standard_normal(6),
             "foo2": ["one", "two", "two", "three", "one", "two"],
         }
     )
@@ -347,7 +347,7 @@ def test_apply_series_to_frame():
         )
 
     dr = bdate_range("1/1/2000", periods=100)
-    ts = Series(np.random.randn(100), index=dr)
+    ts = Series(np.random.default_rng(2).standard_normal(100), index=dr)
 
     grouped = ts.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(f)
@@ -401,9 +401,9 @@ def test_apply_frame_concat_series():
 
     df = DataFrame(
         {
-            "A": np.random.randint(0, 5, 1000),
-            "B": np.random.randint(0, 5, 1000),
-            "C": np.random.randn(1000),
+            "A": np.random.default_rng(2).integers(0, 5, 1000),
+            "B": np.random.default_rng(2).integers(0, 5, 1000),
+            "C": np.random.default_rng(2).standard_normal(1000),
         }
     )
 
@@ -586,11 +586,11 @@ def test_apply_corner_cases():
     # #535, can't use sliding iterator
 
     N = 1000
-    labels = np.random.randint(0, 100, size=N)
+    labels = np.random.default_rng(2).integers(0, 100, size=N)
     df = DataFrame(
         {
             "key": labels,
-            "value1": np.random.randn(N),
+            "value1": np.random.default_rng(2).standard_normal(N),
             "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
         }
     )
@@ -1122,7 +1122,7 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     # by_rows operation would work fine, but by_cols would throw a ValueError
 
     df = DataFrame(
-        np.random.random([6, 4]),
+        np.random.default_rng(2).random([6, 4]),
         columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
     )
 

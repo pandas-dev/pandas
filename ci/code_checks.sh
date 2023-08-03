@@ -57,52 +57,8 @@ fi
 ### DOCSTRINGS ###
 if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
-    MSG='Validate docstrings (EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
-    RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-    MSG='Partially validate docstrings (EX01)' ;  echo $MSG
-    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01 --ignore_functions \
-        pandas.errors.IncompatibilityWarning \
-        pandas.errors.InvalidComparison \
-        pandas.errors.LossySetitemError \
-        pandas.errors.NoBufferPresent \
-        pandas.errors.OptionError \
-        pandas.errors.PerformanceWarning \
-        pandas.errors.PyperclipException \
-        pandas.errors.PyperclipWindowsException \
-        pandas.errors.UnsortedIndexError \
-        pandas.errors.UnsupportedFunctionCall \
-        pandas.NaT \
-        pandas.io.stata.StataReader.data_label \
-        pandas.io.stata.StataReader.value_labels \
-        pandas.io.stata.StataReader.variable_labels \
-        pandas.io.stata.StataWriter.write_file \
-        pandas.plotting.deregister_matplotlib_converters \
-        pandas.plotting.plot_params \
-        pandas.plotting.register_matplotlib_converters \
-        pandas.plotting.table \
-        pandas.util.hash_array \
-        pandas.util.hash_pandas_object \
-        pandas_object \
-        pandas.api.interchange.from_dataframe \
-        pandas.DatetimeIndex.snap \
-        pandas.api.indexers.BaseIndexer \
-        pandas.api.indexers.VariableOffsetWindowIndexer \
-        pandas.api.extensions.ExtensionDtype \
-        pandas.api.extensions.ExtensionArray \
-        pandas.arrays.NumpyExtensionArray \
-        pandas.api.extensions.ExtensionArray._concat_same_type \
-        pandas.api.extensions.ExtensionArray._formatter \
-        pandas.api.extensions.ExtensionArray._from_factorized \
-        pandas.api.extensions.ExtensionArray._from_sequence \
-        pandas.api.extensions.ExtensionArray._from_sequence_of_strings \
-        pandas.api.extensions.ExtensionArray._hash_pandas_object \
-        pandas.api.extensions.ExtensionArray._reduce \
-        pandas.api.extensions.ExtensionArray._values_for_factorize \
-        pandas.api.extensions.ExtensionArray.interpolate \
-        pandas.api.extensions.ExtensionArray.ravel \
-        pandas.DataFrame.__dataframe__
+    MSG='Validate docstrings (EX01, EX02, EX04, GL01, GL02, GL03, GL04, GL05, GL06, GL07, GL09, GL10, PR03, PR04, PR05, PR06, PR08, PR09, PR10, RT01, RT02, RT04, RT05, SA02, SA03, SA04, SS01, SS02, SS03, SS04, SS05, SS06)' ; echo $MSG
+    $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX01,EX02,EX04,GL01,GL02,GL03,GL04,GL05,GL06,GL07,GL09,GL10,PR03,PR04,PR05,PR06,PR08,PR09,PR10,RT01,RT02,RT04,RT05,SA02,SA03,SA04,SS01,SS02,SS03,SS04,SS05,SS06
     RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 fi

@@ -177,7 +177,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
+        Note that the only NumPy dtype allowed is `datetime64[ns]`.
     copy : bool, default False
         Make a copy of input ndarray.
     name : label, default None
@@ -487,6 +487,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-02',
+        ...                        '2023-02-01', '2023-02-02'])
+        >>> idx
+        DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
+        dtype='datetime64[ns]', freq=None)
+        >>> idx.snap('MS')
+        DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)

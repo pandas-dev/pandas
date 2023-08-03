@@ -514,7 +514,7 @@ def test_categorical_reducers(
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
     # Ensure there is at least one null value by appending to the end
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -594,7 +594,7 @@ def test_categorical_transformers(
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
         request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
 
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -649,7 +649,7 @@ def test_categorical_transformers(
 @pytest.mark.parametrize("method", ["head", "tail"])
 def test_categorical_head_tail(method, observed, sort, as_index):
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -674,7 +674,7 @@ def test_categorical_head_tail(method, observed, sort, as_index):
 
 def test_categorical_agg():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -686,7 +686,7 @@ def test_categorical_agg():
 
 def test_categorical_transform():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )

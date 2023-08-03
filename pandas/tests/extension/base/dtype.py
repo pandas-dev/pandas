@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import (
     infer_dtype,
     is_object_dtype,
@@ -66,11 +67,11 @@ class BaseDtypeTests(BaseExtensionTests):
 
         expected = pd.Series([True, True, False, False], index=list("ABCD"))
 
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         expected = pd.Series([True, True, False, False], index=list("ABCD"))
         result = df.dtypes.apply(str) == str(dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_hashable(self, dtype):
         hash(dtype)  # no error

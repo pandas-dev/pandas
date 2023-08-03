@@ -865,15 +865,16 @@ class PythonParser(ParserBase):
         filtered_lines : list of list of Scalars
             The same array of lines with the "empty" ones removed.
         """
-        ret = []
-        for line in lines:
-            # Remove empty lines and lines with only one whitespace value
+        # Remove empty lines and lines with only one whitespace value
+        ret = [
+            line
+            for line in lines
             if (
                 len(line) > 1
                 or len(line) == 1
                 and (not isinstance(line[0], str) or line[0].strip())
-            ):
-                ret.append(line)
+            )
+        ]
         return ret
 
     def _check_thousands(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:

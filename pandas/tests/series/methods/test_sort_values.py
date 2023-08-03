@@ -77,7 +77,7 @@ class TestSeriesSortValues:
 
         # GH#5856/5853
         # Series.sort_values operating on a view
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         s = df.iloc[:, 0]
 
         msg = (
