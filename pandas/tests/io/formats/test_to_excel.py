@@ -7,7 +7,6 @@ import string
 import pytest
 
 from pandas.errors import CSSWarning
-import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
@@ -336,12 +335,11 @@ def tests_css_named_colors_valid():
         assert len(color) == 6 and all(c in upper_hexs for c in color)
 
 
-@td.skip_if_no_mpl
 def test_css_named_colors_from_mpl_present():
-    from matplotlib.colors import CSS4_COLORS as mpl_colors
+    mpl_colors = pytest.importorskip("matplotlib.colors")
 
     pd_colors = CSSToExcelConverter.NAMED_COLORS
-    for name, color in mpl_colors.items():
+    for name, color in mpl_colors.CSS4_COLORS.items():
         assert name in pd_colors and pd_colors[name] == color[1:]
 
 

@@ -7,10 +7,7 @@ import pytest
 
 from pandas._config.config import option_context
 
-from pandas.util._test_decorators import (
-    async_mark,
-    skip_if_no,
-)
+from pandas.util._test_decorators import async_mark
 
 import pandas as pd
 from pandas import (
@@ -373,9 +370,9 @@ class TestDataFrameMisc:
         with pytest.raises(AttributeError, match=msg):
             df._constructor_expanddim(np.arange(27).reshape(3, 3, 3))
 
-    @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
         # GH38740
+        pytest.importorskip("jinja2")
         df = DataFrame()
         msg = "DataFrame._data is deprecated"
         with tm.assert_produces_warning(

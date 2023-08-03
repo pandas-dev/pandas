@@ -866,17 +866,17 @@ def test_encoding_option_str(xml_baby_names, parser):
     assert output == encoding_expected
 
 
-@td.skip_if_no("lxml")
 def test_correct_encoding_file(xml_baby_names):
+    pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
     with tm.ensure_clean("test.xml") as path:
         df_file.to_xml(path, index=False, encoding="ISO-8859-1", parser="lxml")
 
 
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("encoding", ["UTF-8", "UTF-16", "ISO-8859-1"])
 def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding):
+    pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
     with tm.ensure_clean("test.xml") as path:
@@ -891,8 +891,8 @@ def test_misspelled_encoding(parser, geom_df):
 # PRETTY PRINT
 
 
-@td.skip_if_no("lxml")
 def test_xml_declaration_pretty_print(geom_df):
+    pytest.importorskip("lxml")
     expected = """\
 <data>
   <row>
@@ -1004,18 +1004,18 @@ xsl_expected = """\
 </data>"""
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_file_like(xsl_row_field_output, mode, geom_df):
+    pytest.importorskip("lxml")
     with open(
         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ) as f:
         assert geom_df.to_xml(stylesheet=f) == xsl_expected
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_io(xsl_row_field_output, mode, geom_df):
     # note: By default the bodies of untyped functions are not checked,
     # consider using --check-untyped-defs
+    pytest.importorskip("lxml")
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
     with open(
@@ -1031,8 +1031,8 @@ def test_stylesheet_io(xsl_row_field_output, mode, geom_df):
     assert output == xsl_expected
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
+    pytest.importorskip("lxml")
     with open(
         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ) as f:
@@ -1043,23 +1043,21 @@ def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
     assert output == xsl_expected
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_wrong_path(geom_df):
-    from lxml.etree import XMLSyntaxError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = os.path.join("data", "xml", "row_field_output.xslt")
 
     with pytest.raises(
-        XMLSyntaxError,
+        lxml_etree.XMLSyntaxError,
         match=("Start tag expected, '<' not found"),
     ):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_stylesheet(val, geom_df):
-    from lxml.etree import XMLSyntaxError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     msg = "|".join(
         [
@@ -1070,13 +1068,12 @@ def test_empty_string_stylesheet(val, geom_df):
         ]
     )
 
-    with pytest.raises(XMLSyntaxError, match=msg):
+    with pytest.raises(lxml_etree.XMLSyntaxError, match=msg):
         geom_df.to_xml(stylesheet=val)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_syntax(geom_df):
-    from lxml.etree import XMLSyntaxError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1099,13 +1096,14 @@ def test_incorrect_xsl_syntax(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XMLSyntaxError, match=("Opening and ending tag mismatch")):
+    with pytest.raises(
+        lxml_etree.XMLSyntaxError, match=("Opening and ending tag mismatch")
+    ):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_eval(geom_df):
-    from lxml.etree import XSLTParseError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1128,13 +1126,12 @@ def test_incorrect_xsl_eval(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XSLTParseError, match=("failed to compile")):
+    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_apply(geom_df):
-    from lxml.etree import XSLTApplyError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1148,7 +1145,7 @@ def test_incorrect_xsl_apply(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
+    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
         with tm.ensure_clean("test.xml") as path:
             geom_df.to_xml(path, stylesheet=xsl)
 
@@ -1171,8 +1168,8 @@ def test_stylesheet_with_etree(geom_df):
         geom_df.to_xml(parser="etree", stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_style_to_csv(geom_df):
+    pytest.importorskip("lxml")
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="text" indent="yes" />
@@ -1200,8 +1197,8 @@ def test_style_to_csv(geom_df):
     assert out_csv == out_xml
 
 
-@td.skip_if_no("lxml")
 def test_style_to_string(geom_df):
+    pytest.importorskip("lxml")
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="text" indent="yes" />
@@ -1234,8 +1231,8 @@ def test_style_to_string(geom_df):
     assert out_xml == out_str
 
 
-@td.skip_if_no("lxml")
 def test_style_to_json(geom_df):
+    pytest.importorskip("lxml")
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="text" indent="yes" />
@@ -1365,10 +1362,9 @@ def test_unsuported_compression(parser, geom_df):
 
 
 @pytest.mark.single_cpu
-@td.skip_if_no("s3fs")
-@td.skip_if_no("lxml")
 def test_s3_permission_output(parser, s3_public_bucket, geom_df):
-    import s3fs
+    s3fs = pytest.importorskip("s3fs")
+    pytest.importorskip("lxml")
 
     with tm.external_error_raised((PermissionError, FileNotFoundError)):
         fs = s3fs.S3FileSystem(anon=True)

@@ -456,8 +456,8 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
+    pytest.importorskip("fsspec")
     with tm.ensure_clean():
         mockurl = "memory://mockfile"
         df = tm.makeDataFrame()
