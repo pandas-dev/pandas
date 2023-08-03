@@ -424,5 +424,5 @@ Installable with ``pip install "pandas[consortium-standard]"``
 ========================= ================== =================== ============================================================
 Dependency                Minimum Version    pip extra           Notes
 ========================= ================== =================== =============================================================
-dataframe-api-compat      0.1.6              consortium-standard Consortium Standard-compatible implementation based on pandas
+dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
 ========================= ================== =================== =============================================================
