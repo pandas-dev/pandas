@@ -221,15 +221,15 @@ def test_multiindex_long_element():
         ([-1.23j, complex("nan"), -1], ["-0.00-1.23j", "  NaN+0.00j", "-1.00+0.00j"]),
         ([1.23j, complex("nan"), 1.23], [" 0.00+1.23j", "  NaN+0.00j", " 1.23+0.00j"]),
         (
-            [-1.23j, complex(float("nan"), float("nan")), 1],
+            [-1.23j, complex(np.nan, np.nan), 1],
             ["-0.00-1.23j", "  NaN+ NaNj", " 1.00+0.00j"],
         ),
         (
-            [-1.23j, complex(1.2, float("nan")), 1],
+            [-1.23j, complex(1.2, np.nan), 1],
             ["-0.00-1.23j", " 1.20+ NaNj", " 1.00+0.00j"],
         ),
         (
-            [-1.23j, complex(float("nan"), -1.2), 1],
+            [-1.23j, complex(np.nan, -1.2), 1],
             ["-0.00-1.23j", "  NaN-1.20j", " 1.00+0.00j"],
         ),
     ],
@@ -245,4 +245,4 @@ def test_ser_df_with_complex_nans(data, output, as_frame):
     else:
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
-    assert str(obj) == expected, f"{str(obj)} \n\n {expected}"
+    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"
