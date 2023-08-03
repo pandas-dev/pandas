@@ -214,10 +214,9 @@ class TestDataFrameFormatting:
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": [
-                        tm.rands(
-                            np.random.default_rng(2).integers(max_len - 1, max_len + 1)
-                        )
-                        for i in range(10)
+                        "a"
+                        * np.random.default_rng(2).integers(max_len - 1, max_len + 1)
+                        for _ in range(10)
                     ],
                 }
             )
@@ -1177,7 +1176,7 @@ class TestDataFrameFormatting:
             20,
         ):
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
 
@@ -1203,7 +1202,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_named(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
             df.index.name = "DataFrame Index"
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
@@ -1220,9 +1219,9 @@ class TestDataFrameFormatting:
 
     def test_wide_repr_multiindex(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
+            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)), index=midx)
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10, index=midx)
             df.index.names = ["Level 0", "Level 1"]
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
@@ -1240,10 +1239,10 @@ class TestDataFrameFormatting:
     def test_wide_repr_multiindex_cols(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = get_option("display.max_columns")
-            midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
-            mcols = MultiIndex.from_arrays(tm.rands_array(3, size=(2, max_cols - 1)))
+            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
+            mcols = MultiIndex.from_arrays([["b" * 3] * (max_cols - 1)] * 2)
             df = DataFrame(
-                tm.rands_array(25, (10, max_cols - 1)), index=midx, columns=mcols
+                [["c" * 25] * (max_cols - 1)] * 10, index=midx, columns=mcols
             )
             df.index.names = ["Level 0", "Level 1"]
             with option_context("display.expand_frame_repr", False):
@@ -1259,7 +1258,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_unicode(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = 20
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * 10] * (max_cols - 1))
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
             with option_context("display.expand_frame_repr", True):
@@ -1897,11 +1896,11 @@ c  10  11  12  13  14\
 
     def test_repr_html_wide(self):
         max_cols = 20
-        df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+        df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." not in df._repr_html_()
 
-        wide_df = DataFrame(tm.rands_array(25, size=(10, max_cols + 1)))
+        wide_df = DataFrame([["a" * 25] * (max_cols + 1)] * 10)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." in wide_df._repr_html_()
 
@@ -1911,14 +1910,14 @@ c  10  11  12  13  14\
         mcols = MultiIndex.from_product(
             [np.arange(max_cols // 2), ["foo", "bar"]], names=["first", "second"]
         )
-        df = DataFrame(tm.rands_array(25, size=(10, len(mcols))), columns=mcols)
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
         reg_repr = df._repr_html_()
         assert "..." not in reg_repr
 
         mcols = MultiIndex.from_product(
             (np.arange(1 + (max_cols // 2)), ["foo", "bar"]), names=["first", "second"]
         )
-        df = DataFrame(tm.rands_array(25, size=(10, len(mcols))), columns=mcols)
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." in df._repr_html_()
 

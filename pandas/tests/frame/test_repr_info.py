@@ -265,7 +265,7 @@ NaT   4"""
     def test_very_wide_info_repr(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 20)),
-            columns=tm.rands_array(10, 20),
+            columns=np.array(["a" * 10] * 20, dtype=object),
         )
         repr(df)
 

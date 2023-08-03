@@ -173,7 +173,7 @@ class TestSetitemDT64Values:
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
-        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+        ser = Series(["a"] * 10, index=["a"] * 10)
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__setitem__ treating keys as positions is deprecated"

@@ -29,6 +29,16 @@ from pandas import (
 import pandas._testing as tm
 
 
+def rand_str(nchars: int) -> str:
+    """
+    Generate one random byte string.
+    """
+    RANDS_CHARS = np.array(
+        list(string.ascii_letters + string.digits), dtype=(np.str_, 1)
+    )
+    return "".join(np.random.default_rng(2).choice(RANDS_CHARS, nchars))
+
+
 class TestAstypeAPI:
     def test_astype_unitless_dt64_raises(self):
         # GH#47844
@@ -129,8 +139,8 @@ class TestAstype:
     @pytest.mark.parametrize(
         "series",
         [
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
-            Series([string.digits * 10, tm.rands(63), tm.rands(64), np.nan, 1.0]),
+            Series([string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
+            Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
         ],
     )
     def test_astype_str_map(self, dtype, series):
@@ -382,7 +392,7 @@ class TestAstype:
         # default encoding to utf-8
         digits = string.digits
         test_series = [
-            Series([digits * 10, tm.rands(63), tm.rands(64), tm.rands(1000)]),
+            Series([digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
             Series(["データーサイエンス、お前はもう死んでいる"]),
         ]
 

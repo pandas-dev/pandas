@@ -203,7 +203,7 @@ class TestFrameComparisons:
                 "dates2": pd.date_range("20010102", periods=10),
                 "intcol": np.random.default_rng(2).integers(1000000000, size=10),
                 "floatcol": np.random.default_rng(2).standard_normal(10),
-                "stringcol": list(tm.rands(10)),
+                "stringcol": [chr(100 + i) for i in range(10)],
             }
         )
         df.loc[np.random.default_rng(2).random(len(df)) > 0.5, "dates2"] = pd.NaT

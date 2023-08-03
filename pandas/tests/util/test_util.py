@@ -6,23 +6,6 @@ from pandas import compat
 import pandas._testing as tm
 
 
-def test_rands():
-    r = tm.rands(10)
-    assert len(r) == 10
-
-
-def test_rands_array_1d():
-    arr = tm.rands_array(5, size=10)
-    assert arr.shape == (10,)
-    assert len(arr[0]) == 5
-
-
-def test_rands_array_2d():
-    arr = tm.rands_array(7, size=(10, 10))
-    assert arr.shape == (10, 10)
-    assert len(arr[1, 1]) == 7
-
-
 def test_numpy_err_state_is_default():
     expected = {"over": "warn", "divide": "warn", "invalid": "warn", "under": "ignore"}
     import numpy as np
