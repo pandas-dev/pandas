@@ -1,7 +1,6 @@
 """ parquet compat """
 from __future__ import annotations
 
-import ast
 import io
 import json
 import os
@@ -186,7 +185,7 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
-        df_metadata = {"df.attrs": json.dumps(df.attrs)}
+        df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
         existing_metadata = table.schema.metadata
         merged_metadata = {**existing_metadata, **df_metadata}
         table = table.replace_schema_metadata(merged_metadata)
@@ -272,9 +271,9 @@ class PyArrowImpl(BaseImpl):
                 result = result._as_manager("array", copy=False)
 
             if pa_table.schema.metadata:
-                if b"df.attrs" in pa_table.schema.metadata:
-                    df_metadata = pa_table.schema.metadata[b"df.attrs"]
-                    result.attrs = ast.literal_eval(df_metadata.decode("utf-8"))
+                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+                    result.attrs = json.loads(df_metadata)
             return result
         finally:
             if handles is not None:
