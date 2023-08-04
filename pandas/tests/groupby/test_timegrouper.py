@@ -195,7 +195,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             msg = "The default value of numeric_only"
-            result = df.groupby([Grouper(freq="A"), "Buyer"]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="1Y"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -336,7 +336,7 @@ class TestGroupBy:
             result = df.groupby([Grouper(freq="1M", key="Date")]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["D", "M", "A", "Q-APR"])
+    @pytest.mark.parametrize("freq", ["D", "M", "Y", "Q-APR"])
     def test_timegrouper_with_reg_groups_freq(self, freq):
         # GH 6764 multiple grouping with/without sort
         df = DataFrame(

@@ -27,7 +27,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("A", "year"),
+        ("Y", "year"),
         ("Q", "quarter"),
         ("M", "month"),
         ("D", "day"),

@@ -146,7 +146,7 @@ class TestDatetime64:
         qsfeb = to_offset("QS-FEB")
         bq = to_offset("BQ")
         bqs_apr = to_offset("BQS-APR")
-        as_nov = to_offset("AS-NOV")
+        as_nov = to_offset("YS-NOV")
 
         tests = [
             (freq_m.is_month_start(Timestamp("2013-06-01")), 1),
