@@ -16,7 +16,7 @@ def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     assert offset + 4 < len(data)
     cdef:
         const char *data_ptr = data
-        float res = (<float*>(data_ptr + offset))[0]
+        float res = (<float *>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap_float(res)
     return res
@@ -26,7 +26,7 @@ def read_double_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
     assert offset + 8 < len(data)
     cdef:
         const char *data_ptr = data
-        double res = (<double*>(data_ptr + offset))[0]
+        double res = (<double *>(data_ptr + offset))[0]
     if byteswap:
         res = _byteswap_double(res)
     return res
@@ -81,13 +81,25 @@ cdef extern from *:
     uint64_t _byteswap8(uint64_t)
 
 
+cdef union Cast64:
+    uint64_t u
+    double d
+
+
+cdef union Cast32:
+    uint32_t u
+    float f
+
+
 cdef float _byteswap_float(float num):
-    cdef uint32_t *intptr = <uint32_t *>&num
-    intptr[0] = _byteswap4(intptr[0])
-    return num
+    cdef Cast32 cast
+    cast.f = num
+    cast.u = _byteswap4(cast.u)
+    return cast.f
 
 
 cdef double _byteswap_double(double num):
-    cdef uint64_t *intptr = <uint64_t *>&num
-    intptr[0] = _byteswap8(intptr[0])
-    return num
+    cdef Cast64 cast
+    cast.d = num
+    cast.u = _byteswap8(cast.u)
+    return cast.d
