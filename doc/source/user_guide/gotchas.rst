@@ -245,7 +245,7 @@ general, ``NA`` could have been represented with:
 The special value ``np.nan`` (Not-A-Number) was chosen as the ``NA`` value for NumPy types, and there are API
 functions like :meth:`DataFrame.isna` and :meth:`DataFrame.notna` which can be used across the dtypes to
 detect NA values. However, this choice has a downside of coercing missing integer data as float types as
-shown in :ref:`_gotchas.intna`.
+shown in :ref:`gotchas.intna`.
 
 ``NA`` type promotions for NumPy types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
