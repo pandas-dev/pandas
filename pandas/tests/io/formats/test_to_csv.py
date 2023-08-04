@@ -18,6 +18,8 @@ import pandas._testing as tm
 @pytest.fixture(params=["python", "pyarrow"])
 def engine(request):
     # TODO: Skip if pyarrow not found
+    if request.param == "pyarrow":
+        pytest.importorskip("pyarrow")
     return request.param
 
 
