@@ -166,23 +166,20 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         expected = pd.Series(data + data)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, request, data, box
-    ):
-        # EAs should return NotImplemented for ops with Series/DataFrame
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame, pd.Index])
+    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+        # EAs should return NotImplemented for ops with Series/DataFrame/Index
         # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-        if not hasattr(data, "__add__"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{type(data).__name__} does not implement add"
-                )
-            )
-        result = data.__add__(other)
-        assert result is NotImplemented
+        other = box(data)
+
+        op_names = tm.arithmetic_dunder_methods + tm.comparison_dunder_methods
+        op_names = [x for x in op_names if not x.startswith("__r")]
+        for op_name in op_names:
+            # We use a loop here instead of fixture to avoid overhead from
+            #  re-creating 'data' many times.
+            if hasattr(data, op_name):
+                result = getattr(data, op_name)(other)
+                assert result is NotImplemented
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
@@ -218,26 +215,6 @@ class BaseComparisonOpsTests(BaseOpsUtil):
         ser = pd.Series(data)
         other = pd.Series([data[0]] * len(data))
         self._compare_other(ser, data, comparison_op, other)
-
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
-        # EAs should return NotImplemented for ops with Series/DataFrame
-        # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-
-        if hasattr(data, "__eq__"):
-            result = data.__eq__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __eq__")
-
-        if hasattr(data, "__ne__"):
-            result = data.__ne__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):
