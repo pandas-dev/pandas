@@ -45,6 +45,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import iterable_not_string
 
+from pandas.util.version import Version
+
 if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
@@ -236,7 +238,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     try:
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
-            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            if Version(np.__version__) < Version("1.24.0"):
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like

@@ -27,6 +27,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 class TestCommon:
@@ -389,7 +390,10 @@ class TestCommon:
         warn = None
         if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
-            warn = np.ComplexWarning
+            if Version(np.__version__) >= Version("1.25.0"):
+                warn = np.exceptions.ComplexWarning
+            else:
+                warn = np.ComplexWarning
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
