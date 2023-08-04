@@ -3,8 +3,6 @@ from functools import partial
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Series,
@@ -17,23 +15,21 @@ import pandas._testing as tm
 from pandas.tseries import offsets
 
 
-@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_series(series, sp_func, roll_func):
-    import scipy.stats
+    sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
     result = getattr(series.rolling(50), roll_func)()
     assert isinstance(result, Series)
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
 
 
-@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_frame(raw, frame, sp_func, roll_func):
-    import scipy.stats
+    sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
     result = getattr(frame.rolling(50), roll_func)()
     assert isinstance(result, DataFrame)
     tm.assert_series_equal(
@@ -43,12 +39,11 @@ def test_frame(raw, frame, sp_func, roll_func):
     )
 
 
-@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_time_rule_series(series, sp_func, roll_func):
-    import scipy.stats
+    sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
     win = 25
     ser = series[::2].resample("B").mean()
     series_result = getattr(ser.rolling(window=win, min_periods=10), roll_func)()
@@ -59,12 +54,11 @@ def test_time_rule_series(series, sp_func, roll_func):
     tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
-@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_time_rule_frame(raw, frame, sp_func, roll_func):
-    import scipy.stats
+    sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
     win = 25
     frm = frame[::2].resample("B").mean()
     frame_result = getattr(frm.rolling(window=win, min_periods=10), roll_func)()
@@ -79,12 +73,11 @@ def test_time_rule_frame(raw, frame, sp_func, roll_func):
     )
 
 
-@td.skip_if_no_scipy
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
 def test_nans(sp_func, roll_func):
-    import scipy.stats
+    sp_stats = pytest.importorskip("scipy.stats")
 
-    compare_func = partial(getattr(scipy.stats, sp_func), bias=False)
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
     obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN

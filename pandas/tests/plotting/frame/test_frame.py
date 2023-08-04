@@ -13,8 +13,6 @@ import weakref
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.api import is_list_like
 
 import pandas as pd
@@ -1060,22 +1058,22 @@ class TestDataFramePlots:
         result = df.plot.box(return_type=return_type)
         _check_box_return_type(result, return_type)
 
-    @td.skip_if_no_scipy
     def test_kde_df(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
         ax = _check_plot_works(df.plot, kind="kde")
         expected = [pprint_thing(c) for c in df.columns]
         _check_legend_labels(ax, labels=expected)
         _check_ticks_props(ax, xrot=0)
 
-    @td.skip_if_no_scipy
     def test_kde_df_rot(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ax = df.plot(kind="kde", rot=20, fontsize=5)
         _check_ticks_props(ax, xrot=20, xlabelsize=5, ylabelsize=5)
 
-    @td.skip_if_no_scipy
     def test_kde_df_subplots(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = _check_plot_works(
             df.plot,
@@ -1085,14 +1083,14 @@ class TestDataFramePlots:
         )
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-    @td.skip_if_no_scipy
     def test_kde_df_logy(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         axes = df.plot(kind="kde", logy=True, subplots=True)
         _check_ax_scales(axes, yaxis="log")
 
-    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).uniform(size=(100, 4)))
         df.loc[0, 0] = np.nan
         _check_plot_works(df.plot, kind="kde")
@@ -1376,16 +1374,16 @@ class TestDataFramePlots:
         ydata = ax.lines[0].get_ydata()
         tm.assert_numpy_array_equal(ydata, np.array([1.0, 2.0, 3.0]))
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_kind_both_ways(self, kind):
+        pytest.importorskip("scipy")
         df = DataFrame({"x": [1, 2, 3]})
         df.plot(kind=kind)
         getattr(df.plot, kind)()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", ["scatter", "hexbin"])
     def test_kind_both_ways_x_y(self, kind):
+        pytest.importorskip("scipy")
         df = DataFrame({"x": [1, 2, 3]})
         df.plot("x", "x", kind=kind)
         getattr(df.plot, kind)("x", "x")
@@ -2029,10 +2027,10 @@ class TestDataFramePlots:
             _check_visible(ax.get_xticklabels(), visible=True)
             _check_visible(ax.get_xticklabels(minor=True), visible=True)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
     def test_memory_leak(self, kind):
         """Check that every plot type gets properly collected."""
+        pytest.importorskip("scipy")
         args = {}
         if kind in ["hexbin", "scatter", "pie"]:
             df = DataFrame(
@@ -2347,11 +2345,11 @@ class TestDataFramePlots:
         with pytest.raises(TypeError, match="no numeric data to plot"):
             df.plot()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "kind", ("line", "bar", "barh", "hist", "kde", "density", "area", "pie")
     )
     def test_group_subplot(self, kind):
+        pytest.importorskip("scipy")
         d = {
             "a": np.arange(10),
             "b": np.arange(10) + 1,

@@ -33,7 +33,6 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -1970,9 +1969,9 @@ def test_nan_to_nat_conversions():
     assert s[8] is pd.NaT
 
 
-@td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):
+    pytest.importorskip("scipy")
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

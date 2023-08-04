@@ -280,21 +280,18 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-    @td.skip_if_no_scipy
     def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
-        def skewness(x):
-            from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
+        def skewness(x):
             if len(x) < 3:
                 return np.nan
-            return skew(x, bias=False)
+            return sp_stats.skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis
-
             if len(x) < 4:
                 return np.nan
-            return kurtosis(x, bias=False)
+            return sp_stats.kurtosis(x, bias=False)
 
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)

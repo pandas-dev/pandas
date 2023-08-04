@@ -1868,7 +1868,7 @@ def spmatrix(request):
     """
     Yields scipy sparse matrix classes.
     """
-    from scipy import sparse
+    sparse = pytest.importorskip("scipy.sparse")
 
     return getattr(sparse, request.param + "_matrix")
 

@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
@@ -447,24 +445,24 @@ class TestDataFrameColor:
         ax = df.plot(kind="hist", color="green")
         _check_colors(ax.patches[::10], facecolors=["green"] * 5)
 
-    @td.skip_if_no_scipy
     def test_kde_colors(self):
+        pytest.importorskip("scipy")
         custom_colors = "rgcby"
         df = DataFrame(np.random.default_rng(2).random((5, 5)))
 
         ax = df.plot.kde(color=custom_colors)
         _check_colors(ax.get_lines(), linecolors=custom_colors)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_kde_colors_cmap(self, colormap):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot.kde(colormap=colormap)
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         _check_colors(ax.get_lines(), linecolors=rgba_colors)
 
-    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
+        pytest.importorskip("scipy")
         default_colors = _unpack_cycler(mpl.pyplot.rcParams)
 
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
@@ -473,41 +471,41 @@ class TestDataFrameColor:
         for ax, c in zip(axes, list(default_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["k", "red"])
     def test_kde_colors_and_styles_subplots_single_col_str(self, colormap):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         axes = df.plot(kind="kde", color=colormap, subplots=True)
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=[colormap])
 
-    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_custom_color(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         custom_colors = "rgcby"
         axes = df.plot(kind="kde", color=custom_colors, subplots=True)
         for ax, c in zip(axes, list(custom_colors)):
             _check_colors(ax.get_lines(), linecolors=[c])
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("colormap", ["jet", cm.jet])
     def test_kde_colors_and_styles_subplots_cmap(self, colormap):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         rgba_colors = [cm.jet(n) for n in np.linspace(0, 1, len(df))]
         axes = df.plot(kind="kde", colormap=colormap, subplots=True)
         for ax, c in zip(axes, rgba_colors):
             _check_colors(ax.get_lines(), linecolors=[c])
 
-    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_single_col(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # make color a list if plotting one column frame
         # handles cases like df.plot(color='DodgerBlue')
         axes = df.loc[:, [0]].plot(kind="kde", color="DodgerBlue", subplots=True)
         _check_colors(axes[0].lines, linecolors=["DodgerBlue"])
 
-    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_single_char(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # list of styles
         # single character style
@@ -515,8 +513,8 @@ class TestDataFrameColor:
         for ax in axes:
             _check_colors(ax.get_lines(), linecolors=["r"])
 
-    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots_list(self):
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # list of styles
         styles = list("rgcby")

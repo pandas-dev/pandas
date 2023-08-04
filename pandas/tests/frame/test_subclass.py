@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -655,8 +653,8 @@ class TestDataFrameSubclassing:
         result = df.memory_usage(index=False)
         assert isinstance(result, tm.SubclassedSeries)
 
-    @td.skip_if_no_scipy
     def test_corrwith(self):
+        pytest.importorskip("scipy")
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = tm.SubclassedDataFrame(

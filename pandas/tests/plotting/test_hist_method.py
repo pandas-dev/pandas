@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -202,8 +200,8 @@ class TestSeriesPlots:
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
@@ -213,17 +211,17 @@ class TestSeriesPlots:
         ylabels = ax.get_yticklabels()
         _check_text_labels(ylabels, [""] * len(ylabels))
 
-    @td.skip_if_no_scipy
     def test_hist_kde_plot_works(self, ts):
+        pytest.importorskip("scipy")
         _check_plot_works(ts.plot.kde)
 
-    @td.skip_if_no_scipy
     def test_hist_kde_density_works(self, ts):
+        pytest.importorskip("scipy")
         _check_plot_works(ts.plot.density)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    @td.skip_if_no_scipy
     def test_hist_kde_logy(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
@@ -232,16 +230,16 @@ class TestSeriesPlots:
         ylabels = ax.get_yticklabels()
         _check_text_labels(ylabels, [""] * len(ylabels))
 
-    @td.skip_if_no_scipy
     def test_hist_kde_color_bins(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
         _check_ax_scales(ax, yaxis="log")
         assert len(ax.patches) == 10
         _check_colors(ax.patches, facecolors=["b"] * 10)
 
-    @td.skip_if_no_scipy
     def test_hist_kde_color(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, color="r", ax=ax)
         _check_ax_scales(ax, yaxis="log")

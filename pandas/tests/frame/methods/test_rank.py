@@ -10,7 +10,6 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -38,10 +37,8 @@ class TestRank:
         """
         return request.param
 
-    @td.skip_if_no_scipy
     def test_rank(self, float_frame):
-        import scipy.stats  # noqa: F401
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         float_frame.loc[::2, "A"] = np.nan
         float_frame.loc[::3, "B"] = np.nan
@@ -54,10 +51,10 @@ class TestRank:
 
         fvals = float_frame.fillna(np.inf).values
 
-        exp0 = np.apply_along_axis(rankdata, 0, fvals)
+        exp0 = np.apply_along_axis(sp_stats.rankdata, 0, fvals)
         exp0[mask] = np.nan
 
-        exp1 = np.apply_along_axis(rankdata, 1, fvals)
+        exp1 = np.apply_along_axis(sp_stats.rankdata, 1, fvals)
         exp1[mask] = np.nan
 
         tm.assert_almost_equal(ranks0.values, exp0)
@@ -144,10 +141,8 @@ class TestRank:
         with pytest.raises(TypeError, match="not supported between instances of"):
             float_string_frame.rank(axis=1)
 
-    @td.skip_if_no_scipy
     def test_rank_na_option(self, float_frame):
-        import scipy.stats  # noqa: F401
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         float_frame.loc[::2, "A"] = np.nan
         float_frame.loc[::3, "B"] = np.nan
@@ -160,8 +155,8 @@ class TestRank:
 
         fvals = float_frame.fillna(np.inf).values
 
-        exp0 = np.apply_along_axis(rankdata, 0, fvals)
-        exp1 = np.apply_along_axis(rankdata, 1, fvals)
+        exp0 = np.apply_along_axis(sp_stats.rankdata, 0, fvals)
+        exp1 = np.apply_along_axis(sp_stats.rankdata, 1, fvals)
 
         tm.assert_almost_equal(ranks0.values, exp0)
         tm.assert_almost_equal(ranks1.values, exp1)
@@ -175,8 +170,8 @@ class TestRank:
         fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
         fval1 = fval1.fillna(np.inf).values
 
-        exp0 = np.apply_along_axis(rankdata, 0, fval0)
-        exp1 = np.apply_along_axis(rankdata, 1, fval1)
+        exp0 = np.apply_along_axis(sp_stats.rankdata, 0, fval0)
+        exp1 = np.apply_along_axis(sp_stats.rankdata, 1, fval1)
 
         tm.assert_almost_equal(ranks0.values, exp0)
         tm.assert_almost_equal(ranks1.values, exp1)
@@ -189,8 +184,8 @@ class TestRank:
 
         fvals = float_frame.fillna(np.inf).values
 
-        exp0 = np.apply_along_axis(rankdata, 0, -fvals)
-        exp1 = np.apply_along_axis(rankdata, 1, -fvals)
+        exp0 = np.apply_along_axis(sp_stats.rankdata, 0, -fvals)
+        exp1 = np.apply_along_axis(sp_stats.rankdata, 1, -fvals)
 
         tm.assert_almost_equal(ranks0.values, exp0)
         tm.assert_almost_equal(ranks1.values, exp1)
@@ -206,8 +201,8 @@ class TestRank:
         fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
         fval1 = fval1.fillna(np.inf).values
 
-        exp0 = np.apply_along_axis(rankdata, 0, -fval0)
-        exp1 = np.apply_along_axis(rankdata, 1, -fval1)
+        exp0 = np.apply_along_axis(sp_stats.rankdata, 0, -fval0)
+        exp1 = np.apply_along_axis(sp_stats.rankdata, 1, -fval1)
 
         tm.assert_numpy_array_equal(ranks0.values, exp0)
         tm.assert_numpy_array_equal(ranks1.values, exp1)
@@ -228,10 +223,10 @@ class TestRank:
         tm.assert_frame_equal(df.rank(axis=0), df.rank(axis="index"))
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis="columns"))
 
-    @td.skip_if_no_scipy
-    def test_rank_methods_frame(self):
-        import scipy.stats  # noqa: F401
-        from scipy.stats import rankdata
+    @pytest.mark.parametrize("ax", [0, 1])
+    @pytest.mark.parametrize("m", ["average", "min", "max", "first", "dense"])
+    def test_rank_methods_frame(self, ax, m):
+        sp_stats = pytest.importorskip("scipy.stats")
 
         xs = np.random.default_rng(2).integers(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
@@ -240,15 +235,13 @@ class TestRank:
         for vals in [xs, xs + 1e6, xs * 1e-6]:
             df = DataFrame(vals, columns=cols)
 
-            for ax in [0, 1]:
-                for m in ["average", "min", "max", "first", "dense"]:
-                    result = df.rank(axis=ax, method=m)
-                    sprank = np.apply_along_axis(
-                        rankdata, ax, vals, m if m != "first" else "ordinal"
-                    )
-                    sprank = sprank.astype(np.float64)
-                    expected = DataFrame(sprank, columns=cols).astype("float64")
-                    tm.assert_frame_equal(result, expected)
+            result = df.rank(axis=ax, method=m)
+            sprank = np.apply_along_axis(
+                sp_stats.rankdata, ax, vals, m if m != "first" else "ordinal"
+            )
+            sprank = sprank.astype(np.float64)
+            expected = DataFrame(sprank, columns=cols).astype("float64")
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["O", "f8", "i8"])
     def test_rank_descending(self, method, dtype):

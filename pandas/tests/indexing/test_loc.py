@@ -1292,11 +1292,10 @@ class TestLocBaseIndependent:
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
-    @td.skip_if_no_scipy
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
-        import scipy.sparse
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        spmatrix_t = getattr(scipy.sparse, spmatrix_t)
+        spmatrix_t = getattr(sp_sparse, spmatrix_t)
 
         # The bug is triggered by a sparse matrix with purely sparse columns.  So the
         # recipe below generates a rectangular matrix of dimension (5, 7) where all the
@@ -1321,12 +1320,11 @@ class TestLocBaseIndependent:
         result = df.loc[[0, 1]]
         tm.assert_frame_equal(result, df)
 
-    @td.skip_if_no_scipy
     def test_loc_getitem_sparse_frame(self):
         # GH34687
-        from scipy.sparse import eye
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = DataFrame.sparse.from_spmatrix(eye(5))
+        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
         result = df.loc[range(2)]
         expected = DataFrame(
             [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
