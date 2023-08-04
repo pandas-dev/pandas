@@ -39,6 +39,8 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
+is_windows_or_32bit = is_platform_windows() or not IS64
+
 pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:invalid value encountered in divide:RuntimeWarning"
@@ -161,20 +163,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = expected.astype(sdtype)
         return expected
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(ser, op_name, other, exc=None)
-
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=None):
-        super()._check_divmod_op(ser, op, other, None)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         return pointwise_result.astype("boolean")
-
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        super().check_opname(ser, op_name, other, exc=None)
 
     def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
@@ -246,16 +247,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(ser.array, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        is_windows_or_32bit = is_platform_windows() or not IS64
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -270,18 +262,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
         else:
             raise TypeError("not supposed to reach this")
-
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-        tm.assert_extension_array_equal(result2, expected)
+        return cmp_dtype
 
 
 @pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")

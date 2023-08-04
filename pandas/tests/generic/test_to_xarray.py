@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -12,8 +10,9 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytest.importorskip("xarray")
 
-@td.skip_if_no("xarray")
+
 class TestDataFrameToXArray:
     @pytest.fixture
     def df(self):
@@ -84,7 +83,6 @@ class TestDataFrameToXArray:
         tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("xarray")
 class TestSeriesToXArray:
     def test_to_xarray_index_types(self, index_flat):
         index = index_flat

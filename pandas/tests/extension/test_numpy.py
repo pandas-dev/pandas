@@ -281,7 +281,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     @skip_nested
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, data, exc=None)
+        self._check_divmod_op(ser, divmod, data)
 
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
@@ -311,7 +311,8 @@ class TestNumericReduce(BaseNumPyTests, base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("tests not written yet")
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
 
     @pytest.mark.parametrize("skipna", [True, False])

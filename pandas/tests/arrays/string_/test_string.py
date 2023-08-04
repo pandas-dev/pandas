@@ -5,8 +5,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
@@ -420,10 +418,9 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -438,10 +435,9 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert result.loc[2, "a"] is pd.NA
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})

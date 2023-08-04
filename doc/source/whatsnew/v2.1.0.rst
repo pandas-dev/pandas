@@ -65,6 +65,10 @@ Copy-on-Write improvements
 - The :class:`DataFrame` constructor, when constructing a DataFrame from a dictionary
   of Index objects and specifying ``copy=False``, will now use a lazy copy
   of those Index objects for the columns of the DataFrame (:issue:`52947`)
+- A shallow copy of a Series or DataFrame (``df.copy(deep=False)``) will now also return
+  a shallow copy of the rows/columns ``Index`` objects instead of only a shallow copy of
+  the data, i.e. the index of the result is no longer identical
+  (``df.copy(deep=False).index is df.index`` is no longer True) (:issue:`53721`)
 - :meth:`DataFrame.head` and :meth:`DataFrame.tail` will now return deep copies (:issue:`54011`)
 - Add lazy copy mechanism to :meth:`DataFrame.eval` (:issue:`53746`)
 
@@ -212,8 +216,8 @@ Other enhancements
 - Improved error message when :meth:`DataFrameGroupBy.agg` failed (:issue:`52930`)
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype objects (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)
+- :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`51722`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -638,6 +642,7 @@ Timedelta
 - :meth:`TimedeltaIndex.map` with ``na_action="ignore"`` now works as expected (:issue:`51644`)
 - Bug in :class:`TimedeltaIndex` division or multiplication leading to ``.freq`` of "0 Days" instead of ``None`` (:issue:`51575`)
 - Bug in :class:`Timedelta` with Numpy timedelta64 objects not properly raising ``ValueError`` (:issue:`52806`)
+- Bug in :func:`to_timedelta` converting :class:`Series` or :class:`DataFrame` containing :class:`ArrowDtype` of ``pyarrow.duration`` to numpy ``timedelta64`` (:issue:`54298`)
 - Bug in :meth:`Timedelta.__hash__`, raising an ``OutOfBoundsTimedelta`` on certain large values of second resolution (:issue:`54037`)
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
@@ -667,12 +672,14 @@ Numeric
 Conversion
 ^^^^^^^^^^
 - Bug in :func:`DataFrame.style.to_latex` and :func:`DataFrame.style.to_html` if the DataFrame contains integers with more digits than can be represented by floating point double precision (:issue:`52272`)
-- Bug in :func:`array`  when given a ``datetime64`` or ``timedelta64`` dtype with unit of "s", "us", or "ms" returning :class:`PandasArray` instead of :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`52859`)
+- Bug in :func:`array`  when given a ``datetime64`` or ``timedelta64`` dtype with unit of "s", "us", or "ms" returning :class:`NumpyExtensionArray` instead of :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`52859`)
+- Bug in :func:`array`  when given an empty list and no dtype returning :class:`NumpyExtensionArray` instead of :class:`FloatingArray` (:issue:`54371`)
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 - Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
 - Bug in :meth:`HDFStore.select` loses precision of large int when stored and retrieved (:issue:`54186`)
+- Bug in :meth:`Series.astype` not supporting ``object_`` (:issue:`54251`)
 
 Strings
 ^^^^^^^
