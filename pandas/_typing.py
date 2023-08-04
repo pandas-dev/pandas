@@ -463,3 +463,6 @@ ToGbqIfexist = Literal["fail", "replace", "append"]
 
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
+
+# ExcelWriter
+ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]

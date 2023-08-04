@@ -15,6 +15,7 @@ from pandas.io.excel._util import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ExcelWriterIfSheetExists,
         FilePath,
         StorageOptions,
         WriteExcelBuffer,
@@ -189,7 +190,7 @@ class XlsxWriter(ExcelWriter):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: str | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:

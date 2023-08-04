@@ -732,6 +732,7 @@ include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true
+reportInconsistentConstructor = true
 reportInvalidStubStatement = true
 reportOverlappingOverload = true
 reportPropertyTypeMismatch = true

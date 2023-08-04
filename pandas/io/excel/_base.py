@@ -74,6 +74,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+        ExcelWriterIfSheetExists,
         FilePath,
         IntStrT,
         ReadBuffer,
@@ -1129,7 +1130,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict | None = None,
     ) -> ExcelWriter:
         # only switch class if generic(ExcelWriter)
@@ -1218,7 +1219,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: str | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         # validate that this engine can handle the extension
