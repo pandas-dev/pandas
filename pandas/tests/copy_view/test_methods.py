@@ -22,6 +22,12 @@ def test_copy(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy()
 
+    # the deep copy by defaults takes a shallow copy of the Index
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+    assert df_copy.index.is_(df.index)
+    assert df_copy.columns.is_(df.columns)
+
     # the deep copy doesn't share memory
     assert not np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
     if using_copy_on_write:
@@ -36,6 +42,16 @@ def test_copy(using_copy_on_write):
 def test_copy_shallow(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
+
+    # the shallow copy also makes a shallow copy of the index
+    if using_copy_on_write:
+        assert df_copy.index is not df.index
+        assert df_copy.columns is not df.columns
+        assert df_copy.index.is_(df.index)
+        assert df_copy.columns.is_(df.columns)
+    else:
+        assert df_copy.index is df.index
+        assert df_copy.columns is df.columns
 
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
