@@ -104,21 +104,42 @@ jobs:
         with:
           fetch-depth: 0
 
+      # TODO: Build wheels from sdist again
+      # There's some sort of weird race condition?
+      # within Github that makes the sdist be missing files
+
       # We need to build wheels from the sdist since the sdist
       # removes unnecessary files from the release
-      - name: Download sdist
+      - name: Download sdist (not macOS)
+        if: ${{ matrix.buildplat[1] != 'macosx_*' }}
         uses: actions/download-artifact@v3
         with:
           name: sdist
           path: ./dist
 
+      - name: Set up Python (macOS)
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Python version used to build sdist doesn't matter
+      # wheel will be built from sdist with the correct version
+      - name: Build sdist (macOS)
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          python -m pip install build
+          python -m build --sdist
+
+      - name: Output sdist name (macOS)
+        id: save-path
+        shell: bash -el {0}
+        run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
-        # TODO: Build wheels from sdist again
-        # There's some sort of weird race condition?
-        # within Github that makes the sdist be missing files
         with:
-         package-dir: ./dist/${{ needs.build_sdist.outputs.sdist_file }}
+         package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}

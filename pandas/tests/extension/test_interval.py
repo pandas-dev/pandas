@@ -121,10 +121,6 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="addition is not defined for intervals")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"
