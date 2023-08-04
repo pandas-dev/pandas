@@ -577,7 +577,7 @@ well:
    y = pd.eval(expr_with_ands, parser="pandas")
    np.all(x == y)
 
-The :keyword:`and`` and :keyword:`or` operators here have the same precedence that they would
+The :keyword:`and` and :keyword:`or` operators here have the same precedence that they would
 in Python.
 
 
