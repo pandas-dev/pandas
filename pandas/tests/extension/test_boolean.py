@@ -235,13 +235,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        arr = ser.array
-
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(arr, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
         elif op_name in ["min", "max"]:
@@ -251,14 +245,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
         else:
             raise TypeError("not supposed to reach this")
-
-        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-        tm.assert_extension_array_equal(result, expected)
+        return cmp_dtype
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
