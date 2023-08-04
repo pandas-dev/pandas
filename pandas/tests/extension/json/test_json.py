@@ -78,6 +78,11 @@ def data_for_grouping():
     )
 
 
+@pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
+
+
 class BaseJSON:
     pass
 
@@ -316,12 +321,6 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with pytest.raises(TypeError, match="unsupported"):
             ser + data
-
-    @pytest.mark.xfail(reason="not implemented")
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        super().test_divmod_series_array()
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
