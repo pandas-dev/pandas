@@ -108,10 +108,6 @@ class BaseSparseTests:
         if data.dtype == SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
 
-    @pytest.mark.xfail(reason="SparseArray does not support setitem")
-    def test_ravel(self, data):
-        super().test_ravel(data)
-
 
 class TestDtype(BaseSparseTests, base.BaseDtypeTests):
     def test_array_type_with_arg(self, data, dtype):
@@ -119,13 +115,7 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_copy(self, data):
-        # __setitem__ does not work, so we only have a smoke-test
-        data.copy()
-
-    def test_view(self, data):
-        # __setitem__ does not work, so we only have a smoke-test
-        data.view()
+    pass
 
 
 class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
@@ -185,10 +175,6 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         self._check_unsupported(data)
         super().test_merge(data, na_value)
 
-    @pytest.mark.xfail(reason="SparseArray does not support setitem")
-    def test_transpose(self, data):
-        super().test_transpose(data)
-
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
     def test_get(self, data):
@@ -204,7 +190,8 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
         super().test_reindex(data, na_value)
 
 
-# Skipping TestSetitem, since we don't implement it.
+class TestSetitem(BaseSparseTests, base.BaseSetitemTests):
+    pass
 
 
 class TestIndex(base.BaseIndexTests):

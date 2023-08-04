@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
@@ -102,6 +103,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert data[0] != data[1]
         result = data.copy()
 
+        if data.dtype._is_immutable:
+            pytest.skip("test_copy assumes mutability")
+
         data[1] = data[0]
         assert result[1] != result[0]
 
@@ -113,6 +117,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = data.view()
         assert result is not data
         assert type(result) == type(data)
+
+        if data.dtype._is_immutable:
+            pytest.skip("test_view assumes mutability")
 
         result[1] = result[0]
         assert data[1] == data[0]
