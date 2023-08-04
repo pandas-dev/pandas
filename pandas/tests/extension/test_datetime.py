@@ -113,10 +113,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
