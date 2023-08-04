@@ -167,19 +167,24 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame, pd.Index])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
+    @pytest.mark.parametrize(
+        "op_name",
+        [
+            x
+            for x in tm.arithmetic_dunder_methods + tm.comparison_dunder_methods
+            if not x.startswith("__r")
+        ],
+    )
+    def test_direct_arith_with_ndframe_returns_not_implemented(
+        self, data, box, op_name
+    ):
         # EAs should return NotImplemented for ops with Series/DataFrame/Index
         # Pandas takes care of unboxing the series and calling the EA's op.
         other = box(data)
 
-        op_names = tm.arithmetic_dunder_methods + tm.comparison_dunder_methods
-        op_names = [x for x in op_names if not x.startswith("__r")]
-        for op_name in op_names:
-            # We use a loop here instead of fixture to avoid overhead from
-            #  re-creating 'data' many times.
-            if hasattr(data, op_name):
-                result = getattr(data, op_name)(other)
-                assert result is NotImplemented
+        if hasattr(data, op_name):
+            result = getattr(data, op_name)(other)
+            assert result is NotImplemented
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
