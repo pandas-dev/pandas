@@ -1,7 +1,7 @@
 # PDEP-12: Compact and reversible JSON interface
 
 - Created: 16 June 2023
-- Status: Under discussions
+- Status: Under discussion
 - Discussion: [#53252](https://github.com/pandas-dev/pandas/issues/53252)
 - Author: [Philippe THOMY](https://github.com/loco-philippe)
 - Revision: 1
