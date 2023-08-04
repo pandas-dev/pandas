@@ -4212,15 +4212,29 @@ class Index(IndexOpsMixin, PandasObject):
         # potentially cast the bounds to integers
         start, stop, step = key.start, key.stop, key.step
 
+        # figure out if this is a positional indexer
+        is_index_slice = is_valid_positional_slice(key)
+
         # TODO(GH#50617): once Series.__[gs]etitem__ is removed we should be able
         #  to simplify this.
         if lib.is_np_dtype(self.dtype, "f"):
             # We always treat __getitem__ slicing as label-based
             # translate to locations
+            if kind == "getitem" and is_index_slice and not start == stop and step != 0:
+                # exclude step=0 from the warning because it will raise anyway
+                # start/stop both None e.g. [:] or [::-1] won't change.
+                # exclude start==stop since it will be empty either way, or
+                # will be [:] or [::-1] which won't change
+                warnings.warn(
+                    # GH#49612
+                    "The behavior of obj[i:j] with a float-dtype index is "
+                    "deprecated. In a future version, this will be treated as "
+                    "positional instead of label-based. For label-based slicing, "
+                    "use obj.loc[i:j] instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             return self.slice_indexer(start, stop, step)
-
-        # figure out if this is a positional indexer
-        is_index_slice = is_valid_positional_slice(key)
 
         if kind == "getitem":
             # called from the getitem slicers, validate that we are in fact integers
