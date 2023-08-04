@@ -3,7 +3,7 @@
 - Created: 16 June 2023
 - Status: Under discussions
 - Discussion: [#53252](https://github.com/pandas-dev/pandas/issues/53252)
-- Author: [Philippe THOMY](https://github.com/loco-philippe) 
+- Author: [Philippe THOMY](https://github.com/loco-philippe)
 - Revision: 1
 
 
@@ -32,13 +32,13 @@
 - [Core team decision](./pandas_PDEP.md/#Core-team-decision)
 - [Timeline](./pandas_PDEP.md/#Timeline)
 - [PDEP history](./pandas_PDEP.md/#PDEP-history)
-------------------------- 
+-------------------------
 ## Abstract
 
 ### Problem description
 The `dtype` is not explicitely taken into account in the current JSON interface.
 To work around this problem, a data schema (e.g. `TableSchema`) must be associated with the JSON file.
-     
+
 Nevertheless, the current JSON interface is not reversible and has inconsistencies related to the consideration of the `dtype`.
 
 Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#1---Current-Json-interface)
@@ -46,10 +46,10 @@ Some JSON-interface problems are detailed in the [linked NoteBook](https://nbvie
 
 ### Feature Description
 To have a simple, compact and reversible solution, I propose to use the [JSON-NTV format (Named and Typed Value)](https://github.com/loco-philippe/NTV#readme) - which integrates the notion of type - and its JSON-TAB variation for tabular data.
-     
+
 This solution allows to include a large number of types (not necessarily pandas `dtype`).
 
-In the example below, a DataFrame with several data types is converted to JSON. 
+In the example below, a DataFrame with several data types is converted to JSON.
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
 With the existing JSON interface, this conversion is not possible.
 
@@ -59,7 +59,7 @@ In [1]: from shapely.geometry import Point
         from datetime import date
 
 In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
-                'dates::date':     pd.Series([date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)]), 
+                'dates::date':     pd.Series([date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)]),
                 'value':           [10, 10, 20, 20, 30, 30],
                 'value32':         pd.Series([12, 12, 22, 22, 32, 32], dtype='int32'),
                 'res':             [10, 20, 30, 10, 20, 30],
@@ -70,9 +70,9 @@ In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
 In [3]: df = pd.DataFrame(data).set_index('index')
 
 In [4]: df
-Out[4]: 
+Out[4]:
               dates::date  value  value32  res coord::point   names  unique
-        index                                                              
+        index
         100    1964-01-01     10       12   10  POINT (1 2)    john    True
         200    1985-02-05     10       12   20  POINT (3 4)    eric    True
         300    2022-01-21     20       22   30  POINT (5 6)  judith    True
@@ -86,7 +86,7 @@ Out[4]:
 ```python
 In [5]: df_json = Ntv.obj(df)
         pprint(df_json.to_obj(), compact=True, width=120)
-Out[5]: 
+Out[5]:
         {':tab': {'coord::point': [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [3.0, 4.0], [5.0, 6.0]],
                   'dates::date': ['1964-01-01', '1985-02-05', '2022-01-21', '1964-01-01', '1985-02-05', '2022-01-21'],
                   'index': [100, 200, 300, 400, 500, 600],
@@ -110,7 +110,7 @@ Several other examples are provided in the [linked NoteBook](https://nbviewer.or
 
 ## Scope
 The objective is to make available the proposed JSON interface for any type of data.
-    
+
 The proposed interface is compatible with existing data.
 
 ## Motivation
@@ -126,7 +126,7 @@ The proposed interface is compatible with existing data.
 - the use of a complementary type avoids having to modify the pandas data model
 
 ### Is this only useful for pandas ?
-- the JSON-TAB format is applicable to tabular data and multi-dimensional data. 
+- the JSON-TAB format is applicable to tabular data and multi-dimensional data.
 - this JSON interface can therefore be used for any application using tabular or multi-dimensional data. This would allow for example reversible data exchanges between pandas - DataFrame and Xarray - DataArray (Xarray issue under construction) [see example DataFrame / DataArray](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#Multidimensional-data).
 
 ## Description
@@ -174,16 +174,16 @@ Note:
 - the consideration of null type data needs to be clarified
 
 The other NTV types are associated with `object` `dtype`.
-        
+
 ### JSON format
 The JSON format is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
-It includes the naming rules originally defined in the [JSON-ND project](https://github.com/glenkleidon/JSON-ND) and support for categorical data.    
+It includes the naming rules originally defined in the [JSON-ND project](https://github.com/glenkleidon/JSON-ND) and support for categorical data.
 The specification have to be updated to include sparse data.
 
 ### Conversion
-When data is associated with a non-`object` `dtype`, pandas conversion methods are used.     
+When data is associated with a non-`object` `dtype`, pandas conversion methods are used.
 Otherwise, NTV conversion is used.
-        
+
 #### pandas -> JSON
 - `NTV type` is not defined : use `to_json()`
 - `NTV type` is defined and `dtype` is not `object` : use `to_json()`
@@ -192,22 +192,22 @@ Otherwise, NTV conversion is used.
 #### JSON -> pandas
 - `NTV type` is compatible with a `dtype` : use `read_json()`
 - `NTV type` is not compatible with a `dtype` : use NTV conversion
-        
+
 ## Usage and Impact
-        
+
 ### Usage
 It seems to me that this proposal responds to important issues:
-- having an efficient text format for data exchange 
-    
+- having an efficient text format for data exchange
+
     The alternative CSV format is not reversible and obsolete (last revision in 2005). Current CSV tools do not comply with the standard.
-    
+
 - taking into account "semantic" data in pandas objects
 
 ### Compatibility
 Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#4---Annexe-:-Series-tests))
-   
+
 If the interface is available, throw a new `orient` option in the JSON interface, the use of the feature is decoupled from the other features.
-        
+
 ### Impacts on the pandas framework
 Initially, the impacts are very limited:
 - modification of the `name` of `Series` or `DataFrame columns` (no functional impact),
@@ -219,23 +219,23 @@ In later stages, several developments could be considered:
 - functional extensions depending on the NTV type
 
 ### Risk to do / risk not to do
-The JSON-NTV format and the JSON-TAB format are not (yet) recognized and used formats. The risk for pandas is that this function is not used (no functional impacts).    
-    
+The JSON-NTV format and the JSON-TAB format are not (yet) recognized and used formats. The risk for pandas is that this function is not used (no functional impacts).
+
 On the other hand, the early use by pandas will allow a better consideration of the expectations and needs of pandas as well as a reflection on the evolution of the types supported by pandas.
-    
+
 ## Implementation
 
 ### Modules
 Two modules are defined for NTV:
-    
+
 - json-ntv
-    
+
     this module manages NTV data without dependency to another module
-    
+
 - ntvconnector
-    
-    those modules manage the conversion between objects and JSON data. They have dependency with objects modules (e.g. connectors with shapely location have dependency with shapely).     
-     
+
+    those modules manage the conversion between objects and JSON data. They have dependency with objects modules (e.g. connectors with shapely location have dependency with shapely).
+
 The pandas integration of the JSON interface requires importing only the json-ntv module.
 
 ### Implementation options
@@ -247,33 +247,33 @@ flowchart TB
         K(mapping NTV type / dtype\n<i>NTV / pandas</i>) ~~~ I(object dtype conversion\n<i>NTV Connector</i>)
         I ~~~ J(non-object dtype conversion\n<i>pandas</i>)
     end
-    
+
         direction TB
         D{{pandas}} ~~~ F(interface JSON\n<i>pandas</i>)
-        E{{NTV}} ~~~ G(pandas NTV Connector\n<i>NTV</i>) 
+        E{{NTV}} ~~~ G(pandas NTV Connector\n<i>NTV</i>)
         F --> H
         G --> H
 ```
 Several pandas implementations are possible:
-    
+
 1. External:
-    
-    In this implementation, the interface is available only in the NTV side.    
+
+    In this implementation, the interface is available only in the NTV side.
     This option means that this evolution of the JSON interface is not useful or strategic for pandas.
-    
+
 2. NTV side:
-    
-    In this implementation, the interface is available in the both sides and the conversion is located inside NTV.    
+
+    In this implementation, the interface is available in the both sides and the conversion is located inside NTV.
     This option is the one that minimizes the impacts on the pandas side
-    
+
 3. pandas side:
-    
-    In this implementation, the interface is available in the both sides and the conversion is located inside pandas.    
+
+    In this implementation, the interface is available in the both sides and the conversion is located inside pandas.
     This option allows pandas to keep control of this evolution
-    
+
 4. pandas restricted:
-    
-    In this implementation, the pandas interface and the conversion are located inside pandas and only for non-object `dtype`.     
+
+    In this implementation, the pandas interface and the conversion are located inside pandas and only for non-object `dtype`.
     This option makes it possible to offer a compact and reversible interface while prohibiting the introduction of types incompatible with the existing `dtype`
 
 ## F.A.Q.
@@ -304,13 +304,13 @@ The current interface is not compatible with the data structure defined by table
 
 **A**: I will add two additional remarks:
 - the types defined in Tableschema are partially (only 5 out of 20) taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint):
-- the `read_json()` interface works too with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this simple json.    
+- the `read_json()` interface works too with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this simple json.
 
-I think that the problem cannot be limited to bug fixes and that a clear strategy must be defined for the Json interface in particular with the gradual abandonment in open-data solutions of the obsolete CSV format in favor of a Json format.    
-     
+I think that the problem cannot be limited to bug fixes and that a clear strategy must be defined for the Json interface in particular with the gradual abandonment in open-data solutions of the obsolete CSV format in favor of a Json format.
+
 As stated, the proposed solution addresses several shortcomings of the current interface and could simply fit into the pandas environment (the other option would be to consider that the Json interface is a peripheral function of pandas and can remain external to pandas) regardless of the `orient='table'` option.
-    
-It is nevertheless possible to merge the proposed format and the `orient='table'` format in order to have an explicit management of the notion of `extDtype` 
+
+It is nevertheless possible to merge the proposed format and the `orient='table'` format in order to have an explicit management of the notion of `extDtype`
 
 **Q: As far as I can tell, JSON NTV is not in any form a standardised JSON format. I believe that pandas (and geopandas, which is where I came from to this issue) should try to follow either de facto or de jure standards and do not opt in for a file format that does not have any community support at this moment. This can obviously change in the future and that is where this PR should be revised. Why would pandas use this standard?**
 
@@ -328,7 +328,7 @@ To conclude,
 
 ## Core team decision
 Implementation option : xxxx
-    
+
 ## Timeline
 Tbd
 
