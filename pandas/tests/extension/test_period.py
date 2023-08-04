@@ -108,7 +108,7 @@ class TestMethods(BasePeriodTests, base.BaseMethodsTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
@@ -198,9 +198,7 @@ class TestPrinting(BasePeriodTests, base.BasePrintingTests):
 
 
 class TestParsing(BasePeriodTests, base.BaseParsingTests):
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        super().test_EA_types(engine, data)
+    pass
 
 
 class Test2DCompat(BasePeriodTests, base.NDArrayBacked2DTests):

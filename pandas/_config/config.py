@@ -56,11 +56,10 @@ from contextlib import (
 )
 import re
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
     Generic,
-    Iterable,
     NamedTuple,
     cast,
 )
@@ -71,6 +70,12 @@ from pandas._typing import (
     T,
 )
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Generator,
+        Iterable,
+    )
 
 
 class DeprecatedOption(NamedTuple):
@@ -106,6 +111,12 @@ class OptionError(AttributeError, KeyError):
     Exception raised for pandas.options.
 
     Backwards compatible with KeyError checks.
+
+    Examples
+    --------
+    >>> pd.options.context
+    Traceback (most recent call last):
+    OptionError: No such option
     """
 
 

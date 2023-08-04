@@ -24,7 +24,7 @@ def dti():
 
 @pytest.fixture
 def _test_series(dti):
-    return Series(np.random.rand(len(dti)), dti)
+    return Series(np.random.default_rng(2).random(len(dti)), dti)
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ def test_groupby_resample_on_api():
         {
             "key": ["A", "B"] * 5,
             "dates": date_range("2016-01-01", periods=10),
-            "values": np.random.randn(10),
+            "values": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -278,7 +278,9 @@ def test_transform_frame(on):
     # GH#47079
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
     if on == "date":
         # Move date to being a column; result will then have a RangeIndex
@@ -341,7 +343,7 @@ def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
-        np.random.randn(1000, 3),
+        np.random.default_rng(2).standard_normal((1000, 3)),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=["A", "B", "C"],
     )
@@ -356,7 +358,7 @@ def test_agg_consistency():
 def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
-        np.random.randn(1000, 2),
+        np.random.default_rng(2).standard_normal((1000, 2)),
         index=date_range("1/1/2012", freq="S", periods=1000),
         columns=[1, "a"],
     )
@@ -375,10 +377,11 @@ def test_agg_consistency_int_str_column_mix():
 def test_agg():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -401,6 +404,7 @@ def test_agg():
 
     expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "std"]])
+    msg = "using SeriesGroupBy.[mean|std]"
     for t in cases:
         # In case 2, "date" is an index and a column, so get included in the agg
         if t == cases[2]:
@@ -410,21 +414,26 @@ def test_agg():
             exp.columns = pd.MultiIndex.from_product(
                 [["date", "A", "B"], ["mean", "std"]]
             )
-            result = t.aggregate([np.mean, np.std])
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, exp)
         else:
-            result = t.aggregate([np.mean, np.std])
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = t.aggregate([np.mean, np.std])
             tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([a_mean, b_std], axis=1)
     for t in cases:
-        result = t.aggregate({"A": np.mean, "B": np.std})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate({"A": np.mean, "B": np.std})
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.aggregate(A=("A", np.mean), B=("B", np.std))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate(A=("A", np.mean), B=("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.aggregate(A=NamedAgg("A", np.mean), B=NamedAgg("B", np.std))
         tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([a_mean, a_std], axis=1)
@@ -482,10 +491,11 @@ def test_agg():
 def test_agg_misc():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -501,18 +511,22 @@ def test_agg_misc():
     ]
 
     # passed lambda
+    msg = "using SeriesGroupBy.sum"
     for t in cases:
-        result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
         rcustom = t["B"].apply(lambda x: np.std(x, ddof=1))
         expected = pd.concat([r["A"].sum(), rcustom], axis=1)
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg(A=("A", np.sum), B=("B", lambda x: np.std(x, ddof=1)))
         tm.assert_frame_equal(result, expected, check_like=True)
 
-        result = t.agg(
-            A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = t.agg(
+                A=NamedAgg("A", np.sum), B=NamedAgg("B", lambda x: np.std(x, ddof=1))
+            )
         tm.assert_frame_equal(result, expected, check_like=True)
 
     # agg with renamers
@@ -575,10 +589,12 @@ def test_agg_misc():
 )
 def test_multi_agg_axis_1_raises(func):
     # GH#46904
-    np.random.seed(1234)
+
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
         res = df.resample("M", axis=1)
@@ -589,10 +605,11 @@ def test_multi_agg_axis_1_raises(func):
 
 
 def test_agg_nested_dicts():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -995,10 +1012,11 @@ def test_args_kwargs_depr(method, raises):
 
 
 def test_df_axis_param_depr():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
 
     # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."

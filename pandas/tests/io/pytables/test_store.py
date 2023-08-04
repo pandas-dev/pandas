@@ -1,6 +1,6 @@
+import contextlib
 import datetime as dt
 import hashlib
-import os
 import tempfile
 import time
 from warnings import (
@@ -27,7 +27,6 @@ import pandas._testing as tm
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
     ensure_clean_store,
-    safe_close,
 )
 
 from pandas.io.pytables import (
@@ -500,7 +499,10 @@ def test_remove(setup_path):
 
 def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
-        df = DataFrame(np.random.randn(20, 2), index=date_range("20130101", periods=20))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 2)),
+            index=date_range("20130101", periods=20),
+        )
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]
 
@@ -622,7 +624,8 @@ def test_coordinates(setup_path):
     # pass array/mask as the coordinates
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
-            np.random.randn(1000, 2), index=date_range("20000101", periods=1000)
+            np.random.default_rng(2).standard_normal((1000, 2)),
+            index=date_range("20000101", periods=1000),
         )
         store.append("df", df)
         c = store.select_column("df", "index")
@@ -661,7 +664,7 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
         # list
-        df = DataFrame(np.random.randn(10, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         store.append("df2", df)
         result = store.select("df2", where=[0, 3, 5])
         expected = df.iloc[[0, 3, 5]]
@@ -683,7 +686,12 @@ def test_coordinates(setup_path):
 def test_start_stop_table(setup_path):
     with ensure_clean_store(setup_path) as store:
         # table
-        df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
+            }
+        )
         store.append("df", df)
 
         result = store.select("df", "columns=['A']", start=0, stop=5)
@@ -716,7 +724,10 @@ def test_start_stop_fixed(setup_path):
     with ensure_clean_store(setup_path) as store:
         # fixed, GH 8287
         df = DataFrame(
-            {"A": np.random.rand(20), "B": np.random.rand(20)},
+            {
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
+            },
             index=date_range("20130101", periods=20),
         )
         store.put("df", df)
@@ -752,7 +763,7 @@ def test_start_stop_fixed(setup_path):
 
 
 def test_select_filter_corner(setup_path):
-    df = DataFrame(np.random.randn(50, 100))
+    df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
@@ -832,53 +843,34 @@ def test_path_localpath_hdfstore():
     tm.assert_frame_equal(df, result)
 
 
-def test_copy():
-    with catch_warnings(record=True):
+@pytest.mark.parametrize("propindexes", [True, False])
+def test_copy(propindexes):
+    df = tm.makeDataFrame()
 
-        def do_copy(f, new_f=None, keys=None, propindexes=True, **kwargs):
-            if new_f is None:
-                fd, new_f = tempfile.mkstemp()
-
-            try:
-                store = HDFStore(f, "r")
-                tstore = store.copy(new_f, keys=keys, propindexes=propindexes, **kwargs)
-
-                # check keys
-                if keys is None:
+    with tm.ensure_clean() as path:
+        with HDFStore(path) as st:
+            st.append("df", df, data_columns=["A"])
+        with tempfile.NamedTemporaryFile() as new_f:
+            with HDFStore(path) as store:
+                with contextlib.closing(
+                    store.copy(new_f.name, keys=None, propindexes=propindexes)
+                ) as tstore:
+                    # check keys
                     keys = store.keys()
-                assert set(keys) == set(tstore.keys())
+                    assert set(keys) == set(tstore.keys())
+                    # check indices & nrows
+                    for k in tstore.keys():
+                        if tstore.get_storer(k).is_table:
+                            new_t = tstore.get_storer(k)
+                            orig_t = store.get_storer(k)
 
-                # check indices & nrows
-                for k in tstore.keys():
-                    if tstore.get_storer(k).is_table:
-                        new_t = tstore.get_storer(k)
-                        orig_t = store.get_storer(k)
+                            assert orig_t.nrows == new_t.nrows
 
-                        assert orig_t.nrows == new_t.nrows
-
-                        # check propindixes
-                        if propindexes:
-                            for a in orig_t.axes:
-                                if a.is_indexed:
-                                    assert new_t[a.name].is_indexed
-
-            finally:
-                safe_close(store)
-                safe_close(tstore)
-                try:
-                    os.close(fd)
-                except (OSError, ValueError):
-                    pass
-                os.remove(new_f)
-
-        # new table
-        df = tm.makeDataFrame()
-
-        with tm.ensure_clean() as path:
-            with HDFStore(path) as st:
-                st.append("df", df, data_columns=["A"])
-            do_copy(f=path)
-            do_copy(f=path, propindexes=False)
+                            # check propindixes
+                            if propindexes:
+                                for a in orig_t.axes:
+                                    if a.is_indexed:
+                                        assert new_t[a.name].is_indexed
 
 
 def test_duplicate_column_name(tmp_path, setup_path):
@@ -899,7 +891,7 @@ def test_duplicate_column_name(tmp_path, setup_path):
 
 def test_preserve_timedeltaindex_type(setup_path):
     # GH9635
-    df = DataFrame(np.random.normal(size=(10, 5)))
+    df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
     df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
 
     with ensure_clean_store(setup_path) as store:
@@ -910,7 +902,11 @@ def test_preserve_timedeltaindex_type(setup_path):
 def test_columns_multiindex_modified(tmp_path, setup_path):
     # BUG: 7212
 
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
@@ -931,6 +927,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     assert cols2load_original == cols2load
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_to_hdf_with_object_column_names(tmp_path, setup_path):
     # GH9057
 
@@ -947,7 +944,9 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
     ]
 
     for index in types_should_fail:
-        df = DataFrame(np.random.randn(10, 2), columns=index(2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
+        )
         path = tmp_path / setup_path
         with catch_warnings(record=True):
             msg = "cannot have non-object label DataIndexableCol"
@@ -955,7 +954,9 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
                 df.to_hdf(path, "df", format="table", data_columns=True)
 
     for index in types_should_run:
-        df = DataFrame(np.random.randn(10, 2), columns=index(2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
+        )
         path = tmp_path / setup_path
         with catch_warnings(record=True):
             df.to_hdf(path, "df", format="table", data_columns=True)

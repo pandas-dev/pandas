@@ -246,7 +246,7 @@ In pandas we may use :meth:`~pandas.pivot_table` method to handle this:
        }
    )
 
-   baseball.pivot_table(values="batting avg", columns="team", aggfunc=np.max)
+   baseball.pivot_table(values="batting avg", columns="team", aggfunc="max")
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.pivot>`.
@@ -359,7 +359,7 @@ In pandas the equivalent expression, using the
    )
 
    grouped = df.groupby(["month", "week"])
-   grouped["x"].agg([np.mean, np.std])
+   grouped["x"].agg(["mean", "std"])
 
 
 For more details and examples see :ref:`the groupby documentation
@@ -438,7 +438,7 @@ In Python, the :meth:`~pandas.melt` method is the R equivalent:
    )
 
    pd.melt(cheese, id_vars=["first", "last"])
-   cheese.set_index(["first", "last"]).stack()  # alternative way
+   cheese.set_index(["first", "last"]).stack(future_stack=True)  # alternative way
 
 For more details and examples see :ref:`the reshaping documentation
 <reshaping.melt>`.
@@ -482,7 +482,7 @@ In Python the best way is to make use of :meth:`~pandas.pivot_table`:
        values="value",
        index=["variable", "week"],
        columns=["month"],
-       aggfunc=np.mean,
+       aggfunc="mean",
    )
 
 Similarly for ``dcast`` which uses a data.frame called ``df`` in R to
