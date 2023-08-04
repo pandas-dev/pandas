@@ -974,25 +974,9 @@ def ea_scalar_and_dtype(request):
 # ----------------------------------------------------------------
 # Operators & Operations
 # ----------------------------------------------------------------
-_all_arithmetic_operators = [
-    "__add__",
-    "__radd__",
-    "__sub__",
-    "__rsub__",
-    "__mul__",
-    "__rmul__",
-    "__floordiv__",
-    "__rfloordiv__",
-    "__truediv__",
-    "__rtruediv__",
-    "__pow__",
-    "__rpow__",
-    "__mod__",
-    "__rmod__",
-]
 
 
-@pytest.fixture(params=_all_arithmetic_operators)
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
