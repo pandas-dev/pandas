@@ -253,10 +253,16 @@ def data_missing_for_sorting(data_for_grouping):
 def data_for_twos(data):
     """Length-100 array in which all the elements are two."""
     pa_dtype = data.dtype.pyarrow_dtype
-    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+    if (
+        pa.types.is_integer(pa_dtype)
+        or pa.types.is_floating(pa_dtype)
+        or pa.types.is_decimal(pa_dtype)
+        or pa.types.is_duration(pa_dtype)
+    ):
         return pd.array([2] * 100, dtype=data.dtype)
     # tests will be xfailed where 2 is not a valid scalar for pa_dtype
     return data
+    # TODO: skip otherwise?
 
 
 @pytest.fixture
@@ -820,19 +826,6 @@ class TestBaseMethods(base.BaseMethodsTests):
         )
 
     _combine_le_expected_dtype = "bool[pyarrow]"
-
-    def test_combine_add(self, data_repeated, request):
-        pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # analogous to datetime64, these cannot be added
-            orig_data1, orig_data2 = data_repeated(2)
-            s1 = pd.Series(orig_data1)
-            s2 = pd.Series(orig_data2)
-            with pytest.raises(TypeError):
-                s1.combine(s2, lambda x1, x2: x1 + x2)
-
-        else:
-            super().test_combine_add(data_repeated)
 
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):

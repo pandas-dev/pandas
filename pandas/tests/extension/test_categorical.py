@@ -72,6 +72,11 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
+
+
+@pytest.fixture
 def na_value():
     return np.nan
 
@@ -257,11 +262,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 )
             )
         super().test_arith_series_with_scalar(data, op_name)
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

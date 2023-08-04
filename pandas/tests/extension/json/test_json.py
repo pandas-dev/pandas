@@ -78,6 +78,11 @@ def data_for_grouping():
     )
 
 
+@pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
+
+
 class BaseJSON:
     pass
 
@@ -209,10 +214,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="combine for JSONArray not supported - "
         "may pass depending on random data",
@@ -311,12 +312,6 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             mark = pytest.mark.xfail(reason="raises in coercing to Series")
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    @pytest.mark.xfail(reason="not implemented")
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        super().test_divmod_series_array()
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
