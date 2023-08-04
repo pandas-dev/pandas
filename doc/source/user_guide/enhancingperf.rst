@@ -556,6 +556,9 @@ semantics.
 
 .. ipython:: python
 
+   nrows, ncols = 20000, 100
+   df1, df2, df3, df4 = [pd.DataFrame(np.random.randn(nrows, ncols)) for _ in range(4)]
+
    expr = "(df1 > 0) & (df2 > 0) & (df3 > 0) & (df4 > 0)"
    x = pd.eval(expr, parser="python")
    expr_no_parens = "df1 > 0 & df2 > 0 & df3 > 0 & df4 > 0"
@@ -573,7 +576,6 @@ well:
    expr_with_ands = "df1 > 0 and df2 > 0 and df3 > 0 and df4 > 0"
    y = pd.eval(expr_with_ands, parser="pandas")
    np.all(x == y)
-
 
 The :keyword:`and`` and :keyword:`or` operators here have the same precedence that they would
 in Python.
