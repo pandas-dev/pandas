@@ -281,7 +281,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     @skip_nested
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, data, exc=None)
+        self._check_divmod_op(ser, divmod, data)
 
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
