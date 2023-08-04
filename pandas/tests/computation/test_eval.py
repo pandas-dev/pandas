@@ -798,7 +798,7 @@ class TestAlignment:
         res = pd.eval("df < df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df < df3)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("r1", lhs_index_types)
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
@@ -814,7 +814,7 @@ class TestAlignment:
             res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df + df2 + df3)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
@@ -878,7 +878,7 @@ class TestAlignment:
             expected = s + df
         tm.assert_frame_equal(res, expected)
 
-    @pytest.mark.filterwarnings("always::RuntimeWarning")
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     @pytest.mark.parametrize("index_name", ["index", "columns"])
