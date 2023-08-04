@@ -445,7 +445,7 @@ at the new values.
    # interpolate at new_index
    new_index = ser.index.union(pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75]))
    interp_s = ser.reindex(new_index).interpolate(method="pchip")
-   interp_s[49:51]
+   interp_s.loc[49:51]
 
 .. _scipy: https://scipy.org/
 .. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation

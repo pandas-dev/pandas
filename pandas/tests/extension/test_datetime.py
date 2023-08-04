@@ -74,6 +74,11 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype.")
+
+
+@pytest.fixture
 def na_cmp():
     def cmp(a, b):
         return a is pd.NaT and a is b
@@ -113,10 +118,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
@@ -141,11 +142,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         msg = "cannot add DatetimeArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
 
 
 class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
