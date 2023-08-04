@@ -208,7 +208,10 @@ class TestGroupby(base.BaseGroupbyTests):
             tm.assert_frame_equal(result, expected)
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, s, op_name, skipna):
         if op_name == "count":
             result = getattr(s, op_name)()
@@ -234,10 +237,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             raise TypeError("not supposed to reach this")
         return cmp_dtype
-
-
-class TestBooleanReduce(base.BaseBooleanReduceTests):
-    pass
 
 
 class TestPrinting(base.BasePrintingTests):

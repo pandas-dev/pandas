@@ -60,6 +60,7 @@ from pandas.tests.extension.base.reduce import (  # noqa: F401
     BaseBooleanReduceTests,
     BaseNoReduceTests,
     BaseNumericReduceTests,
+    BaseReduceTests,
 )
 from pandas.tests.extension.base.reshaping import BaseReshapingTests  # noqa: F401
 from pandas.tests.extension.base.setitem import BaseSetitemTests  # noqa: F401
