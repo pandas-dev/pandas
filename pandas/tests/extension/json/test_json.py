@@ -312,11 +312,6 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="unsupported"):
-            ser + data
-
     @pytest.mark.xfail(reason="not implemented")
     def test_divmod_series_array(self):
         # GH 23287

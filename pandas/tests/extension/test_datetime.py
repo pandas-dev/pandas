@@ -135,13 +135,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
             return None
         return super()._get_expected_exception(op_name, obj, other)
 
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        ser = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            ser + data
-
     def test_divmod_series_array(self):
         # GH 23287
         # skipping because it is not implemented

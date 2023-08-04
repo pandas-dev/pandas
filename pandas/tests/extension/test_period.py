@@ -121,16 +121,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             return None
         return super()._get_expected_exception(op_name, obj, other)
 
-    def test_add_series_with_extension_array(self, data):
-        # we don't implement + for Period
-        s = pd.Series(data)
-        msg = (
-            r"unsupported operand type\(s\) for \+: "
-            r"\'PeriodArray\' and \'PeriodArray\'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            s + data
-
     def test_direct_arith_with_ndframe_returns_not_implemented(
         self, data, frame_or_series
     ):

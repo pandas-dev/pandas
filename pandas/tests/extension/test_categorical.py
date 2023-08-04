@@ -258,11 +258,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
-            ser + data
-
     def test_divmod_series_array(self):
         # GH 23287
         # skipping because it is not implemented
