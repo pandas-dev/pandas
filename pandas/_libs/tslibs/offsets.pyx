@@ -1373,6 +1373,24 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         previous midnight.
     **kwds
         Temporal parameter that add to or replace the offset value.
+    weekday : int {0, 1, ..., 6}, default 0
+        A specific integer for the day of the week.
+        - 0 is Monday
+        - 1 is Tuesday
+        - 2 is Wednesday
+        - 3 is Thursday
+        - 4 is Friday
+        - 5 is Saturday
+        - 6 is Sunday
+
+        Instead Weekday type from dateutil.relativedelta can be used.
+        - MO is Monday
+        - TU is Tuesday
+        - WE is Wednesday
+        - TH is Thursday
+        - FR is Friday
+        - SA is Saturday
+        - SU is Sunday.
 
         Parameters that **add** to the offset (like Timedelta):
 
