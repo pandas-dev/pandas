@@ -755,7 +755,9 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
         df.loc[1:2] = 0
-        result = df[1:2]
+        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df[1:2]
         assert (result == 0).all().all()
 
         # #2727

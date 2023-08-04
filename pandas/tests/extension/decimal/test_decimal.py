@@ -148,6 +148,9 @@ class TestMissing(base.BaseMissingTests):
 
 
 class Reduce:
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, s, op_name, skipna):
         if op_name in ["median", "skew", "kurt", "sem"]:
             msg = r"decimal does not support the .* operation"
@@ -185,7 +188,7 @@ class Reduce:
         tm.assert_series_equal(result, expected)
 
 
-class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
+class TestReduce(Reduce, base.BaseReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
@@ -194,10 +197,6 @@ class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
             pytest.skip(f"{op_name} not an array method")
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
-
-
-class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
-    pass
 
 
 class TestMethods(base.BaseMethodsTests):

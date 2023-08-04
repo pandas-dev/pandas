@@ -72,6 +72,11 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
+
+
+@pytest.fixture
 def na_value():
     return np.nan
 
@@ -152,7 +157,7 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
@@ -262,11 +267,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
             ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
