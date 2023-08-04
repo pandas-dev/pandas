@@ -2,10 +2,14 @@
 #include <Python.h>
 
 
-// use numpy's definitions for complex
-#include <numpy/arrayobject.h>
-typedef npy_complex64 khcomplex64_t;
-typedef npy_complex128 khcomplex128_t;
+typedef struct {
+    float real;
+    float imag;
+} khcomplex64_t;
+typedef struct {
+    double real;
+    double imag;
+} khcomplex128_t;
 
 
 
