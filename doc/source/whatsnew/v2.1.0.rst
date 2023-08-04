@@ -482,12 +482,12 @@ Conversion
 ^^^^^^^^^^
 - Bug in :func:`DataFrame.style.to_latex` and :func:`DataFrame.style.to_html` if the DataFrame contains integers with more digits than can be represented by floating point double precision (:issue:`52272`)
 - Bug in :func:`array`  when given a ``datetime64`` or ``timedelta64`` dtype with unit of "s", "us", or "ms" returning :class:`PandasArray` instead of :class:`DatetimeArray` or :class:`TimedeltaArray` (:issue:`52859`)
-- Bug in :func:`pandas_dtype` Series.astype("object_") and Series.astype("object0") unsupported (:issue:`54251`)
 - Bug in :meth:`ArrowDtype.numpy_dtype` returning nanosecond units for non-nanosecond ``pyarrow.timestamp`` and ``pyarrow.duration`` types (:issue:`51800`)
 - Bug in :meth:`DataFrame.__repr__` incorrectly raising a ``TypeError`` when the dtype of a column is ``np.record`` (:issue:`48526`)
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 - Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
 - Bug in :meth:`HDFStore.select` loses precision of large int when stored and retrieved (:issue:`54186`)
+- Bug in :meth:`Series.astype` not supporting ``object_`` (:issue:`54251`)
 
 Strings
 ^^^^^^^

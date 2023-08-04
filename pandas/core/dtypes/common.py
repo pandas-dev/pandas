@@ -1639,7 +1639,6 @@ def pandas_dtype(dtype) -> DtypeObj:
         np.object_,
         "object",
         "O",
-        "object0",
         "object_",
     ]:
         # check hashability to avoid errors/DeprecationWarning when we get

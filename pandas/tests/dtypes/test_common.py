@@ -53,7 +53,6 @@ class TestNumpyEADtype:
             np.float64,
             float,
             np.dtype("float64"),
-            "object0",
             "object_",
         ],
     )
