@@ -285,29 +285,32 @@ Several pandas implementations are possible:
 But this is very limited (see examples added in the [Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb)) :
 - **Types and Json interface**
     - the only way to keep the types in the json interface is to use the orient='table' option
-    - only few types are allowed in json-table interface : int64, float64, bool, datetime64, timedelta64, categorical
+    - few dtypes are not allowed in json-table interface : period, timedelta64, interval
     - allowed types are not always kept in json-table interface
     - data with 'object' dtype is kept only id data is string
     - with categorical dtype, the underlying dtype is not included in json interface
 - **Data compactness**
-    - json-table interface is not compact (in this example the size is double or triple the size of the compact format
+    - json-table interface is not compact (in the example in the [Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#data-compactness))the size is triple or quadruple the size of the compact format
 - **Reversibility**
-    - Interface is reversible only with json dtype
+    - Interface is reversible only with few dtypes : int64, float64, bool, string, datetime64 and partially categorical
 - **External types**
     - the interface does not accept external types
+    - Table-schema defines 20 data types but the `orient="table"` interface takes into account 5 data types (see [table](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#Converting-table-schema-type-to-pandas-dtype))
     - to integrate external types, it is necessary to first create ExtensionArray and ExtensionDtype objects
 
-The proposal made meets these limitations whithout complex code.
+The current interface is not compatible with the data structure defined by table-schema. For this to be possible, it is necessary to integrate a "type extension" like the one proposed (this has moreover been partially achieved with the notion of `extDtype` found in the interface for several formats).
 
-**Q: In general, we should only have 1 `"table"` format for pandas in read_json/to_json. There is also the issue of backwards compatibility if we do change the format. Can the existing format be adapted in a way that fixes the type issues/issues with roundtripping?**
+**Q: In general, we should only have 1 `"table"` format for pandas in read_json/to_json. There is also the issue of backwards compatibility if we do change the format. The fact that the table interface is buggy is not a reason to add a new interface (I'd rather fix those bugs). Can the existing format be adapted in a way that fixes the type issues/issues with roundtripping?**
 
 **A**: I will add two additional remarks:
-- the types defined in Tableschema are only partially taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint):
-- the `read_json()` interface works with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this json ( yet basic).    
+- the types defined in Tableschema are partially (only 5 out of 20) taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint):
+- the `read_json()` interface works too with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this simple json.    
 
 I think that the problem cannot be limited to bug fixes and that a clear strategy must be defined for the Json interface in particular with the gradual abandonment in open-data solutions of the obsolete CSV format in favor of a Json format.    
      
 As stated, the proposed solution addresses several shortcomings of the current interface and could simply fit into the pandas environment (the other option would be to consider that the Json interface is a peripheral function of pandas and can remain external to pandas) regardless of the `orient='table'` option.
+    
+It is nevertheless possible to merge the proposed format and the `orient='table'` format in order to have an explicit management of the notion of `extDtype` 
 
 **Q: As far as I can tell, JSON NTV is not in any form a standardised JSON format. I believe that pandas (and geopandas, which is where I came from to this issue) should try to follow either de facto or de jure standards and do not opt in for a file format that does not have any community support at this moment. This can obviously change in the future and that is where this PR should be revised. Why would pandas use this standard?**
 
