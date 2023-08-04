@@ -9,7 +9,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.33
+  - cython>=3.0.0
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
