@@ -1132,14 +1132,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if pa_version_under8p0 and pa.types.is_duration(pa_dtype):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"add_checked not implemented for {pa_dtype}",
-                )
-            )
-        elif pa_dtype.equals("int8"):
+        if pa_dtype.equals("int8"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
