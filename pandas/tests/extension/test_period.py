@@ -93,10 +93,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BasePeriodTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Period + Period is not defined.
-        pass
-
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
         if is_platform_windows() and np_version_gte1p24:
