@@ -499,15 +499,14 @@ class TestnanopsDataFrame:
             ddof=ddof,
         )
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("ddof", range(3))
     def test_nansem(self, ddof, skipna):
-        from scipy.stats import sem
+        sp_stats = pytest.importorskip("scipy.stats")
 
         with np.errstate(invalid="ignore"):
             self.check_funs(
                 nanops.nansem,
-                sem,
+                sp_stats.sem,
                 skipna,
                 allow_complex=False,
                 allow_date=False,
@@ -560,11 +559,10 @@ class TestnanopsDataFrame:
             return 0.0
         return result
 
-    @td.skip_if_no_scipy
     def test_nanskew(self, skipna):
-        from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        func = partial(self._skew_kurt_wrap, func=skew)
+        func = partial(self._skew_kurt_wrap, func=sp_stats.skew)
         with np.errstate(invalid="ignore"):
             self.check_funs(
                 nanops.nanskew,
@@ -575,11 +573,10 @@ class TestnanopsDataFrame:
                 allow_tdelta=False,
             )
 
-    @td.skip_if_no_scipy
     def test_nankurt(self, skipna):
-        from scipy.stats import kurtosis
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        func1 = partial(kurtosis, fisher=True)
+        func1 = partial(sp_stats.kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
         with np.errstate(invalid="ignore"):
             self.check_funs(
@@ -707,30 +704,28 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
-    @td.skip_if_no_scipy
     def test_nancorr_kendall(self):
-        from scipy.stats import kendalltau
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
-        targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
+        targ0 = sp_stats.kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
+        targ1 = sp_stats.kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
         self.check_nancorr_nancov_2d(nanops.nancorr, targ0, targ1, method="kendall")
-        targ0 = kendalltau(self.arr_float_1d, self.arr_float1_1d)[0]
-        targ1 = kendalltau(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
+        targ0 = sp_stats.kendalltau(self.arr_float_1d, self.arr_float1_1d)[0]
+        targ1 = sp_stats.kendalltau(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="kendall")
 
-    @td.skip_if_no_scipy
     def test_nancorr_spearman(self):
-        from scipy.stats import spearmanr
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
-        targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
+        targ0 = sp_stats.spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
+        targ1 = sp_stats.spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
         self.check_nancorr_nancov_2d(nanops.nancorr, targ0, targ1, method="spearman")
-        targ0 = spearmanr(self.arr_float_1d, self.arr_float1_1d)[0]
-        targ1 = spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
+        targ0 = sp_stats.spearmanr(self.arr_float_1d, self.arr_float1_1d)[0]
+        targ1 = sp_stats.spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="spearman")
 
-    @td.skip_if_no_scipy
     def test_invalid_method(self):
+        pytest.importorskip("scipy")
         targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
         msg = "Unknown method 'foo', expected one of 'kendall', 'spearman'"

@@ -607,7 +607,7 @@ class TestDataFrameSelectReindex:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_reindex(self, float_frame):
+    def test_reindex(self, float_frame, using_copy_on_write):
         datetime_series = tm.makeTimeSeries(nper=30)
 
         newFrame = float_frame.reindex(datetime_series.index)
@@ -647,7 +647,10 @@ class TestDataFrameSelectReindex:
 
         # Same index, copies values but not index if copy=False
         newFrame = float_frame.reindex(float_frame.index, copy=False)
-        assert newFrame.index is float_frame.index
+        if using_copy_on_write:
+            assert newFrame.index.is_(float_frame.index)
+        else:
+            assert newFrame.index is float_frame.index
 
         # length zero
         newFrame = float_frame.reindex([])

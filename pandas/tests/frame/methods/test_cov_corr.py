@@ -102,8 +102,8 @@ class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
 
     @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
-    @td.skip_if_no_scipy
     def test_corr_scipy_method(self, float_frame, method):
+        pytest.importorskip("scipy")
         float_frame.loc[float_frame.index[:5], "A"] = np.nan
         float_frame.loc[float_frame.index[5:10], "B"] = np.nan
         float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20]
@@ -121,10 +121,10 @@ class TestDataFrameCorr:
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_nooverlap(self, meth):
         # nothing in common
+        pytest.importorskip("scipy")
         df = DataFrame(
             {
                 "A": [1, 1.5, 1, np.nan, np.nan, np.nan],
@@ -152,12 +152,12 @@ class TestDataFrameCorr:
         assert isna(rs.values).all()
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
+        pytest.importorskip("scipy")
         df = DataFrame({"a": [True, False], "b": [1, 0]})
 
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
@@ -189,7 +189,6 @@ class TestDataFrameCorr:
         df.cov()
         df.corr()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
     )
@@ -200,6 +199,7 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_nullable_integer(self, nullable_column, other_column, method):
         # https://github.com/pandas-dev/pandas/issues/33803
+        pytest.importorskip("scipy")
         data = DataFrame({"a": nullable_column, "b": other_column})
         result = data.corr(method=method)
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
@@ -245,9 +245,9 @@ class TestDataFrameCorr:
         expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_min_periods_greater_than_length(self, method):
+        pytest.importorskip("scipy")
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
         result = df.corr(method=method, min_periods=3)
         expected = DataFrame(
@@ -255,13 +255,13 @@ class TestDataFrameCorr:
         )
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_corr_numeric_only(self, meth, numeric_only):
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
+        pytest.importorskip("scipy")
         df = DataFrame({"a": [1, 0], "b": [1, 0], "c": ["x", "y"]})
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
         if numeric_only:
@@ -418,25 +418,25 @@ class TestDataFrameCorrWith:
         expected = DataFrame({0: [1.0, -1.0], 1: [-1.0, 1.0]})
         tm.assert_frame_equal(result - 1, expected - 1, atol=1e-17)
 
-    @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
         # GH#21925
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corrwith_kendall(self):
         # GH#21925
+        pytest.importorskip("scipy")
         df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corrwith_spearman_with_tied_data(self):
         # GH#48826
+        pytest.importorskip("scipy")
         df1 = DataFrame(
             {
                 "A": [1, np.nan, 7, 8],

@@ -163,20 +163,19 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = expected.astype(sdtype)
         return expected
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(ser, op_name, other, exc=None)
-
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=None):
-        super()._check_divmod_op(ser, op, other, None)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         return pointwise_result.astype("boolean")
-
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        super().check_opname(ser, op_name, other, exc=None)
 
     def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
