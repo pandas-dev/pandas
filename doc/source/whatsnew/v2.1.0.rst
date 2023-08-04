@@ -675,6 +675,7 @@ Conversion
 - Bug in :meth:`DataFrame.info` raising  ``ValueError`` when ``use_numba`` is set (:issue:`51922`)
 - Bug in :meth:`DataFrame.insert` raising ``TypeError`` if ``loc`` is ``np.int64`` (:issue:`53193`)
 - Bug in :meth:`HDFStore.select` loses precision of large int when stored and retrieved (:issue:`54186`)
+- Bug in :meth:`Series.astype` not supporting ``object_`` (:issue:`54251`)
 
 Strings
 ^^^^^^^
