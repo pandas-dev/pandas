@@ -53,10 +53,6 @@ from pandas._testing._io import (
     round_trip_pickle,
     write_to_compressed,
 )
-from pandas._testing._random import (
-    rands,
-    rands_array,
-)
 from pandas._testing._warnings import (
     assert_produces_warning,
     maybe_produces_warning,
@@ -346,6 +342,22 @@ def to_array(obj):
 
 # -----------------------------------------------------------------------------
 # Others
+
+
+def rands_array(
+    nchars, size: int, dtype: NpDtype = "O", replace: bool = True
+) -> np.ndarray:
+    """
+    Generate an array of byte strings.
+    """
+    chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
+    retval = (
+        np.random.default_rng(2)
+        .choice(chars, size=nchars * np.prod(size), replace=replace)
+        .view((np.str_, nchars))
+        .reshape(size)
+    )
+    return retval.astype(dtype)
 
 
 def getCols(k) -> str:
@@ -1126,7 +1138,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "rands",
     "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_pathlib",

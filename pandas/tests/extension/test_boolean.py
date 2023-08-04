@@ -122,17 +122,14 @@ class TestMissing(base.BaseMissingTests):
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def check_opname(self, s, op_name, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        exc = None
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
             # match behavior with non-masked bool dtype
-            exc = NotImplementedError
+            return NotImplementedError
         elif op_name in self.implements:
             # exception message would include "numpy boolean subtract""
-            exc = TypeError
-
-        super().check_opname(s, op_name, other, exc=exc)
+            return TypeError
+        return None
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         if op_name in (
@@ -170,18 +167,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_divmod_series_array(self, data, data_for_twos):
         super().test_divmod_series_array(data, data_for_twos)
 
-    @pytest.mark.xfail(
-        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
-        "but not for divmod. This matches what we do for non-masked bool dtype."
-    )
-    def test_divmod(self, data):
-        super().test_divmod(data)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
+    pass
 
 
 class TestReshaping(base.BaseReshapingTests):
@@ -235,13 +223,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             expected = bool(expected)
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        arr = ser.array
-
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(arr, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if op_name in ["mean", "median", "var", "std", "skew"]:
             cmp_dtype = "Float64"
         elif op_name in ["min", "max"]:
@@ -251,14 +233,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
         else:
             raise TypeError("not supposed to reach this")
-
-        result = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-        tm.assert_extension_array_equal(result, expected)
+        return cmp_dtype
 
 
 class TestBooleanReduce(base.BaseBooleanReduceTests):
@@ -274,6 +249,9 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
+
     def check_accumulate(self, s, op_name, skipna):
         length = 64
         if not IS64 or is_platform_windows():
@@ -287,10 +265,6 @@ class TestAccumulation(base.BaseAccumulateTests):
         else:
             expected = expected.astype("boolean")
         tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
 
 
 class TestParsing(base.BaseParsingTests):

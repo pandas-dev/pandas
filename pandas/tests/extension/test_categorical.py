@@ -157,9 +157,7 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestAccumulate(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -269,9 +267,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # GH 23287
         # skipping because it is not implemented
         pass
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

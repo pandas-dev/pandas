@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import decimal
 import operator
 
@@ -160,27 +162,6 @@ class Reduce:
             expected = getattr(np.asarray(s), op_name)()
             tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        if op_name in ["count", "kurt", "sem", "skew", "median"]:
-            assert not hasattr(arr, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-
-        if not skipna and ser.isna().any():
-            expected = DecimalArray([pd.NA])
-        else:
-            exp_value = getattr(ser.dropna(), op_name)()
-            expected = DecimalArray([exp_value])
-
-        tm.assert_extension_array_equal(result1, expected)
-
     def test_reduction_without_keepdims(self):
         # GH52788
         # test _reduce without keepdims
@@ -205,7 +186,14 @@ class Reduce:
 
 
 class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
-    pass
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        if op_name in ["skew", "median"]:
+            assert not hasattr(data, op_name)
+            pytest.skip(f"{op_name} not an array method")
+
+        return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
 
 class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
@@ -325,8 +313,14 @@ def test_astype_dispatches(frame):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    series_array_exc = None
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        return None
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -349,10 +343,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         self.check_opname(s, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(s, op, other, exc=None)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
