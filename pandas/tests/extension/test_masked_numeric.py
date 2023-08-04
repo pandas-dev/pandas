@@ -39,6 +39,8 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
+is_windows_or_32bit = is_platform_windows() or not IS64
+
 pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:invalid value encountered in divide:RuntimeWarning"
@@ -251,16 +253,7 @@ class TestReduce(base.BaseReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(ser.array, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        is_windows_or_32bit = is_platform_windows() or not IS64
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -275,18 +268,7 @@ class TestReduce(base.BaseReduceTests):
             cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
         else:
             raise TypeError("not supposed to reach this")
-
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-        tm.assert_extension_array_equal(result2, expected)
+        return cmp_dtype
 
 
 class TestAccumulation(base.BaseAccumulateTests):

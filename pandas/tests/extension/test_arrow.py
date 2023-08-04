@@ -535,15 +535,7 @@ class TestReduce(base.BaseReduceTests):
         result = getattr(ser, op_name)(skipna=skipna)
         assert result is (op_name == "any")
 
-    def check_reduce_frame(self, ser, op_name, skipna):
-        arr = ser.array
-
-        if op_name in ["count", "kurt", "sem", "skew"]:
-            assert not hasattr(arr, op_name)
-            return
-
-        kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":
@@ -559,15 +551,15 @@ class TestReduce(base.BaseReduceTests):
                 "u": "uint64[pyarrow]",
                 "f": "float64[pyarrow]",
             }[arr.dtype.kind]
-        result = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
+        return cmp_dtype
 
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)(**kwargs)
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-
-        tm.assert_extension_array_equal(result, expected)
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        if op_name == "skew":
+            assert not hasattr(data, op_name)
+            return
+        return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
     def test_median_not_approximate(self, typ):
