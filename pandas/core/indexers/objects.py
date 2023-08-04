@@ -5,10 +5,13 @@ from datetime import timedelta
 
 import numpy as np
 
+from pandas._libs.tslibs import BaseOffset
 from pandas._libs.window.indexers import calculate_variable_window_bounds
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import ensure_platform_int
+
+from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.tseries.offsets import Nano
 
@@ -183,12 +186,16 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         self,
         index_array: np.ndarray | None = None,
         window_size: int = 0,
-        index=None,
-        offset=None,
+        index: DatetimeIndex | None = None,
+        offset: BaseOffset | None = None,
         **kwargs,
     ) -> None:
         super().__init__(index_array, window_size, **kwargs)
+        if not isinstance(index, DatetimeIndex):
+            raise ValueError("index must be a DatetimeIndex.")
         self.index = index
+        if not isinstance(offset, BaseOffset):
+            raise ValueError("offset must be a DateOffset-like object.")
         self.offset = offset
 
     @Appender(get_window_bounds_doc)
@@ -216,6 +223,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             index_growth_sign = -1
         else:
             index_growth_sign = 1
+        offset_diff = index_growth_sign * self.offset
 
         start = np.empty(num_values, dtype="int64")
         start.fill(-1)
@@ -231,11 +239,12 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         else:
             end[0] = 0
 
+        zero = timedelta(0)
         # start is start of slice interval (including)
         # end is end of slice interval (not including)
         for i in range(1, num_values):
             end_bound = self.index[i]
-            start_bound = self.index[i] - index_growth_sign * self.offset
+            start_bound = end_bound - offset_diff
 
             # left endpoint is closed
             if left_closed:
@@ -245,13 +254,15 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             # within the constraint
             start[i] = i
             for j in range(start[i - 1], i):
-                if (self.index[j] - start_bound) * index_growth_sign > timedelta(0):
+                start_diff = (self.index[j] - start_bound) * index_growth_sign
+                if start_diff > zero:
                     start[i] = j
                     break
 
             # end bound is previous end
             # or current index
-            if (self.index[end[i - 1]] - end_bound) * index_growth_sign <= timedelta(0):
+            end_diff = (self.index[end[i - 1]] - end_bound) * index_growth_sign
+            if end_diff <= zero:
                 end[i] = i + 1
             else:
                 end[i] = end[i - 1]

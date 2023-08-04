@@ -209,6 +209,7 @@ Other enhancements
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Improved error handling when using :meth:`DataFrame.to_json` with incompatible ``index`` and ``orient`` arguments (:issue:`52143`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
+- Improved error message when providing an invalid ``index`` or ``offset`` argument to :class:`pandas.api.indexers.VariableOffsetWindowIndexer` (:issue:`54379`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Added a new parameter ``by_row`` to :meth:`Series.apply` and :meth:`DataFrame.apply`. When set to ``False`` the supplied callables will always operate on the whole Series or DataFrame (:issue:`53400`, :issue:`53601`).
 - :meth:`DataFrame.shift` and :meth:`Series.shift` now allow shifting by multiple periods by supplying a list of periods (:issue:`44424`)
