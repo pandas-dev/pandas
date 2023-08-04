@@ -40,7 +40,7 @@ def data(dtype):
 
 @pytest.fixture
 def data_for_twos(dtype):
-    return PeriodArray(np.ones(100) * 2, dtype=dtype)
+    pytest.skip("Not a numeric dtype")
 
 
 @pytest.fixture

@@ -27,7 +27,11 @@ def data():
 
 @pytest.fixture
 def data_for_twos():
-    """Length-100 array in which all the elements are two."""
+    """
+    Length-100 array in which all the elements are two.
+
+    Call pytest.skip in your fixture if the dtype does not support divmod.
+    """
     raise NotImplementedError
 
 

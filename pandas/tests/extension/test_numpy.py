@@ -154,6 +154,14 @@ def data_for_grouping(allow_in_pandas, dtype):
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    if dtype.kind == "O":
+        pytest.skip("Not a numeric dtype")
+    arr = np.ones(100) * 2
+    return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
+
+
+@pytest.fixture
 def skip_numpy_object(dtype, request):
     """
     Tests for NumpyExtensionArray with nested data. Users typically won't create
@@ -277,11 +285,6 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     @skip_nested
     def test_divmod(self, data):
         super().test_divmod(data)
-
-    @skip_nested
-    def test_divmod_series_array(self, data):
-        ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, data)
 
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
