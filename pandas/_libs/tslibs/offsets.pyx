@@ -1089,6 +1089,34 @@ cdef class Tick(SingleConstructorOffset):
 
 
 cdef class Day(Tick):
+    """
+    Offset ``n`` days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of days represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n days.
+    >>> from pandas.tseries.offsets import Day 
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 15:00'
+
+    >>> (ts + Day()).strftime('%a %d %b %Y %H:%M')
+    'Sat 10 Dec 2022 15:00'
+    >>> (ts - Day(4)).strftime('%a %d %b %Y %H:%M')
+    'Mon 05 Dec 2022 15:00'
+
+    >>> (ts + Day(-4)).strftime('%a %d %b %Y %H:%M')
+    'Mon 05 Dec 2022 15:00'
+    """
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
@@ -1096,6 +1124,35 @@ cdef class Day(Tick):
 
 
 cdef class Hour(Tick):
+    """
+    Offset ``n`` hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of hours represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n hours.
+
+    >>> from pandas.tseries.offsets import Hour 
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 15:00'
+
+    >>> (ts + Hour()).strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 16:00'
+    >>> (ts - Hour(4)).strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 11:00'
+
+    >>> (ts + Hour(-4)).strftime('%a %d %b %Y %H:%M')
+    'Fri 09 Dec 2022 11:00'
+    """
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
     _period_dtype_code = PeriodDtypeCode.H
@@ -1103,6 +1160,35 @@ cdef class Hour(Tick):
 
 
 cdef class Minute(Tick):
+    """
+    Offset ``n`` minutes.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of minutes represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n minutes.
+
+    >>> from pandas.tseries.offsets import Minute 
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 15:00:00'
+
+    >>> (ts + Minute(n=10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 15:10:00'
+    >>> (ts - Minute(n=10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 14:50:00'
+
+    >>> (ts + Minute(n=-10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 14:50:00'
+    """
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
     _period_dtype_code = PeriodDtypeCode.T
@@ -1110,6 +1196,35 @@ cdef class Minute(Tick):
 
 
 cdef class Second(Tick):
+    """
+    Offset ``n`` seconds.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of seconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n seconds.
+
+    >>> from pandas.tseries.offsets import Second 
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts.strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 15:00:00'
+
+    >>> (ts + Second(n=10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 15:00:10'
+    >>> (ts - Second(n=10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 14:59:50'
+
+    >>> (ts + Second(n=-10)).strftime('%a %d %b %Y %H:%M:%S')
+    'Fri 09 Dec 2022 14:59:50'
+    """
     _nanos_inc = 1_000_000_000
     _prefix = "S"
     _period_dtype_code = PeriodDtypeCode.S
