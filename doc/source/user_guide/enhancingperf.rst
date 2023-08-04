@@ -121,7 +121,7 @@ Now, let's simply copy our functions over to Cython:
 
    %timeit df.apply(lambda x: integrate_f_plain(x["a"], x["b"], x["N"]), axis=1)
 
-This has improve the performance compared to the pure Python approach by one-third.
+This has improved the performance compared to the pure Python approach by one-third.
 
 .. _enhancingperf.type:
 
