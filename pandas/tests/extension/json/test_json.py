@@ -323,9 +323,6 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         # skipping because it is not implemented
         super().test_divmod_series_array()
 
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
     pass
