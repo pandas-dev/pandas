@@ -10,6 +10,8 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
+from __future__ import annotations
+
 from datetime import (
     date,
     datetime,
@@ -964,16 +966,26 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             and pa.types.is_temporal(pa_dtype)
         )
 
-    def _get_scalar_exception(self, opname, pa_dtype):
-        arrow_temporal_supported = self._is_temporal_supported(opname, pa_dtype)
-        if opname in {
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        if op_name in ("__divmod__", "__rdivmod__"):
+            return self.divmod_exc
+
+        dtype = tm.get_dtype(obj)
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
+
+        arrow_temporal_supported = self._is_temporal_supported(op_name, pa_dtype)
+        if op_name in {
             "__mod__",
             "__rmod__",
         }:
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
-        elif opname in ["__add__", "__radd__"] and (
+        elif op_name in ["__add__", "__radd__"] and (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ):
             exc = None
@@ -1060,10 +1072,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         ):
             pytest.skip("Skip testing Python string formatting")
 
-        self.series_scalar_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
-
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.node.add_marker(mark)
@@ -1078,10 +1086,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         ):
             pytest.skip("Skip testing Python string formatting")
 
-        self.frame_scalar_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
-
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.node.add_marker(mark)
@@ -1090,10 +1094,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
-
-        self.series_array_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
 
         if (
             all_arithmetic_operators
@@ -1124,7 +1124,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
 
-        self.check_opname(ser, op_name, other, exc=self.series_array_exc)
+        self.check_opname(ser, op_name, other)
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype

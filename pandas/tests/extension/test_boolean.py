@@ -122,17 +122,14 @@ class TestMissing(base.BaseMissingTests):
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def check_opname(self, s, op_name, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        exc = None
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
             # match behavior with non-masked bool dtype
-            exc = NotImplementedError
+            return NotImplementedError
         elif op_name in self.implements:
             # exception message would include "numpy boolean subtract""
-            exc = TypeError
-
-        super().check_opname(s, op_name, other, exc=exc)
+            return TypeError
+        return None
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         if op_name in (
@@ -170,18 +167,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_divmod_series_array(self, data, data_for_twos):
         super().test_divmod_series_array(data, data_for_twos)
 
-    @pytest.mark.xfail(
-        reason="Inconsistency between floordiv and divmod; we raise for floordiv "
-        "but not for divmod. This matches what we do for non-masked bool dtype."
-    )
-    def test_divmod(self, data):
-        super().test_divmod(data)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(s, op_name, other, exc=None)
+    pass
 
 
 class TestReshaping(base.BaseReshapingTests):

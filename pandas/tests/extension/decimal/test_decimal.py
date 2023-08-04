@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import decimal
 import operator
 
@@ -311,8 +313,14 @@ def test_astype_dispatches(frame):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    series_array_exc = None
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        return None
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -335,10 +343,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         self.check_opname(s, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(s, op, other, exc=None)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

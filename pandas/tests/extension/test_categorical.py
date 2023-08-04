@@ -268,9 +268,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # skipping because it is not implemented
         pass
 
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op, other):

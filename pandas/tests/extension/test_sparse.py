@@ -415,10 +415,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(ser, op, other, exc=None)
-
 
 class TestComparisonOps(BaseSparseTests):
     def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
