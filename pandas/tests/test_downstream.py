@@ -344,15 +344,15 @@ def test_dataframe_consortium() -> None:
     pytest.importorskip("dataframe_api_compat")
     df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df = df_pd.__dataframe_consortium_standard__()
-    result = df.get_column_names()
-    expected = ["a", "b"]
-    assert result == expected
+    result_1 = df.get_column_names()
+    expected_1 = ["a", "b"]
+    assert result_1 == expected_1
 
     ser = Series([1, 2, 3])
     col = ser.__column_consortium_standard__()
-    result = col.get_value(1)
-    expected = 2
-    assert result == expected
+    result_2 = col.get_value(1)
+    expected_2 = 2
+    assert result_2 == expected_2
 
 
 def test_xarray_coerce_unit():
