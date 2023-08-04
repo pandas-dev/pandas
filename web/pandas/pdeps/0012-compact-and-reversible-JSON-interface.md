@@ -36,7 +36,7 @@
 ## Abstract
 
 ### Problem description
-The `dtype` is not explicitely taken into account in the current JSON interface.
+The `dtype` is not explicitly taken into account in the current JSON interface.
 To work around this problem, a data schema (e.g. `TableSchema`) must be associated with the JSON file.
 
 Nevertheless, the current JSON interface is not reversible and has inconsistencies related to the consideration of the `dtype`.
@@ -170,7 +170,7 @@ JSON types (implicit or explicit) are converted in `dtype` following pandas JSON
 | null           | NaT / NaN / None  |
 
 Note:
-- if an NTV type is defined, the `dtype` is ajusted accordingly
+- if an NTV type is defined, the `dtype` is adjusted accordingly
 - the consideration of null type data needs to be clarified
 
 The other NTV types are associated with `object` `dtype`.
@@ -211,7 +211,7 @@ If the interface is available, throw a new `orient` option in the JSON interface
 ### Impacts on the pandas framework
 Initially, the impacts are very limited:
 - modification of the `name` of `Series` or `DataFrame columns` (no functional impact),
-- added an option in the Json interface (e.g. `orient='ntv'`) and added associated methods (no functionnal interference with the other methods)
+- added an option in the Json interface (e.g. `orient='ntv'`) and added associated methods (no functional interference with the other methods)
 
 In later stages, several developments could be considered:
 - validation of the `name` of `Series` or `DataFrame columns` ,
