@@ -10,53 +10,57 @@ from libc.stdint cimport (
     uint32_t,
     uint64_t,
 )
+from libc.string cimport memcpy
 
 
 def read_float_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
-    assert offset + 4 < len(data)
-    cdef:
-        const char *data_ptr = data
-        float res = (<float*>(data_ptr + offset))[0]
+    cdef uint32_t value
+    assert offset + sizeof(value) < len(data)
+    cdef const void *ptr = <unsigned char*>(data) + offset
+    memcpy(&value, ptr, sizeof(value))
     if byteswap:
-        res = _byteswap_float(res)
+        value = _byteswap4(value)
+
+    cdef float res
+    memcpy(&res, &value, sizeof(res))
     return res
 
 
 def read_double_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
-    assert offset + 8 < len(data)
-    cdef:
-        const char *data_ptr = data
-        double res = (<double*>(data_ptr + offset))[0]
+    cdef uint64_t value
+    assert offset + sizeof(value) < len(data)
+    cdef const void *ptr = <unsigned char*>(data) + offset
+    memcpy(&value, ptr, sizeof(value))
     if byteswap:
-        res = _byteswap_double(res)
+        value = _byteswap8(value)
+
+    cdef double res
+    memcpy(&res, &value, sizeof(res))
     return res
 
 
 def read_uint16_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
-    assert offset + 2 < len(data)
-    cdef:
-        const char *data_ptr = data
-        uint16_t res = (<uint16_t *>(data_ptr + offset))[0]
+    cdef uint16_t res
+    assert offset + sizeof(res) < len(data)
+    memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap2(res)
     return res
 
 
 def read_uint32_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
-    assert offset + 4 < len(data)
-    cdef:
-        const char *data_ptr = data
-        uint32_t res = (<uint32_t *>(data_ptr + offset))[0]
+    cdef uint32_t res
+    assert offset + sizeof(res) < len(data)
+    memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap4(res)
     return res
 
 
 def read_uint64_with_byteswap(bytes data, Py_ssize_t offset, bint byteswap):
-    assert offset + 8 < len(data)
-    cdef:
-        const char *data_ptr = data
-        uint64_t res = (<uint64_t *>(data_ptr + offset))[0]
+    cdef uint64_t res
+    assert offset + sizeof(res) < len(data)
+    memcpy(&res, <const unsigned char*>(data) + offset, sizeof(res))
     if byteswap:
         res = _byteswap8(res)
     return res
@@ -79,15 +83,3 @@ cdef extern from *:
     uint16_t _byteswap2(uint16_t)
     uint32_t _byteswap4(uint32_t)
     uint64_t _byteswap8(uint64_t)
-
-
-cdef float _byteswap_float(float num):
-    cdef uint32_t *intptr = <uint32_t *>&num
-    intptr[0] = _byteswap4(intptr[0])
-    return num
-
-
-cdef double _byteswap_double(double num):
-    cdef uint64_t *intptr = <uint64_t *>&num
-    intptr[0] = _byteswap8(intptr[0])
-    return num
