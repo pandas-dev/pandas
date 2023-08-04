@@ -2045,7 +2045,7 @@ class TimeGrouper(Grouper):
 
         freq = to_offset(freq)
 
-        end_types = {"M", "A", "Q", "BM", "BA", "BQ", "W"}
+        end_types = {"M", "Y", "Q", "BM", "BY", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:

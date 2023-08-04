@@ -55,7 +55,7 @@ class TestPeriodIndexRendering:
         idx2 = PeriodIndex(["2011-01-01"], freq="D")
         idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
         idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="A")
+        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
         idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="H")
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
         idx8 = pd.period_range("2013Q1", periods=2, freq="Q")
@@ -73,7 +73,7 @@ class TestPeriodIndexRendering:
             "dtype='period[D]')"
         )
 
-        exp5 = "PeriodIndex(['2011', '2012', '2013'], dtype='period[A-DEC]')"
+        exp5 = "PeriodIndex(['2011', '2012', '2013'], dtype='period[Y-DEC]')"
 
         exp6 = (
             "PeriodIndex(['2011-01-01 09:00', '2012-02-01 10:00', 'NaT'], "
@@ -101,7 +101,7 @@ class TestPeriodIndexRendering:
         idx2 = PeriodIndex(["2011-01-01"], freq="D")
         idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
         idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="A")
+        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
         idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="H")
 
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
@@ -125,7 +125,7 @@ dtype: period[D]"""
         exp5 = """0    2011
 1    2012
 2    2013
-dtype: period[A-DEC]"""
+dtype: period[Y-DEC]"""
 
         exp6 = """0    2011-01-01 09:00
 1    2012-02-01 10:00
@@ -157,7 +157,7 @@ dtype: period[Q-DEC]"""
         idx2 = PeriodIndex(["2011-01-01"], freq="D")
         idx3 = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
         idx4 = PeriodIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
-        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="A")
+        idx5 = PeriodIndex(["2011", "2012", "2013"], freq="Y")
         idx6 = PeriodIndex(["2011-01-01 09:00", "2012-02-01 10:00", "NaT"], freq="H")
 
         idx7 = pd.period_range("2013Q1", periods=1, freq="Q")
@@ -177,7 +177,7 @@ Freq: D"""
 Freq: D"""
 
         exp5 = """PeriodIndex: 3 entries, 2011 to 2013
-Freq: A-DEC"""
+Freq: Y-DEC"""
 
         exp6 = """PeriodIndex: 3 entries, 2011-01-01 09:00 to NaT
 Freq: H"""

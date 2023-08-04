@@ -1599,7 +1599,7 @@ class TestDatetime64DateOffsetArithmetic:
                     Timestamp("2016-04-01"),
                     Timestamp("2017-04-01"),
                 ],
-                "AS-APR",
+                "YS-APR",
             ),
             (
                 "__sub__",
@@ -1621,7 +1621,7 @@ class TestDatetime64DateOffsetArithmetic:
                     Timestamp("2015-10-01"),
                     Timestamp("2016-10-01"),
                 ],
-                "AS-OCT",
+                "YS-OCT",
             ),
         ],
     )
@@ -1630,7 +1630,7 @@ class TestDatetime64DateOffsetArithmetic:
     ):
         # GH 26258
         tz = tz_aware_fixture
-        date = date_range(start="01 Jan 2014", end="01 Jan 2017", freq="AS", tz=tz)
+        date = date_range(start="01 Jan 2014", end="01 Jan 2017", freq="YS", tz=tz)
         date = tm.box_expected(date, box_with_array, False)
         mth = getattr(date, op)
         result = mth(offset)

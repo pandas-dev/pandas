@@ -435,7 +435,7 @@ def test_resample_frame_basic_cy_funcs(f, unit):
     g._cython_agg_general(f, alt=None, numeric_only=True)
 
 
-@pytest.mark.parametrize("freq", ["A", "M"])
+@pytest.mark.parametrize("freq", ["Y", "M"])
 def test_resample_frame_basic_M_A(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
@@ -668,8 +668,8 @@ def test_resample_reresample(unit):
 @pytest.mark.parametrize(
     "freq, expected_kwargs",
     [
-        ["A-DEC", {"start": "1990", "end": "2000", "freq": "a-dec"}],
-        ["A-JUN", {"start": "1990", "end": "2000", "freq": "a-jun"}],
+        ["Y-DEC", {"start": "1990", "end": "2000", "freq": "y-dec"}],
+        ["Y-JUN", {"start": "1990", "end": "2000", "freq": "y-jun"}],
         ["M", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
@@ -1199,7 +1199,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     assert len(resampled) == 1
 
 
-@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "AS-DEC", "AS-JUN"])
+@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "YS-DEC", "YS-JUN"])
 def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts = simple_date_range_series("1/1/2000", "12/31/2002")
     ts.index = ts.index.as_unit(unit)
@@ -1240,7 +1240,7 @@ def test_corner_cases_period(simple_period_range_series):
     # miscellaneous test coverage
     len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
     # it works
-    result = len0pts.resample("A-DEC").mean()
+    result = len0pts.resample("Y-DEC").mean()
     assert len(result) == 0
 
 
@@ -1347,7 +1347,7 @@ def test_resample_unequal_times(unit):
     df = DataFrame({"close": 1}, index=bad_ind)
 
     # it works!
-    df.resample("AS").sum()
+    df.resample("YS").sum()
 
 
 def test_resample_consistency(unit):
@@ -2011,7 +2011,7 @@ def test_long_rule_non_nano():
                 "1900-12-31",
             ]
         ).astype("datetime64[s]"),
-        freq="200A-DEC",
+        freq="200Y-DEC",
     )
     expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
     tm.assert_series_equal(result, expected)

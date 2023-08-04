@@ -62,9 +62,6 @@ _offset_to_period_map = {
     "BQS": "Q",
     "QS": "Q",
     "BQ": "Q",
-    "BA": "A",
-    "AS": "A",
-    "BAS": "A",
     "MS": "M",
     "D": "D",
     "B": "B",
@@ -75,23 +72,22 @@ _offset_to_period_map = {
     "ns": "ns",
     "H": "H",
     "Q": "Q",
-    "A": "A",
     "W": "W",
     "M": "M",
-    "Y": "A",
-    "BY": "A",
-    "YS": "A",
-    "BYS": "A",
+    "Y": "Y",
+    "BY": "Y",
+    "YS": "Y",
+    "BYS": "Y",
 }
 
-_need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
+_need_suffix = ["QS", "BQ", "BQS", "YS", "BY", "BYS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
         key = f"{_prefix}-{_m}"
         _offset_to_period_map[key] = _offset_to_period_map[_prefix]
 
-for _prefix in ["A", "Q"]:
+for _prefix in ["Y", "Q"]:
     for _m in MONTHS:
         _alias = f"{_prefix}-{_m}"
         _offset_to_period_map[_alias] = _alias
@@ -370,7 +366,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+            return {"cs": "YS", "bs": "BYS", "ce": "Y", "be": "BY"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -599,7 +595,7 @@ def _quarter_months_conform(source: str, target: str) -> bool:
 
 def _is_annual(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "A" or rule.startswith("A-")
+    return rule == "Y" or rule.startswith("Y-")
 
 
 def _is_quarterly(rule: str) -> bool:

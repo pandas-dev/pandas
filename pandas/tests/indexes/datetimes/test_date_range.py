@@ -242,40 +242,37 @@ class TestDateRanges:
         rng = date_range("1/1/2000 00:00", "1/1/2000 00:18", freq="5min")
         assert len(rng) == 4
 
-    @pytest.mark.parametrize("freq", ["AS", "YS"])
-    def test_begin_year_alias(self, freq):
+    def test_begin_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        rng = date_range("1/1/2013", "7/1/2017", freq="YS")
         exp = DatetimeIndex(
             ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
-            freq=freq,
+            freq="YS",
         )
         tm.assert_index_equal(rng, exp)
 
-    @pytest.mark.parametrize("freq", ["A", "Y"])
-    def test_end_year_alias(self, freq):
+    def test_end_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        rng = date_range("1/1/2013", "7/1/2017", freq="Y")
         exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq=freq
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-31"], freq="Y"
         )
         tm.assert_index_equal(rng, exp)
 
-    @pytest.mark.parametrize("freq", ["BA", "BY"])
-    def test_business_end_year_alias(self, freq):
+    def test_business_end_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        rng = date_range("1/1/2013", "7/1/2017", freq="BY")
         exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq=freq
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq="BY"
         )
         tm.assert_index_equal(rng, exp)
 
     def test_date_range_negative_freq(self):
         # GH 11018
-        rng = date_range("2011-12-31", freq="-2A", periods=3)
-        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2A")
+        rng = date_range("2011-12-31", freq="-2Y", periods=3)
+        exp = DatetimeIndex(["2011-12-31", "2009-12-31", "2007-12-31"], freq="-2Y")
         tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2A"
+        assert rng.freq == "-2Y"
 
         rng = date_range("2011-01-31", freq="-2M", periods=3)
         exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
@@ -638,7 +635,7 @@ class TestDateRanges:
         assert dr[0] == start
         assert dr[2] == end
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "Y"])
     def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
@@ -653,7 +650,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "Y"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -674,7 +671,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "Y"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
