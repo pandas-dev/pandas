@@ -52,7 +52,6 @@ Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
 
-   %%time
    columns = ["id_0", "name_0", "x_0", "y_0"]
 
    pd.read_parquet("timeseries_wide.parquet")[columns]
@@ -61,7 +60,6 @@ Option 2 only loads the columns we request.
 
 .. ipython:: python
 
-   %%time
    pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
 .. ipython:: python
