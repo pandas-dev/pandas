@@ -1,9 +1,11 @@
+from typing import final
 import warnings
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_numeric_dtype
 from pandas.tests.extension.base.base import BaseExtensionTests
 
 
@@ -14,6 +16,9 @@ class BaseReduceTests(BaseExtensionTests):
     """
 
     def check_reduce(self, s, op_name, skipna):
+        # We perform the same operation on the np.float64 data and check
+        #  that the results match. Override if you need to cast to something
+        #  other than float64.
         res_op = getattr(s, op_name)
         exp_op = getattr(s.astype("float64"), op_name)
         if op_name == "count":
@@ -23,6 +28,43 @@ class BaseReduceTests(BaseExtensionTests):
             result = res_op(skipna=skipna)
             expected = exp_op(skipna=skipna)
         tm.assert_almost_equal(result, expected)
+
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
+        # Find the expected dtype when the given reduction is done on a DataFrame
+        # column with this array.  The default assumes float64-like behavior,
+        # i.e. retains the dtype.
+        return arr.dtype
+
+    # We anticipate that authors should not need to override check_reduce_frame,
+    #  but should be able to do any necessary overriding in
+    #  _get_expected_reduction_dtype. If you have a use case where this
+    #  does not hold, please let us know at github.com/pandas-dev/pandas/issues.
+    @final
+    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
+        # Check that the 2D reduction done in a DataFrame reduction "looks like"
+        # a wrapped version of the 1D reduction done by Series.
+        arr = ser.array
+        df = pd.DataFrame({"a": arr})
+
+        kwargs = {"ddof": 1} if op_name in ["var", "std"] else {}
+
+        cmp_dtype = self._get_expected_reduction_dtype(arr, op_name)
+
+        # The DataFrame method just calls arr._reduce with keepdims=True,
+        #  so this first check is perfunctory.
+        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
+        result2 = getattr(df, op_name)(skipna=skipna, **kwargs).array
+        tm.assert_extension_array_equal(result1, result2)
+
+        # Check that the 2D reduction looks like a wrapped version of the
+        #  1D reduction
+        if not skipna and ser.isna().any():
+            expected = pd.array([pd.NA], dtype=cmp_dtype)
+        else:
+            exp_value = getattr(ser.dropna(), op_name)()
+            expected = pd.array([exp_value], dtype=cmp_dtype)
+
+        tm.assert_extension_array_equal(result1, expected)
 
 
 class BaseNoReduceTests(BaseReduceTests):
@@ -65,6 +107,18 @@ class BaseNumericReduceTests(BaseReduceTests):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             self.check_reduce(s, op_name, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        s = pd.Series(data)
+        if not is_numeric_dtype(s.dtype):
+            pytest.skip("not numeric dtype")
+
+        if op_name in ["count", "kurt", "sem"]:
+            pytest.skip(f"{op_name} not an array method")
+
+        self.check_reduce_frame(s, op_name, skipna)
 
 
 class BaseBooleanReduceTests(BaseReduceTests):

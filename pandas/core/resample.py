@@ -1497,7 +1497,7 @@ class Resampler(BaseGroupBy, PandasObject):
         # If the result is a non-empty DataFrame we stack to get a Series
         # GH 46826
         if isinstance(result, ABCDataFrame) and not result.empty:
-            result = result.stack()
+            result = result.stack(future_stack=True)
 
         if not len(self.ax):
             from pandas import Series
@@ -1797,7 +1797,13 @@ class DatetimeIndexResampler(Resampler):
         # we may have a different kind that we were asked originally
         # convert if needed
         if self.kind == "period" and not isinstance(result.index, PeriodIndex):
-            result.index = result.index.to_period(self.freq)
+            if isinstance(result.index, MultiIndex):
+                # GH 24103 - e.g. groupby resample
+                if not isinstance(result.index.levels[-1], PeriodIndex):
+                    new_level = result.index.levels[-1].to_period(self.freq)
+                    result.index = result.index.set_levels(new_level, level=-1)
+            else:
+                result.index = result.index.to_period(self.freq)
         return result
 
 
@@ -2457,8 +2463,16 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
-        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+
+        if isinstance(origin, Timestamp) and origin.tz != index_tz:
             raise ValueError("The origin must have the same timezone as the index.")
+
+        elif isinstance(origin, Timestamp):
+            if origin <= first:
+                first = origin
+            elif origin >= last:
+                last = origin
+
         if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
@@ -2480,6 +2494,9 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
+        if isinstance(origin, Timestamp):
+            first = origin
+
         first = first.normalize()
         last = last.normalize()
 

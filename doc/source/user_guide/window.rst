@@ -244,7 +244,7 @@ a ``BaseIndexer`` subclass that allows a user to define a custom method for calc
 The ``BaseIndexer`` subclass will need to define a ``get_window_bounds`` method that returns
 a tuple of two arrays, the first being the starting indices of the windows and second being the
 ending indices of the windows. Additionally, ``num_values``, ``min_periods``, ``center``, ``closed``
-and will automatically be passed to ``get_window_bounds`` and the defined method must
+and ``step`` will automatically be passed to ``get_window_bounds`` and the defined method must
 always accept these arguments.
 
 For example, if we have the following :class:`DataFrame`
@@ -259,33 +259,26 @@ For example, if we have the following :class:`DataFrame`
 and we want to use an expanding window where ``use_expanding`` is ``True`` otherwise a window of size
 1, we can create the following ``BaseIndexer`` subclass:
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [2]: from pandas.api.indexers import BaseIndexer
+   from pandas.api.indexers import BaseIndexer
 
-   In [3]: class CustomIndexer(BaseIndexer):
-      ...:     def get_window_bounds(self, num_values, min_periods, center, closed):
-      ...:         start = np.empty(num_values, dtype=np.int64)
-      ...:         end = np.empty(num_values, dtype=np.int64)
-      ...:         for i in range(num_values):
-      ...:             if self.use_expanding[i]:
-      ...:                 start[i] = 0
-      ...:                 end[i] = i + 1
-      ...:             else:
-      ...:                 start[i] = i
-      ...:                 end[i] = i + self.window_size
-      ...:         return start, end
+   class CustomIndexer(BaseIndexer):
+        def get_window_bounds(self, num_values, min_periods, center, closed, step):
+            start = np.empty(num_values, dtype=np.int64)
+            end = np.empty(num_values, dtype=np.int64)
+            for i in range(num_values):
+                if self.use_expanding[i]:
+                    start[i] = 0
+                    end[i] = i + 1
+                else:
+                    start[i] = i
+                    end[i] = i + self.window_size
+            return start, end
 
-   In [4]: indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+   indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
 
-   In [5]: df.rolling(indexer).sum()
-   Out[5]:
-       values
-   0     0.0
-   1     1.0
-   2     3.0
-   3     3.0
-   4    10.0
+   df.rolling(indexer).sum()
 
 You can view other examples of ``BaseIndexer`` subclasses `here <https://github.com/pandas-dev/pandas/blob/main/pandas/core/indexers/objects.py>`__
 

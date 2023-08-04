@@ -24,7 +24,7 @@ objects.
    :template: autosummary/class_without_autosummary.rst
 
    api.extensions.ExtensionArray
-   arrays.PandasArray
+   arrays.NumpyExtensionArray
 
 .. We need this autosummary so that methods and attributes are generated.
 .. Separate block, since they aren't classes.
@@ -54,6 +54,7 @@ objects.
       api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
+      api.extensions.ExtensionArray.pad_or_backfill
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted

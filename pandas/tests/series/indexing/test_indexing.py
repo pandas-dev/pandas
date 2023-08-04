@@ -13,6 +13,7 @@ from pandas import (
     Index,
     IndexSlice,
     MultiIndex,
+    NaT,
     Series,
     Timedelta,
     Timestamp,
@@ -25,7 +26,9 @@ import pandas._testing as tm
 
 
 def test_basic_indexing():
-    s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
+    s = Series(
+        np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
+    )
 
     warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
@@ -98,7 +101,7 @@ def test_basic_getitem_dt64tz_values():
 
 
 def test_getitem_setitem_ellipsis():
-    s = Series(np.random.randn(10))
+    s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
@@ -230,9 +233,9 @@ def test_basic_getitem_setitem_corner(datetime_series):
     # OK
     msg = r"unhashable type(: 'slice')?"
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]]
+        datetime_series[[5, [None, None]]]
     with pytest.raises(TypeError, match=msg):
-        datetime_series[[5, slice(None, None)]] = 2
+        datetime_series[[5, [None, None]]] = 2
 
 
 def test_slice(string_series, object_series, using_copy_on_write):
@@ -307,7 +310,9 @@ def test_preserve_refs(datetime_series):
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(np.random.randn(len(index)), index=index, name="sth")
+    ser = Series(
+        np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
+    )
 
     result = indexer_sl(ser)["foo"]
     assert result.name == ser.name
@@ -446,3 +451,59 @@ class TestDeprecatedIndexers:
         ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             ser.loc[key] = 1
+
+
+class TestSetitemValidation:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    # but checks for warnings instead of errors.
+    def _check_setitem_invalid(self, ser, invalid, indexer):
+        msg = "Setting an item of incompatible dtype is deprecated"
+        msg = re.escape(msg)
+
+        orig_ser = ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.iloc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser.loc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser[:] = invalid
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+    _indexers = [0, [0], slice(0, 1), [True, False, False]]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_bool(self, invalid, indexer):
+        ser = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(ser, invalid, indexer)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
+        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
+        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer)

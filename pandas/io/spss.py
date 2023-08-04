@@ -36,19 +36,24 @@ def read_spss(
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True
         Convert categorical columns into pd.Categorical.
-    dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
     Returns
     -------
     DataFrame
+
+    Examples
+    --------
+    >>> df = pd.read_spss("spss_data.sav")  # doctest: +SKIP
     """
     pyreadstat = import_optional_dependency("pyreadstat")
     check_dtype_backend(dtype_backend)
