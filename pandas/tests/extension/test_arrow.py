@@ -265,12 +265,6 @@ def data_for_twos(data):
     # TODO: skip otherwise?
 
 
-@pytest.fixture
-def na_value():
-    """The scalar missing value for this type. Default 'None'"""
-    return pd.NA
-
-
 class TestBaseCasting(base.BaseCastingTests):
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype

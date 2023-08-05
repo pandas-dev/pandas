@@ -53,11 +53,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value(dtype):
-    return dtype.na_value
-
-
-@pytest.fixture
 def na_cmp():
     return operator.eq
 
@@ -76,11 +71,6 @@ def data_for_grouping():
             {"c": 2},
         ]
     )
-
-
-@pytest.fixture
-def data_for_twos(dtype):
-    pytest.skip("Not a numeric dtype")
 
 
 class BaseJSON:
