@@ -18,6 +18,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -33,6 +34,7 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_fillna_kwargs,
@@ -130,6 +132,7 @@ class ExtensionArray:
     interpolate
     isin
     isna
+    pad_or_backfill
     ravel
     repeat
     searchsorted
@@ -180,6 +183,7 @@ class ExtensionArray:
     methods:
 
     * fillna
+    * pad_or_backfill
     * dropna
     * unique
     * factorize / _values_for_factorize
@@ -235,6 +239,12 @@ class ExtensionArray:
 
     By default, ExtensionArrays are not hashable.  Immutable subclasses may
     override this behavior.
+
+    Examples
+    --------
+    Please see the following:
+
+    https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
@@ -270,6 +280,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.arrays.IntegerArray._from_sequence([4, 5])
+        <IntegerArray>
+        [4, 5]
+        Length: 2, dtype: Int64
         """
         raise AbstractMethodError(cls)
 
@@ -294,6 +311,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.arrays.IntegerArray._from_sequence_of_strings(["1", "2", "3"])
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         raise AbstractMethodError(cls)
 
@@ -313,6 +337,16 @@ class ExtensionArray:
         --------
         factorize : Top-level factorize method that dispatches here.
         ExtensionArray.factorize : Encode the extension array as an enumerated type.
+
+        Examples
+        --------
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1),
+        ...                                      pd.Interval(1, 5), pd.Interval(1, 5)])
+        >>> codes, uniques = pd.factorize(interv_arr)
+        >>> pd.arrays.IntervalArray._from_factorized(uniques, interv_arr)
+        <IntervalArray>
+        [(0, 1], (1, 5]]
+        Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
 
@@ -861,17 +895,121 @@ class ExtensionArray:
     ) -> Self:
         """
         See DataFrame.interpolate.__doc__.
+
+        Examples
+        --------
+        >>> arr = pd.arrays.NumpyExtensionArray(np.array([0, 1, np.nan, 3]))
+        >>> arr.interpolate(method="linear",
+        ...                 limit=3,
+        ...                 limit_direction="forward",
+        ...                 index=pd.Index([1, 2, 3, 4]),
+        ...                 fill_value=1,
+        ...                 copy=False,
+        ...                 axis=0,
+        ...                 limit_area="inside"
+        ...                 )
+        <NumpyExtensionArray>
+        [0.0, 1.0, 2.0, 3.0]
+        Length: 4, dtype: float64
         """
         # NB: we return type(self) even if copy=False
         raise NotImplementedError(
             f"{type(self).__name__} does not implement interpolate"
         )
 
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        """
+        Pad or backfill values, used by Series/DataFrame ffill and bfill.
+
+        Parameters
+        ----------
+        method : {'backfill', 'bfill', 'pad', 'ffill'}
+            Method to use for filling holes in reindexed Series:
+
+            * pad / ffill: propagate last valid observation forward to next valid.
+            * backfill / bfill: use NEXT valid observation to fill gap.
+
+        limit : int, default None
+            This is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
+
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword if any NAs are
+            present.
+
+        Returns
+        -------
+        Same type as self
+
+        Examples
+        --------
+        >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
+        >>> arr.pad_or_backfill(method="backfill", limit=1)
+        <IntegerArray>
+        [<NA>, 2, 2, 3, <NA>, <NA>]
+        Length: 6, dtype: Int64
+        """
+
+        # If a 3rd-party EA has implemented this functionality in fillna,
+        #  we warn that they need to implement pad_or_backfill instead.
+        if (
+            type(self).fillna is not ExtensionArray.fillna
+            and type(self).pad_or_backfill is ExtensionArray.pad_or_backfill
+        ):
+            # Check for pad_or_backfill here allows us to call
+            #  super().pad_or_backfill without getting this warning
+            warnings.warn(
+                "ExtensionArray.fillna 'method' keyword is deprecated. "
+                "In a future version. arr.pad_or_backfill will be called "
+                "instead. 3rd-party ExtensionArray authors need to implement "
+                "pad_or_backfill.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return self.fillna(method=method, limit=limit)
+
+        mask = self.isna()
+
+        if mask.any():
+            # NB: the base class does not respect the "copy" keyword
+            meth = missing.clean_fill_method(method)
+
+            npmask = np.asarray(mask)
+            if meth == "pad":
+                indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                return self.take(indexer, allow_fill=True)
+            else:
+                # i.e. meth == "backfill"
+                indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                return self[::-1].take(indexer, allow_fill=True)
+
+        else:
+            if not copy:
+                return self
+            new_values = self.copy()
+        return new_values
+
     def fillna(
         self,
         value: object | ArrayLike | None = None,
         method: FillnaOptions | None = None,
         limit: int | None = None,
+        copy: bool = True,
     ) -> Self:
         """
         Fill NA/NaN values using the specified method.
@@ -880,13 +1018,15 @@ class ExtensionArray:
         ----------
         value : scalar, array-like
             If a scalar value is passed it is used to fill all missing values.
-            Alternatively, an array-like 'value' can be given. It's expected
+            Alternatively, an array-like "value" can be given. It's expected
             that the array-like have the same length as 'self'.
         method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
             Method to use for filling holes in reindexed Series:
 
             * pad / ffill: propagate last valid observation forward to next valid.
             * backfill / bfill: use NEXT valid observation to fill gap.
+
+            .. deprecated:: 2.1.0
 
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
@@ -895,6 +1035,16 @@ class ExtensionArray:
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+
+            .. deprecated:: 2.1.0
+
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
+            The base class implementation ignores the keyword in pad/backfill
+            cases.
 
         Returns
         -------
@@ -909,6 +1059,15 @@ class ExtensionArray:
         [0, 0, 2, 3, 0, 0]
         Length: 6, dtype: Int64
         """
+        if method is not None:
+            warnings.warn(
+                f"The 'method' keyword in {type(self).__name__}.fillna is "
+                "deprecated and will be removed in a future version. "
+                "Use pad_or_backfill instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         value, method = validate_fillna_kwargs(value, method)
 
         mask = self.isna()
@@ -932,10 +1091,16 @@ class ExtensionArray:
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
-                new_values = self.copy()
+                if not copy:
+                    new_values = self[:]
+                else:
+                    new_values = self.copy()
                 new_values[mask] = value
         else:
-            new_values = self.copy()
+            if not copy:
+                new_values = self[:]
+            else:
+                new_values = self.copy()
         return new_values
 
     def dropna(self) -> Self:
@@ -1180,6 +1345,11 @@ class ExtensionArray:
         The values returned by this method are also used in
         :func:`pandas.util.hash_pandas_object`. If needed, this can be
         overridden in the ``self._hash_pandas_object()`` method.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3])._values_for_factorize()
+        (array([1, 2, 3], dtype=object), nan)
         """
         return self.astype(object), np.nan
 
@@ -1512,6 +1682,16 @@ class ExtensionArray:
             returns a string. By default, :func:`repr` is used
             when ``boxed=False`` and :func:`str` is used when
             ``boxed=True``.
+
+        Examples
+        --------
+        >>> class MyExtensionArray(pd.arrays.NumpyExtensionArray):
+        ...     def _formatter(self, boxed=False):
+        ...         return lambda x: '*' + str(x) + '*' if boxed else repr(x) + '*'
+        >>> MyExtensionArray(np.array([1, 2, 3, 4]))
+        <MyExtensionArray>
+        [1*, 2*, 3*, 4*]
+        Length: 4, dtype: int64
         """
         if boxed:
             return str
@@ -1550,6 +1730,13 @@ class ExtensionArray:
         -----
         - Because ExtensionArrays are 1D-only, this is a no-op.
         - The "order" argument is ignored, is for compatibility with NumPy.
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).ravel()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self
 
@@ -1565,6 +1752,15 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> arr1 = pd.array([1, 2, 3])
+        >>> arr2 = pd.array([4, 5, 6])
+        >>> pd.arrays.IntegerArray._concat_same_type([arr1, arr2])
+        <IntegerArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: Int64
         """
         # Implementer note: this method will only be called with a sequence of
         # ExtensionArrays of this class and with the same dtype as self. This
@@ -1656,6 +1852,11 @@ class ExtensionArray:
         Raises
         ------
         TypeError : subclass does not define reductions
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3])._reduce("min")
+        1
         """
         meth = getattr(self, name, None)
         if meth is None:
@@ -1678,6 +1879,19 @@ class ExtensionArray:
     # Non-Optimized Default Methods; in the case of the private methods here,
     #  these are not guaranteed to be stable across pandas versions.
 
+    def _values_for_json(self) -> np.ndarray:
+        """
+        Specify how to render our entries in to_json.
+
+        Notes
+        -----
+        The dtype on the returned ndarray is not restricted, but for non-native
+        types that are not specifically handled in objToJSON.c, to_json is
+        liable to raise. In these cases, it may be safer to return an ndarray
+        of strings.
+        """
+        return np.asarray(self)
+
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool
     ) -> npt.NDArray[np.uint64]:
@@ -1689,12 +1903,24 @@ class ExtensionArray:
         Parameters
         ----------
         encoding : str
+            Encoding for data & key when strings.
         hash_key : str
+            Hash_key for string key to encode.
         categorize : bool
+            Whether to first categorize object arrays before hashing. This is more
+            efficient when the array contains duplicate values.
 
         Returns
         -------
         np.ndarray[uint64]
+
+        Examples
+        --------
+        >>> pd.array([1, 2])._hash_pandas_object(encoding='utf-8',
+        ...                                      hash_key="1000000000000000",
+        ...                                      categorize=False
+        ...                                      )
+        array([11381023671546835630,  4641644667904626417], dtype=uint64)
         """
         from pandas.core.util.hashing import hash_array
 

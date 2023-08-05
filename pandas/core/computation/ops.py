@@ -189,9 +189,6 @@ class Term:
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None) -> None:
-        super().__init__(value, env, side=side, encoding=encoding)
-
     def _resolve_name(self):
         return self._name
 
