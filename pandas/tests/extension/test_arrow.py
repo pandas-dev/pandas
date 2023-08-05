@@ -412,6 +412,45 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
 class TestReduce(base.BaseReduceTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
+        dtype = tm.get_dtype(obj)
+        pa_dtype = dtype.pyarrow_dtype
+        if pa.types.is_temporal(pa_dtype) and op_name in [
+            "sum",
+            "var",
+            "skew",
+            "kurt",
+            "prod",
+        ]:
+            if pa.types.is_duration(pa_dtype) and op_name in ["sum"]:
+                # summing timedeltas is one case that *is* well-defined
+                pass
+            else:
+                return False
+        elif (
+            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
+        ) and op_name in [
+            "sum",
+            "mean",
+            "median",
+            "prod",
+            "std",
+            "sem",
+            "var",
+            "skew",
+            "kurt",
+        ]:
+            return False
+
+        if (
+            pa.types.is_temporal(pa_dtype)
+            and not pa.types.is_duration(pa_dtype)
+            and op_name in ["any", "all"]
+        ):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+            return False
+
         return True
 
     def check_reduce(self, ser, op_name, skipna):
@@ -435,47 +474,8 @@ class TestReduce(base.BaseReduceTests):
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
-        pa_dtype = data.dtype.pyarrow_dtype
-        opname = all_numeric_reductions
-
-        ser = pd.Series(data)
-
-        should_work = True
-        if pa.types.is_temporal(pa_dtype) and opname in [
-            "sum",
-            "var",
-            "skew",
-            "kurt",
-            "prod",
-        ]:
-            if pa.types.is_duration(pa_dtype) and opname in ["sum"]:
-                # summing timedeltas is one case that *is* well-defined
-                pass
-            else:
-                should_work = False
-        elif (
-            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ) and opname in [
-            "sum",
-            "mean",
-            "median",
-            "prod",
-            "std",
-            "sem",
-            "var",
-            "skew",
-            "kurt",
-        ]:
-            should_work = False
-
-        if not should_work:
-            # matching the non-pyarrow versions, these operations *should* not
-            #  work for these dtypes
-            msg = f"does not support reduction '{opname}'"
-            with pytest.raises(TypeError, match=msg):
-                getattr(ser, opname)(skipna=skipna)
-
-            return
+        dtype = data.dtype
+        pa_dtype = dtype.pyarrow_dtype
 
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
@@ -484,7 +484,9 @@ class TestReduce(base.BaseReduceTests):
                 f"pyarrow={pa.__version__} for {pa_dtype}"
             ),
         )
-        if all_numeric_reductions in {"skew", "kurt"}:
+        if all_numeric_reductions in {"skew", "kurt"} and (
+            dtype._is_numeric or dtype.kind == "b"
+        ):
             request.node.add_marker(xfail_mark)
         elif (
             all_numeric_reductions in {"var", "std", "median"}
@@ -492,7 +494,11 @@ class TestReduce(base.BaseReduceTests):
             and pa.types.is_decimal(pa_dtype)
         ):
             request.node.add_marker(xfail_mark)
-        elif all_numeric_reductions == "sem" and pa_version_under8p0:
+        elif (
+            all_numeric_reductions == "sem"
+            and pa_version_under8p0
+            and dtype._is_numeric
+        ):
             request.node.add_marker(xfail_mark)
 
         elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
@@ -521,21 +527,7 @@ class TestReduce(base.BaseReduceTests):
             #  but have not yet decided.
             request.node.add_marker(xfail_mark)
 
-        op_name = all_boolean_reductions
-        ser = pd.Series(data)
-
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
-            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
-            #  behavior which does not support this.
-
-            with pytest.raises(TypeError, match="does not support reduction"):
-                getattr(ser, op_name)(skipna=skipna)
-
-            return
-
-        result = getattr(ser, op_name)(skipna=skipna)
-        assert result is (op_name == "any")
+        return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str):
         if op_name in ["max", "min"]:
@@ -556,11 +548,12 @@ class TestReduce(base.BaseReduceTests):
         return cmp_dtype
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
         if op_name == "skew":
-            assert not hasattr(data, op_name)
-            return
+            if data.dtype._is_numeric:
+                mark = pytest.mark.xfail(reason="skew not implemented")
+                request.node.add_marker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
