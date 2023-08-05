@@ -31,14 +31,14 @@ def test_rank_unordered_categorical_typeerror():
 
 
 def test_rank_apply():
-    lev1 = tm.rands_array(10, 100)
-    lev2 = tm.rands_array(10, 130)
-    lab1 = np.random.randint(0, 100, size=500)
-    lab2 = np.random.randint(0, 130, size=500)
+    lev1 = np.array(["a" * 10] * 100, dtype=object)
+    lev2 = np.array(["b" * 10] * 130, dtype=object)
+    lab1 = np.random.default_rng(2).integers(0, 100, size=500, dtype=int)
+    lab2 = np.random.default_rng(2).integers(0, 130, size=500, dtype=int)
 
     df = DataFrame(
         {
-            "value": np.random.randn(500),
+            "value": np.random.default_rng(2).standard_normal(500),
             "key1": lev1.take(lab1),
             "key2": lev2.take(lab2),
         }

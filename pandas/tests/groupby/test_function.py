@@ -57,8 +57,14 @@ def test_intercept_builtin_sum():
     s = Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
 
-    result = grouped.agg(builtins.sum)
-    result2 = grouped.apply(builtins.sum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result = grouped.agg(builtins.sum)
+    msg = "using np.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#53425
+        result2 = grouped.apply(builtins.sum)
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
@@ -68,9 +74,9 @@ def test_intercept_builtin_sum():
 @pytest.mark.parametrize("keys", ["jim", ["jim", "joe"]])  # Single key  # Multi-key
 def test_builtins_apply(keys, f):
     # see gh-8155
-    rs = np.random.RandomState(42)
-    df = DataFrame(rs.randint(1, 7, (10, 2)), columns=["jim", "joe"])
-    df["jolie"] = rs.randn(10)
+    rs = np.random.default_rng(2)
+    df = DataFrame(rs.integers(1, 7, (10, 2)), columns=["jim", "joe"])
+    df["jolie"] = rs.standard_normal(10)
 
     gb = df.groupby(keys)
 
@@ -78,7 +84,10 @@ def test_builtins_apply(keys, f):
 
     warn = None if f is not sum else FutureWarning
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+    with tm.assert_produces_warning(
+        warn, match=msg, check_stacklevel=False, raise_on_extra_warnings=False
+    ):
+        # Also warns on deprecation GH#53425
         result = gb.apply(f)
     ngroups = len(df.drop_duplicates(subset=keys))
 
@@ -362,25 +371,29 @@ def test_cython_api2():
 
 
 def test_cython_median():
-    arr = np.random.randn(1000)
+    arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
     df = DataFrame(arr)
 
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    exp = df.groupby(labels).agg(np.nanmedian)
+    msg = "using DataFrameGroupBy.median"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
-    df = DataFrame(np.random.randn(1000, 5))
-    rs = df.groupby(labels).agg(np.median)
+    df = DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
+    msg = "using DataFrameGroupBy.median"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = df.groupby(labels).agg(np.median)
     xp = df.groupby(labels).median()
     tm.assert_frame_equal(rs, xp)
 
 
 def test_median_empty_bins(observed):
-    df = DataFrame(np.random.randint(0, 44, 500))
+    df = DataFrame(np.random.default_rng(2).integers(0, 44, 500))
 
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
@@ -504,7 +517,9 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
 
 
 def test_idxmin_idxmax_axis1():
-    df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
+    )
     df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
 
     gb = df.groupby("A")
@@ -521,7 +536,7 @@ def test_idxmin_idxmax_axis1():
     df["E"] = date_range("2016-01-01", periods=10)
     gb2 = df.groupby("A")
 
-    msg = "reduction operation 'argmax' not allowed for this dtype"
+    msg = "'>' not supported between instances of 'Timestamp' and 'float'"
     with pytest.raises(TypeError, match=msg):
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
             gb2.idxmax(axis=1)
@@ -535,7 +550,9 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
         request.node.add_marker(pytest.mark.xfail(reason=msg))
 
-    df = DataFrame(np.random.randn(10, 4), columns=["A", "B", "C", "D"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
+    )
     df["E"] = "x"
     groups = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
     gb = df.groupby(groups)
@@ -678,11 +695,14 @@ def scipy_sem(*args, **kwargs):
     ],
 )
 def test_ops_general(op, targop):
-    df = DataFrame(np.random.randn(1000))
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
-    expected = df.groupby(labels).agg(targop)
+    warn = None if op in ("first", "last", "count", "sem") else FutureWarning
+    msg = f"using DataFrameGroupBy.{op}"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = df.groupby(labels).agg(targop)
     tm.assert_frame_equal(result, expected)
 
 
@@ -723,13 +743,13 @@ def test_nlargest():
 
 def test_nlargest_mi_grouper():
     # see gh-21411
-    npr = np.random.RandomState(123456789)
+    npr = np.random.default_rng(2)
 
     dts = date_range("20180101", periods=10)
     iterables = [dts, ["one", "two"]]
 
     idx = MultiIndex.from_product(iterables, names=["first", "second"])
-    s = Series(npr.randn(20), index=idx)
+    s = Series(npr.standard_normal(20), index=idx)
 
     result = s.groupby("first").nlargest(1)
 
@@ -743,23 +763,23 @@ def test_nlargest_mi_grouper():
             (dts[5], dts[5], "one"),
             (dts[6], dts[6], "one"),
             (dts[7], dts[7], "one"),
-            (dts[8], dts[8], "two"),
+            (dts[8], dts[8], "one"),
             (dts[9], dts[9], "one"),
         ],
         names=["first", "first", "second"],
     )
 
     exp_values = [
-        2.2129019979039612,
-        1.8417114045748335,
-        0.858963679564603,
-        1.3759151378258088,
-        0.9430284594687134,
-        0.5296914208183142,
-        0.8318045593815487,
-        -0.8476703342910327,
-        0.3804446884133735,
-        -0.8028845810770998,
+        0.18905338179353307,
+        -0.41306354339189344,
+        1.799707382720902,
+        0.7738065867276614,
+        0.28121066979764925,
+        0.9775674511260357,
+        -0.3288239040579627,
+        0.45495807124085547,
+        0.5452887139646817,
+        0.12682784711186987,
     ]
 
     expected = Series(exp_values, index=exp_idx)
@@ -1098,7 +1118,7 @@ def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack()
+    expected = grouped.describe().stack(future_stack=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -1451,7 +1471,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     ):
         result = method(*args, **kwargs)
         assert "b" in result.columns
-    elif has_arg or kernel in ("idxmax", "idxmin"):
+    elif has_arg:
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
 
@@ -1470,6 +1490,10 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
+        if kernel == "idxmin":
+            msg = "'<' not supported between instances of 'type' and 'type'"
+        elif kernel == "idxmax":
+            msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
             method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
@@ -1513,8 +1537,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "cummin",
         "cumprod",
         "cumsum",
-        "idxmax",
-        "idxmin",
         "quantile",
     )
     # ops that give an object result on object input
@@ -1540,9 +1562,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # Test default behavior; kernels that fail may be enabled in the future but kernels
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
-        if groupby_func in ("idxmax", "idxmin"):
-            msg = "not allowed for this dtype"
-        elif groupby_func == "quantile":
+        if groupby_func == "quantile":
             msg = "cannot be performed against 'object' dtypes"
         else:
             msg = "is not supported for object dtype"
@@ -1589,6 +1609,13 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
+    elif dtype == bool and groupby_func == "quantile":
+        msg = "Allowing bool dtype in SeriesGroupBy.quantile"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            # GH#51424
+            result = method(*args, numeric_only=True)
+            expected = method(*args, numeric_only=False)
+        tm.assert_series_equal(result, expected)
     else:
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)

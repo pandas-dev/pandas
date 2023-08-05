@@ -87,7 +87,7 @@ def test_reindex_series_add_nat():
 
 def test_reindex_with_datetimes():
     rng = date_range("1/1/2000", periods=20)
-    ts = Series(np.random.randn(20), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
@@ -143,7 +143,9 @@ def test_reindex_pad2():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected.astype("float64"))
 
-    result = s.reindex(new_index).ffill(downcast="infer")
+    msg = "The 'downcast' keyword in ffill is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(new_index).ffill(downcast="infer")
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)

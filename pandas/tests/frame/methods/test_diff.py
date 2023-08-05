@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 class TestDataFrameDiff:
     def test_diff_requires_integer(self):
-        df = DataFrame(np.random.randn(2, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
         with pytest.raises(ValueError, match="periods must be an integer"):
             df.diff(1.5)
 
@@ -156,7 +156,7 @@ class TestDataFrameDiff:
         tm.assert_frame_equal(res, exp)
 
     def test_diff_mixed_dtype(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         df["A"] = np.array([1, 2, 3, 4, 5], dtype=object)
 
         result = df.diff()
@@ -285,7 +285,7 @@ class TestDataFrameDiff:
 
     def test_diff_readonly(self):
         # https://github.com/pandas-dev/pandas/issues/35559
-        arr = np.random.randn(5, 2)
+        arr = np.random.default_rng(2).standard_normal((5, 2))
         arr.flags.writeable = False
         df = DataFrame(arr)
         result = df.diff()

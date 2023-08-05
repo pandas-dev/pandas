@@ -890,9 +890,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
         tipo = _get_dtype(arr_or_dtype)
     except TypeError:
         return False
-    return (isinstance(tipo, np.dtype) and tipo.kind == "M") or isinstance(
-        tipo, DatetimeTZDtype
-    )
+    return lib.is_np_dtype(tipo, "M") or isinstance(tipo, DatetimeTZDtype)
 
 
 def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
@@ -1329,9 +1327,7 @@ def is_ea_or_datetimelike_dtype(dtype: DtypeObj | None) -> bool:
     -----
     Checks only for dtype objects, not dtype-castable strings or types.
     """
-    return isinstance(dtype, ExtensionDtype) or (
-        isinstance(dtype, np.dtype) and dtype.kind in "mM"
-    )
+    return isinstance(dtype, ExtensionDtype) or (lib.is_np_dtype(dtype, "mM"))
 
 
 def is_complex_dtype(arr_or_dtype) -> bool:
@@ -1638,7 +1634,13 @@ def pandas_dtype(dtype) -> DtypeObj:
     # also catch some valid dtypes such as object, np.object_ and 'object'
     # which we safeguard against by catching them earlier and returning
     # np.dtype(valid_dtype) before this condition is evaluated.
-    if is_hashable(dtype) and dtype in [object, np.object_, "object", "O"]:
+    if is_hashable(dtype) and dtype in [
+        object,
+        np.object_,
+        "object",
+        "O",
+        "object_",
+    ]:
         # check hashability to avoid errors/DeprecationWarning when we get
         # here and `dtype` is an array
         return npdtype

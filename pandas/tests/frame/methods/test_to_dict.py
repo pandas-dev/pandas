@@ -149,7 +149,7 @@ class TestDataFrameToDict:
     @pytest.mark.parametrize("mapping", [list, defaultdict, []])
     def test_to_dict_errors(self, mapping):
         # GH#16122
-        df = DataFrame(np.random.randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         msg = "|".join(
             [
                 "unsupported type: <class 'list'>",

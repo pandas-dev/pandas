@@ -27,8 +27,6 @@ from typing import (
     AnyStr,
     Callable,
     Final,
-    Hashable,
-    Sequence,
     cast,
 )
 import warnings
@@ -75,6 +73,10 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     from types import TracebackType
     from typing import Literal
 
@@ -1133,7 +1135,7 @@ class StataReader(StataParser, abc.Iterator):
         order_categoricals: bool = True,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         super().__init__()
         self._col_sizes: list[int] = []
@@ -2029,6 +2031,19 @@ The repeated labels are:
     def data_label(self) -> str:
         """
         Return data label of Stata file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([(1,)], columns=["variable"])
+        >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
+        >>> data_label = "This is a data file."
+        >>> path = "/My_path/filename.dta"
+        >>> df.to_stata(path, time_stamp=time_stamp,    # doctest: +SKIP
+        ...             data_label=data_label,  # doctest: +SKIP
+        ...             version=None)  # doctest: +SKIP
+        >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
+        ...     print(reader.data_label)  # doctest: +SKIP
+        This is a data file.
         """
         self._ensure_open()
         return self._data_label
@@ -2048,6 +2063,22 @@ The repeated labels are:
         Returns
         -------
         dict
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["col_1", "col_2"])
+        >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
+        >>> path = "/My_path/filename.dta"
+        >>> variable_labels = {"col_1": "This is an example"}
+        >>> df.to_stata(path, time_stamp=time_stamp,  # doctest: +SKIP
+        ...             variable_labels=variable_labels, version=None)  # doctest: +SKIP
+        >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
+        ...     print(reader.variable_labels())  # doctest: +SKIP
+        {'index': '', 'col_1': 'This is an example', 'col_2': ''}
+        >>> pd.read_stata(path)  # doctest: +SKIP
+            index col_1 col_2
+        0       0    1    2
+        1       1    3    4
         """
         self._ensure_open()
         return dict(zip(self._varlist, self._variable_labels))
@@ -2059,6 +2090,22 @@ The repeated labels are:
         Returns
         -------
         dict
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=["col_1", "col_2"])
+        >>> time_stamp = pd.Timestamp(2000, 2, 29, 14, 21)
+        >>> path = "/My_path/filename.dta"
+        >>> value_labels = {"col_1": {3: "x"}}
+        >>> df.to_stata(path, time_stamp=time_stamp,  # doctest: +SKIP
+        ...             value_labels=value_labels, version=None)  # doctest: +SKIP
+        >>> with pd.io.stata.StataReader(path) as reader:  # doctest: +SKIP
+        ...     print(reader.value_labels())  # doctest: +SKIP
+        {'col_1': {3: 'x'}}
+        >>> pd.read_stata(path)  # doctest: +SKIP
+            index col_1 col_2
+        0       0    1    2
+        1       1    x    4
         """
         if not self._value_labels_read:
             self._read_value_labels()
@@ -2080,7 +2127,7 @@ def read_stata(
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> DataFrame | StataReader:
     reader = StataReader(
         filepath_or_buffer,
@@ -2340,7 +2387,7 @@ class StataWriter(StataParser):
         data_label: str | None = None,
         variable_labels: dict[Hashable, str] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
@@ -2690,6 +2737,30 @@ supported types."""
     def write_file(self) -> None:
         """
         Export DataFrame object to Stata dta format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"fully_labelled": [1, 2, 3, 3, 1],
+        ...                    "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+        ...                    "Y": [7, 7, 9, 8, 10],
+        ...                    "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        ...                    })
+        >>> path = "/My_path/filename.dta"
+        >>> labels = {"fully_labelled": {1: "one", 2: "two", 3: "three"},
+        ...           "partially_labelled": {1.0: "one", 2.0: "two"},
+        ...           }
+        >>> writer = pd.io.stata.StataWriter(path,
+        ...                                  df,
+        ...                                  value_labels=labels)  # doctest: +SKIP
+        >>> writer.write_file()  # doctest: +SKIP
+        >>> df = pd.read_stata(path)  # doctest: +SKIP
+        >>> df  # doctest: +SKIP
+            index fully_labelled  partially_labeled  Y  Z
+        0       0            one                one  7  j
+        1       1            two                two  7  k
+        2       2          three                NaN  9  l
+        3       3          three                9.0  8  k
+        4       4            one                NaN 10  j
         """
         with get_handle(
             self._fname,
@@ -3267,7 +3338,7 @@ class StataWriter117(StataWriter):
         variable_labels: dict[Hashable, str] | None = None,
         convert_strl: Sequence[Hashable] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
@@ -3659,7 +3730,7 @@ class StataWriterUTF8(StataWriter117):
         convert_strl: Sequence[Hashable] | None = None,
         version: int | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         *,
         value_labels: dict[Hashable, dict[float, str]] | None = None,
     ) -> None:
@@ -3721,7 +3792,7 @@ class StataWriterUTF8(StataWriter117):
                     and c != "_"
                 )
                 or 128 <= ord(c) < 192
-                or c in {"×", "÷"}
+                or c in {"×", "÷"}  # noqa: RUF001
             ):
                 name = name.replace(c, "_")
 

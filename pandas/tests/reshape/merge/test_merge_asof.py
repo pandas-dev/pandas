@@ -1518,7 +1518,7 @@ def test_merge_asof_index_behavior(kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_index():
+def test_merge_asof_numeric_column_in_index():
     # GH#34488
     left = pd.DataFrame({"b": [10, 11, 12]}, index=Index([1, 2, 3], name="a"))
     right = pd.DataFrame({"c": [20, 21, 22]}, index=Index([0, 2, 3], name="a"))
@@ -1528,7 +1528,7 @@ def test_merge_asof_numeri_column_in_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_multiindex():
+def test_merge_asof_numeric_column_in_multiindex():
     # GH#34488
     left = pd.DataFrame(
         {"b": [10, 11, 12]},
