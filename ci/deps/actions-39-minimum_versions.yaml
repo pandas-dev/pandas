@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.33
+  - cython>=3.0.0
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
@@ -17,11 +17,12 @@ dependencies:
   - pytest-cov
   - pytest-xdist>=2.2.0
   - pytest-asyncio>=0.17.0
+  - pytest-localserver>=0.7.1
   - boto3
 
   # required dependencies
   - python-dateutil=2.8.2
-  - numpy=1.21.6
+  - numpy=1.22.4
   - pytz=2020.1
 
   # optional dependencies

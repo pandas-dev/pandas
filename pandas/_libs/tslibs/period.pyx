@@ -107,7 +107,10 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    BDay,
+)
 
 cdef:
     enum:
@@ -2508,7 +2511,7 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt: str) -> str:
+    def strftime(self, fmt: str | None) -> str:
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
@@ -2674,7 +2677,7 @@ class Period(_Period):
     freq : str, default None
         One of pandas period strings or corresponding objects. Accepted
         strings are listed in the
-        :ref:`offset alias section <timeseries.offset_aliases>` in the user docs.
+        :ref:`period alias section <timeseries.period_aliases>` in the user docs.
         If value is datetime, freq is required.
     ordinal : int, default None
         The period offset from the proleptic Gregorian epoch.
@@ -2811,6 +2814,18 @@ class Period(_Period):
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 1000*nanosecond, base)
+
+        if isinstance(freq, BDay):
+            # GH#53446
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+            warnings.warn(
+                "Period with BDay freq is deprecated and will be removed "
+                "in a future version. Use a DatetimeIndex with BDay freq instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return cls._from_ordinal(ordinal, freq)
 

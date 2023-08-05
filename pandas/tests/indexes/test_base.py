@@ -150,7 +150,7 @@ class TestIndex:
         dts = ["1-1-1990", "2-1-1990", "3-1-1990", "4-1-1990", "5-1-1990"]
         expected = DatetimeIndex(dts, freq="MS")
 
-        df = DataFrame(np.random.rand(5, 3))
+        df = DataFrame(np.random.default_rng(2).random((5, 3)))
         df["date"] = dts
         result = DatetimeIndex(df["date"], freq="MS")
 
@@ -297,9 +297,9 @@ class TestIndex:
     @pytest.mark.parametrize(
         "empty,klass",
         [
-            (PeriodIndex([], freq="B"), PeriodIndex),
-            (PeriodIndex(iter([]), freq="B"), PeriodIndex),
-            (PeriodIndex((_ for _ in []), freq="B"), PeriodIndex),
+            (PeriodIndex([], freq="D"), PeriodIndex),
+            (PeriodIndex(iter([]), freq="D"), PeriodIndex),
+            (PeriodIndex((_ for _ in []), freq="D"), PeriodIndex),
             (RangeIndex(step=1), RangeIndex),
             (MultiIndex(levels=[[1, 2], ["blue", "red"]], codes=[[], []]), MultiIndex),
         ],
@@ -557,6 +557,7 @@ class TestIndex:
             lambda values, index: Series(values, index),
         ],
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
@@ -613,7 +614,9 @@ class TestIndex:
         left = Index([], name="foo")
         right = Index([1, 2, 3], name=name)
 
-        result = left.append(right)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = left.append(right)
         assert result.name == expected
 
     @pytest.mark.parametrize(
@@ -778,6 +781,7 @@ class TestIndex:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
@@ -1034,7 +1038,7 @@ class TestIndex:
         assert index[[0, 1]].identical(Index([1, 2], dtype=np.object_))
 
     def test_outer_join_sort(self):
-        left_index = Index(np.random.permutation(15))
+        left_index = Index(np.random.default_rng(2).permutation(15))
         right_index = tm.makeDateIndex(10)
 
         with tm.assert_produces_warning(RuntimeWarning):

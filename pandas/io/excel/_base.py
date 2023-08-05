@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import partial
 from io import BytesIO
@@ -11,16 +17,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 import zipfile
 
 from pandas._config import config
@@ -36,6 +38,7 @@ from pandas.util._decorators import (
     Appender,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -71,6 +74,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+        ExcelWriterIfSheetExists,
         FilePath,
         IntStrT,
         ReadBuffer,
@@ -97,6 +101,10 @@ io : str, bytes, ExcelFile, xlrd.Book, path object, or file-like object
     By file-like object, we refer to objects with a ``read()`` method,
     such as a file handle (e.g. via builtin ``open`` function)
     or ``StringIO``.
+
+    .. deprecated:: 2.1.0
+        Passing byte strings is deprecated. To read from a
+        byte string, wrap it in a ``BytesIO`` object.
 sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
@@ -279,13 +287,14 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable dtypes are used for all dtypes that have a nullable
-    implementation when "numpy_nullable" is set, pyarrow is used for all
-    dtypes if "pyarrow" is set.
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    Back-end data type applied to the resultant :class:`DataFrame`
+    (still experimental). Behaviour is as follows:
 
-    The dtype_backends are still experimential.
+    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+      (default).
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+      DataFrame.
 
     .. versionadded:: 2.0
 
@@ -478,7 +487,7 @@ def read_excel(
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
@@ -538,7 +547,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
     def __init__(
         self,
         filepath_or_buffer,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
@@ -757,7 +766,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[List[int], List[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -1120,8 +1129,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict | None = None,
     ) -> ExcelWriter:
         # only switch class if generic(ExcelWriter)
@@ -1209,8 +1218,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: str | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         # validate that this engine can handle the extension
@@ -1260,14 +1269,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @property
     def date_format(self) -> str:
         """
-        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
         """
         return self._date_format
 
     @property
     def datetime_format(self) -> str:
         """
-        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
         """
         return self._datetime_format
 
@@ -1365,7 +1374,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     content_or_path: FilePath | ReadBuffer[bytes],
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
@@ -1474,6 +1483,12 @@ class ExcelFile:
             This is not supported, switch to using ``openpyxl`` instead.
     engine_kwargs : dict, optional
         Arbitrary keyword arguments passed to excel engine.
+
+    Examples
+    --------
+    >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+    >>> with pd.ExcelFile("myfile.xls") as xls:  # doctest: +SKIP
+    ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
     from pandas.io.excel._odfreader import ODFReader
@@ -1492,7 +1507,7 @@ class ExcelFile:
         self,
         path_or_buffer,
         engine: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
@@ -1504,6 +1519,13 @@ class ExcelFile:
         # First argument can also be bytes, so create a buffer
         if isinstance(path_or_buffer, bytes):
             path_or_buffer = BytesIO(path_or_buffer)
+            warnings.warn(
+                "Passing bytes to 'read_excel' is deprecated and "
+                "will be removed in a future version. To read from a "
+                "byte string, wrap it in a `BytesIO` object.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # Could be a str, ExcelFile, Book, etc.
         self.io = path_or_buffer
@@ -1582,6 +1604,13 @@ class ExcelFile:
         -------
         DataFrame or dict of DataFrames
             DataFrame from the passed in Excel file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_excel('myfile.xlsx')  # doctest: +SKIP
+        >>> file = pd.ExcelFile('myfile.xlsx')  # doctest: +SKIP
+        >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
             sheet_name=sheet_name,

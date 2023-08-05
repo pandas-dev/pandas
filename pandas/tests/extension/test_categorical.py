@@ -31,7 +31,7 @@ from pandas.tests.extension import base
 
 def make_data():
     while True:
-        values = np.random.choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -69,6 +69,11 @@ def data_for_sorting():
 @pytest.fixture
 def data_missing_for_sorting():
     return Categorical(["A", None, "B"], categories=["B", "A"], ordered=True)
+
+
+@pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
 
 
 @pytest.fixture
@@ -152,14 +157,12 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
 class TestAccumulate(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -177,17 +180,17 @@ class TestMethods(base.BaseMethodsTests):
         expected = pd.Series(
             [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
         result = s1.combine(val, lambda x1, x2: x1 + x2)
         expected = pd.Series([a + val for a in list(orig_data1)])
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -264,14 +267,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         ser = pd.Series(data)
         with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
             ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

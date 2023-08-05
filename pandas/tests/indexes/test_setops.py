@@ -8,13 +8,17 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
     DatetimeTZDtype,
     Index,
     MultiIndex,
+    PeriodDtype,
     RangeIndex,
     Series,
     Timestamp,
@@ -65,23 +69,27 @@ def test_union_different_types(index_flat, index_flat2, request):
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
     warn = None
+    msg = "'<' not supported between"
     if not len(idx1) or not len(idx2):
         pass
-    elif (
-        idx1.dtype.kind == "c"
-        and (
-            idx2.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx2.dtype, np.dtype)
-        )
-    ) or (
-        idx2.dtype.kind == "c"
-        and (
-            idx1.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx1.dtype, np.dtype)
-        )
+    elif (idx1.dtype.kind == "c" and (not lib.is_np_dtype(idx2.dtype, "iufc"))) or (
+        idx2.dtype.kind == "c" and (not lib.is_np_dtype(idx1.dtype, "iufc"))
     ):
         # complex objects non-sortable
         warn = RuntimeWarning
+    elif (
+        isinstance(idx1.dtype, PeriodDtype) and isinstance(idx2.dtype, CategoricalDtype)
+    ) or (
+        isinstance(idx2.dtype, PeriodDtype) and isinstance(idx1.dtype, CategoricalDtype)
+    ):
+        warn = FutureWarning
+        msg = r"PeriodDtype\[B\] is deprecated"
+        mark = pytest.mark.xfail(
+            reason="Warning not produced on all builds",
+            raises=AssertionError,
+            strict=False,
+        )
+        request.node.add_marker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -92,7 +100,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    with tm.assert_produces_warning(warn, match="'<' not supported between"):
+    with tm.assert_produces_warning(warn, match=msg):
         res1 = idx1.union(idx2)
         res2 = idx2.union(idx1)
 
@@ -183,6 +191,7 @@ class TestSetOps:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
             return
@@ -211,6 +220,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         first = index[3:]
         second = index[:5]
@@ -235,6 +245,7 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
@@ -263,6 +274,7 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
@@ -428,6 +440,7 @@ class TestSetOps:
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_name_retention_with_nameless(self, index):
         if isinstance(index, MultiIndex):
             index = index.rename(list(range(index.nlevels)))
@@ -481,6 +494,7 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
 )
