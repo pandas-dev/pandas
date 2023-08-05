@@ -248,10 +248,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         return pointwise_result.astype("boolean")
 
-    def _compare_other(self, ser: pd.Series, data, op, other):
-        op_name = f"__{op.__name__}__"
-        self.check_opname(ser, op_name, other)
-
 
 class TestInterface(base.BaseInterfaceTests):
     pass

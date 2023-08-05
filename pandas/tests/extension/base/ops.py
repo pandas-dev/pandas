@@ -161,7 +161,18 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(other, ops.rdivmod, ser)
 
     def test_add_series_with_extension_array(self, data):
+        # Check adding an ExtensionArray to a Series of the same dtype matches
+        # the behavior of adding the arrays directly and then wrapping in a
+        # Series.
+
         ser = pd.Series(data)
+
+        exc = self._get_expected_exception("__add__", ser, data)
+        if exc is not None:
+            with pytest.raises(exc):
+                ser + data
+            return
+
         result = ser + data
         expected = pd.Series(data + data)
         tm.assert_series_equal(result, expected)
@@ -195,6 +206,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
+            expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
 
         else:
@@ -207,6 +219,9 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
+                expected = self._cast_pointwise_result(
+                    op.__name__, ser, other, expected
+                )
                 tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
@@ -218,7 +233,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
-        other = pd.Series([data[0]] * len(data))
+        other = pd.Series([data[0]] * len(data), dtype=data.dtype)
         self._compare_other(ser, data, comparison_op, other)
 
 

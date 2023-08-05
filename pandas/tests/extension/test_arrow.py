@@ -988,6 +988,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_integer(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
+            # TODO: in many of these cases, e.g. non-duration temporal,
+            #  these will *never* be allowed. Would it make more sense to
+            #  re-raise as TypeError, more consistent with non-pyarrow cases?
             exc = pa.ArrowNotImplementedError
         else:
             exc = None
@@ -1123,32 +1126,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # i.e. timestamp, date, time, but not timedelta; these *should*
-            #  raise when trying to add
-            ser = pd.Series(data)
-            if pa_version_under7p0:
-                msg = "Function add_checked has no kernel matching input types"
-            else:
-                msg = "Function 'add_checked' has no kernel matching input types"
-            with pytest.raises(NotImplementedError, match=msg):
-                # TODO: this is a pa.lib.ArrowNotImplementedError, might
-                #  be better to reraise a TypeError; more consistent with
-                #  non-pyarrow cases
-                ser + data
-
-            return
-
-        if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_boolean(pa_dtype)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"add_checked not implemented for {pa_dtype}",
-                )
-            )
-        elif pa_dtype.equals("int8"):
+        if pa_dtype.equals("int8"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
@@ -1177,19 +1155,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             tm.assert_series_equal(result, expected)
 
         else:
-            exc = None
-            try:
-                result = comparison_op(ser, other)
-            except Exception as err:
-                exc = err
-
-            if exc is None:
-                # Didn't error, then should match point-wise behavior
-                expected = ser.combine(other, comparison_op)
-                tm.assert_series_equal(result, expected)
-            else:
-                with pytest.raises(type(exc)):
-                    ser.combine(other, comparison_op)
+            return super().test_compare_array(data, comparison_op)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833
