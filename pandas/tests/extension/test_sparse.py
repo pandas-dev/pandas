@@ -84,11 +84,6 @@ def data_missing_for_sorting(request):
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def na_cmp():
     return lambda left, right: pd.isna(left) and pd.isna(right)
 
