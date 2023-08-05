@@ -216,20 +216,7 @@ The pandas integration of the JSON interface requires importing only the json-nt
 
 ### Implementation options
 The interface can be implemented as NTV connector (`SeriesConnector` and `DataFrameConnector`) and as a new pandas JSON interface `orient` option.
-```mermaid
-flowchart TB
-    subgraph H [conversion pandas-NTV]
-        direction LR
-        K(mapping NTV type / dtype\n<i>NTV / pandas</i>) ~~~ I(object dtype conversion\n<i>NTV Connector</i>)
-        I ~~~ J(non-object dtype conversion\n<i>pandas</i>)
-    end
 
-        direction TB
-        D{{pandas}} ~~~ F(interface JSON\n<i>pandas</i>)
-        E{{NTV}} ~~~ G(pandas NTV Connector\n<i>NTV</i>)
-        F --> H
-        G --> H
-```
 Several pandas implementations are possible:
 
 1. External:
