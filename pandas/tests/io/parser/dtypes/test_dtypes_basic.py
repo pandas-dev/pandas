@@ -549,8 +549,6 @@ def test_string_inference(all_parsers):
 x,1
 y,2"""
     parser = all_parsers
-    if parser.engine == "pyarrow":
-        pytest.skip("TODO: Follow up")
     with pd.option_context("future.infer_string", True):
         result = parser.read_csv(StringIO(data))
 

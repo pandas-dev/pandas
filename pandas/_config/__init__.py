@@ -42,4 +42,4 @@ def using_nullable_dtypes() -> bool:
 
 def using_pyarrow_string_dtype() -> bool:
     _mode_options = _global_config["future"]
-    return _mode_options["pyarrow_strings"]
+    return _mode_options["infer_string"]

@@ -135,6 +135,7 @@ def read_orc(
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
+        print("Ts")
         if using_pyarrow_string_dtype():
             types_mapper = arrow_string_types_mapper()
         else:
