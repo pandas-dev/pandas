@@ -31,7 +31,10 @@ class TestDataFrameReprInfoEtc:
         lets = list("ACDEFGHIJKLMNOP")
         slen = 50
         nseqs = 1000
-        words = [[np.random.choice(lets) for x in range(slen)] for _ in range(nseqs)]
+        words = [
+            [np.random.default_rng(2).choice(lets) for x in range(slen)]
+            for _ in range(nseqs)
+        ]
         df = DataFrame(words).astype("U1")
         assert (df.dtypes == object).all()
 
@@ -43,7 +46,7 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode_level_names(self, frame_or_series):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
-        obj = DataFrame(np.random.randn(2, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((2, 4)), index=index)
         obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
@@ -153,7 +156,11 @@ NaT   4"""
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame(
-            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)}, index=range(200)
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": tm.makeStringIndex(200),
+            },
+            index=range(200),
         )
         biggie.loc[:20, "A"] = np.nan
         biggie.loc[:20, "B"] = np.nan
@@ -256,7 +263,10 @@ NaT   4"""
             bytes(df)
 
     def test_very_wide_info_repr(self):
-        df = DataFrame(np.random.randn(10, 20), columns=tm.rands_array(10, 20))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 20)),
+            columns=np.array(["a" * 10] * 20, dtype=object),
+        )
         repr(df)
 
     def test_repr_column_name_unicode_truncation_bug(self):
@@ -335,7 +345,7 @@ NaT   4"""
 
     def test_frame_to_string_with_periodindex(self):
         index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
-        frame = DataFrame(np.random.randn(3, 4), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), index=index)
 
         # it works!
         frame.to_string()

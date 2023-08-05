@@ -80,12 +80,12 @@ class TestIndexConcat:
 
     def test_concat_rename_index(self):
         a = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_a"),
         )
         b = DataFrame(
-            np.random.rand(3, 3),
+            np.random.default_rng(2).random((3, 3)),
             columns=list("ABC"),
             index=Index(list("abc"), name="index_b"),
         )
@@ -114,14 +114,14 @@ class TestIndexConcat:
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         comb = concat([df, df], axis=axis, copy=True)
         if not using_copy_on_write:
-            assert comb.index is not df.index
-            assert comb.columns is not df.columns
+            assert not comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
         elif axis in [0, "index"]:
-            assert comb.index is not df.index
-            assert comb.columns is df.columns
+            assert not comb.index.is_(df.index)
+            assert comb.columns.is_(df.columns)
         elif axis in [1, "columns"]:
-            assert comb.index is df.index
-            assert comb.columns is not df.columns
+            assert comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
 
     def test_default_index(self):
         # is_series and ignore_index
@@ -160,7 +160,7 @@ class TestIndexConcat:
 
         # single dtypes
         df = DataFrame(
-            np.random.randint(0, 10, size=40).reshape(10, 4),
+            np.random.default_rng(2).integers(0, 10, size=40).reshape(10, 4),
             columns=["A", "A", "C", "C"],
         )
 
@@ -175,9 +175,13 @@ class TestIndexConcat:
         # multi dtypes
         df = concat(
             [
-                DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
                 DataFrame(
-                    np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                    np.random.default_rng(2).standard_normal((10, 4)),
+                    columns=["A", "A", "B", "B"],
+                ),
+                DataFrame(
+                    np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+                    columns=["A", "C"],
                 ),
             ],
             axis=1,
@@ -240,7 +244,7 @@ class TestMultiIndexConcat:
         # when multi-index levels are RangeIndex objects
         # there is a bug in concat with objects of len 1
 
-        df = DataFrame(np.random.randn(9, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((9, 2)))
         df.index = MultiIndex(
             levels=[pd.RangeIndex(3), pd.RangeIndex(3)],
             codes=[np.repeat(np.arange(3), 3), np.tile(np.arange(3), 3)],

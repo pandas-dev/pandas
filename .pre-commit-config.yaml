@@ -138,7 +138,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.296
+        - pyright@1.1.305
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -251,16 +251,10 @@ repos:
 
             # os.remove
             |os\.remove
+
+            # Unseeded numpy default_rng
+            |default_rng\(\)
         files: ^pandas/tests/
-        types_or: [python, cython, rst]
-    -   id: unwanted-patterns-in-ea-tests
-        name: Unwanted patterns in EA tests
-        language: pygrep
-        entry: |
-            (?x)
-            tm.assert_(series|frame)_equal
-        files: ^pandas/tests/extension/base/
-        exclude: ^pandas/tests/extension/base/base\.py$
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code
