@@ -190,12 +190,15 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, ser, data, op, other):
-        op_name = f"__{op.__name__}__"
-        result = getattr(ser, op_name)(other)
-        dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
-        expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
-        tm.assert_series_equal(result, expected)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        dtype = tm.get_dtype(obj)
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "storage"
+        if dtype.storage == "pyarrow":  # type: ignore[union-attr]
+            cast_to = "boolean[pyarrow]"
+        else:
+            cast_to = "boolean"
+        return pointwise_result.astype(cast_to)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)

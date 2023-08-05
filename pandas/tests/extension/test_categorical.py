@@ -267,20 +267,12 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op, other):
         op_name = f"__{op.__name__}__"
-        if op_name == "__eq__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x == y)
-            assert (result == expected).all()
-
-        elif op_name == "__ne__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x != y)
-            assert (result == expected).all()
-
-        else:
+        if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
+        else:
+            return super()._compare_other(s, data, op, other)
 
     @pytest.mark.parametrize(
         "categories",

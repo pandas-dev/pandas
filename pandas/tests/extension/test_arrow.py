@@ -1155,19 +1155,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             tm.assert_series_equal(result, expected)
 
         else:
-            exc = None
-            try:
-                result = comparison_op(ser, other)
-            except Exception as err:
-                exc = err
-
-            if exc is None:
-                # Didn't error, then should match point-wise behavior
-                expected = ser.combine(other, comparison_op)
-                tm.assert_series_equal(result, expected)
-            else:
-                with pytest.raises(type(exc)):
-                    ser.combine(other, comparison_op)
+            return super().test_compare_array(data, comparison_op)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833
