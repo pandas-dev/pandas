@@ -1765,8 +1765,8 @@ _any_skipna_inferred_dtype = [
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
-    # The following two dtypes are commented out due to GH 23554
-    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    ("complex", [1 + 1j, np.nan, 2 + 2j]),
+    # The following dtype is commented out due to GH 23554
     # ('timedelta64', [np.timedelta64(1, 'D'),
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
