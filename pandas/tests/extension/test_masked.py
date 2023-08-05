@@ -305,7 +305,12 @@ class TestGroupby(base.BaseGroupbyTests):
     pass
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        if op_name in ["any", "all"] and tm.get_dtype(obj).kind != "b":
+            pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
+        return True
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
@@ -325,7 +330,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(ser.dropna().astype(cmp_dtype), op_name)(skipna=skipna)
-            if not skipna and ser.isna().any():
+            if not skipna and ser.isna().any() and op_name not in ["any", "all"]:
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
@@ -354,13 +359,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             raise TypeError("not supposed to reach this")
         return cmp_dtype
-
-
-class TestBooleanReduce(base.BaseBooleanReduceTests):
-    @pytest.fixture(autouse=True)
-    def maybe_skip(self, dtype):
-        if dtype.kind != "b":
-            pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
 
 
 class TestAccumulation(base.BaseAccumulateTests):
