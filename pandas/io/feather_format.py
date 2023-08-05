@@ -141,3 +141,5 @@ def read_feather(
 
         elif using_pyarrow_string_dtype():
             return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
+        else:
+            raise NotImplementedError
