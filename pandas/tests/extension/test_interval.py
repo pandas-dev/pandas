@@ -18,10 +18,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Interval,
-    Series,
-)
+from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
@@ -106,18 +103,8 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
 
 
 class TestReduce(base.BaseReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-        ser = Series(data)
-
-        if op_name in ["min", "max"]:
-            # IntervalArray *does* implement these
-            assert getattr(ser, op_name)(skipna=skipna) in data
-            assert getattr(data, op_name)(skipna=skipna) in data
-            return
-
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max"]
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
@@ -145,9 +132,7 @@ class TestSetitem(BaseInterval, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Interval has custom repr")
-    def test_array_repr(self, data, size):
-        super().test_array_repr()
+    pass
 
 
 class TestParsing(BaseInterval, base.BaseParsingTests):
