@@ -6664,7 +6664,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.set_option("mode.copy_on_write", True)
         >>> s = pd.Series([1, 2], index=["a", "b"])
         >>> copy = s.copy(deep=False)
-        >>> s[0] = 100
+        >>> s.iloc[0] = 100
         >>> s
         a    100
         b      2
