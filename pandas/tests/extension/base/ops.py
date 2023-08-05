@@ -195,6 +195,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
+            expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
 
         else:
@@ -207,6 +208,9 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
+                expected = self._cast_pointwise_result(
+                    op.__name__, ser, other, expected
+                )
                 tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
@@ -218,7 +222,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
-        other = pd.Series([data[0]] * len(data))
+        other = pd.Series([data[0]] * len(data), dtype=data.dtype)
         self._compare_other(ser, data, comparison_op, other)
 
 

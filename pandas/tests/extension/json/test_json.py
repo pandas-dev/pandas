@@ -320,7 +320,11 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
-    pass
+    def test_compare_array(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.node.add_marker(mark)
+        super().test_compare_array(data, comparison_op)
 
 
 class TestPrinting(BaseJSON, base.BasePrintingTests):
