@@ -3,7 +3,6 @@ Tests for the `deprecate_nonkeyword_arguments` decorator
 """
 
 import inspect
-import warnings
 
 from pandas.util._decorators import deprecate_nonkeyword_arguments
 
@@ -52,16 +51,12 @@ def test_four_arguments():
 
 
 def test_three_arguments_with_name_in_warning():
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    msg = (
+        "Starting with pandas version 1.1 all arguments of f_add_inputs "
+        "except for the arguments 'a' and 'b' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert f(6, 3, 3) == 12
-        assert len(w) == 1
-        for actual_warning in w:
-            assert actual_warning.category == FutureWarning
-            assert str(actual_warning.message) == (
-                "Starting with pandas version 1.1 all arguments of f_add_inputs "
-                "except for the arguments 'a' and 'b' will be keyword-only."
-            )
 
 
 @deprecate_nonkeyword_arguments(version="1.1")
@@ -85,16 +80,12 @@ def test_three_arguments_default_allowed_args():
 
 
 def test_three_positional_argument_with_warning_message_analysis():
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    msg = (
+        "Starting with pandas version 1.1 all arguments of g "
+        "except for the argument 'a' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert g(6, 3, 3) == 12
-        assert len(w) == 1
-        for actual_warning in w:
-            assert actual_warning.category == FutureWarning
-            assert str(actual_warning.message) == (
-                "Starting with pandas version 1.1 all arguments of g "
-                "except for the argument 'a' will be keyword-only."
-            )
 
 
 @deprecate_nonkeyword_arguments(version="1.1")
@@ -117,16 +108,9 @@ def test_one_positional_argument():
 
 
 def test_one_positional_argument_with_warning_message_analysis():
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
+    msg = "Starting with pandas version 1.1 all arguments of h will be keyword-only."
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         assert h(19) == 19
-        assert len(w) == 1
-        for actual_warning in w:
-            assert actual_warning.category == FutureWarning
-            assert str(actual_warning.message) == (
-                "Starting with pandas version 1.1 all arguments "
-                "of h will be keyword-only."
-            )
 
 
 @deprecate_nonkeyword_arguments(version="1.1")

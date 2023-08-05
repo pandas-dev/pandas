@@ -1,5 +1,4 @@
 from typing import final
-import warnings
 
 import pytest
 
@@ -87,6 +86,7 @@ class BaseReduceTests(BaseExtensionTests):
         else:
             self.check_reduce(s, op_name, skipna)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
@@ -103,9 +103,7 @@ class BaseReduceTests(BaseExtensionTests):
 
         else:
             # min/max with empty produce numpy warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                self.check_reduce(s, op_name, skipna)
+            self.check_reduce(s, op_name, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):

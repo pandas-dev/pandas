@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -18,17 +16,15 @@ import pandas._testing as tm
 
 from pandas.tseries import offsets
 
+# suppress warnings about empty slices, as we are deliberately testing
+# with a 0-length Series
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.*(empty slice|0 for slice).*:RuntimeWarning"
+)
+
 
 def f(x):
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with a 0-length Series
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message=".*(empty slice|0 for slice).*",
-            category=RuntimeWarning,
-        )
-        return x[np.isfinite(x)].mean()
+    return x[np.isfinite(x)].mean()
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])

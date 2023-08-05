@@ -1,9 +1,5 @@
 import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -281,60 +277,51 @@ def test_tuple_index(setup_path):
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = DataFrame(data, index=idx, columns=col)
 
-    with catch_warnings(record=True):
-        simplefilter("ignore", pd.errors.PerformanceWarning)
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
         _check_roundtrip(DF, tm.assert_frame_equal, path=setup_path)
 
 
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 def test_index_types(setup_path):
-    with catch_warnings(record=True):
-        values = np.random.default_rng(2).standard_normal(2)
+    values = np.random.default_rng(2).standard_normal(2)
 
-        func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
+    func = lambda lhs, rhs: tm.assert_series_equal(lhs, rhs, check_index_type=True)
 
-    with catch_warnings(record=True):
-        ser = Series(values, [0, "y"])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [0, "y"])
+    _check_roundtrip(ser, func, path=setup_path)
 
-    with catch_warnings(record=True):
-        ser = Series(values, [datetime.datetime.today(), 0])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [datetime.datetime.today(), 0])
+    _check_roundtrip(ser, func, path=setup_path)
 
-    with catch_warnings(record=True):
-        ser = Series(values, ["y", 0])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, ["y", 0])
+    _check_roundtrip(ser, func, path=setup_path)
 
-    with catch_warnings(record=True):
-        ser = Series(values, [datetime.date.today(), "a"])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [datetime.date.today(), "a"])
+    _check_roundtrip(ser, func, path=setup_path)
 
-    with catch_warnings(record=True):
-        ser = Series(values, [0, "y"])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [0, "y"])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, [datetime.datetime.today(), 0])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [datetime.datetime.today(), 0])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, ["y", 0])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, ["y", 0])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, [datetime.date.today(), "a"])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [datetime.date.today(), "a"])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, [1.23, "b"])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [1.23, "b"])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, [1, 1.53])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [1, 1.53])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(values, [1, 5])
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [1, 5])
+    _check_roundtrip(ser, func, path=setup_path)
 
-        ser = Series(
-            values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)]
-        )
-        _check_roundtrip(ser, func, path=setup_path)
+    ser = Series(values, [datetime.datetime(2012, 1, 1), datetime.datetime(2012, 1, 2)])
+    _check_roundtrip(ser, func, path=setup_path)
 
 
 def test_timeseries_preepoch(setup_path, request):
@@ -499,14 +486,11 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
 def test_unicode_index(setup_path):
     unicode_values = ["\u03c3", "\u03c3\u03c3"]
 
-    # PerformanceWarning
-    with catch_warnings(record=True):
-        simplefilter("ignore", pd.errors.PerformanceWarning)
-        s = Series(
-            np.random.default_rng(2).standard_normal(len(unicode_values)),
-            unicode_values,
-        )
-        _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
+    s = Series(
+        np.random.default_rng(2).standard_normal(len(unicode_values)),
+        unicode_values,
+    )
+    _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
 def test_unicode_longer_encoded(setup_path):

@@ -3,7 +3,6 @@ from __future__ import annotations
 from functools import reduce
 from itertools import product
 import operator
-import warnings
 
 import numpy as np
 import pytest
@@ -761,28 +760,26 @@ class TestAlignment:
         res = pd.eval(s, engine=engine, parser=parser)
         tm.assert_frame_equal(res, df * ~2)
 
+    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("lr_idx_type", lhs_index_types)
     @pytest.mark.parametrize("rr_idx_type", index_types)
     @pytest.mark.parametrize("c_idx_type", index_types)
     def test_basic_frame_alignment(
         self, engine, parser, lr_idx_type, rr_idx_type, c_idx_type
     ):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
-
-            df = tm.makeCustomDataframe(
-                10, 10, data_gen_f=f, r_idx_type=lr_idx_type, c_idx_type=c_idx_type
-            )
-            df2 = tm.makeCustomDataframe(
-                20, 10, data_gen_f=f, r_idx_type=rr_idx_type, c_idx_type=c_idx_type
-            )
-            # only warns if not monotonic and not sortable
-            if should_warn(df.index, df2.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    res = pd.eval("df + df2", engine=engine, parser=parser)
-            else:
+        df = tm.makeCustomDataframe(
+            10, 10, data_gen_f=f, r_idx_type=lr_idx_type, c_idx_type=c_idx_type
+        )
+        df2 = tm.makeCustomDataframe(
+            20, 10, data_gen_f=f, r_idx_type=rr_idx_type, c_idx_type=c_idx_type
+        )
+        # only warns if not monotonic and not sortable
+        if should_warn(df.index, df2.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("df + df2", engine=engine, parser=parser)
-            tm.assert_frame_equal(res, df + df2)
+        else:
+            res = pd.eval("df + df2", engine=engine, parser=parser)
+        tm.assert_frame_equal(res, df + df2)
 
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     @pytest.mark.parametrize("c_idx_type", lhs_index_types)
@@ -801,55 +798,46 @@ class TestAlignment:
         res = pd.eval("df < df3", engine=engine, parser=parser)
         tm.assert_frame_equal(res, df < df3)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("r1", lhs_index_types)
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
     @pytest.mark.parametrize("c2", index_types)
     def test_medium_complex_frame_alignment(self, engine, parser, r1, c1, r2, c2):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
-
-            df = tm.makeCustomDataframe(
-                3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1
-            )
-            df2 = tm.makeCustomDataframe(
-                4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
-            )
-            df3 = tm.makeCustomDataframe(
-                5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
-            )
-            if should_warn(df.index, df2.index, df3.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
-            else:
+        df = tm.makeCustomDataframe(3, 2, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+        df2 = tm.makeCustomDataframe(4, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+        df3 = tm.makeCustomDataframe(5, 2, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+        if should_warn(df.index, df2.index, df3.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
-            tm.assert_frame_equal(res, df + df2 + df3)
+        else:
+            res = pd.eval("df + df2 + df3", engine=engine, parser=parser)
+        tm.assert_frame_equal(res, df + df2 + df3)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     def test_basic_frame_series_alignment(
         self, engine, parser, index_name, r_idx_type, c_idx_type
     ):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
-            df = tm.makeCustomDataframe(
-                10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
-            )
-            index = getattr(df, index_name)
-            s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
+        df = tm.makeCustomDataframe(
+            10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        )
+        index = getattr(df, index_name)
+        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
 
-            if should_warn(df.index, s.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    res = pd.eval("df + s", engine=engine, parser=parser)
-            else:
+        if should_warn(df.index, s.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("df + s", engine=engine, parser=parser)
+        else:
+            res = pd.eval("df + s", engine=engine, parser=parser)
 
-            if r_idx_type == "dt" or c_idx_type == "dt":
-                expected = df.add(s) if engine == "numexpr" else df + s
-            else:
-                expected = df + s
-            tm.assert_frame_equal(res, expected)
+        if r_idx_type == "dt" or c_idx_type == "dt":
+            expected = df.add(s) if engine == "numexpr" else df + s
+        else:
+            expected = df + s
+        tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize("index_name", ["index", "columns"])
     @pytest.mark.parametrize(
@@ -890,6 +878,7 @@ class TestAlignment:
             expected = s + df
         tm.assert_frame_equal(res, expected)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("c_idx_type", index_types)
     @pytest.mark.parametrize("r_idx_type", lhs_index_types)
     @pytest.mark.parametrize("index_name", ["index", "columns"])
@@ -897,30 +886,28 @@ class TestAlignment:
     def test_series_frame_commutativity(
         self, engine, parser, index_name, op, r_idx_type, c_idx_type
     ):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
+        df = tm.makeCustomDataframe(
+            10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
+        )
+        index = getattr(df, index_name)
+        s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
 
-            df = tm.makeCustomDataframe(
-                10, 10, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
-            )
-            index = getattr(df, index_name)
-            s = Series(np.random.default_rng(2).standard_normal(5), index[:5])
-
-            lhs = f"s {op} df"
-            rhs = f"df {op} s"
-            if should_warn(df.index, s.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    a = pd.eval(lhs, engine=engine, parser=parser)
-                with tm.assert_produces_warning(RuntimeWarning):
-                    b = pd.eval(rhs, engine=engine, parser=parser)
-            else:
+        lhs = f"s {op} df"
+        rhs = f"df {op} s"
+        if should_warn(df.index, s.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 a = pd.eval(lhs, engine=engine, parser=parser)
+            with tm.assert_produces_warning(RuntimeWarning):
                 b = pd.eval(rhs, engine=engine, parser=parser)
+        else:
+            a = pd.eval(lhs, engine=engine, parser=parser)
+            b = pd.eval(rhs, engine=engine, parser=parser)
 
-            if r_idx_type != "dt" and c_idx_type != "dt":
-                if engine == "numexpr":
-                    tm.assert_frame_equal(a, b)
+        if r_idx_type != "dt" and c_idx_type != "dt":
+            if engine == "numexpr":
+                tm.assert_frame_equal(a, b)
 
+    @pytest.mark.filterwarnings("always::RuntimeWarning")
     @pytest.mark.parametrize("r1", lhs_index_types)
     @pytest.mark.parametrize("c1", index_types)
     @pytest.mark.parametrize("r2", index_types)
@@ -930,44 +917,37 @@ class TestAlignment:
         m1 = 5
         m2 = 2 * m1
 
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always", RuntimeWarning)
+        index_name = np.random.default_rng(2).choice(["index", "columns"])
+        obj_name = np.random.default_rng(2).choice(["df", "df2"])
 
-            index_name = np.random.default_rng(2).choice(["index", "columns"])
-            obj_name = np.random.default_rng(2).choice(["df", "df2"])
+        df = tm.makeCustomDataframe(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
+        df2 = tm.makeCustomDataframe(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
+        index = getattr(locals().get(obj_name), index_name)
+        ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
-            df = tm.makeCustomDataframe(
-                m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1
-            )
-            df2 = tm.makeCustomDataframe(
-                m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2
-            )
-            index = getattr(locals().get(obj_name), index_name)
-            ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
-
-            if r2 == "dt" or c2 == "dt":
-                if engine == "numexpr":
-                    expected2 = df2.add(ser)
-                else:
-                    expected2 = df2 + ser
+        if r2 == "dt" or c2 == "dt":
+            if engine == "numexpr":
+                expected2 = df2.add(ser)
             else:
                 expected2 = df2 + ser
+        else:
+            expected2 = df2 + ser
 
-            if r1 == "dt" or c1 == "dt":
-                if engine == "numexpr":
-                    expected = expected2.add(df)
-                else:
-                    expected = expected2 + df
+        if r1 == "dt" or c1 == "dt":
+            if engine == "numexpr":
+                expected = expected2.add(df)
             else:
                 expected = expected2 + df
+        else:
+            expected = expected2 + df
 
-            if should_warn(df2.index, ser.index, df.index):
-                with tm.assert_produces_warning(RuntimeWarning):
-                    res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
-            else:
+        if should_warn(df2.index, ser.index, df.index):
+            with tm.assert_produces_warning(RuntimeWarning):
                 res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
-            assert res.shape == expected.shape
-            tm.assert_frame_equal(res, expected)
+        else:
+            res = pd.eval("df2 + ser + df", engine=engine, parser=parser)
+        assert res.shape == expected.shape
+        tm.assert_frame_equal(res, expected)
 
     def test_performance_warning_for_poor_alignment(self, engine, parser):
         df = DataFrame(np.random.default_rng(2).standard_normal((1000, 10)))

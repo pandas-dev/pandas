@@ -293,6 +293,7 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(
     "func", [lambda x: x, lambda x: x.mean()], ids=["identity", "mean"]
@@ -303,9 +304,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis):
     df = DataFrame(**{ax: ["a", "b", "c"]})
 
     with np.errstate(all="ignore"):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            test_res = func(np.array([], dtype="f8"))
+        test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
 
         result = df.apply(func, axis=axis, raw=raw)

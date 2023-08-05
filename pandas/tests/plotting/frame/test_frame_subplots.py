@@ -1,7 +1,6 @@
 """ Test cases for DataFrame.plot """
 
 import string
-import warnings
 
 import numpy as np
 import pytest
@@ -336,9 +335,7 @@ class TestDataFramePlotsSubplots:
             np.random.default_rng(2).random((10, 4)),
             index=list(string.ascii_letters[:10]),
         )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             returned = df.plot(
                 subplots=True, ax=axes, layout=layout, sharex=False, sharey=False
             )

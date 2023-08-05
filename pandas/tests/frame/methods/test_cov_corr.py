@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -153,6 +151,7 @@ class TestDataFrameCorr:
         rs = df.corr(meth)
         assert isna(rs.values).all()
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
@@ -162,10 +161,7 @@ class TestDataFrameCorr:
         df = DataFrame({"a": [True, False], "b": [1, 0]})
 
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            result = df.corr(meth)
+        result = df.corr(meth)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["cov", "corr"])

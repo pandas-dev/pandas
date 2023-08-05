@@ -576,16 +576,6 @@ ignore the error.
     def test_thing(self):
         pass
 
-If you need finer-grained control, you can use Python's
-`warnings module <https://docs.python.org/3/library/warnings.html>`__
-to control whether a warning is ignored or raised at different places within
-a single test.
-
-.. code-block:: python
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
-
 Testing an exception
 ^^^^^^^^^^^^^^^^^^^^
 

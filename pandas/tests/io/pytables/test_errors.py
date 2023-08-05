@@ -1,7 +1,6 @@
 import datetime
 from io import BytesIO
 import re
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -86,31 +85,28 @@ because its data contents are not [string] but [date] object dtype"""
 
 def test_invalid_terms(tmp_path, setup_path):
     with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
-            df = tm.makeTimeDataFrame()
-            df["string"] = "foo"
-            df.loc[df.index[0:4], "string"] = "bar"
+        df = tm.makeTimeDataFrame()
+        df["string"] = "foo"
+        df.loc[df.index[0:4], "string"] = "bar"
 
-            store.put("df", df, format="table")
+        store.put("df", df, format="table")
 
-            # some invalid terms
-            msg = re.escape(
-                "__init__() missing 1 required positional argument: 'where'"
-            )
-            with pytest.raises(TypeError, match=msg):
-                Term()
+        # some invalid terms
+        msg = re.escape("__init__() missing 1 required positional argument: 'where'")
+        with pytest.raises(TypeError, match=msg):
+            Term()
 
-            # more invalid
-            msg = re.escape(
-                "cannot process expression [df.index[3]], "
-                "[2000-01-06 00:00:00] is not a valid condition"
-            )
-            with pytest.raises(ValueError, match=msg):
-                store.select("df", "df.index[3]")
+        # more invalid
+        msg = re.escape(
+            "cannot process expression [df.index[3]], "
+            "[2000-01-06 00:00:00] is not a valid condition"
+        )
+        with pytest.raises(ValueError, match=msg):
+            store.select("df", "df.index[3]")
 
-            msg = "invalid syntax"
-            with pytest.raises(SyntaxError, match=msg):
-                store.select("df", "index>")
+        msg = "invalid syntax"
+        with pytest.raises(SyntaxError, match=msg):
+            store.select("df", "index>")
 
     # from the docs
     path = tmp_path / setup_path

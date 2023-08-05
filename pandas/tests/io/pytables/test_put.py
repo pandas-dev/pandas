@@ -1,9 +1,5 @@
 import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -193,9 +189,7 @@ def test_put_mixed_type(setup_path):
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
 
-        # PerformanceWarning
-        with catch_warnings(record=True):
-            simplefilter("ignore", pd.errors.PerformanceWarning)
+        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             store.put("df", df)
 
         expected = store.get("df")
