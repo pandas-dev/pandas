@@ -4,10 +4,7 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -18,6 +15,8 @@ from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from matplotlib.axes import Axes
 
 

@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -92,6 +89,12 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -342,10 +345,7 @@ class SeriesGroupBy(GroupBy[Series]):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
         else:
             # list of functions / function names
-            columns = []
-            for f in arg:
-                columns.append(com.get_callable_name(f) or f)
-
+            columns = (com.get_callable_name(f) or f for f in arg)
             arg = zip(columns, arg)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
@@ -416,7 +416,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(dropna=self.observed)
+            res_ser = res_df.stack(future_stack=True)
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
@@ -2322,7 +2322,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don’t include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
         Returns
         -------
@@ -2413,7 +2413,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: Hashable | Mapping | Series | DataFrame | None = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
@@ -2788,7 +2788,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @doc(DataFrame.hist.__doc__)
     def hist(
         self,
-        column: IndexLabel = None,
+        column: IndexLabel | None = None,
         by=None,
         grid: bool = True,
         xlabelsize: int | None = None,

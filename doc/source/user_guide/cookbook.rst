@@ -311,7 +311,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
    df.columns = pd.MultiIndex.from_tuples([tuple(c.split("_")) for c in df.columns])
    df
    # Now stack & Reset
-   df = df.stack(0).reset_index(1)
+   df = df.stack(0, future_stack=True).reset_index(1)
    df
    # And fix the labels (Notice the label 'level_1' got added automatically)
    df.columns = ["Sample", "All_X", "All_Y"]
@@ -688,7 +688,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
        aggfunc="sum",
        margins=True,
    )
-   table.stack("City")
+   table.stack("City", future_stack=True)
 
 `Frequency table like plyr in R
 <https://stackoverflow.com/questions/15589354/frequency-tables-in-pandas-like-plyr-in-r>`__
@@ -1488,3 +1488,31 @@ of the data values:
        {"height": [60, 70], "weight": [100, 140, 180], "sex": ["Male", "Female"]}
    )
    df
+
+Constant series
+---------------
+
+To assess if a series has a constant value, we can check if ``series.nunique() <= 1``.
+However, a more performant approach, that does not count all unique values first, is:
+
+.. ipython:: python
+
+   v = s.to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
+
+This approach assumes that the series does not contain missing values.
+For the case that we would drop NA values, we can simply remove those values first:
+
+.. ipython:: python
+
+   v = s.dropna().to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all()
+
+If missing values are considered distinct from any other value, then one could use:
+
+.. ipython:: python
+
+   v = s.to_numpy()
+   is_constant = v.shape[0] == 0 or (s[0] == s).all() or not pd.notna(v).any()
+
+(Note that this example does not disambiguate between ``np.nan``, ``pd.NA`` and ``None``)

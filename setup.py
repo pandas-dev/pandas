@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "0.29.33"
+min_cython_ver = "3.0.0"
 
 try:
     from Cython import (
@@ -152,18 +152,14 @@ class CleanCommand(Command):
                     ".orig",
                 ):
                     self._clean_me.append(filepath)
-            for d in dirs:
-                if d == "__pycache__":
-                    self._clean_trees.append(pjoin(root, d))
+            self._clean_trees.append(pjoin(root, d) for d in dirs if d == "__pycache__")
 
         # clean the generated pxi files
         for pxifile in _pxifiles:
             pxifile_replaced = pxifile.replace(".pxi.in", ".pxi")
             self._clean_me.append(pxifile_replaced)
 
-        for d in ("build", "dist"):
-            if os.path.exists(d):
-                self._clean_trees.append(d)
+        self._clean_trees.append(d for d in ("build", "dist") if os.path.exists(d))
 
     def finalize_options(self):
         pass
@@ -376,7 +372,7 @@ if "--with-cython-coverage" in sys.argv:
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
 # github.com/cython/cython/wiki/enhancements-compilerdirectives#in-setuppy
-directives = {"linetrace": False, "language_level": 3}
+directives = {"linetrace": False, "language_level": 3, "always_allow_keywords": True}
 macros = []
 if linetrace:
     # https://pypkg.com/pypi/pytest-cython/f/tests/example-project/setup.py

@@ -57,14 +57,14 @@ class TestDataFrameSetItem:
         "dtype", ["int32", "int64", "uint32", "uint64", "float32", "float64"]
     )
     def test_setitem_dtype(self, dtype, float_frame):
-        # Use randint since casting negative floats to uints is undefined
-        arr = np.random.randint(1, 10, len(float_frame))
+        # Use integers since casting negative floats to uints is undefined
+        arr = np.random.default_rng(2).integers(1, 10, len(float_frame))
 
         float_frame[dtype] = np.array(arr, dtype=dtype)
         assert float_frame[dtype].dtype.name == dtype
 
     def test_setitem_list_not_dataframe(self, float_frame):
-        data = np.random.randn(len(float_frame), 2)
+        data = np.random.default_rng(2).standard_normal((len(float_frame), 2))
         float_frame[["A", "B"]] = data
         tm.assert_almost_equal(float_frame[["A", "B"]].values, data)
 
@@ -84,7 +84,10 @@ class TestDataFrameSetItem:
             df["newcol"] = ser
 
         # GH 4107, more descriptive error message
-        df = DataFrame(np.random.randint(0, 2, (4, 4)), columns=["a", "b", "c", "d"])
+        df = DataFrame(
+            np.random.default_rng(2).integers(0, 2, (4, 4)),
+            columns=["a", "b", "c", "d"],
+        )
 
         msg = "Cannot set a DataFrame with multiple columns to the single column gr"
         with pytest.raises(ValueError, match=msg):
@@ -95,7 +98,7 @@ class TestDataFrameSetItem:
         N = 10
         K = 5
         df = DataFrame(index=range(N))
-        new_col = np.random.randn(N)
+        new_col = np.random.default_rng(2).standard_normal(N)
         for i in range(K):
             df[i] = new_col
         expected = DataFrame(np.repeat(new_col, K).reshape(N, K), index=range(N))
@@ -103,7 +106,9 @@ class TestDataFrameSetItem:
 
     def test_setitem_different_dtype(self):
         df = DataFrame(
-            np.random.randn(5, 3), index=np.arange(5), columns=["c", "b", "a"]
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=np.arange(5),
+            columns=["c", "b", "a"],
         )
         df.insert(0, "foo", df["a"])
         df.insert(2, "bar", df["c"])
@@ -352,7 +357,7 @@ class TestDataFrameSetItem:
 
     def test_setitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5, name="index")
-        df = DataFrame(np.random.randn(5, 3), index=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)), index=rng)
 
         df["Index"] = rng
         rs = Index(df["Index"])
@@ -398,7 +403,7 @@ class TestDataFrameSetItem:
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
         cols = Index([1, 2, 3], dtype=dtype)
-        df = DataFrame(np.random.randn(3, 3), columns=cols)
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)), columns=cols)
 
         df[False] = ["a", "b", "c"]
 
@@ -567,20 +572,20 @@ class TestDataFrameSetItem:
 
         cols = MultiIndex.from_product(it)
         index = date_range("20141006", periods=20)
-        vals = np.random.randint(1, 1000, (len(index), len(cols)))
+        vals = np.random.default_rng(2).integers(1, 1000, (len(index), len(cols)))
         df = DataFrame(vals, columns=cols, index=index)
 
         i, j = df.index.values.copy(), it[-1][:]
 
-        np.random.shuffle(i)
+        np.random.default_rng(2).shuffle(i)
         df["jim"] = df["jolie"].loc[i, ::-1]
         tm.assert_frame_equal(df["jim"], df["jolie"])
 
-        np.random.shuffle(j)
+        np.random.default_rng(2).shuffle(j)
         df[("joe", "first")] = df[("jolie", "last")].loc[i, j]
         tm.assert_frame_equal(df[("joe", "first")], df[("jolie", "last")])
 
-        np.random.shuffle(j)
+        np.random.default_rng(2).shuffle(j)
         df[("joe", "last")] = df[("jolie", "first")].loc[i, j]
         tm.assert_frame_equal(df[("joe", "last")], df[("jolie", "first")])
 
@@ -698,7 +703,7 @@ class TestDataFrameSetItem:
     @td.skip_array_manager_not_yet_implemented
     def test_setitem_npmatrix_2d(self):
         # GH#42376
-        # for use-case df["x"] = sparse.random(10, 10).mean(axis=1)
+        # for use-case df["x"] = sparse.random((10, 10)).mean(axis=1)
         expected = DataFrame(
             {"np-array": np.ones(10), "np-matrix": np.ones(10)}, index=np.arange(10)
         )
@@ -772,7 +777,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_dt64series(self, idx, expected):
         # convert to utc
-        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
         df["B"] = idx
         df["B"] = idx.to_series(index=[0, 1]).dt.tz_convert(None)
 
@@ -782,7 +787,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_datetimeindex(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
 
         # assign to frame
         df["B"] = idx
@@ -791,7 +796,7 @@ class TestSetitemTZAwareValues:
 
     def test_setitem_object_array_of_tzaware_datetimes(self, idx, expected):
         # setting a DataFrame column with a tzaware DTI retains the dtype
-        df = DataFrame(np.random.randn(2, 1), columns=["A"])
+        df = DataFrame(np.random.default_rng(2).standard_normal((2, 1)), columns=["A"])
 
         # object array of datetimes with a tz
         df["B"] = idx.to_pydatetime()
@@ -838,7 +843,11 @@ class TestDataFrameSetItemWithExpansion:
     def test_setitem_with_expansion_categorical_dtype(self):
         # assignment
         df = DataFrame(
-            {"value": np.array(np.random.randint(0, 10000, 100), dtype="int32")}
+            {
+                "value": np.array(
+                    np.random.default_rng(2).integers(0, 10000, 100), dtype="int32"
+                )
+            }
         )
         labels = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
 
@@ -1316,4 +1325,19 @@ class TestDataFrameSetitemCopyViewSemantics:
         rhs = DataFrame([[0, 1.5], [2, 2.5]], columns=["a", "a"])
         df["a"] = rhs
         expected = DataFrame([[0, 1.5, 3], [2, 2.5, 6]], columns=["a", "a", "b"])
+        tm.assert_frame_equal(df, expected)
+
+    def test_frame_setitem_empty_dataframe(self):
+        # GH#28871
+        df = DataFrame({"date": [datetime(2000, 1, 1)]}).set_index("date")
+        df = df[0:0].copy()
+
+        df["3010"] = None
+        df["2010"] = None
+
+        expected = DataFrame(
+            [],
+            columns=["3010", "2010"],
+            index=Index([], dtype="datetime64[ns]", name="date"),
+        )
         tm.assert_frame_equal(df, expected)

@@ -3,14 +3,16 @@ SQL-style merge routines
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Sequence,
+)
 import datetime
 from functools import partial
 import string
 from typing import (
     TYPE_CHECKING,
-    Hashable,
     Literal,
-    Sequence,
     cast,
     final,
 )
@@ -143,10 +145,12 @@ def merge(
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
+    left_df = _validate_operand(left)
+    right_df = _validate_operand(right)
     if how == "cross":
         return _cross_merge(
-            left,
-            right,
+            left_df,
+            right_df,
             on=on,
             left_on=left_on,
             right_on=right_on,
@@ -160,8 +164,8 @@ def merge(
         )
     else:
         op = _MergeOperation(
-            left,
-            right,
+            left_df,
+            right_df,
             how=how,
             on=on,
             left_on=left_on,
@@ -177,8 +181,8 @@ def merge(
 
 
 def _cross_merge(
-    left: DataFrame | Series,
-    right: DataFrame | Series,
+    left: DataFrame,
+    right: DataFrame,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -1157,8 +1161,6 @@ class _MergeOperation:
             else:
                 join_index = default_index(len(left_indexer))
 
-        if len(join_index) == 0 and not isinstance(join_index, MultiIndex):
-            join_index = default_index(0).set_names(join_index.name)
         return join_index, left_indexer, right_indexer
 
     @final
@@ -2205,13 +2207,7 @@ class _AsOfMerge(_OrderedMerge):
         else:
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
-            # TODO(cython3):
-            # Bug in beta1 preventing Cython from choosing
-            # right specialization when one fused memview is None
-            # Doesn't matter what type we choose
-            # (nothing happens anyways since it is None)
-            # GH 51640
-            return func[f"{left_values.dtype}_t", object](
+            return func(
                 left_values,
                 right_values,
                 None,
@@ -2340,7 +2336,7 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
-    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+    how : {'left', 'right', 'outer', 'inner'}, default 'inner'
         Type of merge.
 
     Returns

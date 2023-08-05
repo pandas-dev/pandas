@@ -6,7 +6,10 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_windows
+from pandas.compat import (
+    IS64,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -28,6 +31,8 @@ from pandas.core import (
     algorithms,
     nanops,
 )
+
+is_windows_or_is32 = is_platform_windows() or not IS64
 
 
 def assert_stat_op_calc(
@@ -275,21 +280,18 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-    @td.skip_if_no_scipy
     def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
-        def skewness(x):
-            from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
+        def skewness(x):
             if len(x) < 3:
                 return np.nan
-            return skew(x, bias=False)
+            return sp_stats.skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis
-
             if len(x) < 4:
                 return np.nan
-            return kurtosis(x, bias=False)
+            return sp_stats.kurtosis(x, bias=False)
 
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)
@@ -453,7 +455,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.var(ddof=4))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nanvar(arr, axis=0)
         assert not (result < 0).any()
 
@@ -464,13 +466,19 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("meth", ["sem", "var", "std"])
     def test_numeric_only_flag(self, meth):
         # GH 9201
-        df1 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "100" below
         df1 = df1.astype({"foo": object})
         # set one entry to a number in str format
         df1.loc[0, "foo"] = "100"
 
-        df2 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "a" below
         df2 = df2.astype({"foo": object})
         # set one entry to a non-number str
@@ -497,7 +505,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.std(ddof=4) / np.sqrt(len(x)))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nansem(arr, axis=0)
         assert not (result < 0).any()
 
@@ -932,10 +940,10 @@ class TestDataFrameAnalytics:
 
     def test_mean_extensionarray_numeric_only_true(self):
         # https://github.com/pandas-dev/pandas/issues/33256
-        arr = np.random.randint(1000, size=(10, 5))
+        arr = np.random.default_rng(2).integers(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
-        expected = DataFrame(arr).mean()
+        expected = DataFrame(arr).mean().astype("Float64")
         tm.assert_series_equal(result, expected)
 
     def test_stats_mixed_type(self, float_string_frame):
@@ -963,11 +971,21 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmin(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmin with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmin(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmin"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmin_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -982,13 +1000,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmin_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmin(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmin(numeric_only=numeric_only)
             expected = Series([2, 1], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([2, 1, 0], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmin_axis_2(self, float_frame):
         frame = float_frame
@@ -1003,11 +1020,21 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            result = df.idxmax(axis=axis, skipna=skipna)
-            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            warn = None
+            if skipna is False or axis == 1:
+                warn = None if df is int_frame else FutureWarning
+            msg = "The behavior of DataFrame.idxmax with all-NA values"
+            with tm.assert_produces_warning(warn, match=msg):
+                result = df.idxmax(axis=axis, skipna=skipna)
+
+            msg2 = "The behavior of Series.idxmax"
+            with tm.assert_produces_warning(warn, match=msg2):
+                expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_idxmax_empty(self, index, skipna, axis):
         # GH53265
         if axis == 0:
@@ -1022,13 +1049,12 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_idxmax_numeric_only(self, numeric_only):
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1], "c": list("xyx")})
+        result = df.idxmax(numeric_only=numeric_only)
         if numeric_only:
-            result = df.idxmax(numeric_only=numeric_only)
             expected = Series([1, 0], index=["a", "b"])
-            tm.assert_series_equal(result, expected)
         else:
-            with pytest.raises(TypeError, match="not allowed for this dtype"):
-                df.idxmin(numeric_only=numeric_only)
+            expected = Series([1, 0, 1], index=["a", "b", "c"])
+        tm.assert_series_equal(result, expected)
 
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
@@ -1120,7 +1146,7 @@ class TestDataFrameAnalytics:
     def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
         # make sure op works on mixed-type frame
         mixed = float_string_frame
-        mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
+        mixed["_bool_"] = np.random.default_rng(2).standard_normal(len(mixed)) > 0.5
 
         getattr(mixed, opname)(axis=axis, bool_only=bool_only)
 
@@ -1668,6 +1694,101 @@ class TestNuisanceColumns:
             getattr(np, method)(df, axis=0)
 
 
+class TestEmptyDataFrameReductions:
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_value, exp_dtype",
+        [
+            ("sum", np.int8, 0, np.int64),
+            ("prod", np.int8, 1, np.int_),
+            ("sum", np.int64, 0, np.int64),
+            ("prod", np.int64, 1, np.int64),
+            ("sum", np.uint8, 0, np.uint64),
+            ("prod", np.uint8, 1, np.uint),
+            ("sum", np.uint64, 0, np.uint64),
+            ("prod", np.uint64, 1, np.uint64),
+            ("sum", np.float32, 0, np.float32),
+            ("prod", np.float32, 1, np.float32),
+            ("sum", np.float64, 0, np.float64),
+        ],
+    )
+    def test_df_empty_min_count_0(self, opname, dtype, exp_value, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=0)
+
+        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_dtype",
+        [
+            ("sum", np.int8, np.float64),
+            ("prod", np.int8, np.float64),
+            ("sum", np.int64, np.float64),
+            ("prod", np.int64, np.float64),
+            ("sum", np.uint8, np.float64),
+            ("prod", np.uint8, np.float64),
+            ("sum", np.uint64, np.float64),
+            ("prod", np.uint64, np.float64),
+            ("sum", np.float32, np.float32),
+            ("prod", np.float32, np.float32),
+            ("sum", np.float64, np.float64),
+        ],
+    )
+    def test_df_empty_min_count_1(self, opname, dtype, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=1)
+
+        expected = Series([np.nan, np.nan], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_value, exp_dtype",
+        [
+            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int64", 0, "Int64"),
+            ("prod", "Int64", 1, "Int64"),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt64", 0, "UInt64"),
+            ("prod", "UInt64", 1, "UInt64"),
+            ("sum", "Float32", 0, "Float32"),
+            ("prod", "Float32", 1, "Float32"),
+            ("sum", "Float64", 0, "Float64"),
+        ],
+    )
+    def test_df_empty_nullable_min_count_0(self, opname, dtype, exp_value, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=0)
+
+        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "opname, dtype, exp_dtype",
+        [
+            ("sum", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
+            ("prod", "Int8", ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int64", "Int64"),
+            ("prod", "Int64", "Int64"),
+            ("sum", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("prod", "UInt8", ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt64", "UInt64"),
+            ("prod", "UInt64", "UInt64"),
+            ("sum", "Float32", "Float32"),
+            ("prod", "Float32", "Float32"),
+            ("sum", "Float64", "Float64"),
+        ],
+    )
+    def test_df_empty_nullable_min_count_1(self, opname, dtype, exp_dtype):
+        df = DataFrame({0: [], 1: []}, dtype=dtype)
+        result = getattr(df, opname)(min_count=1)
+
+        expected = Series([pd.NA, pd.NA], dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+
 def test_sum_timedelta64_skipna_false(using_array_manager, request):
     # GH#17235
     if using_array_manager:
@@ -1720,7 +1841,9 @@ def test_minmax_extensionarray(method, numeric_only):
     df = DataFrame({"Int64": ser})
     result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
-        [getattr(int64_info, method)], index=Index(["Int64"], dtype="object")
+        [getattr(int64_info, method)],
+        dtype="Int64",
+        index=Index(["Int64"], dtype="object"),
     )
     tm.assert_series_equal(result, expected)
 
@@ -1748,13 +1871,14 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.randn(4, 4))
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), dtype=dtype)
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
-    np_arr = df.to_numpy()
+    np_arr = df.to_numpy(dtype=np.float64)
     if method in {"skew", "kurt"}:
         comp_mod = pytest.importorskip("scipy.stats")
         if method == "kurt":

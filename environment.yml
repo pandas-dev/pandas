@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython=0.29.33
+  - cython=3.0.0
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
@@ -76,13 +76,14 @@ dependencies:
 
   # code checks
   - flake8=6.0.0  # run in subprocess over docstring examples
-  - mypy=1.2  # pre-commit uses locally installed mypy
+  - mypy=1.4.1  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=2.15.0
 
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pydata-sphinx-theme

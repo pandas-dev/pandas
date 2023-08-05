@@ -7,7 +7,6 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
 )
 
@@ -36,11 +35,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_ns_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasDtype,
-    SparseDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -57,7 +52,7 @@ from pandas.core.array_algos.take import take_1d
 from pandas.core.arrays import (
     DatetimeArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
     TimedeltaArray,
 )
 from pandas.core.construction import (
@@ -76,6 +71,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    ensure_np_dtype,
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
@@ -90,6 +86,8 @@ from pandas.core.internals.blocks import (
 from pandas.core.internals.managers import make_na_array
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
@@ -330,7 +328,8 @@ class BaseArrayManager(DataManager):
 
         def _convert(arr):
             if is_object_dtype(arr.dtype):
-                # extract PandasArray for tests that patch PandasArray._typ
+                # extract NumpyExtensionArray for tests that patch
+                #  NumpyExtensionArray._typ
                 arr = np.asarray(arr)
                 result = lib.maybe_convert_objects(
                     arr,
@@ -1019,14 +1018,7 @@ class ArrayManager(BaseArrayManager):
         if not dtype:
             dtype = interleaved_dtype([arr.dtype for arr in self.arrays])
 
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-        elif isinstance(dtype, PandasDtype):
-            dtype = dtype.numpy_dtype
-        elif isinstance(dtype, ExtensionDtype):
-            dtype = np.dtype("object")
-        elif dtype == np.dtype(str):
-            dtype = np.dtype("object")
+        dtype = ensure_np_dtype(dtype)
 
         result = np.empty(self.shape_proper, dtype=dtype)
 
@@ -1147,7 +1139,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """The array that Series.array returns"""
         arr = self.array
         if isinstance(arr, np.ndarray):
-            arr = PandasArray(arr)
+            arr = NumpyExtensionArray(arr)
         return arr
 
     @property

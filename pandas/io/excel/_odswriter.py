@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Tuple,
     cast,
 )
 
@@ -20,6 +19,7 @@ from pandas.io.excel._util import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        ExcelWriterIfSheetExists,
         FilePath,
         StorageOptions,
         WriteExcelBuffer,
@@ -39,8 +39,8 @@ class ODSWriter(ExcelWriter):
         date_format: str | None = None,
         datetime_format=None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: str | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:
@@ -118,7 +118,7 @@ class ODSWriter(ExcelWriter):
             self.book.spreadsheet.addElement(wks)
 
         if validate_freeze_panes(freeze_panes):
-            freeze_panes = cast(Tuple[int, int], freeze_panes)
+            freeze_panes = cast(tuple[int, int], freeze_panes)
             self._create_freeze_panes(sheet_name, freeze_panes)
 
         for _ in range(startrow):
@@ -248,7 +248,7 @@ class ODSWriter(ExcelWriter):
 
         if style is None:
             return None
-        style_key = json.dumps(style)
+        style_key = json.ujson_dumps(style)
         if style_key in self._style_dict:
             return self._style_dict[style_key]
         name = f"pd{len(self._style_dict)+1}"

@@ -28,9 +28,9 @@ def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
     days = date_range("2015-08-23", periods=10)
     df = DataFrame(
         {
-            "jim": np.random.choice(list(ascii_lowercase), n),
-            "joe": np.random.choice(days, n),
-            "julie": np.random.randint(0, m, n),
+            "jim": np.random.default_rng(2).choice(list(ascii_lowercase), n),
+            "joe": np.random.default_rng(2).choice(days, n),
+            "julie": np.random.default_rng(2).integers(0, m, n),
         }
     )
     if with_nan:

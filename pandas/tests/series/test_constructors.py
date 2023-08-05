@@ -1,9 +1,9 @@
 from collections import OrderedDict
+from collections.abc import Iterator
 from datetime import (
     datetime,
     timedelta,
 )
-from typing import Iterator
 
 from dateutil.tz import tzoffset
 import numpy as np
@@ -177,7 +177,7 @@ class TestSeriesConstructors:
             ValueError,
             match=r"Data must be 1-dimensional, got ndarray of shape \(3, 3\) instead",
         ):
-            Series(np.random.randn(3, 3), index=np.arange(3))
+            Series(np.random.default_rng(2).standard_normal((3, 3)), index=np.arange(3))
 
         mixed.name = "Series"
         rs = Series(mixed).name
@@ -628,12 +628,15 @@ class TestSeriesConstructors:
         expected = Series([np.nan, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
-    def test_series_ctor_plus_datetimeindex(self):
+    def test_series_ctor_plus_datetimeindex(self, using_copy_on_write):
         rng = date_range("20090415", "20090519", freq="B")
         data = {k: 1 for k in rng}
 
         result = Series(data, index=rng)
-        assert result.index is rng
+        if using_copy_on_write:
+            assert result.index.is_(rng)
+        else:
+            assert result.index is rng
 
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
@@ -810,7 +813,7 @@ class TestSeriesConstructors:
 
     def test_constructor_floating_data_int_dtype(self, frame_or_series):
         # GH#40110
-        arr = np.random.randn(2)
+        arr = np.random.default_rng(2).standard_normal(2)
 
         # Long-standing behavior (for Series, new in 2.0 for DataFrame)
         #  has been to ignore the dtype on these;
@@ -1843,7 +1846,9 @@ class TestSeriesConstructors:
 
     def test_constructor_ordereddict(self):
         # GH3283
-        data = OrderedDict((f"col{i}", np.random.random()) for i in range(12))
+        data = OrderedDict(
+            (f"col{i}", np.random.default_rng(2).random()) for i in range(12)
+        )
 
         series = Series(data)
         expected = Series(list(data.values()), list(data.keys()))
@@ -1918,7 +1923,7 @@ class TestSeriesConstructors:
         # going through 2D->1D path
         vals = [(1,), (2,), (3,)]
         ser = Series(vals)
-        dtype = ser.array.dtype  # PandasDtype
+        dtype = ser.array.dtype  # NumpyEADtype
         ser2 = Series(vals, dtype=dtype)
         tm.assert_series_equal(ser, ser2)
 
@@ -2074,7 +2079,9 @@ class TestSeriesConstructors:
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
         idx = tm.makeDateIndex(10000)
-        ser = Series(np.random.randn(len(idx)), idx.astype(object))
+        ser = Series(
+            np.random.default_rng(2).standard_normal(len(idx)), idx.astype(object)
+        )
         # as of 2.0, we no longer silently cast the object-dtype index
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)

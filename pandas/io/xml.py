@@ -10,8 +10,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
 )
+import warnings
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -20,6 +20,7 @@ from pandas.errors import (
     ParserError,
 )
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -30,6 +31,7 @@ from pandas.io.common import (
     file_exists,
     get_handle,
     infer_compression,
+    is_file_like,
     is_fsspec_url,
     is_url,
     stringify_path,
@@ -37,6 +39,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from xml.etree.ElementTree import Element
 
     from lxml import etree
@@ -71,8 +74,8 @@ class _XMLFrameParser:
         URL schemes include http, ftp, s3, and file.
 
     xpath : str or regex
-        The XPath expression to parse required set of nodes for
-        migration to :class:`~pandas.DataFrame`. `etree` supports limited XPath.
+        The ``XPath`` expression to parse required set of nodes for
+        migration to :class:`~pandas.DataFrame`. ``etree`` supports limited ``XPath``.
 
     namespaces : dict
         The namespaces defined in XML document (``xmlns:namespace='URI'``)
@@ -109,7 +112,7 @@ class _XMLFrameParser:
 
     stylesheet : str or file-like
         URL, file, file-like object, or a raw string containing XSLT,
-        `etree` does not support XSLT but retained for consistency.
+        ``etree`` does not support XSLT but retained for consistency.
 
     iterparse : dict, optional
         Dict with row element as key and list of descendant elements
@@ -182,7 +185,7 @@ class _XMLFrameParser:
         Parse xml data.
 
         This method will call the other internal methods to
-        validate xpath, names, parse and return specific nodes.
+        validate ``xpath``, names, parse and return specific nodes.
         """
 
         raise AbstractMethodError(self)
@@ -192,7 +195,7 @@ class _XMLFrameParser:
         Parse xml nodes.
 
         This method will parse the children and attributes of elements
-        in xpath, conditionally for only elements, only attributes
+        in ``xpath``, conditionally for only elements, only attributes
         or both while optionally renaming node names.
 
         Raises
@@ -216,12 +219,12 @@ class _XMLFrameParser:
                 dicts = [
                     {
                         **(
-                            {el.tag: el.text.strip()}
+                            {el.tag: el.text}
                             if el.text and not el.text.isspace()
                             else {}
                         ),
                         **{
-                            nm: ch.text.strip() if ch.text else None
+                            nm: ch.text if ch.text else None
                             for nm, ch in zip(self.names, el.findall("*"))
                         },
                     }
@@ -229,30 +232,22 @@ class _XMLFrameParser:
                 ]
             else:
                 dicts = [
-                    {
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    }
+                    {ch.tag: ch.text if ch.text else None for ch in el.findall("*")}
                     for el in elems
                 ]
 
         elif self.attrs_only:
             dicts = [
-                {k: v.strip() if v else None for k, v in el.attrib.items()}
-                for el in elems
+                {k: v if v else None for k, v in el.attrib.items()} for el in elems
             ]
 
         elif self.names:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
-                        nm: ch.text.strip() if ch.text else None
+                        nm: ch.text if ch.text else None
                         for nm, ch in zip(self.names, el.findall("*"))
                     },
                 }
@@ -263,15 +258,8 @@ class _XMLFrameParser:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
-                    **{
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    },
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
+                    **{ch.tag: ch.text if ch.text else None for ch in el.findall("*")},
                 }
                 for el in elems
             ]
@@ -299,10 +287,10 @@ class _XMLFrameParser:
         Raises
         ------
         TypeError
-            * If `iterparse` is not a dict or its dict value is not list-like.
+            * If ``iterparse`` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical file on disk or file-like object.
-            * If no data is returned from selected items in `iterparse`.
+            * If ``path_or_buffer`` is not a physical file on disk or file-like object.
+            * If no data is returned from selected items in ``iterparse``.
 
         Notes
         -----
@@ -356,7 +344,7 @@ class _XMLFrameParser:
                 if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
-                            elem_val = elem.text.strip() if elem.text else None
+                            elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
 
@@ -366,7 +354,7 @@ class _XMLFrameParser:
                 else:
                     for col in self.iterparse[row_node]:
                         if curr_elem == col:
-                            row[col] = elem.text.strip() if elem.text else None
+                            row[col] = elem.text if elem.text else None
                         if col in elem.attrib:
                             row[col] = elem.attrib[col]
 
@@ -395,7 +383,7 @@ class _XMLFrameParser:
 
     def _validate_path(self) -> list[Any]:
         """
-        Validate xpath.
+        Validate ``xpath``.
 
         This method checks for syntax, evaluation, or empty nodes return.
 
@@ -468,7 +456,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
         Notes
         -----
-        `etree` supports limited XPath. If user attempts a more complex
+        ``etree`` supports limited ``XPath``. If user attempts a more complex
         expression syntax error will raise.
         """
 
@@ -513,7 +501,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
                 parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-                children = parent.findall("*") if parent else []
+                children = parent.findall("*") if parent is not None else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -549,9 +537,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
 class _LxmlFrameParser(_XMLFrameParser):
     """
-    Internal class to parse XML into DataFrames with third-party
-    full-featured XML library, `lxml`, that supports
-    XPath 1.0 and XSLT 1.0.
+    Internal class to parse XML into :class:`~pandas.DataFrame` with third-party
+    full-featured XML library, ``lxml``, that supports
+    ``XPath`` 1.0 and XSLT 1.0.
     """
 
     def parse_data(self) -> list[dict[str, str | None]]:
@@ -559,7 +547,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         Parse xml data.
 
         This method will call the other internal methods to
-        validate xpath, names, optionally parse and run XSLT,
+        validate ``xpath``, names, optionally parse and run XSLT,
         and parse original or transformed XML and return specific nodes.
         """
         from lxml.etree import iterparse
@@ -802,6 +790,22 @@ def _parse(
 
     p: _EtreeFrameParser | _LxmlFrameParser
 
+    if isinstance(path_or_buffer, str) and not any(
+        [
+            is_file_like(path_or_buffer),
+            file_exists(path_or_buffer),
+            is_url(path_or_buffer),
+            is_fsspec_url(path_or_buffer),
+        ]
+    ):
+        warnings.warn(
+            "Passing literal xml to 'read_xml' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "literal string, wrap it in a 'StringIO' object.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if parser == "lxml":
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
@@ -878,11 +882,11 @@ def read_xml(
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
     iterparse: dict[str, list[str]] | None = None,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
-    Read XML document into a ``DataFrame`` object.
+    Read XML document into a :class:`~pandas.DataFrame` object.
 
     .. versionadded:: 1.3.0
 
@@ -894,11 +898,15 @@ def read_xml(
         string or a path. The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
 
+        .. deprecated:: 2.1.0
+            Passing xml literal strings is deprecated.
+            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
+
     xpath : str, optional, default './\*'
-        The XPath to parse required set of nodes for migration to DataFrame.
-        XPath should return a collection of elements and not a single
-        element. Note: The ``etree`` parser supports limited XPath
-        expressions. For more complex XPath, use ``lxml`` which requires
+        The ``XPath`` to parse required set of nodes for migration to
+        :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements
+        and not a single element. Note: The ``etree`` parser supports limited ``XPath``
+        expressions. For more complex ``XPath``, use ``lxml`` which requires
         installation.
 
     namespaces : dict, optional
@@ -959,7 +967,7 @@ def read_xml(
 
     parser : {{'lxml','etree'}}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
-        'etree' are supported. With 'lxml' more complex XPath searches
+        'etree' are supported. With 'lxml' more complex ``XPath`` searches
         and ability to use XSLT stylesheet are supported.
 
     stylesheet : str, path object or file-like object
@@ -976,7 +984,7 @@ def read_xml(
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
-        and unlike xpath, descendants do not need to relate to each other but can
+        and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ::
@@ -991,13 +999,14 @@ def read_xml(
 
     {storage_options}
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -1049,6 +1058,7 @@ def read_xml(
 
     Examples
     --------
+    >>> import io
     >>> xml = '''<?xml version='1.0' encoding='utf-8'?>
     ... <data xmlns="http://example.com">
     ...  <row>
@@ -1068,7 +1078,7 @@ def read_xml(
     ...  </row>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml)
+    >>> df = pd.read_xml(io.StringIO(xml))
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1082,7 +1092,7 @@ def read_xml(
     ...   <row shape="triangle" degrees="180" sides="3.0"/>
     ... </data>'''
 
-    >>> df = pd.read_xml(xml, xpath=".//row")
+    >>> df = pd.read_xml(io.StringIO(xml), xpath=".//row")
     >>> df
           shape  degrees  sides
     0    square      360    4.0
@@ -1108,7 +1118,7 @@ def read_xml(
     ...   </doc:row>
     ... </doc:data>'''
 
-    >>> df = pd.read_xml(xml,
+    >>> df = pd.read_xml(io.StringIO(xml),
     ...                  xpath="//doc:row",
     ...                  namespaces={{"doc": "https://example.com"}})
     >>> df
