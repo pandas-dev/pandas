@@ -214,6 +214,11 @@ class BaseReshapingTests(BaseExtensionTests):
 
     def test_merge_on_extension_array(self, data):
         # GH 23020
+        try:
+            hash(data[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         a, b = data[:2]
         key = type(data)._from_sequence([a, b], dtype=data.dtype)
 
@@ -229,6 +234,11 @@ class BaseReshapingTests(BaseExtensionTests):
 
     def test_merge_on_extension_array_duplicates(self, data):
         # GH 23020
+        try:
+            hash(data[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         a, b = data[:2]
         key = type(data)._from_sequence([a, b, a], dtype=data.dtype)
         df1 = pd.DataFrame({"key": key, "val": [1, 2, 3]})
