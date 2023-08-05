@@ -8,6 +8,7 @@ from pandas import (
     Categorical,
     DataFrame,
     Series,
+    Timestamp,
     date_range,
 )
 import pandas._testing as tm
@@ -128,6 +129,19 @@ class TestCategoricalOpsWithFactor:
 
 
 class TestCategoricalOps:
+    @pytest.mark.parametrize(
+        "categories",
+        [["a", "b"], [0, 1], [Timestamp("2019"), Timestamp("2020")]],
+    )
+    def test_not_equal_with_na(self, categories):
+        # https://github.com/pandas-dev/pandas/issues/32276
+        c1 = Categorical.from_codes([-1, 0], categories=categories)
+        c2 = Categorical.from_codes([0, 1], categories=categories)
+
+        result = c1 != c2
+
+        assert result.all()
+
     def test_compare_frame(self):
         # GH#24282 check that Categorical.__cmp__(DataFrame) defers to frame
         data = ["a", "b", 2, "a"]
