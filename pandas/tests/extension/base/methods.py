@@ -12,10 +12,9 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMethodsTests(BaseExtensionTests):
+class BaseMethodsTests:
     """Various Series and DataFrame methods."""
 
     def test_hash_pandas_object(self, data):
