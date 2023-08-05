@@ -93,7 +93,7 @@ def test_series_nested_renamer(renamer):
 
 def test_apply_dict_depr():
     tsdf = DataFrame(
-        np.random.randn(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         columns=["A", "B", "C"],
         index=date_range("1/1/2000", periods=10),
     )
@@ -190,9 +190,9 @@ def test_apply_modify_traceback():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 

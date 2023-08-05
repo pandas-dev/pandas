@@ -28,8 +28,8 @@ from pandas.tests.extension import base
 
 def make_data():
     N = 100
-    left_array = np.random.uniform(size=N).cumsum()
-    right_array = left_array + np.random.uniform(size=N)
+    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=N)
     return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
@@ -105,7 +105,7 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
@@ -121,10 +121,6 @@ class TestReduce(base.BaseNoReduceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="addition is not defined for intervals")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"

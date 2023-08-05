@@ -46,7 +46,7 @@ def test_unstack():
         levels=[["bar"], ["one", "two", "three"], [0, 1]],
         codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
     )
-    s = Series(np.random.randn(6), index=index)
+    s = Series(np.random.default_rng(2).standard_normal(6), index=index)
     exp_index = MultiIndex(
         levels=[["one", "two", "three"], [0, 1]],
         codes=[[0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
@@ -133,7 +133,9 @@ def test_unstack_mixed_type_name_in_multiindex(
 
 
 def test_unstack_multi_index_categorical_values():
-    mi = tm.makeTimeDataFrame().stack().index.rename(["major", "minor"])
+    mi = (
+        tm.makeTimeDataFrame().stack(future_stack=True).index.rename(["major", "minor"])
+    )
     ser = Series(["foo"] * len(mi), index=mi, name="category", dtype="category")
 
     result = ser.unstack()

@@ -23,7 +23,8 @@ import pandas._testing as tm
 def test_at_timezone():
     # https://github.com/pandas-dev/pandas/issues/33544
     result = DataFrame({"foo": [datetime(2000, 1, 1)]})
-    result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        result.at[0, "foo"] = datetime(2000, 1, 2, tzinfo=timezone.utc)
     expected = DataFrame(
         {"foo": [datetime(2000, 1, 2, tzinfo=timezone.utc)]}, dtype=object
     )
@@ -142,7 +143,7 @@ class TestAtWithDuplicates:
         # GH#33041 check that falling back to loc doesn't allow non-scalar
         #  args to slip in
 
-        arr = np.random.randn(6).reshape(3, 2)
+        arr = np.random.default_rng(2).standard_normal(6).reshape(3, 2)
         df = DataFrame(arr, columns=["A", "A"])
 
         msg = "Invalid call for scalar access"

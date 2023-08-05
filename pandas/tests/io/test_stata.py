@@ -286,7 +286,7 @@ class TestStata:
                 ["Cat", "Bogota", "Bogotá", 1, 1.0, "option b Ünicode", 1.0],
                 ["Dog", "Boston", "Uzunköprü", np.nan, np.nan, np.nan, np.nan],
                 ["Plane", "Rome", "Tromsø", 0, 0.0, "option a", 0.0],
-                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],
+                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],  # noqa: RUF001
                 ["", "", "", 0, 0.3332999, "option a", 1 / 3.0],
             ],
             columns=[
@@ -372,13 +372,17 @@ class TestStata:
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+            df = DataFrame(
+                np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+            )
             df.to_stata(path)
 
     def test_write_preserves_original(self):
         # 9795
-        np.random.seed(423)
-        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
+        )
         df.loc[2, "a":"c"] = np.nan
         df_copy = df.copy()
         with tm.ensure_clean() as path:
@@ -1978,7 +1982,9 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
     if use_dict:
         compression_arg = {"method": compression}
 
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+    )
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         df.to_stata(path, version=version, compression=compression_arg)
@@ -2016,7 +2022,9 @@ def test_compression(compression, version, use_dict, infer, compression_to_exten
 def test_compression_dict(method, file_ext):
     file_name = f"test.{file_ext}"
     archive_name = "test.dta"
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+    )
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         compression = {"method": method, "archive_name": archive_name}
