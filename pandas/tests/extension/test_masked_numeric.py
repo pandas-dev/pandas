@@ -226,7 +226,12 @@ class TestGroupby(base.BaseGroupbyTests):
     pass
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        if op_name in ["any", "all"]:
+            pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
+        return True
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
@@ -263,11 +268,6 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             raise TypeError("not supposed to reach this")
         return cmp_dtype
-
-
-@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
-class TestBooleanReduce(base.BaseBooleanReduceTests):
-    pass
 
 
 class TestAccumulation(base.BaseAccumulateTests):

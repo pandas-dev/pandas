@@ -117,17 +117,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             return None
         return super()._get_expected_exception(op_name, obj, other)
 
-    def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, data, frame_or_series
-    ):
-        # Override to use __sub__ instead of __add__
-        other = pd.Series(data)
-        if frame_or_series is pd.DataFrame:
-            other = other.to_frame()
-
-        result = data.__sub__(other)
-        assert result is NotImplemented
-
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):
     pass
