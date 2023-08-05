@@ -7,31 +7,7 @@
 - Revision: 1
 
 
-#### Summary
-- [Abstract](./pandas_PDEP.md/#Abstract)
-    - [Problem description](./pandas_PDEP.md/#Problem-description)
-    - [Feature Description](./pandas_PDEP.md/#Feature-Description)
-- [Scope](./pandas_PDEP.md/#Scope)
-- [Motivation](./pandas_PDEP.md/#Motivation)
-    - [Why is it important to have a compact and reversible JSON interface ?](./pandas_PDEP.md/#Why-is-it-important-to-have-a-compact-and-reversible-JSON-interface-?)
-    - [Is it relevant to take an extended type into account ?](./pandas_PDEP.md/#Is-it-relevant-to-take-an-extended-type-into-account-?)
-    - [Is this only useful for pandas ?](./pandas_PDEP.md/#Is-this-only-useful-for-pandas-?)
-- [Description](./pandas_PDEP.md/#Description)
-    - [data typing](./pandas_PDEP.md/#Data-typing)
-    - [JSON format](./pandas_PDEP.md/#JSON-format)
-    - [Conversion](./pandas_PDEP.md/#Conversion)
-- [Usage and impact](./pandas_PDEP.md/#Usage-and-impact)
-    - [Usage](./pandas_PDEP.md/#Usage)
-    - [Compatibility](./pandas_PDEP.md/#Compatibility)
-    - [Impacts on the pandas framework](./pandas_PDEP.md/#Impacts-on-the-pandas-framework)
-    - [Risk to do / risk not to do](./pandas_PDEP.md/#Risk-to-do-/-risk-not-to-do)
-- [Implementation](./pandas_PDEP.md/#Implementation)
-    - [Modules](./pandas_PDEP.md/#Modules)
-    - [Implementation options](./pandas_PDEP.md/#Implementation-options)
-- [F.A.Q.](./pandas_PDEP.md/#F.A.Q.)
-- [Core team decision](./pandas_PDEP.md/#Core-team-decision)
-- [Timeline](./pandas_PDEP.md/#Timeline)
-- [PDEP history](./pandas_PDEP.md/#PDEP-history)
+
 -------------------------
 ## Abstract
 
