@@ -1,6 +1,5 @@
 {
     "typeCheckingMode": "off",
-    "pythonVersion": "3.11",
     "reportGeneralTypeIssues": true,
     "useLibraryCodeForTypes": false,
     "include":
