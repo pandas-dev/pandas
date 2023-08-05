@@ -515,7 +515,7 @@ class _Concatenator:
             if len(keys) != len(objs_list):
                 # GH#43485
                 warnings.warn(
-                    "The behavior of pd.concat with len(keys) != len(objs_list) is "
+                    "The behavior of pd.concat with len(keys) != len(objs) is "
                     "deprecated. In a future version this will raise instead of "
                     "truncating to the smaller of the two sequences",
                     FutureWarning,
