@@ -2689,6 +2689,41 @@ class TestDataFrameConstructors:
         expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
         tm.assert_frame_equal(df, expected)
 
+    def test_frame_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"]},
+            dtype=dtype,
+            columns=Index(["a"], dtype=dtype),
+            index=Index(["x", "y"], dtype=dtype),
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]}, index=["x", "y"])
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", 1]}, dtype="object", columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", 1]})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype="object", columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]}, dtype="object")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
