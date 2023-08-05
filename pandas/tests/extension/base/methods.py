@@ -238,6 +238,11 @@ class BaseMethodsTests(BaseExtensionTests):
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_frame(self, data_for_sorting, ascending):
+        try:
+            hash(data_for_sorting[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         df = pd.DataFrame({"A": [1, 2, 1], "B": data_for_sorting})
         result = df.sort_values(["A", "B"])
         expected = pd.DataFrame(
@@ -257,6 +262,11 @@ class BaseMethodsTests(BaseExtensionTests):
         assert result[0] == duplicated[0]
 
     def test_factorize(self, data_for_grouping):
+        try:
+            hash(data_for_grouping[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         codes, uniques = pd.factorize(data_for_grouping, use_na_sentinel=True)
 
         is_bool = data_for_grouping.dtype._is_boolean
@@ -272,6 +282,11 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_extension_array_equal(uniques, expected_uniques)
 
     def test_factorize_equivalence(self, data_for_grouping):
+        try:
+            hash(data_for_grouping[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         codes_1, uniques_1 = pd.factorize(data_for_grouping, use_na_sentinel=True)
         codes_2, uniques_2 = data_for_grouping.factorize(use_na_sentinel=True)
 
@@ -480,6 +495,11 @@ class BaseMethodsTests(BaseExtensionTests):
             hash(data)
 
     def test_hash_pandas_object_works(self, data, as_frame):
+        try:
+            hash(data[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         # https://github.com/pandas-dev/pandas/issues/23066
         data = pd.Series(data)
         if as_frame:

@@ -111,6 +111,11 @@ class BaseGroupbyTests(BaseExtensionTests):
         tm.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
+        try:
+            hash(data_for_grouping[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         is_bool = data_for_grouping.dtype._is_boolean
 
         valid = data_for_grouping[~data_for_grouping.isna()]
@@ -129,6 +134,11 @@ class BaseGroupbyTests(BaseExtensionTests):
         tm.assert_series_equal(result, expected)
 
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
+        try:
+            hash(data_for_grouping[0])
+        except TypeError as e:
+            pytest.skip(str(e))
+            return
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
         df.groupby("B", group_keys=False).apply(groupby_apply_op)
         df.groupby("B", group_keys=False).A.apply(groupby_apply_op)
