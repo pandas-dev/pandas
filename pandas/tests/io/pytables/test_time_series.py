@@ -21,10 +21,11 @@ def test_store_datetime_fractional_secs(setup_path):
         assert store["a"].index[0] == dt
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_series(setup_path):
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         store["a"] = ser
         result = store["a"]
 
@@ -33,7 +34,7 @@ def test_tseries_indices_series(setup_path):
         tm.assert_class_equal(result.index, ser.index, obj="series index")
 
         idx = tm.makePeriodIndex(10)
-        ser = Series(np.random.randn(len(idx)), idx)
+        ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         store["a"] = ser
         result = store["a"]
 
@@ -42,10 +43,13 @@ def test_tseries_indices_series(setup_path):
         tm.assert_class_equal(result.index, ser.index, obj="series index")
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_tseries_indices_frame(setup_path):
     with ensure_clean_store(setup_path) as store:
         idx = tm.makeDateIndex(10)
-        df = DataFrame(np.random.randn(len(idx), 3), index=idx)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx
+        )
         store["a"] = df
         result = store["a"]
 
@@ -54,7 +58,7 @@ def test_tseries_indices_frame(setup_path):
         tm.assert_class_equal(result.index, df.index, obj="dataframe index")
 
         idx = tm.makePeriodIndex(10)
-        df = DataFrame(np.random.randn(len(idx), 3), idx)
+        df = DataFrame(np.random.default_rng(2).standard_normal((len(idx), 3)), idx)
         store["a"] = df
         result = store["a"]
 

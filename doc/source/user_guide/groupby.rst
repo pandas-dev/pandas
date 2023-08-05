@@ -271,7 +271,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 ``GroupBy`` will tab complete column names (and other attributes):
 
 .. ipython:: python
-   :suppress:
 
    n = 10
    weight = np.random.normal(166, 20, size=n)
@@ -281,9 +280,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    df = pd.DataFrame(
        {"height": height, "weight": weight, "gender": gender}, index=time
    )
-
-.. ipython:: python
-
    df
    gb = df.groupby("gender")
 
@@ -334,19 +330,14 @@ number:
 Grouping with multiple levels is supported.
 
 .. ipython:: python
-   :suppress:
 
    arrays = [
        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
        ["doo", "doo", "bee", "bee", "bop", "bop", "bop", "bop"],
        ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
-   tuples = list(zip(*arrays))
-   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+   index = pd.MultiIndex.from_arrays(arrays, names=["first", "second", "third"])
    s = pd.Series(np.random.randn(8), index=index)
-
-.. ipython:: python
-
    s
    s.groupby(level=["first", "second"]).sum()
 
@@ -963,7 +954,6 @@ match the shape of the input array.
 Another common data transform is to replace missing data with the group mean.
 
 .. ipython:: python
-   :suppress:
 
    cols = ["A", "B", "C"]
    values = np.random.randn(1000, 3)
@@ -971,9 +961,6 @@ Another common data transform is to replace missing data with the group mean.
    values[np.random.randint(0, 1000, 50), 1] = np.nan
    values[np.random.randint(0, 1000, 200), 2] = np.nan
    data_df = pd.DataFrame(values, columns=cols)
-
-.. ipython:: python
-
    data_df
 
    countries = np.array(["US", "UK", "GR", "JP"])
@@ -1726,4 +1713,4 @@ column index name will be used as the name of the inserted column:
 
    result
 
-   result.stack()
+   result.stack(future_stack=True)

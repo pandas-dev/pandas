@@ -15,6 +15,7 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -125,7 +126,7 @@ class Grouper:
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
 
     >>> df = pd.DataFrame(
     ...     {
@@ -206,12 +207,12 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
-    2000-10-01 23:24:00     3
-    2000-10-01 23:41:00    15
-    2000-10-01 23:58:00    45
-    2000-10-02 00:15:00    45
-    Freq: 17T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
+    2000-01-02      0
+    2000-04-30      0
+    2000-08-27      0
+    2000-12-24    108
+    Freq: 17W-SUN, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
@@ -969,7 +970,7 @@ def get_grouper(
             # series is part of the object
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
@@ -978,11 +979,13 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, InvalidIndexError):
+        except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
             # InvalidIndexError raised on key-types inappropriate for index,
             #  e.g. DatetimeIndex.get_loc(tuple())
+            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
+            # and gpr.name is month str
             return False
 
     for gpr, level in zip(keys, levels):

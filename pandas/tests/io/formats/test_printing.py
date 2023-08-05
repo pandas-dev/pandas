@@ -154,7 +154,9 @@ class TestTableSchemaRepr:
         # column MultiIndex
         # GH 15996
         midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
-        df = pd.DataFrame(np.random.randn(5, len(midx)), columns=midx)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((5, len(midx))), columns=midx
+        )
 
         opt = pd.option_context("display.html.table_schema", True)
 
@@ -235,7 +237,7 @@ def test_multiindex_long_element():
 @pytest.mark.parametrize("as_frame", [True, False])
 def test_ser_df_with_complex_nans(data, output, as_frame):
     # GH#53762, GH#53841
-    obj = pd.Series(data)
+    obj = pd.Series(np.array(data))
     if as_frame:
         obj = obj.to_frame(name="val")
         reprs = [f"{i} {val}" for i, val in enumerate(output)]
@@ -243,4 +245,4 @@ def test_ser_df_with_complex_nans(data, output, as_frame):
     else:
         reprs = [f"{i}   {val}" for i, val in enumerate(output)]
         expected = "\n".join(reprs) + "\ndtype: complex128"
-    assert str(obj) == expected
+    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"

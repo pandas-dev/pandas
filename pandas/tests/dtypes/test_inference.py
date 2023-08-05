@@ -33,7 +33,6 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -150,8 +149,9 @@ ll_params = [
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
     (Series([], dtype=object), True, "Series-empty"),
-    (Series(["a"]).str, False, "StringMethods"),
-    (Series([], dtype="O").str, False, "StringMethods-empty"),
+    # Series.str will still raise a TypeError if iterated
+    (Series(["a"]).str, True, "StringMethods"),
+    (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -1362,7 +1362,8 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        # with pd.array this becomes NumpyExtensionArray which ends up
+        #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
         assert lib.infer_dtype(values, skipna=skipna) == exp
 
@@ -1968,9 +1969,9 @@ def test_nan_to_nat_conversions():
     assert s[8] is pd.NaT
 
 
-@td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):
+    pytest.importorskip("scipy")
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

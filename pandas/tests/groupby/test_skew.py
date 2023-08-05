@@ -12,11 +12,11 @@ def test_groupby_skew_equivalence():
     ncols = 2
     nan_frac = 0.05
 
-    arr = np.random.randn(nrows, ncols)
-    arr[np.random.random(nrows) < nan_frac] = np.nan
+    arr = np.random.default_rng(2).standard_normal((nrows, ncols))
+    arr[np.random.default_rng(2).random(nrows) < nan_frac] = np.nan
 
     df = pd.DataFrame(arr)
-    grps = np.random.randint(0, ngroups, size=nrows)
+    grps = np.random.default_rng(2).integers(0, ngroups, size=nrows)
     gb = df.groupby(grps)
 
     result = gb.skew()

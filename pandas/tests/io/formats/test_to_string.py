@@ -5,8 +5,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Series,
@@ -18,7 +16,7 @@ from pandas import (
 def test_repr_embedded_ndarray():
     arr = np.empty(10, dtype=[("err", object)])
     for i in range(len(arr)):
-        arr["err"][i] = np.random.randn(i)
+        arr["err"][i] = np.random.default_rng(2).standard_normal(i)
 
     df = DataFrame(arr)
     repr(df["err"])
@@ -342,9 +340,9 @@ def test_to_string_max_rows_zero(data, expected):
     assert result == expected
 
 
-@td.skip_if_no("pyarrow")
 def test_to_string_string_dtype():
     # GH#50099
+    pytest.importorskip("pyarrow")
     df = DataFrame({"x": ["foo", "bar", "baz"], "y": ["a", "b", "c"], "z": [1, 2, 3]})
     df = df.astype(
         {"x": "string[pyarrow]", "y": "string[python]", "z": "int64[pyarrow]"}

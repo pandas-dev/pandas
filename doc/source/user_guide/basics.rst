@@ -220,11 +220,6 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-.. ipython:: python
-   :suppress:
-
-   df_orig = df
-
 Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
@@ -272,13 +267,9 @@ case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.copy()
    df2["three"]["a"] = 1.0
-
-.. ipython:: python
-
    df
    df2
    df + df2
@@ -331,24 +322,21 @@ You can test if a pandas object is empty, via the :attr:`~DataFrame.empty` prope
 
 .. warning::
 
-   You might be tempted to do the following:
+   Asserting the truthiness of a pandas object will raise an error, as the testing of the emptiness
+   or values is ambiguous.
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-      >>> if df:
-      ...     pass
+      if df:
+          print(True)
 
-   Or
+   .. ipython:: python
+      :okexcept:
 
-   .. code-block:: python
+      df and df2
 
-      >>> df and df2
-
-   These will both raise errors, as you are trying to compare multiple values.::
-
-       ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
-
-See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
+   See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 
 .. _basics.equals:
 
@@ -413,13 +401,12 @@ objects of the same length:
 Trying to compare ``Index`` or ``Series`` objects of different lengths will
 raise a ValueError:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [55]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
-    ValueError: Series lengths must match to compare
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo', 'bar'])
 
-    In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
-    ValueError: Series lengths must match to compare
+    pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
 
 Note that this is different from the NumPy behavior where a comparison can
 be broadcast:
@@ -919,24 +906,20 @@ maximum value for each column occurred:
    tsdf.apply(lambda x: x.idxmax())
 
 You may also pass additional arguments and keyword arguments to the :meth:`~DataFrame.apply`
-method. For instance, consider the following function you would like to apply:
+method.
 
-.. code-block:: python
+.. ipython:: python
 
    def subtract_and_divide(x, sub, divide=1):
        return (x - sub) / divide
 
-You may then apply this function as follows:
-
-.. code-block:: python
-
-   df.apply(subtract_and_divide, args=(5,), divide=3)
+   df_udf = pd.DataFrame(np.ones((2, 2)))
+   df_udf.apply(subtract_and_divide, args=(5,), divide=3)
 
 Another useful feature is the ability to pass Series methods to carry out some
 Series operation on each column or row:
 
 .. ipython:: python
-   :suppress:
 
    tsdf = pd.DataFrame(
        np.random.randn(10, 3),
@@ -944,9 +927,6 @@ Series operation on each column or row:
        index=pd.date_range("1/1/2000", periods=10),
    )
    tsdf.iloc[3:7] = np.nan
-
-.. ipython:: python
-
    tsdf
    tsdf.apply(pd.Series.interpolate)
 
@@ -1171,12 +1151,8 @@ and analogously :meth:`~Series.map` on Series accept any Python function taking
 a single value and returning a single value. For example:
 
 .. ipython:: python
-   :suppress:
 
-   df4 = df_orig.copy()
-
-.. ipython:: python
-
+   df4 = df.copy()
    df4
 
    def f(x):
@@ -1280,14 +1256,9 @@ is a common enough operation that the :meth:`~DataFrame.reindex_like` method is
 available to make this simpler:
 
 .. ipython:: python
-   :suppress:
 
    df2 = df.reindex(["a", "b", "c"], columns=["one", "two"])
    df3 = df2 - df2.mean()
-
-
-.. ipython:: python
-
    df2
    df3
    df.reindex_like(df2)

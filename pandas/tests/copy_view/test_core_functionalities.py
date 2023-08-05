@@ -75,7 +75,9 @@ def test_out_of_scope(using_copy_on_write):
 
 
 def test_delete(using_copy_on_write):
-    df = DataFrame(np.random.randn(4, 3), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["a", "b", "c"]
+    )
     del df["b"]
     if using_copy_on_write:
         assert not df._mgr.blocks[0].refs.has_reference()
