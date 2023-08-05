@@ -2070,6 +2070,20 @@ class TestSeriesConstructors:
         ser.iloc[0] = 100
         tm.assert_index_equal(idx, expected)
 
+    def test_series_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = Series(["a", "b"], dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", "b"])
+        tm.assert_series_equal(ser, expected)
+
+        expected = Series(["a", 1], dtype="object")
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", 1])
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):

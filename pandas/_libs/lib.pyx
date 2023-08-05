@@ -2690,21 +2690,6 @@ def maybe_convert_objects(ndarray[object] objects,
                 obj = pa.array(objects)
                 dtype = ArrowDtype(obj.type)
                 return dtype.construct_array_type()(obj)
-            # elif opt is False:
-            #    # explicitly set to keep the old behavior and avoid the warning
-            #    pass
-            # else:
-            #    from pandas.util._exceptions import find_stack_level
-            #    warnings.warn(
-            #        "Pandas type inference with a sequence of `str` "
-            #        "objects is deprecated. In a future version, this will give "
-            #        "string[pyarrow] dtype, which will require pyarrow to be "
-            #        "installed. To opt in to the new behavior immediately set "
-            #        "`pd.set_option('future.infer_string', True)`. To keep the "
-            #        "old behavior pass `dtype=object`.",
-            #        FutureWarning,
-            #        stacklevel=find_stack_level(),
-            #    )
 
         seen.object_ = True
     elif seen.interval_:
