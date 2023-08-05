@@ -96,6 +96,14 @@ def test_constructor_valid_string_type_value_dictionary(chunked):
     assert pa.types.is_string(arr._pa_array.type.value_type)
 
 
+def test_constructor_from_list():
+    # GH#27673
+    pytest.importorskip("pyarrow", minversion="1.0.0")
+    result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+    assert isinstance(result.dtype, StringDtype)
+    assert result.dtype.storage == "pyarrow"
+
+
 @skip_if_no_pyarrow
 def test_from_sequence_wrong_dtype_raises():
     with pd.option_context("string_storage", "python"):
