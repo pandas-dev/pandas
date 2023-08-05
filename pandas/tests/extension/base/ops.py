@@ -161,7 +161,18 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(other, ops.rdivmod, ser)
 
     def test_add_series_with_extension_array(self, data):
+        # Check adding an ExtensionArray to a Series of the same dtype matches
+        # the behavior of adding the arrays directly and then wrapping in a
+        # Series.
+
         ser = pd.Series(data)
+
+        exc = self._get_expected_exception("__add__", ser, data)
+        if exc is not None:
+            with pytest.raises(exc):
+                ser + data
+            return
+
         result = ser + data
         expected = pd.Series(data + data)
         tm.assert_series_equal(result, expected)
