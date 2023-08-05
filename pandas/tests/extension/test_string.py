@@ -192,7 +192,9 @@ class TestCasting(base.BaseCastingTests):
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         dtype = tm.get_dtype(obj)
-        if dtype.storage == "pyarrow":
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "storage"
+        if dtype.storage == "pyarrow":  # type: ignore[union-attr]
             cast_to = "boolean[pyarrow]"
         else:
             cast_to = "boolean"
