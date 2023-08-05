@@ -1362,11 +1362,10 @@ def test_apply_to_nullable_integer_returns_float(values, function):
 def test_groupby_sum_mincount_boolean(min_count):
     b = True
     a = False
-    c = b
     na = np.nan
-    dfg = pd.array([b, b, na, na, a, a, b, c], dtype="boolean")
+    dfg = pd.array([b, b, na, na, a, a, b], dtype="boolean")
 
-    df = DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg[:-1]})
+    df = DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg})
     result = df.groupby("A").sum(min_count=min_count)
     if min_count == 0:
         expected = DataFrame(
