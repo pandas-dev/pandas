@@ -78,6 +78,11 @@ def data_for_grouping():
     )
 
 
+@pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype")
+
+
 class BaseJSON:
     pass
 
@@ -175,7 +180,7 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.xfail(reason="Unhashable")
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
@@ -208,10 +213,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     @pytest.mark.xfail(reason="combine for JSONArray not supported")
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
-
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
 
     @pytest.mark.xfail(
         reason="combine for JSONArray not supported - "
@@ -312,23 +313,13 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="unsupported"):
-            ser + data
-
-    @pytest.mark.xfail(reason="not implemented")
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        super().test_divmod_series_array()
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
-    pass
+    def test_compare_array(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.node.add_marker(mark)
+        super().test_compare_array(data, comparison_op)
 
 
 class TestPrinting(BaseJSON, base.BasePrintingTests):

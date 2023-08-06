@@ -74,6 +74,11 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
+def data_for_twos(dtype):
+    pytest.skip("Not a numeric dtype.")
+
+
+@pytest.fixture
 def na_cmp():
     def cmp(a, b):
         return a is pd.NaT and a is b
@@ -113,10 +118,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
@@ -130,42 +131,10 @@ class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
 class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
     implements = {"__sub__", "__rsub__"}
 
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            ser = pd.Series(data)
-            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        ser = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            ser + data
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            ser = pd.Series(data)
-            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in self.implements:
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
 
 class TestCasting(BaseDatetimeTests, base.BaseCastingTests):

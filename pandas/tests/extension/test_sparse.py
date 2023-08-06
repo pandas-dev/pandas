@@ -366,13 +366,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    def test_astype_str(self, data):
-        # pre-2.0 this would give a SparseDtype even if the user asked
-        #  for a non-sparse dtype.
-        result = pd.Series(data[:5]).astype(str)
-        expected = pd.Series([str(x) for x in data[:5]], dtype=object)
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
     def test_astype_string(self, data):
         super().test_astype_string(data)
@@ -414,10 +407,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(ser, op, other, exc=None)
 
 
 class TestComparisonOps(BaseSparseTests):

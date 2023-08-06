@@ -53,6 +53,7 @@ class TestNumpyEADtype:
             np.float64,
             float,
             np.dtype("float64"),
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -210,11 +211,10 @@ def test_is_sparse(check_scipy):
             assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
-@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    sp_sparse = pytest.importorskip("scipy.sparse")
 
-    assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
+    assert com.is_scipy_sparse(sp_sparse.bsr_matrix([1, 2, 3]))
 
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 

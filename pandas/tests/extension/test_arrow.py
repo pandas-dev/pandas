@@ -10,6 +10,8 @@ Additional tests should either be added to one of the BaseExtensionTests
 classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 """
+from __future__ import annotations
+
 from datetime import (
     date,
     datetime,
@@ -251,10 +253,16 @@ def data_missing_for_sorting(data_for_grouping):
 def data_for_twos(data):
     """Length-100 array in which all the elements are two."""
     pa_dtype = data.dtype.pyarrow_dtype
-    if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+    if (
+        pa.types.is_integer(pa_dtype)
+        or pa.types.is_floating(pa_dtype)
+        or pa.types.is_decimal(pa_dtype)
+        or pa.types.is_duration(pa_dtype)
+    ):
         return pd.array([2] * 100, dtype=data.dtype)
     # tests will be xfailed where 2 is not a valid scalar for pa_dtype
     return data
+    # TODO: skip otherwise?
 
 
 @pytest.fixture
@@ -408,7 +416,10 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
         self.check_accumulate(ser, op_name, skipna)
 
 
-class TestBaseNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, ser, op_name, skipna):
         pa_dtype = ser.dtype.pyarrow_dtype
         if op_name == "count":
@@ -429,7 +440,7 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(self, data, all_numeric_reductions, skipna, request):
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
         opname = all_numeric_reductions
 
@@ -497,7 +508,40 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
             "median",
         }:
             request.node.add_marker(xfail_mark)
-        super().test_reduce_series(data, all_numeric_reductions, skipna)
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_boolean(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
+        pa_dtype = data.dtype.pyarrow_dtype
+        xfail_mark = pytest.mark.xfail(
+            raises=TypeError,
+            reason=(
+                f"{all_boolean_reductions} is not implemented in "
+                f"pyarrow={pa.__version__} for {pa_dtype}"
+            ),
+        )
+        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
+            # We *might* want to make this behave like the non-pyarrow cases,
+            #  but have not yet decided.
+            request.node.add_marker(xfail_mark)
+
+        op_name = all_boolean_reductions
+        ser = pd.Series(data)
+
+        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
+            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
+            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
+            #  behavior which does not support this.
+
+            with pytest.raises(TypeError, match="does not support reduction"):
+                getattr(ser, op_name)(skipna=skipna)
+
+            return
+
+        result = getattr(ser, op_name)(skipna=skipna)
+        assert result is (op_name == "any")
 
     def _get_expected_reduction_dtype(self, arr, op_name: str):
         if op_name in ["max", "min"]:
@@ -530,41 +574,6 @@ class TestBaseNumericReduce(base.BaseNumericReduceTests):
         # GH 52679
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
-
-
-class TestBaseBooleanReduce(base.BaseBooleanReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
-        pa_dtype = data.dtype.pyarrow_dtype
-        xfail_mark = pytest.mark.xfail(
-            raises=TypeError,
-            reason=(
-                f"{all_boolean_reductions} is not implemented in "
-                f"pyarrow={pa.__version__} for {pa_dtype}"
-            ),
-        )
-        if pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype):
-            # We *might* want to make this behave like the non-pyarrow cases,
-            #  but have not yet decided.
-            request.node.add_marker(xfail_mark)
-
-        op_name = all_boolean_reductions
-        ser = pd.Series(data)
-
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # xref GH#34479 we support this in our non-pyarrow datetime64 dtypes,
-            #  but it isn't obvious we _should_.  For now, we keep the pyarrow
-            #  behavior which does not support this.
-
-            with pytest.raises(TypeError, match="does not support reduction"):
-                getattr(ser, op_name)(skipna=skipna)
-
-            return
-
-        result = getattr(ser, op_name)(skipna=skipna)
-        assert result is (op_name == "any")
 
 
 class TestBaseGroupby(base.BaseGroupbyTests):
@@ -819,19 +828,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
-    def test_combine_add(self, data_repeated, request):
-        pa_dtype = next(data_repeated(1)).dtype.pyarrow_dtype
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # analogous to datetime64, these cannot be added
-            orig_data1, orig_data2 = data_repeated(2)
-            s1 = pd.Series(orig_data1)
-            s2 = pd.Series(orig_data2)
-            with pytest.raises(TypeError):
-                s1.combine(s2, lambda x1, x2: x1 + x2)
-
-        else:
-            super().test_combine_add(data_repeated)
-
 
 class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
@@ -964,16 +960,26 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             and pa.types.is_temporal(pa_dtype)
         )
 
-    def _get_scalar_exception(self, opname, pa_dtype):
-        arrow_temporal_supported = self._is_temporal_supported(opname, pa_dtype)
-        if opname in {
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        if op_name in ("__divmod__", "__rdivmod__"):
+            return self.divmod_exc
+
+        dtype = tm.get_dtype(obj)
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
+
+        arrow_temporal_supported = self._is_temporal_supported(op_name, pa_dtype)
+        if op_name in {
             "__mod__",
             "__rmod__",
         }:
             exc = NotImplementedError
         elif arrow_temporal_supported:
             exc = None
-        elif opname in ["__add__", "__radd__"] and (
+        elif op_name in ["__add__", "__radd__"] and (
             pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
         ):
             exc = None
@@ -982,6 +988,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
             or pa.types.is_integer(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
         ):
+            # TODO: in many of these cases, e.g. non-duration temporal,
+            #  these will *never* be allowed. Would it make more sense to
+            #  re-raise as TypeError, more consistent with non-pyarrow cases?
             exc = pa.ArrowNotImplementedError
         else:
             exc = None
@@ -1060,10 +1069,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         ):
             pytest.skip("Skip testing Python string formatting")
 
-        self.series_scalar_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
-
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.node.add_marker(mark)
@@ -1078,10 +1083,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         ):
             pytest.skip("Skip testing Python string formatting")
 
-        self.frame_scalar_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
-
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
         if mark is not None:
             request.node.add_marker(mark)
@@ -1090,10 +1091,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
-
-        self.series_array_exc = self._get_scalar_exception(
-            all_arithmetic_operators, pa_dtype
-        )
 
         if (
             all_arithmetic_operators
@@ -1124,37 +1121,12 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
 
-        self.check_opname(ser, op_name, other, exc=self.series_array_exc)
+        self.check_opname(ser, op_name, other)
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if pa.types.is_temporal(pa_dtype) and not pa.types.is_duration(pa_dtype):
-            # i.e. timestamp, date, time, but not timedelta; these *should*
-            #  raise when trying to add
-            ser = pd.Series(data)
-            if pa_version_under7p0:
-                msg = "Function add_checked has no kernel matching input types"
-            else:
-                msg = "Function 'add_checked' has no kernel matching input types"
-            with pytest.raises(NotImplementedError, match=msg):
-                # TODO: this is a pa.lib.ArrowNotImplementedError, might
-                #  be better to reraise a TypeError; more consistent with
-                #  non-pyarrow cases
-                ser + data
-
-            return
-
-        if (pa_version_under8p0 and pa.types.is_duration(pa_dtype)) or (
-            pa.types.is_boolean(pa_dtype)
-        ):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"add_checked not implemented for {pa_dtype}",
-                )
-            )
-        elif pa_dtype.equals("int8"):
+        if pa_dtype.equals("int8"):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowInvalid,
@@ -1183,19 +1155,7 @@ class TestBaseComparisonOps(base.BaseComparisonOpsTests):
             tm.assert_series_equal(result, expected)
 
         else:
-            exc = None
-            try:
-                result = comparison_op(ser, other)
-            except Exception as err:
-                exc = err
-
-            if exc is None:
-                # Didn't error, then should match point-wise behavior
-                expected = ser.combine(other, comparison_op)
-                tm.assert_series_equal(result, expected)
-            else:
-                with pytest.raises(type(exc)):
-                    ser.combine(other, comparison_op)
+            return super().test_compare_array(data, comparison_op)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833

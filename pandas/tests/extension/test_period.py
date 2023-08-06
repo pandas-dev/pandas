@@ -40,7 +40,7 @@ def data(dtype):
 
 @pytest.fixture
 def data_for_twos(dtype):
-    return PeriodArray(np.ones(100) * 2, dtype=dtype)
+    pytest.skip("Not a numeric dtype")
 
 
 @pytest.fixture
@@ -93,10 +93,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BasePeriodTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Period + Period is not defined.
-        pass
-
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods):
         if is_platform_windows() and np_version_gte1p24:
@@ -116,57 +112,10 @@ class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
-    implements = {"__sub__", "__rsub__"}
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        # we implement substitution...
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            s = pd.Series(data)
-            self.check_opname(s, all_arithmetic_operators, s.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        super()._check_divmod_op(s, op, other, exc=TypeError)
-
-    def test_add_series_with_extension_array(self, data):
-        # we don't implement + for Period
-        s = pd.Series(data)
-        msg = (
-            r"unsupported operand type\(s\) for \+: "
-            r"\'PeriodArray\' and \'PeriodArray\'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            s + data
-
-    def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, data, frame_or_series
-    ):
-        # Override to use __sub__ instead of __add__
-        other = pd.Series(data)
-        if frame_or_series is pd.DataFrame:
-            other = other.to_frame()
-
-        result = data.__sub__(other)
-        assert result is NotImplemented
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in ("__sub__", "__rsub__"):
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):

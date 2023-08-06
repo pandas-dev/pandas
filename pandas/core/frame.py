@@ -3176,8 +3176,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> df.to_html()  # doctest: +SKIP
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
+        >>> html_string = '''<table border="1" class="dataframe">
+        ...   <thead>
+        ...     <tr style="text-align: right;">
+        ...       <th></th>
+        ...       <th>col1</th>
+        ...       <th>col2</th>
+        ...     </tr>
+        ...   </thead>
+        ...   <tbody>
+        ...     <tr>
+        ...       <th>0</th>
+        ...       <td>1</td>
+        ...       <td>4</td>
+        ...     </tr>
+        ...     <tr>
+        ...       <th>1</th>
+        ...       <td>2</td>
+        ...       <td>3</td>
+        ...     </tr>
+        ...   </tbody>
+        ... </table>'''
+        >>> assert html_string == df.to_html()
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -10991,9 +11012,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame
+        Series
             For each column/row the number of non-NA/null entries.
-            If `level` is specified returns a `DataFrame`.
 
         See Also
         --------
@@ -11051,7 +11071,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = notna(frame).sum(axis=axis)
 
-        return result.astype("int64").__finalize__(self, method="count")
+        return result.astype("int64", copy=False).__finalize__(self, method="count")
 
     def _reduce(
         self,
