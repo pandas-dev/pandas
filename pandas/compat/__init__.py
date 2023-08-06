@@ -19,6 +19,7 @@ from pandas.compat._constants import (
     ISMUSL,
     PY310,
     PY311,
+    PY312,
     PYPY,
 )
 import pandas.compat.compressors
@@ -35,7 +36,7 @@ if TYPE_CHECKING:
     from pandas._typing import F
 
 
-def set_function_name(f: F, name: str, cls) -> F:
+def set_function_name(f: F, name: str, cls: type) -> F:
     """
     Bind the name/qualname attributes of the function.
     """
@@ -189,5 +190,6 @@ __all__ = [
     "ISMUSL",
     "PY310",
     "PY311",
+    "PY312",
     "PYPY",
 ]

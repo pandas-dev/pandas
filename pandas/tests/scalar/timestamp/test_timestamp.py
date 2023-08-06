@@ -290,7 +290,6 @@ class TestTimestamp:
         assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
-        np.random.seed(7_960_929)
         ns = [Timestamp.min._value, Timestamp.max._value, 1000]
 
         for n in ns:
@@ -306,7 +305,7 @@ class TestTimestamp:
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
-        compare(Timestamp.utcnow(), datetime.utcnow())
+        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -326,7 +325,7 @@ class TestTimestamp:
             datetime.fromtimestamp(current_time, utc),
         )
 
-        date_component = datetime.utcnow()
+        date_component = datetime.now(timezone.utc)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),
@@ -345,7 +344,7 @@ class TestTimestamp:
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
-        compare(Timestamp.utcnow(), datetime.utcnow())
+        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -356,7 +355,7 @@ class TestTimestamp:
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )
 
-        date_component = datetime.utcnow()
+        date_component = datetime.now(timezone.utc)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),

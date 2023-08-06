@@ -27,11 +27,13 @@ def cols():
 @pytest.fixture
 def vals(n):
     vals = [
-        np.random.randint(0, 10, n),
-        np.random.choice(list("abcdefghij"), n),
-        np.random.choice(pd.date_range("20141009", periods=10).tolist(), n),
-        np.random.choice(list("ZYXWVUTSRQ"), n),
-        np.random.randn(n),
+        np.random.default_rng(2).integers(0, 10, n),
+        np.random.default_rng(2).choice(list("abcdefghij"), n),
+        np.random.default_rng(2).choice(
+            pd.date_range("20141009", periods=10).tolist(), n
+        ),
+        np.random.default_rng(2).choice(list("ZYXWVUTSRQ"), n),
+        np.random.default_rng(2).standard_normal(n),
     ]
     vals = list(map(tuple, zip(*vals)))
     return vals
@@ -41,10 +43,12 @@ def vals(n):
 def keys(n, m, vals):
     # bunch of keys for testing
     keys = [
-        np.random.randint(0, 11, m),
-        np.random.choice(list("abcdefghijk"), m),
-        np.random.choice(pd.date_range("20141009", periods=11).tolist(), m),
-        np.random.choice(list("ZYXWVUTSRQP"), m),
+        np.random.default_rng(2).integers(0, 11, m),
+        np.random.default_rng(2).choice(list("abcdefghijk"), m),
+        np.random.default_rng(2).choice(
+            pd.date_range("20141009", periods=11).tolist(), m
+        ),
+        np.random.default_rng(2).choice(list("ZYXWVUTSRQP"), m),
     ]
     keys = list(map(tuple, zip(*keys)))
     keys += [t[:-1] for t in vals[:: n // m]]

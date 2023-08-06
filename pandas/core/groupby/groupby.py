@@ -104,6 +104,7 @@ from pandas.core.arrays import (
     Categorical,
     ExtensionArray,
     FloatingArray,
+    IntegerArray,
 )
 from pandas.core.base import (
     PandasObject,
@@ -2252,6 +2253,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
+            if isinstance(bvalues, BaseMaskedArray):
+                return IntegerArray(
+                    counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
+                )
+            elif isinstance(bvalues, ArrowExtensionArray):
+                return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -3279,7 +3286,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[0]
 
             if isinstance(obj, DataFrame):
@@ -3338,7 +3345,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[-1]
 
             if isinstance(obj, DataFrame):
@@ -4226,6 +4233,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
+        obj = self._wrap_agged_manager(mgr)
+        if self.axis == 1:
+            splitter = self.grouper._get_splitter(obj.T, axis=self.axis)
+            sdata = splitter._sorted_data.T
+        else:
+            splitter = self.grouper._get_splitter(obj, axis=self.axis)
+            sdata = splitter._sorted_data
+
+        starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
             if is_object_dtype(vals.dtype):
@@ -4323,23 +4340,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return vals
 
-        orig_scalar = is_scalar(q)
-        if orig_scalar:
+        qs = np.array(q, dtype=np.float64)
+        pass_qs: np.ndarray | None = qs
+        if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
-        else:
-            qs = np.array(q, dtype=np.float64)
+            pass_qs = None
+
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
         func = partial(
-            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+            libgroupby.group_quantile,
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
         )
-
-        # Put '-1' (NaN) labels as the last group so it does not interfere
-        # with the calculations. Note: length check avoids failure on empty
-        # labels. In that case, the value doesn't matter
-        na_label_for_sorting = ids.max() + 1 if len(ids) > 0 else 0
-        labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             orig_vals = values
@@ -4357,35 +4374,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ncols = 1
             if vals.ndim == 2:
                 ncols = vals.shape[0]
-                shaped_labels = np.broadcast_to(
-                    labels_for_lexsort, (ncols, len(labels_for_lexsort))
-                )
-            else:
-                shaped_labels = labels_for_lexsort
 
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
 
-            # Get an index of values sorted by values and then labels
-            order = (vals, shaped_labels)
-            sort_arr = np.lexsort(order).astype(np.intp, copy=False)
-
             if is_datetimelike:
-                # This casting needs to happen after the lexsort in order
-                #  to ensure that NaTs are placed at the end and not the front
-                vals = vals.view("i8").astype(np.float64)
+                vals = vals.view("i8")
 
             if vals.ndim == 1:
-                # Ea is always 1d
+                # EA is always 1d
                 func(
                     out[0],
                     values=vals,
                     mask=mask,
-                    sort_indexer=sort_arr,
                     result_mask=result_mask,
+                    is_datetimelike=is_datetimelike,
                 )
             else:
                 for i in range(ncols):
-                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
+                    func(
+                        out[i],
+                        values=vals[i],
+                        mask=mask[i],
+                        result_mask=None,
+                        is_datetimelike=is_datetimelike,
+                    )
 
             if vals.ndim == 1:
                 out = out.ravel("K")
@@ -4393,17 +4405,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     result_mask = result_mask.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
+
             return post_processor(out, inference, result_mask, orig_vals)
 
-        data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
-        res_mgr = data.grouped_reduce(blk_func)
+        res_mgr = sdata._mgr.grouped_reduce(blk_func)
 
         res = self._wrap_agged_manager(res_mgr)
-
-        if orig_scalar:
-            # Avoid expensive MultiIndex construction
-            return self._wrap_aggregated_output(res)
-        return self._wrap_aggregated_output(res, qs=qs)
+        return self._wrap_aggregated_output(res, qs=pass_qs)
 
     @final
     @Substitution(name="groupby")
@@ -4932,10 +4940,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @Substitution(name="groupby")
     def shift(
         self,
-        periods: int = 1,
+        periods: int | Sequence[int] = 1,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
         fill_value=lib.no_default,
+        suffix: str | None = None,
     ):
         """
         Shift each group by periods observations.
@@ -4944,8 +4953,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        periods : int, default 1
-            Number of periods to shift.
+        periods : int | Sequence[int], default 1
+            Number of periods to shift. If a list of values, shift each group by
+            each period.
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
@@ -4960,6 +4970,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             .. versionchanged:: 2.1.0
                 Will raise a ``ValueError`` if ``freq`` is provided too.
+
+        suffix : str, optional
+            A string to add to each shifted column if there are multiple periods.
+            Ignored otherwise.
 
         Returns
         -------
@@ -5014,25 +5028,70 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             axis = 0
 
-        if freq is not None or axis != 0:
-            f = lambda x: x.shift(periods, freq, axis, fill_value)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+        if is_list_like(periods):
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            periods = cast(Sequence, periods)
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
 
-        if fill_value is lib.no_default:
-            fill_value = None
-        ids, _, ngroups = self.grouper.group_info
-        res_indexer = np.zeros(len(ids), dtype=np.int64)
+            add_suffix = True
+        else:
+            if not is_integer(periods):
+                raise TypeError(
+                    f"Periods must be integer, but {periods} is {type(periods)}."
+                )
+            if suffix:
+                raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+            periods = [cast(int, periods)]
+            add_suffix = False
 
-        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+        shifted_dataframes = []
+        for period in periods:
+            if not is_integer(period):
+                raise TypeError(
+                    f"Periods must be integer, but {period} is {type(period)}."
+                )
+            period = cast(int, period)
+            if freq is not None or axis != 0:
+                f = lambda x: x.shift(
+                    period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
+                )
+                shifted = self._python_apply_general(
+                    f, self._selected_obj, is_transform=True
+                )
+            else:
+                if fill_value is lib.no_default:
+                    fill_value = None
+                ids, _, ngroups = self.grouper.group_info
+                res_indexer = np.zeros(len(ids), dtype=np.int64)
 
-        obj = self._obj_with_exclusions
+                libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
 
-        res = obj._reindex_with_indexers(
-            {self.axis: (obj.axes[self.axis], res_indexer)},
-            fill_value=fill_value,
-            allow_dups=True,
+                obj = self._obj_with_exclusions
+
+                shifted = obj._reindex_with_indexers(
+                    {self.axis: (obj.axes[self.axis], res_indexer)},
+                    fill_value=fill_value,
+                    allow_dups=True,
+                )
+
+            if add_suffix:
+                if isinstance(shifted, Series):
+                    shifted = cast(NDFrameT, shifted.to_frame())
+                shifted = shifted.add_suffix(
+                    f"{suffix}_{period}" if suffix else f"_{period}"
+                )
+            shifted_dataframes.append(cast(Union[Series, DataFrame], shifted))
+
+        return (
+            shifted_dataframes[0]
+            if len(shifted_dataframes) == 1
+            else concat(shifted_dataframes, axis=1)
         )
-        return res
 
     @final
     @Substitution(name="groupby")

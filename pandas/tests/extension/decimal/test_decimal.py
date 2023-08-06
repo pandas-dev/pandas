@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import decimal
 import operator
 
@@ -55,11 +57,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value():
-    return decimal.Decimal("NaN")
-
-
-@pytest.fixture
 def data_for_grouping():
     b = decimal.Decimal("1.0")
     a = decimal.Decimal("0.0")
@@ -89,7 +86,7 @@ class TestGetitem(base.BaseGetitemTests):
         arr = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
         result = arr.take([0, -1], allow_fill=True, fill_value=decimal.Decimal("-1.0"))
         expected = DecimalArray([decimal.Decimal("1.0"), decimal.Decimal("-1.0")])
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestIndex(base.BaseIndexTests):
@@ -97,44 +94,65 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+    def test_fillna_frame(self, data_missing):
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_frame(data_missing)
+
+    def test_fillna_limit_pad(self, data_missing):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_pad(data_missing)
+
+    def test_fillna_limit_backfill(self, data_missing):
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna added a 'copy' keyword",
+                "Series.fillna with 'method' is deprecated",
+            ]
+        )
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_no_op_returns_copy(data)
+
+    def test_fillna_series(self, data_missing):
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_series(data_missing)
+
+    def test_fillna_series_method(self, data_missing, fillna_method):
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_fillna_series_method(data_missing, fillna_method)
 
 
 class Reduce:
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return True
+
     def check_reduce(self, s, op_name, skipna):
-        if op_name in ["median", "skew", "kurt", "sem"]:
-            msg = r"decimal does not support the .* operation"
-            with pytest.raises(NotImplementedError, match=msg):
-                getattr(s, op_name)(skipna=skipna)
-        elif op_name == "count":
-            result = getattr(s, op_name)()
-            expected = len(s) - s.isna().sum()
-            tm.assert_almost_equal(result, expected)
+        if op_name == "count":
+            return super().check_reduce(s, op_name, skipna)
         else:
             result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(np.asarray(s), op_name)()
             tm.assert_almost_equal(result, expected)
-
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        if op_name in ["count", "kurt", "sem", "skew", "median"]:
-            assert not hasattr(arr, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-
-        if not skipna and ser.isna().any():
-            expected = DecimalArray([pd.NA])
-        else:
-            exp_value = getattr(ser.dropna(), op_name)()
-            expected = DecimalArray([exp_value])
-
-        tm.assert_extension_array_equal(result1, expected)
 
     def test_reduction_without_keepdims(self):
         # GH52788
@@ -159,15 +177,35 @@ class Reduce:
         tm.assert_series_equal(result, expected)
 
 
-class TestNumericReduce(Reduce, base.BaseNumericReduceTests):
-    pass
+class TestReduce(Reduce, base.BaseReduceTests):
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if all_numeric_reductions in ["kurt", "skew", "sem", "median"]:
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
+        op_name = all_numeric_reductions
+        if op_name in ["skew", "median"]:
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
 
-class TestBooleanReduce(Reduce, base.BaseBooleanReduceTests):
-    pass
+        return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
 
 class TestMethods(base.BaseMethodsTests):
+    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+        warn = FutureWarning if not using_copy_on_write else None
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            super().test_fillna_copy_frame(data_missing)
+
+    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+        warn = FutureWarning if not using_copy_on_write else None
+        msg = "ExtensionArray.fillna added a 'copy' keyword"
+        with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+            super().test_fillna_copy_series(data_missing)
+
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna, request):
         all_data = all_data[:10]
@@ -210,20 +248,16 @@ class TestPrinting(base.BasePrintingTests):
         assert "Decimal: " in repr(ser)
 
 
-@pytest.mark.xfail(
-    reason=(
-        "DecimalArray constructor raises bc _from_sequence wants Decimals, not ints."
-        "Easy to fix, just need to do it."
-    ),
-    raises=TypeError,
-)
-def test_series_constructor_coerce_data_to_extension_dtype_raises():
-    xpr = (
-        "Cannot cast data to extension dtype 'decimal'. Pass the "
-        "extension array directly."
+def test_series_constructor_coerce_data_to_extension_dtype():
+    dtype = DecimalDtype()
+    ser = pd.Series([0, 1, 2], dtype=dtype)
+
+    arr = DecimalArray(
+        [decimal.Decimal(0), decimal.Decimal(1), decimal.Decimal(2)],
+        dtype=dtype,
     )
-    with pytest.raises(ValueError, match=xpr):
-        pd.Series([0, 1, 2], dtype=DecimalDtype())
+    exp = pd.Series(arr)
+    tm.assert_series_equal(ser, exp)
 
 
 def test_series_constructor_with_dtype():
@@ -272,8 +306,14 @@ def test_astype_dispatches(frame):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def check_opname(self, s, op_name, other, exc=None):
-        super().check_opname(s, op_name, other, exc=None)
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    series_array_exc = None
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        return None
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -297,10 +337,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(s, op, other, exc=None)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def test_compare_scalar(self, data, comparison_op):
@@ -310,7 +346,7 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def test_compare_array(self, data, comparison_op):
         s = pd.Series(data)
 
-        alter = np.random.choice([-1, 0, 1], len(data))
+        alter = np.random.default_rng(2).choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
         self._compare_other(s, data, comparison_op, other)

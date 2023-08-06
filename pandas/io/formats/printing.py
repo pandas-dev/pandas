@@ -44,7 +44,6 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     strlen = kwargs.pop("strlen", len)
     justfunc = kwargs.pop("justfunc", justify)
 
-    out_lines = []
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
@@ -55,9 +54,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
         nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
-    for lines in toJoin:
-        out_lines.append("".join(lines))
-    return "\n".join(out_lines)
+    return "\n".join("".join(lines) for lines in toJoin)
 
 
 def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:

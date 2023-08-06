@@ -22,6 +22,12 @@ def test_copy(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy()
 
+    # the deep copy by defaults takes a shallow copy of the Index
+    assert df_copy.index is not df.index
+    assert df_copy.columns is not df.columns
+    assert df_copy.index.is_(df.index)
+    assert df_copy.columns.is_(df.columns)
+
     # the deep copy doesn't share memory
     assert not np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
     if using_copy_on_write:
@@ -36,6 +42,16 @@ def test_copy(using_copy_on_write):
 def test_copy_shallow(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_copy = df.copy(deep=False)
+
+    # the shallow copy also makes a shallow copy of the index
+    if using_copy_on_write:
+        assert df_copy.index is not df.index
+        assert df_copy.columns is not df.columns
+        assert df_copy.index.is_(df.index)
+        assert df_copy.columns.is_(df.columns)
+    else:
+        assert df_copy.index is df.index
+        assert df_copy.columns is df.columns
 
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(df_copy, "a"), get_array(df, "a"))
@@ -1405,15 +1421,18 @@ def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
         assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
-@pytest.mark.parametrize("val, exp", [(5.5, True), (5, False)])
-def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp):
+@pytest.mark.parametrize(
+    "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
+)
+def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp, warn):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    df[indexer] = val
+    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+        df[indexer] = val
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
