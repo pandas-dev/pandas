@@ -141,11 +141,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value():
-    return pd.NA
-
-
-@pytest.fixture
 def data_for_grouping(dtype):
     if dtype.kind == "f":
         b = 0.1
