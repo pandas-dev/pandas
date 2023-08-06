@@ -496,7 +496,7 @@ class TestReduce(base.BaseReduceTests):
         elif (
             all_numeric_reductions == "sem"
             and pa_version_under8p0
-            and dtype._is_numeric
+            and (dtype._is_numeric or pa.types.is_temporal(pa_dtype))
         ):
             request.node.add_marker(xfail_mark)
 
