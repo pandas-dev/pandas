@@ -67,30 +67,6 @@ class BaseGroupbyTests(BaseExtensionTests):
         result = df.groupby("A").first()
         tm.assert_frame_equal(result, expected)
 
-    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
-        # GH#41720
-        expected = pd.DataFrame(
-            {
-                "td": {
-                    0: pd.Timedelta("0 days 01:00:00"),
-                    1: pd.Timedelta("0 days 01:15:00"),
-                    2: pd.Timedelta("0 days 01:15:00"),
-                }
-            }
-        )
-        df = pd.DataFrame(
-            {
-                "td": pd.Series(
-                    ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                    dtype="timedelta64[ns]",
-                ),
-                "grps": ["a", "a", "b"],
-            }
-        )
-        gb = df.groupby("grps")
-        result = gb.agg(td=("td", "cumsum"))
-        tm.assert_frame_equal(result, expected)
-
     def test_groupby_extension_no_sort(self, data_for_grouping):
         df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
 
