@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -943,7 +942,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         # GH#46406
-        immutable_ea = isinstance(dtype, SparseDtype)
+        immutable_ea = isinstance(dtype, ExtensionDtype) and dtype._is_immutable
 
         if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()

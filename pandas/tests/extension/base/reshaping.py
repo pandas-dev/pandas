@@ -334,6 +334,9 @@ class BaseReshapingTests(BaseExtensionTests):
         result = data.ravel()
         assert type(result) == type(data)
 
+        if data.dtype._is_immutable:
+            pytest.skip("test_ravel assumes mutability")
+
         # Check that we have a view, not a copy
         result[0] = result[1]
         assert data[0] == data[1]
@@ -347,6 +350,9 @@ class BaseReshapingTests(BaseExtensionTests):
 
         # If we ever _did_ support 2D, shape should be reversed
         assert result.shape == data.shape[::-1]
+
+        if data.dtype._is_immutable:
+            pytest.skip("test_transpose assumes mutability")
 
         # Check that we have a view, not a copy
         result[0] = result[1]
