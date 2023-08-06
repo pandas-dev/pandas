@@ -174,18 +174,16 @@ class TestStata:
         )
         expected["yearly_date"] = expected["yearly_date"].astype("O")
 
+        path1 = datapath("io", "data", "stata", "stata2_114.dta")
+        path2 = datapath("io", "data", "stata", "stata2_115.dta")
+        path3 = datapath("io", "data", "stata", "stata2_117.dta")
+
         with tm.assert_produces_warning(UserWarning):
-            parsed_114 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_114.dta")
-            )
+            parsed_114 = self.read_dta(path1)
         with tm.assert_produces_warning(UserWarning):
-            parsed_115 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_115.dta")
-            )
+            parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning):
-            parsed_117 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_117.dta")
-            )
+            parsed_117 = self.read_dta(path3)
             # 113 is buggy due to limits of date format support in Stata
             # parsed_113 = self.read_dta(
             # datapath("io", "data", "stata", "stata2_113.dta")
