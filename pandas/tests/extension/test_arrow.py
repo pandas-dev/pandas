@@ -459,13 +459,10 @@ class TestReduce(base.BaseReduceTests):
             result = getattr(ser, op_name)()
         else:
             result = getattr(ser, op_name)(skipna=skipna)
-        if pa.types.is_boolean(pa_dtype):
-            # Can't convert if ser contains NA
-            pytest.skip(
-                "pandas boolean data with NA does not fully support all reductions"
-            )
-        elif pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
+
+        if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
             ser = ser.astype("Float64")
+        # TODO: in the opposite case, aren't we testing... nothing?
         if op_name == "count":
             expected = getattr(ser, op_name)()
         else:
