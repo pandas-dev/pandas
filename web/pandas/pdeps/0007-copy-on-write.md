@@ -337,9 +337,9 @@ example pandas 3.0).
 Doing a traditional deprecation cycle that lives in several minor feature releases will
 be too noisy. Indexing is too common an operation to include a warning (even if
 we limit it to just those operations that previously returned views). However, this proposal
-is already implemented and thus available. Users can opt-in and test their code 
+is already implemented and thus available. Users can opt-in and test their code
 (this is possible starting with version 1.5
-with `pd.options.mode.copy_on_write = True`). 
+with `pd.options.mode.copy_on_write = True`).
 
 Further we will add a warning mode for pandas 2.2 that raises warnings for all cases that
 will change behaviour under the Copy-on-Write proposal. We can
@@ -353,7 +353,7 @@ The implementation is available since pandas
 1.5 (and significantly improved starting with pandas 2.0). It uses weakrefs to keep track of whether the
 data of a Dataframe/Series are viewing the data of another (pandas) object or are being
 viewed by another object. This way, whenever the series/dataframe gets modified, we can
-check if its data first needs to be copied before mutating it 
+check if its data first needs to be copied before mutating it
 (see [here](https://pandas.pydata.org/docs/development/copy_on_write.html)).
 
 To test the implementation and experiment with the new behaviour, you can
