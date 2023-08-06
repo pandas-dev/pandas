@@ -419,8 +419,6 @@ def test_invalid_dtype_backend():
 
 def test_string_inference(tmp_path):
     # GH#54431
-    import pyarrow as pa
-
     path = tmp_path / "test_string_inference.p"
     df = pd.DataFrame(data={"a": ["x", "y"]})
     df.to_orc(path)
