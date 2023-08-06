@@ -1104,7 +1104,7 @@ cdef class Day(Tick):
     Examples
     --------
     You can use the parameter ``n`` to represent a shift of n days.
-    >>> from pandas.tseries.offsets import Day 
+    >>> from pandas.tseries.offsets import Day
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts.strftime('%a %d %b %Y %H:%M')
     'Fri 09 Dec 2022 15:00'
@@ -1140,7 +1140,7 @@ cdef class Hour(Tick):
     --------
     You can use the parameter ``n`` to represent a shift of n hours.
 
-    >>> from pandas.tseries.offsets import Hour 
+    >>> from pandas.tseries.offsets import Hour
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts.strftime('%a %d %b %Y %H:%M')
     'Fri 09 Dec 2022 15:00'
@@ -1176,7 +1176,7 @@ cdef class Minute(Tick):
     --------
     You can use the parameter ``n`` to represent a shift of n minutes.
 
-    >>> from pandas.tseries.offsets import Minute 
+    >>> from pandas.tseries.offsets import Minute
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts.strftime('%a %d %b %Y %H:%M:%S')
     'Fri 09 Dec 2022 15:00:00'
@@ -1212,7 +1212,7 @@ cdef class Second(Tick):
     --------
     You can use the parameter ``n`` to represent a shift of n seconds.
 
-    >>> from pandas.tseries.offsets import Second 
+    >>> from pandas.tseries.offsets import Second
     >>> ts = pd.Timestamp(2022, 12, 9, 15)
     >>> ts.strftime('%a %d %b %Y %H:%M:%S')
     'Fri 09 Dec 2022 15:00:00'
