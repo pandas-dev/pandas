@@ -127,7 +127,7 @@ jobs:
       # instead of BSD tar.
       # borrowed from https://github.com/rust-lang/rust-analyzer/pull/6208/files
       - name: Install GNU tar
-        if: matrix.os == 'macos-latest'
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
           brew install gnu-tar
           echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
