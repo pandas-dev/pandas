@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
 )
+import uuid
 import zipfile
 
 from pandas.compat import (
@@ -18,7 +19,6 @@ from pandas.compat import (
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._testing._random import rands
 from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
@@ -56,7 +56,7 @@ def round_trip_pickle(
     """
     _path = path
     if _path is None:
-        _path = f"__{rands(10)}__.pickle"
+        _path = f"__{uuid.uuid4()}__.pickle"
     with ensure_clean(_path) as temp_path:
         pd.to_pickle(obj, temp_path)
         return pd.read_pickle(temp_path)

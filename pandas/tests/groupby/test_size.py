@@ -51,7 +51,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
 @pytest.mark.parametrize("sort", [True, False])
 def test_size_sort(sort, by):
-    df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("ABC"))
+    df = DataFrame(np.random.default_rng(2).choice(20, (1000, 3)), columns=list("ABC"))
     left = df.groupby(by=by, sort=sort).size()
     right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])
     tm.assert_series_equal(left, right, check_names=False)

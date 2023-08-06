@@ -18,18 +18,15 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Interval,
-    Series,
-)
+from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
 
 def make_data():
     N = 100
-    left_array = np.random.uniform(size=N).cumsum()
-    right_array = left_array + np.random.uniform(size=N)
+    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=N)
     return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
@@ -58,11 +55,6 @@ def data_for_sorting():
 @pytest.fixture
 def data_missing_for_sorting():
     return IntervalArray.from_tuples([(1, 2), None, (0, 1)])
-
-
-@pytest.fixture
-def na_value():
-    return np.nan
 
 
 @pytest.fixture
@@ -105,26 +97,12 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-        ser = Series(data)
-
-        if op_name in ["min", "max"]:
-            # IntervalArray *does* implement these
-            assert getattr(ser, op_name)(skipna=skipna) in data
-            assert getattr(data, op_name)(skipna=skipna) in data
-            return
-
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max"]
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="addition is not defined for intervals")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"
@@ -149,9 +127,7 @@ class TestSetitem(BaseInterval, base.BaseSetitemTests):
 
 
 class TestPrinting(BaseInterval, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Interval has custom repr")
-    def test_array_repr(self, data, size):
-        super().test_array_repr()
+    pass
 
 
 class TestParsing(BaseInterval, base.BaseParsingTests):

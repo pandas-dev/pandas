@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -65,6 +64,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    ensure_np_dtype,
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
@@ -546,7 +546,10 @@ class BaseBlockManager(DataManager):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            new_axes = list(self.axes)
+            if using_copy_on_write():
+                new_axes = [ax.view() for ax in self.axes]
+            else:
+                new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -939,7 +942,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         # GH#46406
-        immutable_ea = isinstance(dtype, SparseDtype)
+        immutable_ea = isinstance(dtype, ExtensionDtype) and dtype._is_immutable
 
         if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()
@@ -1623,16 +1626,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
                     dtype=dtype,
                     na_value=na_value,
+                    copy=copy,
                 ).reshape(blk.shape)
             else:
-                arr = np.asarray(blk.get_values())
-                if dtype:
-                    arr = arr.astype(dtype, copy=copy)
-                    copy = False
+                arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if copy:
-                arr = arr.copy()
-            elif using_copy_on_write():
+            if using_copy_on_write() and not copy:
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
@@ -1666,16 +1665,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 [blk.dtype for blk in self.blocks]
             )
 
-        # TODO: https://github.com/pandas-dev/pandas/issues/22791
-        # Give EAs some input on what happens here. Sparse needs this.
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-            dtype = cast(np.dtype, dtype)
-        elif isinstance(dtype, ExtensionDtype):
-            dtype = np.dtype("object")
-        elif dtype == np.dtype(str):
-            dtype = np.dtype("object")
-
+        # error: Argument 1 to "ensure_np_dtype" has incompatible type
+        # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
+        dtype = ensure_np_dtype(dtype)  # type: ignore[arg-type]
         result = np.empty(self.shape, dtype=dtype)
 
         itemmask = np.zeros(self.shape[0])
