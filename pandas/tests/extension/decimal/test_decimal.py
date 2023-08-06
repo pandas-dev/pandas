@@ -152,14 +152,8 @@ class Reduce:
         return True
 
     def check_reduce(self, s, op_name, skipna):
-        if op_name in ["median", "skew", "kurt", "sem"]:
-            msg = r"decimal does not support the .* operation"
-            with pytest.raises(NotImplementedError, match=msg):
-                getattr(s, op_name)(skipna=skipna)
-        elif op_name == "count":
-            result = getattr(s, op_name)()
-            expected = len(s) - s.isna().sum()
-            tm.assert_almost_equal(result, expected)
+        if op_name == "count":
+            return super().check_reduce(s, op_name, skipna)
         else:
             result = getattr(s, op_name)(skipna=skipna)
             expected = getattr(np.asarray(s), op_name)()
@@ -189,12 +183,17 @@ class Reduce:
 
 
 class TestReduce(Reduce, base.BaseReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna):
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
+        if all_numeric_reductions in ["kurt", "skew", "sem", "median"]:
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
+        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+
+    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
         if op_name in ["skew", "median"]:
-            assert not hasattr(data, op_name)
-            pytest.skip(f"{op_name} not an array method")
+            mark = pytest.mark.xfail(raises=NotImplementedError)
+            request.node.add_marker(mark)
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
