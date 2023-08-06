@@ -84,11 +84,6 @@ def data_missing_for_sorting(dtype, chunked):
 
 
 @pytest.fixture
-def na_value():
-    return pd.NA
-
-
-@pytest.fixture
 def data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]

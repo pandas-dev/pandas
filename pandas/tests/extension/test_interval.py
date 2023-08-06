@@ -58,11 +58,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def data_for_grouping():
     a = (0, 1)
     b = (1, 2)

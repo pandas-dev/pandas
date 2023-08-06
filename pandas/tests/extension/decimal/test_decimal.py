@@ -57,11 +57,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value():
-    return decimal.Decimal("NaN")
-
-
-@pytest.fixture
 def data_for_grouping():
     b = decimal.Decimal("1.0")
     a = decimal.Decimal("0.0")

@@ -98,11 +98,6 @@ def data_missing(allow_in_pandas, dtype):
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def na_cmp():
     def cmp(a, b):
         return np.isnan(a) and np.isnan(b)
