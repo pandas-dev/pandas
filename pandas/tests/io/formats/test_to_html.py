@@ -960,7 +960,7 @@ def test_to_html_tuple_col_with_colspace():
     )
     assert result == expected
 
-def test_to_html_empty_complex_array():
+def test_to_html_empty_complex_array(datapath):
     # GH#54167
     df = DataFrame({"x": np.array([], dtype="complex")})
     result=df.to_html(na_rep="-")
