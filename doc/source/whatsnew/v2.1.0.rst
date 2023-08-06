@@ -628,7 +628,7 @@ Datetimelike
 - :meth:`DatetimeIndex.map` with ``na_action="ignore"`` now works as expected. (:issue:`51644`)
 - :meth:`DatetimeIndex.slice_indexer` now raises ``KeyError`` for non-monotonic indexes if either of the slice bounds is not in the index, this behaviour was previously deprecated but inconsistently handled. (:issue:`53983`)
 - Bug in :class:`DateOffset` which had inconsistent behavior when multiplying a :class:`DateOffset` object by a constant (:issue:`47953`)
-- Bug in :func:`concat` raises ``AttributeError`` when concate ``None`` dtype DataFrame with ``timestamp`` dtype DataFrame. (:issue:`52093`)
+- Bug in :func:`concat` raises ``AttributeError`` when concate all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
 - Bug in :func:`date_range` when ``freq`` was a :class:`DateOffset` with ``nanoseconds`` (:issue:`46877`)
 - Bug in :func:`to_datetime` converting :class:`Series` or :class:`DataFrame` containing :class:`arrays.ArrowExtensionArray` of ``pyarrow`` timestamps to numpy datetimes (:issue:`52545`)
 - Bug in :meth:`DataFrame.to_sql` raising ``ValueError`` for pyarrow-backed date like dtypes (:issue:`53854`)
