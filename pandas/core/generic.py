@@ -97,7 +97,10 @@ from pandas.errors import (
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -201,9 +204,6 @@ if TYPE_CHECKING:
         Mapping,
         Sequence,
     )
-    import sqlite3
-
-    import sqlalchemy
 
     from pandas._libs.tslibs import BaseOffset
 
@@ -2795,13 +2795,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["name"], name="to_sql")
     def to_sql(
         self,
         name: str,
-        con: sqlalchemy.engine.Engine
-        | sqlalchemy.engine.Connection
-        | sqlite3.Connection
-        | None = None,
+        con,
         schema: str | None = None,
         if_exists: Literal["fail", "replace", "append"] = "fail",
         index: bool_t = True,
