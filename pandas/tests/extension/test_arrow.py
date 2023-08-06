@@ -413,7 +413,9 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 class TestReduce(base.BaseReduceTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         dtype = tm.get_dtype(obj)
-        pa_dtype = dtype.pyarrow_dtype
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "pyarrow_dtype"
+        pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
         if pa.types.is_temporal(pa_dtype) and op_name in [
             "sum",
             "var",
