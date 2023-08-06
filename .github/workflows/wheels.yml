@@ -123,6 +123,15 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Work around https://github.com/actions/cache/issues/403 by using GNU tar
+      # instead of BSD tar.
+      # borrowed from https://github.com/rust-lang/rust-analyzer/pull/6208/files
+      - name: Install GNU tar
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install gnu-tar
+          echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
+
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Build sdist (macOS)
