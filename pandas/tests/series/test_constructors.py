@@ -2084,6 +2084,16 @@ class TestSeriesConstructors:
             ser = Series(["a", 1])
         tm.assert_series_equal(ser, expected)
 
+    @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    def test_series_string_with_na_inference(self, na_value):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = Series(["a", na_value], dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", na_value])
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
