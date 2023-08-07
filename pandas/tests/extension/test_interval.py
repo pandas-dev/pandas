@@ -18,10 +18,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Interval,
-    Series,
-)
+from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
@@ -66,11 +63,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def data_for_grouping():
     a = (0, 1)
     b = (1, 2)
@@ -81,18 +73,8 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-        ser = Series(data)
-
-        if op_name in ["min", "max"]:
-            # IntervalArray *does* implement these
-            assert getattr(ser, op_name)(skipna=skipna) in data
-            assert getattr(data, op_name)(skipna=skipna) in data
-            return
-
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max"]
 
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "

@@ -1608,6 +1608,8 @@ class SparseDtype(ExtensionDtype):
     0.3333333333333333
     """
 
+    _is_immutable = True
+
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
     # Without is_na_fill_value in the comparison, those would be equal since
