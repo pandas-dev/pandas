@@ -949,8 +949,9 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
             # error: "_BufferedWriter" has no attribute "buffer"
             with self.buffer:  # type: ignore[attr-defined]
                 self.write_to_buffer()
-        elif hasattr(self.buffer, "close"):  # type: ignore[attr-defined]
-            self.buffer.close()
+        else:
+            # error: "_BufferedWriter" has no attribute "buffer"
+            self.buffer.close()  # type: ignore[attr-defined]
         super().close()
 
 
