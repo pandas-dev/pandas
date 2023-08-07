@@ -7,10 +7,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReshapingTests(BaseExtensionTests):
+class BaseReshapingTests:
     """Tests for reshaping and concatenation."""
 
     @pytest.mark.parametrize("in_frame", [True, False])

@@ -6,10 +6,9 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.internals.blocks import NumpyBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseCastingTests(BaseExtensionTests):
+class BaseCastingTests:
     """Casting to and from ExtensionDtypes"""
 
     def test_astype_object_series(self, all_data):

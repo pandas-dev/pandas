@@ -14,10 +14,9 @@ from pandas.core.dtypes.common import (
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class Dim2CompatTests(BaseExtensionTests):
+class Dim2CompatTests:
     # Note: these are ONLY for ExtensionArray subclasses that support 2D arrays.
     #  i.e. not for pyarrow-backed EAs.
 

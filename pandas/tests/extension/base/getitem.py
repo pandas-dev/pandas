@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGetitemTests(BaseExtensionTests):
+class BaseGetitemTests:
     """Tests for ExtensionArray.__getitem__."""
 
     def test_iloc_series(self, data):

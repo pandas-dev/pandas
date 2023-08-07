@@ -6,10 +6,9 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseInterfaceTests(BaseExtensionTests):
+class BaseInterfaceTests:
     """Tests that the basic interface is satisfied."""
 
     # ------------------------------------------------------------------------

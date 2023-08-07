@@ -11,10 +11,9 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGroupbyTests(BaseExtensionTests):
+class BaseGroupbyTests:
     """Groupby-specific tests."""
 
     def test_grouping_grouper(self, data_for_grouping):

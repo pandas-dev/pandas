@@ -2,10 +2,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseAccumulateTests(BaseExtensionTests):
+class BaseAccumulateTests:
     """
     Accumulation specific tests. Generally these only
     make sense for numeric/boolean operations.

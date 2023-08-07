@@ -5,10 +5,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_numeric_dtype
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReduceTests(BaseExtensionTests):
+class BaseReduceTests:
     """
     Reduction specific tests. Generally these only
     make sense for numeric/boolean operations.

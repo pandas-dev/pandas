@@ -8,10 +8,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseOpsUtil(BaseExtensionTests):
+class BaseOpsUtil:
     series_scalar_exc: type[Exception] | None = TypeError
     frame_scalar_exc: type[Exception] | None = TypeError
     series_array_exc: type[Exception] | None = TypeError

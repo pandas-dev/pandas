@@ -5,10 +5,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseParsingTests(BaseExtensionTests):
+class BaseParsingTests:
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         df = pd.DataFrame({"with_dtype": pd.Series(data, dtype=str(data.dtype))})
