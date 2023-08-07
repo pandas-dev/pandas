@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -27,7 +28,6 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 class TestCommon:
@@ -390,7 +390,7 @@ class TestCommon:
         warn = None
         if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
-            if Version(np.__version__) >= Version("1.25.0"):
+            if np_version_gte1p25:
                 warn = np.exceptions.ComplexWarning
             else:
                 warn = np.ComplexWarning

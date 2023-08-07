@@ -32,6 +32,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -44,8 +45,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
-
-from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -238,7 +237,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     try:
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
-            if Version(np.__version__) < Version("1.24.0"):
+            if not np_version_gte1p24:
                 warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
             result = np.asarray(values, dtype=dtype)
     except ValueError:
