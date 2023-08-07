@@ -2418,11 +2418,13 @@ def _factorize_keys(
             import pyarrow.compute as pc
 
             len_lk = len(lk)
-            lk = lk._pa_array  # type: ignore[union-attr, attr-defined]
-            rk = rk._pa_array  # type: ignore[union-attr, attr-defined]
-            dc = pa.concat_arrays(
-                [lk.combine_chunks(), rk.combine_chunks()]
-            ).dictionary_encode()
+            lk = lk._pa_array  # type: ignore[attr-defined]
+            rk = rk._pa_array  # type: ignore[union-attr]
+            dc = (
+                pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
+                .combine_chunks()
+                .dictionary_encode()
+            )
             length = len(dc.dictionary)
 
             llab, rlab, count = (
