@@ -2418,8 +2418,10 @@ def _factorize_keys(
             import pyarrow.compute as pc
 
             len_lk = len(lk)
+            lk = lk._pa_array  # type: ignore[union-attr, attr-defined]
+            rk = rk._pa_array  # type: ignore[union-attr, attr-defined]
             dc = pa.concat_arrays(
-                [lk._pa_array.combine_chunks(), rk._pa_array.combine_chunks()]
+                [lk.combine_chunks(), rk.combine_chunks()]
             ).dictionary_encode()
             length = len(dc.dictionary)
 
