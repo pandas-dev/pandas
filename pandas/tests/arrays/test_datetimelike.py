@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import array
 import re
 import warnings
 
@@ -12,7 +11,6 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -51,7 +49,9 @@ def period_index(freqstr):
     # TODO: non-monotone indexes; NaTs, different start dates
     with warnings.catch_warnings():
         # suppress deprecation of Period[B]
-        warnings.simplefilter("ignore")
+        warnings.filterwarnings(
+            "ignore", message="Period with BDay freq", category=FutureWarning
+        )
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -156,7 +156,7 @@ class SharedTests:
 
     def test_take(self):
         data = np.arange(100, dtype="i8") * 24 * 3600 * 10**9
-        np.random.shuffle(data)
+        np.random.default_rng(2).shuffle(data)
 
         if self.array_cls is PeriodArray:
             arr = PeriodArray(data, dtype="period[D]")
@@ -258,7 +258,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.fillna(method=method)
+        result = arr.pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed
@@ -1322,73 +1322,6 @@ def test_from_pandas_array(dtype):
     result = func(arr).array
     expected = func(data).array
     tm.assert_equal(result, expected)
-
-    # Let's check the Indexes while we're here
-    idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
-    result = idx_cls(arr)
-    expected = idx_cls(data)
-    tm.assert_index_equal(result, expected)
-
-
-@pytest.fixture(
-    params=[
-        "memoryview",
-        "array",
-        pytest.param("dask", marks=td.skip_if_no("dask.array")),
-        pytest.param("xarray", marks=td.skip_if_no("xarray")),
-    ]
-)
-def array_likes(request):
-    """
-    Fixture giving a numpy array and a parametrized 'data' object, which can
-    be a memoryview, array, dask or xarray object created from the numpy array.
-    """
-    # GH#24539 recognize e.g xarray, dask, ...
-    arr = np.array([1, 2, 3], dtype=np.int64)
-
-    name = request.param
-    if name == "memoryview":
-        data = memoryview(arr)
-    elif name == "array":
-        data = array.array("i", arr)
-    elif name == "dask":
-        import dask.array
-
-        data = dask.array.array(arr)
-    elif name == "xarray":
-        import xarray as xr
-
-        data = xr.DataArray(arr)
-
-    return arr, data
-
-
-@pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-def test_from_obscure_array(dtype, array_likes):
-    # GH#24539 recognize e.g xarray, dask, ...
-    # Note: we dont do this for PeriodArray bc _from_sequence won't accept
-    #  an array of integers
-    # TODO: could check with arraylike of Period objects
-    arr, data = array_likes
-
-    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    expected = cls(arr)
-    result = cls._from_sequence(data)
-    tm.assert_extension_array_equal(result, expected)
-
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
-
-    if not isinstance(data, memoryview):
-        # FIXME(GH#44431) these raise on memoryview and attempted fix
-        #  fails on py3.10
-        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-        result = func(arr).array
-        expected = func(data).array
-        tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]

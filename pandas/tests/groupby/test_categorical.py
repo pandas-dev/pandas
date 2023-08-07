@@ -207,11 +207,11 @@ def test_basic():  # TODO: split this test
 
     # more basic
     levels = ["foo", "bar", "baz", "qux"]
-    codes = np.random.randint(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=100)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.randn(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
 
     result = data.groupby(cats, observed=False).mean()
 
@@ -237,9 +237,13 @@ def test_basic():  # TODO: split this test
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
+    )
 
 
 def test_level_get_group(observed):
@@ -462,9 +466,9 @@ def test_observed_perf():
     # gh-14942
     df = DataFrame(
         {
-            "cat": np.random.randint(0, 255, size=30000),
-            "int_id": np.random.randint(0, 255, size=30000),
-            "other_id": np.random.randint(0, 10000, size=30000),
+            "cat": np.random.default_rng(2).integers(0, 255, size=30000),
+            "int_id": np.random.default_rng(2).integers(0, 255, size=30000),
+            "other_id": np.random.default_rng(2).integers(0, 10000, size=30000),
             "foo": 0,
         }
     )
@@ -642,11 +646,11 @@ def test_dataframe_categorical_ordered_observed_sort(ordered, observed, sort):
 def test_datetime():
     # GH9049: ensure backward compatibility
     levels = pd.date_range("2014-01-01", periods=4)
-    codes = np.random.randint(0, 4, size=100)
+    codes = np.random.default_rng(2).integers(0, 4, size=100)
 
     cats = Categorical.from_codes(codes, levels, ordered=True)
 
-    data = DataFrame(np.random.randn(100, 4))
+    data = DataFrame(np.random.default_rng(2).standard_normal((100, 4)))
     result = data.groupby(cats, observed=False).mean()
 
     expected = data.groupby(np.asarray(cats), observed=False).mean()
@@ -673,15 +677,19 @@ def test_datetime():
     # GH 10460
     expc = Categorical.from_codes(np.arange(4).repeat(8), levels, ordered=True)
     exp = CategoricalIndex(expc)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(0)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(0)), exp
+    )
     exp = Index(["count", "mean", "std", "min", "25%", "50%", "75%", "max"] * 4)
-    tm.assert_index_equal((desc_result.stack().index.get_level_values(1)), exp)
+    tm.assert_index_equal(
+        (desc_result.stack(future_stack=True).index.get_level_values(1)), exp
+    )
 
 
 def test_categorical_index():
-    s = np.random.RandomState(12345)
+    s = np.random.default_rng(2)
     levels = ["foo", "bar", "baz", "qux"]
-    codes = s.randint(0, 4, size=20)
+    codes = s.integers(0, 4, size=20)
     cats = Categorical.from_codes(codes, levels, ordered=True)
     df = DataFrame(np.repeat(np.arange(20), 4).reshape(-1, 4), columns=list("abcd"))
     df["cats"] = cats
@@ -710,11 +718,13 @@ def test_describe_categorical_columns():
         categories=["foo", "bar", "baz", "qux"],
         ordered=True,
     )
-    df = DataFrame(np.random.randn(20, 4), columns=cats)
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 4)), columns=cats)
     result = df.groupby([1, 2, 3, 4] * 5).describe()
 
-    tm.assert_index_equal(result.stack().columns, cats)
-    tm.assert_categorical_equal(result.stack().columns.values, cats.values)
+    tm.assert_index_equal(result.stack(future_stack=True).columns, cats)
+    tm.assert_categorical_equal(
+        result.stack(future_stack=True).columns.values, cats.values
+    )
 
 
 def test_unstack_categorical():
@@ -920,7 +930,7 @@ def test_preserve_on_ordered_ops(func, values):
 
 
 def test_categorical_no_compress():
-    data = Series(np.random.randn(9))
+    data = Series(np.random.default_rng(2).standard_normal(9))
 
     codes = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2])
     cats = Categorical.from_codes(codes, [0, 1, 2], ordered=True)
@@ -977,7 +987,7 @@ def test_sort():
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
-    df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+    df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
     labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 

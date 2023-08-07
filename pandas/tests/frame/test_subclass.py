@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -216,7 +214,7 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         exp = tm.SubclassedSeries(
             [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
         )
@@ -253,10 +251,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -277,7 +275,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_stack_multi_mixed(self):
@@ -315,10 +313,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -339,7 +337,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
@@ -497,8 +495,7 @@ class TestDataFrameSubclassing:
     def test_subclassed_wide_to_long(self):
         # GH 9762
 
-        np.random.seed(123)
-        x = np.random.randn(3)
+        x = np.random.default_rng(2).standard_normal(3)
         df = tm.SubclassedDataFrame(
             {
                 "A1970": {0: "a", 1: "b", 2: "c"},
@@ -656,15 +653,19 @@ class TestDataFrameSubclassing:
         result = df.memory_usage(index=False)
         assert isinstance(result, tm.SubclassedSeries)
 
-    @td.skip_if_no_scipy
     def test_corrwith(self):
+        pytest.importorskip("scipy")
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = tm.SubclassedDataFrame(
-            np.random.randn(5, 4), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((5, 4)),
+            index=index,
+            columns=columns,
         )
         df2 = tm.SubclassedDataFrame(
-            np.random.randn(4, 4), index=index[:4], columns=columns
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=index[:4],
+            columns=columns,
         )
         correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
 

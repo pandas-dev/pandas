@@ -92,7 +92,7 @@ class TestDataFrameDescribe:
         tm.assert_frame_equal(result, expected)
 
     def test_describe_categorical(self):
-        df = DataFrame({"value": np.random.randint(0, 10000, 100)})
+        df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 100)})
         labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
         cat_labels = Categorical(labels, labels)
 
