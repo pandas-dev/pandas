@@ -2683,9 +2683,11 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas._config import get_option
             opt = get_option("future.infer_string")
             if opt is True:
+                import pyarrow as pa
+
                 from pandas.core.dtypes.dtypes import ArrowDtype
 
-                dtype = ArrowDtype(obj.type)
+                dtype = ArrowDtype(pa.string())
                 return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
