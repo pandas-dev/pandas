@@ -961,9 +961,10 @@ def test_to_html_tuple_col_with_colspace():
     assert result == expected
 
 
-def test_to_html_empty_complex_array(datapath):
+def test_to_html_empty_complex_array():
     # GH#54167
     df = DataFrame({"x": np.array([], dtype="complex")})
     result = df.to_html(na_rep="-")
-    expected = expected_html(datapath, "gh54167_expected_output")
+    expected = '<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>x</th>\n    </tr>\n  </thead>\n  <tbody>\n  </tbody>\n</table>'
+    print("--assserting")
     assert result == expected
