@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 def to_time(
     arg,
-    format=None,
+    format: str | None = None,
     infer_time_format: bool = False,
     errors: DateTimeErrorChoices = "raise",
 ):
