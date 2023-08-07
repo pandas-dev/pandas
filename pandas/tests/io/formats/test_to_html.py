@@ -967,6 +967,4 @@ def test_to_html_empty_complex_array():
     html_op = df.to_html(col_space=100)
     result = hashlib.md5(b"html_op").hexdigest()
     expected = "9d81f92dbc2d9f2f4876900c09559c39"
-    #'<table border="1" class="dataframe">\n  <thead>\n    <tr style="text-align: right;">\n      <th></th>\n      <th>x</th>\n    </tr>\n  </thead>\n  <tbody>\n  </tbody>\n</table>'
-    print("--assserting")
     assert result == expected
