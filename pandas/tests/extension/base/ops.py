@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import final
+
 import numpy as np
 import pytest
 
@@ -10,14 +12,55 @@ from pandas.tests.extension.base.base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
+    series_scalar_exc: type[Exception] | None = TypeError
+    frame_scalar_exc: type[Exception] | None = TypeError
+    series_array_exc: type[Exception] | None = TypeError
+    divmod_exc: type[Exception] | None = TypeError
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        # Find the Exception, if any we expect to raise calling
+        #  obj.__op_name__(other)
+
+        # The self.obj_bar_exc pattern isn't great in part because it can depend
+        #  on op_name or dtypes, but we use it here for backward-compatibility.
+        if op_name in ["__divmod__", "__rdivmod__"]:
+            return self.divmod_exc
+        if isinstance(obj, pd.Series) and isinstance(other, pd.Series):
+            return self.series_array_exc
+        elif isinstance(obj, pd.Series):
+            return self.series_scalar_exc
+        else:
+            return self.frame_scalar_exc
+
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        # In _check_op we check that the result of a pointwise operation
+        #  (found via _combine) matches the result of the vectorized
+        #  operation obj.__op_name__(other).
+        #  In some cases pandas dtype inference on the scalar result may not
+        #  give a matching dtype even if both operations are behaving "correctly".
+        #  In these cases, do extra required casting here.
+        return pointwise_result
+
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=Exception):
+    # Subclasses are not expected to need to override check_opname, _check_op,
+    #  _check_divmod_op, or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
+    def check_opname(self, ser: pd.Series, op_name: str, other):
+        exc = self._get_expected_exception(op_name, ser, other)
         op = self.get_op_from_name(op_name)
 
         self._check_op(ser, op, other, op_name, exc)
 
+    # see comment on check_opname
+    @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
@@ -27,20 +70,32 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
+    # see comment on check_opname
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
+        # Check that the Series/DataFrame arithmetic/comparison method matches
+        #  the pointwise result from _combine.
+
         if exc is None:
             result = op(ser, other)
             expected = self._combine(ser, other, op)
+            expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
             tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)
 
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=Exception):
-        # divmod has multiple return values, so check separately
+    # see comment on check_opname
+    @final
+    def _check_divmod_op(self, ser: pd.Series, op, other):
+        # check that divmod behavior matches behavior of floordiv+mod
+        if op is divmod:
+            exc = self._get_expected_exception("__divmod__", ser, other)
+        else:
+            exc = self._get_expected_exception("__rdivmod__", ser, other)
         if exc is None:
             result_div, result_mod = op(ser, other)
             if op is divmod:
@@ -76,26 +131,24 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         # series & scalar
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(ser, op_name, ser.iloc[0], exc=self.series_scalar_exc)
+        self.check_opname(ser, op_name, ser.iloc[0])
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
         df = pd.DataFrame({"A": data})
-        self.check_opname(df, op_name, data[0], exc=self.frame_scalar_exc)
+        self.check_opname(df, op_name, data[0])
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(
-            ser, op_name, pd.Series([ser.iloc[0]] * len(ser)), exc=self.series_array_exc
-        )
+        self.check_opname(ser, op_name, pd.Series([ser.iloc[0]] * len(ser)))
 
     def test_divmod(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, 1, exc=self.divmod_exc)
-        self._check_divmod_op(1, ops.rdivmod, ser, exc=self.divmod_exc)
+        self._check_divmod_op(ser, divmod, 1)
+        self._check_divmod_op(1, ops.rdivmod, ser)
 
     def test_divmod_series_array(self, data, data_for_twos):
         ser = pd.Series(data)

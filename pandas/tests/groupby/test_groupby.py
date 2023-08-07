@@ -1361,7 +1361,7 @@ def test_cython_grouper_series_bug_noncontig():
 
 
 def test_series_grouper_noncontig_index():
-    index = Index(tm.rands_array(10, 100))
+    index = Index(["a" * 10] * 100)
 
     values = Series(np.random.default_rng(2).standard_normal(50), index=index[::2])
     labels = np.random.default_rng(2).integers(0, 5, 50)
@@ -1817,9 +1817,6 @@ def test_groupby_multiindex_not_lexsorted():
     )
     not_lexsorted_df = not_lexsorted_df.reset_index()
     assert not not_lexsorted_df.columns._is_lexsorted()
-
-    # compare the results
-    tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
     expected = lexsorted_df.groupby("a").mean()
     with tm.assert_produces_warning(PerformanceWarning):

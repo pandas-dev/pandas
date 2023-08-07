@@ -39,6 +39,8 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
+is_windows_or_32bit = is_platform_windows() or not IS64
+
 pytestmark = [
     pytest.mark.filterwarnings(
         "ignore:invalid value encountered in divide:RuntimeWarning"
@@ -146,69 +148,34 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
-        if exc is None:
-            sdtype = tm.get_dtype(s)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        sdtype = tm.get_dtype(obj)
+        expected = pointwise_result
 
-            if hasattr(other, "dtype") and isinstance(other.dtype, np.dtype):
-                if sdtype.kind == "f":
-                    if other.dtype.kind == "f":
-                        # other is np.float64 and would therefore always result
-                        # in upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
-
-                else:
-                    # i.e. sdtype.kind in "iu""
-                    if other.dtype.kind in "iu" and sdtype.is_unsigned_integer:
-                        # TODO: comment below is inaccurate; other can be int8
-                        #  int16, ...
-                        #  and the trouble is that e.g. if s is UInt8 and other
-                        #  is int8, then result is UInt16
-                        # other is np.int64 and would therefore always result in
-                        # upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
-
-            result = op(s, other)
-            expected = self._combine(s, other, op)
-
-            if sdtype.kind in "iu":
-                if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                    expected = expected.fillna(np.nan).astype("Float64")
-                else:
-                    # combine method result in 'biggest' (int64) dtype
-                    expected = expected.astype(sdtype)
+        if sdtype.kind in "iu":
+            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
+                expected = expected.fillna(np.nan).astype("Float64")
             else:
-                # combine method result in 'biggest' (float64) dtype
+                # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(sdtype)
-
-            tm.assert_equal(result, expected)
         else:
-            with pytest.raises(exc):
-                op(s, other)
+            # combine method result in 'biggest' (float64) dtype
+            expected = expected.astype(sdtype)
+        return expected
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(ser, op_name, other, exc=None)
-
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=None):
-        super()._check_divmod_op(ser, op, other, None)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _check_op(
-        self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
-    ):
-        if exc is None:
-            result = op(ser, other)
-            # Override to do the astype to boolean
-            expected = ser.combine(other, op).astype("boolean")
-            tm.assert_series_equal(result, expected)
-        else:
-            with pytest.raises(exc):
-                op(ser, other)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        super().check_opname(ser, op_name, other, exc=None)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        return pointwise_result.astype("boolean")
 
     def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
@@ -280,16 +247,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(ser.array, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        is_windows_or_32bit = is_platform_windows() or not IS64
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -304,18 +262,7 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
         else:
             raise TypeError("not supposed to reach this")
-
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-        tm.assert_extension_array_equal(result2, expected)
+        return cmp_dtype
 
 
 @pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
@@ -324,9 +271,8 @@ class TestBooleanReduce(base.BaseBooleanReduceTests):
 
 
 class TestAccumulation(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
 
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan

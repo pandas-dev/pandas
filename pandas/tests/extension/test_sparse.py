@@ -157,8 +157,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+    @pytest.mark.parametrize("future_stack", [True, False])
+    def test_stack(self, data, columns, future_stack):
+        super().test_stack(data, columns, future_stack)
 
     def test_concat_columns(self, data, na_value):
         self._check_unsupported(data)
@@ -414,10 +415,6 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(ser, op, other, exc=None)
-
 
 class TestComparisonOps(BaseSparseTests):
     def _compare_other(self, data_for_compare: SparseArray, comparison_op, other):
@@ -475,6 +472,4 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
 
 
 class TestNoNumericAccumulations(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass
