@@ -1960,6 +1960,8 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     # in the array
     n = len(str_complexes)
     padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
+    if len(padded_parts) == 0:
+        return []
     padded_length = max(len(part) for part in padded_parts) - 1
     padded = [
         real_pt  # real part, possibly NaN
