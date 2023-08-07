@@ -350,7 +350,8 @@ def array(
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
-
+        elif inferred_dtype == "empty" and not hasattr(data, "dtype") and not len(data):
+            return FloatingArray._from_sequence(data, copy=copy)
         elif (
             inferred_dtype in ("floating", "mixed-integer-float")
             and getattr(data, "dtype", None) != np.float16

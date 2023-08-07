@@ -512,19 +512,10 @@ class Count:
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
-        self.df.index = MultiIndex.from_arrays([self.df.index, self.df.index])
-        self.df.columns = MultiIndex.from_arrays([self.df.columns, self.df.columns])
-        self.df_mixed.index = MultiIndex.from_arrays(
-            [self.df_mixed.index, self.df_mixed.index]
-        )
-        self.df_mixed.columns = MultiIndex.from_arrays(
-            [self.df_mixed.columns, self.df_mixed.columns]
-        )
-
-    def time_count_level_multi(self, axis):
+    def time_count(self, axis):
         self.df.count(axis=axis)
 
-    def time_count_level_mixed_dtypes_multi(self, axis):
+    def time_count_mixed_dtypes(self, axis):
         self.df_mixed.count(axis=axis)
 
 
@@ -545,8 +536,8 @@ class Apply:
     def time_apply_lambda_mean(self):
         self.df.apply(lambda x: x.mean())
 
-    def time_apply_np_mean(self):
-        self.df.apply(np.mean)
+    def time_apply_str_mean(self):
+        self.df.apply("mean")
 
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)

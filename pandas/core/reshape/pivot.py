@@ -20,7 +20,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
@@ -171,28 +170,6 @@ def __internal_pivot_table(
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
-
-        # gh-21133
-        # we want to down cast if
-        # the original values are ints
-        # as we grouped with a NaN value
-        # and then dropped, coercing to floats
-        for v in values:
-            if (
-                v in data
-                and is_integer_dtype(data[v])
-                and v in agged
-                and not is_integer_dtype(agged[v])
-            ):
-                if not isinstance(agged[v], ABCDataFrame) and isinstance(
-                    data[v].dtype, np.dtype
-                ):
-                    # exclude DataFrame case bc maybe_downcast_to_dtype expects
-                    #  ArrayLike
-                    # e.g. test_pivot_table_multiindex_columns_doctest_case
-                    #  agged.columns is a MultiIndex and 'v' is indexing only
-                    #  on its first level.
-                    agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
 
@@ -441,7 +418,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack()
+        row_margin = row_margin.stack(future_stack=True)
 
         # slight hack
         new_order = [len(cols)] + list(range(len(cols)))
