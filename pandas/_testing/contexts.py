@@ -125,7 +125,7 @@ def ensure_clean(
     path.touch()
 
     handle_or_str: str | IO = str(path)
-    encoding = kwargs.pop("encoding", None)
+    encoding = kwargs.pop("encoding", "utf-8")
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
         handle_or_str = open(path, encoding=encoding, **kwargs)
