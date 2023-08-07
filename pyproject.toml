@@ -82,11 +82,13 @@ plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.1.2', 'tabulate>=0.8.10']
 clipboard = ['PyQt5>=5.15.6', 'qtpy>=2.2.0']
 compression = ['brotlipy>=0.7.0', 'python-snappy>=0.6.1', 'zstandard>=0.17.0']
+consortium-standard = ['dataframe-api-compat>=0.1.7']
 all = ['beautifulsoup4>=4.11.1',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',
        'bottleneck>=1.3.4',
        'brotlipy>=0.7.0',
+       'dataframe-api-compat>=0.1.7',
        'fastparquet>=0.8.1',
        'fsspec>=2022.05.0',
        'gcsfs>=2022.05.0',

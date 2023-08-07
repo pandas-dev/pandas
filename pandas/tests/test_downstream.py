@@ -334,6 +334,27 @@ def test_from_obscure_array(dtype, array_likes):
     tm.assert_index_equal(result, expected)
 
 
+def test_dataframe_consortium() -> None:
+    """
+    Test some basic methods of the dataframe consortium standard.
+
+    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
+    this is just to check that the entry point works as expected.
+    """
+    pytest.importorskip("dataframe_api_compat")
+    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = df_pd.__dataframe_consortium_standard__()
+    result_1 = df.get_column_names()
+    expected_1 = ["a", "b"]
+    assert result_1 == expected_1
+
+    ser = Series([1, 2, 3])
+    col = ser.__column_consortium_standard__()
+    result_2 = col.get_value(1)
+    expected_2 = 2
+    assert result_2 == expected_2
+
+
 def test_xarray_coerce_unit():
     # GH44053
     xr = pytest.importorskip("xarray")

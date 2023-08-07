@@ -415,3 +415,14 @@ brotli                    0.7.0              compression     Brotli compression
 python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
+
+Consortium Standard
+^^^^^^^^^^^^^^^^^^^
+
+Installable with ``pip install "pandas[consortium-standard]"``
+
+========================= ================== =================== =============================================================
+Dependency                Minimum Version    pip extra           Notes
+========================= ================== =================== =============================================================
+dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
+========================= ================== =================== =============================================================

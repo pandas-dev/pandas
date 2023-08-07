@@ -73,5 +73,6 @@ dependencies:
   - pyyaml
   - py
   - pip:
+    - dataframe-api-compat>=0.1.7
     - pyqt5>=5.15.6
     - tzdata>=2022.1
