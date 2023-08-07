@@ -2683,13 +2683,10 @@ def maybe_convert_objects(ndarray[object] objects,
             from pandas._config import get_option
             opt = get_option("future.infer_string")
             if opt is True:
-                import pyarrow as pa
-
                 from pandas.core.dtypes.dtypes import ArrowDtype
 
-                obj = pa.array(objects, from_pandas=True)
                 dtype = ArrowDtype(obj.type)
-                return dtype.construct_array_type()(obj)
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
     elif seen.interval_:
