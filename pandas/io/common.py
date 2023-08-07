@@ -47,7 +47,6 @@ from urllib.parse import (
     uses_relative,
 )
 import warnings
-import weakref
 import zipfile
 
 from pandas._typing import (
@@ -940,10 +939,6 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     def write_to_buffer(self) -> None:
         ...
 
-    @abstractmethod
-    def close_buffer(self) -> None:
-        ...
-
     def close(self) -> None:
         if self.closed:
             # already closed
@@ -954,8 +949,8 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
             # error: "_BufferedWriter" has no attribute "buffer"
             with self.buffer:  # type: ignore[attr-defined]
                 self.write_to_buffer()
-        else:
-            self.close_buffer()
+        elif hasattr(self.buffer, "close"):  # type: ignore[attr-defined]
+            self.buffer.close()
         super().close()
 
 
@@ -980,10 +975,6 @@ class _BytesTarFile(_BufferedWriter):
             fileobj=fileobj,  # type: ignore[arg-type]
             **kwargs,
         )
-        self._finalizer = weakref.finalize(self, lambda x: x.close(), self.buffer)
-
-    def close_buffer(self) -> None:
-        self._finalizer()
 
     def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
@@ -1031,14 +1022,12 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: Argument 1 to "ZipFile" has incompatible type "Union[
-        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
-        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
-        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
-        self._finalizer = weakref.finalize(self, lambda x: x.close(), self.buffer)
-
-    def close_buffer(self) -> None:
-        self._finalizer()
+        # error: No overload variant of "ZipFile" matches argument types "str |
+        # PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]", "str", "dict[str,
+        # Any]"
+        self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """

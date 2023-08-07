@@ -525,7 +525,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.10"
+python_version = "3.11"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -726,8 +726,9 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
+useLibraryCodeForTypes = false
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
