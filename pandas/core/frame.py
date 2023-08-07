@@ -1781,7 +1781,7 @@ class DataFrame(NDFrame, OpsMixin):
         if orient == "index":
             if len(data) > 0:
                 # TODO speed up Series case
-                if isinstance(list(data.values())[0], (Series, dict)):
+                if isinstance(next(iter(data.values())), (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
                     index = list(data.keys())
