@@ -2330,10 +2330,15 @@ A few notes on the generated table schema:
   same behavior of being converted to UTC. In addition, periods will contain
   and additional field ``freq`` with the period's frequency, e.g. ``'A-DEC'``.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
-     build_table_schema(s_per)
+     In [293]: s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
+     In [294]: build_table_schema(s_per)
+     Out[294]:
+     {'fields': [{'name': 'index', 'type': 'datetime', 'freq': 'A-DEC'},
+       {'name': 'values', 'type': 'integer'}],
+      'primaryKey': ['index'],
+      'pandas_version': '1.4.0'}
 
 * Categoricals use the ``any`` type and an ``enum`` constraint listing
   the set of possible values. Additionally, an ``ordered`` field is included:
