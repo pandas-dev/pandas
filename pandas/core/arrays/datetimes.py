@@ -2038,7 +2038,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
+                      dtype='datetime64[ns]', freq='Y-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 

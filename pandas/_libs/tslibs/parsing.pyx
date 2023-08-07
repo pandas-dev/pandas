@@ -1208,7 +1208,7 @@ cpdef str get_rule_month(str source):
     >>> get_rule_month('D')
     'DEC'
 
-    >>> get_rule_month('A-JAN')
+    >>> get_rule_month('Y-JAN')
     'JAN'
     """
     source = source.upper()
