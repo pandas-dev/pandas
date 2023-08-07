@@ -21,7 +21,10 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._typing import Self
+from pandas._typing import (
+    Self,
+    TimestampNonexistent,
+)
 
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 
@@ -187,18 +190,27 @@ class Timestamp(datetime):
         self,
         tz: _tzinfo | str | None,
         ambiguous: str = ...,
-        nonexistent: str = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def normalize(self) -> Self: ...
     # TODO: round/floor/ceil could return NaT?
     def round(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | str = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def floor(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | str = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def ceil(
-        self, freq: str, ambiguous: bool | str = ..., nonexistent: str = ...
+        self,
+        freq: str,
+        ambiguous: bool | str = ...,
+        nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
     def day_name(self, locale: str | None = ...) -> str: ...
     def month_name(self, locale: str | None = ...) -> str: ...

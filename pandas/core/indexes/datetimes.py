@@ -1024,7 +1024,7 @@ def bdate_range(
     start=None,
     end=None,
     periods: int | None = None,
-    freq: Frequency = "B",
+    freq: Frequency | dt.timedelta = "B",
     tz=None,
     normalize: bool = True,
     name: Hashable | None = None,

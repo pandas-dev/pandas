@@ -133,7 +133,7 @@ class BaseXMLFormatter:
         self.xml_declaration = xml_declaration
         self.pretty_print = pretty_print
         self.stylesheet = stylesheet
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
         self.orig_cols = self.frame.columns.tolist()

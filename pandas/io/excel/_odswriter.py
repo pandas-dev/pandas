@@ -7,6 +7,7 @@ from typing import (
     Any,
     DefaultDict,
     cast,
+    overload,
 )
 
 from pandas._libs import json
@@ -226,7 +227,15 @@ class ODSWriter(ExcelWriter):
                 ),
             )
 
+    @overload
     def _process_style(self, style: dict[str, Any]) -> str:
+        ...
+
+    @overload
+    def _process_style(self, style: None) -> None:
+        ...
+
+    def _process_style(self, style: dict[str, Any] | None) -> str | None:
         """Convert a style dictionary to a OpenDocument style sheet
 
         Parameters

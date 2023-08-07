@@ -428,7 +428,9 @@ class StylerRenderer:
 
         return head
 
-    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_col_header_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing column headers:
 
@@ -521,7 +523,9 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing index names
 

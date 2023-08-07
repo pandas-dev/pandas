@@ -11,6 +11,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from pyxlsb import Workbook
+
     from pandas._typing import (
         FilePath,
         ReadBuffer,
@@ -19,7 +21,7 @@ if TYPE_CHECKING:
     )
 
 
-class PyxlsbReader(BaseExcelReader):
+class PyxlsbReader(BaseExcelReader["Workbook"]):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
@@ -48,14 +50,14 @@ class PyxlsbReader(BaseExcelReader):
         )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[Workbook]:
         from pyxlsb import Workbook
 
         return Workbook
 
     def load_workbook(
         self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
-    ):
+    ) -> Workbook:
         from pyxlsb import open_workbook
 
         # TODO: hack in buffer capability

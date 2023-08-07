@@ -1,5 +1,6 @@
 from datetime import (
     datetime,
+    time,
     timedelta,
 )
 from typing import (
@@ -14,6 +15,7 @@ import numpy as np
 
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
+    OffsetCalendar,
     Self,
     npt,
 )
@@ -141,8 +143,8 @@ class BusinessHour(BusinessMixin):
         self,
         n: int = ...,
         normalize: bool = ...,
-        start: str | Collection[str] = ...,
-        end: str | Collection[str] = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -228,7 +230,7 @@ class _CustomBusinessMonth(BusinessMixin):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -239,7 +241,7 @@ class CustomBusinessDay(BusinessDay):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -250,9 +252,9 @@ class CustomBusinessHour(BusinessHour):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
-        start: str = ...,
-        end: str = ...,
+        calendar: OffsetCalendar | None = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
