@@ -1,0 +1,1 @@
+option('CYTHON_COVERAGE', type: 'boolean', value: false)

@@ -4,7 +4,7 @@ project(
     'c', 'cpp', 'cython',
     version: run_command(['python', 'generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.0.1',
+    meson_version: '>=1.1',
     default_options: [
         # TODO: investigate, does meson try to compile against debug Python
         # when buildtype = debug, this seems to be causing problems on CI
@@ -33,6 +33,7 @@ add_project_arguments('-DNPY_NO_DEPRECATED_API=0', language : 'cpp')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'c')
 add_project_arguments('-DNPY_TARGET_VERSION=NPY_1_21_API_VERSION', language : 'cpp')
 
+cython_coverage = get_option('CYTHON_COVERAGE')
 
 if fs.exists('_version_meson.py')
     py.install_sources('_version_meson.py', pure: false, subdir: 'pandas')

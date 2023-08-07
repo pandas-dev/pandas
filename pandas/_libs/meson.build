@@ -56,8 +56,6 @@ _intervaltree_helper = custom_target('intervaltree_helper_pxi',
 )
 _khash_primitive_helper_dep = declare_dependency(sources: _khash_primitive_helper)
 
-subdir('tslibs')
-
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
@@ -100,12 +98,24 @@ libs_sources = {
     'writers': {'sources': ['writers.pyx']}
 }
 
+cython_args = ['--include-dir', meson.current_build_dir(), '-X always_allow_keywords=true']
+if cython_coverage
+    cython_args += ['-X linetrace=true']
+    # Linetrace is not enough to ensure coverage is turned on
+    add_project_arguments('-DCYTHON_TRACE=1', language : 'c')
+    add_project_arguments('-DCYTHON_TRACE=1', language : 'cpp')
+
+    add_project_arguments('-DCYTHON_TRACE_NOGIL=1', language : 'c')
+    add_project_arguments('-DCYTHON_TRACE_NOGIL=1', language : 'cpp')
+endif
+
+subdir('tslibs')
 
 foreach ext_name, ext_dict : libs_sources
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
-        cython_args: ['--include-dir', meson.current_build_dir(), '-X always_allow_keywords=true'],
+        cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', ''),
         subdir: 'pandas/_libs',
