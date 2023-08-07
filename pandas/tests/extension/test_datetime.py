@@ -74,21 +74,11 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
-def data_for_twos(dtype):
-    pytest.skip("Not a numeric dtype.")
-
-
-@pytest.fixture
 def na_cmp():
     def cmp(a, b):
         return a is pd.NaT and a is b
 
     return cmp
-
-
-@pytest.fixture
-def na_value():
-    return pd.NaT
 
 
 # ----------------------------------------------------------------------------
@@ -135,13 +125,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         if op_name in self.implements:
             return None
         return super()._get_expected_exception(op_name, obj, other)
-
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        ser = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            ser + data
 
 
 class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
