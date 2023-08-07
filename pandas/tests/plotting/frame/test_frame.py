@@ -1866,7 +1866,7 @@ class TestDataFramePlots:
     def test_errorbar_scatter_color(self):
         def _check_errorbar_color(containers, expected, has_err="has_xerr"):
             lines = []
-            errs = [c.lines for c in ax.containers if getattr(c, has_err, False)][0]
+            errs = next(c.lines for c in ax.containers if getattr(c, has_err, False))
             for el in errs:
                 if is_list_like(el):
                     lines.extend(el)
