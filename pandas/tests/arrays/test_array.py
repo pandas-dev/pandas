@@ -47,12 +47,18 @@ def test_dt64_array(dtype_unit):
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
+        ([], None, FloatingArray._from_sequence([])),
         ([1, 2], None, IntegerArray._from_sequence([1, 2])),
         ([1, 2], object, NumpyExtensionArray(np.array([1, 2], dtype=object))),
         (
             [1, 2],
             np.dtype("float32"),
             NumpyExtensionArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
+        ),
+        (
+            np.array([], dtype=object),
+            None,
+            NumpyExtensionArray(np.array([], dtype=object)),
         ),
         (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
         (

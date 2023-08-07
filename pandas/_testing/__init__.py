@@ -54,10 +54,6 @@ from pandas._testing._io import (
     round_trip_pickle,
     write_to_compressed,
 )
-from pandas._testing._random import (
-    rands,
-    rands_array,
-)
 from pandas._testing._warnings import (
     assert_produces_warning,
     maybe_produces_warning,
@@ -273,6 +269,26 @@ else:
 EMPTY_STRING_PATTERN = re.compile("^$")
 
 
+arithmetic_dunder_methods = [
+    "__add__",
+    "__radd__",
+    "__sub__",
+    "__rsub__",
+    "__mul__",
+    "__rmul__",
+    "__floordiv__",
+    "__rfloordiv__",
+    "__truediv__",
+    "__rtruediv__",
+    "__pow__",
+    "__rpow__",
+    "__mod__",
+    "__rmod__",
+]
+
+comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
+
+
 def reset_display_options() -> None:
     """
     Reset the display options for printing and representing objects.
@@ -347,6 +363,22 @@ def to_array(obj):
 
 # -----------------------------------------------------------------------------
 # Others
+
+
+def rands_array(
+    nchars, size: int, dtype: NpDtype = "O", replace: bool = True
+) -> np.ndarray:
+    """
+    Generate an array of byte strings.
+    """
+    chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
+    retval = (
+        np.random.default_rng(2)
+        .choice(chars, size=nchars * np.prod(size), replace=replace)
+        .view((np.str_, nchars))
+        .reshape(size)
+    )
+    return retval.astype(dtype)
 
 
 def getCols(k) -> str:
@@ -1127,7 +1159,6 @@ __all__ = [
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "rands",
     "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_localpath",

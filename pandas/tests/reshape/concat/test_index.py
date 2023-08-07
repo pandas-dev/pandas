@@ -114,14 +114,14 @@ class TestIndexConcat:
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
         comb = concat([df, df], axis=axis, copy=True)
         if not using_copy_on_write:
-            assert comb.index is not df.index
-            assert comb.columns is not df.columns
+            assert not comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
         elif axis in [0, "index"]:
-            assert comb.index is not df.index
-            assert comb.columns is df.columns
+            assert not comb.index.is_(df.index)
+            assert comb.columns.is_(df.columns)
         elif axis in [1, "columns"]:
-            assert comb.index is df.index
-            assert comb.columns is not df.columns
+            assert comb.index.is_(df.index)
+            assert not comb.columns.is_(df.columns)
 
     def test_default_index(self):
         # is_series and ignore_index

@@ -363,7 +363,7 @@ class TestSlicing:
         ser = DataFrame(
             np.random.default_rng(2).random((1000, 1000)),
             index=date_range("2000-1-1", periods=1000),
-        ).stack()
+        ).stack(future_stack=True)
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]

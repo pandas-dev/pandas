@@ -632,13 +632,12 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    @td.skip_if_no("pyarrow")
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
 
         with pd.option_context("mode.string_storage", string_storage):
             df = DataFrame(

@@ -3176,8 +3176,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> df.to_html()  # doctest: +SKIP
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
+        >>> html_string = '''<table border="1" class="dataframe">
+        ...   <thead>
+        ...     <tr style="text-align: right;">
+        ...       <th></th>
+        ...       <th>col1</th>
+        ...       <th>col2</th>
+        ...     </tr>
+        ...   </thead>
+        ...   <tbody>
+        ...     <tr>
+        ...       <th>0</th>
+        ...       <td>1</td>
+        ...       <td>4</td>
+        ...     </tr>
+        ...     <tr>
+        ...       <th>1</th>
+        ...       <td>2</td>
+        ...       <td>3</td>
+        ...     </tr>
+        ...   </tbody>
+        ... </table>'''
+        >>> assert html_string == df.to_html()
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -9166,7 +9187,13 @@ class DataFrame(NDFrame, OpsMixin):
             sort=sort,
         )
 
-    def stack(self, level: IndexLabel = -1, dropna: bool = True, sort: bool = True):
+    def stack(
+        self,
+        level: IndexLabel = -1,
+        dropna: bool | lib.NoDefault = lib.no_default,
+        sort: bool | lib.NoDefault = lib.no_default,
+        future_stack: bool = False,
+    ):
         """
         Stack the prescribed level(s) from columns to index.
 
@@ -9194,6 +9221,11 @@ class DataFrame(NDFrame, OpsMixin):
             section.
         sort : bool, default True
             Whether to sort the levels of the resulting MultiIndex.
+        future_stack : bool, default False
+            Whether to use the new implementation that will replace the current
+            implementation in pandas 3.0. When True, dropna and sort have no impact
+            on the result and must remain unspecified. See :ref:`pandas 2.1.0 Release
+            notes <whatsnew_210.enhancements.new_stack>` for more details.
 
         Returns
         -------
@@ -9233,7 +9265,7 @@ class DataFrame(NDFrame, OpsMixin):
              weight height
         cat       0      1
         dog       2      3
-        >>> df_single_level_cols.stack()
+        >>> df_single_level_cols.stack(future_stack=True)
         cat  weight    0
              height    1
         dog  weight    2
@@ -9255,7 +9287,7 @@ class DataFrame(NDFrame, OpsMixin):
                  kg    pounds
         cat       1        2
         dog       2        4
-        >>> df_multi_level_cols1.stack()
+        >>> df_multi_level_cols1.stack(future_stack=True)
                     weight
         cat kg           1
             pounds       2
@@ -9280,7 +9312,7 @@ class DataFrame(NDFrame, OpsMixin):
                 kg      m
         cat    1.0    2.0
         dog    3.0    4.0
-        >>> df_multi_level_cols2.stack()
+        >>> df_multi_level_cols2.stack(future_stack=True)
                 weight  height
         cat kg     1.0     NaN
             m      NaN     2.0
@@ -9291,17 +9323,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack(0)
+        >>> df_multi_level_cols2.stack(0, future_stack=True)
                      kg    m
-        cat height  NaN  2.0
-            weight  1.0  NaN
-        dog height  NaN  4.0
-            weight  3.0  NaN
-        >>> df_multi_level_cols2.stack([0, 1])
-        cat  height  m     2.0
-             weight  kg    1.0
-        dog  height  m     4.0
-             weight  kg    3.0
+        cat weight  1.0  NaN
+            height  NaN  2.0
+        dog weight  3.0  NaN
+            height  NaN  4.0
+        >>> df_multi_level_cols2.stack([0, 1], future_stack=True)
+        cat  weight  kg    1.0
+             height  m     2.0
+        dog  weight  kg    3.0
+             height  m     4.0
         dtype: float64
 
         **Dropping missing values**
@@ -9331,15 +9363,52 @@ class DataFrame(NDFrame, OpsMixin):
         dog kg     2.0     NaN
             m      NaN     3.0
         """
-        from pandas.core.reshape.reshape import (
-            stack,
-            stack_multiple,
-        )
+        if not future_stack:
+            from pandas.core.reshape.reshape import (
+                stack,
+                stack_multiple,
+            )
 
-        if isinstance(level, (tuple, list)):
-            result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            if dropna is lib.no_default:
+                dropna = True
+            if sort is lib.no_default:
+                sort = True
+
+            if isinstance(level, (tuple, list)):
+                result = stack_multiple(self, level, dropna=dropna, sort=sort)
+            else:
+                result = stack(self, level, dropna=dropna, sort=sort)
         else:
-            result = stack(self, level, dropna=dropna, sort=sort)
+            from pandas.core.reshape.reshape import stack_v3
+
+            if dropna is not lib.no_default:
+                raise ValueError(
+                    "dropna must be unspecified with future_stack=True as the new "
+                    "implementation does not introduce rows of NA values. This "
+                    "argument will be removed in a future version of pandas."
+                )
+
+            if sort is not lib.no_default:
+                raise ValueError(
+                    "Cannot specify sort with future_stack=True, this argument will be "
+                    "removed in a future version of pandas. Sort the result using "
+                    ".sort_index instead."
+                )
+
+            if (
+                isinstance(level, (tuple, list))
+                and not all(lev in self.columns.names for lev in level)
+                and not all(isinstance(lev, int) for lev in level)
+            ):
+                raise ValueError(
+                    "level should contain all level names or all level "
+                    "numbers, not a mixture of the two."
+                )
+
+            if not isinstance(level, (tuple, list)):
+                level = [level]
+            level = [self.columns._get_level_number(lev) for lev in level]
+            result = stack_v3(self, level)
 
         return result.__finalize__(self, method="stack")
 
@@ -10943,9 +11012,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame
+        Series
             For each column/row the number of non-NA/null entries.
-            If `level` is specified returns a `DataFrame`.
 
         See Also
         --------
@@ -11003,7 +11071,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = notna(frame).sum(axis=axis)
 
-        return result.astype("int64").__finalize__(self, method="count")
+        return result.astype("int64", copy=False).__finalize__(self, method="count")
 
     def _reduce(
         self,

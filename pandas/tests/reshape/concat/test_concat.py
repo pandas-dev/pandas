@@ -5,18 +5,11 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    InvalidIndexError,
-    PerformanceWarning,
-)
+from pandas.errors import InvalidIndexError
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -531,15 +524,14 @@ def test_concat_no_unnecessary_upcast(dt, frame_or_series):
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
 @pytest.mark.parametrize("dt", np.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
-    with catch_warnings(record=True):
-        dims = pdt().ndim
-        dfs = [
-            pdt(np.array([1], dtype=dt, ndmin=dims)),
-            pdt(np.array([np.nan], ndmin=dims)),
-            pdt(np.array([5], dtype=dt, ndmin=dims)),
-        ]
-        x = concat(dfs)
-        assert x.values.dtype == "float64"
+    dims = pdt().ndim
+    dfs = [
+        pdt(np.array([1], dtype=dt, ndmin=dims)),
+        pdt(np.array([np.nan], ndmin=dims)),
+        pdt(np.array([5], dtype=dt, ndmin=dims)),
+    ]
+    x = concat(dfs)
+    assert x.values.dtype == "float64"
 
 
 def test_concat_empty_and_non_empty_frame_regression():
@@ -596,10 +588,7 @@ def test_duplicate_keys_same_frame():
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
     )
     expected = DataFrame(expected_values, columns=expected_columns)
-    with catch_warnings():
-        # result.columns not sorted, resulting in performance warning
-        simplefilter("ignore", PerformanceWarning)
-        tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
