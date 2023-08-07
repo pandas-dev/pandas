@@ -92,12 +92,7 @@ See :ref:`integer_na` for more.
 Datetimes
 ---------
 .. note::
-   If you are adding type checking to your                                                       application, you may need access to ``NaTType`` and ``NAType``.
-
-   The code was previously as follows:
-   .. ipython:: python
-      from pandas._libs import NaTType
-      from pandas._libs.missing import NAType
+   If you are adding type checking to your application, you may need access to ``NaTType`` and ``NAType``.
 
    ``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing".
 
