@@ -17,12 +17,6 @@ import os
 import sys
 import warnings
 
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    message="Matplotlib is currently using agg, which is a"
-    " non-GUI backend, so cannot show the figure.",
-)
 import jinja2
 from numpydoc.docscrape import NumpyDocString
 from sphinx.ext.autosummary import _import_by_name
