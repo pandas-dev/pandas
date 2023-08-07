@@ -845,7 +845,7 @@ class TestGetGroup:
         )
 
         g = df.groupby("DATE")
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group(Timestamp(key).to_pydatetime())
         result3 = g.get_group(str(Timestamp(key)))
@@ -854,7 +854,7 @@ class TestGetGroup:
 
         g = df.groupby(["DATE", "label"])
 
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
         result3 = g.get_group((str(Timestamp(key[0])), key[1]))
@@ -916,8 +916,8 @@ class TestGetGroup:
         gb = df.groupby("Tuples")
         gb_lambda = df.groupby(lambda x: df.iloc[x, 0])
 
-        expected = gb.get_group(list(gb.groups.keys())[0])
-        result = gb_lambda.get_group(list(gb_lambda.groups.keys())[0])
+        expected = gb.get_group(next(iter(gb.groups.keys())))
+        result = gb_lambda.get_group(next(iter(gb_lambda.groups.keys())))
 
         tm.assert_frame_equal(result, expected)
 

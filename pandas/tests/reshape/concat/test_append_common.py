@@ -205,12 +205,10 @@ class TestConcatAppendCommon:
             exp_series_dtype = typ1
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
             request.node.add_marker(mark)
-        elif (
-            typ1 == "datetime64[ns, US/Eastern]"
-            or typ2 == "datetime64[ns, US/Eastern]"
-            or typ1 == "timedelta64[ns]"
-            or typ2 == "timedelta64[ns]"
-        ):
+        elif typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
+            "datetime64[ns, US/Eastern]",
+            "timedelta64[ns]",
+        }:
             exp_index_dtype = object
             exp_series_dtype = object
 

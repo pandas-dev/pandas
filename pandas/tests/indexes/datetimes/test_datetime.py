@@ -135,7 +135,7 @@ class TestDatetimeIndex:
     def test_misc_coverage(self):
         rng = date_range("1/1/2000", periods=5)
         result = rng.groupby(rng.day)
-        assert isinstance(list(result.values())[0][0], Timestamp)
+        assert isinstance(next(iter(result.values()))[0], Timestamp)
 
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(

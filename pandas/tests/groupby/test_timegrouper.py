@@ -504,7 +504,7 @@ class TestGroupBy:
 
         # it works!
         groups = grouped.groups
-        assert isinstance(list(groups.keys())[0], datetime)
+        assert isinstance(next(iter(groups.keys())), datetime)
 
         # GH#11442
         index = date_range("2015/01/01", periods=5, name="date")

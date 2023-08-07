@@ -84,7 +84,7 @@ def test_prod_numpy16_bug():
 @pytest.mark.parametrize("kwargs", [{"keepdims": True}, {"out": object()}])
 def test_validate_any_all_out_keepdims_raises(kwargs, func):
     ser = Series([1, 2])
-    param = list(kwargs)[0]
+    param = next(iter(kwargs))
     name = func.__name__
 
     msg = (

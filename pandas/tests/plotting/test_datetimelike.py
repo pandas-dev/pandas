@@ -52,7 +52,7 @@ class TestTSPlot:
         ts = Series([188.5, 328.25], index=index)
         _check_plot_works(ts.plot)
         ax = ts.plot()
-        xdata = list(ax.get_lines())[0].get_xdata()
+        xdata = next(iter(ax.get_lines())).get_xdata()
         # Check first and last points' labels are correct
         assert (xdata[0].hour, xdata[0].minute) == (0, 0)
         assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)

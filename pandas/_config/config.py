@@ -160,7 +160,7 @@ def _set_option(*args, **kwargs) -> None:
     silent = kwargs.pop("silent", False)
 
     if kwargs:
-        kwarg = list(kwargs.keys())[0]
+        kwarg = next(iter(kwargs.keys()))
         raise TypeError(f'_set_option() got an unexpected keyword argument "{kwarg}"')
 
     for k, v in zip(args[::2], args[1::2]):

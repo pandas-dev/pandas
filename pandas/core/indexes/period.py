@@ -230,7 +230,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             refs = data._references
 
         if not set(fields).issubset(valid_field_set):
-            argument = list(set(fields) - valid_field_set)[0]
+            argument = next(iter(set(fields) - valid_field_set))
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         name = maybe_extract_name(name, data, cls)
