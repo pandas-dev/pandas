@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -695,8 +694,8 @@ class TestTSPlot:
         ax = ser2.plot()
         assert ax.get_yaxis().get_visible()
 
-    @td.skip_if_no_scipy
     def test_secondary_kde(self):
+        pytest.importorskip("scipy")
         ser = Series(np.random.default_rng(2).standard_normal(10))
         fig, ax = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True, kind="density", ax=ax)

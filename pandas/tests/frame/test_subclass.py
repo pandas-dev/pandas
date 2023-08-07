@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -216,7 +214,7 @@ class TestDataFrameSubclassing:
             columns=["X", "Y", "Z"],
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         exp = tm.SubclassedSeries(
             [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
         )
@@ -253,10 +251,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -277,7 +275,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_stack_multi_mixed(self):
@@ -315,10 +313,10 @@ class TestDataFrameSubclassing:
             columns=Index(["W", "X"], name="www"),
         )
 
-        res = df.stack()
+        res = df.stack(future_stack=True)
         tm.assert_frame_equal(res, exp)
 
-        res = df.stack("yyy")
+        res = df.stack("yyy", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
         exp = tm.SubclassedDataFrame(
@@ -339,7 +337,7 @@ class TestDataFrameSubclassing:
             columns=Index(["y", "z"], name="yyy"),
         )
 
-        res = df.stack("www")
+        res = df.stack("www", future_stack=True)
         tm.assert_frame_equal(res, exp)
 
     def test_subclass_unstack(self):
@@ -655,8 +653,8 @@ class TestDataFrameSubclassing:
         result = df.memory_usage(index=False)
         assert isinstance(result, tm.SubclassedSeries)
 
-    @td.skip_if_no_scipy
     def test_corrwith(self):
+        pytest.importorskip("scipy")
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
         df1 = tm.SubclassedDataFrame(

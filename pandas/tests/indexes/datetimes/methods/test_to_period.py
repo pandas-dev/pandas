@@ -1,5 +1,3 @@
-import warnings
-
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
@@ -93,16 +91,10 @@ class TestToPeriod:
             freq="5min",
         )
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi1 = rng.to_period("5min")
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi2 = rng.to_period()
 
         tm.assert_index_equal(pi1, pi2)

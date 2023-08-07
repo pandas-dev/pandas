@@ -3,8 +3,6 @@ import math
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     Series,
@@ -57,10 +55,9 @@ class TestSeriesCov:
 
 
 class TestSeriesCorr:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("dtype", ["float64", "Float64"])
     def test_corr(self, datetime_series, dtype):
-        from scipy import stats
+        stats = pytest.importorskip("scipy.stats")
 
         datetime_series = datetime_series.astype(dtype)
 
@@ -90,9 +87,8 @@ class TestSeriesCorr:
         expected, _ = stats.pearsonr(A, B)
         tm.assert_almost_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corr_rank(self):
-        from scipy import stats
+        stats = pytest.importorskip("scipy.stats")
 
         # kendall and spearman
         A = tm.makeTimeSeries()

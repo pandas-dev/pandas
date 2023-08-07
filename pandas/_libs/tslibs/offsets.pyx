@@ -504,7 +504,7 @@ cdef class BaseOffset:
     def __sub__(self, other):
         if PyDateTime_Check(other):
             raise TypeError("Cannot subtract datetime from offset.")
-        elif type(other) == type(self):
+        elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
@@ -1053,7 +1053,7 @@ cdef class Tick(SingleConstructorOffset):
             return other.__add__(self)
 
         if isinstance(other, Tick):
-            if type(self) == type(other):
+            if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
                 return delta_to_tick(self.delta + other.delta)

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from openpyxl.workbook import Workbook
 
     from pandas._typing import (
+        ExcelWriterIfSheetExists,
         FilePath,
         ReadBuffer,
         Scalar,
@@ -48,7 +49,7 @@ class OpenpyxlWriter(ExcelWriter):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: str | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> None:

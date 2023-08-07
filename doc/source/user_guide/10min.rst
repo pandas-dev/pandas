@@ -579,7 +579,7 @@ columns:
 
 .. ipython:: python
 
-   stacked = df2.stack()
+   stacked = df2.stack(future_stack=True)
    stacked
 
 With a "stacked" DataFrame or Series (having a :class:`MultiIndex` as the

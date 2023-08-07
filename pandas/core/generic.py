@@ -381,8 +381,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.attrs
         {'A': [10, 20, 30]}
         """
-        if self._attrs is None:
-            self._attrs = {}
         return self._attrs
 
     @attrs.setter
@@ -2126,6 +2124,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             typ = state.get("_typ")
             if typ is not None:
                 attrs = state.get("_attrs", {})
+                if attrs is None:  # should not happen, but better be on the safe side
+                    attrs = {}
                 object.__setattr__(self, "_attrs", attrs)
                 flags = state.get("_flags", {"allows_duplicate_labels": True})
                 object.__setattr__(self, "_flags", Flags(self, **flags))
