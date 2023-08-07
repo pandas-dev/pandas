@@ -9,7 +9,6 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -1731,7 +1730,6 @@ class TestHashTable:
 
 
 class TestRank:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "arr",
         [
@@ -1740,7 +1738,7 @@ class TestRank:
         ],
     )
     def test_scipy_compat(self, arr):
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         arr = np.array(arr)
 
@@ -1748,7 +1746,7 @@ class TestRank:
         arr = arr.copy()
         result = libalgos.rank_1d(arr)
         arr[mask] = np.inf
-        exp = rankdata(arr)
+        exp = sp_stats.rankdata(arr)
         exp[mask] = np.nan
         tm.assert_almost_equal(result, exp)
 

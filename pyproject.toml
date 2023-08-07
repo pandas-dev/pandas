@@ -5,7 +5,7 @@ requires = [
     "meson-python==0.13.1",
     "meson==1.0.1",
     "wheel",
-    "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython>=3.0.0",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Note: numpy 1.25 has a backwards compatible C API by default
     # we don't want to force users to compile with 1.25 though
     # (Ideally, in the future, though, oldest-supported-numpy can be dropped when our min numpy is 1.25.x)
@@ -525,7 +525,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.10"
+python_version = "3.11"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -726,12 +726,14 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
+useLibraryCodeForTypes = false
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true
+reportInconsistentConstructor = true
 reportInvalidStubStatement = true
 reportOverlappingOverload = true
 reportPropertyTypeMismatch = true
