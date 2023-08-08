@@ -964,18 +964,23 @@ class _BytesTarFile(_BufferedWriter):
         archive_name: str | None = None,
         **kwargs,
     ) -> None:
+        super().__init__()
         self.archive_name = archive_name
         self.name = name
         # error: Argument "fileobj" to "open" of "TarFile" has incompatible
         # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
         # "Optional[IO[bytes]]"
-        self.buffer = tarfile.TarFile.open(
-            name=name,
-            mode=self.extend_mode(mode),
-            fileobj=fileobj,  # type: ignore[arg-type]
-            **kwargs,
-        )
-        super().__init__()
+        try:
+            self.buffer = tarfile.TarFile.open(
+                name=name,
+                mode=self.extend_mode(mode),
+                fileobj=fileobj,  # type: ignore[arg-type]
+                **kwargs,
+            )
+        except Exception:
+            # Don't let close try to close non-existent self.buffer
+            BytesIO.close()
+            raise
 
     def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
@@ -1018,6 +1023,7 @@ class _BytesZipFile(_BufferedWriter):
         archive_name: str | None = None,
         **kwargs,
     ) -> None:
+        super().__init__()
         mode = mode.replace("b", "")
         self.archive_name = archive_name
 
@@ -1025,10 +1031,14 @@ class _BytesZipFile(_BufferedWriter):
         # error: No overload variant of "ZipFile" matches argument types "str |
         # PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]", "str", "dict[str,
         # Any]"
-        self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
-            file, mode, **kwargs
-        )
-        super().__init__()
+        try:
+            self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
+                file, mode, **kwargs
+            )
+        except Exception:
+            # Don't let close try to close non-existent self.buffer
+            BytesIO.close()
+            raise
 
     def infer_filename(self) -> str | None:
         """
