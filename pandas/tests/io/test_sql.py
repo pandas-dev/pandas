@@ -28,7 +28,6 @@ from datetime import (
 )
 from io import StringIO
 from pathlib import Path
-import re
 import sqlite3
 import uuid
 
@@ -549,15 +548,9 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
-    msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "argument 'name' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
-        test_frame1.to_sql("test", conn, if_exists="append", index=False)
+    test_frame1.to_sql("test", conn, if_exists="append", index=False)
 
 
-@pytest.mark.skip
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes(conn, request):
@@ -583,10 +576,6 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
     # GH 52046
-    sql_msg = (
-        "Starting with pandas version 3.0 all arguments of to_sql except for the "
-        "argument 'name' will be keyword-only."
-    )
     pytest.importorskip("pyarrow")
     df = DataFrame(
         {
@@ -596,8 +585,7 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
         }
     )
     conn = request.getfixturevalue(conn)
-    with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-        df.to_sql("test_arrow", conn, if_exists="replace", index=False)
+    df.to_sql("test_arrow", conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
@@ -1447,11 +1435,9 @@ class _TestSQLApi(PandasSQLTest):
         assert issubclass(df.index.dtype.type, np.datetime64)
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
-    @pytest.mark.skip
     def test_timedelta(self):
         # see #6921
         df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
-
         with tm.assert_produces_warning(UserWarning):
             result_count = df.to_sql("test_timedelta", self.conn)
         assert result_count == 2
@@ -1461,13 +1447,8 @@ class _TestSQLApi(PandasSQLTest):
     def test_complex_raises(self):
         df = DataFrame({"a": [1 + 1j, 2j]})
         msg = "Complex datatypes not supported"
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                assert df.to_sql("test_complex", self.conn) is None
+            assert df.to_sql("test_complex", self.conn) is None
 
     @pytest.mark.parametrize(
         "index_name,index_label,expected",
@@ -1552,17 +1533,13 @@ class _TestSQLApi(PandasSQLTest):
             )
 
     def test_multiindex_roundtrip(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df = DataFrame.from_records(
             [(1, 2.1, "line1"), (2, 1.5, "line2")],
             columns=["A", "B", "C"],
             index=["A", "B"],
         )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test_multiindex_roundtrip", self.conn)
+
+        df.to_sql("test_multiindex_roundtrip", self.conn)
         result = sql.read_sql_query(
             "SELECT * FROM test_multiindex_roundtrip", self.conn, index_col=["A", "B"]
         )
@@ -1580,12 +1557,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_dtype_argument(self, dtype):
         # GH10285 Add dtype argument to read_sql_query
         df = DataFrame([[1.2, 3.4], [5.6, 7.8]], columns=["A", "B"])
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_dtype_argument", self.conn) == 2
+        assert df.to_sql("test_dtype_argument", self.conn) == 2
 
         expected = df.astype(dtype)
         result = sql.read_sql_query(
@@ -1637,12 +1609,7 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((22, 5)), columns=list("abcde")
         )
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test_chunksize", self.conn, index=False)
+        df.to_sql("test_chunksize", self.conn, index=False)
 
         # reading the query in one time
         res1 = sql.read_sql_query("select * from test_chunksize", self.conn)
@@ -1683,14 +1650,10 @@ class _TestSQLApi(PandasSQLTest):
                 "person_name": ["John P. Doe", "Jane Dove", "John P. Doe"],
             }
         )
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df2 = df.copy()
         df2["person_name"] = df2["person_name"].astype("category")
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df2.to_sql("test_categorical", self.conn, index=False)
+
+        df2.to_sql("test_categorical", self.conn, index=False)
         res = sql.read_sql_query("SELECT * FROM test_categorical", self.conn)
 
         tm.assert_frame_equal(res, df)
@@ -1698,22 +1661,12 @@ class _TestSQLApi(PandasSQLTest):
     def test_unicode_column_name(self):
         # GH 11431
         df = DataFrame([[1, 2], [3, 4]], columns=["\xe9", "b"])
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test_unicode", self.conn, index=False)
+        df.to_sql("test_unicode", self.conn, index=False)
 
     def test_escaped_table_name(self):
         # GH 13206
         df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("d1187b08-4943-4c8d-a7f6", self.conn, index=False)
+        df.to_sql("d1187b08-4943-4c8d-a7f6", self.conn, index=False)
 
         res = sql.read_sql_query("SELECT * FROM `d1187b08-4943-4c8d-a7f6`", self.conn)
 
@@ -1721,13 +1674,8 @@ class _TestSQLApi(PandasSQLTest):
 
     def test_read_sql_duplicate_columns(self):
         # GH#53117
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test_table", self.conn, index=False)
+        df.to_sql("test_table", self.conn, index=False)
 
         result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table;", self.conn)
         expected = DataFrame(
@@ -1811,10 +1759,6 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
     def test_warning_case_insensitive_table_name(self, test_frame1):
         # see gh-7815
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         with tm.assert_produces_warning(
             UserWarning,
             match=(
@@ -1826,7 +1770,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
             sql.SQLDatabase(self.conn).check_case_sensitive("TABLE1", "")
 
         # Test that the warning is certainly NOT triggered in a normal case.
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
+        with tm.assert_produces_warning(None):
             test_frame1.to_sql("CaseSensitive", self.conn)
 
     def _get_index_columns(self, tbl_name):
@@ -1893,15 +1837,10 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         # db_uri = 'sqlite:///:memory:' # raises
         # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
         # "iris": syntax error [SQL: 'iris']
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         with tm.ensure_clean() as name:
             db_uri = "sqlite:///" + name
             table = "iris"
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                test_frame1.to_sql(table, db_uri, if_exists="replace", index=False)
+            test_frame1.to_sql(table, db_uri, if_exists="replace", index=False)
             test_frame2 = sql.read_sql(table, db_uri)
             test_frame3 = sql.read_sql_table(table, db_uri)
             query = "SELECT * FROM iris"
@@ -1943,12 +1882,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     def test_column_with_percentage(self):
         # GH 37157
         df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test_column_percentage", self.conn, index=False)
+        df.to_sql("test_column_percentage", self.conn, index=False)
 
         res = sql.read_sql_table("test_column_percentage", self.conn)
 
@@ -2160,12 +2094,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
         df = DataFrame(data={"i64": [2**62]})
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_bigint", self.conn, index=False) == 1
+        assert df.to_sql("test_bigint", self.conn, index=False) == 1
         result = sql.read_sql_table("test_bigint", self.conn)
 
         tm.assert_frame_equal(df, result)
@@ -2261,15 +2190,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Write datetimetz data to a db and read it back
         # For dbs that support timestamps with timezones, should get back UTC
         # otherwise naive data should be returned
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         expected = DataFrame(
             {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific")}
         )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert expected.to_sql("test_datetime_tz", self.conn, index=False) == 3
+        assert expected.to_sql("test_datetime_tz", self.conn, index=False) == 3
 
         if self.flavor == "postgresql":
             # SQLAlchemy "timezones" (i.e. offsets) are coerced to UTC
@@ -2290,13 +2214,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_out_of_bounds_datetime(self):
         # GH 26761
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert data.to_sql("test_datetime_obb", self.conn, index=False) == 1
+        assert data.to_sql("test_datetime_obb", self.conn, index=False) == 1
         result = sql.read_sql_table("test_datetime_obb", self.conn)
         expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
@@ -2304,14 +2223,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_naive_datetimeindex_roundtrip(self):
         # GH 23510
         # Ensure that a naive DatetimeIndex isn't converted to UTC
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert expected.to_sql("foo_table", self.conn, index_label="info_date") == 5
+        assert expected.to_sql("foo_table", self.conn, index_label="info_date") == 5
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")
         # result index with gain a name from a set_index operation; expected
         tm.assert_frame_equal(result, expected, check_names=False)
@@ -2352,12 +2266,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame(
             {"A": date_range("2013-01-01 09:00:00", periods=3), "B": np.arange(3.0)}
         )
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_datetime", self.conn) == 3
+        assert df.to_sql("test_datetime", self.conn) == 3
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table("test_datetime", self.conn)
@@ -2378,13 +2287,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame(
             {"A": date_range("2013-01-01 09:00:00", periods=3), "B": np.arange(3.0)}
         )
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df.loc[1, "A"] = np.nan
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_datetime", self.conn, index=False) == 3
+        assert df.to_sql("test_datetime", self.conn, index=False) == 3
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table("test_datetime", self.conn)
@@ -2402,12 +2306,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_datetime_date(self):
         # test support for datetime.date
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_date", self.conn, index=False) == 2
+        assert df.to_sql("test_date", self.conn, index=False) == 2
         res = read_sql_table("test_date", self.conn)
         result = res["a"]
         expected = to_datetime(df["a"])
@@ -2415,14 +2314,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         tm.assert_series_equal(result, expected)
 
     def test_datetime_time(self, sqlite_buildin):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         # test support for datetime.time
         df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_time", self.conn, index=False) == 2
+        assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_table("test_time", self.conn)
         tm.assert_frame_equal(res, df)
 
@@ -2447,14 +2341,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         s1 = Series(2**25 + 1, dtype=np.int32)
         s2 = Series(0.0, dtype=np.float32)
         df = DataFrame({"s1": s1, "s2": s2})
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
 
         # write and read again
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_read_write", self.conn, index=False) == 1
+        assert df.to_sql("test_read_write", self.conn, index=False) == 1
         df2 = sql.read_sql_table("test_read_write", self.conn)
 
         tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
@@ -2462,12 +2351,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_nan_numeric(self):
         # NaNs in numeric float column
         df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql("test_nan", self.conn, index=False) == 3
 
         # with read_table
         result = sql.read_sql_table("test_nan", self.conn)
@@ -2479,13 +2363,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_nan_fullcolumn(self):
         # full NaN column (numeric float column)
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df = DataFrame({"A": [0, 1, 2], "B": [np.nan, np.nan, np.nan]})
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql("test_nan", self.conn, index=False) == 3
 
         # with read_table
         result = sql.read_sql_table("test_nan", self.conn)
@@ -2499,13 +2378,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_nan_string(self):
         # NaNs in string column
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", np.nan]})
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql("test_nan", self.conn, index=False) == 3
 
         # NaNs are coming back as None
         df.loc[2, "B"] = None
@@ -2558,10 +2432,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self.drop_table(tbl, self.conn)
 
     def test_dtype(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         from sqlalchemy import (
             TEXT,
             String,
@@ -2571,29 +2441,25 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
         df = DataFrame(data, columns=cols)
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("dtype_test", self.conn) == 2
-            assert df.to_sql("dtype_test2", self.conn, dtype={"B": TEXT}) == 2
+        assert df.to_sql("dtype_test", self.conn) == 2
+        assert df.to_sql("dtype_test2", self.conn, dtype={"B": TEXT}) == 2
         meta = MetaData()
         meta.reflect(bind=self.conn)
         sqltype = meta.tables["dtype_test2"].columns["B"].type
         assert isinstance(sqltype, TEXT)
         msg = "The type of B is not a SQLAlchemy type"
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            with pytest.raises(ValueError, match=msg):
-                df.to_sql("error", self.conn, dtype={"B": str})
+        with pytest.raises(ValueError, match=msg):
+            df.to_sql("error", self.conn, dtype={"B": str})
 
         # GH9083
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("dtype_test3", self.conn, dtype={"B": String(10)}) == 2
+        assert df.to_sql("dtype_test3", self.conn, dtype={"B": String(10)}) == 2
         meta.reflect(bind=self.conn)
         sqltype = meta.tables["dtype_test3"].columns["B"].type
         assert isinstance(sqltype, String)
         assert sqltype.length == 10
 
         # single dtype
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("single_dtype_test", self.conn, dtype=TEXT) == 2
+        assert df.to_sql("single_dtype_test", self.conn, dtype=TEXT) == 2
         meta.reflect(bind=self.conn)
         sqltypea = meta.tables["single_dtype_test"].columns["A"].type
         sqltypeb = meta.tables["single_dtype_test"].columns["B"].type
@@ -2601,10 +2467,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypeb, TEXT)
 
     def test_notna_dtype(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         from sqlalchemy import (
             Boolean,
             DateTime,
@@ -2622,8 +2484,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame(cols)
 
         tbl = "notna_dtype_test"
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql(tbl, self.conn) == 2
+        assert df.to_sql(tbl, self.conn) == 2
         _ = sql.read_sql_table(tbl, self.conn)
         meta = MetaData()
         meta.reflect(bind=self.conn)
@@ -2635,10 +2496,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(col_dict["Float"].type, Float)
 
     def test_double_precision(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         from sqlalchemy import (
             BigInteger,
             Float,
@@ -2658,17 +2515,16 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             }
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert (
-                df.to_sql(
-                    "test_dtypes",
-                    self.conn,
-                    index=False,
-                    if_exists="replace",
-                    dtype={"f64_as_f32": Float(precision=23)},
-                )
-                == 1
+        assert (
+            df.to_sql(
+                "test_dtypes",
+                self.conn,
+                index=False,
+                if_exists="replace",
+                dtype={"f64_as_f32": Float(precision=23)},
             )
+            == 1
+        )
         res = sql.read_sql_table("test_dtypes", self.conn)
 
         # check precision of float64
@@ -2688,11 +2544,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # This tests the example raised in issue
         # https://github.com/pandas-dev/pandas/issues/10104
         from sqlalchemy.engine import Engine
-
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
 
         def test_select(connection):
             query = "SELECT test_foo_data FROM test_foo_data"
@@ -2715,13 +2566,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             else:
                 test_connectable(connectable)
 
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert (
-                DataFrame({"test_foo_data": [0, 1, 2]}).to_sql(
-                    "test_foo_data", self.conn
-                )
-                == 3
-            )
+        assert (
+            DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
+            == 3
+        )
         main(self.conn)
 
     @pytest.mark.parametrize(
@@ -2732,10 +2580,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # GH 34431
 
         df = DataFrame(input)
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
 
         if self.flavor == "mysql":
             # GH 36465
@@ -2752,12 +2596,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 request.node.add_marker(mark)
 
             msg = "inf cannot be used with MySQL"
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                with pytest.raises(ValueError, match=msg):
-                    df.to_sql("foobar", self.conn, index=False)
+            with pytest.raises(ValueError, match=msg):
+                df.to_sql("foobar", self.conn, index=False)
         else:
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                assert df.to_sql("foobar", self.conn, index=False) == 1
+            assert df.to_sql("foobar", self.conn, index=False) == 1
             res = sql.read_sql_table("foobar", self.conn)
             tm.assert_equal(df, res)
 
@@ -2828,14 +2670,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
     def test_read_sql_dtype_backend(self, string_storage, func, dtype_backend):
         # GH#50048
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         table = "test"
         df = self.dtype_backend_data()
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
             result = getattr(pd, func)(
@@ -2860,12 +2697,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # GH#50048
         table = "test"
         df = self.dtype_backend_data()
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
             result = getattr(pd, func)(table, self.conn, dtype_backend=dtype_backend)
@@ -2887,12 +2719,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_read_sql_invalid_dtype_backend_table(self, func):
         table = "test"
         df = self.dtype_backend_data()
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         msg = (
             "dtype_backend numpy is invalid, only 'numpy_nullable' and "
@@ -2957,13 +2784,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         dtypes = {"a": "int64", "b": "object"}
         df = DataFrame(columns=["a", "b"]).astype(dtypes)
         expected = df.copy()
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql("test", self.conn, index=False, if_exists="replace")
+        df.to_sql("test", self.conn, index=False, if_exists="replace")
 
         for result in read_sql_query(
             "SELECT * FROM test",
@@ -2977,14 +2798,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
     def test_read_sql_dtype(self, func, dtype_backend):
         # GH#50797
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         table = "test"
         df = DataFrame({"a": [1, 2, 3], "b": 5})
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
 
         result = getattr(pd, func)(
             f"Select * from {table}",
@@ -3044,13 +2860,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
     def test_bigint_warning(self):
         # test no warning for BIGINT (to support int64) is raised (GH7433)
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         df = DataFrame({"a": [1, 2]}, dtype="int64")
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_bigintwarning", self.conn, index=False) == 2
+        assert df.to_sql("test_bigintwarning", self.conn, index=False) == 2
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
@@ -3064,10 +2875,6 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         # GH 40682
         # Test for the is_named_tuple() function
         # Placed here due to its usage of sqlalchemy
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
 
         from sqlalchemy import (
             Column,
@@ -3091,13 +2898,10 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         Session = sessionmaker(bind=self.conn)
         with Session() as session:
             df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                assert (
-                    df.to_sql(
-                        "test_frame", con=self.conn, index=False, if_exists="replace"
-                    )
-                    == 2
-                )
+            assert (
+                df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
+                == 2
+            )
             session.commit()
             test_query = session.query(Test.id, Test.string_column)
             df = DataFrame(test_query)
@@ -3353,14 +3157,9 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._execute_sql()
 
     def test_datetime_date(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         # test support for datetime.date
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_date", self.conn, index=False) == 2
+        assert df.to_sql("test_date", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_date", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
@@ -3371,11 +3170,6 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     @pytest.mark.parametrize("tz_aware", [False, True])
     def test_datetime_time(self, tz_aware):
         # test support for datetime.time, GH #8341
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-
         if not tz_aware:
             tz_times = [time(9, 0, 0), time(9, 1, 30)]
         else:
@@ -3384,8 +3178,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
         df = DataFrame(tz_times, columns=["a"])
 
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("test_time", self.conn, index=False) == 2
+        assert df.to_sql("test_time", self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
@@ -3418,39 +3211,28 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         raise ValueError(f"Table {table}, column {column} not found")
 
     def test_dtype(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         if self.flavor == "mysql":
             pytest.skip("Not applicable to MySQL legacy")
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
         df = DataFrame(data, columns=cols)
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("dtype_test", self.conn) == 2
-            assert df.to_sql("dtype_test2", self.conn, dtype={"B": "STRING"}) == 2
+        assert df.to_sql("dtype_test", self.conn) == 2
+        assert df.to_sql("dtype_test2", self.conn, dtype={"B": "STRING"}) == 2
 
         # sqlite stores Boolean values as INTEGER
         assert self._get_sqlite_column_type("dtype_test", "B") == "INTEGER"
 
         assert self._get_sqlite_column_type("dtype_test2", "B") == "STRING"
         msg = r"B \(<class 'bool'>\) not a string"
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            with pytest.raises(ValueError, match=msg):
-                df.to_sql("error", self.conn, dtype={"B": bool})
+        with pytest.raises(ValueError, match=msg):
+            df.to_sql("error", self.conn, dtype={"B": bool})
 
         # single dtype
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql("single_dtype_test", self.conn, dtype="STRING") == 2
+        assert df.to_sql("single_dtype_test", self.conn, dtype="STRING") == 2
         assert self._get_sqlite_column_type("single_dtype_test", "A") == "STRING"
         assert self._get_sqlite_column_type("single_dtype_test", "B") == "STRING"
 
     def test_notna_dtype(self):
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
         if self.flavor == "mysql":
             pytest.skip("Not applicable to MySQL legacy")
 
@@ -3463,8 +3245,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         df = DataFrame(cols)
 
         tbl = "notna_dtype_test"
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            assert df.to_sql(tbl, self.conn) == 2
+        assert df.to_sql(tbl, self.conn) == 2
 
         assert self._get_sqlite_column_type(tbl, "Bool") == "INTEGER"
         assert self._get_sqlite_column_type(tbl, "Date") == "TIMESTAMP"
@@ -3476,13 +3257,8 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
 
         msg = "Empty table or column name specified"
-        sql_msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-            with pytest.raises(ValueError, match=msg):
-                df.to_sql("", self.conn)
+        with pytest.raises(ValueError, match=msg):
+            df.to_sql("", self.conn)
 
         for ndx, weird_name in enumerate(
             [
@@ -3498,14 +3274,12 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 "\xe9",
             ]
         ):
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                assert df.to_sql(weird_name, self.conn) == 2
+            assert df.to_sql(weird_name, self.conn) == 2
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
             c_tbl = f"test_weird_col_name{ndx:d}"
-            with tm.assert_produces_warning(FutureWarning, match=re.escape(sql_msg)):
-                assert df2.to_sql(c_tbl, self.conn) == 2
+            assert df2.to_sql(c_tbl, self.conn) == 2
             sql.table_exists(c_tbl, self.conn)
 
 
