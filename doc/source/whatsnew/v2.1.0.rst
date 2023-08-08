@@ -734,6 +734,7 @@ I/O
 - Bug in :meth:`DataFrame.to_json` where :class:`DateTimeArray`/:class:`DateTimeIndex` with non nanosecond precision could not be serialized correctly (:issue:`53686`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 - Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)
+- Bug where dataframe to html conversion for empty array with complex dtypes returned a ValueError (:issue:`54167`)
 
 Period
 ^^^^^^
