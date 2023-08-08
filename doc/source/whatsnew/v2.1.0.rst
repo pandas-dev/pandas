@@ -591,6 +591,7 @@ Performance improvements
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)
+- Performance improvement in :func:`merge` for PyArrow backed strings (:issue:`54443`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`52632`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
@@ -611,7 +612,6 @@ Performance improvements
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
 - Performance improvement when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
