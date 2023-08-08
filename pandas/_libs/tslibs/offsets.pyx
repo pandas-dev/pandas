@@ -2245,7 +2245,7 @@ cdef class BYearEnd(YearOffset):
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
     month : int, default 12
-        class BYearEnd specific integer for the month of the year.
+        A specific integer for the month of the year.
 
     See Also
     --------
