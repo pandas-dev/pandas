@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 import numpy as np
 
 from pandas.core.dtypes.base import register_extension_dtype
@@ -204,57 +206,57 @@ UInt64Dtype()
 
 @register_extension_dtype
 class Int8Dtype(IntegerDtype):
-    type = np.int8
-    name = "Int8"
+    type: ClassVar[type[np.int8]] = np.int8
+    name: ClassVar[str] = "Int8"
     __doc__ = _dtype_docstring.format(dtype="int8")
 
 
 @register_extension_dtype
 class Int16Dtype(IntegerDtype):
-    type = np.int16
-    name = "Int16"
+    type: ClassVar[type[np.int16]] = np.int16
+    name: ClassVar[str] = "Int16"
     __doc__ = _dtype_docstring.format(dtype="int16")
 
 
 @register_extension_dtype
 class Int32Dtype(IntegerDtype):
-    type = np.int32
-    name = "Int32"
+    type: ClassVar[type[np.int32]] = np.int32
+    name: ClassVar[str] = "Int32"
     __doc__ = _dtype_docstring.format(dtype="int32")
 
 
 @register_extension_dtype
 class Int64Dtype(IntegerDtype):
-    type = np.int64
-    name = "Int64"
+    type: ClassVar[type[np.int64]] = np.int64
+    name: ClassVar[str] = "Int64"
     __doc__ = _dtype_docstring.format(dtype="int64")
 
 
 @register_extension_dtype
 class UInt8Dtype(IntegerDtype):
-    type = np.uint8
-    name = "UInt8"
+    type: ClassVar[type[np.uint8]] = np.uint8
+    name: ClassVar[str] = "UInt8"
     __doc__ = _dtype_docstring.format(dtype="uint8")
 
 
 @register_extension_dtype
 class UInt16Dtype(IntegerDtype):
-    type = np.uint16
-    name = "UInt16"
+    type: ClassVar[type[np.uint16]] = np.uint16
+    name: ClassVar[str] = "UInt16"
     __doc__ = _dtype_docstring.format(dtype="uint16")
 
 
 @register_extension_dtype
 class UInt32Dtype(IntegerDtype):
-    type = np.uint32
-    name = "UInt32"
+    type: ClassVar[type[np.uint32]] = np.uint32
+    name: ClassVar[str] = "UInt32"
     __doc__ = _dtype_docstring.format(dtype="uint32")
 
 
 @register_extension_dtype
 class UInt64Dtype(IntegerDtype):
-    type = np.uint64
-    name = "UInt64"
+    type: ClassVar[type[np.uint64]] = np.uint64
+    name: ClassVar[str] = "UInt64"
     __doc__ = _dtype_docstring.format(dtype="uint64")
 
 

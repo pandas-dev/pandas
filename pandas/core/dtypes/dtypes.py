@@ -14,6 +14,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     cast,
 )
 import warnings
@@ -103,7 +104,6 @@ class PandasExtensionDtype(ExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE
     """
 
-    type: Any
     kind: Any
     # The Any type annotations above are here only because mypy seems to have a
     # problem dealing with multiple inheritance from PandasExtensionDtype
@@ -200,7 +200,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     # TODO: Document public vs. private API
     name = "category"
-    type: type[CategoricalDtypeType] = CategoricalDtypeType
+    type: ClassVar[type[CategoricalDtypeType]] = CategoricalDtypeType
     kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
@@ -711,7 +711,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     datetime64[ns, Europe/Paris]
     """
 
-    type: type[Timestamp] = Timestamp
+    type: ClassVar[type[Timestamp]] = Timestamp
     kind: str_type = "M"
     num = 101
     _metadata = ("unit", "tz")
@@ -941,7 +941,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     period[M]
     """
 
-    type: type[Period] = Period
+    type: ClassVar[type[Period]] = Period
     kind: str_type = "O"
     str = "|O08"
     base = np.dtype("O")
@@ -1285,9 +1285,7 @@ class IntervalDtype(PandasExtensionDtype):
         )
         raise TypeError(msg)
 
-    @property
-    def type(self) -> type[Interval]:
-        return Interval
+    type: ClassVar[type[Interval]] = Interval
 
     def __str__(self) -> str_type:
         if self.subtype is None:
@@ -1488,9 +1486,7 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BaseMaskedArray subclasses.
     """
 
-    name: str
     base = None
-    type: type
 
     @property
     def na_value(self) -> libmissing.NAType:

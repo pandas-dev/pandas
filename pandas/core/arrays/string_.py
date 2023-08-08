@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
 )
 
@@ -118,9 +119,7 @@ class StringDtype(StorageExtensionDtype):
             )
         self.storage = storage
 
-    @property
-    def type(self) -> type[str]:
-        return str
+    type: ClassVar[type_t[str]] = str
 
     @classmethod
     def construct_from_string(cls, string):
