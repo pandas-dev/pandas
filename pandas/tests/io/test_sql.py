@@ -756,7 +756,7 @@ def test_read_procedure(conn, request):
     from sqlalchemy.engine import Engine
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-    df.to_sql("test_frame", con=conn, index=False)
+    df.to_sql(name="test_frame", con=conn, index=False)
 
     proc = """DROP PROCEDURE IF EXISTS get_testdb;
 
@@ -3004,10 +3004,10 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe to different schema's
-        assert df.to_sql("test_schema_public", con=self.conn, index=False) == 2
+        assert df.to_sql(name="test_schema_public", con=self.conn, index=False) == 2
         assert (
             df.to_sql(
-                "test_schema_public_explicit",
+                name="test_schema_public_explicit",
                 con=self.conn,
                 index=False,
                 schema="public",
@@ -3015,7 +3015,9 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             == 2
         )
         assert (
-            df.to_sql("test_schema_other", con=self.conn, index=False, schema="other")
+            df.to_sql(
+                name="test_schema_other", con=self.conn, index=False, schema="other"
+            )
             == 2
         )
 
@@ -3043,11 +3045,13 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 
         # write dataframe with different if_exists options
         assert (
-            df.to_sql("test_schema_other", con=self.conn, schema="other", index=False)
+            df.to_sql(
+                name="test_schema_other", con=self.conn, schema="other", index=False
+            )
             == 2
         )
         df.to_sql(
-            "test_schema_other",
+            name="test_schema_other",
             con=self.conn,
             schema="other",
             index=False,
@@ -3055,7 +3059,7 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
         )
         assert (
             df.to_sql(
-                "test_schema_other",
+                name="test_schema_other",
                 con=self.conn,
                 schema="other",
                 index=False,
