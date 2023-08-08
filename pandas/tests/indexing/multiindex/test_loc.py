@@ -620,9 +620,8 @@ def test_loc_period_string_indexing():
     #  not a slice
     assert np.isnan(result)
 
-    # TODO: should it figure this out?
-    # alt = df.loc["2013Q1", 1111, "OMS"]
-    # assert np.isnan(alt)
+    alt = df.loc[("2013Q1", 1111), "OMS"]
+    assert np.isnan(alt)
 
 
 def test_loc_datetime_mask_slicing():

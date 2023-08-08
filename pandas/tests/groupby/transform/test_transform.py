@@ -775,9 +775,7 @@ def frame_mi(frame):
         {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        {"by": ["int", "string"]},
     ],
 )
 def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
@@ -825,9 +823,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        {"by": ["int", "string"]},
     ],
 )
 @pytest.mark.parametrize(
