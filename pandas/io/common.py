@@ -939,6 +939,21 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     def write_to_buffer(self) -> None:
         ...
 
+    def close(self) -> None:
+        if self.closed:
+            # already closed
+            return
+        if self.getvalue():
+            # write to buffer
+            self.seek(0)
+            # error: "_BufferedWriter" has no attribute "buffer"
+            with self.buffer:  # type: ignore[attr-defined]
+                self.write_to_buffer()
+        else:
+            # error: "_BufferedWriter" has no attribute "buffer"
+            self.buffer.close()  # type: ignore[attr-defined]
+        super().close()
+
 
 class _BytesTarFile(_BufferedWriter):
     def __init__(
@@ -949,7 +964,6 @@ class _BytesTarFile(_BufferedWriter):
         archive_name: str | None = None,
         **kwargs,
     ) -> None:
-        super().__init__()
         self.archive_name = archive_name
         self.name = name
         # error: Argument "fileobj" to "open" of "TarFile" has incompatible
@@ -961,19 +975,7 @@ class _BytesTarFile(_BufferedWriter):
             fileobj=fileobj,  # type: ignore[arg-type]
             **kwargs,
         )
-
-    def close(self) -> None:
-        if self.closed:
-            # already closed
-            return
-        if self.getbuffer().nbytes:
-            # write to buffer
-            self.seek(0)
-            with self.buffer:
-                self.write_to_buffer()
-        else:
-            self.buffer.close()
-        super().close()
+        super().__init__()
 
     def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
@@ -1016,7 +1018,6 @@ class _BytesZipFile(_BufferedWriter):
         archive_name: str | None = None,
         **kwargs,
     ) -> None:
-        super().__init__()
         mode = mode.replace("b", "")
         self.archive_name = archive_name
 
@@ -1027,19 +1028,7 @@ class _BytesZipFile(_BufferedWriter):
         self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
             file, mode, **kwargs
         )
-
-    def close(self) -> None:
-        if self.closed:
-            # already closed
-            return
-        if self.getbuffer().nbytes:
-            # write to buffer
-            self.seek(0)
-            with self.buffer:
-                self.write_to_buffer()
-        else:
-            self.buffer.close()
-        super().close()
+        super().__init__()
 
     def infer_filename(self) -> str | None:
         """
