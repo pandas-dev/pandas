@@ -8,18 +8,37 @@ Reshaping and pivot tables
 
 .. _reshaping.reshaping:
 
-Reshaping by pivoting DataFrame objects
----------------------------------------
+
+pandas provides methods for manipulating a :class:`Series` and :class:`DataFrame` to alter the
+representation of the data for further data processing or data summarization.
+
+* :func:`~pandas.pivot` and :func:`~pandas.pivot_table`: Group unique values within one or more discrete categories.
+* :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack`: Pivot a column or row level to the opposite axis respectively.
+* :func:`~pandas.melt` and :func:`~pandas.wide_to_long`: Unpivot a wide :class:`DataFrame` to a long format.
+* :func:`~pandas.get_dummies` and :func:`~pandas.from_dummies`: Conversions with indicator variables.
+* :meth:`~Series.explode`: Convert a column of list-like values to individual rows.
+* :func:`~pandas.crosstab`: Calculate a cross-tabulation of multiple 1 dimensional factor arrays.
+* :func:`~pandas.cut`: Transform continuous variables to discrete, categorical values
+* :func:`~pandas.factorize`: Encode 1 dimensional variables into integer labels.
+
+
+:func:`~pandas.pivot` and :func:`~pandas.pivot_table`
+-----------------------------------------------------
 
 .. image:: ../_static/reshaping_pivot.png
 
-Data is often stored in so-called "stacked" or "record" format. In a "record" or "wide" format typically there is one row for each subject. In the "stacked" or "long" format there are multiple rows for each subject where applicable.
+:func:`~pandas.pivot`
+~~~~~~~~~~~~~~~~~~~~~
+
+Data is often stored in so-called "stacked" or "record" format. In a "record" or "wide" format,
+typically there is one row for each subject. In the "stacked" or "long" format there are
+multiple rows for each subject where applicable.
 
 .. ipython:: python
 
    data = {
       "value": range(12),
-      "variable": ["A"] * 3 + ["B"] * 3 + ["C"] * 3 + ["D"] * 3
+      "variable": ["A"] * 3 + ["B"] * 3 + ["C"] * 3 + ["D"] * 3,
       "date": pd.to_datetime(["2020-01-03", "2020-01-04", "2020-01-05"] * 4)
    }
    df = pd.DataFrame(data)
@@ -61,10 +80,95 @@ are homogeneously-typed.
    :func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``.
    If you data contains duplicates, use :func:`~pandas.pivot_table`.
 
+
+.. _reshaping.pivot:
+
+:func:`~pandas.pivot_table`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While :meth:`~DataFrame.pivot` provides general purpose pivoting with various
+data types, pandas also provides :func:`~pandas.pivot_table` or :meth:`~DataFrame.pivot_table`
+for pivoting with aggregation of numeric data.
+
+The function :func:`~pandas.pivot_table` can be used to create spreadsheet-style
+pivot tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced
+strategies.
+
+.. ipython:: python
+
+   import datetime
+
+   df = pd.DataFrame(
+       {
+           "A": ["one", "one", "two", "three"] * 6,
+           "B": ["A", "B", "C"] * 8,
+           "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
+           "D": np.random.randn(24),
+           "E": np.random.randn(24),
+           "F": [datetime.datetime(2013, i, 1) for i in range(1, 13)]
+           + [datetime.datetime(2013, i, 15) for i in range(1, 13)],
+       }
+   )
+   df
+   pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
+   pd.pivot_table(
+       df, values=["D", "E"],
+       index=["B"],
+       columns=["A", "C"],
+       aggfunc="sum",
+   )
+   pd.pivot_table(
+       df, values="E",
+       index=["B", "C"],
+       columns=["A"],
+       aggfunc=["sum", "mean"],
+   )
+
+The result is a :class:`DataFrame` potentially having a :class:`MultiIndex` on the
+index or column. If the ``values`` column name is not given, the pivot table
+will include all of the data in an additional level of hierarchy in the columns:
+
+.. ipython:: python
+
+   pd.pivot_table(df[["A", "B", "C", "D", "E"]], index=["A", "B"], columns=["C"])
+
+Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
+
+.. ipython:: python
+
+   pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
+
+.. _reshaping.pivot.margins:
+
+Adding margins
+^^^^^^^^^^^^^^
+
+Passing ``margins=True`` to :meth:`~DataFrame.pivot_table` will add a row and column with an
+``All`` label with partial group aggregates across the categories on the
+rows and columns:
+
+.. ipython:: python
+
+   table = df.pivot_table(
+       index=["A", "B"],
+       columns="C",
+       values=["D", "E"],
+       margins=True,
+       aggfunc="std"
+   )
+   table
+
+Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame
+as having a multi-level index:
+
+.. ipython:: python
+
+    table.stack(future_stack=True)
+
 .. _reshaping.stacking:
 
-Reshaping by stacking and unstacking
-------------------------------------
+:meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack`
+-------------------------------------------------------
 
 .. image:: ../_static/reshaping_stack.png
 
@@ -211,8 +315,8 @@ The missing value can be filled with a specific value with the ``fill_value`` ar
 
 .. _reshaping.melt:
 
-Reshaping by melt
------------------
+:func:`~pandas.melt` and :func:`~pandas.wide_to_long`
+-----------------------------------------------------
 
 .. image:: ../_static/reshaping_melt.png
 
@@ -275,210 +379,10 @@ column matching.
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
-
-Pivot tables
-------------
-
-.. _reshaping.pivot:
-
-While :meth:`~DataFrame.pivot` provides general purpose pivoting with various
-data types, pandas also provides :func:`~pandas.pivot_table` or :meth:`~DataFrame.pivot_table`
-for pivoting with aggregation of numeric data.
-
-The function :func:`~pandas.pivot_table` can be used to create spreadsheet-style
-pivot tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced
-strategies.
-
-.. ipython:: python
-
-   import datetime
-
-   df = pd.DataFrame(
-       {
-           "A": ["one", "one", "two", "three"] * 6,
-           "B": ["A", "B", "C"] * 8,
-           "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
-           "D": np.random.randn(24),
-           "E": np.random.randn(24),
-           "F": [datetime.datetime(2013, i, 1) for i in range(1, 13)]
-           + [datetime.datetime(2013, i, 15) for i in range(1, 13)],
-       }
-   )
-   df
-   pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
-   pd.pivot_table(
-       df, values=["D", "E"],
-       index=["B"],
-       columns=["A", "C"],
-       aggfunc="sum",
-   )
-   pd.pivot_table(
-       df, values="E",
-       index=["B", "C"],
-       columns=["A"],
-       aggfunc=["sum", "mean"],
-   )
-
-The result is a :class:`DataFrame` potentially having a :class:`MultiIndex` on the
-index or column. If the ``values`` column name is not given, the pivot table
-will include all of the data in an additional level of hierarchy in the columns:
-
-.. ipython:: python
-
-   pd.pivot_table(df[["A", "B", "C", "D", "E"]], index=["A", "B"], columns=["C"])
-
-Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For detail of :class:`Grouper`, see :ref:`Grouping with a Grouper specification <groupby.specify>`.
-
-.. ipython:: python
-
-   pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
-
-.. _reshaping.pivot.margins:
-
-Adding margins
-~~~~~~~~~~~~~~
-
-Passing ``margins=True`` to :meth:`~DataFrame.pivot_table` will add a row and column with an
-``All`` label with partial group aggregates across the categories on the
-rows and columns:
-
-.. ipython:: python
-
-   table = df.pivot_table(
-       index=["A", "B"],
-       columns="C",
-       values=["D", "E"],
-       margins=True,
-       aggfunc="std"
-   )
-   table
-
-Additionally, you can call :meth:`DataFrame.stack` to display a pivoted DataFrame
-as having a multi-level index:
-
-.. ipython:: python
-
-    table.stack(future_stack=True)
-
-.. _reshaping.crosstabulations:
-
-Cross tabulations
------------------
-
-Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more)
-factors. By default :func:`~pandas.crosstab` computes a frequency table of the factors
-unless an array of values and an aggregation function are passed.
-
-Any :class:`Series` passed will have their name attributes used unless row or column
-names for the cross-tabulation are specified
-
-.. ipython:: python
-
-    a = np.array(["foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
-    b = np.array(["one", "one", "two", "one", "two", "one"], dtype=object)
-    c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny"], dtype=object)
-    pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
-
-
-If :func:`~pandas.crosstab` receives only two :class:`Series`, it will provide a frequency table.
-
-.. ipython:: python
-
-    df = pd.DataFrame(
-        {"A": [1, 2, 2, 2, 2], "B": [3, 3, 4, 4, 4], "C": [1, 1, np.nan, 1, 1]}
-    )
-    df
-
-    pd.crosstab(df["A"], df["B"])
-
-:func:`~pandas.crosstab` can also summarize to :class:`Categorical` data.
-
-.. ipython:: python
-
-    foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
-    bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
-    pd.crosstab(foo, bar)
-
-For :class:`Categorical` data, to include **all** of data categories even if the actual data does
-not contain any instances of a particular category, use ``dropna=False``.
-
-.. ipython:: python
-
-    pd.crosstab(foo, bar, dropna=False)
-
-Normalization
-~~~~~~~~~~~~~
-
-Frequency tables can also be normalized to show percentages rather than counts
-using the ``normalize`` argument:
-
-.. ipython:: python
-
-   pd.crosstab(df["A"], df["B"], normalize=True)
-
-``normalize`` can also normalize values within each row or within each column:
-
-.. ipython:: python
-
-   pd.crosstab(df["A"], df["B"], normalize="columns")
-
-:func:`~pandas.crosstab` can also accept a third :class:`Series` and an aggregation function
-(``aggfunc``) that will be applied to the values of the third :class:`Series` within
-each group defined by the first two :class:`Series`:
-
-.. ipython:: python
-
-   pd.crosstab(df["A"], df["B"], values=df["C"], aggfunc="sum")
-
-Adding margins
-~~~~~~~~~~~~~~
-
-``margins=True`` will add a row and column with an ``All`` label with partial group aggregates
-across the categories on the rows and columns:
-
-.. ipython:: python
-
-   pd.crosstab(
-       df["A"], df["B"], values=df["C"], aggfunc="sum", normalize=True, margins=True
-   )
-
-.. _reshaping.tile:
-.. _reshaping.tile.cut:
-
-Tiling
-------
-
-The :func:`~pandas.cut` function computes groupings for the values of the input
-array and is often used to transform continuous variables to discrete or
-categorical variables:
-
-
-An integer ``bins`` will form equal-width bins.
-
-.. ipython:: python
-
-   ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
-
-   pd.cut(ages, bins=3)
-
-A list of ordered bin edges will assign an interval for each variable.
-
-.. ipython:: python
-
-   pd.cut(ages, bins=[0, 18, 35, 70])
-
-If the ``bins`` keyword is an :class:`IntervalIndex`, then these will be
-used to bin the passed data.
-
-.. ipython:: python
-
-   pd.cut(ages, bins=pd.IntervalIndex.from_breaks([0, 40, 70]))
-
-
 .. _reshaping.dummies:
 
-Computing indicator / dummy variables
--------------------------------------
+:func:`~pandas.get_dummies` and :func:`~pandas.from_dummies`
+------------------------------------------------------------
 
 To convert categorical variables of a :class:`Series` into a "dummy" or "indicator",
 :func:`~pandas.get_dummies` creates a new :class:`DataFrame` with columns of the unique
@@ -597,42 +501,10 @@ the last category is the default category. The default category can be modified 
 
    pd.from_dummies(df, sep="_", default_category="b")
 
-.. _reshaping.factorize:
-
-Factorizing values
-------------------
-
-:func:`~pandas.factorize` encodes 1 dimensional values into integer labels. Missing values
-are encoded as ``-1``.
-
-.. ipython:: python
-
-   x = pd.Series(["A", "A", np.nan, "B", 3.14, np.inf])
-   x
-   labels, uniques = pd.factorize(x)
-   labels
-   uniques
-
-:class:`Categorical` will similarly encode 1 dimensional values for further
-categorical operations
-
-.. ipython:: python
-
-   pd.Categorical(x)
-
 .. _reshaping.explode:
 
-Exploding a list-like column
-----------------------------
-
-Sometimes the values in a column are list-like.
-
-.. ipython:: python
-
-   keys = ["panda1", "panda2", "panda3"]
-   values = [["eats", "shoots"], ["shoots", "leaves"], ["eats", "leaves"]]
-   df = pd.DataFrame({"keys": keys, "values": values})
-   df
+:meth:`~Series.explode`
+-----------------------
 
 For a :class:`DataFrame` column with nested, list-like values, :meth:`~Series.explode` will transform
 each list-like value to a separate row. The resulting :class:`Index` will be duplicated corresponding
@@ -640,6 +512,10 @@ to the index label from the original row:
 
 .. ipython:: python
 
+   keys = ["panda1", "panda2", "panda3"]
+   values = [["eats", "shoots"], ["shoots", "leaves"], ["eats", "leaves"]]
+   df = pd.DataFrame({"keys": keys, "values": values})
+   df
    df["values"].explode()
 
 :class:`DataFrame.explode` can also explode the column in the :class:`DataFrame`.
@@ -662,3 +538,140 @@ A comma-separated string value can be split into individual values in a list and
 
     df = pd.DataFrame([{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}])
     df.assign(var1=df.var1.str.split(",")).explode("var1")
+
+.. _reshaping.crosstabulations:
+
+:func:`~pandas.crosstab`
+------------------------
+
+Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more)
+factors. By default :func:`~pandas.crosstab` computes a frequency table of the factors
+unless an array of values and an aggregation function are passed.
+
+Any :class:`Series` passed will have their name attributes used unless row or column
+names for the cross-tabulation are specified
+
+.. ipython:: python
+
+    a = np.array(["foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
+    b = np.array(["one", "one", "two", "one", "two", "one"], dtype=object)
+    c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny"], dtype=object)
+    pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
+
+
+If :func:`~pandas.crosstab` receives only two :class:`Series`, it will provide a frequency table.
+
+.. ipython:: python
+
+    df = pd.DataFrame(
+        {"A": [1, 2, 2, 2, 2], "B": [3, 3, 4, 4, 4], "C": [1, 1, np.nan, 1, 1]}
+    )
+    df
+
+    pd.crosstab(df["A"], df["B"])
+
+:func:`~pandas.crosstab` can also summarize to :class:`Categorical` data.
+
+.. ipython:: python
+
+    foo = pd.Categorical(["a", "b"], categories=["a", "b", "c"])
+    bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
+    pd.crosstab(foo, bar)
+
+For :class:`Categorical` data, to include **all** of data categories even if the actual data does
+not contain any instances of a particular category, use ``dropna=False``.
+
+.. ipython:: python
+
+    pd.crosstab(foo, bar, dropna=False)
+
+Normalization
+~~~~~~~~~~~~~
+
+Frequency tables can also be normalized to show percentages rather than counts
+using the ``normalize`` argument:
+
+.. ipython:: python
+
+   pd.crosstab(df["A"], df["B"], normalize=True)
+
+``normalize`` can also normalize values within each row or within each column:
+
+.. ipython:: python
+
+   pd.crosstab(df["A"], df["B"], normalize="columns")
+
+:func:`~pandas.crosstab` can also accept a third :class:`Series` and an aggregation function
+(``aggfunc``) that will be applied to the values of the third :class:`Series` within
+each group defined by the first two :class:`Series`:
+
+.. ipython:: python
+
+   pd.crosstab(df["A"], df["B"], values=df["C"], aggfunc="sum")
+
+Adding margins
+~~~~~~~~~~~~~~
+
+``margins=True`` will add a row and column with an ``All`` label with partial group aggregates
+across the categories on the rows and columns:
+
+.. ipython:: python
+
+   pd.crosstab(
+       df["A"], df["B"], values=df["C"], aggfunc="sum", normalize=True, margins=True
+   )
+
+.. _reshaping.tile:
+.. _reshaping.tile.cut:
+
+:func:`~pandas.cut`
+-------------------
+
+The :func:`~pandas.cut` function computes groupings for the values of the input
+array and is often used to transform continuous variables to discrete or
+categorical variables:
+
+
+An integer ``bins`` will form equal-width bins.
+
+.. ipython:: python
+
+   ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
+
+   pd.cut(ages, bins=3)
+
+A list of ordered bin edges will assign an interval for each variable.
+
+.. ipython:: python
+
+   pd.cut(ages, bins=[0, 18, 35, 70])
+
+If the ``bins`` keyword is an :class:`IntervalIndex`, then these will be
+used to bin the passed data.
+
+.. ipython:: python
+
+   pd.cut(ages, bins=pd.IntervalIndex.from_breaks([0, 40, 70]))
+
+.. _reshaping.factorize:
+
+:func:`~pandas.factorize`
+-------------------------
+
+:func:`~pandas.factorize` encodes 1 dimensional values into integer labels. Missing values
+are encoded as ``-1``.
+
+.. ipython:: python
+
+   x = pd.Series(["A", "A", np.nan, "B", 3.14, np.inf])
+   x
+   labels, uniques = pd.factorize(x)
+   labels
+   uniques
+
+:class:`Categorical` will similarly encode 1 dimensional values for further
+categorical operations
+
+.. ipython:: python
+
+   pd.Categorical(x)
