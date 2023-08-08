@@ -2915,7 +2915,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  User 2
         2  User 3
 
-        >>> df.to_sql('users', con=engine)
+        >>> df.to_sql(name='users', con=engine)
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
@@ -2926,7 +2926,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-        ...     df1.to_sql('users', con=connection, if_exists='append')
+        ...     df1.to_sql(name='users', con=connection, if_exists='append')
         2
 
         This is allowed to support operations that require that the same
