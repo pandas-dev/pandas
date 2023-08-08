@@ -6662,10 +6662,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ** Copy-on-Write is set to true: **
 
         >>> with pd.option_context("mode.copy_on_write", True):
-        >>>     s = pd.Series([1, 2], index=["a", "b"])
-        >>>     copy = s.copy(deep=False)
-        >>>     s.iloc[0] = 100
-        >>>     s
+        ...     s = pd.Series([1, 2], index=["a", "b"])
+        ...     copy = s.copy(deep=False)
+        ...     s.iloc[0] = 100
+        ...     s
         a    100
         b      2
         dtype: int64
