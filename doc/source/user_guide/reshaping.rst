@@ -17,28 +17,14 @@ Data is often stored in so-called "stacked" or "record" format. In a "record" or
 
 .. ipython:: python
 
-   import pandas._testing as tm
+   data = {
+      "value": range(12),
+      "variable": ["A"] * 3 + ["B"] * 3 + ["C"] * 3 + ["D"] * 3
+      "date": pd.to_datetime(["2020-01-03", "2020-01-04", "2020-01-05"] * 4)
+   }
+   df = pd.DataFrame(data)
 
-   def unpivot(frame):
-       N, K = frame.shape
-       data = {
-           "value": frame.to_numpy().ravel("F"),
-           "variable": np.asarray(frame.columns).repeat(N),
-           "date": np.tile(np.asarray(frame.index), K),
-       }
-       return pd.DataFrame(data, columns=["date", "variable", "value"])
-
-   df = unpivot(tm.makeTimeDataFrame(3))
-   df
-
-To select out everything for variable ``A`` we could do:
-
-.. ipython:: python
-
-   filtered = df[df["variable"] == "A"]
-   filtered
-
-But suppose we wish to do time series operations with the variables. A better
+To perform time series operations with each unique variable, a better
 representation would be where the ``columns`` are the unique variables and an
 ``index`` of dates identifies individual observations. To reshape the data into
 this form, we use the :meth:`DataFrame.pivot` method (also implemented as a
@@ -71,10 +57,9 @@ Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
 
 .. note::
-   :func:`~pandas.pivot` will error with a ``ValueError: Index contains duplicate
-   entries, cannot reshape`` if the index/column pair is not unique. In this
-   case, consider using :func:`~pandas.pivot_table` which is a generalization
-   of pivot that can handle duplicate values for one index/column pair.
+
+   :func:`~pandas.pivot` can only handle unique rows specified by ``index`` and ``columns``.
+   If you data contains duplicates, use :func:`~pandas.pivot_table`.
 
 .. _reshaping.stacking:
 
@@ -87,7 +72,7 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
 :meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods available on
 :class:`Series` and :class:`DataFrame`. These methods are designed to work together with
 :class:`MultiIndex` objects (see the section on :ref:`hierarchical indexing
-<advanced.hierarchical>`). Here are essentially what these methods do:
+<advanced.hierarchical>`).
 
 * :meth:`~DataFrame.stack`: "pivot" a level of the (possibly hierarchical) column labels,
   returning a :class:`DataFrame` with an index with a new inner-most level of row
@@ -98,20 +83,13 @@ Closely related to the :meth:`~DataFrame.pivot` method are the related
 
 .. image:: ../_static/reshaping_unstack.png
 
-The clearest way to explain is by example. Let's take a prior example data set
-from the hierarchical indexing section:
-
 .. ipython:: python
 
-   tuples = list(
-       zip(
-           *[
-               ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
-               ["one", "two", "one", "two", "one", "two", "one", "two"],
-           ]
-       )
-   )
-   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second"])
+   tuples = [
+      ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
+      ["one", "two", "one", "two", "one", "two", "one", "two"],
+   ]
+   index = pd.MultiIndex.from_arrays(tuples, names=["first", "second"])
    df = pd.DataFrame(np.random.randn(8, 2), index=index, columns=["A", "B"])
    df2 = df[:4]
    df2
@@ -119,7 +97,7 @@ from the hierarchical indexing section:
 The :meth:`~DataFrame.stack` function "compresses" a level in the :class:`DataFrame` columns to
 produce either:
 
-* A :class:`Series`, in the case of a simple column Index.
+* A :class:`Series`, in the case of a :class:`Index` in the columns.
 * A :class:`DataFrame`, in the case of a :class:`MultiIndex` in the columns.
 
 If the columns have a :class:`MultiIndex`, you can choose which level to stack. The
@@ -165,9 +143,6 @@ will result in a **sorted** copy of the original :class:`DataFrame` or :class:`S
    df
    all(df.unstack().stack(future_stack=True) == df.sort_index())
 
-The above code will raise a ``TypeError`` if the call to :meth:`~DataFrame.sort_index` is
-removed.
-
 .. _reshaping.stack_multiple:
 
 Multiple levels
@@ -193,8 +168,8 @@ processed individually.
 
     df.stack(level=["animal", "hair_length"], future_stack=True)
 
-The list of levels can contain either level names or level numbers (but
-not a mixture of the two).
+The list of levels can contain either level names or level numbers but
+not a mixture of the two.
 
 .. ipython:: python
 
@@ -205,10 +180,9 @@ not a mixture of the two).
 Missing data
 ~~~~~~~~~~~~
 
-These functions are intelligent about handling missing data and do not expect
-each subgroup within the hierarchical index to have the same set of labels.
-They also can handle the index being unsorted (but you can make it sorted by
-calling :meth:`~DataFrame.sort_index`, of course). Here is a more complex example:
+Unstacking can result in missing values if subgroups do not have the same
+set of labels. By default, missing values will be replaced with the default
+fill value for that data type.
 
 .. ipython:: python
 
@@ -225,46 +199,15 @@ calling :meth:`~DataFrame.sort_index`, of course). Here is a more complex exampl
        [("bar", "baz", "foo", "qux"), ("one", "two")], names=["first", "second"]
    )
    df = pd.DataFrame(np.random.randn(8, 4), index=index, columns=columns)
-   df2 = df.iloc[[0, 1, 2, 4, 5, 7]]
-   df2
-
-As mentioned above, :meth:`~DataFrame.stack` can be called with a ``level`` argument to select
-which level in the columns to stack:
-
-.. ipython:: python
-
-   df2.stack("exp", future_stack=True)
-   df2.stack("animal", future_stack=True)
-
-Unstacking can result in missing values if subgroups do not have the same
-set of labels.  By default, missing values will be replaced with the default
-fill value for that data type, ``NaN`` for float, ``NaT`` for datetimelike,
-etc.  For integer types, by default data will converted to float and missing
-values will be set to ``NaN``.
-
-.. ipython:: python
-
    df3 = df.iloc[[0, 1, 4, 7], [1, 2]]
    df3
    df3.unstack()
 
-Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
-the value of missing data.
+The missing value can be filled with a specific value with the ``fill_value`` argument.
 
 .. ipython:: python
 
    df3.unstack(fill_value=-1e9)
-
-With a MultiIndex
-~~~~~~~~~~~~~~~~~
-
-Unstacking when the columns are a :class:`MultiIndex` is also careful about doing
-the right thing:
-
-.. ipython:: python
-
-   df[:3].unstack(0)
-   df2.unstack(1)
 
 .. _reshaping.melt:
 
