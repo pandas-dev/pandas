@@ -939,24 +939,6 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     def write_to_buffer(self) -> None:
         ...
 
-    @property
-    @abstractmethod
-    def buffer(self) -> Any:
-        ...
-
-    def close(self) -> None:
-        if self.closed:
-            # already closed
-            return
-        if self.getvalue():
-            # write to buffer
-            self.seek(0)
-            with self.buffer:
-                self.write_to_buffer()
-        else:
-            self.buffer.close()
-        super().close()
-
 
 class _BytesTarFile(_BufferedWriter):
     def __init__(
@@ -973,16 +955,25 @@ class _BytesTarFile(_BufferedWriter):
         # error: Argument "fileobj" to "open" of "TarFile" has incompatible
         # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
         # "Optional[IO[bytes]]"
-        self._buffer = tarfile.TarFile.open(
+        self.buffer = tarfile.TarFile.open(
             name=name,
             mode=self.extend_mode(mode),
             fileobj=fileobj,  # type: ignore[arg-type]
             **kwargs,
         )
 
-    @property
-    def buffer(self) -> tarfile.TarFile:
-        return self._buffer
+    def close(self) -> None:
+        if self.closed:
+            # already closed
+            return
+        if self.getbuffer().nbytes:
+            # write to buffer
+            self.seek(0)
+            with self.buffer:
+                self.write_to_buffer()
+        else:
+            self.buffer.close()
+        super().close()
 
     def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
@@ -1033,13 +1024,22 @@ class _BytesZipFile(_BufferedWriter):
         # error: No overload variant of "ZipFile" matches argument types "str |
         # PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]", "str", "dict[str,
         # Any]"
-        self._buffer = zipfile.ZipFile(  # type: ignore[call-overload]
+        self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
             file, mode, **kwargs
         )
 
-    @property
-    def buffer(self) -> zipfile.ZipFile:
-        return self._buffer
+    def close(self) -> None:
+        if self.closed:
+            # already closed
+            return
+        if self.getbuffer().nbytes:
+            # write to buffer
+            self.seek(0)
+            with self.buffer:
+                self.write_to_buffer()
+        else:
+            self.buffer.close()
+        super().close()
 
     def infer_filename(self) -> str | None:
         """
