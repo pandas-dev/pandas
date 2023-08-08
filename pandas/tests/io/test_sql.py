@@ -811,7 +811,7 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     conn = request.getfixturevalue(conn)
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
     result_count = expected.to_sql(
-        "test_frame", con=conn, index=False, method=psql_insert_copy
+        name="test_frame", con=conn, index=False, method=psql_insert_copy
     )
     # GH 46891
     if expected_count is None:
@@ -860,11 +860,13 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
             conn.execute(create_sql)
 
     expected = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
-    expected.to_sql("test_insert_conflict", con=conn, if_exists="append", index=False)
+    expected.to_sql(
+        name="test_insert_conflict", con=conn, if_exists="append", index=False
+    )
 
     df_insert = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
     inserted = df_insert.to_sql(
-        "test_insert_conflict",
+        name="test_insert_conflict",
         con=conn,
         index=False,
         if_exists="append",
@@ -914,11 +916,11 @@ def test_insertion_method_on_conflict_update(conn, request):
             conn.execute(create_sql)
 
     df = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
-    df.to_sql("test_insert_conflict", con=conn, if_exists="append", index=False)
+    df.to_sql(name="test_insert_conflict", con=conn, if_exists="append", index=False)
 
     expected = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
     inserted = expected.to_sql(
-        "test_insert_conflict",
+        name="test_insert_conflict",
         con=conn,
         index=False,
         if_exists="append",

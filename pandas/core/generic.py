@@ -2933,7 +2933,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
-        >>> df2.to_sql('users', con=engine, if_exists='append')
+        >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
         ...    conn.execute(text("SELECT * FROM users")).fetchall()
@@ -2943,7 +2943,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Overwrite the table with just ``df2``.
 
-        >>> df2.to_sql('users', con=engine, if_exists='replace',
+        >>> df2.to_sql(name='users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
@@ -2960,7 +2960,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
         0
 
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
@@ -2977,7 +2977,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
         2
 
         Specify the dtype (especially useful for integers with missing values).
@@ -2993,7 +2993,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  2.0
 
         >>> from sqlalchemy.types import Integer
-        >>> df.to_sql('integers', con=engine, index=False,
+        >>> df.to_sql(name='integers', con=engine, index=False,
         ...           dtype={"A": Integer()})
         3
 

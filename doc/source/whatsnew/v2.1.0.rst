@@ -220,7 +220,6 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`51722`)
-- Updated ``con`` parameter for :meth:`DataFrame.to_sql` to be a keyword argument. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -562,6 +561,7 @@ Other Deprecations
 - Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: "s", "ms", "us", "ns" resolutions (:issue:`53058`)
 - Deprecated values "pad", "ffill", "bfill", "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and skipna=True or any-NAs and skipna=False returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
+- Updated ``con`` parameter for :meth:`DataFrame.to_sql` to be a keyword argument. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
