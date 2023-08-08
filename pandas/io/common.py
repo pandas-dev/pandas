@@ -943,7 +943,7 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
         if self.closed:
             # already closed
             return
-        if self.getvalue():
+        if self.getbuffer().nbytes:
             # write to buffer
             self.seek(0)
             # error: "_BufferedWriter" has no attribute "buffer"
@@ -978,8 +978,8 @@ class _BytesTarFile(_BufferedWriter):
                 **kwargs,
             )
         except Exception:
-            # Don't let close try to close non-existent self.buffer
-            BytesIO.close()
+            # Give super().close something to close on destruction
+            self.buffer = BytesIO()
             raise
 
     def extend_mode(self, mode: str) -> str:
@@ -1036,8 +1036,8 @@ class _BytesZipFile(_BufferedWriter):
                 file, mode, **kwargs
             )
         except Exception:
-            # Don't let close try to close non-existent self.buffer
-            BytesIO.close()
+            # Give super().close something to close on destruction
+            self.buffer = BytesIO()
             raise
 
     def infer_filename(self) -> str | None:
