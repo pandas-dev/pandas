@@ -223,8 +223,6 @@ variables*, are "unpivoted" to the row axis, leaving just two non-identifier
 columns, "variable" and "value". The names of those columns can be customized
 by supplying the ``var_name`` and ``value_name`` parameters.
 
-For instance,
-
 .. ipython:: python
 
    cheese = pd.DataFrame(
@@ -239,7 +237,9 @@ For instance,
    cheese.melt(id_vars=["first", "last"])
    cheese.melt(id_vars=["first", "last"], var_name="quantity")
 
-When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored. The original index values can be kept around by setting the ``ignore_index`` parameter to ``False`` (default is ``True``). This will however duplicate them.
+When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored.
+The original index values can be kept by setting the ``ignore_index=False`` parameter to ``False`` (default is ``True``).
+``ignore_index=False`` will however duplicate index values.
 
 .. ipython:: python
 
@@ -257,9 +257,8 @@ When transforming a DataFrame using :func:`~pandas.melt`, the index will be igno
    cheese.melt(id_vars=["first", "last"])
    cheese.melt(id_vars=["first", "last"], ignore_index=False)
 
-Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
-convenience function. It is less flexible than :func:`~pandas.melt`, but more
-user-friendly.
+:func:`~pandas.wide_to_long` is similar to :func:`~pandas.melt` with more customization for
+column matching.
 
 .. ipython:: python
 
@@ -276,27 +275,6 @@ user-friendly.
   dft
   pd.wide_to_long(dft, ["A", "B"], i="id", j="year")
 
-.. _reshaping.combine_with_groupby:
-
-Combining with stats and GroupBy
---------------------------------
-
-It should be no shock that combining :meth:`~DataFrame.pivot` / :meth:`~DataFrame.stack` / :meth:`~DataFrame.unstack` with
-GroupBy and the basic Series and DataFrame statistical functions can produce
-some very expressive and fast data manipulations.
-
-.. ipython:: python
-
-   df
-   df.stack(future_stack=True).mean(1).unstack()
-
-   # same result, another way
-   df.T.groupby(level=1).mean()
-
-   df.stack(future_stack=True).groupby(level=1).mean()
-
-   df.mean().unstack(0)
-
 
 Pivot tables
 ------------
@@ -304,24 +282,12 @@ Pivot tables
 .. _reshaping.pivot:
 
 While :meth:`~DataFrame.pivot` provides general purpose pivoting with various
-data types (strings, numerics, etc.), pandas also provides :func:`~pandas.pivot_table`
+data types, pandas also provides :func:`~pandas.pivot_table` or :meth:`~DataFrame.pivot_table`
 for pivoting with aggregation of numeric data.
 
 The function :func:`~pandas.pivot_table` can be used to create spreadsheet-style
 pivot tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced
 strategies.
-
-It takes a number of arguments:
-
-* ``data``: a DataFrame object.
-* ``values``: a column or a list of columns to aggregate.
-* ``index``: a column, Grouper, array which has the same length as data, or list of them.
-  Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
-* ``columns``: a column, Grouper, array which has the same length as data, or list of them.
-  Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
-* ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
-
-Consider a data set like this:
 
 .. ipython:: python
 
@@ -339,22 +305,22 @@ Consider a data set like this:
        }
    )
    df
-
-We can produce pivot tables from this data very easily:
-
-.. ipython:: python
-
    pd.pivot_table(df, values="D", index=["A", "B"], columns=["C"])
-   pd.pivot_table(df, values="D", index=["B"], columns=["A", "C"], aggfunc="sum")
    pd.pivot_table(
        df, values=["D", "E"],
        index=["B"],
        columns=["A", "C"],
        aggfunc="sum",
    )
+   pd.pivot_table(
+       df, values="E",
+       index=["B", "C"],
+       columns=["A"],
+       aggfunc=["sum", "mean"],
+   )
 
-The result object is a :class:`DataFrame` having potentially hierarchical indexes on the
-rows and columns. If the ``values`` column name is not given, the pivot table
+The result is a :class:`DataFrame` potentially having a :class:`MultiIndex` on the
+index or column. If the ``values`` column name is not given, the pivot table
 will include all of the data in an additional level of hierarchy in the columns:
 
 .. ipython:: python
@@ -367,24 +333,13 @@ Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For d
 
    pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
 
-You can render a nice output of the table omitting the missing values by
-calling :meth:`~DataFrame.to_string` if you wish:
-
-.. ipython:: python
-
-   table = pd.pivot_table(df, index=["A", "B"], columns=["C"], values=["D", "E"])
-   print(table.to_string(na_rep=""))
-
-Note that :meth:`~DataFrame.pivot_table` is also available as an instance method on DataFrame,
- i.e. :meth:`DataFrame.pivot_table`.
-
 .. _reshaping.pivot.margins:
 
 Adding margins
 ~~~~~~~~~~~~~~
 
-If you pass ``margins=True`` to :meth:`~DataFrame.pivot_table`, special ``All`` columns and
-rows will be added with partial group aggregates across the categories on the
+Passing ``margins=True`` to :meth:`~DataFrame.pivot_table` will add a row and column with an
+``All`` label with partial group aggregates across the categories on the
 rows and columns:
 
 .. ipython:: python
@@ -414,37 +369,18 @@ Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more)
 factors. By default :func:`~pandas.crosstab` computes a frequency table of the factors
 unless an array of values and an aggregation function are passed.
 
-It takes a number of arguments
-
-* ``index``: array-like, values to group by in the rows.
-* ``columns``: array-like, values to group by in the columns.
-* ``values``: array-like, optional, array of values to aggregate according to
-  the factors.
-* ``aggfunc``: function, optional, If no values array is passed, computes a
-  frequency table.
-* ``rownames``: sequence, default ``None``, must match number of row arrays passed.
-* ``colnames``: sequence, default ``None``, if passed, must match number of column
-  arrays passed.
-* ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
-* ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
-  Normalize by dividing all values by the sum of values.
-
-
 Any :class:`Series` passed will have their name attributes used unless row or column
 names for the cross-tabulation are specified
 
-For example:
-
 .. ipython:: python
 
-    foo, bar, dull, shiny, one, two = "foo", "bar", "dull", "shiny", "one", "two"
-    a = np.array([foo, foo, bar, bar, foo, foo], dtype=object)
-    b = np.array([one, one, two, one, two, one], dtype=object)
-    c = np.array([dull, dull, shiny, dull, dull, shiny], dtype=object)
+    a = np.array(["foo", "foo", "bar", "bar", "foo", "foo"], dtype=object)
+    b = np.array(["one", "one", "two", "one", "two", "one"], dtype=object)
+    c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny"], dtype=object)
     pd.crosstab(a, [b, c], rownames=["a"], colnames=["b", "c"])
 
 
-If :func:`~pandas.crosstab` receives only two Series, it will provide a frequency table.
+If :func:`~pandas.crosstab` receives only two :class:`Series`, it will provide a frequency table.
 
 .. ipython:: python
 
@@ -455,8 +391,7 @@ If :func:`~pandas.crosstab` receives only two Series, it will provide a frequenc
 
     pd.crosstab(df["A"], df["B"])
 
-:func:`~pandas.crosstab` can also be implemented
-to :class:`Categorical` data.
+:func:`~pandas.crosstab` can also summarize to :class:`Categorical` data.
 
 .. ipython:: python
 
@@ -464,10 +399,8 @@ to :class:`Categorical` data.
     bar = pd.Categorical(["d", "e"], categories=["d", "e", "f"])
     pd.crosstab(foo, bar)
 
-If you want to include **all** of data categories even if the actual data does
-not contain any instances of a particular category, you should set ``dropna=False``.
-
-For example:
+For :class:`Categorical` data, to include **all** of data categories even if the actual data does
+not contain any instances of a particular category, use ``dropna=False``.
 
 .. ipython:: python
 
@@ -489,7 +422,7 @@ using the ``normalize`` argument:
 
    pd.crosstab(df["A"], df["B"], normalize="columns")
 
-:func:`~pandas.crosstab` can also be passed a third :class:`Series` and an aggregation function
+:func:`~pandas.crosstab` can also accept a third :class:`Series` and an aggregation function
 (``aggfunc``) that will be applied to the values of the third :class:`Series` within
 each group defined by the first two :class:`Series`:
 
@@ -500,7 +433,8 @@ each group defined by the first two :class:`Series`:
 Adding margins
 ~~~~~~~~~~~~~~
 
-Finally, one can also add margins or normalize this output.
+``margins=True`` will add a row and column with an ``All`` label with partial group aggregates
+across the categories on the rows and columns:
 
 .. ipython:: python
 
@@ -518,24 +452,27 @@ The :func:`~pandas.cut` function computes groupings for the values of the input
 array and is often used to transform continuous variables to discrete or
 categorical variables:
 
+
+An integer ``bins`` will form equal-width bins.
+
 .. ipython:: python
 
    ages = np.array([10, 15, 13, 12, 23, 25, 28, 59, 60])
 
    pd.cut(ages, bins=3)
 
-If the ``bins`` keyword is an integer, then equal-width bins are formed.
-Alternatively we can specify custom bin-edges:
+A list of ordered bin edges will assign an interval for each variable.
 
 .. ipython:: python
 
-   c = pd.cut(ages, bins=[0, 18, 35, 70])
-   c
+   pd.cut(ages, bins=[0, 18, 35, 70])
 
 If the ``bins`` keyword is an :class:`IntervalIndex`, then these will be
-used to bin the passed data.::
+used to bin the passed data.
 
-   pd.cut([25, 20, 50], bins=c.categories)
+.. ipython:: python
+
+   pd.cut(ages, bins=pd.IntervalIndex.from_breaks([0, 40, 70]))
 
 
 .. _reshaping.dummies:
@@ -543,18 +480,18 @@ used to bin the passed data.::
 Computing indicator / dummy variables
 -------------------------------------
 
-To convert a categorical variable into a "dummy" or "indicator" :class:`DataFrame`,
-for example a column in a :class:`DataFrame` (a :class:`Series`) which has ``k`` distinct
-values, can derive a :class:`DataFrame` containing ``k`` columns of 1s and 0s using
-:func:`~pandas.get_dummies`:
+To convert categorical variables of a :class:`Series` into a "dummy" or "indicator",
+:func:`~pandas.get_dummies` creates a new :class:`DataFrame` with columns of the unique
+variables and the values representing the presence of those variables per row.
 
 .. ipython:: python
 
    df = pd.DataFrame({"key": list("bbacab"), "data1": range(6)})
 
    pd.get_dummies(df["key"])
+   df["key"].str.get_dummies()
 
-Sometimes it's useful to prefix the column names, for example when merging the result
+``prefix`` adds a prefix to the the column names which is useful for merging the result
 with the original :class:`DataFrame`:
 
 .. ipython:: python
@@ -575,31 +512,23 @@ This function is often used along with discretization functions like :func:`~pan
 
    pd.get_dummies(pd.cut(values, bins))
 
-See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-:func:`get_dummies` also accepts a :class:`DataFrame`. By default all categorical
-variables (categorical in the statistical sense, those with ``object`` or
-``categorical`` dtype) are encoded as dummy variables.
-
+:func:`get_dummies` also accepts a :class:`DataFrame`. By default, ``object``, ``string``,
+or ``categorical`` type columns are encoded as dummy variables with other columns unaltered.
 
 .. ipython:: python
 
     df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["c", "c", "b"], "C": [1, 2, 3]})
     pd.get_dummies(df)
 
-All non-object columns are included untouched in the output. You can control
-the columns that are encoded with the ``columns`` keyword.
+Specifying the ``columns`` keyword will encode a column of any type.
 
 .. ipython:: python
 
     pd.get_dummies(df, columns=["A"])
 
-Notice that the ``B`` column is still included in the output, it just hasn't
-been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
-want to include it in the output.
-
 As with the :class:`Series` version, you can pass values for the ``prefix`` and
-``prefix_sep``. By default the column name is used as the prefix, and ``_`` as
+``prefix_sep``. By default the column name is used as the prefix and ``_`` as
 the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
 * string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
@@ -616,9 +545,8 @@ the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
     from_dict = pd.get_dummies(df, prefix={"B": "from_B", "A": "from_A"})
     from_dict
 
-Sometimes it will be useful to only keep k-1 levels of a categorical
-variable to avoid collinearity when feeding the result to statistical models.
-You can switch to this mode by turn on ``drop_first``.
+To avoid collinearity when feeding the result to statistical models,
+specify ``drop_first=True``.
 
 .. ipython:: python
 
@@ -638,21 +566,18 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
-By default new columns will have ``np.uint8`` dtype.
-To choose another dtype, use the ``dtype`` argument:
+The values can be cast to a different type using the ``dtype`` argument.
 
 .. ipython:: python
 
     df = pd.DataFrame({"A": list("abc"), "B": [1.1, 2.2, 3.3]})
 
-    pd.get_dummies(df, dtype=bool).dtypes
+    pd.get_dummies(df, dtype=np.float32).dtypes
 
 .. versionadded:: 1.5.0
 
-To convert a "dummy" or "indicator" ``DataFrame``, into a categorical ``DataFrame``,
-for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
-``DataFrame`` which has ``k`` distinct values using
-:func:`~pandas.from_dummies`:
+:func:`~pandas.from_dummies` coverts the output of :func:`~pandas.get_dummies` back into
+a :class:`Series` of categorical values from indicator values.
 
 .. ipython:: python
 
@@ -662,8 +587,8 @@ for example ``k`` columns of a ``DataFrame`` containing 1s and 0s can derive a
    pd.from_dummies(df, sep="_")
 
 Dummy coded data only requires ``k - 1`` categories to be included, in this case
-the ``k`` th category is the default category, implied by not being assigned any of
-the other ``k - 1`` categories, can be passed via ``default_category``.
+the last category is the default category. The default category can be modified with
+``default_category``.
 
 .. ipython:: python
 
@@ -677,7 +602,8 @@ the other ``k - 1`` categories, can be passed via ``default_category``.
 Factorizing values
 ------------------
 
-To encode 1-d values as an enumerated type use :func:`~pandas.factorize`:
+:func:`~pandas.factorize` encodes 1 dimensional values into integer labels. Missing values
+are encoded as ``-1``.
 
 .. ipython:: python
 
@@ -687,144 +613,12 @@ To encode 1-d values as an enumerated type use :func:`~pandas.factorize`:
    labels
    uniques
 
-Note that :func:`~pandas.factorize` is similar to ``numpy.unique``, but differs in its
-handling of NaN:
-
-.. note::
-   The following ``numpy.unique`` will fail under Python 3 with a ``TypeError``
-   because of an ordering bug. See also
-   `here <https://github.com/numpy/numpy/issues/641>`__.
-
-.. ipython:: python
-   :okexcept:
-
-   ser = pd.Series(['A', 'A', np.nan, 'B', 3.14, np.inf])
-   pd.factorize(ser, sort=True)
-   np.unique(ser, return_inverse=True)[::-1]
-
-.. note::
-    If you just want to handle one column as a categorical variable (like R's factor),
-    you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
-    ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
-    see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.arrays.categorical>`.
-
-Examples
---------
-
-In this section, we will review frequently asked questions and examples. The
-column names and relevant column values are named to correspond with how this
-DataFrame will be pivoted in the answers below.
+:class:`Categorical` will similarly encode 1 dimensional values for further
+categorical operations
 
 .. ipython:: python
 
-   np.random.seed([3, 1415])
-   n = 20
-
-   cols = np.array(["key", "row", "item", "col"])
-   df = cols + pd.DataFrame(
-       (np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str)
-   )
-   df.columns = cols
-   df = df.join(pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix("val"))
-
-   df
-
-Pivoting with single aggregations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
-``row`` values are the index, and the mean of ``val0`` are the values? In
-particular, the resulting DataFrame should look like:
-
-.. code-block:: text
-
-    col   col0   col1   col2   col3  col4
-    row
-    row0  0.77  0.605    NaN  0.860  0.65
-    row2  0.13    NaN  0.395  0.500  0.25
-    row3   NaN  0.310    NaN  0.545   NaN
-    row4   NaN  0.100  0.395  0.760  0.24
-
-This solution uses :func:`~pandas.pivot_table`. Also note that
-``aggfunc='mean'`` is the default. It is included here to be explicit.
-
-.. ipython:: python
-
-   df.pivot_table(values="val0", index="row", columns="col", aggfunc="mean")
-
-Note that we can also replace the missing values by using the ``fill_value``
-parameter.
-
-.. ipython:: python
-
-   df.pivot_table(
-       values="val0",
-       index="row",
-       columns="col",
-       aggfunc="mean",
-       fill_value=0,
-   )
-
-Also note that we can pass in other aggregation functions as well. For example,
-we can also pass in ``sum``.
-
-.. ipython:: python
-
-   df.pivot_table(
-       values="val0",
-       index="row",
-       columns="col",
-       aggfunc="sum",
-       fill_value=0,
-   )
-
-Another aggregation we can do is calculate the frequency in which the columns
-and rows occur together a.k.a. "cross tabulation". To do this, we can pass
-``size`` to the ``aggfunc`` parameter.
-
-.. ipython:: python
-
-   df.pivot_table(index="row", columns="col", fill_value=0, aggfunc="size")
-
-Pivoting with multiple aggregations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-We can also perform multiple aggregations. For example, to perform both a
-``sum`` and ``mean``, we can pass in a list to the ``aggfunc`` argument.
-
-.. ipython:: python
-
-   df.pivot_table(
-       values="val0",
-       index="row",
-       columns="col",
-       aggfunc=["mean", "sum"],
-   )
-
-Note to aggregate over multiple value columns, we can pass in a list to the
-``values`` parameter.
-
-.. ipython:: python
-
-   df.pivot_table(
-       values=["val0", "val1"],
-       index="row",
-       columns="col",
-       aggfunc=["mean"],
-   )
-
-Note to subdivide over multiple columns we can pass in a list to the
-``columns`` parameter.
-
-.. ipython:: python
-
-   df.pivot_table(
-       values=["val0"],
-       index="row",
-       columns=["item", "col"],
-       aggfunc=["mean"],
-   )
+   pd.Categorical(x)
 
 .. _reshaping.explode:
 
@@ -840,19 +634,21 @@ Sometimes the values in a column are list-like.
    df = pd.DataFrame({"keys": keys, "values": values})
    df
 
-We can 'explode' the ``values`` column, transforming each list-like to a separate row, by using :meth:`~Series.explode`. This will replicate the index values from the original row:
+For a :class:`DataFrame` column with nested, list-like values, :meth:`~Series.explode` will transform
+each list-like value to a separate row. The resulting :class:`Index` will be duplicated corresponding
+to the index label from the original row:
 
 .. ipython:: python
 
    df["values"].explode()
 
-You can also explode the column in the :class:`DataFrame`.
+:class:`DataFrame.explode` can also explode the column in the :class:`DataFrame`.
 
 .. ipython:: python
 
    df.explode("values")
 
-:meth:`Series.explode` will replace empty lists with ``np.nan`` and preserve scalar entries. The dtype of the resulting :class:`Series` is always ``object``.
+:meth:`Series.explode` will replace empty lists with a missing value indicator and preserve scalar entries.
 
 .. ipython:: python
 
@@ -860,15 +656,9 @@ You can also explode the column in the :class:`DataFrame`.
    s
    s.explode()
 
-Here is a typical usecase. You have comma separated strings in a column and want to expand this.
+A comma-separated string value can be split into individual values in a list and then exploded to a new row.
 
 .. ipython:: python
 
     df = pd.DataFrame([{"var1": "a,b,c", "var2": 1}, {"var1": "d,e,f", "var2": 2}])
-    df
-
-Creating a long form DataFrame is now straightforward using explode and chained operations
-
-.. ipython:: python
-
-   df.assign(var1=df.var1.str.split(",")).explode("var1")
+    df.assign(var1=df.var1.str.split(",")).explode("var1")
