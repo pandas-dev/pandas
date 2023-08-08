@@ -1492,6 +1492,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             result_mask = np.zeros(ngroups, dtype=bool)
 
+        if op.how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
+            # Set result_mask to all False
+            # when using rank with na_option "top" or "bottom"
+            result_mask[:] = False
+
         res_values = op._cython_op_ndim_compat(
             self._data,
             min_count=min_count,
