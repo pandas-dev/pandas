@@ -74,21 +74,11 @@ def data_for_grouping(dtype):
 
 
 @pytest.fixture
-def data_for_twos(dtype):
-    pytest.skip("Not a numeric dtype.")
-
-
-@pytest.fixture
 def na_cmp():
     def cmp(a, b):
         return a is pd.NaT and a is b
 
     return cmp
-
-
-@pytest.fixture
-def na_value():
-    return pd.NaT
 
 
 # ----------------------------------------------------------------------------

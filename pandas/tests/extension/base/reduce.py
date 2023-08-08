@@ -5,10 +5,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_numeric_dtype
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReduceTests(BaseExtensionTests):
+class BaseReduceTests:
     """
     Reduction specific tests. Generally these only
     make sense for numeric/boolean operations.
@@ -23,7 +22,15 @@ class BaseReduceTests(BaseExtensionTests):
         #  that the results match. Override if you need to cast to something
         #  other than float64.
         res_op = getattr(s, op_name)
-        exp_op = getattr(s.astype("float64"), op_name)
+
+        try:
+            alt = s.astype("float64")
+        except TypeError:
+            # e.g. Interval can't cast, so let's cast to object and do
+            #  the reduction pointwise
+            alt = s.astype(object)
+
+        exp_op = getattr(alt, op_name)
         if op_name == "count":
             result = res_op()
             expected = exp_op()
