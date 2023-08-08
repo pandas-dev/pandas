@@ -636,7 +636,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
-            bad_keys = list(kwargs.keys())[0]
+            bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )

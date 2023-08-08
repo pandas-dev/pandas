@@ -1,15 +1,13 @@
 from typing import final
-import warnings
 
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_numeric_dtype
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReduceTests(BaseExtensionTests):
+class BaseReduceTests:
     """
     Reduction specific tests. Generally these only
     make sense for numeric/boolean operations.
@@ -24,7 +22,15 @@ class BaseReduceTests(BaseExtensionTests):
         #  that the results match. Override if you need to cast to something
         #  other than float64.
         res_op = getattr(s, op_name)
-        exp_op = getattr(s.astype("float64"), op_name)
+
+        try:
+            alt = s.astype("float64")
+        except TypeError:
+            # e.g. Interval can't cast, so let's cast to object and do
+            #  the reduction pointwise
+            alt = s.astype(object)
+
+        exp_op = getattr(alt, op_name)
         if op_name == "count":
             result = res_op()
             expected = exp_op()
@@ -87,6 +93,7 @@ class BaseReduceTests(BaseExtensionTests):
         else:
             self.check_reduce(s, op_name, skipna)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
@@ -103,9 +110,7 @@ class BaseReduceTests(BaseExtensionTests):
 
         else:
             # min/max with empty produce numpy warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                self.check_reduce(s, op_name, skipna)
+            self.check_reduce(s, op_name, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):

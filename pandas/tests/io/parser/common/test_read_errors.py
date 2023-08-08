@@ -7,7 +7,6 @@ import csv
 from io import StringIO
 import os
 from pathlib import Path
-import warnings
 
 import numpy as np
 import pytest
@@ -203,6 +202,7 @@ def test_null_byte_char(request, all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
+@pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
@@ -218,12 +218,10 @@ def test_open_file(request, all_parsers):
         file = Path(path)
         file.write_bytes(b"\xe4\na\n1")
 
-        with warnings.catch_warnings(record=True) as record:
+        with tm.assert_produces_warning(None):
             # should not trigger a ResourceWarning
-            warnings.simplefilter("always", category=ResourceWarning)
             with pytest.raises(csv.Error, match="Could not determine delimiter"):
                 parser.read_csv(file, sep=None, encoding_errors="replace")
-            assert len(record) == 0, record[0].message
 
 
 def test_invalid_on_bad_line(all_parsers):

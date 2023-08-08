@@ -82,11 +82,13 @@ plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.1.2', 'tabulate>=0.8.10']
 clipboard = ['PyQt5>=5.15.6', 'qtpy>=2.2.0']
 compression = ['brotlipy>=0.7.0', 'python-snappy>=0.6.1', 'zstandard>=0.17.0']
+consortium-standard = ['dataframe-api-compat>=0.1.7']
 all = ['beautifulsoup4>=4.11.1',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',
        'bottleneck>=1.3.4',
        'brotlipy>=0.7.0',
+       'dataframe-api-compat>=0.1.7',
        'fastparquet>=0.8.1',
        'fsspec>=2022.05.0',
        'gcsfs>=2022.05.0',
@@ -185,7 +187,7 @@ environment = {CFLAGS="-g0"}
 
 [tool.black]
 target-version = ['py39', 'py310']
-required-version = '23.3.0'
+required-version = '23.7.0'
 exclude = '''
 (
     asv_bench/env
@@ -525,7 +527,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.10"
+python_version = "3.11"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -726,8 +728,9 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
+useLibraryCodeForTypes = false
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
