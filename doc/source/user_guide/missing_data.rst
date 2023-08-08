@@ -94,8 +94,6 @@ Datetimes
 .. note::
    If you are adding type checking to your application, you may need access to ``NaTType`` and ``NAType``.
 
-   ``NaTTYPE`` and ``NAType`` have now been added and can be imported from "pandas.api.typing".
-
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
 pandas objects provide compatibility between ``NaT`` and ``NaN``.
