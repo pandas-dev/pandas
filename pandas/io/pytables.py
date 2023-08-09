@@ -4680,7 +4680,8 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if not using_pyarrow_string_dtype():
+                assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
             if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
                 import pyarrow as pa
 

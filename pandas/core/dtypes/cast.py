@@ -1185,7 +1185,6 @@ def maybe_infer_to_datetimelike(
         convert_numeric=False,
         convert_non_numeric=True,
         dtype_if_all_nat=np.dtype("M8[ns]"),
-        convert_string=False,
     )
 
 
