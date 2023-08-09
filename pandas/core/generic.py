@@ -2795,7 +2795,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    @deprecate_nonkeyword_arguments(version="3.0", allowed_args=["name"], name="to_sql")
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="to_sql"
+    )
     def to_sql(
         self,
         name: str,
