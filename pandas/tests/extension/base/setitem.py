@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseSetitemTests(BaseExtensionTests):
+class BaseSetitemTests:
     @pytest.fixture(
         params=[
             lambda x: x.index,
@@ -35,6 +34,24 @@ class BaseSetitemTests(BaseExtensionTests):
         In some cases, assumes that obj.index is the default RangeIndex.
         """
         return request.param
+
+    @pytest.fixture(autouse=True)
+    def skip_if_immutable(self, dtype, request):
+        if dtype._is_immutable:
+            node = request.node
+            if node.name.split("[")[0] == "test_is_immutable":
+                # This fixture is auto-used, but we want to not-skip
+                # test_is_immutable.
+                return
+            pytest.skip("__setitem__ test not applicable with immutable dtype")
+
+    def test_is_immutable(self, data):
+        if data.dtype._is_immutable:
+            with pytest.raises(TypeError):
+                data[0] = data[0]
+        else:
+            data[0] = data[1]
+            assert data[0] == data[1]
 
     def test_setitem_scalar_series(self, data, box_in_series):
         if box_in_series:

@@ -81,11 +81,6 @@ def na_cmp():
     return cmp
 
 
-@pytest.fixture
-def na_value():
-    return pd.NaT
-
-
 # ----------------------------------------------------------------------------
 class BaseDatetimeTests:
     pass
@@ -113,10 +108,6 @@ class TestIndex(base.BaseIndexTests):
 
 
 class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
         result = data.map(lambda x: x, na_action=na_action)
@@ -134,18 +125,6 @@ class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
         if op_name in self.implements:
             return None
         return super()._get_expected_exception(op_name, obj, other)
-
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        ser = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
 
 
 class TestCasting(BaseDatetimeTests, base.BaseCastingTests):

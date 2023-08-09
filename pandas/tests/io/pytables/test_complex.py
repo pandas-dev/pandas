@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import numpy as np
 import pytest
 
@@ -114,18 +112,17 @@ def test_complex_mixed_table(tmp_path, setup_path):
 
 
 def test_complex_across_dimensions_fixed(tmp_path, setup_path):
-    with catch_warnings(record=True):
-        complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
-        s = Series(complex128, index=list("abcd"))
-        df = DataFrame({"A": s, "B": s})
+    complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
+    s = Series(complex128, index=list("abcd"))
+    df = DataFrame({"A": s, "B": s})
 
-        objs = [s, df]
-        comps = [tm.assert_series_equal, tm.assert_frame_equal]
-        for obj, comp in zip(objs, comps):
-            path = tmp_path / setup_path
-            obj.to_hdf(path, "obj", format="fixed")
-            reread = read_hdf(path, "obj")
-            comp(obj, reread)
+    objs = [s, df]
+    comps = [tm.assert_series_equal, tm.assert_frame_equal]
+    for obj, comp in zip(objs, comps):
+        path = tmp_path / setup_path
+        obj.to_hdf(path, "obj", format="fixed")
+        reread = read_hdf(path, "obj")
+        comp(obj, reread)
 
 
 def test_complex_across_dimensions(tmp_path, setup_path):
@@ -133,14 +130,10 @@ def test_complex_across_dimensions(tmp_path, setup_path):
     s = Series(complex128, index=list("abcd"))
     df = DataFrame({"A": s, "B": s})
 
-    with catch_warnings(record=True):
-        objs = [df]
-        comps = [tm.assert_frame_equal]
-        for obj, comp in zip(objs, comps):
-            path = tmp_path / setup_path
-            obj.to_hdf(path, "obj", format="table")
-            reread = read_hdf(path, "obj")
-            comp(obj, reread)
+    path = tmp_path / setup_path
+    df.to_hdf(path, "obj", format="table")
+    reread = read_hdf(path, "obj")
+    tm.assert_frame_equal(df, reread)
 
 
 def test_complex_indexing_error(setup_path):

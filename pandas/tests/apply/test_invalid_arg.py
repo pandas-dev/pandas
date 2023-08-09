@@ -8,7 +8,6 @@
 
 from itertools import chain
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -298,6 +297,7 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
 @pytest.mark.parametrize(
     "func, msg",
     [
@@ -312,10 +312,7 @@ def test_transform_and_agg_err_series(string_series, func, msg):
     # we are trying to transform with an aggregator
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
-            # GH53325
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", FutureWarning)
-                string_series.agg(func)
+            string_series.agg(func)
 
 
 @pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])

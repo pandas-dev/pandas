@@ -23,7 +23,6 @@ import pickle
 import shutil
 import tarfile
 import uuid
-from warnings import catch_warnings
 import zipfile
 
 import numpy as np
@@ -44,6 +43,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
 import pandas.io.common as icom
 from pandas.tseries.offsets import (
@@ -55,10 +55,7 @@ from pandas.tseries.offsets import (
 @pytest.fixture
 def current_pickle_data():
     # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
-
-    with catch_warnings():
-        return create_pickle_data()
+    return create_pickle_data()
 
 
 # ---------------------

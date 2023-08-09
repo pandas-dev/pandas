@@ -8,10 +8,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseOpsUtil(BaseExtensionTests):
+class BaseOpsUtil:
     series_scalar_exc: type[Exception] | None = TypeError
     frame_scalar_exc: type[Exception] | None = TypeError
     series_array_exc: type[Exception] | None = TypeError
@@ -161,28 +160,41 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(other, ops.rdivmod, ser)
 
     def test_add_series_with_extension_array(self, data):
+        # Check adding an ExtensionArray to a Series of the same dtype matches
+        # the behavior of adding the arrays directly and then wrapping in a
+        # Series.
+
         ser = pd.Series(data)
+
+        exc = self._get_expected_exception("__add__", ser, data)
+        if exc is not None:
+            with pytest.raises(exc):
+                ser + data
+            return
+
         result = ser + data
         expected = pd.Series(data + data)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame, pd.Index])
+    @pytest.mark.parametrize(
+        "op_name",
+        [
+            x
+            for x in tm.arithmetic_dunder_methods + tm.comparison_dunder_methods
+            if not x.startswith("__r")
+        ],
+    )
     def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, request, data, box
+        self, data, box, op_name
     ):
-        # EAs should return NotImplemented for ops with Series/DataFrame
+        # EAs should return NotImplemented for ops with Series/DataFrame/Index
         # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-        if not hasattr(data, "__add__"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{type(data).__name__} does not implement add"
-                )
-            )
-        result = data.__add__(other)
-        assert result is NotImplemented
+        other = box(data)
+
+        if hasattr(data, op_name):
+            result = getattr(data, op_name)(other)
+            assert result is NotImplemented
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
@@ -193,6 +205,7 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
+            expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
             tm.assert_series_equal(result, expected)
 
         else:
@@ -205,6 +218,9 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
+                expected = self._cast_pointwise_result(
+                    op.__name__, ser, other, expected
+                )
                 tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
@@ -216,28 +232,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
-        other = pd.Series([data[0]] * len(data))
+        other = pd.Series([data[0]] * len(data), dtype=data.dtype)
         self._compare_other(ser, data, comparison_op, other)
-
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
-        # EAs should return NotImplemented for ops with Series/DataFrame
-        # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-
-        if hasattr(data, "__eq__"):
-            result = data.__eq__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __eq__")
-
-        if hasattr(data, "__ne__"):
-            result = data.__ne__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):

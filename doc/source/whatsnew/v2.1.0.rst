@@ -209,6 +209,7 @@ Other enhancements
 - Improve error message when setting :class:`DataFrame` with wrong number of columns through :meth:`DataFrame.isetitem` (:issue:`51701`)
 - Improved error handling when using :meth:`DataFrame.to_json` with incompatible ``index`` and ``orient`` arguments (:issue:`52143`)
 - Improved error message when creating a DataFrame with empty data (0 rows), no index and an incorrect number of columns. (:issue:`52084`)
+- Improved error message when providing an invalid ``index`` or ``offset`` argument to :class:`pandas.api.indexers.VariableOffsetWindowIndexer` (:issue:`54379`)
 - Let :meth:`DataFrame.to_feather` accept a non-default :class:`Index` and non-string column names (:issue:`51787`)
 - Added a new parameter ``by_row`` to :meth:`Series.apply` and :meth:`DataFrame.apply`. When set to ``False`` the supplied callables will always operate on the whole Series or DataFrame (:issue:`53400`, :issue:`53601`).
 - :meth:`DataFrame.shift` and :meth:`Series.shift` now allow shifting by multiple periods by supplying a list of periods (:issue:`44424`)
@@ -217,6 +218,7 @@ Other enhancements
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype objects (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
+- Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`51722`)
 
 .. ---------------------------------------------------------------------------
@@ -255,65 +257,67 @@ Increased minimum versions for dependencies
 Some minimum supported versions of dependencies were updated.
 If installed, we now require:
 
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| numpy           | 1.22.4          |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-| mypy (dev)      | 1.4.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| beautifulsoup4  | 4.11.1          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| bottleneck      | 1.3.4           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| fastparquet     | 0.8.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| fsspec          | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| hypothesis      | 6.46.1          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| gcsfs           | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| jinja2          | 3.1.2           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| lxml            | 4.8.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| numba           | 0.55.2          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| numexpr         | 2.8.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| openpyxl        | 3.0.10          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pandas-gbq      | 0.17.5          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| psycopg2        | 2.9.3           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyreadstat      | 1.1.5           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyqt5           | 5.15.6          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pytables        | 3.7.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pytest          | 7.3.2           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| python-snappy   | 0.6.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyxlsb          | 1.0.9           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| s3fs            | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| scipy           | 1.8.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| sqlalchemy      | 1.4.36          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| tabulate        | 0.8.10          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| xarray          | 2022.03.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| xlsxwriter      | 3.0.3           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| zstandard       | 0.17.0          |          |    X    |
-+-----------------+-----------------+----------+---------+
++----------------------+-----------------+----------+---------+
+| Package              | Minimum Version | Required | Changed |
++======================+=================+==========+=========+
+| numpy                | 1.22.4          |    X     |    X    |
++----------------------+-----------------+----------+---------+
+| mypy (dev)           | 1.4.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| beautifulsoup4       | 4.11.1          |          |    X    |
++----------------------+-----------------+----------+---------+
+| bottleneck           | 1.3.4           |          |    X    |
++----------------------+-----------------+----------+---------+
+| dataframe-api-compat | 0.1.7           |          |    X    |
++----------------------+-----------------+----------+---------+
+| fastparquet          | 0.8.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| fsspec               | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| hypothesis           | 6.46.1          |          |    X    |
++----------------------+-----------------+----------+---------+
+| gcsfs                | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| jinja2               | 3.1.2           |          |    X    |
++----------------------+-----------------+----------+---------+
+| lxml                 | 4.8.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| numba                | 0.55.2          |          |    X    |
++----------------------+-----------------+----------+---------+
+| numexpr              | 2.8.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| openpyxl             | 3.0.10          |          |    X    |
++----------------------+-----------------+----------+---------+
+| pandas-gbq           | 0.17.5          |          |    X    |
++----------------------+-----------------+----------+---------+
+| psycopg2             | 2.9.3           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyreadstat           | 1.1.5           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyqt5                | 5.15.6          |          |    X    |
++----------------------+-----------------+----------+---------+
+| pytables             | 3.7.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pytest               | 7.3.2           |          |    X    |
++----------------------+-----------------+----------+---------+
+| python-snappy        | 0.6.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyxlsb               | 1.0.9           |          |    X    |
++----------------------+-----------------+----------+---------+
+| s3fs                 | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| scipy                | 1.8.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| sqlalchemy           | 1.4.36          |          |    X    |
++----------------------+-----------------+----------+---------+
+| tabulate             | 0.8.10          |          |    X    |
++----------------------+-----------------+----------+---------+
+| xarray               | 2022.03.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| xlsxwriter           | 3.0.3           |          |    X    |
++----------------------+-----------------+----------+---------+
+| zstandard            | 0.17.0          |          |    X    |
++----------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -552,6 +556,7 @@ Other Deprecations
 - Deprecated the "method" and "limit" keywords in ``ExtensionArray.fillna``, implement and use ``pad_or_backfill`` instead (:issue:`53621`)
 - Deprecated the "method" and "limit" keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`SeriesGroupBy.fillna`, :meth:`DataFrameGroupBy.fillna`, and :meth:`Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)
 - Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)
+- Deprecated the behavior of :meth:`Series.__getitem__`, :meth:`Series.__setitem__`, :meth:`DataFrame.__getitem__`, :meth:`DataFrame.__setitem__` with an integer slice on objects with a floating-dtype index, in a future version this will be treated as *positional* indexing (:issue:`49612`)
 - Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: "s", "ms", "us", "ns" resolutions (:issue:`53058`)
 - Deprecated values "pad", "ffill", "bfill", "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and skipna=True or any-NAs and skipna=False returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
@@ -586,6 +591,7 @@ Performance improvements
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)
+- Performance improvement in :func:`merge` for PyArrow backed strings (:issue:`54443`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`52632`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
@@ -606,7 +612,6 @@ Performance improvements
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
 - Performance improvement when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -726,6 +731,7 @@ I/O
 - Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)
 - Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)
 - Bug in :meth:`DataFrame.to_html` where ``colspace`` was incorrectly applied in case of multi index columns (:issue:`53885`)
+- Bug in :meth:`DataFrame.to_html` where conversion for an empty :class:`DataFrame` with complex dtype raised a ``ValueError`` (:issue:`54167`)
 - Bug in :meth:`DataFrame.to_json` where :class:`DateTimeArray`/:class:`DateTimeIndex` with non nanosecond precision could not be serialized correctly (:issue:`53686`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 - Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)
@@ -834,6 +840,8 @@ Other
 - Bug in :func:`api.interchange.from_dataframe` when converting an empty DataFrame object (:issue:`53155`)
 - Bug in :func:`assert_almost_equal` now throwing assertion error for two unequal sets (:issue:`51727`)
 - Bug in :func:`assert_frame_equal` checks category dtypes even when asked not to check index type (:issue:`52126`)
+- Bug in :func:`from_dummies` where the resulting :class:`Index` did not match the original :class:`Index` (:issue:`54300`)
+- Bug in :func:`from_dummies` where the resulting data would always be ``object`` dtype instead of the dtype of the columns (:issue:`54300`)
 - Bug in :meth:`DataFrame.pivot_table` with casting the mean of ints back to an int (:issue:`16676`)
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
 - Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`DataFrameGroupBy.shift` when passing both "freq" and "fill_value" silently ignoring "fill_value" instead of raising ``ValueError`` (:issue:`53832`)
@@ -846,6 +854,7 @@ Other
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
 - Bug in :meth:`period_range` the default behavior when freq was not passed as an argument was incorrect(:issue:`53687`)
 - Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
+- The minimum version of Cython needed to compile pandas is now ``3.0.0`` (:issue:`54335`)
 
 .. ***DO NOT USE THIS SECTION***
 
