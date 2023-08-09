@@ -173,5 +173,5 @@ class TestConvertDtypes:
         pytest.importorskip("pyarrow")
         ser = pd.Series(pd.date_range("2020-01-01", "2020-01-02", freq="1min"))
         expected = ser.astype("timestamp[ms][pyarrow]")
-        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
         tm.assert_series_equal(result, expected)
