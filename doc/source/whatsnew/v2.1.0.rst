@@ -52,7 +52,7 @@ The option can be enabled with:
 
     pd.options.future.infer_string = True
 
-It is expected that this behavior will become the default with pandas 3.0.
+This behavior will become the default with pandas 3.0.
 
 .. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
