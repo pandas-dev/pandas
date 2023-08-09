@@ -37,6 +37,7 @@ from pandas._libs import (
     lib,
     writers as libwriters,
 )
+from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -3222,7 +3223,7 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if result.dtype.kind == "O" and using_pyarrow_string_dtype():
+        if using_pyarrow_string_dtype() and is_string_array(result, skipna=True):
             import pyarrow as pa
 
             result = result.astype(pd.ArrowDtype(pa.string()))
@@ -3294,7 +3295,7 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
-            if values.dtype.kind == "O" and using_pyarrow_string_dtype():
+            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
                 import pyarrow as pa
 
                 df = df.astype(pd.ArrowDtype(pa.string()))
@@ -4680,7 +4681,7 @@ class AppendableFrameTable(AppendableTable):
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
             assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if values.dtype.kind == "O" and using_pyarrow_string_dtype():
+            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
                 import pyarrow as pa
 
                 df = df.astype(pd.ArrowDtype(pa.string()))

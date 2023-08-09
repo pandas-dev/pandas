@@ -2443,7 +2443,8 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
-                          object dtype_if_all_nat=None) -> "ArrayLike":
+                          object dtype_if_all_nat=None,
+                          bint convert_string=True) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
 
@@ -2681,7 +2682,7 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if is_string_array(objects, skipna=True):
+        if convert_string and is_string_array(objects, skipna=True):
             if using_pyarrow_string_dtype():
                 import pyarrow as pa
 
