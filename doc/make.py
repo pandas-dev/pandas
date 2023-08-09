@@ -288,21 +288,11 @@ class DocBuilder:
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
 
-   def linkcheck(self):
+    def linkcheck(self):
         """
         Check for broken links in the documentation.
         """
         cmd = ["sphinx-build", "-b", "linkcheck"]
-        if self.num_jobs:
-            cmd += ["-j", self.num_jobs]
-        if self.verbosity:
-            cmd.append(f"-{'v' * self.verbosity}")
-        cmd += [
-            "-d",
-            os.path.join(BUILD_PATH, "doctrees"),
-            SOURCE_PATH,
-            os.path.join(BUILD_PATH, "linkcheck"),
-        ]
         subprocess.call(cmd)
 
 
