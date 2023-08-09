@@ -1606,7 +1606,9 @@ class _TestSQLApi(PandasSQLTest):
         assert constraint_sentence in create_sql
 
     def test_chunksize_read(self):
-        df = DataFrame(np.random.randn(22, 5), columns=list("abcde"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((22, 5)), columns=list("abcde")
+        )
         df.to_sql("test_chunksize", self.conn, index=False)
 
         # reading the query in one time
@@ -2919,6 +2921,23 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def test_read_sql_dtype_backend_table(self, string_storage, func):
         # GH#50048 Not supported for sqlite
         pass
+
+    def test_read_sql_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        table = "test"
+        df = DataFrame({"a": ["x", "y"]})
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("future.infer_string", True):
+            result = read_sql_table(table, self.conn)
+
+        dtype = pd.ArrowDtype(pa.string())
+        expected = DataFrame(
+            {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.db

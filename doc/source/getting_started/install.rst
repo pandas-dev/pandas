@@ -203,7 +203,7 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.21.6
+`NumPy <https://numpy.org>`__                                    1.22.4
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
 ================================================================ ==========================
@@ -415,3 +415,14 @@ brotli                    0.7.0              compression     Brotli compression
 python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
+
+Consortium Standard
+^^^^^^^^^^^^^^^^^^^
+
+Installable with ``pip install "pandas[consortium-standard]"``
+
+========================= ================== =================== =============================================================
+Dependency                Minimum Version    pip extra           Notes
+========================= ================== =================== =============================================================
+dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
+========================= ================== =================== =============================================================

@@ -24,9 +24,9 @@ def df_duplicates():
 def df_strings():
     return pd.DataFrame(
         {
-            "a": np.random.permutation(10),
+            "a": np.random.default_rng(2).permutation(10),
             "b": list(ascii_lowercase[:10]),
-            "c": np.random.permutation(10).astype("float64"),
+            "c": np.random.default_rng(2).permutation(10).astype("float64"),
         }
     )
 

@@ -19,7 +19,6 @@ from collections import (
 )
 import itertools
 import numbers
-import random
 import string
 import sys
 from typing import (
@@ -236,11 +235,12 @@ class JSONArray(ExtensionArray):
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    rng = np.random.default_rng(2)
     return [
         UserDict(
             [
-                (random.choice(string.ascii_letters), random.randint(0, 100))
-                for _ in range(random.randint(0, 10))
+                (rng.choice(list(string.ascii_letters)), rng.integers(0, 100))
+                for _ in range(rng.integers(0, 10))
             ]
         )
         for _ in range(100)

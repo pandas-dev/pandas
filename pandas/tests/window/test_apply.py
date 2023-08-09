@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -18,17 +16,15 @@ import pandas._testing as tm
 
 from pandas.tseries import offsets
 
+# suppress warnings about empty slices, as we are deliberately testing
+# with a 0-length Series
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.*(empty slice|0 for slice).*:RuntimeWarning"
+)
+
 
 def f(x):
-    # suppress warnings about empty slices, as we are deliberately testing
-    # with a 0-length Series
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            message=".*(empty slice|0 for slice).*",
-            category=RuntimeWarning,
-        )
-        return x[np.isfinite(x)].mean()
+    return x[np.isfinite(x)].mean()
 
 
 @pytest.mark.parametrize("bad_raw", [None, 1, 0])
@@ -55,7 +51,10 @@ def test_rolling_apply_out_of_bounds(engine_and_raw):
 def test_rolling_apply_with_pandas_objects(window):
     # 5071
     df = DataFrame(
-        {"A": np.random.randn(5), "B": np.random.randint(0, 10, size=5)},
+        {
+            "A": np.random.default_rng(2).standard_normal(5),
+            "B": np.random.default_rng(2).integers(0, 10, size=5),
+        },
         index=date_range("20130101", periods=5, freq="s"),
     )
 
@@ -184,7 +183,7 @@ def test_rolling_apply_args_kwargs(args_kwargs):
 
 
 def test_nans(raw):
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
@@ -199,7 +198,7 @@ def test_nans(raw):
     assert not isna(result.iloc[-6])
     assert isna(result.iloc[-5])
 
-    obj2 = Series(np.random.randn(20))
+    obj2 = Series(np.random.default_rng(2).standard_normal(20))
     result = obj2.rolling(10, min_periods=5).apply(f, raw=raw)
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
@@ -210,7 +209,7 @@ def test_nans(raw):
 
 
 def test_center(raw):
-    obj = Series(np.random.randn(50))
+    obj = Series(np.random.default_rng(2).standard_normal(50))
     obj[:10] = np.NaN
     obj[-10:] = np.NaN
 
