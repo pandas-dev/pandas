@@ -14,6 +14,26 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_210.enhancements.pyarrow_dependency:
+
+PyArrow will become a required dependency with pandas 3.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+[PyArrow](https://arrow.apache.org/docs/python/index.html) will become a required
+dependency of pandas starting with pandas 3.0. This decision was made based on
+[PDEP 12](https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html).
+
+This will enable more changes that are hugely beneficial to pandas users, including
+but not limited to:
+
+- inferring strings as PyArrow backed strings by default enabling a significant
+  reduction of the memory footprint and huge performance improvements.
+- inferring more complex dtypes with PyArrow by default, like ``Decimal``, ``lists``,
+  ``bytes``, ``structured data`` and more.
+- Better interoperability with other libraries that depend on Apache Arrow.
+
+We are collecting feedback on this decision [here](https://github.com/pandas-dev/pandas/issues/54466).
+
 .. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
 DataFrame reductions preserve extension dtypes
