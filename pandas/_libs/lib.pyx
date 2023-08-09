@@ -38,6 +38,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
@@ -2680,9 +2682,7 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.str_:
         if is_string_array(objects, skipna=True):
-            from pandas._config import get_option
-            opt = get_option("future.infer_string")
-            if opt is True:
+            if using_pyarrow_string_dtype():
                 import pyarrow as pa
 
                 from pandas.core.dtypes.dtypes import ArrowDtype
