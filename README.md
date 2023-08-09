@@ -22,6 +22,7 @@ doing practical, **real world** data analysis in Python. Additionally, it has
 the broader goal of becoming **the most powerful and flexible open source data
 analysis / manipulation tool available in any language**. It is already well on
 its way towards this goal.
+This is very useful tool
 
 ## Table of Contents
 
