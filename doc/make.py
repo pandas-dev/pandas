@@ -362,7 +362,6 @@ def main():
         joined = ", ".join(cmds)
         raise ValueError(f"Unknown command {args.command}. Available options: {joined}")
 
-
     # Below we update both os.environ and sys.path. The former is used by
     # external libraries (namely Sphinx) to compile this module and resolve
     # the import of `python_path` correctly. The latter is used to resolve
@@ -388,6 +387,7 @@ def main():
         builder.linkcheck()  # Call the linkcheck method
     else:
         return getattr(builder, args.command)()
+
 
 if __name__ == "__main__":
     sys.exit(main())
