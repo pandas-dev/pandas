@@ -393,7 +393,7 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("inf", [np.inf, np.NINF])
+    @pytest.mark.parametrize("inf", [np.inf, -np.inf])
     @pytest.mark.parametrize("dtype", [True, False])
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
