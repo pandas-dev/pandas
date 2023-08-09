@@ -2490,7 +2490,7 @@ class ArrowExtensionArray(
             "D": "day",
             "H": "hour",
             "min": "minute",
-            "S": "second",
+            "s": "second",
             "ms": "millisecond",
             "us": "microsecond",
             "ns": "nanosecond",

@@ -1117,7 +1117,7 @@ cdef class Minute(Tick):
 
 cdef class Second(Tick):
     _nanos_inc = 1_000_000_000
-    _prefix = "S"
+    _prefix = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
@@ -4267,7 +4267,7 @@ prefix_mapping = {
         SemiMonthEnd,  # 'SM'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
-        Second,  # 'S'
+        Second,  # 's'
         Minute,  # 'min'
         Micro,  # 'us'
         QuarterEnd,  # 'Q'
@@ -4306,7 +4306,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms"}
+_dont_uppercase = {"MS", "ms" , "s"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -4432,7 +4432,7 @@ cpdef to_offset(freq):
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
-                if prefix in {"D", "H", "min", "S", "ms", "us", "ns"}:
+                if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick

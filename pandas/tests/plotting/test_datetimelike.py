@@ -116,7 +116,7 @@ class TestTSPlot:
         with pytest.raises(TypeError, match=msg):
             df["A"].plot()
 
-    @pytest.mark.parametrize("freq", ["S", "min", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "H", "D", "W", "M", "Q", "A"])
     def test_tsplot_period(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
@@ -124,7 +124,7 @@ class TestTSPlot:
         _check_plot_works(ser.plot, ax=ax)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
     )
     def test_tsplot_datetime(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -186,14 +186,14 @@ class TestTSPlot:
         daily.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014-01-01  y = 1.000000")
 
-    @pytest.mark.parametrize("freq", ["S", "min", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "H", "D", "W", "M", "Q", "A"])
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq)
 
     @pytest.mark.parametrize(
-        "frqncy", ["1S", "3S", "5min", "7H", "4D", "8W", "11M", "3A"]
+        "frqncy", ["1s", "3s", "5min", "7H", "4D", "8W", "11M", "3A"]
     )
     def test_line_plot_period_mlt_series(self, frqncy):
         # test period index line plot for series with multiples (`mlt`) of the
@@ -203,14 +203,14 @@ class TestTSPlot:
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
     )
     def test_line_plot_datetime_series(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
-    @pytest.mark.parametrize("freq", ["S", "min", "H", "D", "W", "M", "Q", "A"])
+    @pytest.mark.parametrize("freq", ["s", "min", "H", "D", "W", "M", "Q", "A"])
     def test_line_plot_period_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(
@@ -221,7 +221,7 @@ class TestTSPlot:
         _check_plot_works(df.plot, df.index.freq)
 
     @pytest.mark.parametrize(
-        "frqncy", ["1S", "3S", "5min", "7H", "4D", "8W", "11M", "3A"]
+        "frqncy", ["1s", "3s", "5min", "7H", "4D", "8W", "11M", "3A"]
     )
     def test_line_plot_period_mlt_frame(self, frqncy):
         # test period index line plot for DataFrames with multiples (`mlt`)
@@ -238,7 +238,7 @@ class TestTSPlot:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.parametrize(
-        "freq", ["S", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
     )
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -251,7 +251,7 @@ class TestTSPlot:
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
-        "freq", ["S", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
+        "freq", ["s", "min", "H", "D", "W", "M", "Q-DEC", "A", "1B30Min"]
     )
     def test_line_plot_inferred_freq(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -306,7 +306,7 @@ class TestTSPlot:
                 assert xp == rs
 
     def test_irreg_hf(self):
-        idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
+        idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
         )
@@ -320,7 +320,7 @@ class TestTSPlot:
         assert (np.fabs(diffs[1:] - [sec, sec * 2, sec]) < 1e-8).all()
 
     def test_irreg_hf_object(self):
-        idx = date_range("2012-6-22 21:59:51", freq="S", periods=10)
+        idx = date_range("2012-6-22 21:59:51", freq="s", periods=10)
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 2)), index=idx
         )
@@ -1054,7 +1054,7 @@ class TestTSPlot:
 
     def test_mixed_freq_second_millisecond(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="S", periods=50)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
         idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
         high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
@@ -1068,7 +1068,7 @@ class TestTSPlot:
 
     def test_mixed_freq_second_millisecond_low_to_high(self):
         # GH 7772, GH 7760
-        idxh = date_range("2014-07-01 09:00", freq="S", periods=50)
+        idxh = date_range("2014-07-01 09:00", freq="s", periods=50)
         idxl = date_range("2014-07-01 09:00", freq="100ms", periods=500)
         high = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)

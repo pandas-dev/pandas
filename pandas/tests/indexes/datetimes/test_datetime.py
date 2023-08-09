@@ -56,10 +56,10 @@ class TestDatetimeIndex:
         # overflow.
         periods = np.int_(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="S")
+        idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="S")
+        idx2 = date_range(end="2000", periods=periods, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):

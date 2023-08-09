@@ -698,7 +698,7 @@ class TestPeriodIndexArithmetic:
             # datetime-like arrays
             pd.date_range("2016-01-01", periods=3, freq="H"),
             pd.date_range("2016-01-01", periods=3, tz="Europe/Brussels"),
-            pd.date_range("2016-01-01", periods=3, freq="S")._data,
+            pd.date_range("2016-01-01", periods=3, freq="s")._data,
             pd.date_range("2016-01-01", periods=3, tz="Asia/Tokyo")._data,
             # Miscellaneous invalid types
             3.14,
@@ -794,13 +794,13 @@ class TestPeriodIndexArithmetic:
 
         if pi_freq == "H":
             result = pi - td64obj
-            expected = (pi.to_timestamp("S") - tdi).to_period(pi_freq)
+            expected = (pi.to_timestamp("s") - tdi).to_period(pi_freq)
             expected = tm.box_expected(expected, xbox)
             tm.assert_equal(result, expected)
 
             # Subtract from scalar
             result = pi[0] - td64obj
-            expected = (pi[0].to_timestamp("S") - tdi).to_period(pi_freq)
+            expected = (pi[0].to_timestamp("s") - tdi).to_period(pi_freq)
             expected = tm.box_expected(expected, box)
             tm.assert_equal(result, expected)
 

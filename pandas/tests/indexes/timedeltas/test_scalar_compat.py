@@ -114,7 +114,7 @@ class TestVectorizedTimedelta:
                 ),
             ),
             (
-                "S",
+                "s",
                 t1a,
                 TimedeltaIndex(
                     ["-1 days +00:00:00", "-2 days +23:58:58", "-2 days +23:57:56"]

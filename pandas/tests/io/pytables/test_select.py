@@ -397,7 +397,7 @@ def test_select_iterator_complete_8014(setup_path):
 
     # no iterator
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -428,7 +428,7 @@ def test_select_iterator_complete_8014(setup_path):
 
     # with iterator, full range
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -466,7 +466,7 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, non complete range
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -496,7 +496,7 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, empty where
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -516,7 +516,7 @@ def test_select_iterator_many_empty_frames(setup_path):
 
     # with iterator, range limited to the first chunk
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100000, "S")
+        expected = tm.makeTimeDataFrame(100000, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 

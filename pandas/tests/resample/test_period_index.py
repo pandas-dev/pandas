@@ -328,8 +328,8 @@ class TestPeriodIndex:
         index = date_range("2017-03-12", "2017-03-12 1:45:00", freq="15min")
         s = Series(np.zeros(len(index)), index=index)
         expected = s.tz_localize("US/Pacific")
-        expected.index = pd.DatetimeIndex(expected.index, freq="900S")
-        result = expected.resample("900S").mean()
+        expected.index = pd.DatetimeIndex(expected.index, freq="900s")
+        result = expected.resample("900s").mean()
         tm.assert_series_equal(result, expected)
 
         # GH 23742
@@ -803,7 +803,7 @@ class TestPeriodIndex:
     )
     def test_resample_with_nat(self, periods, values, freq, expected_values):
         # GH 13224
-        index = PeriodIndex(periods, freq="S")
+        index = PeriodIndex(periods, freq="s")
         frame = DataFrame(values, index=index)
 
         expected_index = period_range(
@@ -815,7 +815,7 @@ class TestPeriodIndex:
 
     def test_resample_with_only_nat(self):
         # GH 13224
-        pi = PeriodIndex([pd.NaT] * 3, freq="S")
+        pi = PeriodIndex([pd.NaT] * 3, freq="s")
         frame = DataFrame([2, 3, 5], index=pi, columns=["a"])
         expected_index = PeriodIndex(data=[], freq=pi.freq)
         expected = DataFrame(index=expected_index, columns=["a"], dtype="float64")

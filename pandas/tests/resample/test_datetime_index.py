@@ -493,7 +493,7 @@ def test_resample_how_method(unit):
         ),
     )
     expected.index = expected.index.as_unit(unit)
-    tm.assert_series_equal(s.resample("10S").mean(), expected)
+    tm.assert_series_equal(s.resample("10s").mean(), expected)
 
 
 def test_resample_extra_index_point(unit):
@@ -516,8 +516,8 @@ def test_upsample_with_limit(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10S"])
-@pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30S"])
+@pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10s"])
+@pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture).as_unit(
@@ -1832,13 +1832,13 @@ def test_resample_apply_with_additional_args(series, unit):
 @pytest.mark.parametrize(
     "n1, freq1, n2, freq2",
     [
-        (30, "S", 0.5, "Min"),
-        (60, "S", 1, "Min"),
-        (3600, "S", 1, "H"),
+        (30, "s", 0.5, "Min"),
+        (60, "s", 1, "Min"),
+        (3600, "s", 1, "H"),
         (60, "Min", 1, "H"),
-        (21600, "S", 0.25, "D"),
-        (86400, "S", 1, "D"),
-        (43200, "S", 0.5, "D"),
+        (21600, "s", 0.25, "D"),
+        (86400, "s", 1, "D"),
+        (43200, "s", 0.5, "D"),
         (1440, "Min", 1, "D"),
         (12, "H", 0.5, "D"),
         (24, "H", 1, "D"),

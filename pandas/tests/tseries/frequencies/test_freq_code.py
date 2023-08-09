@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("M", "D"), ("S", "S"), ("min", "S"), ("H", "S")],
+    [("D", "D"), ("W", "D"), ("M", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -33,7 +33,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("D", "day"),
         ("H", "hour"),
         ("min", "minute"),
-        ("S", "second"),
+        ("s", "second"),
         ("ms", "millisecond"),
         ("us", "microsecond"),
         ("ns", "nanosecond"),
@@ -43,7 +43,7 @@ def test_get_attrname_from_abbrev(freqstr, expected):
     assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["D", "H", "min", "S", "ms", "us", "ns"])
+@pytest.mark.parametrize("freq", ["D", "H", "min", "s", "ms", "us", "ns"])
 def test_get_freq_roundtrip2(freq):
     obj = Resolution.get_reso_from_freqstr(freq)
     result = _attrname_to_abbrevs[obj.attrname]
@@ -53,9 +53,9 @@ def test_get_freq_roundtrip2(freq):
 @pytest.mark.parametrize(
     "args,expected",
     [
-        ((1.5, "min"), (90, "S")),
-        ((62.4, "min"), (3744, "S")),
-        ((1.04, "H"), (3744, "S")),
+        ((1.5, "min"), (90, "s")),
+        ((62.4, "min"), (3744, "s")),
+        ((1.04, "H"), (3744, "s")),
         ((1, "D"), (1, "D")),
         ((0.342931, "H"), (1234551600, "us")),
         ((1.2345, "D"), (106660800, "ms")),

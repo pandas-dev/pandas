@@ -2519,7 +2519,7 @@ def test_dt_roundlike_unsupported_freq(method):
 @pytest.mark.xfail(
     pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
 )
-@pytest.mark.parametrize("freq", ["D", "H", "min", "S", "ms", "us", "ns"])
+@pytest.mark.parametrize("freq", ["D", "H", "min", "s", "ms", "us", "ns"])
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
 def test_dt_ceil_year_floor(freq, method):
     ser = pd.Series(

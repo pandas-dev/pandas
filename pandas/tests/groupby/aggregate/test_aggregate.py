@@ -360,7 +360,7 @@ def test_agg_multiple_functions_same_name():
     # GH 30880
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
     result = df.resample("3min").agg(
@@ -382,7 +382,7 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     # ohlc expands dimensions, so different test to the above is required.
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000, name="dti"),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000, name="dti"),
         columns=Index(["A", "B", "C"], name="alpha"),
     )
     result = df.resample("3min").agg(

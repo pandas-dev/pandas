@@ -1444,7 +1444,7 @@ cdef class _Timedelta(timedelta):
         * Days:         'D'
         * Hours:        'H'
         * Minutes:      'min'
-        * Seconds:      'S'
+        * Seconds:      's'
         * Milliseconds: 'ms'
         * Microseconds: 'us'
         * Nanoseconds:  'ns'
@@ -1480,7 +1480,7 @@ cdef class _Timedelta(timedelta):
         elif self._ms:
             return "ms"
         elif self._s:
-            return "S"
+            return "s"
         elif self._m:
             return "min"
         elif self._h:

@@ -758,22 +758,3 @@ def test_factorize_sort_without_freq():
     tda = dta - dta[0]
     with pytest.raises(NotImplementedError, match=msg):
         tda.factorize(sort=True)
-
-
-@pytest.mark.parametrize(
-    "freq,freq_depr",
-    [
-        ("min", "T"),
-        ("ms", "L"),
-        ("us", "U"),
-        ("ns", "N"),
-    ],
-)
-def test_frequencies_t_l_u_n_deprecated(freq, freq_depr):
-    # GH 52536
-    msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
-
-    expected = pd.date_range("1/1/2000", periods=4, freq=freq)
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
-    tm.assert_index_equal(result, expected)

@@ -192,7 +192,7 @@ class TestDatetimeIndexTimezones:
         expected = Index([9, 9, 9], dtype=np.int32)
         tm.assert_index_equal(ut.hour, expected)
 
-    @pytest.mark.parametrize("freq, n", [("H", 1), ("min", 60), ("S", 3600)])
+    @pytest.mark.parametrize("freq, n", [("H", 1), ("min", 60), ("s", 3600)])
     def test_dti_tz_convert_trans_pos_plus_1__bug(self, freq, n):
         # Regression test for tslib.tz_convert(vals, tz1, tz2).
         # See https://github.com/pandas-dev/pandas/issues/4496 for details.
@@ -204,7 +204,7 @@ class TestDatetimeIndexTimezones:
         tm.assert_index_equal(idx.hour, Index(expected, dtype=np.int32))
 
     def test_dti_tz_convert_dst(self):
-        for freq, n in [("H", 1), ("min", 60), ("S", 3600)]:
+        for freq, n in [("H", 1), ("min", 60), ("s", 3600)]:
             # Start DST
             idx = date_range(
                 "2014-03-08 23:00", "2014-03-09 09:00", freq=freq, tz="UTC"

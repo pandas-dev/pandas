@@ -994,7 +994,7 @@ cdef class _Timestamp(ABCTimestamp):
 
         Parameters
         ----------
-        sep : str, default 'min'
+        sep : str, default 'T'
             String used as the separator between the date and time.
 
         timespec : str, default 'auto'

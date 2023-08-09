@@ -144,8 +144,8 @@ _period_code_map = {
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
     "H": PeriodDtypeCode.H,        # Hourly
-    "min": PeriodDtypeCode.T,        # Minutely
-    "S": PeriodDtypeCode.S,        # Secondly
+    "min": PeriodDtypeCode.T,      # Minutely
+    "s": PeriodDtypeCode.S,        # Secondly
     "ms": PeriodDtypeCode.L,       # Millisecondly
     "us": PeriodDtypeCode.U,       # Microsecondly
     "ns": PeriodDtypeCode.N,       # Nanosecondly
@@ -178,7 +178,7 @@ _attrname_to_abbrevs = {
     "day": "D",
     "hour": "H",
     "minute": "min",
-    "second": "S",
+    "second": "s",
     "millisecond": "ms",
     "microsecond": "us",
     "nanosecond": "ns",
@@ -190,6 +190,7 @@ cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 DEPR_ABBREVS: dict[str, str]= {
     "T": "min",
     "t": "min",
+    "S": "s",
     "L": "ms",
     "l": "ms",
     "U": "us",
