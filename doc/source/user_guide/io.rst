@@ -5651,7 +5651,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    data = pd.DataFrame(d, columns=c)
 
    data
-   data.to_sql(name="data", con=engine)
+   data.to_sql("data", con=engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
@@ -5660,7 +5660,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
-    data.to_sql(name="data_chunked", con=engine, chunksize=1000)
+    data.to_sql("data_chunked", con=engine, chunksize=1000)
 
 SQL data types
 ++++++++++++++
@@ -5680,7 +5680,7 @@ default ``Text`` type for string columns:
 
     from sqlalchemy.types import String
 
-    data.to_sql(name="data_dtype", con=engine, dtype={"Col_1": String})
+    data.to_sql("data_dtype", con=engine, dtype={"Col_1": String})
 
 .. note::
 

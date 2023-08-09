@@ -1450,7 +1450,7 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame({"a": [1 + 1j, 2j]})
         msg = "Complex datatypes not supported"
         with pytest.raises(ValueError, match=msg):
-            assert df.to_sql(name="test_complex", con=self.conn) is None
+            assert df.to_sql("test_complex", con=self.conn) is None
 
     @pytest.mark.parametrize(
         "index_name,index_label,expected",
@@ -2845,6 +2845,17 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def setup_driver(cls):
         # sqlite3 is built-in
         cls.driver = None
+
+    def test_keyword_deprecation(self):
+        # GH 54397
+        msg = (
+            "tarting with pandas version 3.0 all arguments of to_sql except for the "
+            "argument 'name' will be keyword-only."
+        )
+        df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_sql("example", self.conn)
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types", self.conn)
