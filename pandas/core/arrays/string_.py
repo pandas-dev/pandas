@@ -97,7 +97,9 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
     #: StringDtype().na_value uses pandas.NA
     @property
@@ -119,7 +121,9 @@ class StringDtype(StorageExtensionDtype):
             )
         self.storage = storage
 
-    type: ClassVar[type_t[str]] = str
+    @property
+    def type(self) -> type[str]:
+        return str
 
     @classmethod
     def construct_from_string(cls, string):

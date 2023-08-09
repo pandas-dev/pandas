@@ -6,7 +6,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    ClassVar,
     TypeVar,
     cast,
     overload,
@@ -159,15 +158,17 @@ class ExtensionDtype:
         """
         return np.nan
 
-    """
-    The scalar type for the array, e.g. ``int``
+    @property
+    def type(self) -> type_t[Any]:
+        """
+        The scalar type for the array, e.g. ``int``
 
-    It's expected ``ExtensionArray[item]`` returns an instance
-    of ``ExtensionDtype.type`` for scalar ``item``, assuming
-    that value is valid (not NA). NA values do not need to be
-    instances of `type`.
-    """
-    type: ClassVar[type] = NotImplementedError
+        It's expected ``ExtensionArray[item]`` returns an instance
+        of ``ExtensionDtype.type`` for scalar ``item``, assuming
+        that value is valid (not NA). NA values do not need to be
+        instances of `type`.
+        """
+        raise AbstractMethodError(self)
 
     @property
     def kind(self) -> str:
@@ -185,12 +186,14 @@ class ExtensionDtype:
         """
         return "O"
 
-    """
-    A string identifying the data type.
+    @property
+    def name(self) -> str:
+        """
+        A string identifying the data type.
 
-    Will be used for display in, e.g. ``Series.dtype``
-    """
-    name: ClassVar[str] = "NotImplementedError"
+        Will be used for display in, e.g. ``Series.dtype``
+        """
+        raise AbstractMethodError(self)
 
     @property
     def names(self) -> list[str] | None:
@@ -407,6 +410,7 @@ class ExtensionDtype:
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
 
+    name: str
     _metadata = ("storage",)
 
     def __init__(self, storage: str | None = None) -> None:
