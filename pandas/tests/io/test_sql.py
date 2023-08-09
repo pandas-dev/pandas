@@ -2949,7 +2949,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         pa = pytest.importorskip("pyarrow")
         table = "test"
         df = DataFrame({"a": ["x", "y"]})
-        df.to_sql(table, conn=self.conn, index=False, if_exists="replace")
+        df.to_sql(table, conn=self.con, index=False, if_exists="replace")
 
         with pd.option_context("future.infer_string", True):
             result = read_sql_table(table, self.conn)
