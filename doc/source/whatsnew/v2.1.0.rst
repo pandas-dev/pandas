@@ -34,6 +34,26 @@ but not limited to:
 
 We are collecting feedback on this decision [here](https://github.com/pandas-dev/pandas/issues/54466).
 
+.. _whatsnew_210.enhancements.infer_strings:
+
+Avoid NumPy object dtype for strings by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, all strings were stored in columns with NumPy object dtype.
+This release introduces an option ``future.infer_string`` that infers all
+strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
+This option only works if PyArrow is installed. PyArrow backed strings have a
+significantly reduced memory footprint and provide a big performance improvement
+compared to NumPy object.
+
+The option can be enabled with:
+
+```
+pd.options.future.infer_string = True
+```
+
+It is expected that this behavior will become the default with pandas 3.0.
+
 .. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
 DataFrame reductions preserve extension dtypes
