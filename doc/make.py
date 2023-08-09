@@ -293,6 +293,12 @@ class DocBuilder:
         Check for broken links in the documentation.
         """
         cmd = ["sphinx-build", "-b", "linkcheck"]
+        cmd += [
+            "-d",
+            os.path.join(BUILD_PATH, "doctrees"),
+            SOURCE_PATH,
+            os.path.join(BUILD_PATH, "linkcheck"),
+        ]
         subprocess.call(cmd)
 
 
