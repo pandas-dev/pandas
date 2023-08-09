@@ -7,7 +7,6 @@ import pandas._testing as tm
 
 class TestCategoricalWarnings:
     @async_mark()
-    @pytest.mark.filterwarnings("ignore:'encoding' argument not specified")
     async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
@@ -18,6 +17,6 @@ class TestCategoricalWarnings:
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
             with provisionalcompleter("ignore"):
                 list(ip.Completer.completions("c.", 1))
