@@ -2679,7 +2679,7 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if is_string_array(objects):
+        if is_string_array(objects, skipna=True):
             from pandas._config import get_option
             opt = get_option("future.infer_string")
             if opt is True:
@@ -2687,9 +2687,8 @@ def maybe_convert_objects(ndarray[object] objects,
 
                 from pandas.core.dtypes.dtypes import ArrowDtype
 
-                obj = pa.array(objects)
-                dtype = ArrowDtype(obj.type)
-                return dtype.construct_array_type()(obj)
+                dtype = ArrowDtype(pa.string())
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
     elif seen.interval_:

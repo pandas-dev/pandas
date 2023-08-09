@@ -218,6 +218,7 @@ Other enhancements
 - Many read/to_* functions, such as :meth:`DataFrame.to_pickle` and :func:`read_csv`, support forwarding compression arguments to lzma.LZMAFile (:issue:`52979`)
 - Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype objects (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
+- Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`GroupBy.quantile` (:issue:`51722`)
 
 .. ---------------------------------------------------------------------------
@@ -256,65 +257,67 @@ Increased minimum versions for dependencies
 Some minimum supported versions of dependencies were updated.
 If installed, we now require:
 
-+-----------------+-----------------+----------+---------+
-| Package         | Minimum Version | Required | Changed |
-+=================+=================+==========+=========+
-| numpy           | 1.22.4          |    X     |    X    |
-+-----------------+-----------------+----------+---------+
-| mypy (dev)      | 1.4.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| beautifulsoup4  | 4.11.1          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| bottleneck      | 1.3.4           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| fastparquet     | 0.8.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| fsspec          | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| hypothesis      | 6.46.1          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| gcsfs           | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| jinja2          | 3.1.2           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| lxml            | 4.8.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| numba           | 0.55.2          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| numexpr         | 2.8.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| openpyxl        | 3.0.10          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pandas-gbq      | 0.17.5          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| psycopg2        | 2.9.3           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyreadstat      | 1.1.5           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyqt5           | 5.15.6          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pytables        | 3.7.0           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pytest          | 7.3.2           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| python-snappy   | 0.6.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| pyxlsb          | 1.0.9           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| s3fs            | 2022.05.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| scipy           | 1.8.1           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| sqlalchemy      | 1.4.36          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| tabulate        | 0.8.10          |          |    X    |
-+-----------------+-----------------+----------+---------+
-| xarray          | 2022.03.0       |          |    X    |
-+-----------------+-----------------+----------+---------+
-| xlsxwriter      | 3.0.3           |          |    X    |
-+-----------------+-----------------+----------+---------+
-| zstandard       | 0.17.0          |          |    X    |
-+-----------------+-----------------+----------+---------+
++----------------------+-----------------+----------+---------+
+| Package              | Minimum Version | Required | Changed |
++======================+=================+==========+=========+
+| numpy                | 1.22.4          |    X     |    X    |
++----------------------+-----------------+----------+---------+
+| mypy (dev)           | 1.4.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| beautifulsoup4       | 4.11.1          |          |    X    |
++----------------------+-----------------+----------+---------+
+| bottleneck           | 1.3.4           |          |    X    |
++----------------------+-----------------+----------+---------+
+| dataframe-api-compat | 0.1.7           |          |    X    |
++----------------------+-----------------+----------+---------+
+| fastparquet          | 0.8.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| fsspec               | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| hypothesis           | 6.46.1          |          |    X    |
++----------------------+-----------------+----------+---------+
+| gcsfs                | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| jinja2               | 3.1.2           |          |    X    |
++----------------------+-----------------+----------+---------+
+| lxml                 | 4.8.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| numba                | 0.55.2          |          |    X    |
++----------------------+-----------------+----------+---------+
+| numexpr              | 2.8.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| openpyxl             | 3.0.10          |          |    X    |
++----------------------+-----------------+----------+---------+
+| pandas-gbq           | 0.17.5          |          |    X    |
++----------------------+-----------------+----------+---------+
+| psycopg2             | 2.9.3           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyreadstat           | 1.1.5           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyqt5                | 5.15.6          |          |    X    |
++----------------------+-----------------+----------+---------+
+| pytables             | 3.7.0           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pytest               | 7.3.2           |          |    X    |
++----------------------+-----------------+----------+---------+
+| python-snappy        | 0.6.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| pyxlsb               | 1.0.9           |          |    X    |
++----------------------+-----------------+----------+---------+
+| s3fs                 | 2022.05.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| scipy                | 1.8.1           |          |    X    |
++----------------------+-----------------+----------+---------+
+| sqlalchemy           | 1.4.36          |          |    X    |
++----------------------+-----------------+----------+---------+
+| tabulate             | 0.8.10          |          |    X    |
++----------------------+-----------------+----------+---------+
+| xarray               | 2022.03.0       |          |    X    |
++----------------------+-----------------+----------+---------+
+| xlsxwriter           | 3.0.3           |          |    X    |
++----------------------+-----------------+----------+---------+
+| zstandard            | 0.17.0          |          |    X    |
++----------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -588,6 +591,7 @@ Performance improvements
 - Performance improvement in :class:`Series` reductions (:issue:`52341`)
 - Performance improvement in :func:`concat` when ``axis=1`` and objects have different indexes (:issue:`52541`)
 - Performance improvement in :func:`concat` when the concatenation axis is a :class:`MultiIndex` (:issue:`53574`)
+- Performance improvement in :func:`merge` for PyArrow backed strings (:issue:`54443`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` (:issue:`52632`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
@@ -608,7 +612,6 @@ Performance improvements
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArrays` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)
 - Performance improvement when indexing with pyarrow timestamp and duration dtypes (:issue:`53368`)
 - Performance improvement when passing an array to :meth:`RangeIndex.take`, :meth:`DataFrame.loc`, or :meth:`DataFrame.iloc` and the DataFrame is using a RangeIndex (:issue:`53387`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.bug_fixes:
@@ -728,6 +731,7 @@ I/O
 - Bug in :func:`read_sql` when reading multiple timezone aware columns with the same column name (:issue:`44421`)
 - Bug in :func:`read_xml` stripping whitespace in string data (:issue:`53811`)
 - Bug in :meth:`DataFrame.to_html` where ``colspace`` was incorrectly applied in case of multi index columns (:issue:`53885`)
+- Bug in :meth:`DataFrame.to_html` where conversion for an empty :class:`DataFrame` with complex dtype raised a ``ValueError`` (:issue:`54167`)
 - Bug in :meth:`DataFrame.to_json` where :class:`DateTimeArray`/:class:`DateTimeIndex` with non nanosecond precision could not be serialized correctly (:issue:`53686`)
 - Bug when writing and reading empty Stata dta files where dtype information was lost (:issue:`46240`)
 - Bug where ``bz2`` was treated as a hard requirement (:issue:`53857`)

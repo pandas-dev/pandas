@@ -1382,7 +1382,7 @@ class HDFStore:
             )
 
         # figure out the splitting axis (the non_index_axis)
-        axis = list(set(range(value.ndim)) - set(_AXES_MAP[type(value)]))[0]
+        axis = next(iter(set(range(value.ndim)) - set(_AXES_MAP[type(value)])))
 
         # figure out how to split the value
         remain_key = None
@@ -3947,7 +3947,7 @@ class Table(Fixed):
             nan_rep = "nan"
 
         # We construct the non-index-axis first, since that alters new_info
-        idx = [x for x in [0, 1] if x not in axes][0]
+        idx = next(x for x in [0, 1] if x not in axes)
 
         a = obj.axes[idx]
         # we might be able to change the axes on the appending data if necessary

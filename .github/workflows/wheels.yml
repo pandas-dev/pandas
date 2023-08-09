@@ -123,6 +123,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Work around for https://github.com/actions/runner-images/issues/2619?
+      # Empty disk and memory cache
+      - name: Purge on macOS
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          sudo /usr/sbin/purge
+
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Build sdist (macOS)
@@ -135,6 +142,14 @@ jobs:
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
+
+      # Work around for https://github.com/actions/runner-images/issues/2619?
+      # Empty disk and memory cache
+      # Again for good luck :)
+      - name: Purge on macOS again
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          sudo /usr/sbin/purge
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1

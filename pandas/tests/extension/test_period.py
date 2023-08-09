@@ -22,7 +22,6 @@ from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import PeriodArray
 from pandas.tests.extension import base
@@ -36,11 +35,6 @@ def dtype(request):
 @pytest.fixture
 def data(dtype):
     return PeriodArray(np.arange(1970, 2070), dtype=dtype)
-
-
-@pytest.fixture
-def data_for_twos(dtype):
-    pytest.skip("Not a numeric dtype")
 
 
 @pytest.fixture
@@ -65,11 +59,6 @@ def data_for_grouping(dtype):
     A = 2017
     C = 2019
     return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
-
-
-@pytest.fixture
-def na_value():
-    return pd.NaT
 
 
 class BasePeriodTests:
@@ -116,16 +105,6 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
         if op_name in ("__sub__", "__rsub__"):
             return None
         return super()._get_expected_exception(op_name, obj, other)
-
-    def test_add_series_with_extension_array(self, data):
-        # we don't implement + for Period
-        s = pd.Series(data)
-        msg = (
-            r"unsupported operand type\(s\) for \+: "
-            r"\'PeriodArray\' and \'PeriodArray\'"
-        )
-        with pytest.raises(TypeError, match=msg):
-            s + data
 
 
 class TestCasting(BasePeriodTests, base.BaseCastingTests):
