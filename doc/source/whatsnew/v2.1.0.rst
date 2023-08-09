@@ -21,7 +21,7 @@ PyArrow will become a required dependency with pandas 3.0
 
 `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required
 dependency of pandas starting with pandas 3.0. This decision was made based on
-[PDEP 12](https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html).
+`PDEP 12 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
 
 This will enable more changes that are hugely beneficial to pandas users, including
 but not limited to:
