@@ -547,13 +547,14 @@ def test_string_inference(all_parsers):
 
     data = """a,b
 x,1
-y,2"""
+y,2
+,3"""
     parser = all_parsers
     with pd.option_context("future.infer_string", True):
         result = parser.read_csv(StringIO(data))
 
     expected = DataFrame(
-        {"a": pd.Series(["x", "y"], dtype=dtype), "b": [1, 2]},
+        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
         columns=pd.Index(["a", "b"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
