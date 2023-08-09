@@ -353,3 +353,12 @@ class TestIntervalRange:
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=start, end=end)
+
+    def test_float_freq(self):
+        result = interval_range(0, 1, freq=0.1)
+        expected = IntervalIndex.from_breaks([0 + 0.1 * n for n in range(11)])
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(0, 1, freq=0.6)
+        expected = IntervalIndex.from_breaks([0, 0.6])
+        tm.assert_index_equal(result, expected)
