@@ -123,14 +123,12 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Work around https://github.com/actions/cache/issues/403 by using GNU tar
-      # instead of BSD tar.
-      # borrowed from https://github.com/rust-lang/rust-analyzer/pull/6208/files
-      - name: Install GNU tar
+      # Work around for https://github.com/actions/runner-images/issues/2619?
+      # Empty disk and memory cache
+      - name: Purge on macOS
         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
-          brew install gnu-tar
-          echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
+          sudo /usr/sbin/purge
 
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
@@ -144,6 +142,14 @@ jobs:
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
+
+      # Work around for https://github.com/actions/runner-images/issues/2619?
+      # Empty disk and memory cache
+      # Again for good luck :)
+      - name: Purge on macOS again
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          sudo /usr/sbin/purge
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
