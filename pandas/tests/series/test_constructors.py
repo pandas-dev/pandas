@@ -2094,6 +2094,14 @@ class TestSeriesConstructors:
             ser = Series(["a", na_value])
         tm.assert_series_equal(ser, expected)
 
+    def test_series_string_inference_scalar(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        expected = Series("a", index=[1], dtype=pd.ArrowDtype(pa.string()))
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1])
+        tm.assert_series_equal(ser, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
