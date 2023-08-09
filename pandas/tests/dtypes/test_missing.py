@@ -805,7 +805,7 @@ inf_vals = [
     complex("inf"),
     complex("-inf"),
     np.inf,
-    np.NINF,
+    -np.inf,
 ]
 
 int_na_vals = [

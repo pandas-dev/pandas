@@ -51,8 +51,8 @@ cdef extern from "pandas/skiplist.h":
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
-    float32_t MINfloat32 = np.NINF
-    float64_t MINfloat64 = np.NINF
+    float32_t MINfloat32 = -np.inf
+    float64_t MINfloat64 = -np.inf
 
     float32_t MAXfloat32 = np.inf
     float64_t MAXfloat64 = np.inf
