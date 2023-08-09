@@ -11148,7 +11148,7 @@ class DataFrame(NDFrame, OpsMixin):
                     nrows, ncols = df.shape
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
-                    ser = Series(arr, index=col_index)
+                    ser = Series(arr, index=col_index, copy=False)
                     result = ser.groupby(row_index).agg(name, **kwds)
                     result.index = df.index
                     if not skipna and name not in ("any", "all"):
