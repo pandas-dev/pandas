@@ -935,6 +935,8 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     This wrapper writes to the underlying buffer on close.
     """
 
+    buffer = BytesIO()
+
     @abstractmethod
     def write_to_buffer(self) -> None:
         ...
@@ -946,12 +948,10 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
         if self.getbuffer().nbytes:
             # write to buffer
             self.seek(0)
-            # error: "_BufferedWriter" has no attribute "buffer"
-            with self.buffer:  # type: ignore[attr-defined]
+            with self.buffer:
                 self.write_to_buffer()
         else:
-            # error: "_BufferedWriter" has no attribute "buffer"
-            self.buffer.close()  # type: ignore[attr-defined]
+            self.buffer.close()
         super().close()
 
 
@@ -967,20 +967,14 @@ class _BytesTarFile(_BufferedWriter):
         super().__init__()
         self.archive_name = archive_name
         self.name = name
-        # error: Argument "fileobj" to "open" of "TarFile" has incompatible
-        # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
-        # "Optional[IO[bytes]]"
-        try:
-            self.buffer = tarfile.TarFile.open(
-                name=name,
-                mode=self.extend_mode(mode),
-                fileobj=fileobj,  # type: ignore[arg-type]
-                **kwargs,
-            )
-        except Exception:
-            # Give super().close something to close on destruction
-            self.buffer = BytesIO()
-            raise
+        # error: Incompatible types in assignment (expression has type "TarFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
+            name=name,
+            mode=self.extend_mode(mode),
+            fileobj=fileobj,
+            **kwargs,
+        )
 
     def extend_mode(self, mode: str) -> str:
         mode = mode.replace("b", "")
@@ -1028,17 +1022,11 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: No overload variant of "ZipFile" matches argument types "str |
-        # PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]", "str", "dict[str,
-        # Any]"
-        try:
-            self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
-                file, mode, **kwargs
-            )
-        except Exception:
-            # Give super().close something to close on destruction
-            self.buffer = BytesIO()
-            raise
+        # error: Incompatible types in assignment (expression has type "ZipFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[assignment]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """

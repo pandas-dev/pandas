@@ -7,6 +7,7 @@ import pandas._testing as tm
 
 class TestCategoricalWarnings:
     @async_mark()
+    @pytest.mark.filterwarnings("ignore:'encoding' argument not specified")
     async def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")

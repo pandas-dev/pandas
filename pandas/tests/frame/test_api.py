@@ -289,6 +289,7 @@ class TestDataFrameMisc:
         _check_f(d.copy(), f)
 
     @async_mark()
+    @pytest.mark.filterwarnings("ignore:'encoding' argument not specified")
     async def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
