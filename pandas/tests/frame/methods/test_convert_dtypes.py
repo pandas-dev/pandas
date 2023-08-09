@@ -167,3 +167,11 @@ class TestConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="numpy_nullable")
         expected = pd.DataFrame(range(2), dtype="Int32")
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_timestamp(self):
+        # GH 54191
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(pd.date_range("2020-01-01", "2020-01-02", freq="1min"))
+        expected = ser.astype("timestamp[ms][pyarrow]")
+        result = expected.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, expected)
