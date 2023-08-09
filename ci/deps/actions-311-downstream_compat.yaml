@@ -7,7 +7,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.33
+  - cython>=3.0.0
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
@@ -73,5 +73,6 @@ dependencies:
   - pyyaml
   - py
   - pip:
+    - dataframe-api-compat>=0.1.7
     - pyqt5>=5.15.6
     - tzdata>=2022.1

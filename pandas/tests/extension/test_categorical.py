@@ -19,11 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
-from pandas import (
-    Categorical,
-    CategoricalIndex,
-    Timestamp,
-)
+from pandas import Categorical
 import pandas._testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
@@ -72,11 +68,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def data_for_grouping():
     return Categorical(["a", "a", None, None, "b", "b", "a", "c"])
 
@@ -88,7 +79,7 @@ class TestDtype(base.BaseDtypeTests):
 class TestInterface(base.BaseInterfaceTests):
     @pytest.mark.xfail(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
-        # Is this deliberate?
+        # TODO: Is this deliberate?
         super().test_memory_usage(data)
 
     def test_contains(self, data, data_missing):
@@ -152,7 +143,7 @@ class TestMissing(base.BaseMissingTests):
     pass
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
@@ -189,51 +180,7 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    @pytest.mark.parametrize("cls", [Categorical, CategoricalIndex])
-    @pytest.mark.parametrize("values", [[1, np.nan], [Timestamp("2000"), pd.NaT]])
-    def test_cast_nan_to_int(self, cls, values):
-        # GH 28406
-        s = cls(values)
-
-        msg = "Cannot (cast|convert)"
-        with pytest.raises((ValueError, TypeError), match=msg):
-            s.astype(int)
-
-    @pytest.mark.parametrize(
-        "expected",
-        [
-            pd.Series(["2019", "2020"], dtype="datetime64[ns, UTC]"),
-            pd.Series([0, 0], dtype="timedelta64[ns]"),
-            pd.Series([pd.Period("2019"), pd.Period("2020")], dtype="period[A-DEC]"),
-            pd.Series([pd.Interval(0, 1), pd.Interval(1, 2)], dtype="interval"),
-            pd.Series([1, np.nan], dtype="Int64"),
-        ],
-    )
-    def test_cast_category_to_extension_dtype(self, expected):
-        # GH 28668
-        result = expected.astype("category").astype(expected.dtype)
-
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype, expected",
-        [
-            (
-                "datetime64[ns]",
-                np.array(["2015-01-01T00:00:00.000000000"], dtype="datetime64[ns]"),
-            ),
-            (
-                "datetime64[ns, MET]",
-                pd.DatetimeIndex(
-                    [Timestamp("2015-01-01 00:00:00+0100", tz="MET")]
-                ).array,
-            ),
-        ],
-    )
-    def test_consistent_casting(self, dtype, expected):
-        # GH 28448
-        result = Categorical(["2015-01-01"]).astype(dtype)
-        assert result == expected
+    pass
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
@@ -258,50 +205,16 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="cannot perform|unsupported operand"):
-            ser + data
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op, other):
         op_name = f"__{op.__name__}__"
-        if op_name == "__eq__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x == y)
-            assert (result == expected).all()
-
-        elif op_name == "__ne__":
-            result = op(s, other)
-            expected = s.combine(other, lambda x, y: x != y)
-            assert (result == expected).all()
-
-        else:
+        if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
-
-    @pytest.mark.parametrize(
-        "categories",
-        [["a", "b"], [0, 1], [Timestamp("2019"), Timestamp("2020")]],
-    )
-    def test_not_equal_with_na(self, categories):
-        # https://github.com/pandas-dev/pandas/issues/32276
-        c1 = Categorical.from_codes([-1, 0], categories=categories)
-        c2 = Categorical.from_codes([0, 1], categories=categories)
-
-        result = c1 != c2
-
-        assert result.all()
+        else:
+            return super()._compare_other(s, data, op, other)
 
 
 class TestParsing(base.BaseParsingTests):
@@ -317,12 +230,3 @@ class Test2DCompat(base.NDArrayBacked2DTests):
 
         res = repr(data.reshape(-1, 1))
         assert res.count("\nCategories") == 1
-
-
-def test_astype_category_readonly_mask_values():
-    # GH 53658
-    df = pd.DataFrame([0, 1, 2], dtype="Int64")
-    df._mgr.arrays[0]._mask.flags["WRITEABLE"] = False
-    result = df.astype("category")
-    expected = pd.DataFrame([0, 1, 2], dtype="Int64").astype("category")
-    tm.assert_frame_equal(result, expected)

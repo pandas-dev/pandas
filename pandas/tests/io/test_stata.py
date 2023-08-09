@@ -6,7 +6,6 @@ import io
 import os
 import struct
 import tarfile
-import warnings
 import zipfile
 
 import numpy as np
@@ -136,6 +135,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
+    @pytest.mark.filterwarnings("always")
     def test_read_dta2(self, datapath):
         expected = DataFrame.from_records(
             [
@@ -174,27 +174,20 @@ class TestStata:
         )
         expected["yearly_date"] = expected["yearly_date"].astype("O")
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            parsed_114 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_114.dta")
-            )
-            parsed_115 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_115.dta")
-            )
-            parsed_117 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_117.dta")
-            )
+        path1 = datapath("io", "data", "stata", "stata2_114.dta")
+        path2 = datapath("io", "data", "stata", "stata2_115.dta")
+        path3 = datapath("io", "data", "stata", "stata2_117.dta")
+
+        with tm.assert_produces_warning(UserWarning):
+            parsed_114 = self.read_dta(path1)
+        with tm.assert_produces_warning(UserWarning):
+            parsed_115 = self.read_dta(path2)
+        with tm.assert_produces_warning(UserWarning):
+            parsed_117 = self.read_dta(path3)
             # 113 is buggy due to limits of date format support in Stata
             # parsed_113 = self.read_dta(
             # datapath("io", "data", "stata", "stata2_113.dta")
             # )
-
-            # Remove resource warnings
-            w = [x for x in w if x.category is UserWarning]
-
-            # should get warning for each call to read_dta
-            assert len(w) == 3
 
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
@@ -460,11 +453,9 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always", InvalidColumnName)
+            with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, convert_dates=None, version=version)
                 # should get a warning for that format.
-                assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
 
@@ -1156,6 +1147,7 @@ class TestStata:
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
         [
@@ -1180,13 +1172,11 @@ class TestStata:
     ):
         fname = datapath("io", "data", "stata", f"{file}.dta")
 
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always")
-            parsed = read_stata(
-                fname,
-                convert_categoricals=convert_categoricals,
-                convert_dates=convert_dates,
-            )
+        parsed = read_stata(
+            fname,
+            convert_categoricals=convert_categoricals,
+            convert_dates=convert_dates,
+        )
         with read_stata(
             fname,
             iterator=True,
@@ -1195,12 +1185,10 @@ class TestStata:
         ) as itr:
             pos = 0
             for j in range(5):
-                with warnings.catch_warnings(record=True):
-                    warnings.simplefilter("always")
-                    try:
-                        chunk = itr.read(chunksize)
-                    except StopIteration:
-                        break
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
@@ -1249,6 +1237,7 @@ class TestStata:
             from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
         [
@@ -1273,13 +1262,11 @@ class TestStata:
         fname = datapath("io", "data", "stata", f"{file}.dta")
 
         # Read the whole file
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always")
-            parsed = read_stata(
-                fname,
-                convert_categoricals=convert_categoricals,
-                convert_dates=convert_dates,
-            )
+        parsed = read_stata(
+            fname,
+            convert_categoricals=convert_categoricals,
+            convert_dates=convert_dates,
+        )
 
         # Compare to what we get when reading by chunk
         with read_stata(
@@ -1290,12 +1277,10 @@ class TestStata:
         ) as itr:
             pos = 0
             for j in range(5):
-                with warnings.catch_warnings(record=True):
-                    warnings.simplefilter("always")
-                    try:
-                        chunk = itr.read(chunksize)
-                    except StopIteration:
-                        break
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(

@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -53,7 +52,7 @@ class TestTSPlot:
         ts = Series([188.5, 328.25], index=index)
         _check_plot_works(ts.plot)
         ax = ts.plot()
-        xdata = list(ax.get_lines())[0].get_xdata()
+        xdata = next(iter(ax.get_lines())).get_xdata()
         # Check first and last points' labels are correct
         assert (xdata[0].hour, xdata[0].minute) == (0, 0)
         assert (xdata[-1].hour, xdata[-1].minute) == (1, 0)
@@ -695,8 +694,8 @@ class TestTSPlot:
         ax = ser2.plot()
         assert ax.get_yaxis().get_visible()
 
-    @td.skip_if_no_scipy
     def test_secondary_kde(self):
+        pytest.importorskip("scipy")
         ser = Series(np.random.default_rng(2).standard_normal(10))
         fig, ax = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True, kind="density", ax=ax)

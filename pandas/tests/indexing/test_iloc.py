@@ -2,10 +2,6 @@
 
 from datetime import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -742,6 +738,7 @@ class TestiLocBaseIndependent:
 
         assert is_scalar(result) and result == "Z"
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_iloc_mask(self):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
@@ -786,32 +783,30 @@ class TestiLocBaseIndependent:
         }
 
         # UserWarnings from reindex of a boolean mask
-        with catch_warnings(record=True):
-            simplefilter("ignore", UserWarning)
-            for idx in [None, "index", "locs"]:
-                mask = (df.nums > 2).values
-                if idx:
-                    mask_index = getattr(df, idx)[::-1]
-                    mask = Series(mask, list(mask_index))
-                for method in ["", ".loc", ".iloc"]:
-                    try:
-                        if method:
-                            accessor = getattr(df, method[1:])
-                        else:
-                            accessor = df
-                        answer = str(bin(accessor[mask]["nums"].sum()))
-                    except (ValueError, IndexingError, NotImplementedError) as e:
-                        answer = str(e)
+        for idx in [None, "index", "locs"]:
+            mask = (df.nums > 2).values
+            if idx:
+                mask_index = getattr(df, idx)[::-1]
+                mask = Series(mask, list(mask_index))
+            for method in ["", ".loc", ".iloc"]:
+                try:
+                    if method:
+                        accessor = getattr(df, method[1:])
+                    else:
+                        accessor = df
+                    answer = str(bin(accessor[mask]["nums"].sum()))
+                except (ValueError, IndexingError, NotImplementedError) as e:
+                    answer = str(e)
 
-                    key = (
-                        idx,
-                        method,
+                key = (
+                    idx,
+                    method,
+                )
+                r = expected.get(key)
+                if r != answer:
+                    raise AssertionError(
+                        f"[{key}] does not match [{answer}], received [{r}]"
                     )
-                    r = expected.get(key)
-                    if r != answer:
-                        raise AssertionError(
-                            f"[{key}] does not match [{answer}], received [{r}]"
-                        )
 
     def test_iloc_non_unique_indexing(self):
         # GH 4017, non-unique indexing (on the axis)
