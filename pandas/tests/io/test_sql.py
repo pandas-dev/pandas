@@ -2922,6 +2922,23 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         # GH#50048 Not supported for sqlite
         pass
 
+    def test_read_sql_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        table = "test"
+        df = DataFrame({"a": ["x", "y"]})
+        df.to_sql(table, self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("future.infer_string", True):
+            result = read_sql_table(table, self.conn)
+
+        dtype = pd.ArrowDtype(pa.string())
+        expected = DataFrame(
+            {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.db
 class TestMySQLAlchemy(_TestSQLAlchemy):
