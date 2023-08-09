@@ -920,7 +920,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="S")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s")
     expected = DataFrame(
         {
             "A": [

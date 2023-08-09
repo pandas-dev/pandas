@@ -55,7 +55,6 @@ class TestFrameAsof:
         df = date_range_frame.iloc[:N].copy().astype({"A": "float"})
         df.loc[df.index[4:8], "A"] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
-        print("11111111 = ", dates.freqstr)
 
         # with a subset of A should be the same
         result = df.asof(dates, subset="A")
@@ -70,9 +69,9 @@ class TestFrameAsof:
         # B gives df.asof
         result = df.asof(dates, subset="B")
         expected = df.resample("25s", closed="right").ffill().reindex(dates)
-        # expected.iloc[20:] = 9
-        # # no "missing", so "B" can retain int dtype (df["A"].dtype platform-dependent)
-        # expected["B"] = expected["B"].astype(df["B"].dtype)
+        expected.iloc[20:] = 9
+        # no "missing", so "B" can retain int dtype (df["A"].dtype platform-dependent)
+        expected["B"] = expected["B"].astype(df["B"].dtype)
 
         # tm.assert_frame_equal(result, expected)
 

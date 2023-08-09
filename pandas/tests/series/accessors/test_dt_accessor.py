@@ -784,8 +784,8 @@ class TestSeriesPeriodValuesDtAccessor:
                 Period("2016-01-01 00:01:00", freq="M"),
             ],
             [
-                Period("2016-01-01 00:00:00", freq="S"),
-                Period("2016-01-01 00:00:01", freq="S"),
+                Period("2016-01-01 00:00:00", freq="s"),
+                Period("2016-01-01 00:00:01", freq="s"),
             ],
         ],
     )

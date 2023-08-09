@@ -20,7 +20,7 @@ from pandas._libs.tslibs import (
         ("2h 60min", offsets.Hour(3)),
         ("2h 20.5min", offsets.Second(8430)),
         ("1.5min", offsets.Second(90)),
-        ("0.5S", offsets.Milli(500)),
+        ("0.5s", offsets.Milli(500)),
         ("15ms500us", offsets.Micro(15500)),
         ("10s75ms", offsets.Milli(10075)),
         ("1s0.25ms", offsets.Micro(1000250)),
@@ -38,7 +38,7 @@ def test_to_offset(freq_input, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("-1S", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
+    "freqstr,expected", [("-1s", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
 )
 def test_to_offset_negative(freqstr, expected):
     result = to_offset(freqstr)
@@ -54,7 +54,7 @@ def test_to_offset_negative(freqstr, expected):
         "3us1",
         "-2-3us",
         "-2D:3H",
-        "1.5.0S",
+        "1.5.0s",
         "2SMS-15-15",
         "2SMS-15D",
         "100foo",
@@ -119,7 +119,7 @@ def test_to_offset_whitespace(freqstr, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("00H 00min 01S", 1), ("-00H 03min 14S", -194)]
+    "freqstr,expected", [("00H 00min 01s", 1), ("-00H 03min 14s", -194)]
 )
 def test_to_offset_leading_zero(freqstr, expected):
     result = to_offset(freqstr)

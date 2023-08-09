@@ -200,7 +200,7 @@ def test_nearest():
                 "2000-01-01 00:02:00",
             ],
             dtype="datetime64[ns]",
-            freq="20S",
+            freq="20s",
         ),
     )
     tm.assert_series_equal(result, expected)

@@ -349,7 +349,7 @@ class TestPeriodConstruction:
         assert p.freq == "min"
 
         p = Period("2007-01-01 07:10:15")
-        assert p.freq == "S"
+        assert p.freq == "s"
 
         p = Period("2007-01-01 07:10:15.123")
         assert p.freq == "ms"
@@ -638,7 +638,7 @@ class TestPeriodMethods:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)
 
-        from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
+        from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "s"]
 
         def _ex(p):
             if p.freq == "B":
@@ -679,11 +679,11 @@ class TestPeriodMethods:
         assert result == expected
         result = p.to_timestamp("min", how="start")
         assert result == expected
-        result = p.to_timestamp("S", how="start")
+        result = p.to_timestamp("s", how="start")
         assert result == expected
         result = p.to_timestamp("3H", how="start")
         assert result == expected
-        result = p.to_timestamp("5S", how="start")
+        result = p.to_timestamp("5s", how="start")
         assert result == expected
 
     def test_to_timestamp_business_end(self):
@@ -732,7 +732,7 @@ class TestPeriodMethods:
             ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "us"),
             ("2000-12-15 13:45:26.123456789", "ms", "2000-12-15 13:45:26.123", "ms"),
             ("2000-12-15 13:45:26.123", None, "2000-12-15 13:45:26.123", "ms"),
-            ("2000-12-15 13:45:26", "S", "2000-12-15 13:45:26", "S"),
+            ("2000-12-15 13:45:26", "s", "2000-12-15 13:45:26", "s"),
             ("2000-12-15 13:45:26", "min", "2000-12-15 13:45", "min"),
             ("2000-12-15 13:45:26", "H", "2000-12-15 13:00", "H"),
             ("2000-12-15", "Y", "2000", "A-DEC"),
@@ -757,7 +757,7 @@ class TestPeriodMethods:
 
     def test_strftime(self):
         # GH#3363
-        p = Period("2000-1-1 12:34:12", freq="S")
+        p = Period("2000-1-1 12:34:12", freq="s")
         res = p.strftime("%Y-%m-%d %H:%M:%S")
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
@@ -813,7 +813,7 @@ class TestPeriodProperties:
             "D": ["DAY", "DLY", "DAILY", "Day", "Dly", "Daily"],
             "H": ["HR", "HOUR", "HRLY", "HOURLY", "hr", "Hour", "HRly"],
             "min": ["minute", "MINUTE", "MINUTELY", "minutely"],
-            "S": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
+            "s": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
             "ms": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
             "us": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
             "ns": ["NANOSECOND", "NANOSECONDLY", "nanosecond"],
@@ -858,13 +858,13 @@ class TestPeriodProperties:
     def test_inner_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, -offset)
-        expected = period.to_timestamp().round(freq="S")
-        assert getattr(period, period_property).round(freq="S") == expected
-        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
-        assert getattr(period, period_property).floor("S") == expected
+        expected = period.to_timestamp().round(freq="s")
+        assert getattr(period, period_property).round(freq="s") == expected
+        expected = (bound - offset * Timedelta(1, unit="s")).floor("s")
+        assert getattr(period, period_property).floor("s") == expected
 
     def test_start_time(self):
-        freq_lst = ["A", "Q", "M", "D", "H", "min", "S"]
+        freq_lst = ["A", "Q", "M", "D", "H", "min", "s"]
         xp = datetime(2012, 1, 1)
         for f in freq_lst:
             p = Period("2012", freq=f)
@@ -1592,7 +1592,7 @@ def test_small_year_parsing():
 
 
 def test_negone_ordinals():
-    freqs = ["A", "M", "Q", "D", "H", "min", "S"]
+    freqs = ["A", "M", "Q", "D", "H", "min", "s"]
 
     period = Period(ordinal=-1, freq="D")
     for freq in freqs:

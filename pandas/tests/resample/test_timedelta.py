@@ -28,7 +28,7 @@ def test_resample_with_nat():
     result = DataFrame({"value": [2, 3, 5]}, index).resample("1s").mean()
     expected = DataFrame(
         {"value": [2.5, np.nan, 5.0]},
-        index=timedelta_range("0 day", periods=3, freq="1S"),
+        index=timedelta_range("0 day", periods=3, freq="1s"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -128,13 +128,13 @@ def test_resample_timedelta_values():
 @pytest.mark.parametrize(
     "start, end, freq, resample_freq",
     [
-        ("8H", "21h59min50s", "10S", "3H"),  # GH 30353 example
+        ("8H", "21h59min50s", "10s", "3H"),  # GH 30353 example
         ("3H", "22H", "1H", "5H"),
         ("527D", "5006D", "3D", "10D"),
         ("1D", "10D", "1D", "2D"),  # GH 13022 example
         # tests that worked before GH 33498:
-        ("8H", "21h59min50s", "10S", "2H"),
-        ("0H", "21h59min50s", "10S", "3H"),
+        ("8H", "21h59min50s", "10s", "2H"),
+        ("0H", "21h59min50s", "10s", "3H"),
         ("10D", "85D", "D", "2D"),
     ],
 )

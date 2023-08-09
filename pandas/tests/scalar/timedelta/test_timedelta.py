@@ -511,7 +511,6 @@ class TestTimedeltas:
                 "seconds",
                 "sec",
                 "second",
-                "S",
                 "Seconds",
                 "Sec",
                 "Second",
@@ -668,9 +667,9 @@ class TestTimedeltas:
                 Timedelta("1 days 02:34:56.789000000"),
                 Timedelta("-1 days 02:34:56.789000000"),
             ),
-            ("S", Timedelta("1 days 02:34:57"), Timedelta("-1 days 02:34:57")),
-            ("2S", Timedelta("1 days 02:34:56"), Timedelta("-1 days 02:34:56")),
-            ("5S", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
+            ("s", Timedelta("1 days 02:34:57"), Timedelta("-1 days 02:34:57")),
+            ("2s", Timedelta("1 days 02:34:56"), Timedelta("-1 days 02:34:56")),
+            ("5s", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
             ("min", Timedelta("1 days 02:35:00"), Timedelta("-1 days 02:35:00")),
             ("12min", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
             ("H", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
@@ -983,18 +982,18 @@ class TestTimedeltas:
 
     def test_total_seconds_precision(self):
         # GH 19458
-        assert Timedelta("30S").total_seconds() == 30.0
+        assert Timedelta("30s").total_seconds() == 30.0
         assert Timedelta("0").total_seconds() == 0.0
-        assert Timedelta("-2S").total_seconds() == -2.0
-        assert Timedelta("5.324S").total_seconds() == 5.324
-        assert (Timedelta("30S").total_seconds() - 30.0) < 1e-20
-        assert (30.0 - Timedelta("30S").total_seconds()) < 1e-20
+        assert Timedelta("-2s").total_seconds() == -2.0
+        assert Timedelta("5.324s").total_seconds() == 5.324
+        assert (Timedelta("30s").total_seconds() - 30.0) < 1e-20
+        assert (30.0 - Timedelta("30s").total_seconds()) < 1e-20
 
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
         assert Timedelta(days=1, hours=6).resolution_string == "H"
         assert Timedelta(days=1, minutes=6).resolution_string == "min"
-        assert Timedelta(days=1, seconds=6).resolution_string == "S"
+        assert Timedelta(days=1, seconds=6).resolution_string == "s"
         assert Timedelta(days=1, milliseconds=6).resolution_string == "ms"
         assert Timedelta(days=1, microseconds=6).resolution_string == "us"
         assert Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
@@ -1014,8 +1013,8 @@ class TestTimedeltas:
 @pytest.mark.parametrize(
     "value, expected",
     [
-        (Timedelta("10S"), True),
-        (Timedelta("-10S"), True),
+        (Timedelta("10s"), True),
+        (Timedelta("-10s"), True),
         (Timedelta(10, unit="ns"), True),
         (Timedelta(0, unit="ns"), False),
         (Timedelta(-10, unit="ns"), True),

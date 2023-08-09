@@ -455,7 +455,7 @@ def test_getitem_str_month_with_datetimeindex():
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
-    idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:59", freq="S")
+    idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:59", freq="s")
     ts = Series(range(len(idx)), index=idx)
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
