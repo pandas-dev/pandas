@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
+    TypeAlias,
     TypeVar,
     overload,
 )
@@ -19,7 +20,7 @@ from pandas._typing import (
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs
 # in pandas/_libs/tslibs/timedeltas.pyx
-UnitChoices = Literal[
+UnitChoices: TypeAlias = Literal[
     "Y",
     "y",
     "M",
@@ -67,7 +68,7 @@ UnitChoices = Literal[
 _S = TypeVar("_S", bound=timedelta)
 
 def ints_to_pytimedelta(
-    arr: npt.NDArray[np.timedelta64],
+    m8values: npt.NDArray[np.timedelta64],
     box: bool = ...,
 ) -> npt.NDArray[np.object_]: ...
 def array_to_timedelta64(
@@ -161,8 +162,10 @@ class Timedelta(timedelta):
     def __gt__(self, other: timedelta) -> bool: ...
     def __hash__(self) -> int: ...
     def isoformat(self) -> str: ...
-    def to_numpy(self) -> np.timedelta64: ...
-    def view(self, dtype: npt.DTypeLike = ...) -> object: ...
+    def to_numpy(
+        self, dtype: npt.DTypeLike = ..., copy: bool = False
+    ) -> np.timedelta64: ...
+    def view(self, dtype: npt.DTypeLike) -> object: ...
     @property
     def unit(self) -> str: ...
     def as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...

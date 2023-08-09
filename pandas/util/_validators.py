@@ -134,7 +134,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     diff = set(kwargs) - set(compat_args)
 
     if diff:
-        bad_arg = list(diff)[0]
+        bad_arg = next(iter(diff))
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 

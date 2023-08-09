@@ -1023,10 +1023,12 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: Argument 1 to "ZipFile" has incompatible type "Union[
-        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
-        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
-        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
+        # error: No overload variant of "ZipFile" matches argument types "str |
+        # PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]", "str", "dict[str,
+        # Any]"
+        self.buffer = zipfile.ZipFile(  # type: ignore[call-overload]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """

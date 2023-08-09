@@ -97,9 +97,9 @@ class TestSeriesPlots:
 
 
 class TestDataFramePlots:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
@@ -122,9 +122,9 @@ class TestDataFramePlots:
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis_smaller(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None

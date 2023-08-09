@@ -12,10 +12,9 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMethodsTests(BaseExtensionTests):
+class BaseMethodsTests:
     """Various Series and DataFrame methods."""
 
     def test_hash_pandas_object(self, data):
@@ -345,13 +344,24 @@ class BaseMethodsTests(BaseExtensionTests):
         orig_data1, orig_data2 = data_repeated(2)
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        with np.errstate(over="ignore"):
-            expected = pd.Series(
-                orig_data1._from_sequence(
-                    [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+
+        # Check if the operation is supported pointwise for our scalars. If not,
+        #  we will expect Series.combine to raise as well.
+        try:
+            with np.errstate(over="ignore"):
+                expected = pd.Series(
+                    orig_data1._from_sequence(
+                        [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+                    )
                 )
-            )
+        except TypeError:
+            # If the operation is not supported pointwise for our scalars,
+            #  then Series.combine should also raise
+            with pytest.raises(TypeError):
+                s1.combine(s2, lambda x1, x2: x1 + x2)
+            return
+
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
         tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
