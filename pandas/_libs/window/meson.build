@@ -1,7 +1,7 @@
 py.extension_module(
     'aggregations',
     ['aggregations.pyx'],
-    cython_args: cython_args, #['-X always_allow_keywords=true'],
+    cython_args: cython_args,
     include_directories: [inc_np, inc_pd],
     dependencies: [py_dep],
     subdir: 'pandas/_libs/window',

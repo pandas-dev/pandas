@@ -254,8 +254,8 @@ cdef extern from "pandas/parser/pd_parser.h":
 
     int del_rd_source(void *src)
 
-    void* buffer_rd_bytes(void *source, size_t nbytes,
-                          size_t *bytes_read, int *status, const char *encoding_errors)
+    void* buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
+                          int *status, const char *encoding_errors) nogil
 
     void uint_state_init(uint_state *self)
     int uint64_conflict(uint_state *self)
@@ -325,7 +325,7 @@ cdef double round_trip_wrapper(const char *p, char **q, char decimal,
 
 cdef void* buffer_rd_bytes_wrapper(void *source, size_t nbytes,
                                    size_t *bytes_read, int *status,
-                                   const char *encoding_errors) noexcept:
+                                   const char *encoding_errors) noexcept nogil:
     return buffer_rd_bytes(source, nbytes, bytes_read, status, encoding_errors)
 
 cdef int del_rd_source_wrapper(void *src) noexcept:
