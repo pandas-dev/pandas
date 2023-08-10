@@ -1,6 +1,6 @@
 .. _whatsnew_210:
 
-What's new in 2.1.0 (Month XX, 2023)
+What's new in 2.1.0 (Aug 10, 2023)
 --------------------------------------
 
 These are the changes in pandas 2.1.0. See :ref:`release` for a full changelog
@@ -260,7 +260,6 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.GroupBy.quantile` (:issue:`51722`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -269,16 +268,6 @@ Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
 These are bug fixes that might have notable behavior changes.
-
-.. _whatsnew_210.notable_bug_fixes.notable_bug_fix1:
-
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
-
-.. _whatsnew_210.notable_bug_fixes.notable_bug_fix2:
-
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.api_breaking:
@@ -361,14 +350,6 @@ If installed, we now require:
 +----------------------+-----------------+----------+---------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
-The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
-Optional libraries below the lowest tested version may still work, but are not considered supported.
-
-+-----------------+-----------------+---------+
-| Package         | Minimum Version | Changed |
-+=================+=================+=========+
-|                 |                 |    X    |
-+-----------------+-----------------+---------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 
@@ -377,7 +358,6 @@ See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for mor
 Other API changes
 ^^^^^^^^^^^^^^^^^
 - :class:`arrays.PandasArray` has been renamed ``NumpyExtensionArray`` and the attached dtype name changed from ``PandasDtype`` to ``NumpyEADtype``; importing ``PandasArray`` still works until the next major version (:issue:`53694`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.deprecations:
@@ -602,7 +582,6 @@ Other Deprecations
 - Deprecated values "pad", "ffill", "bfill", "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and skipna=True or any-NAs and skipna=False returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name``. (:issue:`54229`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -666,7 +645,6 @@ Categorical
 - Bug in :meth:`CategoricalIndex.remove_categories` where ordered categories would not be maintained (:issue:`53935`).
 - Bug in :meth:`Series.astype` with ``dtype="category"`` for nullable arrays with read-only null value masks (:issue:`53658`)
 - Bug in :meth:`Series.map` , where the value of the ``na_action`` parameter was not used if the series held a :class:`Categorical` (:issue:`22527`).
--
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -693,13 +671,11 @@ Timedelta
 - Bug in :meth:`Timedelta.__hash__`, raising an ``OutOfBoundsTimedelta`` on certain large values of second resolution (:issue:`54037`)
 - Bug in :meth:`Timedelta.round` with values close to the implementation bounds returning incorrect results instead of raising ``OutOfBoundsTimedelta`` (:issue:`51494`)
 - Bug in :meth:`arrays.TimedeltaArray.map` and :meth:`TimedeltaIndex.map`, where the supplied callable operated array-wise instead of element-wise (:issue:`51977`)
--
 
 Timezones
 ^^^^^^^^^
 - Bug in :func:`infer_freq` that raises ``TypeError`` for ``Series`` of timezone-aware timestamps (:issue:`52456`)
 - Bug in :meth:`DatetimeTZDtype.base` that always returns a NumPy dtype with nanosecond resolution (:issue:`52705`)
--
 
 Numeric
 ^^^^^^^
@@ -731,7 +707,6 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str` that did not raise a  ``TypeError`` when iterated (:issue:`54173`)
--
 
 Interval
 ^^^^^^^^
@@ -751,7 +726,6 @@ Missing
 - Bug in :meth:`Series.idxmin`, :meth:`Series.idxmax`, :meth:`DataFrame.idxmin`, :meth:`DataFrame.idxmax` with a :class:`DatetimeIndex` index containing ``NaT`` incorrectly returning ``NaN`` instead of ``NaT`` (:issue:`43587`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` failing to raise on invalid ``downcast`` keyword, which can be only ``None`` or "infer" (:issue:`53103`)
 - Bug in :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` with complex dtype incorrectly failing to fill ``NaN`` entries (:issue:`53635`)
--
 
 MultiIndex
 ^^^^^^^^^^
@@ -795,7 +769,6 @@ Plotting
 ^^^^^^^^
 - Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)
 - Fixed UserWarning in :meth:`DataFrame.plot.scatter` when invoked with ``c="b"`` (:issue:`53908`)
--
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -841,13 +814,11 @@ Reshaping
 - Bug in :meth:`DataFrame.transpose` inferring dtype for object column (:issue:`51546`)
 - Bug in :meth:`Series.combine_first` converting ``int64`` dtype to ``float64`` and losing precision on very large integers (:issue:`51764`)
 - Bug when joining empty :class:`DataFrame` objects, where the joined index would be a :class:`RangeIndex` instead of the joined index type (:issue:`52777`)
--
 
 Sparse
 ^^^^^^
 - Bug in :class:`SparseDtype` constructor failing to raise ``TypeError`` when given an incompatible ``dtype`` for its subtype, which must be a ``numpy`` dtype (:issue:`53160`)
 - Bug in :meth:`arrays.SparseArray.map` allowed the fill value to be included in the sparse values (:issue:`52095`)
--
 
 ExtensionArray
 ^^^^^^^^^^^^^^
@@ -863,14 +834,12 @@ ExtensionArray
 Styler
 ^^^^^^
 - Bug in :meth:`Styler._copy` calling overridden methods in subclasses of :class:`Styler` (:issue:`52728`)
--
 
 Metadata
 ^^^^^^^^
 - Fixed metadata propagation in :meth:`DataFrame.max`, :meth:`DataFrame.min`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`Series.mode`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.squeeze`, and :meth:`DataFrame.describe` (:issue:`28283`)
 - Fixed metadata propagation in :meth:`DataFrame.std` (:issue:`28283`)
--
 
 Other
 ^^^^^
@@ -897,10 +866,6 @@ Other
 - Bug in :meth:`period_range` the default behavior when freq was not passed as an argument was incorrect(:issue:`53687`)
 - Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
 - The minimum version of Cython needed to compile pandas is now ``3.0.0`` (:issue:`54335`)
-
-.. ***DO NOT USE THIS SECTION***
-
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.contributors:
