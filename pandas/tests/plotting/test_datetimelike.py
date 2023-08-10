@@ -882,21 +882,25 @@ class TestTSPlot:
         s1 = Series(range(len(idx1)), idx1)
         s2 = Series(range(len(idx2)), idx2)
         # using twinx
-        fig, ax1 = mpl.pyplot.subplots()
+        _, ax1 = mpl.pyplot.subplots()
         ax2 = ax1.twinx()
         s1.plot(ax=ax1)
         s2.plot(ax=ax2)
 
         assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
-        # TODO (GH14330, GH14322)
-        # plotting the irregular first does not yet work
-        # fig, ax1 = plt.subplots()
-        # ax2 = ax1.twinx()
-        # s2.plot(ax=ax1)
-        # s1.plot(ax=ax2)
-        # assert (ax1.lines[0].get_xydata()[0, 0] ==
-        #         ax2.lines[0].get_xydata()[0, 0])
+    @pytest.mark.xfail(reason="TODO (GH14330, GH14322)")
+    def test_mixed_freq_shared_ax_twin_x_irregular_first(self):
+        # GH13341, using sharex=True
+        idx1 = date_range("2015-01-01", periods=3, freq="M")
+        idx2 = idx1[:1].union(idx1[2:])
+        s1 = Series(range(len(idx1)), idx1)
+        s2 = Series(range(len(idx2)), idx2)
+        _, ax1 = mpl.pyplot.subplots()
+        ax2 = ax1.twinx()
+        s2.plot(ax=ax1)
+        s1.plot(ax=ax2)
+        assert ax1.lines[0].get_xydata()[0, 0] == ax2.lines[0].get_xydata()[0, 0]
 
     def test_nat_handling(self):
         _, ax = mpl.pyplot.subplots()
