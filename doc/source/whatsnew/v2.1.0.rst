@@ -14,6 +14,46 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_210.enhancements.pyarrow_dependency:
+
+PyArrow will become a required dependency with pandas 3.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+`PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required
+dependency of pandas starting with pandas 3.0. This decision was made based on
+`PDEP 12 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
+
+This will enable more changes that are hugely beneficial to pandas users, including
+but not limited to:
+
+- inferring strings as PyArrow backed strings by default enabling a significant
+  reduction of the memory footprint and huge performance improvements.
+- inferring more complex dtypes with PyArrow by default, like ``Decimal``, ``lists``,
+  ``bytes``, ``structured data`` and more.
+- Better interoperability with other libraries that depend on Apache Arrow.
+
+We are collecting feedback on this decision `here <https://github.com/pandas-dev/pandas/issues/54466>`_.
+
+.. _whatsnew_210.enhancements.infer_strings:
+
+Avoid NumPy object dtype for strings by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, all strings were stored in columns with NumPy object dtype.
+This release introduces an option ``future.infer_string`` that infers all
+strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
+This option only works if PyArrow is installed. PyArrow backed strings have a
+significantly reduced memory footprint and provide a big performance improvement
+compared to NumPy object.
+
+The option can be enabled with:
+
+.. code-block:: python
+
+    pd.options.future.infer_string = True
+
+This behavior will become the default with pandas 3.0.
+
 .. _whatsnew_210.enhancements.reduction_extension_dtypes:
 
 DataFrame reductions preserve extension dtypes
@@ -220,6 +260,7 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.GroupBy.quantile` (:issue:`51722`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:
@@ -560,6 +601,7 @@ Other Deprecations
 - Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: "s", "ms", "us", "ns" resolutions (:issue:`53058`)
 - Deprecated values "pad", "ffill", "bfill", "backfill" for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and skipna=True or any-NAs and skipna=False returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name``. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
