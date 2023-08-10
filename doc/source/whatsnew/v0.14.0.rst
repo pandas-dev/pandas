@@ -437,7 +437,7 @@ This ``engine`` can then be used to write or read data to/from this database:
 .. ipython:: python
 
     df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'c']})
-    df.to_sql('db_table', engine, index=False)
+    df.to_sql(name='db_table', con=engine, index=False)
 
 You can read data from a database by specifying the table name:
 

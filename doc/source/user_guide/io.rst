@@ -5651,7 +5651,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    data = pd.DataFrame(d, columns=c)
 
    data
-   data.to_sql("data", engine)
+   data.to_sql("data", con=engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
@@ -5660,7 +5660,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
-    data.to_sql("data_chunked", engine, chunksize=1000)
+    data.to_sql("data_chunked", con=engine, chunksize=1000)
 
 SQL data types
 ++++++++++++++
@@ -5680,7 +5680,7 @@ default ``Text`` type for string columns:
 
     from sqlalchemy.types import String
 
-    data.to_sql("data_dtype", engine, dtype={"Col_1": String})
+    data.to_sql("data_dtype", con=engine, dtype={"Col_1": String})
 
 .. note::
 
@@ -5849,7 +5849,7 @@ have schema's). For example:
 
 .. code-block:: python
 
-   df.to_sql("table", engine, schema="other_schema")
+   df.to_sql(name="table", con=engine, schema="other_schema")
    pd.read_sql_table("table", engine, schema="other_schema")
 
 Querying
@@ -5876,7 +5876,7 @@ Specifying this will return an iterator through chunks of the query result:
 .. ipython:: python
 
     df = pd.DataFrame(np.random.randn(20, 3), columns=list("abc"))
-    df.to_sql("data_chunks", engine, index=False)
+    df.to_sql(name="data_chunks", con=engine, index=False)
 
 .. ipython:: python
 
