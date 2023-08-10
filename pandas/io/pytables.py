@@ -3223,7 +3223,7 @@ class SeriesFixed(GenericFixed):
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
-        if using_pyarrow_string_dtype() and is_string_array(result, skipna=True):
+        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
             import pyarrow as pa
 
             result = result.astype(pd.ArrowDtype(pa.string()))
@@ -4680,9 +4680,12 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            if not using_pyarrow_string_dtype():
+            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
                 assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
-            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
+            if using_pyarrow_string_dtype() and is_string_array(
+                values,  # type: ignore[arg-type]
+                skipna=True,
+            ):
                 import pyarrow as pa
 
                 df = df.astype(pd.ArrowDtype(pa.string()))
