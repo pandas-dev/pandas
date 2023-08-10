@@ -14,8 +14,8 @@ name: Wheel builder
 
 on:
   schedule:
-  # 3:27 UTC every day
-  - cron: "27 3 * * *"
+  # 5:30 UTC every day
+  - cron: "30 5 * * *"
   push:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
@@ -123,13 +123,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      # Work around for https://github.com/actions/runner-images/issues/2619?
-      # Empty disk and memory cache
-      - name: Purge on macOS
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        run: |
-          sudo /usr/sbin/purge
-
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Build sdist (macOS)
@@ -146,10 +139,10 @@ jobs:
       # Work around for https://github.com/actions/runner-images/issues/2619?
       # Empty disk and memory cache
       # Again for good luck :)
-      - name: Purge on macOS again
+      - name: Sleep on macOS (prevent missing files in the tarball)
         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
-          sudo /usr/sbin/purge
+          sleep 10
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
