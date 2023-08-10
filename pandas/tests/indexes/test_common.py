@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -318,7 +319,7 @@ class TestCommon:
 
         # make duplicated index
         n = len(unique_idx)
-        duplicated_selection = np.random.choice(n, int(n * 1.5))
+        duplicated_selection = np.random.default_rng(2).choice(n, int(n * 1.5))
         idx = holder(unique_idx.values[duplicated_selection])
 
         # Series.duplicated is tested separately
@@ -389,7 +390,10 @@ class TestCommon:
         warn = None
         if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
             # imaginary components discarded
-            warn = np.ComplexWarning
+            if np_version_gte1p25:
+                warn = np.exceptions.ComplexWarning
+            else:
+                warn = np.ComplexWarning
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:

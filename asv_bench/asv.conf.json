@@ -43,7 +43,7 @@
     "matrix": {
         "req": {
             "pip+/home/nathan/Documents/numpy": [],
-            "Cython": ["0.29.33"],
+            "Cython": ["3.0.0"],
             "matplotlib": [],
             "sqlalchemy": [],
             "scipy": [],

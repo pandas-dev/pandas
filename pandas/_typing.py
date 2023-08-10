@@ -7,6 +7,7 @@ from collections.abc import (
     Sequence,
 )
 from datetime import (
+    date,
     datetime,
     timedelta,
     tzinfo,
@@ -68,6 +69,7 @@ if TYPE_CHECKING:
     from pandas.core.window.rolling import BaseWindow
 
     from pandas.io.formats.format import EngFormatter
+    from pandas.tseries.holiday import AbstractHolidayCalendar
 
     ScalarLike_co = Union[
         int,
@@ -89,7 +91,7 @@ if TYPE_CHECKING:
         from typing_extensions import TypeGuard  # pyright: ignore[reportUnusedImport]
 
     if sys.version_info >= (3, 11):
-        from typing import Self
+        from typing import Self  # pyright: ignore[reportUnusedImport]
     else:
         from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
 else:
@@ -117,14 +119,17 @@ ListLike = Union[AnyArrayLike, list, range]
 PythonScalar = Union[str, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, datetime]
+Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, date]
 IntStrT = TypeVar("IntStrT", int, str)
 
 
 # timestamp and timedelta convertible types
 
 TimestampConvertibleTypes = Union[
-    "Timestamp", datetime, np.datetime64, np.int64, float, str
+    "Timestamp", date, np.datetime64, np.int64, float, str
+]
+TimestampNonexistent = Union[
+    Literal["shift_forward", "shift_backward", "NaT", "raise"], timedelta
 ]
 TimedeltaConvertibleTypes = Union[
     "Timedelta", timedelta, np.timedelta64, np.int64, float, str
@@ -463,3 +468,9 @@ ToGbqIfexist = Literal["fail", "replace", "append"]
 
 # to_stata
 ToStataByteorder = Literal[">", "<", "little", "big"]
+
+# ExcelWriter
+ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
+
+# Offsets
+OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]

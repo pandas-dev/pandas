@@ -23,6 +23,7 @@ from pandas.compat import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import (
     Float32Dtype,
     Float64Dtype,
@@ -38,6 +39,8 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.tests.extension import base
+
+is_windows_or_32bit = is_platform_windows() or not IS64
 
 pytestmark = [
     pytest.mark.filterwarnings(
@@ -63,6 +66,10 @@ def make_float_data():
     )
 
 
+def make_bool_data():
+    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+
+
 @pytest.fixture(
     params=[
         Int8Dtype,
@@ -75,6 +82,7 @@ def make_float_data():
         UInt64Dtype,
         Float32Dtype,
         Float64Dtype,
+        BooleanDtype,
     ]
 )
 def dtype(request):
@@ -85,6 +93,8 @@ def dtype(request):
 def data(dtype):
     if dtype.kind == "f":
         data = make_float_data()
+    elif dtype.kind == "b":
+        data = make_bool_data()
     else:
         data = make_data()
     return pd.array(data, dtype=dtype)
@@ -92,6 +102,8 @@ def data(dtype):
 
 @pytest.fixture
 def data_for_twos(dtype):
+    if dtype.kind == "b":
+        return pd.array(np.ones(100), dtype=dtype)
     return pd.array(np.ones(100) * 2, dtype=dtype)
 
 
@@ -99,6 +111,8 @@ def data_for_twos(dtype):
 def data_missing(dtype):
     if dtype.kind == "f":
         return pd.array([pd.NA, 0.1], dtype=dtype)
+    elif dtype.kind == "b":
+        return pd.array([np.nan, True], dtype=dtype)
     return pd.array([pd.NA, 1], dtype=dtype)
 
 
@@ -106,6 +120,8 @@ def data_missing(dtype):
 def data_for_sorting(dtype):
     if dtype.kind == "f":
         return pd.array([0.1, 0.2, 0.0], dtype=dtype)
+    elif dtype.kind == "b":
+        return pd.array([True, True, False], dtype=dtype)
     return pd.array([1, 2, 0], dtype=dtype)
 
 
@@ -113,6 +129,8 @@ def data_for_sorting(dtype):
 def data_missing_for_sorting(dtype):
     if dtype.kind == "f":
         return pd.array([0.1, pd.NA, 0.0], dtype=dtype)
+    elif dtype.kind == "b":
+        return pd.array([True, np.nan, False], dtype=dtype)
     return pd.array([1, pd.NA, 0], dtype=dtype)
 
 
@@ -123,20 +141,20 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value():
-    return pd.NA
-
-
-@pytest.fixture
 def data_for_grouping(dtype):
     if dtype.kind == "f":
         b = 0.1
         a = 0.0
         c = 0.2
+    elif dtype.kind == "b":
+        b = True
+        a = False
+        c = b
     else:
         b = 1
         a = 0
         c = 2
+
     na = pd.NA
     return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
 
@@ -146,73 +164,84 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
-        if exc is None:
-            sdtype = tm.get_dtype(s)
+    def _get_expected_exception(self, op_name, obj, other):
+        try:
+            dtype = tm.get_dtype(obj)
+        except AttributeError:
+            # passed arguments reversed
+            dtype = tm.get_dtype(other)
 
-            if hasattr(other, "dtype") and isinstance(other.dtype, np.dtype):
-                if sdtype.kind == "f":
-                    if other.dtype.kind == "f":
-                        # other is np.float64 and would therefore always result
-                        # in upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
+        if dtype.kind == "b":
+            if op_name.strip("_").lstrip("r") in ["pow", "truediv", "floordiv"]:
+                # match behavior with non-masked bool dtype
+                return NotImplementedError
+            elif op_name in ["__sub__", "__rsub__"]:
+                # exception message would include "numpy boolean subtract""
+                return TypeError
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
-                else:
-                    # i.e. sdtype.kind in "iu""
-                    if other.dtype.kind in "iu" and sdtype.is_unsigned_integer:
-                        # TODO: comment below is inaccurate; other can be int8
-                        #  int16, ...
-                        #  and the trouble is that e.g. if s is UInt8 and other
-                        #  is int8, then result is UInt16
-                        # other is np.int64 and would therefore always result in
-                        # upcasting, so keeping other as same numpy_dtype
-                        other = other.astype(sdtype.numpy_dtype)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        sdtype = tm.get_dtype(obj)
+        expected = pointwise_result
 
-            result = op(s, other)
-            expected = self._combine(s, other, op)
-
-            if sdtype.kind in "iu":
-                if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                    expected = expected.fillna(np.nan).astype("Float64")
-                else:
-                    # combine method result in 'biggest' (int64) dtype
-                    expected = expected.astype(sdtype)
+        if sdtype.kind in "iu":
+            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
+                expected = expected.fillna(np.nan).astype("Float64")
             else:
-                # combine method result in 'biggest' (float64) dtype
+                # combine method result in 'biggest' (int64) dtype
                 expected = expected.astype(sdtype)
+        elif sdtype.kind == "b":
+            if op_name in (
+                "__floordiv__",
+                "__rfloordiv__",
+                "__pow__",
+                "__rpow__",
+                "__mod__",
+                "__rmod__",
+            ):
+                # combine keeps boolean type
+                expected = expected.astype("Int8")
 
-            self.assert_equal(result, expected)
+            elif op_name in ("__truediv__", "__rtruediv__"):
+                # combine with bools does not generate the correct result
+                #  (numpy behaviour for div is to regard the bools as numeric)
+                op = self.get_op_from_name(op_name)
+                expected = self._combine(obj.astype(float), other, op)
+                expected = expected.astype("Float64")
+
+            if op_name == "__rpow__":
+                # for rpow, combine does not propagate NaN
+                result = getattr(obj, op_name)(other)
+                expected[result.isna()] = np.nan
         else:
-            with pytest.raises(exc):
-                op(s, other)
+            # combine method result in 'biggest' (float64) dtype
+            expected = expected.astype(sdtype)
+        return expected
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        # overwriting to indicate ops don't raise an error
-        super().check_opname(ser, op_name, other, exc=None)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
 
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=None):
-        super()._check_divmod_op(ser, op, other, None)
+    def test_divmod_series_array(self, data, data_for_twos, request):
+        if data.dtype.kind == "b":
+            mark = pytest.mark.xfail(
+                reason="Inconsistency between floordiv and divmod; we raise for "
+                "floordiv but not for divmod. This matches what we do for "
+                "non-masked bool dtype."
+            )
+            request.node.add_marker(mark)
+        super().test_divmod_series_array(data, data_for_twos)
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _check_op(
-        self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
-    ):
-        if exc is None:
-            result = op(ser, other)
-            # Override to do the astype to boolean
-            expected = ser.combine(other, op).astype("boolean")
-            self.assert_series_equal(result, expected)
-        else:
-            with pytest.raises(exc):
-                op(ser, other)
+    series_scalar_exc = None
+    series_array_exc = None
+    frame_scalar_exc = None
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=None):
-        super().check_opname(ser, op_name, other, exc=None)
-
-    def _compare_other(self, ser: pd.Series, data, op, other):
-        op_name = f"__{op.__name__}__"
-        self.check_opname(ser, op_name, other)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        return pointwise_result.astype("boolean")
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -248,7 +277,15 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    _combine_le_expected_dtype = object  # TODO: can we make this boolean?
+    def test_combine_le(self, data_repeated):
+        # TODO: patching self is a bad pattern here
+        orig_data1, orig_data2 = data_repeated(2)
+        if orig_data1.dtype.kind == "b":
+            self._combine_le_expected_dtype = "boolean"
+        else:
+            # TODO: can we make this boolean?
+            self._combine_le_expected_dtype = object
+        super().test_combine_le(data_repeated)
 
 
 class TestCasting(base.BaseCastingTests):
@@ -259,7 +296,12 @@ class TestGroupby(base.BaseGroupbyTests):
     pass
 
 
-class TestNumericReduce(base.BaseNumericReduceTests):
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        if op_name in ["any", "all"] and tm.get_dtype(obj).kind != "b":
+            pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
+        return True
+
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
@@ -269,6 +311,9 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             # Item "dtype[Any]" of "Union[dtype[Any], ExtensionDtype]" has
             # no attribute "numpy_dtype"
             cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
+        elif ser.dtype.kind == "b":
+            if op_name in ["min", "max"]:
+                cmp_dtype = "bool"
 
         if op_name == "count":
             result = getattr(ser, op_name)()
@@ -276,20 +321,11 @@ class TestNumericReduce(base.BaseNumericReduceTests):
         else:
             result = getattr(ser, op_name)(skipna=skipna)
             expected = getattr(ser.dropna().astype(cmp_dtype), op_name)(skipna=skipna)
-            if not skipna and ser.isna().any():
+            if not skipna and ser.isna().any() and op_name not in ["any", "all"]:
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def check_reduce_frame(self, ser: pd.Series, op_name: str, skipna: bool):
-        if op_name in ["count", "kurt", "sem"]:
-            assert not hasattr(ser.array, op_name)
-            pytest.skip(f"{op_name} not an array method")
-
-        arr = ser.array
-        df = pd.DataFrame({"a": arr})
-
-        is_windows_or_32bit = is_platform_windows() or not IS64
-
+    def _get_expected_reduction_dtype(self, arr, op_name: str):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -302,31 +338,23 @@ class TestNumericReduce(base.BaseNumericReduceTests):
             cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
         elif tm.is_unsigned_integer_dtype(arr.dtype):
             cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
+        elif arr.dtype.kind == "b":
+            if op_name in ["mean", "median", "var", "std", "skew"]:
+                cmp_dtype = "Float64"
+            elif op_name in ["min", "max"]:
+                cmp_dtype = "boolean"
+            elif op_name in ["sum", "prod"]:
+                cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+            else:
+                raise TypeError("not supposed to reach this")
         else:
             raise TypeError("not supposed to reach this")
-
-        if not skipna and ser.isna().any():
-            expected = pd.array([pd.NA], dtype=cmp_dtype)
-        else:
-            exp_value = getattr(ser.dropna().astype(cmp_dtype), op_name)()
-            expected = pd.array([exp_value], dtype=cmp_dtype)
-
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True)
-        result2 = getattr(df, op_name)(skipna=skipna).array
-
-        tm.assert_extension_array_equal(result1, result2)
-        tm.assert_extension_array_equal(result2, expected)
-
-
-@pytest.mark.skip(reason="Tested in tests/reductions/test_reductions.py")
-class TestBooleanReduce(base.BaseBooleanReduceTests):
-    pass
+        return cmp_dtype
 
 
 class TestAccumulation(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        pass
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
 
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
         # overwrite to ensure pd.NA is tested instead of np.nan
@@ -346,6 +374,11 @@ class TestAccumulation(base.BaseAccumulateTests):
             # Incompatible types in assignment (expression has type
             # "Union[dtype[Any], ExtensionDtype]", variable has type "str")
             expected_dtype = ser.dtype  # type: ignore[assignment]
+        elif ser.dtype.kind == "b":
+            if op_name in ("cummin", "cummax"):
+                expected_dtype = "boolean"
+            else:
+                expected_dtype = f"Int{length}"
 
         if op_name == "cumsum":
             result = getattr(ser, op_name)(skipna=skipna)
@@ -377,6 +410,17 @@ class TestAccumulation(base.BaseAccumulateTests):
 
         else:
             raise NotImplementedError(f"{op_name} not supported")
+
+
+class TestUnaryOps(base.BaseUnaryOpsTests):
+    def test_invert(self, data, request):
+        if data.dtype.kind == "f":
+            mark = pytest.mark.xfail(
+                reason="Looks like the base class test implicitly assumes "
+                "boolean/integer dtypes"
+            )
+            request.node.add_marker(mark)
+        super().test_invert(data)
 
 
 class TestPrinting(base.BasePrintingTests):

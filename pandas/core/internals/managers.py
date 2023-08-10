@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -548,7 +547,10 @@ class BaseBlockManager(DataManager):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            new_axes = list(self.axes)
+            if using_copy_on_write():
+                new_axes = [ax.view() for ax in self.axes]
+            else:
+                new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -941,7 +943,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         # GH#46406
-        immutable_ea = isinstance(dtype, SparseDtype)
+        immutable_ea = isinstance(dtype, ExtensionDtype) and dtype._is_immutable
 
         if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()

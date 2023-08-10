@@ -20,11 +20,11 @@ ci:
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.277
+    rev: v0.0.282
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -107,7 +107,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.7.0
+    rev: v3.10.1
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -138,7 +138,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.296
+        - pyright@1.1.318
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -251,16 +251,10 @@ repos:
 
             # os.remove
             |os\.remove
+
+            # Unseeded numpy default_rng
+            |default_rng\(\)
         files: ^pandas/tests/
-        types_or: [python, cython, rst]
-    -   id: unwanted-patterns-in-ea-tests
-        name: Unwanted patterns in EA tests
-        language: pygrep
-        entry: |
-            (?x)
-            tm.assert_(series|frame)_equal
-        files: ^pandas/tests/extension/base/
-        exclude: ^pandas/tests/extension/base/base\.py$
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code
