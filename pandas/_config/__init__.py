@@ -38,3 +38,8 @@ def using_copy_on_write() -> bool:
 def using_nullable_dtypes() -> bool:
     _mode_options = _global_config["mode"]
     return _mode_options["nullable_dtypes"]
+
+
+def using_pyarrow_string_dtype() -> bool:
+    _mode_options = _global_config["future"]
+    return _mode_options["infer_string"]

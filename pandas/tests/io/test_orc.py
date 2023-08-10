@@ -415,3 +415,18 @@ def test_invalid_dtype_backend():
         df.to_orc(path)
         with pytest.raises(ValueError, match=msg):
             read_orc(path, dtype_backend="numpy")
+
+
+def test_string_inference(tmp_path):
+    # GH#54431
+    path = tmp_path / "test_string_inference.p"
+    df = pd.DataFrame(data={"a": ["x", "y"]})
+    df.to_orc(path)
+    with pd.option_context("future.infer_string", True):
+        result = read_orc(path)
+    expected = pd.DataFrame(
+        data={"a": ["x", "y"]},
+        dtype=pd.ArrowDtype(pa.string()),
+        columns=pd.Index(["a"], dtype=pd.ArrowDtype(pa.string())),
+    )
+    tm.assert_frame_equal(result, expected)

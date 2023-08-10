@@ -9,6 +9,8 @@ from typing import (
     Literal,
 )
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
@@ -24,6 +26,7 @@ from pandas.core.dtypes.dtypes import (
 import pandas as pd
 from pandas.core.indexes.api import default_index
 
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
@@ -132,7 +135,11 @@ def read_orc(
             df = pa_table.to_pandas(types_mapper=mapping.get)
         return df
     else:
-        return pa_table.to_pandas()
+        if using_pyarrow_string_dtype():
+            types_mapper = arrow_string_types_mapper()
+        else:
+            types_mapper = None
+        return pa_table.to_pandas(types_mapper=types_mapper)
 
 
 def to_orc(
