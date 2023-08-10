@@ -368,3 +368,19 @@ def test_read_py2_hdf_file_in_py3(datapath):
     ) as store:
         result = store["p"]
         tm.assert_frame_equal(result, expected)
+
+
+def test_read_infer_string(tmp_path, setup_path):
+    # GH#54431
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame({"a": ["a", "b", None]})
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="data", format="table")
+    with pd.option_context("future.infer_string", True):
+        result = read_hdf(path, key="data", mode="r")
+    expected = DataFrame(
+        {"a": ["a", "b", None]},
+        dtype=pd.ArrowDtype(pa.string()),
+        columns=Index(["a"], dtype=pd.ArrowDtype(pa.string())),
+    )
+    tm.assert_frame_equal(result, expected)

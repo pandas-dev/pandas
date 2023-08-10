@@ -959,3 +959,22 @@ def test_to_html_tuple_col_with_colspace():
         "</table>"
     )
     assert result == expected
+
+
+def test_to_html_empty_complex_array():
+    # GH#54167
+    df = DataFrame({"x": np.array([], dtype="complex")})
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">x</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected

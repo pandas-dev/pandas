@@ -1,5 +1,4 @@
 from functools import partial
-import warnings
 
 import numpy as np
 import pytest
@@ -465,17 +464,16 @@ class TestnanopsDataFrame:
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanmedian(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(
-                nanops.nanmedian,
-                np.median,
-                skipna,
-                allow_complex=False,
-                allow_date=False,
-                allow_obj="convert",
-            )
+        self.check_funs(
+            nanops.nanmedian,
+            np.median,
+            skipna,
+            allow_complex=False,
+            allow_date=False,
+            allow_obj="convert",
+        )
 
     @pytest.mark.parametrize("ddof", range(3))
     def test_nanvar(self, ddof, skipna):
@@ -517,13 +515,12 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
     def test_nanops_with_warnings(self, nan_op, np_op, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(nan_op, np_op, skipna, allow_obj=False)
+        self.check_funs(nan_op, np_op, skipna, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -540,17 +537,15 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmax(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            func = partial(self._argminmax_wrap, func=np.argmax)
-            self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
+        func = partial(self._argminmax_wrap, func=np.argmax)
+        self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmin(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            func = partial(self._argminmax_wrap, func=np.argmin)
-            self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
+        func = partial(self._argminmax_wrap, func=np.argmin)
+        self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
 
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import (
     Hashable,
+    Iterable,
     Iterator,
     Sequence,
 )
@@ -147,7 +148,7 @@ class CSVFormatter:
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    def _initialize_columns(self, cols: Sequence[Hashable] | None) -> np.ndarray:
+    def _initialize_columns(self, cols: Iterable[Hashable] | None) -> np.ndarray:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:

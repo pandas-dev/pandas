@@ -205,8 +205,7 @@ def test_frame_consistency(groupby_func):
 def test_series_consistency(request, groupby_func):
     # GH#48028
     if groupby_func in ("first", "last"):
-        # first and last are entirely different between Series and groupby
-        return
+        pytest.skip("first and last are entirely different between Series and groupby")
 
     if groupby_func in ("cumcount", "corrwith", "ngroup"):
         assert not hasattr(Series, groupby_func)

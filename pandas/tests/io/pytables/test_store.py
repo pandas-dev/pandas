@@ -3,10 +3,6 @@ import datetime as dt
 import hashlib
 import tempfile
 import time
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -35,6 +31,8 @@ from pandas.io.pytables import (
 )
 
 pytestmark = pytest.mark.single_cpu
+
+tables = pytest.importorskip("tables")
 
 
 def test_context(setup_path):
@@ -123,8 +121,7 @@ def test_repr(setup_path):
         df.loc[df.index[3:6], ["obj1"]] = np.nan
         df = df._consolidate()
 
-        with catch_warnings(record=True):
-            simplefilter("ignore", pd.errors.PerformanceWarning)
+        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             store["df"] = df
 
         # make a random group in hdf space
@@ -158,7 +155,9 @@ def test_contains(setup_path):
         assert "bar" not in store
 
         # gh-2694: tables.NaturalNameWarning
-        with catch_warnings(record=True):
+        with tm.assert_produces_warning(
+            tables.NaturalNameWarning, check_stacklevel=False
+        ):
             store["node())"] = tm.makeDataFrame()
         assert "node())" in store
 
@@ -335,63 +334,61 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
 
 def test_create_table_index(setup_path):
     with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
 
-            def col(t, column):
-                return getattr(store.get_storer(t).table.cols, column)
+        def col(t, column):
+            return getattr(store.get_storer(t).table.cols, column)
 
-            # data columns
-            df = tm.makeTimeDataFrame()
-            df["string"] = "foo"
-            df["string2"] = "bar"
-            store.append("f", df, data_columns=["string", "string2"])
-            assert col("f", "index").is_indexed is True
-            assert col("f", "string").is_indexed is True
-            assert col("f", "string2").is_indexed is True
+        # data columns
+        df = tm.makeTimeDataFrame()
+        df["string"] = "foo"
+        df["string2"] = "bar"
+        store.append("f", df, data_columns=["string", "string2"])
+        assert col("f", "index").is_indexed is True
+        assert col("f", "string").is_indexed is True
+        assert col("f", "string2").is_indexed is True
 
-            # specify index=columns
-            store.append("f2", df, index=["string"], data_columns=["string", "string2"])
-            assert col("f2", "index").is_indexed is False
-            assert col("f2", "string").is_indexed is True
-            assert col("f2", "string2").is_indexed is False
+        # specify index=columns
+        store.append("f2", df, index=["string"], data_columns=["string", "string2"])
+        assert col("f2", "index").is_indexed is False
+        assert col("f2", "string").is_indexed is True
+        assert col("f2", "string2").is_indexed is False
 
-            # try to index a non-table
-            _maybe_remove(store, "f2")
-            store.put("f2", df)
-            msg = "cannot create table index on a Fixed format store"
-            with pytest.raises(TypeError, match=msg):
-                store.create_table_index("f2")
+        # try to index a non-table
+        _maybe_remove(store, "f2")
+        store.put("f2", df)
+        msg = "cannot create table index on a Fixed format store"
+        with pytest.raises(TypeError, match=msg):
+            store.create_table_index("f2")
 
 
 def test_create_table_index_data_columns_argument(setup_path):
     # GH 28156
 
     with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
 
-            def col(t, column):
-                return getattr(store.get_storer(t).table.cols, column)
+        def col(t, column):
+            return getattr(store.get_storer(t).table.cols, column)
 
-            # data columns
-            df = tm.makeTimeDataFrame()
-            df["string"] = "foo"
-            df["string2"] = "bar"
-            store.append("f", df, data_columns=["string"])
-            assert col("f", "index").is_indexed is True
-            assert col("f", "string").is_indexed is True
+        # data columns
+        df = tm.makeTimeDataFrame()
+        df["string"] = "foo"
+        df["string2"] = "bar"
+        store.append("f", df, data_columns=["string"])
+        assert col("f", "index").is_indexed is True
+        assert col("f", "string").is_indexed is True
 
-            msg = "'Cols' object has no attribute 'string2'"
-            with pytest.raises(AttributeError, match=msg):
-                col("f", "string2").is_indexed
+        msg = "'Cols' object has no attribute 'string2'"
+        with pytest.raises(AttributeError, match=msg):
+            col("f", "string2").is_indexed
 
-            # try to index a col which isn't a data_column
-            msg = (
-                "column string2 is not a data_column.\n"
-                "In order to read column string2 you must reload the dataframe \n"
-                "into HDFStore and include string2 with the data_columns argument."
-            )
-            with pytest.raises(AttributeError, match=msg):
-                store.create_table_index("f", columns=["string2"])
+        # try to index a col which isn't a data_column
+        msg = (
+            "column string2 is not a data_column.\n"
+            "In order to read column string2 you must reload the dataframe \n"
+            "into HDFStore and include string2 with the data_columns argument."
+        )
+        with pytest.raises(AttributeError, match=msg):
+            store.create_table_index("f", columns=["string2"])
 
 
 def test_mi_data_columns(setup_path):
@@ -933,20 +930,18 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
             np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
         )
         path = tmp_path / setup_path
-        with catch_warnings(record=True):
-            msg = "cannot have non-object label DataIndexableCol"
-            with pytest.raises(ValueError, match=msg):
-                df.to_hdf(path, "df", format="table", data_columns=True)
+        msg = "cannot have non-object label DataIndexableCol"
+        with pytest.raises(ValueError, match=msg):
+            df.to_hdf(path, "df", format="table", data_columns=True)
 
     for index in types_should_run:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
         )
         path = tmp_path / setup_path
-        with catch_warnings(record=True):
-            df.to_hdf(path, "df", format="table", data_columns=True)
-            result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
-            assert len(result)
+        df.to_hdf(path, "df", format="table", data_columns=True)
+        result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
+        assert len(result)
 
 
 def test_hdfstore_strides(setup_path):
