@@ -131,7 +131,7 @@ jobs:
       - name: Unzip sdist (macOS)
         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
-          tar -xzf ./dist/${{ env.sdist_name }}
+          tar -xzf ./dist/${{ env.sdist_name }} -C ./dist
       
       - name: Output sdist name (macOS)
         id: save-path2
