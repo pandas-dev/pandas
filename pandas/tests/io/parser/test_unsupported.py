@@ -182,7 +182,7 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
             pytest.skip("GH#45547 causing timeouts on windows/mac builds 2022-01-22")
 
     with tm.ensure_clean("test.csv") as fname:
-        Path(fname).write_text("col1,col2\na,b\n1,2")
+        Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
         with tm.assert_produces_warning(False):
             with pytest.raises(error, match="col3"):
                 parser.read_csv(fname, usecols=["col1", "col2", "col3"])

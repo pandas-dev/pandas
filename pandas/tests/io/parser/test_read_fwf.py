@@ -702,7 +702,7 @@ bba bab b a"""
         [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
     with tm.ensure_clean() as path:
-        Path(path).write_text(data)
+        Path(path).write_text(data, encoding="utf-8")
         with open(path, "rb") as file:
             df = read_fwf(file)
             file.seek(0)

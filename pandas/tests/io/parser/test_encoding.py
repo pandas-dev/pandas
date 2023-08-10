@@ -310,7 +310,7 @@ def test_not_readable(all_parsers, mode):
     content = b"abcd"
     if "t" in mode:
         content = "abcd"
-    with tempfile.SpooledTemporaryFile(mode=mode) as handle:
+    with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)

@@ -95,6 +95,8 @@ def assert_filepath_or_buffer_equals(
     """
     Assertion helper for checking filepath_or_buffer.
     """
+    if encoding is None:
+        encoding = "utf-8"
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
