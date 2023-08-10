@@ -137,10 +137,10 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       # Work around for https://github.com/actions/runner-images/issues/2619?
-      - name: Sleep on macOS (prevent missing files in the tarball)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        run: |
-          sleep 10
+#       - name: Sleep on macOS (prevent missing files in the tarball)
+#         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+#         run: |
+#           sleep 10
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
