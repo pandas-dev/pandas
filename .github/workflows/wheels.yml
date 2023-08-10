@@ -134,7 +134,7 @@ jobs:
           tar -cxf ./dist/${{ env.sdist_name }}
       
       - name: Output sdist name (macOS)
-        id: save-path
+        id: save-path2
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
