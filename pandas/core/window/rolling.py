@@ -647,9 +647,14 @@ class BaseWindow(SelectionMixin):
         # xref #53214
         dtype_mapping = executor.float_dtype_mapping
         aggregator = executor.generate_shared_aggregator(
-            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+            func,
+            dtype_mapping,
+            is_grouped_kernel=False,
+            **get_jit_arguments(engine_kwargs),
         )
-        result = aggregator(values.T, start, end, min_periods, **func_kwargs).T
+        result = aggregator(
+            values.T, start=start, end=end, min_periods=min_periods, **func_kwargs
+        ).T
         result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
