@@ -35,7 +35,7 @@ jobs:
   build_sdist:
     name: Build sdist
     if: >-
-      (github.event_name == 'schedule' && github.repository_owner == 'pandas-dev') ||
+      (github.event_name == 'schedule' && github.repository_owner == 'lithomas1') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
