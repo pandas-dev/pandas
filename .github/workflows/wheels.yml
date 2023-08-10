@@ -14,8 +14,8 @@ name: Wheel builder
 
 on:
   schedule:
-  # 8:27 UTC every day
-  - cron: "27 8 * * *"
+  # 8:35 UTC every day
+  - cron: "35 8 * * *"
   push:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
@@ -66,7 +66,7 @@ jobs:
         with:
           name: sdist
           path: ./dist/*
-      
+
       - name: Sanity check sdist files
         run: |
           ls ./dist
