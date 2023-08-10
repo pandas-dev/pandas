@@ -1,6 +1,6 @@
 .. _whatsnew_210:
 
-What's new in 2.1.0 (Aug 10, 2023)
+What's new in 2.1.0 (Aug 11, 2023)
 --------------------------------------
 
 These are the changes in pandas 2.1.0. See :ref:`release` for a full changelog
