@@ -423,7 +423,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
         elif isinstance(dtype, IntegerDtype):
             arr = self._ndarray.copy()
             mask = self.isna()
-            arr[mask] = 0
+            arr[mask] = "0"
             values = arr.astype(dtype.numpy_dtype)
             return IntegerArray(values, mask, copy=False)
         elif isinstance(dtype, FloatingDtype):
@@ -438,7 +438,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
             mask = self.isna()
-            arr[mask] = 0
+            arr[mask] = "0"
             values = arr.astype(dtype)
             values[mask] = np.nan
             return values
@@ -510,8 +510,8 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
                     f"Lengths of operands do not match: {len(self)} != {len(other)}"
                 )
 
-            other = np.asarray(other, dtype=self._ndarray.dtype)
-            other = other[valid]
+            other = np.asarray(other)
+            other = other[valid].astype(self._ndarray.dtype)
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray)
@@ -673,12 +673,15 @@ class NumpyStringArray(BaseNumpyStringArray):
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
-        na_mask, any_na = libmissing.isnaobj(np.asarray(scalars), check_for_any_na=True)
-
-        result = np.array(scalars, dtype=get_string_dtype())
-
-        if any_na:
-            result[na_mask] = libmissing.NA
+        arr = np.asarray(scalars)
+        if is_object_dtype(arr.dtype):
+            result = np.empty(arr.shape, dtype=get_string_dtype())
+            na_mask, any_na = libmissing.isnaobj(arr, check_for_any_na=True)
+            result[~na_mask] = arr[~na_mask]
+            if any_na:
+                result[na_mask] = libmissing.NA
+        else:
+            result = np.array(arr, dtype=get_string_dtype())
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -729,3 +732,13 @@ class NumpyStringArray(BaseNumpyStringArray):
         if not isinstance(fill_value, str) and fill_value is not self.dtype.na_value:
             raise ValueError("StringArray requires a sequence of strings or pandas.NA")
         return fill_value
+
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if dtype is None and na_value is not lib.no_default:
+            dtype = get_string_dtype(na_object=na_value)
+        return super().to_numpy(dtype, copy, na_value)

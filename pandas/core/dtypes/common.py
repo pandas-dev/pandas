@@ -519,7 +519,7 @@ def is_string_or_object_np_dtype(dtype: np.dtype) -> bool:
     return dtype == object or dtype.kind in "SU" or issubclass(dtype.type, str)
 
 
-def get_string_dtype():
+def get_string_dtype(na_object=libmissing.NA, coerce=False):
     import os
     import sys
 
@@ -528,7 +528,7 @@ def get_string_dtype():
 
     import stringdtype
 
-    return stringdtype.StringDType(na_object=libmissing.NA, coerce=False)
+    return stringdtype.StringDType(na_object=na_object, coerce=coerce)
 
 
 def is_string_dtype(arr_or_dtype) -> bool:

@@ -542,7 +542,7 @@ def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
     if dtype.storage == "numpy":
-        res_dtype = StringDType(na_object=pd.NA)
+        res_dtype = StringDType(na_object=pd.NA, coerce=False)
     else:
         res_dtype = object
     expected = np.array(["a", pd.NA, "b"], dtype=res_dtype)
@@ -551,12 +551,12 @@ def test_to_numpy_returns_pdna_default(dtype):
 
 def test_to_numpy_na_value(dtype, nulls_fixture):
     na_value = nulls_fixture
-    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
-    result = arr.to_numpy(na_value=na_value)
     if dtype.storage == "numpy":
-        res_dtype = StringDType(na_object=pd.NA)
+        res_dtype = StringDType(na_object=na_value, coerce=False)
     else:
         res_dtype = object
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    result = arr.to_numpy(na_value=na_value)
     expected = np.array(["a", na_value, "b"], dtype=res_dtype)
     tm.assert_numpy_array_equal(result, expected)
 
