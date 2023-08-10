@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+import pandas as pd
 from pandas import (
     Index,
     MultiIndex,
@@ -42,3 +43,17 @@ class TestIndexConstructor:
         expected = MultiIndex.from_tuples(tuple_list)
 
         tm.assert_index_equal(result, expected)
+
+    def test_index_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = Index(["a", "b"], dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            ser = Index(["a", "b"])
+        tm.assert_index_equal(ser, expected)
+
+        expected = Index(["a", 1], dtype="object")
+        with pd.option_context("future.infer_string", True):
+            ser = Index(["a", 1])
+        tm.assert_index_equal(ser, expected)
