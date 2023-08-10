@@ -304,9 +304,7 @@ class TestSeriesLogicalOps:
     def test_reversed_xor_with_index_returns_series(self):
         # GH#22092, GH#19792 pre-2.0 these were aliased to setops
         ser = Series([True, True, False, False])
-        idx1 = Index(
-            [True, False, True, False], dtype=object
-        )  # TODO: raises if bool-dtype
+        idx1 = Index([True, False, True, False], dtype=bool)
         idx2 = Index([1, 0, 1, 0])
 
         expected = Series([False, True, True, False])

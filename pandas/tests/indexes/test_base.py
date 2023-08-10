@@ -561,11 +561,9 @@ class TestIndex:
     def test_map_dictlike(self, index, mapper, request):
         # GH 12756
         if isinstance(index, CategoricalIndex):
-            # Tested in test_categorical
-            return
+            pytest.skip("Tested in test_categorical")
         elif not index.is_unique:
-            # Cannot map duplicated index
-            return
+            pytest.skip("Cannot map duplicated index")
 
         rng = np.arange(len(index), 0, -1, dtype=np.int64)
 
@@ -785,7 +783,7 @@ class TestIndex:
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
-            return
+            pytest.skip("Test doesn't make sense for empty MultiIndex")
         if isinstance(index, IntervalIndex) and not IS64:
             pytest.skip("Cannot test IntervalIndex with int64 dtype on 32 bit platform")
         index = index.unique().repeat(2)

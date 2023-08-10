@@ -2099,7 +2099,7 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):
-            return
+            pytest.skip("Not relevant for empty Index")
 
         index = index.repeat(2)  # ensure non-unique
         N = len(index)

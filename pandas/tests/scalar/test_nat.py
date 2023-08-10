@@ -311,14 +311,15 @@ def test_nat_doc_strings(compare):
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
 
-    # Ignore differences with Timestamp.isoformat() as they're intentional
     if klass == Timestamp and method == "isoformat":
-        return
+        pytest.skip(
+            "Ignore differences with Timestamp.isoformat() as they're intentional"
+        )
 
     if method == "to_numpy":
         # GH#44460 can return either dt64 or td64 depending on dtype,
         #  different docstring is intentional
-        return
+        pytest.skip(f"different docstring for {method} is intentional")
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc

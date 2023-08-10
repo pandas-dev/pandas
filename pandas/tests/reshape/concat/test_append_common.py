@@ -187,12 +187,9 @@ class TestConcatAppendCommon:
         exp_series_dtype = None
 
         if typ1 == typ2:
-            # same dtype is tested in test_concatlike_same_dtypes
-            return
+            pytest.skip("same dtype is tested in test_concatlike_same_dtypes")
         elif typ1 == "category" or typ2 == "category":
-            # The `vals1 + vals2` below fails bc one of these is a Categorical
-            #  instead of a list; we have separate dedicated tests for categorical
-            return
+            pytest.skip("categorical type tested elsewhere")
 
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):

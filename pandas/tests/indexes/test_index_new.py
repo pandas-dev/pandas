@@ -132,7 +132,10 @@ class TestIndexConstructorInference:
     ):
         if isinstance(nulls_fixture, Decimal):
             # We dont cast these to datetime64/timedelta64
-            return
+            pytest.skip(
+                f"We don't cast {type(nulls_fixture).__name__} to "
+                "datetime64/timedelta64"
+            )
 
         expected = klass([NaT, NaT])
         assert expected.dtype == dtype

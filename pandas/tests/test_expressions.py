@@ -188,11 +188,9 @@ class TestExpressions:
         assert used_numexpr, "Did not use numexpr as expected."
         tm.assert_equal(expected, result)
 
-        # FIXME: dont leave commented-out
-        # series doesn't uses vec_compare instead of numexpr...
-        # for i in range(len(df.columns)):
-        #     binary_comp = other.iloc[:, i] + 1
-        #     self.run_binary(df.iloc[:, i], binary_comp, flex)
+        for i in range(len(df.columns)):
+            binary_comp = other.iloc[:, i] + 1
+            self.call_op(df.iloc[:, i], binary_comp, flex, "add")
 
     def test_invalid(self):
         array = np.random.default_rng(2).standard_normal(1_000_001)
@@ -222,10 +220,9 @@ class TestExpressions:
         left = request.getfixturevalue(left_fix)
         right = request.getfixturevalue(right_fix)
 
-        def testit():
+        def testit(left, right, opname, op_str):
             if opname == "pow":
-                # TODO: get this working
-                return
+                left = np.abs(left)
 
             op = getattr(operator, opname)
 
@@ -238,12 +235,12 @@ class TestExpressions:
             assert not result
 
         with option_context("compute.use_numexpr", False):
-            testit()
+            testit(left, right, opname, op_str)
 
         expr.set_numexpr_threads(1)
-        testit()
+        testit(left, right, opname, op_str)
         expr.set_numexpr_threads()
-        testit()
+        testit(left, right, opname, op_str)
 
     @pytest.mark.parametrize(
         "left_fix,right_fix", [("_array", "_array2"), ("_array_mixed", "_array_mixed2")]

@@ -121,10 +121,6 @@ class TestCommon:
         assert res is None
         assert index.name == new_name
         assert index.names == [new_name]
-        # FIXME: dont leave commented-out
-        # with pytest.raises(TypeError, match="list-like"):
-        #    # should still fail even if it would be the right length
-        #    ind.set_names("a")
         with pytest.raises(ValueError, match="Level must be None"):
             index.set_names("a", level=0)
 
@@ -133,6 +129,12 @@ class TestCommon:
         index.rename(name, inplace=True)
         assert index.name == name
         assert index.names == [name]
+
+    @pytest.mark.xfail
+    def test_set_names_single_label_no_level(self, index_flat):
+        with pytest.raises(TypeError, match="list-like"):
+            # should still fail even if it would be the right length
+            index_flat.set_names("a")
 
     def test_copy_and_deepcopy(self, index_flat):
         index = index_flat
