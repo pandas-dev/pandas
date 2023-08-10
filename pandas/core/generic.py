@@ -6584,12 +6584,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
-        When ``copy_on_write`` in pandas global config is set to ``True``, the
-        ``copy_on_write`` global config take effect even when ``deep=False``.
+        When ``copy_on_write`` in pandas config is set to ``True``, the
+        ``copy_on_write`` config takes effect even when ``deep=False``.
         This means that any changes to the copied data would make a new copy
-        of the data upon write (and vice versa). o changes would not be reflected
-        in the original copy. See
-        :ref:`Copy_on_Write <copy_on_write>` for more information.
+        of the data upon write (and vice versa). Changes made to either the
+        original or copied variable would not be reflected in the counterpart.
+        See :ref:`Copy_on_Write <copy_on_write>` for more information.
 
         Examples
         --------
