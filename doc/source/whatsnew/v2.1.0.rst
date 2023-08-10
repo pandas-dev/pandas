@@ -229,7 +229,7 @@ Other enhancements
 - Add :meth:`diff()` and :meth:`round()` for :class:`Index` (:issue:`19708`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Added to the escape mode "latex-math" preserving without escaping all characters between "\(" and "\)" in formatter (:issue:`51903`)
-- Adding ``engine_kwargs`` parameter to :func:`pd.read_excel` (:issue:`52214`)
+- Adding ``engine_kwargs`` parameter to :func:`read_excel` (:issue:`52214`)
 - Classes that are useful for type-hinting have been added to the public API in the new submodule ``pandas.api.typing`` (:issue:`48577`)
 - Implemented :attr:`Series.dt.is_month_start`, :attr:`Series.dt.is_month_end`, :attr:`Series.dt.is_year_start`, :attr:`Series.dt.is_year_end`, :attr:`Series.dt.is_quarter_start`, :attr:`Series.dt.is_quarter_end`, :attr:`Series.dt.is_days_in_month`, :attr:`Series.dt.unit`, :attr:`Series.dt.is_normalize`, :meth:`Series.dt.day_name`, :meth:`Series.dt.month_name`, :meth:`Series.dt.tz_convert` for :class:`ArrowDtype` with ``pyarrow.timestamp`` (:issue:`52388`, :issue:`51718`)
 - :meth:`.DataFrameGroupby.agg` and :meth:`.DataFrameGroupby.transform` now support grouping by multiple keys when the index is not a :class:`MultiIndex` for ``engine="numba"`` (:issue:`53486`)
