@@ -737,6 +737,7 @@ Interval
 ^^^^^^^^
 - :meth:`IntervalIndex.get_indexer` and :meth:`IntervalIndex.get_indexer_nonunique` raising if ``target`` is read-only array (:issue:`53703`)
 - Bug in :class:`IntervalDtype` where the object could be kept alive when deleted (:issue:`54184`)
+- Bug in :func:`interval_range` where a float ``step`` would produce incorrect intervals from floating point artifacts (:issue:`54477`)
 
 Indexing
 ^^^^^^^^
