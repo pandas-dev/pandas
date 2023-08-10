@@ -511,38 +511,5 @@ Post-Release
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.
 
-.. _maintaining.pdep_vote_issue_template:
-
-PDEP vote issue template
-------------------------
-
-As per `PDEP-1`_, the following issues template should be copied and updated when a
-maintainer is ready
-to call
-for
-a vote on a PDEP discussion.
-
-.. code-block:: markdown
-
-    This is the issue where we will track votes for PDEP-X (replace with number).
-    Pull request with discussion is here: #XXXXX (replace with PR number)
-    Rendered PDEP for easy reading: link-to-pdep.MD (replace with MD link)
-    Cast your vote in a comment below.
-    * +1: approve.
-    * 0: abstain.
-        * Reason: A one sentence reason is required.
-    * -1: disapprove
-        * Reason: A one sentence reason is required.
-    A disapprove vote requires prior participation in #XXXXX (replace with PR number).
-    Voting will close in 15 days, i.e., on Month DD (replace date to close the vote).
-    @pandas-dev/pandas-core
-
-    > Reminders:
-    - You may find it useful to list or total the number of participating members in the PDEP discussion PR. This would be the maximum possible disapprove votes.
-    - Please lock this voting issue so that only voting members are able to cast their votes or comment on this issue.
-
-
-
 .. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization
-.. _PDEP-1: https://pandas.pydata.org/pdeps/0001-purpose-and-guidelines.html
