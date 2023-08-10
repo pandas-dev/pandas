@@ -935,6 +935,8 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     This wrapper writes to the underlying buffer on close.
     """
 
+    buffer = BytesIO()
+
     @abstractmethod
     def write_to_buffer(self) -> None:
         ...
@@ -943,15 +945,13 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
         if self.closed:
             # already closed
             return
-        if self.getvalue():
+        if self.getbuffer().nbytes:
             # write to buffer
             self.seek(0)
-            # error: "_BufferedWriter" has no attribute "buffer"
-            with self.buffer:  # type: ignore[attr-defined]
+            with self.buffer:
                 self.write_to_buffer()
         else:
-            # error: "_BufferedWriter" has no attribute "buffer"
-            self.buffer.close()  # type: ignore[attr-defined]
+            self.buffer.close()
         super().close()
 
 
@@ -967,13 +967,12 @@ class _BytesTarFile(_BufferedWriter):
         super().__init__()
         self.archive_name = archive_name
         self.name = name
-        # error: Argument "fileobj" to "open" of "TarFile" has incompatible
-        # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
-        # "Optional[IO[bytes]]"
-        self.buffer = tarfile.TarFile.open(
+        # error: Incompatible types in assignment (expression has type "TarFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
             name=name,
             mode=self.extend_mode(mode),
-            fileobj=fileobj,  # type: ignore[arg-type]
+            fileobj=fileobj,
             **kwargs,
         )
 
@@ -1023,10 +1022,11 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: Argument 1 to "ZipFile" has incompatible type "Union[
-        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
-        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
-        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
+        # error: Incompatible types in assignment (expression has type "ZipFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[assignment]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """

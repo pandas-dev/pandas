@@ -3,7 +3,6 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -201,8 +200,7 @@ def check_round_trip(
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            with catch_warnings(record=True):
-                actual = read_parquet(path, **read_kwargs)
+            actual = read_parquet(path, **read_kwargs)
 
             if "string_with_nan" in expected:
                 expected.loc[1, "string_with_nan"] = None
@@ -354,12 +352,11 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
 
-        with catch_warnings(record=True):
-            result = read_parquet(path, engine=pa)
-            tm.assert_frame_equal(result, df)
+        result = read_parquet(path, engine=pa)
+        tm.assert_frame_equal(result, df)
 
-            result = read_parquet(path, engine=pa, columns=["a", "d"])
-            tm.assert_frame_equal(result, df[["a", "d"]])
+        result = read_parquet(path, engine=pa, columns=["a", "d"])
+        tm.assert_frame_equal(result, df[["a", "d"]])
 
 
 class Base:
@@ -1105,6 +1102,22 @@ class TestParquetPyArrow(Base):
         df.to_parquet(path, engine=pa)
         new_df = read_parquet(path, engine=pa)
         assert new_df.attrs == df.attrs
+
+    def test_string_inference(self, tmp_path, pa):
+        # GH#54431
+        import pyarrow as pa
+
+        path = tmp_path / "test_string_inference.p"
+        df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
+        df.to_parquet(path, engine="pyarrow")
+        with pd.option_context("future.infer_string", True):
+            result = read_parquet(path, engine="pyarrow")
+        expected = pd.DataFrame(
+            data={"a": ["x", "y"]},
+            dtype=pd.ArrowDtype(pa.string()),
+            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestParquetFastParquet(Base):

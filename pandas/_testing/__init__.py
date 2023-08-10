@@ -269,6 +269,26 @@ else:
 EMPTY_STRING_PATTERN = re.compile("^$")
 
 
+arithmetic_dunder_methods = [
+    "__add__",
+    "__radd__",
+    "__sub__",
+    "__rsub__",
+    "__mul__",
+    "__rmul__",
+    "__floordiv__",
+    "__rfloordiv__",
+    "__truediv__",
+    "__rtruediv__",
+    "__pow__",
+    "__rpow__",
+    "__mod__",
+    "__rmod__",
+]
+
+comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
+
+
 def reset_display_options() -> None:
     """
     Reset the display options for printing and representing objects.

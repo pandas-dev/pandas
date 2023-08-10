@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.missing import (
     NA,
@@ -796,6 +798,11 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
+        if using_pyarrow_string_dtype():
+            import pyarrow as pa
+
+            pa_dtype = pa.string()
+            dtype = ArrowDtype(pa_dtype)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:

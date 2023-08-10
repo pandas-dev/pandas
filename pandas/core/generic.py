@@ -97,7 +97,10 @@ from pandas.errors import (
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -2792,6 +2795,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="to_sql"
+    )
     def to_sql(
         self,
         name: str,
@@ -2911,7 +2917,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  User 2
         2  User 3
 
-        >>> df.to_sql('users', con=engine)
+        >>> df.to_sql(name='users', con=engine)
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
@@ -2922,14 +2928,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-        ...     df1.to_sql('users', con=connection, if_exists='append')
+        ...     df1.to_sql(name='users', con=connection, if_exists='append')
         2
 
         This is allowed to support operations that require that the same
         DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
-        >>> df2.to_sql('users', con=engine, if_exists='append')
+        >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
         ...    conn.execute(text("SELECT * FROM users")).fetchall()
@@ -2939,7 +2945,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Overwrite the table with just ``df2``.
 
-        >>> df2.to_sql('users', con=engine, if_exists='replace',
+        >>> df2.to_sql(name='users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
@@ -2956,7 +2962,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
         0
 
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
@@ -2973,7 +2979,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
         2
 
         Specify the dtype (especially useful for integers with missing values).
@@ -2989,7 +2995,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  2.0
 
         >>> from sqlalchemy.types import Integer
-        >>> df.to_sql('integers', con=engine, index=False,
+        >>> df.to_sql(name='integers', con=engine, index=False,
         ...           dtype={"A": Integer()})
         3
 
@@ -6584,6 +6590,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
+        When ``copy_on_write`` in pandas config is set to ``True``, the
+        ``copy_on_write`` config takes effect even when ``deep=False``.
+        This means that any changes to the copied data would make a new copy
+        of the data upon write (and vice versa). Changes made to either the
+        original or copied variable would not be reflected in the counterpart.
+        See :ref:`Copy_on_Write <copy_on_write>` for more information.
+
         Examples
         --------
         >>> s = pd.Series([1, 2], index=["a", "b"])
@@ -6651,6 +6664,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    [10, 2]
         1     [3, 4]
         dtype: object
+
+        ** Copy-on-Write is set to true: **
+
+        >>> with pd.option_context("mode.copy_on_write", True):
+        ...     s = pd.Series([1, 2], index=["a", "b"])
+        ...     copy = s.copy(deep=False)
+        ...     s.iloc[0] = 100
+        ...     s
+        a    100
+        b      2
+        dtype: int64
+        >>> copy
+        a    1
+        b    2
+        dtype: int64
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
