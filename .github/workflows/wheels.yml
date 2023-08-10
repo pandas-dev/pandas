@@ -66,7 +66,7 @@ jobs:
         with:
           name: sdist
           path: ./dist/*
-      
+
       - name: Sanity check sdist files
         run: |
           ls ./dist
@@ -125,14 +125,14 @@ jobs:
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
-      
+
       # Python version used to build sdist doesn't matter
       # wheel will be built from sdist with the correct version
       - name: Unzip sdist (macOS)
         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
           tar -xzf ./dist/${{ env.sdist_name }} -C ./dist
-      
+
       - name: Output sdist name (macOS)
         id: save-path2
         shell: bash -el {0}
