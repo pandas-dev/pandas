@@ -14,8 +14,8 @@ name: Wheel builder
 
 on:
   schedule:
-  # :40 every hour
-  - cron: "40 * * * *"
+  # Every 15 minutes
+  - cron: "*/15 * * * *"
   push:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
@@ -137,8 +137,6 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       # Work around for https://github.com/actions/runner-images/issues/2619?
-      # Empty disk and memory cache
-      # Again for good luck :)
       - name: Sleep on macOS (prevent missing files in the tarball)
         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         run: |
