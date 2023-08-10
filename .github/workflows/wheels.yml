@@ -66,6 +66,10 @@ jobs:
         with:
           name: sdist
           path: ./dist/*
+      
+      - name: Sanity check sdist files
+        run: |
+          ls ./dist
 
       - name: Output sdist name
         id: save-path
@@ -111,36 +115,28 @@ jobs:
       # We need to build wheels from the sdist since the sdist
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
-        if: ${{ matrix.buildplat[1] != 'macosx_*' }}
+        #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
         uses: actions/download-artifact@v3
         with:
           name: sdist
           path: ./dist
 
-      - name: Set up Python (macOS)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      # Python version used to build sdist doesn't matter
-      # wheel will be built from sdist with the correct version
-      - name: Build sdist (macOS)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        run: |
-          python -m pip install build
-          python -m build --sdist
-
       - name: Output sdist name (macOS)
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
-
-      # Work around for https://github.com/actions/runner-images/issues/2619?
-#       - name: Sleep on macOS (prevent missing files in the tarball)
-#         if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-#         run: |
-#           sleep 10
+      
+      # Python version used to build sdist doesn't matter
+      # wheel will be built from sdist with the correct version
+      - name: Unzip sdist (macOS)
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          tar -cxf ./dist/${{ env.sdist_name }}
+      
+      - name: Output sdist name (macOS)
+        id: save-path
+        shell: bash -el {0}
+        run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.14.1
