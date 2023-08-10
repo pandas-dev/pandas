@@ -1371,8 +1371,8 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    # TODO: cython bug (post Cython 3) preventsupdate to "const diff_t[:, :] arr"
-    diff_t[:, :] arr,
+    # TODO: cython bug (post Cython 3) prevents update to "const diff_t[:, :] arr"
+    ndarray[diff_t, ndim=2] arr,
     out_t[:, :] out,
     Py_ssize_t periods,
     int axis,
@@ -1380,7 +1380,9 @@ def diff_2d(
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.is_f_contig()
+        bint f_contig = arr.flags.f_contiguous
+        # TODO: change to this when arr becomes a memoryview
+        # bint f_contig = arr.is_f_contig()
         diff_t left, right
 
     # Disable for unsupported dtype combinations,

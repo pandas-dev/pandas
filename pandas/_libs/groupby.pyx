@@ -1545,7 +1545,12 @@ def group_nth(
                 if uses_mask:
                     isna_entry = mask[i, j]
                 else:
-                    isna_entry = _treat_as_na(val, is_datetimelike)
+                    # TODO: just make _treat_as_na support this?
+                    # remove notimplemented for object dtype there
+                    if numeric_object_t is object:
+                        isna_entry = checknull(val)
+                    else:
+                        isna_entry = _treat_as_na(val, is_datetimelike)
 
                 if not isna_entry:
                     nobs[lab, j] += 1
