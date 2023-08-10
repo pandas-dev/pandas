@@ -14,8 +14,8 @@ name: Wheel builder
 
 on:
   schedule:
-  # Every 15 minutes
-  - cron: "*/15 * * * *"
+  # 8:35 UTC every day
+  - cron: "40 8 * * *"
   push:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
