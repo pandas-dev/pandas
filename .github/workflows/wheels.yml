@@ -14,8 +14,8 @@ name: Wheel builder
 
 on:
   schedule:
-  # 5:34 UTC every day
-  - cron: "34 5 * * *"
+  # 5:35 UTC every day
+  - cron: "35 5 * * *"
   push:
   pull_request:
     types: [labeled, opened, synchronize, reopened]
@@ -35,7 +35,7 @@ jobs:
   build_sdist:
     name: Build sdist
     if: >-
-      (github.event_name == 'schedule' && github.repository_owner == 'lithomas1') ||
+      (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
@@ -76,7 +76,7 @@ jobs:
     needs: build_sdist
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
     if: >-
-      (github.event_name == 'schedule' && github.repository_owner == 'pandas-dev') ||
+      (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
