@@ -384,7 +384,7 @@ def main():
     )
 
     if args.command == "linkcheck":
-        builder.linkcheck()  # Call the linkcheck method
+        builder.linkcheck()
     else:
         return getattr(builder, args.command)()
 
