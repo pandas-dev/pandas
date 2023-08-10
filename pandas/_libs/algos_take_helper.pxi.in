@@ -144,8 +144,6 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 else:
                     for j in range(k):
                         out[i, j] = values[idx, j]
-    return
-
     {{else}}
 
     for i in range(n):
