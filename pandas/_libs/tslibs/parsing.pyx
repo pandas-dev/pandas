@@ -774,8 +774,7 @@ def try_parse_year_month_day(
         object[::1] result
 
     n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if months.shape[0] != n or days.shape[0] != n:
+    if len(months) != n or len(days) != n:
         raise ValueError("Length of years/months/days must all be equal")
     result = np.empty(n, dtype="O")
 

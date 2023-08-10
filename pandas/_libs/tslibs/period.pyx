@@ -1838,10 +1838,6 @@ cdef class _Period(PeriodMixin):
 
     def __add__(self, other):
         if not is_period_object(self):
-            # cython semantics; this is analogous to a call to __radd__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
             return other.__add__(self)
 
         if is_any_td_scalar(other):
@@ -1876,10 +1872,6 @@ cdef class _Period(PeriodMixin):
 
     def __sub__(self, other):
         if not is_period_object(self):
-            # cython semantics; this is like a call to __rsub__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
             return NotImplemented
 
         elif (

@@ -126,8 +126,7 @@ cdef class NDArrayBacked:
 
     @property
     def size(self) -> int:
-        # TODO(cython3): use self._ndarray.size
-        return cnp.PyArray_SIZE(self._ndarray)
+        return self._ndarray.size
 
     @property
     def nbytes(self) -> int:

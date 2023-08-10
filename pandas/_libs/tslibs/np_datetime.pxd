@@ -6,35 +6,22 @@ from cpython.datetime cimport (
 from numpy cimport (
     int32_t,
     int64_t,
+    npy_datetime,
+    npy_timedelta,
 )
 
-
-# TODO(cython3): most of these can be cimported directly from numpy
-cdef extern from "numpy/ndarrayobject.h":
-    ctypedef int64_t npy_timedelta
-    ctypedef int64_t npy_datetime
 
 cdef extern from "numpy/ndarraytypes.h":
     ctypedef struct PyArray_DatetimeMetaData:
         NPY_DATETIMEUNIT base
         int64_t num
 
-cdef extern from "numpy/arrayscalars.h":
-    ctypedef struct PyDatetimeScalarObject:
-        # PyObject_HEAD
-        npy_datetime obval
-        PyArray_DatetimeMetaData obmeta
-
-    ctypedef struct PyTimedeltaScalarObject:
-        # PyObject_HEAD
-        npy_timedelta obval
-        PyArray_DatetimeMetaData obmeta
-
 cdef extern from "numpy/ndarraytypes.h":
     ctypedef struct npy_datetimestruct:
         int64_t year
         int32_t month, day, hour, min, sec, us, ps, as
-
+    # TODO: Can remove this once NPY_FR_GENERIC is added to
+    # the Cython __init__.pxd for numpy
     ctypedef enum NPY_DATETIMEUNIT:
         NPY_FR_Y
         NPY_FR_M
