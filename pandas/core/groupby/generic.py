@@ -1668,7 +1668,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # GH6124 - propagate name of Series when it's consistent
                 names = {v.name for v in values}
                 if len(names) == 1:
-                    columns.name = list(names)[0]
+                    columns.name = next(iter(names))
         else:
             index = first_not_none.index
             columns = key_index

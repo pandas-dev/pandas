@@ -2099,7 +2099,7 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):
-            return
+            pytest.skip("Not relevant for empty Index")
 
         index = index.repeat(2)  # ensure non-unique
         N = len(index)
@@ -2644,6 +2644,13 @@ class TestLocBooleanMask:
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = df.copy()
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_length_one(self):
+        # GH#51435
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
+        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"]
         tm.assert_frame_equal(df, expected)
 
 

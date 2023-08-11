@@ -93,9 +93,9 @@ class Term(ops.Term):
 
 
 class Constant(Term):
-    def __init__(self, value, env: PyTablesScope, side=None, encoding=None) -> None:
+    def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
         assert isinstance(env, PyTablesScope), type(env)
-        super().__init__(value, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=side, encoding=encoding)
 
     def _resolve_name(self):
         return self._name

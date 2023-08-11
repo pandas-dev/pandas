@@ -129,7 +129,7 @@ class TestSeriesInterpolateData:
         new_index = ser.index.union(Index([1.25, 1.5, 1.75, 2.25, 2.5, 2.75])).astype(
             float
         )
-        result = ser.reindex(new_index).interpolate(method="cubicspline")[1:3]
+        result = ser.reindex(new_index).interpolate(method="cubicspline").loc[1:3]
         tm.assert_series_equal(result, expected)
 
     def test_interpolate_pchip(self):
@@ -142,7 +142,7 @@ class TestSeriesInterpolateData:
         ).astype(float)
         interp_s = ser.reindex(new_index).interpolate(method="pchip")
         # does not blow up, GH5977
-        interp_s[49:51]
+        interp_s.loc[49:51]
 
     def test_interpolate_akima(self):
         pytest.importorskip("scipy")
@@ -157,7 +157,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
         # interpolate at new_index where `der` is a non-zero int
         expected = Series(
@@ -168,7 +168,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="akima", der=1)
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     def test_interpolate_piecewise_polynomial(self):
         pytest.importorskip("scipy")
@@ -183,7 +183,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="piecewise_polynomial")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     def test_interpolate_from_derivatives(self):
         pytest.importorskip("scipy")
@@ -198,7 +198,7 @@ class TestSeriesInterpolateData:
             float
         )
         interp_s = ser.reindex(new_index).interpolate(method="from_derivatives")
-        tm.assert_series_equal(interp_s[1:3], expected)
+        tm.assert_series_equal(interp_s.loc[1:3], expected)
 
     @pytest.mark.parametrize(
         "kwargs",
@@ -218,7 +218,7 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.default_rng(2).random(30)))
-        s[::3] = np.random.default_rng(2).standard_normal(10)
+        s.loc[::3] = np.random.default_rng(2).standard_normal(10)
 
         vals = s.index.values.astype(float)
 

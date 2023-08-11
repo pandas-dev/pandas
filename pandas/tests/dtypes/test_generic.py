@@ -1,5 +1,4 @@
 import re
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -107,25 +106,22 @@ def test_setattr_warnings():
     }
     df = pd.DataFrame(d)
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully add new column
         #  this should not raise a warning
         df["three"] = df.two + 1
-        assert len(w) == 0
         assert df.three.sum() > df.two.sum()
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully modify column in place
         #  this should not raise a warning
         df.one += 1
-        assert len(w) == 0
         assert df.one.iloc[0] == 2
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully add an attribute to a series
         #  this should not raise a warning
         df.two.not_an_index = [1, 2]
-        assert len(w) == 0
 
     with tm.assert_produces_warning(UserWarning):
         #  warn when setting column to nonexistent name

@@ -1958,7 +1958,7 @@ def test_wrong_compression(parser, compression, compression_only):
     attempted_compression = compression_only
 
     if actual_compression == attempted_compression:
-        return
+        pytest.skip(f"{actual_compression} == {attempted_compression}")
 
     errors = {
         "bz2": (OSError, "Invalid data stream"),
