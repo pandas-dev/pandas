@@ -34,7 +34,7 @@ def to_numpy_dtypes(dtypes):
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
-class TestPandasDtype:
+class TestNumpyEADtype:
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -53,6 +53,7 @@ class TestPandasDtype:
             np.float64,
             float,
             np.dtype("float64"),
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -100,7 +101,7 @@ class TestPandasDtype:
         ],
     )
     def test_period_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) is not PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
@@ -210,11 +211,10 @@ def test_is_sparse(check_scipy):
             assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
-@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    sp_sparse = pytest.importorskip("scipy.sparse")
 
-    assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
+    assert com.is_scipy_sparse(sp_sparse.bsr_matrix([1, 2, 3]))
 
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 

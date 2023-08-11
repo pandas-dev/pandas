@@ -14,11 +14,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
     Literal,
-    Mapping,
     NamedTuple,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -64,6 +61,7 @@ from pandas.core.apply import (
     maybe_mangle_lambdas,
     reconstruct_func,
     validate_func_kwargs,
+    warn_alias_replacement,
 )
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -91,6 +89,12 @@ from pandas.core.util.numba_ import maybe_use_numba
 from pandas.plotting import boxplot_frame_groupby
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -133,7 +137,7 @@ class NamedAgg(NamedTuple):
     --------
     >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], 1: [10, 11, 12]})
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
-    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=np.mean)
+    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
     >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
          result_a  result_1
     key
@@ -147,7 +151,9 @@ class NamedAgg(NamedTuple):
 
 class SeriesGroupBy(GroupBy[Series]):
     def _wrap_agged_manager(self, mgr: Manager) -> Series:
-        return self.obj._constructor(mgr, name=self.obj.name)
+        out = self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self.obj.name
+        return out
 
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
@@ -255,6 +261,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             cyfunc = com.get_cython_func(func)
             if cyfunc and not args and not kwargs:
+                warn_alias_replacement(self, func, cyfunc)
                 return getattr(self, cyfunc)()
 
             if maybe_use_numba(engine):
@@ -304,7 +311,11 @@ class SeriesGroupBy(GroupBy[Series]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[func]
+            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         obj = self._obj_with_exclusions
@@ -334,10 +345,7 @@ class SeriesGroupBy(GroupBy[Series]):
             arg = [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
         else:
             # list of functions / function names
-            columns = []
-            for f in arg:
-                columns.append(com.get_callable_name(f) or f)
-
+            columns = (com.get_callable_name(f) or f for f in arg)
             arg = zip(columns, arg)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
@@ -408,7 +416,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(dropna=self.observed)
+            res_ser = res_df.stack(future_stack=True)
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
@@ -631,6 +639,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
+        For SeriesGroupby:
 
         >>> lst = ['a', 'a', 'b', 'b']
         >>> ser = pd.Series([1, 2, 3, 3], index=lst)
@@ -644,6 +653,21 @@ class SeriesGroupBy(GroupBy[Series]):
         a    2
         b    1
         dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    3
+        dtype: int64
+        >>> ser.resample('MS').nunique()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         ids, _, _ = self.grouper.group_info
 
@@ -866,7 +890,7 @@ class SeriesGroupBy(GroupBy[Series]):
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast: dict | None = None,
+        downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Series | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -909,6 +933,8 @@ class SeriesGroupBy(GroupBy[Series]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -1491,7 +1517,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     agg = aggregate
 
     def _python_agg_general(self, func, *args, **kwargs):
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[func]
+            warn_alias_replacement(self, orig_func, alias)
         f = lambda x: func(x, *args, **kwargs)
 
         if self.ngroups == 0:
@@ -1638,7 +1668,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # GH6124 - propagate name of Series when it's consistent
                 names = {v.name for v in values}
                 if len(names) == 1:
-                    columns.name = list(names)[0]
+                    columns.name = next(iter(names))
         else:
             index = first_not_none.index
             columns = key_index
@@ -1682,7 +1712,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         res_mgr = mgr.grouped_reduce(arr_func)
         res_mgr.set_axis(1, mgr.axes[1])
 
-        res_df = self.obj._constructor(res_mgr)
+        res_df = self.obj._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
         res_df = self._maybe_transpose_result(res_df)
         return res_df
 
@@ -1993,7 +2023,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         return mgr
 
     def _wrap_agged_manager(self, mgr: Manager2D) -> DataFrame:
-        return self.obj._constructor(mgr)
+        return self.obj._constructor_from_mgr(mgr, axes=mgr.axes)
 
     def _apply_to_column_groupbys(self, func) -> DataFrame:
         from pandas.core.reshape.concat import concat
@@ -2292,7 +2322,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don’t include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
         Returns
         -------
@@ -2383,12 +2413,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     def fillna(
         self,
-        value: Hashable | Mapping | Series | DataFrame = None,
+        value: Hashable | Mapping | Series | DataFrame | None = None,
         method: FillnaOptions | None = None,
         axis: Axis | None | lib.NoDefault = lib.no_default,
         inplace: bool = False,
         limit: int | None = None,
-        downcast=None,
+        downcast=lib.no_default,
     ) -> DataFrame | None:
         """
         Fill NA/NaN values using the specified method within groups.
@@ -2431,6 +2461,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             A dict of item->dtype of what to downcast if possible,
             or the string 'infer' which will try to downcast to an appropriate
             equal type (e.g. float64 to int64 if possible).
+
+            .. deprecated:: 2.1.0
 
         Returns
         -------
@@ -2756,7 +2788,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @doc(DataFrame.hist.__doc__)
     def hist(
         self,
-        column: IndexLabel = None,
+        column: IndexLabel | None = None,
         by=None,
         grid: bool = True,
         xlabelsize: int | None = None,

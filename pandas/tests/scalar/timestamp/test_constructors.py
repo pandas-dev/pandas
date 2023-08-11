@@ -17,6 +17,8 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas.errors import OutOfBoundsDatetime
 
 from pandas import (
+    NA,
+    NaT,
     Period,
     Timedelta,
     Timestamp,
@@ -24,6 +26,11 @@ from pandas import (
 
 
 class TestTimestampConstructors:
+    def test_construct_from_time_unit(self):
+        # GH#54097 only passing a time component, no date
+        ts = Timestamp("01:01:01.111")
+        assert ts.unit == "ms"
+
     def test_weekday_but_no_day_raises(self):
         # GH#52659
         msg = "Parsing datetimes with weekday but no day information is not supported"
@@ -886,6 +893,14 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     assert result == expected
 
 
+@pytest.mark.parametrize("na_value", [None, np.nan, np.datetime64("NaT"), NaT, NA])
+def test_timestamp_constructor_na_value(na_value):
+    # GH45481
+    result = Timestamp(na_value)
+    expected = NaT
+    assert result is expected
+    
+    
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
 def test_timestamp_constructor_positional_with_fold(tz):
     # Check that we build an object successfully

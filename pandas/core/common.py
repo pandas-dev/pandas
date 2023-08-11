@@ -10,6 +10,13 @@ from collections import (
     abc,
     defaultdict,
 )
+from collections.abc import (
+    Collection,
+    Generator,
+    Hashable,
+    Iterable,
+    Sequence,
+)
 import contextlib
 from functools import partial
 import inspect
@@ -17,11 +24,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
-    Generator,
-    Hashable,
-    Iterable,
-    Sequence,
     cast,
     overload,
 )
@@ -30,6 +32,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -234,7 +237,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     try:
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
-            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            if not np_version_gte1p24:
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
@@ -524,23 +528,29 @@ def convert_to_list_like(
 
 
 @contextlib.contextmanager
-def temp_setattr(obj, attr: str, value) -> Generator[None, None, None]:
+def temp_setattr(
+    obj, attr: str, value, condition: bool = True
+) -> Generator[None, None, None]:
     """Temporarily set attribute on an object.
 
     Args:
         obj: Object whose attribute will be modified.
         attr: Attribute to modify.
         value: Value to temporarily set attribute to.
+        condition: Whether to set the attribute. Provided in order to not have to
+            conditionally use this context manager.
 
     Yields:
         obj with modified attribute.
     """
-    old_value = getattr(obj, attr)
-    setattr(obj, attr, value)
+    if condition:
+        old_value = getattr(obj, attr)
+        setattr(obj, attr, value)
     try:
         yield obj
     finally:
-        setattr(obj, attr, old_value)
+        if condition:
+            setattr(obj, attr, old_value)
 
 
 def require_length_match(data, index: Index) -> None:
@@ -563,6 +573,13 @@ _builtin_table = {
     builtins.sum: np.sum,
     builtins.max: np.maximum.reduce,
     builtins.min: np.minimum.reduce,
+}
+
+# GH#53425: Only for deprecation
+_builtin_table_alias = {
+    builtins.sum: "np.sum",
+    builtins.max: "np.maximum.reduce",
+    builtins.min: "np.minimum.reduce",
 }
 
 _cython_table = {

@@ -19,6 +19,7 @@ VERSIONS = {
     "blosc": "1.21.0",
     "bottleneck": "1.3.4",
     "brotli": "0.7.0",
+    "dataframe-api-compat": "0.1.7",
     "fastparquet": "0.8.1",
     "fsspec": "2022.05.0",
     "html5lib": "1.1",

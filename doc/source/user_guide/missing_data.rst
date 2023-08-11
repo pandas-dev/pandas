@@ -91,6 +91,8 @@ See :ref:`integer_na` for more.
 
 Datetimes
 ---------
+.. note::
+   If you are adding type checking to your application, you may need access to ``NaTType`` and ``NAType``.
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
@@ -142,14 +144,10 @@ Missing values propagate naturally through arithmetic operations between pandas
 objects.
 
 .. ipython:: python
-   :suppress:
 
    df = df2.loc[:, ["one", "two", "three"]]
    a = df2.loc[df2.index[:5], ["one", "two"]].ffill()
    b = df2.loc[df2.index[:5], ["one", "two", "three"]]
-
-.. ipython:: python
-
    a
    b
    a + b
@@ -247,12 +245,8 @@ If we only want consecutive gaps filled up to a certain number of data points,
 we can use the ``limit`` keyword:
 
 .. ipython:: python
-   :suppress:
 
    df.iloc[2:4, :] = np.nan
-
-.. ipython:: python
-
    df
    df.ffill(limit=1)
 
@@ -308,13 +302,9 @@ You may wish to simply exclude labels from a data set which refer to missing
 data. To do this, use :meth:`~DataFrame.dropna`:
 
 .. ipython:: python
-   :suppress:
 
    df["two"] = df["two"].fillna(0)
    df["three"] = df["three"].fillna(0)
-
-.. ipython:: python
-
    df
    df.dropna(axis=0)
    df.dropna(axis=1)
@@ -333,7 +323,6 @@ Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing data points.
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
    idx = pd.date_range("1/1/2000", periods=100, freq="BM")
@@ -342,8 +331,6 @@ that, by default, performs linear interpolation at missing data points.
    ts[20:30] = np.nan
    ts[60:80] = np.nan
    ts = ts.cumsum()
-
-.. ipython:: python
 
    ts
    ts.count()
@@ -361,12 +348,8 @@ that, by default, performs linear interpolation at missing data points.
 Index aware interpolation is available via the ``method`` keyword:
 
 .. ipython:: python
-   :suppress:
 
    ts2 = ts.iloc[[0, 1, 30, 60, 99]]
-
-.. ipython:: python
-
    ts2
    ts2.interpolate()
    ts2.interpolate(method="time")
@@ -374,12 +357,9 @@ Index aware interpolation is available via the ``method`` keyword:
 For a floating-point index, use ``method='values'``:
 
 .. ipython:: python
-   :suppress:
 
    idx = [0.0, 1.0, 10.0]
    ser = pd.Series([0.0, np.nan, 10.0], idx)
-
-.. ipython:: python
 
    ser
    ser.interpolate()
@@ -458,7 +438,7 @@ at the new values.
    # interpolate at new_index
    new_index = ser.index.union(pd.Index([49.25, 49.5, 49.75, 50.25, 50.5, 50.75]))
    interp_s = ser.reindex(new_index).interpolate(method="pchip")
-   interp_s[49:51]
+   interp_s.loc[49:51]
 
 .. _scipy: https://scipy.org/
 .. _documentation: https://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation

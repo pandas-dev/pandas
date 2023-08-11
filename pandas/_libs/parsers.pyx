@@ -35,6 +35,7 @@ from cpython.unicode cimport (
     PyUnicode_AsUTF8String,
     PyUnicode_Decode,
     PyUnicode_DecodeUTF8,
+    PyUnicode_FromString,
 )
 from cython cimport Py_ssize_t
 from libc.stdlib cimport free
@@ -43,12 +44,6 @@ from libc.string cimport (
     strlen,
     strncpy,
 )
-
-
-cdef extern from "Python.h":
-    # TODO(cython3): get this from cpython.unicode
-    object PyUnicode_FromString(char *v)
-
 
 import numpy as np
 
@@ -117,6 +112,8 @@ cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
+
+DEFAULT_BUFFER_HEURISTIC = 2 ** 20
 
 
 cdef extern from "pandas/portable.h":
@@ -584,7 +581,7 @@ cdef class TextReader:
             raise EmptyDataError("No columns to parse from file")
 
         # Compute buffer_lines as function of table width.
-        heuristic = 2**20 // self.table_width
+        heuristic = DEFAULT_BUFFER_HEURISTIC // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2

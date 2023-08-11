@@ -38,6 +38,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
@@ -510,8 +512,7 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-# TODO(cython3): Can add const once cython#1772 is resolved
-def has_infs(floating[:] arr) -> bool:
+def has_infs(const floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         floating inf, neginf, val
@@ -1056,6 +1057,14 @@ def is_float(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_float(1.0)
+    True
+
+    >>> pd.api.types.is_float(1)
+    False
     """
     return util.is_float_object(obj)
 
@@ -1067,6 +1076,14 @@ def is_integer(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_integer(1)
+    True
+
+    >>> pd.api.types.is_integer(1.0)
+    False
     """
     return util.is_integer_object(obj)
 
@@ -1089,6 +1106,14 @@ def is_bool(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_bool(True)
+    True
+
+    >>> pd.api.types.is_bool(1)
+    False
     """
     return util.is_bool_object(obj)
 
@@ -1100,6 +1125,14 @@ def is_complex(obj: object) -> bool:
     Returns
     -------
     bool
+
+    Examples
+    --------
+    >>> pd.api.types.is_complex(1 + 1j)
+    True
+
+    >>> pd.api.types.is_complex(1)
+    False
     """
     return util.is_complex_object(obj)
 
@@ -1267,6 +1300,7 @@ cdef class Seen:
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
         bint interval_        # seen_interval
+        bint str_             # seen_str
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1293,6 +1327,7 @@ cdef class Seen:
         self.datetimetz_ = False
         self.period_ = False
         self.interval_ = False
+        self.str_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2583,6 +2618,13 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif isinstance(val, str):
+            if convert_non_numeric:
+                seen.str_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2637,6 +2679,17 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
+    elif seen.str_:
+        if is_string_array(objects, skipna=True):
+            if using_pyarrow_string_dtype():
+                import pyarrow as pa
+
+                from pandas.core.dtypes.dtypes import ArrowDtype
+
+                dtype = ArrowDtype(pa.string())
+                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
+        seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex

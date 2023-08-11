@@ -204,7 +204,7 @@ class TestCategoricalIndex:
 
         # long format
         # this is not reprable
-        ci = CategoricalIndex(np.random.randint(0, 5, size=100))
+        ci = CategoricalIndex(np.random.default_rng(2).integers(0, 5, size=100))
         str(ci)
 
     def test_isin(self):
@@ -373,3 +373,18 @@ class TestCategoricalIndex2:
         msg = "cannot use inplace with CategoricalIndex"
         with pytest.raises(ValueError, match=msg):
             ci.set_categories(list("cab"), inplace=True)
+
+    def test_remove_maintains_order(self):
+        ci = CategoricalIndex(list("abcdda"), categories=list("abcd"))
+        result = ci.reorder_categories(["d", "c", "b", "a"], ordered=True)
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(list("abcdda"), categories=list("dcba"), ordered=True),
+        )
+        result = result.remove_categories(["c"])
+        tm.assert_index_equal(
+            result,
+            CategoricalIndex(
+                ["a", "b", np.nan, "d", "d", "a"], categories=list("dba"), ordered=True
+            ),
+        )

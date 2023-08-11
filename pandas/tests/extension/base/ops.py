@@ -1,23 +1,65 @@
 from __future__ import annotations
 
+from typing import final
+
 import numpy as np
 import pytest
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseOpsUtil(BaseExtensionTests):
+class BaseOpsUtil:
+    series_scalar_exc: type[Exception] | None = TypeError
+    frame_scalar_exc: type[Exception] | None = TypeError
+    series_array_exc: type[Exception] | None = TypeError
+    divmod_exc: type[Exception] | None = TypeError
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other
+    ) -> type[Exception] | None:
+        # Find the Exception, if any we expect to raise calling
+        #  obj.__op_name__(other)
+
+        # The self.obj_bar_exc pattern isn't great in part because it can depend
+        #  on op_name or dtypes, but we use it here for backward-compatibility.
+        if op_name in ["__divmod__", "__rdivmod__"]:
+            return self.divmod_exc
+        if isinstance(obj, pd.Series) and isinstance(other, pd.Series):
+            return self.series_array_exc
+        elif isinstance(obj, pd.Series):
+            return self.series_scalar_exc
+        else:
+            return self.frame_scalar_exc
+
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        # In _check_op we check that the result of a pointwise operation
+        #  (found via _combine) matches the result of the vectorized
+        #  operation obj.__op_name__(other).
+        #  In some cases pandas dtype inference on the scalar result may not
+        #  give a matching dtype even if both operations are behaving "correctly".
+        #  In these cases, do extra required casting here.
+        return pointwise_result
+
     def get_op_from_name(self, op_name: str):
         return tm.get_op_from_name(op_name)
 
-    def check_opname(self, ser: pd.Series, op_name: str, other, exc=Exception):
+    # Subclasses are not expected to need to override check_opname, _check_op,
+    #  _check_divmod_op, or _combine.
+    #  Ideally any relevant overriding can be done in _cast_pointwise_result,
+    #  get_op_from_name, and the specification of `exc`. If you find a use
+    #  case that still requires overriding _check_op or _combine, please let
+    #  us know at github.com/pandas-dev/pandas/issues
+    @final
+    def check_opname(self, ser: pd.Series, op_name: str, other):
+        exc = self._get_expected_exception(op_name, ser, other)
         op = self.get_op_from_name(op_name)
 
         self._check_op(ser, op, other, op_name, exc)
 
+    # see comment on check_opname
+    @final
     def _combine(self, obj, other, op):
         if isinstance(obj, pd.DataFrame):
             if len(obj.columns) != 1:
@@ -27,28 +69,40 @@ class BaseOpsUtil(BaseExtensionTests):
             expected = obj.combine(other, op)
         return expected
 
+    # see comment on check_opname
+    @final
     def _check_op(
         self, ser: pd.Series, op, other, op_name: str, exc=NotImplementedError
     ):
+        # Check that the Series/DataFrame arithmetic/comparison method matches
+        #  the pointwise result from _combine.
+
         if exc is None:
             result = op(ser, other)
             expected = self._combine(ser, other, op)
+            expected = self._cast_pointwise_result(op_name, ser, other, expected)
             assert isinstance(result, type(ser))
-            self.assert_equal(result, expected)
+            tm.assert_equal(result, expected)
         else:
             with pytest.raises(exc):
                 op(ser, other)
 
-    def _check_divmod_op(self, ser: pd.Series, op, other, exc=Exception):
-        # divmod has multiple return values, so check separately
+    # see comment on check_opname
+    @final
+    def _check_divmod_op(self, ser: pd.Series, op, other):
+        # check that divmod behavior matches behavior of floordiv+mod
+        if op is divmod:
+            exc = self._get_expected_exception("__divmod__", ser, other)
+        else:
+            exc = self._get_expected_exception("__rdivmod__", ser, other)
         if exc is None:
             result_div, result_mod = op(ser, other)
             if op is divmod:
                 expected_div, expected_mod = ser // other, ser % other
             else:
                 expected_div, expected_mod = other // ser, other % ser
-            self.assert_series_equal(result_div, expected_div)
-            self.assert_series_equal(result_mod, expected_mod)
+            tm.assert_series_equal(result_div, expected_div)
+            tm.assert_series_equal(result_mod, expected_mod)
         else:
             with pytest.raises(exc):
                 divmod(ser, other)
@@ -76,26 +130,24 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         # series & scalar
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(ser, op_name, ser.iloc[0], exc=self.series_scalar_exc)
+        self.check_opname(ser, op_name, ser.iloc[0])
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
         df = pd.DataFrame({"A": data})
-        self.check_opname(df, op_name, data[0], exc=self.frame_scalar_exc)
+        self.check_opname(df, op_name, data[0])
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
-        self.check_opname(
-            ser, op_name, pd.Series([ser.iloc[0]] * len(ser)), exc=self.series_array_exc
-        )
+        self.check_opname(ser, op_name, pd.Series([ser.iloc[0]] * len(ser)))
 
     def test_divmod(self, data):
         ser = pd.Series(data)
-        self._check_divmod_op(ser, divmod, 1, exc=self.divmod_exc)
-        self._check_divmod_op(1, ops.rdivmod, ser, exc=self.divmod_exc)
+        self._check_divmod_op(ser, divmod, 1)
+        self._check_divmod_op(1, ops.rdivmod, ser)
 
     def test_divmod_series_array(self, data, data_for_twos):
         ser = pd.Series(data)
@@ -108,28 +160,41 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(other, ops.rdivmod, ser)
 
     def test_add_series_with_extension_array(self, data):
+        # Check adding an ExtensionArray to a Series of the same dtype matches
+        # the behavior of adding the arrays directly and then wrapping in a
+        # Series.
+
         ser = pd.Series(data)
+
+        exc = self._get_expected_exception("__add__", ser, data)
+        if exc is not None:
+            with pytest.raises(exc):
+                ser + data
+            return
+
         result = ser + data
         expected = pd.Series(data + data)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame, pd.Index])
+    @pytest.mark.parametrize(
+        "op_name",
+        [
+            x
+            for x in tm.arithmetic_dunder_methods + tm.comparison_dunder_methods
+            if not x.startswith("__r")
+        ],
+    )
     def test_direct_arith_with_ndframe_returns_not_implemented(
-        self, request, data, box
+        self, data, box, op_name
     ):
-        # EAs should return NotImplemented for ops with Series/DataFrame
+        # EAs should return NotImplemented for ops with Series/DataFrame/Index
         # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-        if not hasattr(data, "__add__"):
-            request.node.add_marker(
-                pytest.mark.xfail(
-                    reason=f"{type(data).__name__} does not implement add"
-                )
-            )
-        result = data.__add__(other)
-        assert result is NotImplemented
+        other = box(data)
+
+        if hasattr(data, op_name):
+            result = getattr(data, op_name)(other)
+            assert result is NotImplemented
 
 
 class BaseComparisonOpsTests(BaseOpsUtil):
@@ -140,7 +205,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             # comparison should match point-wise comparisons
             result = op(ser, other)
             expected = ser.combine(other, op)
-            self.assert_series_equal(result, expected)
+            expected = self._cast_pointwise_result(op.__name__, ser, other, expected)
+            tm.assert_series_equal(result, expected)
 
         else:
             exc = None
@@ -152,7 +218,10 @@ class BaseComparisonOpsTests(BaseOpsUtil):
             if exc is None:
                 # Didn't error, then should match pointwise behavior
                 expected = ser.combine(other, op)
-                self.assert_series_equal(result, expected)
+                expected = self._cast_pointwise_result(
+                    op.__name__, ser, other, expected
+                )
+                tm.assert_series_equal(result, expected)
             else:
                 with pytest.raises(type(exc)):
                     ser.combine(other, op)
@@ -163,28 +232,8 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 
     def test_compare_array(self, data, comparison_op):
         ser = pd.Series(data)
-        other = pd.Series([data[0]] * len(data))
+        other = pd.Series([data[0]] * len(data), dtype=data.dtype)
         self._compare_other(ser, data, comparison_op, other)
-
-    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
-    def test_direct_arith_with_ndframe_returns_not_implemented(self, data, box):
-        # EAs should return NotImplemented for ops with Series/DataFrame
-        # Pandas takes care of unboxing the series and calling the EA's op.
-        other = pd.Series(data)
-        if box is pd.DataFrame:
-            other = other.to_frame()
-
-        if hasattr(data, "__eq__"):
-            result = data.__eq__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __eq__")
-
-        if hasattr(data, "__ne__"):
-            result = data.__ne__(other)
-            assert result is NotImplemented
-        else:
-            pytest.skip(f"{type(data).__name__} does not implement __ne__")
 
 
 class BaseUnaryOpsTests(BaseOpsUtil):
@@ -192,7 +241,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         ser = pd.Series(data, name="name")
         result = ~ser
         expected = pd.Series(~data, name="name")
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
@@ -213,4 +262,4 @@ class BaseUnaryOpsTests(BaseOpsUtil):
                 ufunc(data)
         else:
             alt = ufunc(data)
-            self.assert_extension_array_equal(result, alt)
+            tm.assert_extension_array_equal(result, alt)

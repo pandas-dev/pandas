@@ -30,7 +30,7 @@ def test_transform():
     data = Series(np.arange(9) // 3, index=np.arange(9))
 
     index = np.arange(9)
-    np.random.shuffle(index)
+    np.random.default_rng(2).shuffle(index)
     data = data.reindex(index)
 
     grouped = data.groupby(lambda x: x // 3)
@@ -59,7 +59,7 @@ def test_transform():
         return arr - arr.mean(axis=0)
 
     people = DataFrame(
-        np.random.randn(5, 5),
+        np.random.default_rng(2).standard_normal((5, 5)),
         columns=["a", "b", "c", "d", "e"],
         index=["Joe", "Steve", "Wes", "Jim", "Travis"],
     )
@@ -75,20 +75,29 @@ def test_transform():
 
     # GH 9700
     df = DataFrame({"a": range(5, 10), "b": range(5)})
-    result = df.groupby("a").transform(max)
+    msg = "using DataFrameGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("a").transform(max)
     expected = DataFrame({"b": range(5)})
     tm.assert_frame_equal(result, expected)
 
 
 def test_transform_fast():
-    df = DataFrame({"id": np.arange(100000) / 3, "val": np.random.randn(100000)})
+    df = DataFrame(
+        {
+            "id": np.arange(100000) / 3,
+            "val": np.random.default_rng(2).standard_normal(100000),
+        }
+    )
 
     grp = df.groupby("id")["val"]
 
     values = np.repeat(grp.mean().values, ensure_platform_int(grp.count().values))
     expected = Series(values, index=df.index, name="val")
 
-    result = grp.transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grp.transform(np.mean)
     tm.assert_series_equal(result, expected)
 
     result = grp.transform("mean")
@@ -132,14 +141,18 @@ def test_transform_fast():
 
 def test_transform_broadcast(tsframe, ts):
     grouped = ts.groupby(lambda x: x.month)
-    result = grouped.transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
 
     tm.assert_index_equal(result.index, ts.index)
     for _, gp in grouped:
         assert_fp_equal(result.reindex(gp.index), gp.mean())
 
     grouped = tsframe.groupby(lambda x: x.month)
-    result = grouped.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     for _, gp in grouped:
         agged = gp.mean(axis=0)
@@ -151,7 +164,9 @@ def test_transform_broadcast(tsframe, ts):
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grouped = tsframe.groupby({"A": 0, "B": 0, "C": 1, "D": 1}, axis=1)
-    result = grouped.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.transform(np.mean)
     tm.assert_index_equal(result.index, tsframe.index)
     tm.assert_index_equal(result.columns, tsframe.columns)
     for _, gp in grouped:
@@ -210,7 +225,10 @@ def test_transform_axis_ts(tsframe):
     r = len(base.index)
     c = len(base.columns)
     tso = DataFrame(
-        np.random.randn(r, c), index=base.index, columns=base.columns, dtype="float64"
+        np.random.default_rng(2).standard_normal((r, c)),
+        index=base.index,
+        columns=base.columns,
+        dtype="float64",
     )
     # monotonic
     ts = tso
@@ -348,7 +366,10 @@ def test_transform_multiple(ts):
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
     grouped.transform(lambda x: x * 2)
-    grouped.transform(np.mean)
+
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        grouped.transform(np.mean)
 
 
 def test_dispatch_transform(tsframe):
@@ -464,11 +485,15 @@ def test_transform_nuisance_raises(df):
 
 def test_transform_function_aliases(df):
     result = df.groupby("A").transform("mean", numeric_only=True)
-    expected = df.groupby("A")[["C", "D"]].transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("A")[["C", "D"]].transform(np.mean)
     tm.assert_frame_equal(result, expected)
 
     result = df.groupby("A")["C"].transform("mean")
-    expected = df.groupby("A")["C"].transform(np.mean)
+    msg = "using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = df.groupby("A")["C"].transform(np.mean)
     tm.assert_series_equal(result, expected)
 
 
@@ -496,12 +521,14 @@ def test_transform_length():
     def nsum(x):
         return np.nansum(x)
 
-    results = [
-        df.groupby("col1").transform(sum)["col2"],
-        df.groupby("col1")["col2"].transform(sum),
-        df.groupby("col1").transform(nsum)["col2"],
-        df.groupby("col1")["col2"].transform(nsum),
-    ]
+    msg = "using DataFrameGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        results = [
+            df.groupby("col1").transform(sum)["col2"],
+            df.groupby("col1")["col2"].transform(sum),
+            df.groupby("col1").transform(nsum)["col2"],
+            df.groupby("col1")["col2"].transform(nsum),
+        ]
     for result in results:
         tm.assert_series_equal(result, expected, check_names=False)
 
@@ -513,7 +540,9 @@ def test_transform_coercion():
     df = DataFrame({"A": ["a", "a", "b", "b"], "B": [0, 1, 3, 4]})
     g = df.groupby("A")
 
-    expected = g.transform(np.mean)
+    msg = "using DataFrameGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = g.transform(np.mean)
 
     result = g.transform(lambda x: np.mean(x, axis=0))
     tm.assert_frame_equal(result, expected)
@@ -584,7 +613,9 @@ def test_groupby_transform_with_int():
 def test_groupby_transform_with_nan_group():
     # GH 9941
     df = DataFrame({"a": range(10), "b": [1, 1, 2, 3, np.nan, 4, 4, 5, 5, 5]})
-    result = df.groupby(df.b)["a"].transform(max)
+    msg = "using SeriesGroupBy.max"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(df.b)["a"].transform(max)
     expected = Series([1.0, 1.0, 2.0, 3.0, np.nan, 6.0, 6.0, 9.0, 9.0, 9.0], name="a")
     tm.assert_series_equal(result, expected)
 
@@ -627,10 +658,10 @@ def test_transform_mixed_type():
 )
 def test_cython_transform_series(op, args, targop):
     # GH 4095
-    s = Series(np.random.randn(1000))
+    s = Series(np.random.default_rng(2).standard_normal(1000))
     s_missing = s.copy()
     s_missing.iloc[2:10] = np.nan
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     # series
     for data in [s, s_missing]:
@@ -699,7 +730,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
 
 @pytest.fixture
 def frame():
-    floating = Series(np.random.randn(10))
+    floating = Series(np.random.default_rng(2).standard_normal(10))
     floating_missing = floating.copy()
     floating_missing.iloc[2:7] = np.nan
     strings = list("abcde") * 2
@@ -741,12 +772,11 @@ def frame_mi(frame):
 @pytest.mark.parametrize(
     "gb_target",
     [
-        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        pytest.param({"by": "string_missing"}, marks=pytest.mark.xfail),
+        {"by": ["int", "string"]},
     ],
 )
 def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
@@ -764,10 +794,12 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
-        expected["string_missing"] = expected["string_missing"].fillna(
-            np.nan, downcast=False
-        )
-        expected["string"] = expected["string"].fillna(np.nan, downcast=False)
+        depr_msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            expected["string_missing"] = expected["string_missing"].fillna(
+                np.nan, downcast=False
+            )
+            expected["string"] = expected["string"].fillna(np.nan, downcast=False)
 
     result = gb[expected.columns].transform(op, *args).sort_index(axis=1)
     tm.assert_frame_equal(result, expected)
@@ -789,12 +821,12 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
 @pytest.mark.parametrize(
     "gb_target",
     [
-        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        # TODO: create xfail condition given other params
+        # {"by": 'string_missing'},
+        {"by": ["int", "string"]},
     ],
 )
 @pytest.mark.parametrize(
@@ -835,7 +867,9 @@ def test_cython_transform_frame_column(
         expected = gb[c].apply(targop)
         expected.name = c
         if c in ["string_missing", "string"]:
-            expected = expected.fillna(np.nan, downcast=False)
+            depr_msg = "The 'downcast' keyword in fillna is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                expected = expected.fillna(np.nan, downcast=False)
 
         res = gb[c].transform(op, *args)
         tm.assert_series_equal(expected, res)
@@ -848,21 +882,23 @@ def test_transform_with_non_scalar_group():
     cols = MultiIndex.from_tuples(
         [
             ("syn", "A"),
-            ("mis", "A"),
+            ("foo", "A"),
             ("non", "A"),
             ("syn", "C"),
-            ("mis", "C"),
+            ("foo", "C"),
             ("non", "C"),
             ("syn", "T"),
-            ("mis", "T"),
+            ("foo", "T"),
             ("non", "T"),
             ("syn", "G"),
-            ("mis", "G"),
+            ("foo", "G"),
             ("non", "G"),
         ]
     )
     df = DataFrame(
-        np.random.randint(1, 10, (4, 12)), columns=cols, index=["A", "C", "G", "T"]
+        np.random.default_rng(2).integers(1, 10, (4, 12)),
+        columns=cols,
+        index=["A", "C", "G", "T"],
     )
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -1081,7 +1117,9 @@ def test_any_all_np_func(func):
 
     exp = Series([True, np.nan, True], name="val")
 
-    res = df.groupby("key")["val"].transform(func)
+    msg = "using SeriesGroupBy.[any|all]"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = df.groupby("key")["val"].transform(func)
     tm.assert_series_equal(res, exp)
 
 
@@ -1111,7 +1149,10 @@ def test_groupby_transform_timezone_column(func):
     # GH 24198
     ts = pd.to_datetime("now", utc=True).tz_convert("Asia/Singapore")
     result = DataFrame({"end_time": [ts], "id": [1]})
-    result["max_end_time"] = result.groupby("id").end_time.transform(func)
+    warn = FutureWarning if not isinstance(func, str) else None
+    msg = "using SeriesGroupBy.[min|max]"
+    with tm.assert_produces_warning(warn, match=msg):
+        result["max_end_time"] = result.groupby("id").end_time.transform(func)
     expected = DataFrame([[ts, 1, ts]], columns=["end_time", "id", "max_end_time"])
     tm.assert_frame_equal(result, expected)
 
@@ -1379,16 +1420,16 @@ def test_transform_cumcount():
 def test_null_group_lambda_self(sort, dropna, keys):
     # GH 17093
     size = 50
-    nulls1 = np.random.choice([False, True], size)
-    nulls2 = np.random.choice([False, True], size)
+    nulls1 = np.random.default_rng(2).choice([False, True], size)
+    nulls2 = np.random.default_rng(2).choice([False, True], size)
     # Whether a group contains a null value or not
     nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
 
-    a1 = np.random.randint(0, 5, size=size).astype(float)
+    a1 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
     a1[nulls1] = np.nan
-    a2 = np.random.randint(0, 5, size=size).astype(float)
+    a2 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
     a2[nulls2] = np.nan
-    values = np.random.randint(0, 5, size=a1.shape)
+    values = np.random.default_rng(2).integers(0, 5, size=a1.shape)
     df = DataFrame({"A1": a1, "A2": a2, "B": values})
 
     expected_values = values

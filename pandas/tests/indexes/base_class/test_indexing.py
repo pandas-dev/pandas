@@ -64,17 +64,18 @@ class TestGetLoc:
         # Go through the libindex path for which using
         # _bin_search vs ndarray.searchsorted makes a difference
 
-        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
-        lev = list("ABCD")
-        dti = pd.date_range("2016-01-01", periods=10)
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 100)
+            lev = list("ABCD")
+            dti = pd.date_range("2016-01-01", periods=10)
 
-        mi = pd.MultiIndex.from_product([lev, range(5), dti])
-        oidx = mi.to_flat_index()
+            mi = pd.MultiIndex.from_product([lev, range(5), dti])
+            oidx = mi.to_flat_index()
 
-        loc = len(oidx) // 2
-        tup = oidx[loc]
+            loc = len(oidx) // 2
+            tup = oidx[loc]
 
-        res = oidx.get_loc(tup)
+            res = oidx.get_loc(tup)
         assert res == loc
 
     def test_get_loc_nan_object_dtype_nonmonotonic_nonunique(self):

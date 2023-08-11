@@ -1,9 +1,5 @@
 import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -193,9 +189,7 @@ def test_put_mixed_type(setup_path):
     with ensure_clean_store(setup_path) as store:
         _maybe_remove(store, "df")
 
-        # PerformanceWarning
-        with catch_warnings(record=True):
-            simplefilter("ignore", pd.errors.PerformanceWarning)
+        with tm.assert_produces_warning(pd.errors.PerformanceWarning):
             store.put("df", df)
 
         expected = store.get("df")
@@ -217,12 +211,15 @@ def test_put_mixed_type(setup_path):
         ["fixed", tm.makePeriodIndex],
     ],
 )
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_store_index_types(setup_path, format, index):
     # GH5386
     # test storing various index types
 
     with ensure_clean_store(setup_path) as store:
-        df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+        )
         df.index = index(len(df))
 
         _maybe_remove(store, "df")
@@ -352,7 +349,8 @@ def test_store_periodindex(tmp_path, setup_path, format):
     # GH 7796
     # test of PeriodIndex in HDFStore
     df = DataFrame(
-        np.random.randn(5, 1), index=pd.period_range("20220101", freq="M", periods=5)
+        np.random.default_rng(2).standard_normal((5, 1)),
+        index=pd.period_range("20220101", freq="M", periods=5),
     )
 
     path = tmp_path / setup_path

@@ -19,10 +19,7 @@ from typing import (
     Any,
     Callable,
     Final,
-    Hashable,
-    Iterator,
     Literal,
-    Sequence,
     cast,
     overload,
 )
@@ -33,12 +30,14 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
     lib,
     writers as libwriters,
 )
+from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -69,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import array_equivalent
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -105,6 +105,11 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
     from types import TracebackType
 
     from tables import (
@@ -662,6 +667,16 @@ class HDFStore:
         Raises
         ------
         raises ValueError if kind has an illegal value
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> store.get('data')  # doctest: +SKIP
+        >>> print(store.keys())  # doctest: +SKIP
+        ['/data1', '/data2']
+        >>> store.close()  # doctest: +SKIP
         """
         if include == "pandas":
             return [n._v_pathname for n in self.groups()]
@@ -781,6 +796,14 @@ class HDFStore:
         -------
         object
             Same type as object stored in file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> store.get('data')  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         with patch_pickle():
             # GH#31167 Without this patch, pickle doesn't know how to unpickle
@@ -835,6 +858,24 @@ class HDFStore:
         -------
         object
             Retrieved object from file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> store.get('data')  # doctest: +SKIP
+        >>> print(store.keys())  # doctest: +SKIP
+        ['/data1', '/data2']
+        >>> store.select('/data1')  # doctest: +SKIP
+           A  B
+        0  1  2
+        1  3  4
+        >>> store.select('/data1', where='columns == A')  # doctest: +SKIP
+           A
+        0  1
+        1  3
+        >>> store.close()  # doctest: +SKIP
         """
         group = self.get_node(key)
         if group is None:
@@ -1107,6 +1148,12 @@ class HDFStore:
             independent on creation time.
         dropna : bool, default False, optional
             Remove missing values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
         """
         if format is None:
             format = get_option("io.hdf.default_format") or "fixed"
@@ -1243,6 +1290,20 @@ class HDFStore:
         -----
         Does *not* check if data being appended overlaps with existing
         data in the table, so be careful
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df1, format='table')  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
+        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+           A  B
+        0  1  2
+        1  3  4
+        0  5  6
+        1  7  8
         """
         if columns is not None:
             raise TypeError(
@@ -1322,7 +1383,7 @@ class HDFStore:
             )
 
         # figure out the splitting axis (the non_index_axis)
-        axis = list(set(range(value.ndim)) - set(_AXES_MAP[type(value)]))[0]
+        axis = next(iter(set(range(value.ndim)) - set(_AXES_MAP[type(value)])))
 
         # figure out how to split the value
         remain_key = None
@@ -1420,6 +1481,17 @@ class HDFStore:
         -------
         list
             List of objects.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> print(store.groups())  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        [/data (Group) ''
+          children := ['axis0' (Array), 'axis1' (Array), 'block0_values' (Array),
+          'block0_items' (Array)]]
         """
         _tables()
         self._check_if_open()
@@ -1464,6 +1536,18 @@ class HDFStore:
             Names (strings) of the groups contained in `path`.
         leaves : list
             Names (strings) of the pandas objects contained in `path`.
+
+        Examples
+        --------
+        >>> df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df1, format='table')  # doctest: +SKIP
+        >>> df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['A', 'B'])
+        >>> store.append('data', df2)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        >>> for group in store.walk():  # doctest: +SKIP
+        ...     print(group)  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
         """
         _tables()
         self._check_if_open()
@@ -1578,6 +1662,17 @@ class HDFStore:
         Returns
         -------
         str
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        >>> store = pd.HDFStore("store.h5", 'w')  # doctest: +SKIP
+        >>> store.put('data', df)  # doctest: +SKIP
+        >>> print(store.info())  # doctest: +SKIP
+        >>> store.close()  # doctest: +SKIP
+        <class 'pandas.io.pytables.HDFStore'>
+        File path: store.h5
+        /data    frame    (shape->[2,2])
         """
         path = pprint_thing(self._path)
         output = f"{type(self)}\nFile path: {path}\n"
@@ -3127,7 +3222,12 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name, copy=False)
+        result = Series(values, index=index, name=self.name, copy=False)
+        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
+            import pyarrow as pa
+
+            result = result.astype(pd.ArrowDtype(pa.string()))
+        return result
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3195,6 +3295,10 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
+            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -3844,7 +3948,7 @@ class Table(Fixed):
             nan_rep = "nan"
 
         # We construct the non-index-axis first, since that alters new_info
-        idx = [x for x in [0, 1] if x not in axes][0]
+        idx = next(x for x in [0, 1] if x not in axes)
 
         a = obj.axes[idx]
         # we might be able to change the axes on the appending data if necessary
@@ -4576,7 +4680,15 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+                assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if using_pyarrow_string_dtype() and is_string_array(
+                values,  # type: ignore[arg-type]
+                skipna=True,
+            ):
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             frames.append(df)
 
         if len(frames) == 1:

@@ -168,20 +168,24 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        ser2[1] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser2[1] = "foo"
         tm.assert_series_equal(ser2, expected)
 
     def test_fillna_downcast(self):
         # GH#15277
         # infer int64 from float64
         ser = Series([1.0, np.nan])
-        result = ser.fillna(0, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna(0, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
         # infer int64 from float64 when fillna value is a dict
         ser = Series([1.0, np.nan])
-        result = ser.fillna({1: 0}, downcast="infer")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.fillna({1: 0}, downcast="infer")
         expected = Series([1, 0])
         tm.assert_series_equal(result, expected)
 
@@ -194,15 +198,21 @@ class TestSeriesFillNA:
 
         ser = Series(arr)
 
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         expected = Series(np.arange(5), dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2, 2, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2, 4, 4], dtype=np.int64)
         tm.assert_series_equal(res, expected)
 
@@ -210,14 +220,20 @@ class TestSeriesFillNA:
         ser[2] = 2.5
 
         expected = Series([0, 1, 2.5, 3, 4], dtype=np.float64)
-        res = ser.fillna(3, downcast="infer")
+        msg = "The 'downcast' keyword in fillna is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.fillna(3, downcast="infer")
         tm.assert_series_equal(res, expected)
 
-        res = ser.ffill(downcast="infer")
+        msg = "The 'downcast' keyword in ffill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.ffill(downcast="infer")
         expected = Series([0, 1, 2.5, 2.5, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
-        res = ser.bfill(downcast="infer")
+        msg = "The 'downcast' keyword in bfill is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = ser.bfill(downcast="infer")
         expected = Series([0, 1, 2.5, 4, 4], dtype=np.float64)
         tm.assert_series_equal(res, expected)
 
@@ -786,7 +802,7 @@ class TestSeriesFillNA:
             assert "ffil" in str(inst)
 
     def test_fillna_listlike_invalid(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             ser.fillna([1, 2])
@@ -895,7 +911,7 @@ class TestFillnaPad:
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index)
         result = result.fillna(method="pad", limit=5)
@@ -913,7 +929,7 @@ class TestFillnaPad:
 
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index, method="pad", limit=5)
 
@@ -928,7 +944,7 @@ class TestFillnaPad:
         tm.assert_series_equal(result, expected)
 
     def test_fillna_int(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         return_value = ser.fillna(method="ffill", inplace=True)
         assert return_value is None
         tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)

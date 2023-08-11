@@ -3,7 +3,7 @@
 
 pip
 versioneer[toml]
-cython==0.29.33
+cython==3.0.0
 meson[ninja]==1.0.1
 meson-python==0.13.1
 pytest>=7.3.2
@@ -52,16 +52,13 @@ seaborn
 moto
 flask
 asv>=0.5.1
-black==23.3.0
-cpplint
 flake8==6.0.0
-isort>=5.2.1
-mypy==1.2
+mypy==1.4.1
+tokenize-rt
 pre-commit>=2.15.0
-pyupgrade
-ruff==0.0.215
 gitpython
 gitdb
+google-auth
 natsort
 numpydoc
 pydata-sphinx-theme
@@ -87,6 +84,7 @@ feedparser
 pyyaml
 requests
 pygments
+dataframe-api-compat>=0.1.7
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1

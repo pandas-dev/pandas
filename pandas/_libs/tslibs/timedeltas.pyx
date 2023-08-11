@@ -1043,8 +1043,9 @@ cdef class _Timedelta(timedelta):
         """
         return npy_unit_to_abbrev(self._creso)
 
+    # TODO: make cdef property once this works in Cython
     @property
-    def days(self) -> int:  # TODO(cython3): make cdef property
+    def days(self) -> int:
         """
         Returns the days of the timedelta.
 
@@ -1067,8 +1068,9 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._d
 
+    # TODO: make cdef property once this works in Cython
     @property
-    def seconds(self) -> int:  # TODO(cython3): make cdef property
+    def seconds(self) -> int:
         """
         Return the total hours, minutes, and seconds of the timedelta as seconds.
 
@@ -1105,8 +1107,9 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._h * 3600 + self._m * 60 + self._s
 
+    # TODO: make cdef property once this works in Cython
     @property
-    def microseconds(self) -> int:  # TODO(cython3): make cdef property
+    def microseconds(self) -> int:
         # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
         #  (or be incorrect)
         self._ensure_components()
@@ -1156,7 +1159,7 @@ cdef class _Timedelta(timedelta):
             #  resolution.
             try:
                 obj = (<_Timedelta>self)._as_creso(<NPY_DATETIMEUNIT>(self._creso + 1))
-            except OverflowError:
+            except OutOfBoundsTimedelta:
                 # Doesn't fit, so we're off the hook
                 return hash(self._value)
             else:
@@ -1843,7 +1846,10 @@ class Timedelta(_Timedelta):
                              NPY_DATETIMEUNIT.NPY_FR_W,
                              NPY_DATETIMEUNIT.NPY_FR_GENERIC]):
                 err = npy_unit_to_abbrev(reso)
-                raise ValueError(f" cannot construct a Timedelta from a unit {err}")
+                raise ValueError(
+                    f"Unit {err} is not supported. "
+                    "Only unambiguous timedelta values durations are supported. "
+                    "Allowed units are 'W', 'D', 'h', 'm', 's', 'ms', 'us', 'ns'")
 
             new_reso = get_supported_reso(reso)
             if reso != NPY_DATETIMEUNIT.NPY_FR_GENERIC:
