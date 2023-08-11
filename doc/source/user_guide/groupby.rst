@@ -851,6 +851,24 @@ The resulting DataFrame will have two columns: 'mean_value' and 'median_value', 
 
 Using a list of tuples provides a concise way to apply multiple aggregations to the same column while controlling the output column names. This approach is especially handy when you need to calculate various statistics on the same data within each group.
 
+For a copy-pastable example, consider the following DataFrame `df`:
+
+.. ipython:: python
+
+    import pandas as pd
+    import numpy as np
+
+    df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                       'data': np.random.randn(5)})
+
+You can then use the `agg` function with a list of tuples for aggregations:
+
+.. ipython:: python
+
+    result = df.groupby('key')['data'].agg([('foo', 'mean')])
+
+This will create a DataFrame with the mean values for each group under the 'foo' column.
+
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
