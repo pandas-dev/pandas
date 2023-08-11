@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -370,21 +371,31 @@ class TestDataFrameInterpolate:
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
         expected_cow = df.copy()
         result = df.copy()
-        return_value = result["a"].interpolate(inplace=True)
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = result["a"].interpolate(inplace=True, downcast="infer")
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.assert_produces_warning(
+                (FutureWarning, ChainedAssignmentError), match=msg
+            ):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):

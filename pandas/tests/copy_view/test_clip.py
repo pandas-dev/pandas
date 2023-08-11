@@ -68,3 +68,16 @@ def test_clip_no_op(using_copy_on_write):
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+
+
+def test_clip_chained_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 4, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].clip(1, 2, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            df[["a"]].clip(1, 2, inplace=True)
+        tm.assert_frame_equal(df, df_orig)

@@ -7385,6 +7385,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
         """
         downcast = self._deprecate_downcast(downcast, "ffill")
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7523,6 +7532,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   4.0   7.0
         """
         downcast = self._deprecate_downcast(downcast, "bfill")
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
         return self._pad_or_backfill(
             "bfill",
             axis=axis,
@@ -8047,6 +8065,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("downcast must be either None or 'infer'")
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         axis = self._get_axis_number(axis)
 
         if self.empty:
@@ -8618,6 +8646,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4      5      3
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
 
         axis = nv.validate_clip_with_axis(axis, (), kwargs)
         if axis is not None:
@@ -10500,6 +10537,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level)
 
@@ -10558,6 +10604,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         cond = common.apply_if_callable(cond, self)
 
         # see gh-21891
