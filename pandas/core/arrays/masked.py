@@ -184,7 +184,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # TODO: need to change this to special case multiple
         # indexers versus just scalar
-        newmask = self._mask[item]
+        newmask = self._mask.to_numpy()[item]
         if is_bool(newmask):
             # This is a scalar indexing
             if newmask:

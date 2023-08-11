@@ -215,10 +215,8 @@ cdef class BitMaskArray:
         self.array_len = len(np_array)
         nbytes = len(np_array) // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(nbytes)
-        # malloc
 
     def __dealloc__(self):
-        ...
         free(self.validity_buffer)
 
     def __setitem__(self, key, value):
@@ -230,5 +228,10 @@ cdef class BitMaskArray:
     def __getitem__(self, key):
         bool(ArrowBitGet(self.validity_buffer, key))
 
-    def to_numpy(self):
-        ...
+    def to_numpy(self) -> ndarray:
+        cdef ndarray[uint8_t] result
+        result = np.empty(self.array_len, dtype=bool)
+        for i in range(self.array_len):
+            result = self[i]
+
+        return result
