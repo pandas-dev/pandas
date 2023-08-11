@@ -204,7 +204,7 @@ It seems to me that this proposal responds to important issues:
 - taking into account "semantic" data in pandas objects
 
 ### Compatibility
-Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#4---Annexe-:-Series-tests))
+Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#4---Appendix-:-Series-tests))
 
 If the interface is available, throw a new `orient` option in the JSON interface, the use of the feature is decoupled from the other features.
 
