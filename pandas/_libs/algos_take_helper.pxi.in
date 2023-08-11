@@ -121,21 +121,30 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     {{if c_type_in == c_type_out != "object"}}
     # GH#3130
-    if (values.strides[1] == out.strides[1] and
-        values.strides[1] == sizeof({{c_type_out}}) and
-        sizeof({{c_type_out}}) * n >= 256):
+    with nogil:
+        if (values.strides[1] == out.strides[1] and
+            values.strides[1] == sizeof({{c_type_out}}) and
+            sizeof({{c_type_out}}) * n >= 256):
 
-        for i in range(n):
-            idx = indexer[i]
-            if idx == -1:
-                for j in range(k):
-                    out[i, j] = fv
-            else:
-                v = &values[idx, 0]
-                o = &out[i, 0]
-                memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
-        return
-    {{endif}}
+            for i in range(n):
+                idx = indexer[i]
+                if idx == -1:
+                    for j in range(k):
+                        out[i, j] = fv
+                else:
+                    v = &values[idx, 0]
+                    o = &out[i, 0]
+                    memmove(o, v, <size_t>(sizeof({{c_type_out}}) * k))
+        else:
+            for i in range(n):
+                idx = indexer[i]
+                if idx == -1:
+                    for j in range(k):
+                        out[i, j] = fv
+                else:
+                    for j in range(k):
+                        out[i, j] = values[idx, j]
+    {{else}}
 
     for i in range(n):
         idx = indexer[i]
@@ -149,6 +158,7 @@ def take_2d_axis0_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 {{else}}
                 out[i, j] = values[idx, j]
                 {{endif}}
+    {{endif}}
 
 
 @cython.wraparound(False)
