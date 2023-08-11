@@ -46,7 +46,7 @@ class TestComparisonOps(ComparisonOps):
         result = op(a, b)
 
         values = op(a._data, b._data)
-        mask = a._mask | b._mask
+        mask = a._mask.to_numpy() | b._mask.to_numpy()
         expected = BooleanArray(values, mask)
         tm.assert_extension_array_equal(result, expected)
 

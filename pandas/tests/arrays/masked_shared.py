@@ -16,7 +16,7 @@ class ComparisonOps(BaseOpsUtil):
         expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
-        expected[data._mask] = pd.NA
+        expected[data._mask.to_numpy()] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -28,7 +28,7 @@ class ComparisonOps(BaseOpsUtil):
         expected = op(pd.Series(data._data), other).astype("boolean")
 
         # fill the nan locations
-        expected[data._mask] = pd.NA
+        expected[data._mask.to_numpy()] = pd.NA
 
         tm.assert_series_equal(result, expected)
 
@@ -43,7 +43,7 @@ class ComparisonOps(BaseOpsUtil):
             expected = pd.array([None, None, None], dtype="boolean")
         else:
             values = op(left._data, other)
-            expected = pd.arrays.BooleanArray(values, left._mask, copy=True)
+            expected = pd.arrays.BooleanArray(values, left._mask.to_numpy(), copy=True)
         tm.assert_extension_array_equal(result, expected)
 
         # ensure we haven't mutated anything inplace
@@ -74,7 +74,7 @@ class NumericOps:
 
         result = op(left, right)
         values = op(left._data, right._data)
-        mask = left._mask | right._mask
+        mask = left._mask.to_numpy() | right._mask.to_numpy()
 
         expected = pd.arrays.BooleanArray(values, mask)
         tm.assert_extension_array_equal(result, expected)

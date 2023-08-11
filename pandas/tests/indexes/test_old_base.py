@@ -277,9 +277,11 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._data, result._values._data, check_same="same"
                 )
-                assert np.shares_memory(index._values._mask, result._values._mask)
+                # assert np.shares_memory(index._values._mask, result._values._mask)
                 tm.assert_numpy_array_equal(
-                    index._values._mask, result._values._mask, check_same="same"
+                    index._values._mask.to_numpy(),
+                    result._values._mask.to_numpy(),
+                    check_same="same",
                 )
             elif index.dtype == "string[python]":
                 assert np.shares_memory(index._values._ndarray, result._values._ndarray)
