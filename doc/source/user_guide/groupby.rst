@@ -810,48 +810,38 @@ Example:
 Consider the following DataFrame `df`:
 
 .. ipython:: python
-
     import pandas as pd
     import numpy as np
-
     df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
                        'data': np.random.randn(5)})
-
 Suppose we want to group the DataFrame by the 'key' column and apply different aggregations to the 'data' column:
 
 .. ipython:: python
-
    result = df.groupby('key')['data'].agg([('foo', 'mean')])
-
 In this example, the output column 'foo' contains the mean value of the 'data' column for each group.
 
 To apply multiple aggregations to the same column, you can pass a list of tuples:
 
 .. ipython:: python
-
    result = df.groupby('key')['data'].agg([('col1', 'mean'), ('col2', 'std')])
-
 In this case, the resulting DataFrame will have two columns: 'col1' containing the mean and 'col2' containing the standard deviation of the 'data' column for each group.
 
 Similarly, you can extend this approach to include more aggregations:
 
 .. ipython:: python
-
    result = df.groupby('key')['data'].agg([('col1', 'mean'), ('col2', 'std'), ('col3', 'min')])
-
 Here, the resulting DataFrame will have three columns: 'col1', 'col2', and 'col3', each containing the respective aggregation result for the 'data' column.
 
 In addition to the examples above, let's consider a scenario where we want to calculate both the mean and the median of the 'data' column for each group:
 
 .. ipython:: python
-
    result = df.groupby('key')['data'].agg([('mean_value', 'mean'), ('median_value', 'median')])
-
 The resulting DataFrame will have two columns: 'mean_value' and 'median_value', each containing the corresponding aggregation results.
 
 Using a list of tuples provides a concise way to apply multiple aggregations to the same column while controlling the output column names. This approach is especially handy when you need to calculate various statistics on the same data within each group.
 
 For a copy-pastable example, consider the following DataFrame `df`:
+<<<<<<< HEAD
 
 .. ipython:: python
 
@@ -867,6 +857,17 @@ You can then use the `agg` function with a list of tuples for aggregations:
 
     result = df.groupby('key')['data'].agg([('foo', 'mean')])
 
+This will create a DataFrame with the mean values for each group under the 'foo' column.
+
+.. ipython:: python
+    import pandas as pd
+    import numpy as np
+    df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                       'data': np.random.randn(5)})
+You can then use the `agg` function with a list of tuples for aggregations:
+
+.. ipython:: python
+    result = df.groupby('key')['data'].agg([('foo', 'mean')])
 This will create a DataFrame with the mean values for each group under the 'foo' column.
 
 Applying different functions to DataFrame columns
