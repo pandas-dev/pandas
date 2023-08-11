@@ -799,7 +799,6 @@ no column selection, so the values are just the functions.
        max_height="max",
    )
 
-
 Passing a List of Tuples
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -851,7 +850,6 @@ In addition to the examples above, let's consider a scenario where we want to ca
 The resulting DataFrame will have two columns: 'mean_value' and 'median_value', each containing the corresponding aggregation results.
 
 Using a list of tuples provides a concise way to apply multiple aggregations to the same column while controlling the output column names. This approach is especially handy when you need to calculate various statistics on the same data within each group.
-
 
 Applying different functions to DataFrame columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
