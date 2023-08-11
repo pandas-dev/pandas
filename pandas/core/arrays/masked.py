@@ -696,7 +696,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             elif is_list_like(other) and len(other) == len(mask):
                 mask = mask | isna(other)
         else:
-            mask = self._mask.to_numpy() | mask
+            mask = self._mask.to_numpy() | mask.to_numpy()
         # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
         # expected "ndarray[Any, dtype[bool_]]")
         return mask  # type: ignore[return-value]
@@ -869,7 +869,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            result[mask] = result.dtype.type("NaT")
+            result[mask.to_numpy()] = result.dtype.type("NaT")
 
             if not isinstance(result, TimedeltaArray):
                 return TimedeltaArray._simple_new(result, dtype=result.dtype)
@@ -882,7 +882,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return IntegerArray(result, mask, copy=False)
 
         else:
-            result[mask] = np.nan
+            result[mask.to_numpy()] = np.nan
             return result
 
     def isna(self) -> np.ndarray:
@@ -903,7 +903,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         data = np.concatenate([x._data for x in to_concat], axis=axis)
-        mask = np.concatenate([x._mask for x in to_concat], axis=axis)
+        mask = np.concatenate([x._mask.to_numpy() for x in to_concat], axis=axis)
         return cls(data, mask)
 
     def take(

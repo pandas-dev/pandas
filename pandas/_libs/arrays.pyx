@@ -21,6 +21,8 @@ from libc.stdlib cimport (
     malloc,
 )
 
+from pandas._libs.lib import is_list_like
+
 
 cdef extern from "pandas/vendored/nanoarrow.h":
     int8_t ArrowBitGet(const uint8_t*, int64_t)
@@ -215,23 +217,35 @@ cdef class BitMaskArray:
         self.array_len = len(np_array)
         nbytes = len(np_array) // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(nbytes)
+        for index, value in enumerate(np_array):
+            self[index] = value
 
     def __dealloc__(self):
         free(self.validity_buffer)
 
     def __setitem__(self, key, value):
-        if value:
-            ArrowBitSet(self.validity_buffer, key)
+        if is_list_like(key):
+            for k in key:
+                if value:
+                    ArrowBitSet(self.validity_buffer, k)
+                else:
+                    ArrowBitClear(self.validity_buffer, k)
         else:
-            ArrowBitClear(self.validity_buffer, key)
+            if value:
+                ArrowBitSet(self.validity_buffer, key)
+            else:
+                ArrowBitClear(self.validity_buffer, key)
 
     def __getitem__(self, key):
-        bool(ArrowBitGet(self.validity_buffer, key))
+        return bool(ArrowBitGet(self.validity_buffer, key))
+
+    def __invert__(self):
+        return ~self.to_numpy()
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result
         result = np.empty(self.array_len, dtype=bool)
         for i in range(self.array_len):
-            result = self[i]
+            result[i] = self[i]
 
         return result
