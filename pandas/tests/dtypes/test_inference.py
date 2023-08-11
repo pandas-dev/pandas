@@ -113,6 +113,9 @@ class MockNumpyLikeArray:
     def __array__(self, t=None):
         return np.asarray(self._values, dtype=t)
 
+    def __getitem__(self, item):
+        return self._values[item]
+
     @property
     def ndim(self):
         return self._values.ndim

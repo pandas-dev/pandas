@@ -24,7 +24,13 @@ from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
-    return hasattr(obj, "__iter__")
+    if hasattr(obj, "__iter__"):
+        try:
+            iter(obj)
+            return True
+        except (TypeError, IndexError) as e:
+            return False
+    return False
 
 
 cdef bint has_length(obj):

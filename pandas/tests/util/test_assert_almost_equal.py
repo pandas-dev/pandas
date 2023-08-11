@@ -10,6 +10,7 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
+from pandas.tests.dtypes.test_inference import MockNumpyLikeArray
 
 
 def _assert_almost_equal_both(a, b, **kwargs):
@@ -452,6 +453,19 @@ Index shapes are different
 \\[right\\]: \\(3L*,\\)"""
     with pytest.raises(AssertionError, match=msg):
         tm.assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]), obj="Index")
+
+
+@pytest.mark.parametrize(
+    "obj",
+    [
+        MockNumpyLikeArray(np.ndarray((2,) * 1)),
+        MockNumpyLikeArray(np.array([])),
+        MockNumpyLikeArray(np.array(2)),
+    ],
+    ids=["duck-ndarray-1d", "duck-ndarray-1d-empty", "duck-ndarray-0d"],
+)
+def test_assert_almost_equal_not_iterable(obj):
+    tm.assert_almost_equal(obj, obj)
 
 
 def test_assert_almost_equal_unicode():
