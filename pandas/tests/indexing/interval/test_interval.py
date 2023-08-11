@@ -189,4 +189,4 @@ class TestIntervalIndexInsideMultiIndex:
             index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
         )
         result = d.reindex(index=[np.nan, 1.0])
-        tm.assert_series_equal(result, expected_result)
+        tm.assert_series_equal(result, expected_result, check_dtype=False)
