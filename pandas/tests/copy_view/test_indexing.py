@@ -1028,16 +1028,15 @@ def test_dataframe_add_column_from_series(backend, using_copy_on_write):
         (tm.iloc, (slice(None), 0)),
     ],
 )
+@pytest.mark.parametrize(
+    "col", [[0.1, 0.2, 0.3], [7, 8, 9]], ids=["mixed-block", "single-block"]
+)
 def test_set_value_copy_only_necessary_column(
-    using_copy_on_write,
-    indexer_func,
-    indexer,
-    val,
+    using_copy_on_write, indexer_func, indexer, val, col
 ):
     # When setting inplace, only copy column that is modified instead of the whole
     # block (by splitting the block)
-    # TODO multi-block only for now
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": col})
     df_orig = df.copy()
     view = df[:]
 
