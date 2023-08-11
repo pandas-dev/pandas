@@ -7,10 +7,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReshapingTests(BaseExtensionTests):
+class BaseReshapingTests:
     """Tests for reshaping and concatenation."""
 
     @pytest.mark.parametrize("in_frame", [True, False])
@@ -253,11 +252,12 @@ class BaseReshapingTests(BaseExtensionTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
+    @pytest.mark.parametrize("future_stack", [True, False])
+    def test_stack(self, data, columns, future_stack):
         df = pd.DataFrame({"A": data[:5], "B": data[:5]})
         df.columns = columns
-        result = df.stack()
-        expected = df.astype(object).stack()
+        result = df.stack(future_stack=future_stack)
+        expected = df.astype(object).stack(future_stack=future_stack)
         # we need a second astype(object), in case the constructor inferred
         # object -> specialized, as is done for period.
         expected = expected.astype(object)
@@ -333,6 +333,9 @@ class BaseReshapingTests(BaseExtensionTests):
         result = data.ravel()
         assert type(result) == type(data)
 
+        if data.dtype._is_immutable:
+            pytest.skip("test_ravel assumes mutability")
+
         # Check that we have a view, not a copy
         result[0] = result[1]
         assert data[0] == data[1]
@@ -346,6 +349,9 @@ class BaseReshapingTests(BaseExtensionTests):
 
         # If we ever _did_ support 2D, shape should be reversed
         assert result.shape == data.shape[::-1]
+
+        if data.dtype._is_immutable:
+            pytest.skip("test_transpose assumes mutability")
 
         # Check that we have a view, not a copy
         result[0] = result[1]

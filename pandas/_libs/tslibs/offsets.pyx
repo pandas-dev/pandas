@@ -479,12 +479,7 @@ cdef class BaseOffset:
         return type(self)(n=1, normalize=self.normalize, **self.kwds)
 
     def __add__(self, other):
-        if not isinstance(self, BaseOffset):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
-        elif util.is_array(other) and other.dtype == object:
+        if util.is_array(other) and other.dtype == object:
             return np.array([self + x for x in other])
 
         try:
@@ -498,13 +493,9 @@ cdef class BaseOffset:
     def __sub__(self, other):
         if PyDateTime_Check(other):
             raise TypeError("Cannot subtract datetime from offset.")
-        elif type(other) == type(self):
+        elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove, this moved to __rsub__
-            # cython semantics, this is __rsub__
-            return (-other).__add__(self)
         else:
             # e.g. PeriodIndex
             return NotImplemented
@@ -518,10 +509,6 @@ cdef class BaseOffset:
         elif is_integer_object(other):
             return type(self)(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
-        elif not isinstance(self, BaseOffset):
-            # TODO(cython3): remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         return NotImplemented
 
     def __rmul__(self, other):
@@ -1010,10 +997,6 @@ cdef class Tick(SingleConstructorOffset):
         return self.delta.__gt__(other)
 
     def __mul__(self, other):
-        if not isinstance(self, Tick):
-            # TODO(cython3), remove this, this moved to __rmul__
-            # cython semantics, this is __rmul__
-            return other.__mul__(self)
         if is_float_object(other):
             n = other * self.n
             # If the new `n` is an integer, we can represent it using the
@@ -1041,13 +1024,8 @@ cdef class Tick(SingleConstructorOffset):
         return _wrap_timedelta_result(result)
 
     def __add__(self, other):
-        if not isinstance(self, Tick):
-            # cython semantics; this is __radd__
-            # TODO(cython3): remove this, this moved to __radd__
-            return other.__add__(self)
-
         if isinstance(other, Tick):
-            if type(self) == type(other):
+            if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
                 return delta_to_tick(self.delta + other.delta)
@@ -1089,6 +1067,35 @@ cdef class Tick(SingleConstructorOffset):
 
 
 cdef class Day(Tick):
+    """
+    Offset ``n`` days.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of days represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n days.
+
+    >>> from pandas.tseries.offsets import Day
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Day()
+    Timestamp('2022-12-10 15:00:00')
+    >>> ts - Day(4)
+    Timestamp('2022-12-05 15:00:00')
+
+    >>> ts + Day(-4)
+    Timestamp('2022-12-05 15:00:00')
+    """
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
@@ -1096,6 +1103,35 @@ cdef class Day(Tick):
 
 
 cdef class Hour(Tick):
+    """
+    Offset ``n`` hours.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of hours represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n hours.
+
+    >>> from pandas.tseries.offsets import Hour
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Hour()
+    Timestamp('2022-12-09 16:00:00')
+    >>> ts - Hour(4)
+    Timestamp('2022-12-09 11:00:00')
+
+    >>> ts + Hour(-4)
+    Timestamp('2022-12-09 11:00:00')
+    """
     _nanos_inc = 3600 * 1_000_000_000
     _prefix = "H"
     _period_dtype_code = PeriodDtypeCode.H
@@ -1103,6 +1139,35 @@ cdef class Hour(Tick):
 
 
 cdef class Minute(Tick):
+    """
+    Offset ``n`` minutes.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of minutes represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n minutes.
+
+    >>> from pandas.tseries.offsets import Minute
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Minute(n=10)
+    Timestamp('2022-12-09 15:10:00')
+    >>> ts - Minute(n=10)
+    Timestamp('2022-12-09 14:50:00')
+
+    >>> ts + Minute(n=-10)
+    Timestamp('2022-12-09 14:50:00')
+    """
     _nanos_inc = 60 * 1_000_000_000
     _prefix = "T"
     _period_dtype_code = PeriodDtypeCode.T
@@ -1110,6 +1175,35 @@ cdef class Minute(Tick):
 
 
 cdef class Second(Tick):
+    """
+    Offset ``n`` seconds.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of seconds represented.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    You can use the parameter ``n`` to represent a shift of n seconds.
+
+    >>> from pandas.tseries.offsets import Second
+    >>> ts = pd.Timestamp(2022, 12, 9, 15)
+    >>> ts
+    Timestamp('2022-12-09 15:00:00')
+
+    >>> ts + Second(n=10)
+    Timestamp('2022-12-09 15:00:10')
+    >>> ts - Second(n=10)
+    Timestamp('2022-12-09 14:59:50')
+
+    >>> ts + Second(n=-10)
+    Timestamp('2022-12-09 14:59:50')
+    """
     _nanos_inc = 1_000_000_000
     _prefix = "S"
     _period_dtype_code = PeriodDtypeCode.S

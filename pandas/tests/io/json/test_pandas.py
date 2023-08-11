@@ -393,7 +393,7 @@ class TestPandasContainer:
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("inf", [np.inf, np.NINF])
+    @pytest.mark.parametrize("inf", [np.inf, -np.inf])
     @pytest.mark.parametrize("dtype", [True, False])
     def test_frame_infinity(self, inf, dtype):
         # infinities get mapped to nulls which get mapped to NaNs during
@@ -1875,7 +1875,7 @@ class TestPandasContainer:
         ],
     )
     def test_json_multiindex(self, dataframe, expected):
-        series = dataframe.stack()
+        series = dataframe.stack(future_stack=True)
         result = series.to_json(orient="index")
         assert result == expected
 
@@ -1914,7 +1914,7 @@ class TestPandasContainer:
             True,
             index=pd.date_range("2017-01-20", "2017-01-23"),
             columns=["foo", "bar"],
-        ).stack()
+        ).stack(future_stack=True)
         result = df.to_json()
         expected = (
             "{\"(Timestamp('2017-01-20 00:00:00'), 'foo')\":true,"
@@ -2096,3 +2096,20 @@ def test_pyarrow_engine_lines_false():
     out = ser.to_json()
     with pytest.raises(ValueError, match="currently pyarrow engine only supports"):
         read_json(out, engine="pyarrow", lines=False)
+
+
+def test_json_roundtrip_string_inference(orient):
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame(
+        [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
+    )
+    out = df.to_json()
+    with pd.option_context("future.infer_string", True):
+        result = read_json(StringIO(out))
+    expected = DataFrame(
+        [["a", "b"], ["c", "d"]],
+        dtype=pd.ArrowDtype(pa.string()),
+        index=pd.Index(["row 1", "row 2"], dtype=pd.ArrowDtype(pa.string())),
+        columns=pd.Index(["col 1", "col 2"], dtype=pd.ArrowDtype(pa.string())),
+    )
+    tm.assert_frame_equal(result, expected)
