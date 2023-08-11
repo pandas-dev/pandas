@@ -793,9 +793,9 @@ Period
 
 Plotting
 ^^^^^^^^
+- Bug in :func:`scatter_matrix` where the ``grid`` parameter was ignored (:issue:`50818`)
 - Bug in :meth:`Series.plot` when invoked with ``color=None`` (:issue:`51953`)
 - Fixed UserWarning in :meth:`DataFrame.plot.scatter` when invoked with ``c="b"`` (:issue:`53908`)
-- Bug in :func:`scatter_matrix` where the ``grid`` parameter was ignored (:issue:`50818`)
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
