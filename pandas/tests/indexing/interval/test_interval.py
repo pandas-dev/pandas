@@ -176,10 +176,10 @@ class TestIntervalIndexInsideMultiIndex:
     @pytest.mark.parametrize(
         "base, expected_result",
         [
-            (10, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
-            (100, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
-            (101, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
-            (1010, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
+            (10, Series([np.nan, 0], index=[np.nan, 1.0], dtype=np.float64)),
+            (100, Series([np.nan, 0], index=[np.nan, 1.0], dtype=np.float64)),
+            (101, Series([np.nan, 0], index=[np.nan, 1.0], dtype=np.float64)),
+            (1010, Series([np.nan, 0], index=[np.nan, 1.0], dtype=np.float64)),
         ],
     )
     def test_interval_index_reindex_behavior(self, base, expected_result):
@@ -189,4 +189,4 @@ class TestIntervalIndexInsideMultiIndex:
             index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
         )
         result = d.reindex(index=[np.nan, 1.0])
-        tm.assert_series_equal(result, expected_result, check_dtype=False)
+        tm.assert_series_equal(result, expected_result)
