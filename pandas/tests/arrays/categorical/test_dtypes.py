@@ -120,12 +120,12 @@ class TestCategoricalDtypes:
     def test_iter_python_types(self):
         # GH-19909
         cat = Categorical([1, 2])
-        assert isinstance(list(cat)[0], int)
+        assert isinstance(next(iter(cat)), int)
         assert isinstance(cat.tolist()[0], int)
 
     def test_iter_python_types_datetime(self):
         cat = Categorical([Timestamp("2017-01-01"), Timestamp("2017-01-02")])
-        assert isinstance(list(cat)[0], Timestamp)
+        assert isinstance(next(iter(cat)), Timestamp)
         assert isinstance(cat.tolist()[0], Timestamp)
 
     def test_interval_index_category(self):

@@ -335,7 +335,7 @@ class TestDataFrameBlockInternals:
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
-                np.random.random((4, 4)),
+                np.random.default_rng(2).random((4, 4)),
                 index=("a", "b", "c", "d"),
                 columns=("e", "f", "g", "h"),
             )
@@ -378,7 +378,7 @@ class TestDataFrameBlockInternals:
         assert first == second == 0
 
     def test_constructor_no_pandas_array(self):
-        # Ensure that PandasArray isn't allowed inside Series
+        # Ensure that NumpyExtensionArray isn't allowed inside Series
         # See https://github.com/pandas-dev/pandas/issues/23995 for more.
         arr = Series([1, 2, 3]).array
         result = DataFrame({"A": arr})
@@ -390,12 +390,14 @@ class TestDataFrameBlockInternals:
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+        df["c"] = pd.arrays.NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
         df2 = DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
+                "c": pd.arrays.NumpyExtensionArray(
+                    np.array([1, 2, None, 3], dtype=object)
+                ),
             }
         )
         assert type(df["c"]._mgr.blocks[0]) == NumpyBlock

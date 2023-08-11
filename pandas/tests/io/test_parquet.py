@@ -3,7 +3,6 @@ import datetime
 from io import BytesIO
 import os
 import pathlib
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -19,7 +18,6 @@ from pandas.compat.pyarrow import (
     pa_version_under8p0,
     pa_version_under13p0,
 )
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -202,8 +200,7 @@ def check_round_trip(
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            with catch_warnings(record=True):
-                actual = read_parquet(path, **read_kwargs)
+            actual = read_parquet(path, **read_kwargs)
 
             if "string_with_nan" in expected:
                 expected.loc[1, "string_with_nan"] = None
@@ -355,12 +352,11 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
 
-        with catch_warnings(record=True):
-            result = read_parquet(path, engine=pa)
-            tm.assert_frame_equal(result, df)
+        result = read_parquet(path, engine=pa)
+        tm.assert_frame_equal(result, df)
 
-            result = read_parquet(path, engine=pa, columns=["a", "d"])
-            tm.assert_frame_equal(result, df[["a", "d"]])
+        result = read_parquet(path, engine=pa, columns=["a", "d"])
+        tm.assert_frame_equal(result, df[["a", "d"]])
 
 
 class Base:
@@ -426,6 +422,25 @@ class TestBasic(Base):
             df, engine, expected=expected, read_kwargs={"columns": ["string"]}
         )
 
+    def test_read_filters(self, engine, tmp_path):
+        df = pd.DataFrame(
+            {
+                "int": list(range(4)),
+                "part": list("aabb"),
+            }
+        )
+
+        expected = pd.DataFrame({"int": [0, 1]})
+        check_round_trip(
+            df,
+            engine,
+            path=tmp_path,
+            expected=expected,
+            write_kwargs={"partition_cols": ["part"]},
+            read_kwargs={"filters": [("part", "==", "a")], "columns": ["int"]},
+            repeat=1,
+        )
+
     def test_write_index(self, engine, using_copy_on_write, request):
         check_names = engine != "fastparquet"
         if using_copy_on_write and engine == "fastparquet":
@@ -466,7 +481,10 @@ class TestBasic(Base):
     def test_multiindex_with_columns(self, pa):
         engine = pa
         dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
-        df = pd.DataFrame(np.random.randn(2 * len(dates), 3), columns=list("ABC"))
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((2 * len(dates), 3)),
+            columns=list("ABC"),
+        )
         index1 = pd.MultiIndex.from_product(
             [["Level1", "Level2"], dates], names=["level", "date"]
         )
@@ -514,7 +532,9 @@ class TestBasic(Base):
     def test_write_column_multiindex(self, engine):
         # Not able to write column multi-indexes with non-string column names.
         mi_columns = pd.MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1)])
-        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((4, 3)), columns=mi_columns
+        )
 
         if engine == "fastparquet":
             self.check_error_on_write(
@@ -531,7 +551,9 @@ class TestBasic(Base):
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             [1, 2, 1, 2, 1, 2, 1, 2],
         ]
-        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((8, 8)), columns=arrays
+        )
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
             self.check_error_on_write(df, engine, ValueError, "Column name")
@@ -548,7 +570,9 @@ class TestBasic(Base):
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        df = pd.DataFrame(np.random.randn(8, 8), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((8, 8)), columns=arrays
+        )
         df.columns.names = ["ColLevel1", "ColLevel2"]
 
         check_round_trip(df, engine)
@@ -560,7 +584,9 @@ class TestBasic(Base):
 
         # Write column indexes with string column names
         arrays = ["bar", "baz", "foo", "qux"]
-        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)), columns=arrays
+        )
         df.columns.name = "StringCol"
 
         check_round_trip(df, engine)
@@ -570,7 +596,9 @@ class TestBasic(Base):
 
         # Write column indexes with string column names
         arrays = [1, 2, 3, 4]
-        df = pd.DataFrame(np.random.randn(8, 4), columns=arrays)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)), columns=arrays
+        )
         df.columns.name = "NonStringCol"
         if engine == "fastparquet":
             self.check_error_on_write(
@@ -798,7 +826,6 @@ class TestParquetPyArrow(Base):
         )
 
     @pytest.mark.single_cpu
-    @td.skip_if_no("s3fs")  # also requires flask
     @pytest.mark.parametrize(
         "partition_col",
         [
@@ -809,6 +836,7 @@ class TestParquetPyArrow(Base):
     def test_s3_roundtrip_for_dir(
         self, df_compat, s3_public_bucket, pa, partition_col, s3so
     ):
+        pytest.importorskip("s3fs")
         # GH #26388
         expected_df = df_compat.copy()
 
@@ -836,15 +864,15 @@ class TestParquetPyArrow(Base):
             repeat=1,
         )
 
-    @td.skip_if_no("pyarrow")
     def test_read_file_like_obj_support(self, df_compat):
+        pytest.importorskip("pyarrow")
         buffer = BytesIO()
         df_compat.to_parquet(buffer)
         df_from_buf = read_parquet(buffer)
         tm.assert_frame_equal(df_compat, df_from_buf)
 
-    @td.skip_if_no("pyarrow")
     def test_expand_user(self, df_compat, monkeypatch):
+        pytest.importorskip("pyarrow")
         monkeypatch.setenv("HOME", "TestingUser")
         monkeypatch.setenv("USERPROFILE", "TestingUser")
         with pytest.raises(OSError, match=r".*TestingUser.*"):
@@ -896,10 +924,10 @@ class TestParquetPyArrow(Base):
         out_df = df.astype(bool)
         check_round_trip(df, pa, write_kwargs={"schema": schema}, expected=out_df)
 
-    @td.skip_if_no("pyarrow")
     def test_additional_extension_arrays(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "a": pd.Series([1, 2, 3], dtype="Int64"),
@@ -912,17 +940,17 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": pd.Series([1, 2, 3, None], dtype="Int64")})
         check_round_trip(df, pa)
 
-    @td.skip_if_no("pyarrow")
     def test_pyarrow_backed_string_array(self, pa, string_storage):
         # test ArrowStringArray supported through the __arrow_array__ protocol
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": pd.Series(["a", None, "c"], dtype="string[pyarrow]")})
         with pd.option_context("string_storage", string_storage):
             check_round_trip(df, pa, expected=df.astype(f"string[{string_storage}]"))
 
-    @td.skip_if_no("pyarrow")
     def test_additional_extension_types(self, pa):
         # test additional ExtensionArrays that are supported through the
         # __arrow_array__ protocol + by defining a custom ExtensionType
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
                 "c": pd.IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)]),
@@ -971,9 +999,9 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
         check_round_trip(df, pa, check_dtype=False)
 
-    @td.skip_if_no("pyarrow")
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
+        pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(0, 3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, pa)
@@ -984,7 +1012,9 @@ class TestParquetPyArrow(Base):
 
     def test_read_parquet_manager(self, pa, using_array_manager):
         # ensure that read_parquet honors the pandas.options.mode.data_manager option
-        df = pd.DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
+        )
 
         with tm.ensure_clean() as path:
             df.to_parquet(path, pa)
@@ -1064,6 +1094,30 @@ class TestParquetPyArrow(Base):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         check_round_trip(df, pa)
+
+    def test_df_attrs_persistence(self, tmp_path, pa):
+        path = tmp_path / "test_df_metadata.p"
+        df = pd.DataFrame(data={1: [1]})
+        df.attrs = {"test_attribute": 1}
+        df.to_parquet(path, engine=pa)
+        new_df = read_parquet(path, engine=pa)
+        assert new_df.attrs == df.attrs
+
+    def test_string_inference(self, tmp_path, pa):
+        # GH#54431
+        import pyarrow as pa
+
+        path = tmp_path / "test_string_inference.p"
+        df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
+        df.to_parquet(path, engine="pyarrow")
+        with pd.option_context("future.infer_string", True):
+            result = read_parquet(path, engine="pyarrow")
+        expected = pd.DataFrame(
+            data={"a": ["x", "y"]},
+            dtype=pd.ArrowDtype(pa.string()),
+            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 class TestParquetFastParquet(Base):

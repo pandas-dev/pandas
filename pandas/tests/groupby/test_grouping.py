@@ -71,9 +71,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
+                "E": np.random.default_rng(2).standard_normal(8),
             }
         )
 
@@ -90,9 +90,9 @@ class TestSelection:
         df = DataFrame(
             {
                 0: list("abcd") * 2,
-                2: np.random.randn(8),
-                4: np.random.randn(8),
-                6: np.random.randn(8),
+                2: np.random.default_rng(2).standard_normal(8),
+                4: np.random.default_rng(2).standard_normal(8),
+                6: np.random.default_rng(2).standard_normal(8),
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
@@ -117,9 +117,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
+                "E": np.random.default_rng(2).standard_normal(8),
             }
         )
 
@@ -134,7 +134,13 @@ class TestSelection:
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).integers(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
@@ -161,6 +167,7 @@ class TestGrouping:
             tm.makePeriodIndex,
         ],
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_grouper_index_types(self, index):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
@@ -178,7 +185,7 @@ class TestGrouping:
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
         date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
-        df = DataFrame(np.random.randint(0, 100, 225), index=date_index)
+        df = DataFrame(np.random.default_rng(2).integers(0, 100, 225), index=date_index)
 
         # Check string level
         expected = (
@@ -434,7 +441,7 @@ class TestGrouping:
 
     def test_groupby_grouper_f_sanity_checked(self):
         dates = date_range("01-Jan-2013", periods=12, freq="MS")
-        ts = Series(np.random.randn(12), index=dates)
+        ts = Series(np.random.default_rng(2).standard_normal(12), index=dates)
 
         # GH51979
         # simple check that the passed function doesn't operates on the whole index
@@ -561,6 +568,37 @@ class TestGrouping:
         expected = df3.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
+
+    def test_groupby_multiindex_partial_indexing_equivalence(self):
+        # GH 17977
+        df = DataFrame(
+            [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+            columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
+        )
+
+        expected_mean = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].mean()
+        result_mean = df.groupby([("a", 1)])["b"].mean()
+        tm.assert_frame_equal(expected_mean, result_mean)
+
+        expected_sum = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].sum()
+        result_sum = df.groupby([("a", 1)])["b"].sum()
+        tm.assert_frame_equal(expected_sum, result_sum)
+
+        expected_count = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].count()
+        result_count = df.groupby([("a", 1)])["b"].count()
+        tm.assert_frame_equal(expected_count, result_count)
+
+        expected_min = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].min()
+        result_min = df.groupby([("a", 1)])["b"].min()
+        tm.assert_frame_equal(expected_min, result_min)
+
+        expected_max = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].max()
+        result_max = df.groupby([("a", 1)])["b"].max()
+        tm.assert_frame_equal(expected_max, result_max)
+
+        expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
+        result_groups = df.groupby([("a", 1)])["b"].groups
+        tm.assert_dict_equal(expected_groups, result_groups)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level(self, sort, mframe, df):
@@ -807,7 +845,7 @@ class TestGetGroup:
         )
 
         g = df.groupby("DATE")
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group(Timestamp(key).to_pydatetime())
         result3 = g.get_group(str(Timestamp(key)))
@@ -816,7 +854,7 @@ class TestGetGroup:
 
         g = df.groupby(["DATE", "label"])
 
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
         result3 = g.get_group((str(Timestamp(key[0])), key[1]))
@@ -866,14 +904,20 @@ class TestGetGroup:
     def test_get_group_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).integers(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
         gb_lambda = df.groupby(lambda x: df.iloc[x, 0])
 
-        expected = gb.get_group(list(gb.groups.keys())[0])
-        result = gb_lambda.get_group(list(gb_lambda.groups.keys())[0])
+        expected = gb.get_group(next(iter(gb.groups.keys())))
+        result = gb_lambda.get_group(next(iter(gb_lambda.groups.keys())))
 
         tm.assert_frame_equal(result, expected)
 
@@ -964,7 +1008,12 @@ class TestIteration:
         k1 = np.array(["b", "b", "b", "a", "a", "a"])
         k2 = np.array(["1", "2", "1", "2", "1", "2"])
         df = DataFrame(
-            {"v1": np.random.randn(6), "v2": np.random.randn(6), "k1": k1, "k2": k2},
+            {
+                "v1": np.random.default_rng(2).standard_normal(6),
+                "v2": np.random.default_rng(2).standard_normal(6),
+                "k1": k1,
+                "k2": k2,
+            },
             index=["one", "two", "three", "four", "five", "six"],
         )
 

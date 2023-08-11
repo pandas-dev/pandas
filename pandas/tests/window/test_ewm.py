@@ -415,7 +415,7 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
 
 def test_ewm_alpha():
     # GH 10789
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     locs = np.arange(20, 40)
     arr[locs] = np.NaN
 
@@ -431,7 +431,7 @@ def test_ewm_alpha():
 
 def test_ewm_domain_checks():
     # GH 12492
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     locs = np.arange(20, 40)
     arr[locs] = np.NaN
 
@@ -483,7 +483,7 @@ def test_ew_empty_series(method):
 @pytest.mark.parametrize("name", ["mean", "var", "std"])
 def test_ew_min_periods(min_periods, name):
     # excluding NaNs correctly
-    arr = np.random.randn(50)
+    arr = np.random.default_rng(2).standard_normal(50)
     arr[:10] = np.NaN
     arr[-10:] = np.NaN
     s = Series(arr)
@@ -524,8 +524,8 @@ def test_ew_min_periods(min_periods, name):
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov(name):
-    A = Series(np.random.randn(50), index=range(50))
-    B = A[2:] + np.random.randn(48)
+    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
+    B = A[2:] + np.random.default_rng(2).standard_normal(48)
 
     A[:10] = np.NaN
     B.iloc[-10:] = np.NaN
@@ -539,8 +539,8 @@ def test_ewm_corr_cov(name):
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_ewm_corr_cov_min_periods(name, min_periods):
     # GH 7898
-    A = Series(np.random.randn(50), index=range(50))
-    B = A[2:] + np.random.randn(48)
+    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
+    B = A[2:] + np.random.default_rng(2).standard_normal(48)
 
     A[:10] = np.NaN
     B.iloc[-10:] = np.NaN
@@ -565,13 +565,15 @@ def test_ewm_corr_cov_min_periods(name, min_periods):
 
 @pytest.mark.parametrize("name", ["cov", "corr"])
 def test_different_input_array_raise_exception(name):
-    A = Series(np.random.randn(50), index=range(50))
+    A = Series(np.random.default_rng(2).standard_normal(50), index=range(50))
     A[:10] = np.NaN
 
     msg = "other must be a DataFrame or Series"
     # exception raised is Exception
     with pytest.raises(ValueError, match=msg):
-        getattr(A.ewm(com=20, min_periods=5), name)(np.random.randn(50))
+        getattr(A.ewm(com=20, min_periods=5), name)(
+            np.random.default_rng(2).standard_normal(50)
+        )
 
 
 @pytest.mark.parametrize("name", ["var", "std", "mean"])
@@ -688,7 +690,7 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     op = getattr(ewm, kernel, None)
     if op is None:
         # Nothing to test
-        return
+        pytest.skip("No op to test")
     if numeric_only and dtype is object:
         msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):

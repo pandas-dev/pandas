@@ -54,7 +54,10 @@ def biggie_df_fixture(request):
     """Fixture for a big mixed Dataframe and an empty Dataframe"""
     if request.param == "mixed":
         df = DataFrame(
-            {"A": np.random.randn(200), "B": tm.makeStringIndex(200)},
+            {
+                "A": np.random.default_rng(2).standard_normal(200),
+                "B": tm.makeStringIndex(200),
+            },
             index=np.arange(200),
         )
         df.loc[:20, "A"] = np.nan
@@ -72,7 +75,7 @@ def justify(request):
 
 @pytest.mark.parametrize("col_space", [30, 50])
 def test_to_html_with_col_space(col_space):
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     # check that col_space affects HTML generation
     # and be very brittle about it.
     result = df.to_html(col_space=col_space)
@@ -84,7 +87,9 @@ def test_to_html_with_col_space(col_space):
 
 
 def test_to_html_with_column_specific_col_space_raises():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     msg = (
         "Col_space length\\(\\d+\\) should match "
@@ -102,7 +107,9 @@ def test_to_html_with_column_specific_col_space_raises():
 
 
 def test_to_html_with_column_specific_col_space():
-    df = DataFrame(np.random.random(size=(3, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+    )
 
     result = df.to_html(col_space={"a": "2em", "b": 23})
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
@@ -280,8 +287,8 @@ def test_to_html_regression_GH6098():
         {
             "clé1": ["a", "a", "b", "b", "a"],
             "clé2": ["1er", "2ème", "1er", "2ème", "1er"],
-            "données1": np.random.randn(5),
-            "données2": np.random.randn(5),
+            "données1": np.random.default_rng(2).standard_normal(5),
+            "données2": np.random.default_rng(2).standard_normal(5),
         }
     )
 
@@ -394,7 +401,7 @@ def test_to_html_filename(biggie_df_fixture, tmpdir):
 
 
 def test_to_html_with_no_bold():
-    df = DataFrame({"x": np.random.randn(5)})
+    df = DataFrame({"x": np.random.default_rng(2).standard_normal(5)})
     html = df.to_html(bold_rows=False)
     result = html[html.find("</thead>")]
     assert "<strong" not in result
@@ -808,7 +815,7 @@ def test_to_html_round_column_headers():
 @pytest.mark.parametrize("unit", ["100px", "10%", "5em", 150])
 def test_to_html_with_col_space_units(unit):
     # GH 25941
-    df = DataFrame(np.random.random(size=(1, 3)))
+    df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     result = df.to_html(col_space=unit)
     result = result.split("tbody")[0]
     hdrs = [x for x in result.split("\n") if re.search(r"<th[>\s]", x)]
@@ -895,4 +902,79 @@ def test_to_html_float_format_object_col(datapath):
     df = DataFrame(data={"x": [1000.0, "test"]})
     result = df.to_html(float_format=lambda x: f"{x:,.0f}")
     expected = expected_html(datapath, "gh40024_expected_output")
+    assert result == expected
+
+
+def test_to_html_multiindex_col_with_colspace():
+    # GH#53885
+    df = DataFrame([[1, 2]])
+    df.columns = MultiIndex.from_tuples([(1, 1), (2, 1)])
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        "    <tr>\n"
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        '      <th style="min-width: 100px;">2</th>\n'
+        "    </tr>\n"
+        "    <tr>\n"
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        '      <th style="min-width: 100px;">1</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>0</th>\n"
+        "      <td>1</td>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+
+def test_to_html_tuple_col_with_colspace():
+    # GH#53885
+    df = DataFrame({("a", "b"): [1], "b": [2]})
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">(a, b)</th>\n'
+        '      <th style="min-width: 100px;">b</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "    <tr>\n"
+        "      <th>0</th>\n"
+        "      <td>1</td>\n"
+        "      <td>2</td>\n"
+        "    </tr>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
+    assert result == expected
+
+
+def test_to_html_empty_complex_array():
+    # GH#54167
+    df = DataFrame({"x": np.array([], dtype="complex")})
+    result = df.to_html(col_space=100)
+    expected = (
+        '<table border="1" class="dataframe">\n'
+        "  <thead>\n"
+        '    <tr style="text-align: right;">\n'
+        '      <th style="min-width: 100px;"></th>\n'
+        '      <th style="min-width: 100px;">x</th>\n'
+        "    </tr>\n"
+        "  </thead>\n"
+        "  <tbody>\n"
+        "  </tbody>\n"
+        "</table>"
+    )
     assert result == expected

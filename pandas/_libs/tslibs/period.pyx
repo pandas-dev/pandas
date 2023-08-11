@@ -107,7 +107,10 @@ from pandas._libs.tslibs.offsets cimport (
     to_offset,
 )
 
-from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.offsets import (
+    INVALID_FREQ_ERR_MSG,
+    BDay,
+)
 
 cdef:
     enum:
@@ -1835,10 +1838,6 @@ cdef class _Period(PeriodMixin):
 
     def __add__(self, other):
         if not is_period_object(self):
-            # cython semantics; this is analogous to a call to __radd__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
             return other.__add__(self)
 
         if is_any_td_scalar(other):
@@ -1873,10 +1872,6 @@ cdef class _Period(PeriodMixin):
 
     def __sub__(self, other):
         if not is_period_object(self):
-            # cython semantics; this is like a call to __rsub__
-            # TODO(cython3): remove this
-            if self is NaT:
-                return NaT
             return NotImplemented
 
         elif (
@@ -2508,7 +2503,7 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt: str) -> str:
+    def strftime(self, fmt: str | None) -> str:
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
@@ -2811,6 +2806,18 @@ class Period(_Period):
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
                                      dt.microsecond, 1000*nanosecond, base)
+
+        if isinstance(freq, BDay):
+            # GH#53446
+            import warnings
+
+            from pandas.util._exceptions import find_stack_level
+            warnings.warn(
+                "Period with BDay freq is deprecated and will be removed "
+                "in a future version. Use a DatetimeIndex with BDay freq instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         return cls._from_ordinal(ordinal, freq)
 

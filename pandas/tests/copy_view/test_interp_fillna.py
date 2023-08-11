@@ -331,19 +331,23 @@ def test_fillna_inplace_ea_noop_shares_memory(
     view = df[:]
     df.fillna(100, inplace=True)
 
-    assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+    if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), get_array(view, "a"))
+    else:
+        # MaskedArray can actually respect inplace=True
+        assert np.shares_memory(get_array(df, "a"), get_array(view, "a"))
 
+    assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
     if using_copy_on_write:
-        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
         assert not df._mgr._has_no_reference(1)
         assert not view._mgr._has_no_reference(1)
-    elif isinstance(df.dtypes.iloc[0], ArrowDtype):
-        # arrow is immutable, so no-ops do not need to copy underlying array
-        assert np.shares_memory(get_array(df, "b"), get_array(view, "b"))
-    else:
-        assert not np.shares_memory(get_array(df, "b"), get_array(view, "b"))
+
     df.iloc[0, 1] = 100
-    tm.assert_frame_equal(df_orig, view)
+    if isinstance(df["a"].dtype, ArrowDtype) or using_copy_on_write:
+        tm.assert_frame_equal(df_orig, view)
+    else:
+        # we actually have a view
+        tm.assert_frame_equal(df, view)
 
 
 def test_fillna_chained_assignment(using_copy_on_write):
@@ -356,4 +360,18 @@ def test_fillna_chained_assignment(using_copy_on_write):
 
         with tm.raises_chained_assignment_error():
             df[["a"]].fillna(100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("func", ["interpolate", "ffill", "bfill"])
+def test_interpolate_chained_assignment(using_copy_on_write, func):
+    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            getattr(df["a"], func)(inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            getattr(df[["a"]], func)(inplace=True)
         tm.assert_frame_equal(df, df_orig)

@@ -18,18 +18,15 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-from pandas import (
-    Interval,
-    Series,
-)
+from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
 
 
 def make_data():
     N = 100
-    left_array = np.random.uniform(size=N).cumsum()
-    right_array = left_array + np.random.uniform(size=N)
+    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=N)
     return [Interval(left, right) for left, right in zip(left_array, right_array)]
 
 
@@ -51,6 +48,11 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_twos():
+    pytest.skip("Not a numeric dtype")
+
+
+@pytest.fixture
 def data_for_sorting():
     return IntervalArray.from_tuples([(1, 2), (2, 3), (0, 1)])
 
@@ -61,11 +63,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def data_for_grouping():
     a = (0, 1)
     b = (1, 2)
@@ -73,57 +70,11 @@ def data_for_grouping():
     return IntervalArray.from_tuples([b, b, None, None, a, a, b, c])
 
 
-class BaseInterval:
-    pass
+class TestIntervalArray(base.ExtensionTests):
+    divmod_exc = TypeError
 
-
-class TestDtype(BaseInterval, base.BaseDtypeTests):
-    pass
-
-
-class TestCasting(BaseInterval, base.BaseCastingTests):
-    pass
-
-
-class TestConstructors(BaseInterval, base.BaseConstructorsTests):
-    pass
-
-
-class TestGetitem(BaseInterval, base.BaseGetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestGrouping(BaseInterval, base.BaseGroupbyTests):
-    pass
-
-
-class TestInterface(BaseInterval, base.BaseInterfaceTests):
-    pass
-
-
-class TestReduce(base.BaseNoReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-        ser = Series(data)
-
-        if op_name in ["min", "max"]:
-            # IntervalArray *does* implement these
-            assert getattr(ser, op_name)(skipna=skipna) in data
-            assert getattr(data, op_name)(skipna=skipna) in data
-            return
-
-        super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
-
-
-class TestMethods(BaseInterval, base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="addition is not defined for intervals")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max"]
 
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
@@ -132,57 +83,21 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-
-class TestMissing(BaseInterval, base.BaseMissingTests):
-    # Index.fillna only accepts scalar `value`, so we have to xfail all
-    # non-scalar fill tests.
-    unsupported_fill = pytest.mark.xfail(
-        reason="Unsupported fillna option for Interval."
-    )
-
-    @unsupported_fill
-    def test_fillna_limit_pad(self):
-        super().test_fillna_limit_pad()
-
-    @unsupported_fill
-    def test_fillna_series_method(self):
-        super().test_fillna_series_method()
-
-    @unsupported_fill
-    def test_fillna_limit_backfill(self):
-        super().test_fillna_limit_backfill()
-
-    @unsupported_fill
-    def test_fillna_no_op_returns_copy(self):
-        super().test_fillna_no_op_returns_copy()
-
-    @unsupported_fill
-    def test_fillna_series(self):
-        super().test_fillna_series()
-
-    def test_fillna_non_scalar_raises(self, data_missing):
-        msg = "can only insert Interval objects and NA into an IntervalArray"
-        with pytest.raises(TypeError, match=msg):
-            data_missing.fillna([1, 1])
-
-
-class TestReshaping(BaseInterval, base.BaseReshapingTests):
-    pass
-
-
-class TestSetitem(BaseInterval, base.BaseSetitemTests):
-    pass
-
-
-class TestPrinting(BaseInterval, base.BasePrintingTests):
-    @pytest.mark.xfail(reason="Interval has custom repr")
-    def test_array_repr(self, data, size):
-        super().test_array_repr()
-
-
-class TestParsing(BaseInterval, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
+
+    @pytest.mark.xfail(
+        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
+    )
+    def test_invert(self, data):
+        super().test_invert(data)
+
+
+# TODO: either belongs in tests.arrays.interval or move into base tests.
+def test_fillna_non_scalar_raises(data_missing):
+    msg = "can only insert Interval objects and NA into an IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        data_missing.fillna([1, 1])

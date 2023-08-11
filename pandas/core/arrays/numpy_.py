@@ -17,7 +17,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -48,7 +48,7 @@ if TYPE_CHECKING:
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
-class PandasArray(  # type: ignore[misc]
+class NumpyExtensionArray(  # type: ignore[misc]
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
@@ -73,22 +73,31 @@ class PandasArray(  # type: ignore[misc]
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.NumpyExtensionArray(np.array([0, 1, 2, 3]))
+    <NumpyExtensionArray>
+    [0, 1, 2, 3]
+    Length: 4, dtype: int64
     """
 
     # If you're wondering why pd.Series(cls) doesn't put the array in an
-    # ExtensionBlock, search for `ABCPandasArray`. We check for
+    # ExtensionBlock, search for `ABCNumpyExtensionArray`. We check for
     # that _typ to ensure that users don't unnecessarily use EAs inside
     # pandas internals, which turns off things like block consolidation.
     _typ = "npy_extension"
     __array_priority__ = 1000
     _ndarray: np.ndarray
-    _dtype: PandasDtype
+    _dtype: NumpyEADtype
     _internal_fill_value = np.nan
 
     # ------------------------------------------------------------------------
     # Constructors
 
-    def __init__(self, values: np.ndarray | PandasArray, copy: bool = False) -> None:
+    def __init__(
+        self, values: np.ndarray | NumpyExtensionArray, copy: bool = False
+    ) -> None:
         if isinstance(values, type(self)):
             values = values._ndarray
         if not isinstance(values, np.ndarray):
@@ -98,19 +107,19 @@ class PandasArray(  # type: ignore[misc]
 
         if values.ndim == 0:
             # Technically we support 2, but do not advertise that fact.
-            raise ValueError("PandasArray must be 1-dimensional.")
+            raise ValueError("NumpyExtensionArray must be 1-dimensional.")
 
         if copy:
             values = values.copy()
 
-        dtype = PandasDtype(values.dtype)
+        dtype = NumpyEADtype(values.dtype)
         super().__init__(values, dtype)
 
     @classmethod
     def _from_sequence(
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
-    ) -> PandasArray:
-        if isinstance(dtype, PandasDtype):
+    ) -> NumpyExtensionArray:
+        if isinstance(dtype, NumpyEADtype):
             dtype = dtype._dtype
 
         # error: Argument "dtype" to "asarray" has incompatible type
@@ -131,14 +140,14 @@ class PandasArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> PandasArray:
+    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
         return type(self)(arr)
 
     # ------------------------------------------------------------------------
     # Data
 
     @property
-    def dtype(self) -> PandasDtype:
+    def dtype(self) -> NumpyEADtype:
         return self._dtype
 
     # ------------------------------------------------------------------------
@@ -151,7 +160,7 @@ class PandasArray(  # type: ignore[misc]
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
-        # in PandasArray, since pandas' ExtensionArrays are 1-d.
+        # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
         out = kwargs.get("out", ())
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
@@ -175,10 +184,12 @@ class PandasArray(  # type: ignore[misc]
                 return result
 
         # Defer to the implementation of the ufunc on unwrapped values.
-        inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)
+        inputs = tuple(
+            x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in inputs
+        )
         if out:
             kwargs["out"] = tuple(
-                x._ndarray if isinstance(x, PandasArray) else x for x in out
+                x._ndarray if isinstance(x, NumpyExtensionArray) else x for x in out
             )
         result = getattr(ufunc, method)(*inputs, **kwargs)
 
@@ -233,7 +244,7 @@ class PandasArray(  # type: ignore[misc]
         self,
         *,
         method: FillnaOptions,
-        limit: int | None,
+        limit: int | None = None,
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
@@ -499,20 +510,20 @@ class PandasArray(  # type: ignore[misc]
     # ------------------------------------------------------------------------
     # Ops
 
-    def __invert__(self) -> PandasArray:
+    def __invert__(self) -> NumpyExtensionArray:
         return type(self)(~self._ndarray)
 
-    def __neg__(self) -> PandasArray:
+    def __neg__(self) -> NumpyExtensionArray:
         return type(self)(-self._ndarray)
 
-    def __pos__(self) -> PandasArray:
+    def __pos__(self) -> NumpyExtensionArray:
         return type(self)(+self._ndarray)
 
-    def __abs__(self) -> PandasArray:
+    def __abs__(self) -> NumpyExtensionArray:
         return type(self)(abs(self._ndarray))
 
     def _cmp_method(self, other, op):
-        if isinstance(other, PandasArray):
+        if isinstance(other, NumpyExtensionArray):
             other = other._ndarray
 
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
@@ -538,7 +549,7 @@ class PandasArray(  # type: ignore[misc]
 
     def _wrap_ndarray_result(self, result: np.ndarray):
         # If we have timedelta64[ns] result, return a TimedeltaArray instead
-        #  of a PandasArray
+        #  of a NumpyExtensionArray
         if result.dtype.kind == "m" and is_supported_unit(
             get_unit_from_dtype(result.dtype)
         ):

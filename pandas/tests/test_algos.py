@@ -9,7 +9,6 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -527,13 +526,13 @@ class TestFactorize:
 
 class TestUnique:
     def test_ints(self):
-        arr = np.random.randint(0, 100, size=50)
+        arr = np.random.default_rng(2).integers(0, 100, size=50)
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
 
     def test_objects(self):
-        arr = np.random.randint(0, 100, size=50).astype("O")
+        arr = np.random.default_rng(2).integers(0, 100, size=50).astype("O")
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
@@ -878,7 +877,7 @@ class TestUnique:
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
-    values = index_or_series_or_array(np.random.randint(0, 20, 30))
+    values = index_or_series_or_array(np.random.default_rng(2).integers(0, 20, 30))
     result = algos.nunique_ints(values)
     expected = len(algos.unique(values))
     assert result == expected
@@ -1175,18 +1174,16 @@ class TestIsin:
 
 class TestValueCounts:
     def test_value_counts(self):
-        np.random.seed(1234)
-
-        arr = np.random.randn(4)
+        arr = np.random.default_rng(1234).standard_normal(4)
         factor = cut(arr, 4)
 
         # assert isinstance(factor, n)
         msg = "pandas.value_counts is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(factor)
-        breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
+        breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
         index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index, name="count")
+        expected = Series([1, 0, 2, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -1733,7 +1730,6 @@ class TestHashTable:
 
 
 class TestRank:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "arr",
         [
@@ -1742,7 +1738,7 @@ class TestRank:
         ],
     )
     def test_scipy_compat(self, arr):
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         arr = np.array(arr)
 
@@ -1750,7 +1746,7 @@ class TestRank:
         arr = arr.copy()
         result = libalgos.rank_1d(arr)
         arr[mask] = np.inf
-        exp = rankdata(arr)
+        exp = sp_stats.rankdata(arr)
         exp[mask] = np.nan
         tm.assert_almost_equal(result, exp)
 
@@ -1862,8 +1858,8 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.intp)
-    b = np.random.randint(0, 1000, 100).astype(np.intp)
+    a = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
+    b = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 
