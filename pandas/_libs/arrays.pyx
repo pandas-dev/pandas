@@ -7,9 +7,25 @@ import numpy as np
 
 cimport numpy as cnp
 from cpython cimport PyErr_Clear
-from numpy cimport ndarray
+from numpy cimport (
+    int8_t,
+    int64_t,
+    ndarray,
+    uint8_t,
+)
 
 cnp.import_array()
+
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
+
+
+cdef extern from "pandas/vendored/nanoarrow.h":
+    int8_t ArrowBitGet(const uint8_t*, int64_t)
+    void ArrowBitSet(uint8_t*, int64_t)
+    void ArrowBitClear(uint8_t*, int64_t)
 
 
 @cython.freelist(16)
@@ -189,3 +205,30 @@ cdef class NDArrayBacked:
         new_values = [obj._ndarray for obj in to_concat]
         new_arr = cnp.PyArray_Concatenate(new_values, axis)
         return to_concat[0]._from_backing_data(new_arr)
+
+
+cdef class BitMaskArray:
+    cdef array_len
+    cdef uint8_t* validity_buffer
+
+    def __cinit__(self, np_array):
+        self.array_len = len(np_array)
+        nbytes = len(np_array) // 8 + 1
+        self.validity_buffer = <uint8_t *>malloc(nbytes)
+        # malloc
+
+    def __dealloc__(self):
+        ...
+        free(self.validity_buffer)
+
+    def __setitem__(self, key, value):
+        if value:
+            ArrowBitSet(self.validity_buffer, key)
+        else:
+            ArrowBitClear(self.validity_buffer, key)
+
+    def __getitem__(self, key):
+        bool(ArrowBitGet(self.validity_buffer, key))
+
+    def to_numpy(self):
+        ...
