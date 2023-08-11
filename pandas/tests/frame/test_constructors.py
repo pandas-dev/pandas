@@ -2721,7 +2721,7 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_frame_string_inference_array_string_dtype(self):
-        # GH#54430
+        # GH#54496
         pa = pytest.importorskip("pyarrow")
         dtype = pd.ArrowDtype(pa.string())
         expected = DataFrame(
