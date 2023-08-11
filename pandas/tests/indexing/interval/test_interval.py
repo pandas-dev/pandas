@@ -172,3 +172,21 @@ class TestIntervalIndexInsideMultiIndex:
         )
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "base, expected_result",
+        [
+            (10, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
+            (100, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
+            (101, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
+            (1010, Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)),
+        ],
+    )
+    def test_interval_index_reindex_behavior(self, base, expected_result):
+        # GH 51826
+        d = Series(
+            range(base),
+            index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
+        )
+        result = d.reindex(index=[np.nan, 1.0])
+        tm.assert_series_equal(result, expected_result)
