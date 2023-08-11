@@ -102,11 +102,16 @@ def scatter_matrix(
 
             ax.set_xlabel(b)
             ax.set_ylabel(a)
+            if i != j:
+                ax.grid(grid)
 
-            if j != 0:
-                ax.yaxis.set_visible(False)
-            if i != n - 1:
-                ax.xaxis.set_visible(False)
+            if j != 0:  # if its not on the left
+                ax.set_ylabel("")
+                ax.set_yticklabels([])
+
+            if i != n - 1:  # if its not on the bottom
+                ax.set_xlabel("")
+                ax.set_xticklabels([])
 
     if len(df.columns) > 1:
         lim1 = boundaries_list[0]
