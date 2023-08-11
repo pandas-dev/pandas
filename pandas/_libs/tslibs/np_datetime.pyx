@@ -28,8 +28,11 @@ cimport numpy as cnp
 
 cnp.import_array()
 from numpy cimport (
+    PyDatetimeScalarObject,
+    PyTimedeltaScalarObject,
     int64_t,
     ndarray,
+    npy_datetime,
     uint8_t,
 )
 
