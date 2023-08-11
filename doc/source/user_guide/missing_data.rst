@@ -12,7 +12,7 @@ Values considered "missing"
 pandas uses different sentinel values to represent a missing (also referred to as NA)
 depending on the data type.
 
-:external+numpy:py:class:`numpy.nan` for NumPy data types. The disadvantage of using NumPy data types
+``numpy.nan`` for NumPy data types. The disadvantage of using NumPy data types
 is that the original data type will be coerced to ``np.float64`` or ``object``.
 
 .. ipython:: python
@@ -60,8 +60,8 @@ To detect these missing value, use the :func:`isna` or :func:`notna` methods.
 
 .. warning::
 
-   Equality compaisons between :external+numpy:py:class:`numpy.nan`, :class:`NaT`,
-   and :class:`NA` do not act like ``None``
+   Equality compaisons between ``np.nan``, :class:`NaT`, and :class:`NA`
+   do not act like ``None``
 
    .. ipython:: python
 
@@ -482,11 +482,13 @@ The appropriate interpolation method will depend on the data type.
 
 .. tip::
 
-   * If you are dealing with a time series that is growing at an increasing rate,
-   ``method='barycentric'`` may be appropriate.
-   * If you have values approximating a cumulative distribution function,
-   then ``method='pchip'`` should work well.
-   * To fill missing values with goal of smooth plotting, consider ``method='akima'``.
+   If you are dealing with a time series that is growing at an increasing rate,
+   use ``method='barycentric'``.
+
+   If you have values approximating a cumulative distribution function,
+   use ``method='pchip'``.
+
+   To fill missing values with goal of smooth plotting use ``method='akima'``.
 
    .. ipython:: python
 
