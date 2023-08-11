@@ -11,6 +11,7 @@ from typing import (
     final,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -317,7 +318,7 @@ class Block(PandasObject):
 
     @final
     def getitem_block_columns(
-        self, slicer: slice, new_mgr_locs: BlockPlacement
+        self, slicer: slice, new_mgr_locs: BlockPlacement, ref_inplace_op: bool = False
     ) -> Self:
         """
         Perform __getitem__-like, return result as block.
@@ -325,7 +326,8 @@ class Block(PandasObject):
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
+        refs = self.refs if not ref_inplace_op or self.refs.has_reference() else None
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
     def _can_hold_element(self, element: Any) -> bool:
@@ -839,7 +841,7 @@ class Block(PandasObject):
         if inplace:
             masks = list(masks)
 
-        if using_cow and inplace:
+        if using_cow:
             # Don't set up refs here, otherwise we will think that we have
             # references when we check again later
             rb = [self]
@@ -872,6 +874,17 @@ class Block(PandasObject):
                     regex=regex,
                     using_cow=using_cow,
                 )
+
+                if using_cow and i != src_len:
+                    # This is ugly, but we have to get rid of intermediate refs
+                    # that did not go out of scope yet, otherwise we will trigger
+                    # many unnecessary copies
+                    for b in result:
+                        ref = weakref.ref(b)
+                        b.refs.referenced_blocks.pop(
+                            b.refs.referenced_blocks.index(ref)
+                        )
+
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
                     result = extend_blocks(
@@ -936,7 +949,7 @@ class Block(PandasObject):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self.copy(deep=False)]
+                    return [self]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,
