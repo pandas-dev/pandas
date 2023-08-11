@@ -206,15 +206,11 @@ def scatter_matrix(
 
         >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
-        array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
-                <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
-               [<Axes: xlabel='A', ylabel='B'>, <Axes: xlabel='B', ylabel='B'>,
-                <Axes: xlabel='C', ylabel='B'>, <Axes: xlabel='D', ylabel='B'>],
-               [<Axes: xlabel='A', ylabel='C'>, <Axes: xlabel='B', ylabel='C'>,
-                <Axes: xlabel='C', ylabel='C'>, <Axes: xlabel='D', ylabel='C'>],
-               [<Axes: xlabel='A', ylabel='D'>, <Axes: xlabel='B', ylabel='D'>,
-                <Axes: xlabel='C', ylabel='D'>, <Axes: xlabel='D', ylabel='D'>]],
-              dtype=object)
+        array([[<Axes: ylabel='A'>, <Axes: >, <Axes: >, <Axes: >],
+           [<Axes: ylabel='B'>, <Axes: >, <Axes: >, <Axes: >],
+           [<Axes: ylabel='C'>, <Axes: >, <Axes: >, <Axes: >],
+           [<Axes: xlabel='A', ylabel='D'>, <Axes: xlabel='B'>,
+            <Axes: xlabel='C'>, <Axes: xlabel='D'>]], dtype=object)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
