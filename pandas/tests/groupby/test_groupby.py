@@ -3159,4 +3159,3 @@ def test_groupby_series_with_datetimeindex_month_name():
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
     tm.assert_series_equal(result, expected)
-    
