@@ -242,6 +242,9 @@ cdef class BitMaskArray:
     def __invert__(self):
         return ~self.to_numpy()
 
+    def __or__(self, other):
+        return self.to_numpy().__or__(other)
+
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result
         result = np.empty(self.array_len, dtype=bool)
