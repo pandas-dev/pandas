@@ -147,7 +147,7 @@ def to_json(
     indent: int = 0,
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
-    serializer_function: Callable[[Any], JSONSerializable] | None = None,
+    serializer_function: Callable | None = None,
     engine_kwargs: dict | None = None,
 ) -> str | None:
     if serializer_function or engine_kwargs:

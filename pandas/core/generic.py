@@ -2374,7 +2374,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent: int | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
-        serializer_function: Callable[[Any], JSONSerializable] | None = None,
+        serializer_function: Callable | None = None,
         engine_kwargs: dict | None = None,
     ) -> str | None:
         """
