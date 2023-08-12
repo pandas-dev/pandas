@@ -1279,7 +1279,7 @@ class ArrowExtensionArray(
 
         pa_result = pc.unique(data)
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             pa_result = pa_result.cast(pa_type)
 
         return type(self)(pa_result)
@@ -1322,7 +1322,7 @@ class ArrowExtensionArray(
             values = values.filter(mask)
             counts = counts.filter(mask)
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
         counts = ArrowExtensionArray(counts)
