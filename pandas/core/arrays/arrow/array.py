@@ -1012,7 +1012,8 @@ class ArrowExtensionArray(
         null_encoding = "mask" if use_na_sentinel else "encode"
 
         data = self._pa_array
-        if pa_version_under11p0 and pa.types.is_duration(data.type):
+        pa_type = data.type
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = data.cast(pa.int64())
 
@@ -1032,7 +1033,7 @@ class ArrowExtensionArray(
             )
             uniques = type(self)(encoded.chunk(0).dictionary)
 
-        if pa_version_under11p0 and pa.types.is_duration(data.type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
         return indices, uniques
 
