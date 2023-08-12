@@ -196,7 +196,11 @@ def test_no_multi_index_level_names_empty(all_parsers):
     # GH 10984
     parser = all_parsers
     midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
-    expected = DataFrame(np.random.randn(3, 3), index=midx, columns=["x", "y", "z"])
+    expected = DataFrame(
+        np.random.default_rng(2).standard_normal((3, 3)),
+        index=midx,
+        columns=["x", "y", "z"],
+    )
     with tm.ensure_clean() as path:
         expected.to_csv(path)
         result = parser.read_csv(path, index_col=[0, 1, 2])
@@ -233,7 +237,12 @@ def test_index_col_large_csv(all_parsers, monkeypatch):
     parser = all_parsers
 
     ARR_LEN = 100
-    df = DataFrame({"a": range(ARR_LEN + 1), "b": np.random.randn(ARR_LEN + 1)})
+    df = DataFrame(
+        {
+            "a": range(ARR_LEN + 1),
+            "b": np.random.default_rng(2).standard_normal(ARR_LEN + 1),
+        }
+    )
 
     with tm.ensure_clean() as path:
         df.to_csv(path, index=False)

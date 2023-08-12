@@ -168,7 +168,8 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        ser2[1] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser2[1] = "foo"
         tm.assert_series_equal(ser2, expected)
 
     def test_fillna_downcast(self):
@@ -801,7 +802,7 @@ class TestSeriesFillNA:
             assert "ffil" in str(inst)
 
     def test_fillna_listlike_invalid(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             ser.fillna([1, 2])
@@ -910,7 +911,7 @@ class TestFillnaPad:
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index)
         result = result.fillna(method="pad", limit=5)
@@ -928,7 +929,7 @@ class TestFillnaPad:
 
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index, method="pad", limit=5)
 
@@ -943,7 +944,7 @@ class TestFillnaPad:
         tm.assert_series_equal(result, expected)
 
     def test_fillna_int(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         return_value = ser.fillna(method="ffill", inplace=True)
         assert return_value is None
         tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)

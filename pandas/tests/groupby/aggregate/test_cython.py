@@ -48,7 +48,7 @@ def test_cythonized_aggers(op_name):
     data = {
         "A": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1.0, np.nan, np.nan],
         "B": ["A", "B"] * 6,
-        "C": np.random.randn(12),
+        "C": np.random.default_rng(2).standard_normal(12),
     }
     df = DataFrame(data)
     df.loc[2:10:2, "C"] = np.nan
@@ -68,7 +68,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(dropna=False)
+    exp = DataFrame(expd).T.stack(future_stack=True)
     exp.index.names = ["A", "B"]
     exp.name = "C"
 
@@ -80,8 +80,8 @@ def test_cythonized_aggers(op_name):
 def test_cython_agg_boolean():
     frame = DataFrame(
         {
-            "a": np.random.randint(0, 5, 50),
-            "b": np.random.randint(0, 2, 50).astype("bool"),
+            "a": np.random.default_rng(2).integers(0, 5, 50),
+            "b": np.random.default_rng(2).integers(0, 2, 50).astype("bool"),
         }
     )
     result = frame.groupby("a")["b"].mean()
@@ -94,13 +94,17 @@ def test_cython_agg_boolean():
 
 
 def test_cython_agg_nothing_to_agg():
-    frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
+    frame = DataFrame(
+        {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
+    )
 
     msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
     with pytest.raises(TypeError, match=msg):
         frame.groupby("a")["b"].mean(numeric_only=True)
 
-    frame = DataFrame({"a": np.random.randint(0, 5, 50), "b": ["foo", "bar"] * 25})
+    frame = DataFrame(
+        {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
+    )
 
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
     expected = DataFrame(
@@ -112,7 +116,7 @@ def test_cython_agg_nothing_to_agg():
 def test_cython_agg_nothing_to_agg_with_dates():
     frame = DataFrame(
         {
-            "a": np.random.randint(0, 5, 50),
+            "a": np.random.default_rng(2).integers(0, 5, 50),
             "b": ["foo", "bar"] * 25,
             "dates": pd.date_range("now", periods=50, freq="T"),
         }
@@ -143,8 +147,8 @@ def test_cython_agg_return_dict():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.random.randn(8),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
         }
     )
 
@@ -185,8 +189,8 @@ def test_cython_fail_agg():
     ],
 )
 def test__cython_agg_general(op, targop):
-    df = DataFrame(np.random.randn(1000))
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    df = DataFrame(np.random.default_rng(2).standard_normal(1000))
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = df.groupby(labels)._cython_agg_general(op, alt=None, numeric_only=True)
     warn = FutureWarning if targop in com._cython_table else None

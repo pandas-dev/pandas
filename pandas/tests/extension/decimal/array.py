@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import decimal
 import numbers
-import random
 import sys
 from typing import TYPE_CHECKING
 
@@ -12,6 +11,7 @@ from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
+    is_integer,
     pandas_dtype,
 )
 
@@ -71,11 +71,14 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
     def __init__(self, values, dtype=None, copy=False, context=None) -> None:
         for i, val in enumerate(values):
-            if is_float(val):
+            if is_float(val) or is_integer(val):
                 if np.isnan(val):
                     values[i] = DecimalDtype.na_value
                 else:
-                    values[i] = DecimalDtype.type(val)
+                    # error: Argument 1 has incompatible type "float | int |
+                    # integer[Any]"; expected "Decimal | float | str | tuple[int,
+                    # Sequence[int], int]"
+                    values[i] = DecimalDtype.type(val)  # type: ignore[arg-type]
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
@@ -281,6 +284,8 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     def value_counts(self, dropna: bool = True):
         return value_counts(self.to_numpy(), dropna=dropna)
 
+    # We override fillna here to simulate a 3rd party EA that has done so. This
+    #  lets us test the deprecation telling authors to implement pad_or_backfill
     # Simulate a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
     # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
@@ -298,7 +303,7 @@ def to_decimal(values, context=None):
 
 
 def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
 
 
 DecimalArray._add_arithmetic_ops()

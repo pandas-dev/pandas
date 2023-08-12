@@ -11,6 +11,7 @@ from typing import (
     final,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -317,7 +318,7 @@ class Block(PandasObject):
 
     @final
     def getitem_block_columns(
-        self, slicer: slice, new_mgr_locs: BlockPlacement
+        self, slicer: slice, new_mgr_locs: BlockPlacement, ref_inplace_op: bool = False
     ) -> Self:
         """
         Perform __getitem__-like, return result as block.
@@ -325,7 +326,8 @@ class Block(PandasObject):
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
+        refs = self.refs if not ref_inplace_op or self.refs.has_reference() else None
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
     def _can_hold_element(self, element: Any) -> bool:
@@ -461,7 +463,7 @@ class Block(PandasObject):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        if self.dtype == new_dtype:
+        if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "
                 f"{self.values.dtype}. Please report a bug at "
@@ -839,7 +841,7 @@ class Block(PandasObject):
         if inplace:
             masks = list(masks)
 
-        if using_cow and inplace:
+        if using_cow:
             # Don't set up refs here, otherwise we will think that we have
             # references when we check again later
             rb = [self]
@@ -872,6 +874,17 @@ class Block(PandasObject):
                     regex=regex,
                     using_cow=using_cow,
                 )
+
+                if using_cow and i != src_len:
+                    # This is ugly, but we have to get rid of intermediate refs
+                    # that did not go out of scope yet, otherwise we will trigger
+                    # many unnecessary copies
+                    for b in result:
+                        ref = weakref.ref(b)
+                        b.refs.referenced_blocks.pop(
+                            b.refs.referenced_blocks.index(ref)
+                        )
+
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
                     result = extend_blocks(
@@ -936,7 +949,7 @@ class Block(PandasObject):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self.copy(deep=False)]
+                    return [self]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,
@@ -1723,11 +1736,11 @@ class EABackedBlock(Block):
 
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value)
+                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                nb = self.coerce_to_target_dtype(orig_value)
+                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             else:
@@ -1841,13 +1854,13 @@ class EABackedBlock(Block):
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
-                    blk = self.coerce_to_target_dtype(orig_new)
+                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_new)
+                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 else:
@@ -1917,28 +1930,10 @@ class EABackedBlock(Block):
 
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.fillna(method=method, limit=limit, copy=copy).T
+            new_values = values.T.pad_or_backfill(method=method, limit=limit).T
         else:
-            try:
-                new_values = values.fillna(method=method, limit=limit, copy=copy)
-            except TypeError:
-                # 3rd party EA that has not implemented copy keyword yet
-                refs = None
-                new_values = values.fillna(method=method, limit=limit)
-                # issue the warning *after* retrying, in case the TypeError
-                #  was caused by an invalid fill_value
-                warnings.warn(
-                    # GH#53278
-                    "ExtensionArray.fillna added a 'copy' keyword in pandas "
-                    "2.1.0. In a future version, ExtensionArray subclasses will "
-                    "need to implement this keyword or an exception will be "
-                    "raised. In the interim, the keyword is ignored by "
-                    f"{type(self.values).__name__}.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
-
-        return [self.make_block_same_class(new_values, refs=refs)]
+            new_values = values.pad_or_backfill(method=method, limit=limit)
+        return [self.make_block_same_class(new_values)]
 
 
 class ExtensionBlock(libinternals.Block, EABackedBlock):

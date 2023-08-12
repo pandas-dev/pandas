@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_numeric_dtype,
     is_object_dtype,
+    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import (
@@ -2336,7 +2337,7 @@ def _factorize_keys(
     sort : bool, defaults to True
         If True, the encoding is done such that the unique elements in the
         keys are sorted.
-    how : {‘left’, ‘right’, ‘outer’, ‘inner’}, default ‘inner’
+    how : {'left', 'right', 'outer', 'inner'}, default 'inner'
         Type of merge.
 
     Returns
@@ -2401,13 +2402,39 @@ def _factorize_keys(
         if not isinstance(lk, BaseMaskedArray) and not (
             # exclude arrow dtypes that would get cast to object
             isinstance(lk.dtype, ArrowDtype)
-            and is_numeric_dtype(lk.dtype.numpy_dtype)
+            and (
+                is_numeric_dtype(lk.dtype.numpy_dtype)
+                or is_string_dtype(lk.dtype)
+                and not sort
+            )
         ):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
             # "_values_for_factorize"
             rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
+        elif isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype):
+            import pyarrow as pa
+            import pyarrow.compute as pc
+
+            len_lk = len(lk)
+            lk = lk._pa_array  # type: ignore[attr-defined]
+            rk = rk._pa_array  # type: ignore[union-attr]
+            dc = (
+                pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
+                .combine_chunks()
+                .dictionary_encode()
+            )
+            length = len(dc.dictionary)
+
+            llab, rlab, count = (
+                pc.fill_null(dc.indices[slice(len_lk)], length).to_numpy(),
+                pc.fill_null(dc.indices[slice(len_lk, None)], length).to_numpy(),
+                len(dc.dictionary),
+            )
+            if how == "right":
+                return rlab, llab, count
+            return llab, rlab, count
 
     if needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
         # GH#23917 TODO: Needs tests for non-matching dtypes

@@ -68,9 +68,9 @@ class TestDataFrameIndexing:
 
     def test_getitem2(self, float_frame):
         df = float_frame.copy()
-        df["$10"] = np.random.randn(len(df))
+        df["$10"] = np.random.default_rng(2).standard_normal(len(df))
 
-        ad = np.random.randn(len(df))
+        ad = np.random.default_rng(2).standard_normal(len(df))
         df["@awesome_domain"] = ad
 
         with pytest.raises(KeyError, match=re.escape("'df[\"$10\"]'")):
@@ -224,7 +224,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_boolean_iadd(self):
-        arr = np.random.randn(5, 5)
+        arr = np.random.default_rng(2).standard_normal((5, 5))
 
         df = DataFrame(arr.copy(), columns=["A", "B", "C", "D", "E"])
 
@@ -245,7 +245,9 @@ class TestDataFrameIndexing:
 
     def test_getitem_ix_mixed_integer(self):
         df = DataFrame(
-            np.random.randn(4, 3), index=[1, 10, "C", "E"], columns=[1, 2, 3]
+            np.random.default_rng(2).standard_normal((4, 3)),
+            index=[1, 10, "C", "E"],
+            columns=[1, 2, 3],
         )
 
         result = df.iloc[:-1]
@@ -304,7 +306,7 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(series, float_frame["col6"], check_names=False)
 
         # set ndarray
-        arr = np.random.randn(len(float_frame))
+        arr = np.random.default_rng(2).standard_normal(len(float_frame))
         float_frame["col9"] = arr
         assert (float_frame["col9"] == arr).all()
 
@@ -475,7 +477,7 @@ class TestDataFrameIndexing:
     def test_setitem_corner2(self):
         data = {
             "title": ["foobar", "bar", "foobar"] + ["foobar"] * 17,
-            "cruft": np.random.random(20),
+            "cruft": np.random.default_rng(2).random(20),
         }
 
         df = DataFrame(data)
@@ -528,7 +530,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
-        df = DataFrame(np.random.randn(10, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
         # this is OK
         df.iloc[:8:2]
@@ -536,7 +538,9 @@ class TestDataFrameIndexing:
         assert isna(df.iloc[:8:2]).values.all()
 
     def test_getitem_setitem_integer_slice_keyerrors(self):
-        df = DataFrame(np.random.randn(10, 5), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 5)), index=range(0, 20, 2)
+        )
 
         # this is OK
         cp = df.copy()
@@ -606,13 +610,13 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result2, expected)
 
     def test_ix_multi_take(self):
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, :]
         xp = df.reindex([0])
         tm.assert_frame_equal(rs, xp)
 
         # GH#1321
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
         rs = df.loc[df.index == 0, df.columns == 1]
         xp = df.reindex(index=[0], columns=[1])
         tm.assert_frame_equal(rs, xp)
@@ -638,7 +642,7 @@ class TestDataFrameIndexing:
             f[col]
             for idx in f.index[::5]:
                 i = f.index.get_loc(idx)
-                val = np.random.randn()
+                val = np.random.default_rng(2).standard_normal()
                 expected.iloc[i, j] = val
 
                 ix[idx, col] = val
@@ -712,7 +716,7 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(cp, expected)
 
     def test_getitem_setitem_boolean_multi(self):
-        df = DataFrame(np.random.randn(3, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)))
 
         # get
         k1 = np.array([True, False, True])
@@ -728,7 +732,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.random.randn(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         result = df.loc[1.5:4]
         expected = df.reindex([1.5, 2, 3, 4])
@@ -751,12 +755,14 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
         df.loc[1:2] = 0
-        result = df[1:2]
+        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df[1:2]
         assert (result == 0).all().all()
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
-        df = DataFrame(np.random.randn(5, 5), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
 
         # positional slicing only via iloc!
         msg = (
@@ -815,7 +821,7 @@ class TestDataFrameIndexing:
 
     def test_setitem_single_column_mixed_datetime(self):
         df = DataFrame(
-            np.random.randn(5, 3),
+            np.random.default_rng(2).standard_normal((5, 3)),
             index=["a", "b", "c", "d", "e"],
             columns=["foo", "bar", "baz"],
         )
@@ -831,7 +837,10 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        df.loc["b", "timestamp"] = iNaT
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc["b", "timestamp"] = iNaT
         assert not isna(df.loc["b", "timestamp"])
         assert df["timestamp"].dtype == np.object_
         assert df.loc["b", "timestamp"] == iNaT
@@ -862,7 +871,10 @@ class TestDataFrameIndexing:
         df = DataFrame(0, columns=list("ab"), index=range(6))
         df["b"] = pd.NaT
         df.loc[0, "b"] = datetime(2012, 1, 1)
-        df.loc[1, "b"] = 1
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            df.loc[1, "b"] = 1
         df.loc[[2, 3], "b"] = "x", "y"
         A = np.array(
             [
@@ -945,7 +957,10 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_ix_duplicates(self):
         # #1201
-        df = DataFrame(np.random.randn(5, 3), index=["foo", "foo", "bar", "baz", "bar"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=["foo", "foo", "bar", "baz", "bar"],
+        )
 
         result = df.loc["foo"]
         expected = df[:2]
@@ -961,7 +976,10 @@ class TestDataFrameIndexing:
 
     def test_getitem_ix_boolean_duplicates_multiple(self):
         # #1201
-        df = DataFrame(np.random.randn(5, 3), index=["foo", "foo", "bar", "baz", "bar"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=["foo", "foo", "bar", "baz", "bar"],
+        )
 
         result = df.loc[["bar"]]
         exp = df.iloc[[2, 4]]
@@ -1007,7 +1025,9 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(result, expected)
 
     def test_iloc_row(self):
-        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
+        )
 
         result = df.iloc[1]
         exp = df.loc[2]
@@ -1028,7 +1048,9 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_row_slice_view(self, using_copy_on_write, request):
-        df = DataFrame(np.random.randn(10, 4), index=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), index=range(0, 20, 2)
+        )
         original = df.copy()
 
         # verify slice is view
@@ -1048,7 +1070,9 @@ class TestDataFrameIndexing:
         tm.assert_series_equal(df[2], exp_col)
 
     def test_iloc_col(self):
-        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
+        )
 
         result = df.iloc[:, 1]
         exp = df.loc[:, 2]
@@ -1069,7 +1093,9 @@ class TestDataFrameIndexing:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_col_slice_view(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.randn(4, 10), columns=range(0, 20, 2))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 10)), columns=range(0, 20, 2)
+        )
         original = df.copy()
         subset = df.iloc[:, slice(4, 8)]
 

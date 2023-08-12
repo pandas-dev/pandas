@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 from typing import (
     TYPE_CHECKING,
@@ -10,6 +11,8 @@ from typing import (
 )
 import warnings
 from warnings import catch_warnings
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -25,6 +28,7 @@ from pandas import (
 )
 from pandas.core.shared_docs import _shared_docs
 
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -184,6 +188,12 @@ class PyArrowImpl(BaseImpl):
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
+        if df.attrs:
+            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+            existing_metadata = table.schema.metadata
+            merged_metadata = {**existing_metadata, **df_metadata}
+            table = table.replace_schema_metadata(merged_metadata)
+
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
@@ -228,6 +238,7 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
+        filters=None,
         use_nullable_dtypes: bool = False,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         storage_options: StorageOptions | None = None,
@@ -244,6 +255,8 @@ class PyArrowImpl(BaseImpl):
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
             to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+        elif using_pyarrow_string_dtype():
+            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -257,12 +270,21 @@ class PyArrowImpl(BaseImpl):
         )
         try:
             pa_table = self.api.parquet.read_table(
-                path_or_handle, columns=columns, filesystem=filesystem, **kwargs
+                path_or_handle,
+                columns=columns,
+                filesystem=filesystem,
+                filters=filters,
+                **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)
+
+            if pa_table.schema.metadata:
+                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+                    result.attrs = json.loads(df_metadata)
             return result
         finally:
             if handles is not None:
@@ -335,6 +357,7 @@ class FastParquetImpl(BaseImpl):
         self,
         path,
         columns=None,
+        filters=None,
         storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
@@ -375,7 +398,7 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, **kwargs)
+            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -487,6 +510,7 @@ def read_parquet(
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
+    filters: list[tuple] | list[list[tuple]] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -517,7 +541,6 @@ def read_parquet(
         if you wish to use its implementation.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
     {storage_options}
 
         .. versionadded:: 1.3.0
@@ -547,6 +570,24 @@ def read_parquet(
     filesystem : fsspec or pyarrow filesystem, default None
         Filesystem object to use when reading the parquet file. Only implemented
         for ``engine="pyarrow"``.
+
+        .. versionadded:: 2.1.0
+
+    filters : List[Tuple] or List[List[Tuple]], default None
+        To filter out data.
+        Filter syntax: [[(column, op, val), ...],...]
+        where op is [==, =, >, >=, <, <=, !=, in, not in]
+        The innermost tuples are transposed into a set of filters applied
+        through an `AND` operation.
+        The outer list combines these sets of filters through an `OR`
+        operation.
+        A single list of tuples can also be used, meaning that no `OR`
+        operation between set of filters is to be conducted.
+
+        Using this argument will NOT result in row-wise filtering of the final
+        partitions unless ``engine="pyarrow"`` is also specified.  For
+        other engines, filtering is only performed at the partition level, that is,
+        to prevent the loading of some row-groups and/or files.
 
         .. versionadded:: 2.1.0
 
@@ -632,6 +673,7 @@ def read_parquet(
     return impl.read(
         path,
         columns=columns,
+        filters=filters,
         storage_options=storage_options,
         use_nullable_dtypes=use_nullable_dtypes,
         dtype_backend=dtype_backend,
