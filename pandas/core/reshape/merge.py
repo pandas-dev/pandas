@@ -76,7 +76,6 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
 )
 
-import pandas as pd
 from pandas import (
     ArrowDtype,
     Categorical,
@@ -2408,20 +2407,13 @@ def _factorize_keys(
                 or is_string_dtype(lk.dtype)
                 and not sort
             )
-            or is_string_dtype(lk.dtype)
-            and lk.dtype.storage == "pyarrow"
         ):
             lk, _ = lk._values_for_factorize()
 
             # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
             # "_values_for_factorize"
             rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
-        elif (
-            isinstance(lk.dtype, ArrowDtype)
-            and is_string_dtype(lk.dtype)
-            or isinstance(lk.dtype, pd.StringDtype)
-            and lk.dtype.storage == "pyarrow"
-        ):
+        elif isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype):
             import pyarrow as pa
             import pyarrow.compute as pc
 
