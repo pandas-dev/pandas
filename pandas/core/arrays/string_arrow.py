@@ -149,7 +149,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
             # numerical issues with Float32Dtype
-            na_values = scalars._mask
+            na_values = scalars._mask.to_numpy()
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             return cls(pa.array(result, mask=na_values, type=pa.string()))

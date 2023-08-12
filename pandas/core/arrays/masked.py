@@ -201,13 +201,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
-        mask = self._mask
+        mask = self._mask.to_numpy()
 
         if mask.any():
             func = missing.get_fill_func(method, ndim=self.ndim)
 
             npvalues = self._data.T
-            new_mask = mask.to_numpy().T
+            new_mask = mask.T
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
@@ -696,7 +696,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             elif is_list_like(other) and len(other) == len(mask):
                 mask = mask | isna(other)
         else:
-            mask = self._mask.to_numpy() | mask.to_numpy()
+            mask = self._mask | mask
         # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
         # expected "ndarray[Any, dtype[bool_]]")
         return mask  # type: ignore[return-value]
@@ -802,7 +802,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = None
 
         if isinstance(other, BaseMaskedArray):
-            other, mask = other._data, other._mask
+            other, mask = other._data, other._mask.to_numpy()
 
         elif is_list_like(other):
             other = np.asarray(other)
@@ -869,7 +869,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # e.g. test_numeric_arr_mul_tdscalar_numexpr_path
             from pandas.core.arrays import TimedeltaArray
 
-            result[mask.to_numpy()] = result.dtype.type("NaT")
+            result[mask] = result.dtype.type("NaT")
 
             if not isinstance(result, TimedeltaArray):
                 return TimedeltaArray._simple_new(result, dtype=result.dtype)
@@ -882,7 +882,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return IntegerArray(result, mask, copy=False)
 
         else:
-            result[mask.to_numpy()] = np.nan
+            result[mask] = np.nan
             return result
 
     def isna(self) -> np.ndarray:

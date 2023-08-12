@@ -61,5 +61,5 @@ def test_equals_nan_vs_na():
 
     # with mask[1] = True, the only difference is data[1], which should
     #  not matter for equals
-    mask[1] = True
+    left._mask[1] = True
     assert left.equals(right)

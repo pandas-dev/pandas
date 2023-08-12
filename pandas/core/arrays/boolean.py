@@ -360,7 +360,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
 
         if isinstance(other, BooleanArray):
-            other, mask = other._data, other._mask
+            other, mask = other._data, other._mask.to_numpy()
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
             if other.ndim > 1:
@@ -379,12 +379,16 @@ class BooleanArray(BaseMaskedArray):
             raise ValueError("Lengths must match")
 
         if op.__name__ in {"or_", "ror_"}:
-            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_or(self._data, other, self._mask.to_numpy(), mask)
         elif op.__name__ in {"and_", "rand_"}:
-            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_and(
+                self._data, other, self._mask.to_numpy(), mask
+            )
         else:
             # i.e. xor, rxor
-            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
+            result, mask = ops.kleene_xor(
+                self._data, other, self._mask.to_numpy(), mask
+            )
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
@@ -393,7 +397,7 @@ class BooleanArray(BaseMaskedArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask
+        mask = self._mask.to_numpy()
         if name in ("cummin", "cummax"):
             op = getattr(masked_accumulations, name)
             data, mask = op(data, mask, skipna=skipna, **kwargs)
@@ -401,6 +405,6 @@ class BooleanArray(BaseMaskedArray):
         else:
             from pandas.core.arrays import IntegerArray
 
-            return IntegerArray(data.astype(int), mask)._accumulate(
+            return IntegerArray(data.astype(int), mask.to_numpy())._accumulate(
                 name, skipna=skipna, **kwargs
             )

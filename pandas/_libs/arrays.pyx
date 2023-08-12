@@ -21,11 +21,6 @@ from libc.stdlib cimport (
     malloc,
 )
 
-from pandas._libs.lib import (
-    is_list_like,
-    is_scalar,
-)
-
 
 cdef extern from "pandas/vendored/nanoarrow.h":
     int8_t ArrowBitGet(const uint8_t*, int64_t)
@@ -249,75 +244,34 @@ cdef class BitMaskArray:
         free(self.validity_buffer)
 
     def __setitem__(self, key, value):
-        if is_list_like(key):
-            if is_scalar(value):
-                for index, k in enumerate(key):
-                    if not k:
-                        continue
-                    if value:
-                        ArrowBitSet(self.validity_buffer, index)
-                    else:
-                        ArrowBitClear(self.validity_buffer, index)
+        if isinstance(key, int):
+            if value:
+                ArrowBitSet(self.validity_buffer, key)
             else:
-                if len(key) != len(value):
-                    raise ValueError("Must provide an equal number of elements to mask")
-                for index, (k, v) in enumerate(zip(key, value)):
-                    if not k:
-                        continue
-                    if v:
-                        ArrowBitSet(self.validity_buffer, index)
-                    else:
-                        ArrowBitClear(self.validity_buffer, index)
-        elif isinstance(key, slice):
-            pos = key.start if key.start else 0
-            end = key.stop
-            step = key.step if key.step else 1
-
-            if not end:
-                return
-
-            if step > 0:
-                while pos < end:
-                    if value:
-                        ArrowBitSet(self.validity_buffer, pos)
-                    else:
-                        ArrowBitClear(self.validity_buffer, pos)
-
-                    pos += step
-            elif step < 0:
-                while pos > end:
-                    if value:
-                        ArrowBitSet(self.validity_buffer, pos)
-                    else:
-                        ArrowBitClear(self.validity_buffer, pos)
-
-                    pos += step
+                ArrowBitClear(self.validity_buffer, key)
         else:
-            if is_scalar(value):
-                if value:
-                    ArrowBitSet(self.validity_buffer, key)
+            arr = self.to_numpy()
+            arr[key] = value
+            for index, val in enumerate(arr):
+                if val:
+                    ArrowBitSet(self.validity_buffer, index)
                 else:
-                    ArrowBitClear(self.validity_buffer, key)
-            else:
-                for val in value:
-                    if val:
-                        ArrowBitSet(self.validity_buffer, key)
-                    else:
-                        ArrowBitClear(self.validity_buffer, key)
+                    ArrowBitClear(self.validity_buffer, index)
 
     def __getitem__(self, key):
-        if is_list_like(key):
-            return np.array([bool(ArrowBitGet(self.validity_buffer, k)) for k in key])
-        elif isinstance(key, slice):
+        if isinstance(key, int):
+            return bool(ArrowBitGet(self.validity_buffer, key))
+        else:
             return self.to_numpy()[key]
-
-        return bool(ArrowBitGet(self.validity_buffer, key))
 
     def __invert__(self):
         return ~self.to_numpy()
 
     def __or__(self, other):
-        return self.to_numpy().__or__(other)
+        if isinstance(other, type(self)):
+            return self.to_numpy() | other.to_numpy()
+        else:
+            return self.to_numpy() | other
 
     def __reduce__(self):
         object_state = (self.to_numpy(),)
