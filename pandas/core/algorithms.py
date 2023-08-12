@@ -998,7 +998,7 @@ def duplicated(
     """
     if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
         values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+        return htable.duplicated(values._data, keep=keep, mask=values._mask.to_numpy())
 
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)

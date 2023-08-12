@@ -237,7 +237,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
                 npvalues = self._data.T
-                new_mask = mask.to_numpy().T
+                new_mask = mask.T
                 if copy:
                     npvalues = npvalues.copy()
                     new_mask = new_mask.copy()
@@ -623,7 +623,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         inputs2 = []
         for x in inputs:
             if isinstance(x, BaseMaskedArray):
-                mask |= x._mask
+                mask |= x._mask.to_numpy()
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)
@@ -1095,7 +1095,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # GH#44382 if e.g. self[1] is np.nan and other[1] is pd.NA, we are NOT
         #  equal.
-        if not np.array_equal(self._mask.to_numpy(), other._mask):
+        if not np.array_equal(self._mask.to_numpy(), other._mask.to_numpy()):
             return False
 
         left = self._data[~self._mask.to_numpy()]
@@ -1221,7 +1221,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.sum(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1242,7 +1242,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.prod(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1255,7 +1255,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_mean((), kwargs)
         result = masked_reductions.mean(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             axis=axis,
         )
@@ -1267,7 +1267,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
         result = masked_reductions.var(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1280,7 +1280,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="std")
         result = masked_reductions.std(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1291,7 +1291,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             axis=axis,
         )
@@ -1301,7 +1301,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             self._data,
-            self._mask,
+            self._mask.to_numpy(),
             skipna=skipna,
             axis=axis,
         )
@@ -1378,7 +1378,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # _NestedSequence[_SupportsArray[dtype[Any]]],
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
+        np.putmask(
+            values, self._mask.to_numpy(), self._falsey_value
+        )  # type: ignore[arg-type]
         result = values.any()
         if skipna:
             return result
@@ -1459,7 +1461,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # _NestedSequence[_SupportsArray[dtype[Any]]],
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
+        np.putmask(
+            values, self._mask.to_numpy(), self._truthy_value
+        )  # type: ignore[arg-type]
         result = values.all(axis=axis)
 
         if skipna:
@@ -1474,7 +1478,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask
+        mask = self._mask.to_numpy()
 
         op = getattr(masked_accumulations, name)
         data, mask = op(data, mask, skipna=skipna, **kwargs)
@@ -1500,7 +1504,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
-        mask = self._mask
+        mask = self._mask.to_numpy()
         if op.kind != "aggregate":
             result_mask = mask.copy()
         else:
@@ -1537,7 +1541,7 @@ def transpose_homogeneous_masked_arrays(
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
     transposed_values = np.concatenate(values, axis=0)
 
-    masks = [arr._mask.reshape(1, -1) for arr in masked_arrays]
+    masks = [arr._mask.to_numpy().reshape(1, -1) for arr in masked_arrays]
     transposed_masks = np.concatenate(masks, axis=0)
 
     dtype = masked_arrays[0].dtype

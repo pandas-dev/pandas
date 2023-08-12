@@ -168,7 +168,7 @@ def coerce_to_array(
     if isinstance(values, BooleanArray):
         if mask is not None:
             raise ValueError("cannot pass mask for BooleanArray input")
-        values, mask = values._data, values._mask
+        values, mask = values._data, values._mask.to_numpy()
         if copy:
             values = values.copy()
             mask = mask.copy()

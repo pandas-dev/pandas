@@ -1182,7 +1182,7 @@ cdef class MaskedIndexEngine(IndexEngine):
 
     def _get_mask(self, object values) -> np.ndarray:
         if hasattr(values, "_mask"):
-            return values._mask
+            return values._mask.to_numpy()
         # We are an ArrowExtensionArray
         return values.isna()
 

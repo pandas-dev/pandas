@@ -2449,8 +2449,8 @@ def _factorize_keys(
 
     if isinstance(lk, BaseMaskedArray):
         assert isinstance(rk, BaseMaskedArray)
-        llab = rizer.factorize(lk._data, mask=lk._mask)
-        rlab = rizer.factorize(rk._data, mask=rk._mask)
+        llab = rizer.factorize(lk._data, mask=lk._mask.to_numpy())
+        rlab = rizer.factorize(rk._data, mask=rk._mask.to_numpy())
     elif isinstance(lk, ArrowExtensionArray):
         assert isinstance(rk, ArrowExtensionArray)
         # we can only get here with numeric dtypes

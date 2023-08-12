@@ -21,7 +21,10 @@ from libc.stdlib cimport (
     malloc,
 )
 
-from pandas._libs.lib import is_list_like
+from pandas._libs.lib import (
+    is_list_like,
+    is_scalar,
+)
 
 
 cdef extern from "pandas/vendored/nanoarrow.h":
@@ -209,34 +212,105 @@ cdef class NDArrayBacked:
         return to_concat[0]._from_backing_data(new_arr)
 
 
-cdef class BitMaskArray:
-    cdef array_len
-    cdef uint8_t* validity_buffer
+def _unpickle_bitmaskarray(array):
+    bma = BitMaskArray(array)
+    return bma
 
-    def __cinit__(self, np_array):
-        self.array_len = len(np_array)
-        nbytes = len(np_array) // 8 + 1
-        self.validity_buffer = <uint8_t *>malloc(nbytes)
-        for index, value in enumerate(np_array):
-            self[index] = value
+
+cdef class BitMaskArray:
+    cdef uint8_t* validity_buffer
+    cdef public:
+        int array_len
+        int nbytes
+
+    def __cinit__(self, data):
+        if isinstance(data, np.ndarray):
+            self.array_len = len(data)
+            self.nbytes = len(data) // 8 + 1
+            self.validity_buffer = <uint8_t *>malloc(self.nbytes)
+            for index, value in enumerate(data):
+                self[index] = value
+        elif isinstance(data, type(self)):
+            self.array_len = data.array_len
+            self.nbytes = data.nbytes
+            self.validity_buffer = <uint8_t *>malloc(self.nbytes)
+
+            # TODO: tried making validity_buffer public with memcpy but got
+            # Cannot convert Python object to 'const void *' error
+            for i in range(self.nbytes):
+                if data[i]:
+                    ArrowBitSet(self.validity_buffer, i)
+                else:
+                    ArrowBitClear(self.validity_buffer, i)
+        else:
+            raise TypeError("Unsupported argument to BitMaskArray constructor")
 
     def __dealloc__(self):
         free(self.validity_buffer)
 
     def __setitem__(self, key, value):
         if is_list_like(key):
-            for k in key:
-                if value:
-                    ArrowBitSet(self.validity_buffer, k)
-                else:
-                    ArrowBitClear(self.validity_buffer, k)
-        else:
-            if value:
-                ArrowBitSet(self.validity_buffer, key)
+            if is_scalar(value):
+                for index, k in enumerate(key):
+                    if not k:
+                        continue
+                    if value:
+                        ArrowBitSet(self.validity_buffer, index)
+                    else:
+                        ArrowBitClear(self.validity_buffer, index)
             else:
-                ArrowBitClear(self.validity_buffer, key)
+                if len(key) != len(value):
+                    raise ValueError("Must provide an equal number of elements to mask")
+                for index, (k, v) in enumerate(zip(key, value)):
+                    if not k:
+                        continue
+                    if v:
+                        ArrowBitSet(self.validity_buffer, index)
+                    else:
+                        ArrowBitClear(self.validity_buffer, index)
+        elif isinstance(key, slice):
+            pos = key.start if key.start else 0
+            end = key.stop
+            step = key.step if key.step else 1
+
+            if not end:
+                return
+
+            if step > 0:
+                while pos < end:
+                    if value:
+                        ArrowBitSet(self.validity_buffer, pos)
+                    else:
+                        ArrowBitClear(self.validity_buffer, pos)
+
+                    pos += step
+            elif step < 0:
+                while pos > end:
+                    if value:
+                        ArrowBitSet(self.validity_buffer, pos)
+                    else:
+                        ArrowBitClear(self.validity_buffer, pos)
+
+                    pos += step
+        else:
+            if is_scalar(value):
+                if value:
+                    ArrowBitSet(self.validity_buffer, key)
+                else:
+                    ArrowBitClear(self.validity_buffer, key)
+            else:
+                for val in value:
+                    if val:
+                        ArrowBitSet(self.validity_buffer, key)
+                    else:
+                        ArrowBitClear(self.validity_buffer, key)
 
     def __getitem__(self, key):
+        if is_list_like(key):
+            return np.array([bool(ArrowBitGet(self.validity_buffer, k)) for k in key])
+        elif isinstance(key, slice):
+            return self.to_numpy()[key]
+
         return bool(ArrowBitGet(self.validity_buffer, key))
 
     def __invert__(self):
@@ -244,6 +318,10 @@ cdef class BitMaskArray:
 
     def __or__(self, other):
         return self.to_numpy().__or__(other)
+
+    def __reduce__(self):
+        object_state = (self.to_numpy(),)
+        return (_unpickle_bitmaskarray, object_state)
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result
