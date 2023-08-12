@@ -1843,6 +1843,7 @@ with optional parameters:
 * ``default_handler`` : The handler to call if an object cannot otherwise be converted to a suitable format for JSON. Takes a single argument, which is the object to convert, and returns a serializable object.
 * ``lines`` : If ``records`` orient, then will write each record per line as json.
 * ``mode`` : string, writer mode when writing to path. 'w' for write, 'a' for append. Default 'w'
+* ``serializer_function`` : Custom function used to serialize json data.
 
 Note ``NaN``'s, ``NaT``'s and ``None`` will be converted to ``null`` and ``datetime`` objects will be converted based on the ``date_format`` and ``date_unit`` parameters.
 
@@ -1995,6 +1996,17 @@ can be dealt with by specifying a simple ``default_handler``:
    pd.DataFrame([1.0, 2.0, complex(1.0, 2.0)]).to_json(default_handler=str)
 
 .. _io.json_reader:
+
+When writing JSON, a custom serializer can be used via the ``serializer_function`` parameter.
+
+.. ipython:: python
+
+    import json
+    df = pd.DataFrame({"A":1, "B":2, "C":3}, {"A":1, "B":2, "C":3})
+    df.to_json("test.json", serializer_function=json.dumps)
+
+    with open("test.json") as fh:
+        print(fh.read())
 
 Reading JSON
 ''''''''''''

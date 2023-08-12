@@ -2374,6 +2374,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent: int | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
+        serializer_function: Callable[[Any], JSONSerializable] | None = None,
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2456,6 +2457,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specify the IO mode for output when supplying a path_or_buf.
             Accepted args are 'w' (writing) and 'a' (append) only.
             mode='a' is only supported when lines is True and orient is 'records'.
+
+        serializer_function : callable, default None
+            Custom function used to serialize json data.
+
+            .. versionadded:: 2.1.0
 
         Returns
         -------
@@ -2641,6 +2647,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indent=indent,
             storage_options=storage_options,
             mode=mode,
+            serializer_function=serializer_function,
         )
 
     @final
