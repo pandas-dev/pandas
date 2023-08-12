@@ -549,6 +549,18 @@ class Grouping:
         self._dropna = dropna
         self._uniques = uniques
 
+        if in_axis and sort and dropna and isinstance(index, MultiIndex):
+            try:
+                lev = index._get_level_number(level)
+            except (ValueError, IndexError, KeyError):
+                pass
+            else:
+                level = index.levels[lev]
+                from pandas import RangeIndex
+
+                if level.is_monotonic_increasing and not isinstance(level, RangeIndex):
+                    self._cache = {"_codes_and_uniques": (index.codes[lev], level)}
+
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
