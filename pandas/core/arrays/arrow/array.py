@@ -1271,7 +1271,7 @@ class ArrowExtensionArray(
         """
         pa_type = self._pa_array.type
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = self._pa_array.cast(pa.int64())
         else:
@@ -1302,7 +1302,7 @@ class ArrowExtensionArray(
         Series.value_counts
         """
         pa_type = self._pa_array.type
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = self._pa_array.cast(pa.int64())
         else:
