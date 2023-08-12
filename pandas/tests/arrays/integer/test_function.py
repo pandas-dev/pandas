@@ -26,7 +26,7 @@ def test_ufuncs_single_float(ufunc):
     a = pd.array([1, 2, -3, np.nan])
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask.to_numpy())
+        expected = FloatingArray(ufunc(a.astype(float)), mask=a._mask)
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)

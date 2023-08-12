@@ -163,7 +163,7 @@ def test_astype_copy():
     result = arr.astype("Int64", copy=False)
     assert result is arr
     assert np.shares_memory(result._data, arr._data)
-    # assert np.shares_memory(result._mask, arr._mask)
+    assert np.shares_memory(result._mask, arr._mask)
     result[0] = 10
     assert arr[0] == 10
     result[0] = pd.NA

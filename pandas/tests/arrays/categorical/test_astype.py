@@ -146,7 +146,6 @@ class TestAstype:
         expected = np.array([Timestamp("2014-01-01 00:00:00")], dtype="object")
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.skip("not applicable with bitmask")
     def test_astype_category_readonly_mask_values(self):
         # GH#53658
         arr = array([0, 1, 2], dtype="Int64")

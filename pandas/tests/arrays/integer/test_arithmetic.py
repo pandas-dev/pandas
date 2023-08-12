@@ -248,7 +248,7 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
     if all_arithmetic_operators == "__rmod__":
         mask = (s == 0).fillna(False).to_numpy(bool)
-        expected.array._mask[mask.to_numpy()] = False
+        expected.array._mask[mask] = False
 
     tm.assert_series_equal(result, expected)
 
