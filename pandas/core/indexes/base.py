@@ -594,24 +594,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
 
         if isinstance(dtype, ExtensionDtype):
-            if isinstance(dtype, DatetimeTZDtype):
-                from pandas import DatetimeIndex
-
-                return DatetimeIndex
-            elif isinstance(dtype, CategoricalDtype):
-                from pandas import CategoricalIndex
-
-                return CategoricalIndex
-            elif isinstance(dtype, IntervalDtype):
-                from pandas import IntervalIndex
-
-                return IntervalIndex
-            elif isinstance(dtype, PeriodDtype):
-                from pandas import PeriodIndex
-
-                return PeriodIndex
-
-            return Index
+            return dtype.index_class
 
         if dtype.kind == "M":
             from pandas import DatetimeIndex
