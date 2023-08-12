@@ -4354,7 +4354,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def blk_func(values: ArrayLike) -> ArrayLike:
             orig_vals = values
             if isinstance(values, BaseMaskedArray):
-                mask = values._mask
+                mask = values._mask.to_numpy()
                 result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
             else:
                 mask = isna(values)
