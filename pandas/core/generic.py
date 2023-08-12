@@ -2375,6 +2375,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
         serializer_function: Callable[[Any], JSONSerializable] | None = None,
+        engine_kwargs: dict | None = None,
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2460,6 +2461,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         serializer_function : callable, default None
             Custom function used to serialize json data.
+
+            .. versionadded:: 2.1.0
+
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
 
             .. versionadded:: 2.1.0
 
@@ -2624,6 +2630,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.io import json
 
+        if engine_kwargs is None:
+            engine_kwargs = {}
+
         if date_format is None and orient == "table":
             date_format = "iso"
         elif date_format is None:
@@ -2648,6 +2657,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             storage_options=storage_options,
             mode=mode,
             serializer_function=serializer_function,
+            engine_kwargs=engine_kwargs,
         )
 
     @final

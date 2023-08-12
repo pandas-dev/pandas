@@ -2001,9 +2001,10 @@ When writing JSON, a custom serializer can be used via the ``serializer_function
 
 .. ipython:: python
 
-    import json
+    import json as js
     df = pd.DataFrame({"A":1, "B":2, "C":3}, {"A":1, "B":2, "C":3})
-    df.to_json("test.json", serializer_function=json.dumps)
+    engine_kwargs = {"obj": df.to_dict()}
+    df.to_json("test.json", serializer_function=js.dumps, engine_kwargs=engine_kwargs)
 
     with open("test.json") as fh:
         print(fh.read())

@@ -148,7 +148,14 @@ def to_json(
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
     serializer_function: Callable[[Any], JSONSerializable] | None = None,
+    engine_kwargs: dict | None = None,
 ) -> str | None:
+    if serializer_function or engine_kwargs:
+        if None in (serializer_function, engine_kwargs):
+            raise ValueError(
+                "`engine_kwargs and `serializer_function` must be used together."
+            )
+
     if orient in ["records", "values"] and index is True:
         raise ValueError(
             "'index=True' is only valid when 'orient' is 'split', 'table', "
@@ -193,9 +200,6 @@ def to_json(
     else:
         raise NotImplementedError("'obj' should be a Series or a DataFrame")
 
-    if serializer_function is None:
-        serializer_function = ujson_dumps
-
     s = writer(
         obj,
         orient=orient,
@@ -206,8 +210,7 @@ def to_json(
         default_handler=default_handler,
         index=index,
         indent=indent,
-        serializer_function=serializer_function,
-    ).write()
+    ).write(serializer_function, engine_kwargs)
 
     if lines:
         s = convert_to_line_delimits(s)
@@ -237,7 +240,6 @@ class Writer(ABC):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-        serializer_function: Callable[[Any], JSONSerializable] | None = None,
     ) -> None:
         self.obj = obj
 
@@ -252,7 +254,6 @@ class Writer(ABC):
         self.default_handler = default_handler
         self.index = index
         self.indent = indent
-        self.serializer_function = serializer_function
 
         self.is_copy = None
         self._format_axes()
@@ -260,9 +261,13 @@ class Writer(ABC):
     def _format_axes(self):
         raise AbstractMethodError(self)
 
-    def write(self) -> str:
+    def write(self, serializer_function, engine_kwargs) -> str:
         iso_dates = self.date_format == "iso"
-        return self.serializer_function(
+
+        if serializer_function and engine_kwargs:
+            return serializer_function(**engine_kwargs)
+
+        return ujson_dumps(
             self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
@@ -338,7 +343,6 @@ class JSONTableWriter(FrameWriter):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
-        serializer_function: Callable[[Any], JSONSerializable] | None = None,
     ) -> None:
         """
         Adds a `schema` attribute with the Table Schema, resets
@@ -356,7 +360,6 @@ class JSONTableWriter(FrameWriter):
             index,
             default_handler=default_handler,
             indent=indent,
-            serializer_function=serializer_function,
         )
 
         if date_format != "iso":
