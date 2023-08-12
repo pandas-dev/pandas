@@ -33,8 +33,8 @@ from pandas.core.arrays import (
     "contents", [[{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}]]
 )
 def test_custom_serializer(contents):
-    import json
-
+    # GH 54516
+    msg = "`engine_kwargs and `serializer_function` must be used together."
     df_init = DataFrame(contents)
     df_dict = df_init.to_dict()
     engine_kwargs = {"obj": df_dict}
@@ -44,6 +44,22 @@ def test_custom_serializer(contents):
 
     df_new = read_json("test.json")
     tm.assert_frame_equal(df_init, df_new)
+
+    try:
+        df_init.to_json(
+            "test.json",
+            serializer_function=json.dumps,
+        )
+    except ValueError as e:
+        assert str(e) == msg
+
+    try:
+        df_init.to_json(
+            "test.json",
+            engine_kwargs=engine_kwargs,
+        )
+    except ValueError as e:
+        assert str(e) == msg
 
 
 def test_literal_json_deprecation():
