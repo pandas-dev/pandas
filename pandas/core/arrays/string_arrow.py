@@ -115,9 +115,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
-    _result_converter = lambda _, result, **kwargs: BooleanDtype().__from_arrow__(
-        result
-    )
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
@@ -186,6 +183,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not isinstance(item, str) and item is not libmissing.NA:
             raise TypeError("Scalar must be NA or str")
         return super().insert(loc, item)
+
+    @staticmethod
+    def _result_converter(values, **kwargs):
+        return BooleanDtype().__from_arrow__(values)
 
     def _maybe_convert_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
