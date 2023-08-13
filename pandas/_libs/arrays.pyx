@@ -247,7 +247,7 @@ cdef class BitMaskArray:
         free(self.validity_buffer)
 
     def __setitem__(self, key, value):
-        if isinstance(key, int):
+        if isinstance(key, int) and key >= 0:
             if value:
                 ArrowBitSet(self.validity_buffer, key)
             else:
@@ -262,7 +262,7 @@ cdef class BitMaskArray:
                     ArrowBitClear(self.validity_buffer, index)
 
     def __getitem__(self, key):
-        if isinstance(key, int):
+        if isinstance(key, int) and key >= 0:
             return bool(ArrowBitGet(self.validity_buffer, key))
         else:
             return self.to_numpy()[key]
