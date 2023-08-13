@@ -193,13 +193,13 @@ cdef class IntervalTree(IntervalMixin):
 cdef take(ndarray source, ndarray indices):
     """Take the given positions from a 1D ndarray
     """
-    return PyArray_Take(source, indices, np.int64(0))
+    return PyArray_Take(source, indices, 0)
 
 
 cdef sort_values_and_indices(all_values, all_indices, subset):
     indices = take(all_indices, subset)
     values = take(all_values, subset)
-    sorter = PyArray_ArgSort(values, np.int64(0), NPY_QUICKSORT)
+    sorter = PyArray_ArgSort(values, 0, NPY_QUICKSORT)
     sorted_values = take(values, sorter)
     sorted_indices = take(indices, sorter)
     return sorted_values, sorted_indices
