@@ -2000,27 +2000,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
-    def _str_slice(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ):
-        if start is None:
-            start = 0
-        if step is None:
-            step = 1
-        return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
-        )
-
-    def _str_partition(self, sep: str, expand: bool):
-        predicate = lambda val: val.partition(sep)
-        result = self._apply_elementwise(predicate)
-        return type(self)(pa.chunked_array(result))
-
-    def _str_rpartition(self, sep: str, expand: bool):
-        predicate = lambda val: val.rpartition(sep)
-        result = self._apply_elementwise(predicate)
-        return type(self)(pa.chunked_array(result))
-
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
     ):
@@ -2112,6 +2091,27 @@ class ArrowExtensionArray(
         else:
             result = self._pa_array
         return type(self)(pc.binary_join(result, sep))
+
+    def _str_partition(self, sep: str, expand: bool):
+        predicate = lambda val: val.partition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
+
+    def _str_rpartition(self, sep: str, expand: bool):
+        predicate = lambda val: val.rpartition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_isalnum(self):
         return type(self)(pc.utf8_is_alnum(self._pa_array))
