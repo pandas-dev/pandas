@@ -25,6 +25,8 @@ from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
 from pandas.tests.extension import base
 
+arrow_string_storage = ("pyarrow",)
+
 
 def split_array(arr):
     if arr.dtype.storage != "pyarrow":
@@ -104,7 +106,7 @@ class TestDtype(base.BaseDtypeTests):
 
 class TestInterface(base.BaseInterfaceTests):
     def test_view(self, data, request):
-        if data.dtype.storage == "pyarrow":
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -117,7 +119,7 @@ class TestConstructors(base.BaseConstructorsTests):
 
 class TestReshaping(base.BaseReshapingTests):
     def test_transpose(self, data, request):
-        if data.dtype.storage == "pyarrow":
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
@@ -128,7 +130,7 @@ class TestGetitem(base.BaseGetitemTests):
 
 class TestSetitem(base.BaseSetitemTests):
     def test_setitem_preserves_views(self, data, request):
-        if data.dtype.storage == "pyarrow":
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
