@@ -1,7 +1,7 @@
 .. _whatsnew_220:
 
 What's new in 2.2.0 (Month XX, 2024)
---------------------------------------
+------------------------------------
 
 These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
 including other versions of pandas.
