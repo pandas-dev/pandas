@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
   pull_request:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
     types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
