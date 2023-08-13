@@ -100,7 +100,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement :class:`DataFrameGroupBy` and :class:`SeriesGroupby` when grouping on index levels of a :class:`MultiIndex` (:issue:`??`)
+- Performance improvement :class:`DataFrameGroupBy` and :class:`SeriesGroupby` when grouping on index levels of a :class:`MultiIndex` (:issue:`54529`)
 -
 
 .. ---------------------------------------------------------------------------
