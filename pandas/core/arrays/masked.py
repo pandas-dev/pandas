@@ -329,7 +329,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # GH#52840
             if self._data.dtype.kind == "f" and lib.is_float(key):
                 # TODO: implement low level invert operator on BitMaskArray
-                return bool((np.isnan(self._data) & ~self._mask.to_numpy()).any())
+                return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
 
@@ -789,7 +789,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if op_name == "pow":
             # 1 ** x is 1.
-            mask = np.where((self._data == 1) & ~self._mask.to_numpy(), False, mask)
+            mask = np.where((self._data == 1) & ~self._mask, False, mask)
             # x ** 0 is 1.
             if omask is not None:
                 mask = np.where((other == 0) & ~omask, False, mask)
@@ -803,7 +803,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             elif other is not libmissing.NA:
                 mask = np.where(other == 1, False, mask)
             # x ** 0 is 1.
-            mask = np.where((self._data == 0) & ~self._mask.to_numpy(), False, mask)
+            mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
         return self._maybe_mask_result(result, mask)
 
@@ -1111,8 +1111,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if not np.array_equal(self._mask.to_numpy(), other._mask.to_numpy()):
             return False
 
-        left = self._data[~self._mask.to_numpy()]
-        right = other._data[~other._mask.to_numpy()]
+        left = self._data[~self._mask]
+        right = other._data[~other._mask]
         return array_equivalent(left, right, strict_nan=True, dtype_equal=True)
 
     def _quantile(
