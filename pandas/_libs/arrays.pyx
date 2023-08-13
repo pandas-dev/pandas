@@ -215,18 +215,21 @@ def _unpickle_bitmaskarray(array):
 cdef class BitMaskArray:
     cdef uint8_t* validity_buffer
     cdef public:
-        int array_len
+        int array_size
         int nbytes
+        object array_shape
 
     def __cinit__(self, data):
         if isinstance(data, np.ndarray):
-            self.array_len = len(data)
-            self.nbytes = len(data) // 8 + 1
+            self.array_size = data.size
+            self.array_shape = data.shape
+            self.nbytes = self.array_size // 8 + 1
             self.validity_buffer = <uint8_t *>malloc(self.nbytes)
-            for index, value in enumerate(data):
+            for index, value in enumerate(data.flatten()):
                 self[index] = value
         elif isinstance(data, type(self)):
-            self.array_len = data.array_len
+            self.array_size = data.array_size
+            self.array_shape = data.shape
             self.nbytes = data.nbytes
             self.validity_buffer = <uint8_t *>malloc(self.nbytes)
 
@@ -252,7 +255,7 @@ cdef class BitMaskArray:
         else:
             arr = self.to_numpy()
             arr[key] = value
-            for index, val in enumerate(arr):
+            for index, val in enumerate(arr.flatten()):
                 if val:
                     ArrowBitSet(self.validity_buffer, index)
                 else:
@@ -279,8 +282,8 @@ cdef class BitMaskArray:
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result
-        result = np.empty(self.array_len, dtype=bool)
-        for i in range(self.array_len):
+        result = np.empty(self.array_size, dtype=bool)
+        for i in range(self.array_size):
             result[i] = self[i]
 
-        return result
+        return result.reshape(self.array_shape)
