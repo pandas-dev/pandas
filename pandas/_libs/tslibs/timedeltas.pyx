@@ -909,7 +909,7 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c == ".":
                 # append any seconds
                 if len(number):
-                    r = timedelta_from_spec(number, "0", "S")
+                    r = timedelta_from_spec(number, "0", "s")
                     result += timedelta_as_neg(r, neg)
                     unit, number = [], []
                 have_dot = 1
@@ -926,7 +926,7 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                     r = timedelta_from_spec(number, "0", dec_unit)
                     result += timedelta_as_neg(r, neg)
                 else:  # seconds
-                    r = timedelta_from_spec(number, "0", "S")
+                    r = timedelta_from_spec(number, "0", "s")
                     result += timedelta_as_neg(r, neg)
             else:
                 raise ValueError(err_msg)
