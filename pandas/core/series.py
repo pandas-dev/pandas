@@ -2163,7 +2163,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.count()
         2
         """
-        return int(notna(self._values).sum())
+        return notna(self._values).sum().astype("int64")
 
     def mode(self, dropna: bool = True) -> Series:
         """
