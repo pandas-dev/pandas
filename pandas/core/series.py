@@ -2150,7 +2150,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        int or Series (if level specified)
+        int
             Number of non-null values in the Series.
 
         See Also
@@ -2163,7 +2163,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.count()
         2
         """
-        return notna(self._values).sum().astype("int64")
+        return int(notna(self._values).sum())
 
     def mode(self, dropna: bool = True) -> Series:
         """
