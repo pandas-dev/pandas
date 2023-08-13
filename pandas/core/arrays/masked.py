@@ -322,6 +322,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         self._data[key] = value
+        if isinstance(mask, BitMaskArray):
+            mask = mask.to_numpy()
+
         self._mask[key] = mask
 
     def __contains__(self, key) -> bool:
