@@ -42,6 +42,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.arraylike import OpsMixin
+from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
@@ -184,7 +185,10 @@ def to_pyarrow_type(
 
 
 class ArrowExtensionArray(
-    OpsMixin, ExtensionArraySupportsAnyAll, BaseStringArrayMethods
+    OpsMixin,
+    ExtensionArraySupportsAnyAll,
+    ArrowStringArrayMixin,
+    BaseStringArrayMethods,
 ):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
@@ -1987,24 +1991,6 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
 
-    def _str_pad(
-        self,
-        width: int,
-        side: Literal["left", "right", "both"] = "left",
-        fillchar: str = " ",
-    ):
-        if side == "left":
-            pa_pad = pc.utf8_lpad
-        elif side == "right":
-            pa_pad = pc.utf8_rpad
-        elif side == "both":
-            pa_pad = pc.utf8_center
-        else:
-            raise ValueError(
-                f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
-            )
-        return type(self)(pa_pad(self._pa_array, width=width, padding=fillchar))
-
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
     ):
@@ -2089,26 +2075,6 @@ class ArrowExtensionArray(
             )
         return type(self)(result)
 
-    def _str_get(self, i: int):
-        lengths = pc.utf8_length(self._pa_array)
-        if i >= 0:
-            out_of_bounds = pc.greater_equal(i, lengths)
-            start = i
-            stop = i + 1
-            step = 1
-        else:
-            out_of_bounds = pc.greater(-i, lengths)
-            start = i
-            stop = i - 1
-            step = -1
-        not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True))
-        selected = pc.utf8_slice_codeunits(
-            self._pa_array, start=start, stop=stop, step=step
-        )
-        null_value = pa.scalar(None, type=self._pa_array.type)
-        result = pc.if_else(not_out_of_bounds, selected, null_value)
-        return type(self)(result)
-
     def _str_join(self, sep: str):
         if pa.types.is_string(self._pa_array.type):
             result = self._apply_elementwise(list)
@@ -2138,15 +2104,6 @@ class ArrowExtensionArray(
             pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
         )
 
-    def _str_slice_replace(
-        self, start: int | None = None, stop: int | None = None, repl: str | None = None
-    ):
-        if repl is None:
-            repl = ""
-        if start is None:
-            start = 0
-        return type(self)(pc.utf8_replace_slice(self._pa_array, start, stop, repl))
-
     def _str_isalnum(self):
         return type(self)(pc.utf8_is_alnum(self._pa_array))
 
@@ -2171,17 +2128,8 @@ class ArrowExtensionArray(
     def _str_istitle(self):
         return type(self)(pc.utf8_is_title(self._pa_array))
 
-    def _str_capitalize(self):
-        return type(self)(pc.utf8_capitalize(self._pa_array))
-
-    def _str_title(self):
-        return type(self)(pc.utf8_title(self._pa_array))
-
     def _str_isupper(self):
         return type(self)(pc.utf8_is_upper(self._pa_array))
-
-    def _str_swapcase(self):
-        return type(self)(pc.utf8_swapcase(self._pa_array))
 
     def _str_len(self):
         return type(self)(pc.utf8_length(self._pa_array))
@@ -2222,12 +2170,6 @@ class ArrowExtensionArray(
         predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
-
-    def _str_removesuffix(self, suffix: str):
-        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
-        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
-        result = pc.if_else(ends_with, removed, self._pa_array)
-        return type(self)(result)
 
     def _str_casefold(self):
         predicate = lambda val: val.casefold()
