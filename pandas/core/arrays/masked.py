@@ -120,7 +120,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _falsey_value = Scalar  # bool(_falsey_value) = False
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
+    def _simple_new(
+        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitMaskArray
+    ) -> Self:
         result = BaseMaskedArray.__new__(cls)
         result._data = values
         result._mask = BitMaskArray(mask)
@@ -190,6 +192,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if newmask:
                 return self.dtype.na_value
             return self._data[item]
+
+        # sending self._mask avoids copy of buffer
+        if np.array_equal(newmask, self._mask.to_numpy()):
+            return self._simple_new(self._data[item], self._mask)
 
         return self._simple_new(self._data[item], newmask)
 

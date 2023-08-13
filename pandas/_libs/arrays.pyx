@@ -213,13 +213,15 @@ def _unpickle_bitmaskarray(array):
 
 
 cdef class BitMaskArray:
-    cdef uint8_t* validity_buffer
     cdef public:
         int array_size
         int nbytes
         object array_shape
+        object parent
+        uint8_t* validity_buffer
 
     def __cinit__(self, data):
+        self.parent = None
         if isinstance(data, np.ndarray):
             self.array_size = data.size
             self.array_shape = data.shape
@@ -228,26 +230,19 @@ cdef class BitMaskArray:
             for index, value in enumerate(data.flatten()):
                 self[index] = value
         elif isinstance(data, type(self)):
-            self.array_size = data.array_size
-            self.array_shape = data.shape
-            self.nbytes = data.nbytes
-            self.validity_buffer = <uint8_t *>malloc(self.nbytes)
-
-            # TODO: tried making validity_buffer public with memcpy but got
-            # Cannot convert Python object to 'const void *' error
-            for i in range(self.nbytes):
-                if data[i]:
-                    ArrowBitSet(self.validity_buffer, i)
-                else:
-                    ArrowBitClear(self.validity_buffer, i)
+            self.parent = data
+            # other attributes are undefined when a parent exists
         else:
             raise TypeError("Unsupported argument to BitMaskArray constructor")
 
     def __dealloc__(self):
-        free(self.validity_buffer)
+        if not self.parent:
+            free(self.validity_buffer)
 
     def __setitem__(self, key, value):
-        if isinstance(key, int) and key >= 0:
+        if self.parent is not None:
+            self.parent.__setitem__(key, value)
+        elif isinstance(key, int) and key >= 0:
             if value:
                 ArrowBitSet(self.validity_buffer, key)
             else:
@@ -262,16 +257,22 @@ cdef class BitMaskArray:
                     ArrowBitClear(self.validity_buffer, index)
 
     def __getitem__(self, key):
-        if isinstance(key, int) and key >= 0:
+        if self.parent is not None:
+            return self.parent.__getitem__(key)
+        elif isinstance(key, int) and key >= 0:
             return bool(ArrowBitGet(self.validity_buffer, key))
         else:
             return self.to_numpy()[key]
 
     def __invert__(self):
+        if self.parent is not None:
+            return ~self.parent
         return ~self.to_numpy()
 
     def __or__(self, other):
-        if isinstance(other, type(self)):
+        if self.parent is not None:
+            return self.parent.__or__(other)
+        elif isinstance(other, type(self)):
             return self.to_numpy() | other.to_numpy()
         else:
             return self.to_numpy() | other
@@ -281,6 +282,8 @@ cdef class BitMaskArray:
         return (_unpickle_bitmaskarray, object_state)
 
     def to_numpy(self) -> ndarray:
+        if self.parent is not None:
+            return self.parent.to_numpy()
         cdef ndarray[uint8_t] result
         result = np.empty(self.array_size, dtype=bool)
         for i in range(self.array_size):
