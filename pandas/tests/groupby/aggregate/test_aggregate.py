@@ -67,7 +67,6 @@ def test_groupby_aggregation_mixed_dtype():
     # GH 6212
     expected = DataFrame(
         {
-
             "v2": [55, 55, 77, np.nan, 33, 33, 44, 11],
         },
         index=MultiIndex.from_tuples(
@@ -1611,7 +1610,7 @@ def test_agg_with_as_index_false_with_list():
 
 def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
     # GH#41720
-    expected = DataFrame(
+    DataFrame(
         {
             "td": {
                 0: pd.Timedelta("0 days 01:00:00"),
@@ -1630,4 +1629,24 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         }
     )
     gb = df.groupby("grps")
-    result = gb.agg(td=("td", "cumsum"))
+    gb.agg(td=("td", "cumsum"))
+
+
+@skip_if_no_pyarrow
+def test_agg_arrow_type():
+    df = DataFrame.from_dict(
+        {
+            "category": ["A"] * 10 + ["B"] * 10,
+            "bool_numpy": [True] * 5 + [False] * 5 + [True] * 5 + [False] * 5,
+        }
+    )
+    df["bool_arrow"] = df["bool_numpy"].astype("bool[pyarrow]")
+    result = df.groupby("category").agg(lambda x: x.sum() / x.count())
+    expected = DataFrame(
+        {
+            "bool_numpy": [0.5, 0.5],
+            "bool_arrow": Series([0.5, 0.5]).astype("double[pyarrow]").values,
+        },
+        index=Index(["A", "B"], name="category"),
+    )
+    tm.assert_frame_equal(result, expected)
