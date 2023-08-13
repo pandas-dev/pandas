@@ -1011,12 +1011,11 @@ class ArrowExtensionArray(
     ) -> tuple[np.ndarray, ExtensionArray]:
         null_encoding = "mask" if use_na_sentinel else "encode"
 
-        pa_type = self._pa_array.type
-        if pa.types.is_duration(pa_type):
+        data = self._pa_array
+        pa_type = data.type
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
-            data = self._pa_array.cast(pa.int64())
-        else:
-            data = self._pa_array
+            data = data.cast(pa.int64())
 
         if pa.types.is_dictionary(data.type):
             encoded = data
@@ -1034,7 +1033,7 @@ class ArrowExtensionArray(
             )
             uniques = type(self)(encoded.chunk(0).dictionary)
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
         return indices, uniques
 
@@ -1273,7 +1272,7 @@ class ArrowExtensionArray(
         """
         pa_type = self._pa_array.type
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = self._pa_array.cast(pa.int64())
         else:
@@ -1281,7 +1280,7 @@ class ArrowExtensionArray(
 
         pa_result = pc.unique(data)
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             pa_result = pa_result.cast(pa_type)
 
         return type(self)(pa_result)
@@ -1304,7 +1303,7 @@ class ArrowExtensionArray(
         Series.value_counts
         """
         pa_type = self._pa_array.type
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             # https://github.com/apache/arrow/issues/15226#issuecomment-1376578323
             data = self._pa_array.cast(pa.int64())
         else:
@@ -1324,7 +1323,7 @@ class ArrowExtensionArray(
             values = values.filter(mask)
             counts = counts.filter(mask)
 
-        if pa.types.is_duration(pa_type):
+        if pa_version_under11p0 and pa.types.is_duration(pa_type):
             values = values.cast(pa_type)
 
         counts = ArrowExtensionArray(counts)
