@@ -405,6 +405,6 @@ class BooleanArray(BaseMaskedArray):
         else:
             from pandas.core.arrays import IntegerArray
 
-            return IntegerArray(data.astype(int), mask.to_numpy())._accumulate(
+            return IntegerArray(data.astype(int), mask)._accumulate(
                 name, skipna=skipna, **kwargs
             )
