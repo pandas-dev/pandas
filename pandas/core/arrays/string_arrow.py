@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
@@ -27,6 +28,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.arrow import ArrowExtensionArray
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.integer import Int64Dtype
@@ -114,10 +116,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
     _result_converter = lambda result: BooleanDtype().__from_arrow__(result)
+    _storage = "pyarrow"
 
     def __init__(self, values) -> None:
         super().__init__(values)
-        self._dtype = StringDtype(storage="pyarrow")
+        self._dtype = StringDtype(storage=self._storage)
 
         if not pa.types.is_string(self._pa_array.type) and not (
             pa.types.is_dictionary(self._pa_array.type)
@@ -145,7 +148,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
-            assert isinstance(dtype, StringDtype) and dtype.storage == "pyarrow"
+            assert isinstance(dtype, StringDtype) and dtype.storage in (
+                "pyarrow",
+                "pyarrow_numpy",
+            )
 
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
@@ -438,6 +444,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _result_converter = lambda result: result.to_numpy()
+    _storage = "pyarrow_numpy"
+
+    def __getattribute__(self, item):
+        if item in ArrowStringArrayMixin.__dict__:
+            return partial(getattr(ArrowStringArrayMixin, item), self)
+        return super().__getattribute__(item)
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
@@ -504,3 +516,44 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             if convert and result.dtype == object:
                 result = lib.maybe_convert_objects(result)
         return result
+
+    def _str_count(self, pat: str, flags: int = 0):
+        if flags:
+            return super()._str_count(pat, flags)
+        return pc.count_substring_regex(self._pa_array, pat).to_numpy()
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if start != 0 and end is not None:
+            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            not_found = pc.equal(result, -1)
+            offset_result = pc.add(result, end - start)
+            result = pc.if_else(not_found, result, offset_result)
+        elif start == 0 and end is None:
+            slices = self._pa_array
+            result = pc.find_substring(slices, sub)
+        else:
+            return super()._str_find(sub, start, end)
+        return type(self)(result)
+
+    def _str_split(
+        self,
+        pat: str | None = None,
+        n: int | None = -1,
+        expand: bool = False,
+        regex: bool | None = None,
+    ):
+        if n in {-1, 0}:
+            n = None
+        if regex:
+            split_func = pc.split_pattern_regex
+        else:
+            split_func = pc.split_pattern
+        return split_func(self._pa_array, pat, max_splits=n).to_numpy()
+
+    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
+        if n in {-1, 0}:
+            n = None
+        return pc.split_pattern(
+            self._pa_array, pat, max_splits=n, reverse=True
+        ).to_numpy()
