@@ -80,7 +80,10 @@ def test_integer_array_constructor():
     expected = pd.array([1, 2, 3, np.nan], dtype="Int64")
     tm.assert_extension_array_equal(result, expected)
 
-    msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
+    msg = (
+        r".* should be .* numpy array( or BitMaskArray)?. "
+        r"Use the 'pd.array' function instead"
+    )
     with pytest.raises(TypeError, match=msg):
         IntegerArray(values.tolist(), mask)
 
@@ -104,7 +107,7 @@ def test_integer_array_constructor_copy():
 
     result = IntegerArray(values, mask, copy=True)
     assert result._data is not values
-    # assert result._mask is not mask
+    assert result._mask is not mask
 
 
 @pytest.mark.parametrize(

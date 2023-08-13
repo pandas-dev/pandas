@@ -129,20 +129,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return result
 
     def __init__(
-        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+        self,
+        values: np.ndarray,
+        mask: npt.NDArray[np.bool_] | BitMaskArray,
+        copy: bool = False,
     ) -> None:
         # values is supposed to already be validated in the subclass
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+        if not (
+            isinstance(mask, BitMaskArray)
+            or (isinstance(mask, np.ndarray) and mask.dtype == np.bool_)
+        ):
             raise TypeError(
-                "mask should be boolean numpy array. Use "
-                "the 'pd.array' function instead"
+                "mask should be boolean numpy array or BitMaskArray. "
+                "Use the 'pd.array' function instead"
             )
-        if values.shape != mask.shape:
-            raise ValueError("values.shape must match mask.shape")
+        if isinstance(mask, np.ndarray):
+            if values.shape != mask.shape:
+                raise ValueError("values.shape must match mask.shape")
 
-        if copy:
-            values = values.copy()
-            mask = mask.copy()
+            if copy:
+                values = values.copy()
+                mask = mask.copy()
+        else:
+            if copy:
+                values = values.copy()
+                mask = mask.to_numpy()
 
         self._data = values
         self._mask = BitMaskArray(mask)
@@ -551,11 +562,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
-            mask = (
-                self._mask.to_numpy()
-                if data is self._data
-                else self._mask.to_numpy().copy()
-            )
+            mask = self._mask if data is self._data else self._mask.to_numpy().copy()
             cls = dtype.construct_array_type()
             return cls(data, mask, copy=False)
 

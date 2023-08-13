@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
     import pyarrow
 
+    from pandas._libs.arrays import BitMaskArray
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -230,7 +231,10 @@ class NumericArray(BaseMaskedArray):
     _dtype_cls: type[NumericDtype]
 
     def __init__(
-        self, values: np.ndarray, mask: npt.NDArray[np.bool_], copy: bool = False
+        self,
+        values: np.ndarray,
+        mask: npt.NDArray[np.bool_] | BitMaskArray,
+        copy: bool = False,
     ) -> None:
         checker = self._dtype_cls._checker
         if not (isinstance(values, np.ndarray) and checker(values.dtype)):

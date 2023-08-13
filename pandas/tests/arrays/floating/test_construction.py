@@ -25,7 +25,10 @@ def test_floating_array_constructor():
     tm.assert_numpy_array_equal(result._data, values)
     tm.assert_numpy_array_equal(result._mask.to_numpy(), mask)
 
-    msg = r".* should be .* numpy array. Use the 'pd.array' function instead"
+    msg = (
+        r".* should be .* numpy array( or BitMaskArray)?. "
+        r"Use the 'pd.array' function instead"
+    )
     with pytest.raises(TypeError, match=msg):
         FloatingArray(values.tolist(), mask)
 
@@ -66,7 +69,7 @@ def test_floating_array_constructor_copy():
 
     result = FloatingArray(values, mask, copy=True)
     assert result._data is not values
-    # assert result._mask is not mask
+    assert result._mask is not mask
 
 
 def test_to_array():

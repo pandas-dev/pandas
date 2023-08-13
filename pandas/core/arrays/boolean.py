@@ -27,6 +27,7 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
+    from pandas._libs.arrays import BitMaskArray
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -168,7 +169,7 @@ def coerce_to_array(
     if isinstance(values, BooleanArray):
         if mask is not None:
             raise ValueError("cannot pass mask for BooleanArray input")
-        values, mask = values._data, values._mask.to_numpy()
+        values, mask = values._data, values._mask
         if copy:
             values = values.copy()
             mask = mask.copy()
@@ -298,13 +299,15 @@ class BooleanArray(BaseMaskedArray):
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 
     @classmethod
-    def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
+    def _simple_new(
+        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitMaskArray
+    ) -> Self:
         result = super()._simple_new(values, mask)
         result._dtype = BooleanDtype()
         return result
 
     def __init__(
-        self, values: np.ndarray, mask: np.ndarray, copy: bool = False
+        self, values: np.ndarray, mask: np.ndarray | BitMaskArray, copy: bool = False
     ) -> None:
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(
