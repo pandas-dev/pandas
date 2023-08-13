@@ -115,7 +115,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
-    _result_converter = lambda result: BooleanDtype().__from_arrow__(result)
+    _result_converter = lambda _, result, **kwargs: BooleanDtype().__from_arrow__(
+        result
+    )
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
@@ -320,7 +322,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._result_converter(result)
+        result = self._result_converter(result, na=na)
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
@@ -329,7 +331,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.starts_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        result = self._result_converter_(result)
+        result = self._result_converter(result)
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
@@ -443,84 +445,87 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _result_converter = lambda result: result.to_numpy()
+    # _result_converter = lambda _, result: result.to_numpy(na_value=np.nan)
     _storage = "pyarrow_numpy"
+
+    @staticmethod
+    def _result_converter(values, na=None):
+        if not isna(na):
+            values = values.fill_null(bool(na))
+        return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
 
     def __getattribute__(self, item):
         if item in ArrowStringArrayMixin.__dict__:
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
 
-    def _str_len(self):
-        result = pc.utf8_length(self._pa_array)
-        return result.to_numpy()
-
     def _str_map(
         self, f, na_value=None, dtype: Dtype | None = None, convert: bool = True
     ):
-        """
-        Map a callable over valid elements of the array.
-
-        Parameters
-        ----------
-        f : Callable
-            A function to call on each non-NA element.
-        na_value : Scalar, optional
-            The value to set for NA values. Might also be used for the
-            fill value if the callable `f` raises an exception.
-            This defaults to ``self._str_na_value`` which is ``np.nan``
-            for object-dtype and Categorical and ``pd.NA`` for StringArray.
-        dtype : Dtype, optional
-            The dtype of the result array.
-        convert : bool, default True
-            Whether to call `maybe_convert_objects` on the resulting ndarray
-        """
         if dtype is None:
-            dtype = np.dtype("object")
+            dtype = self.dtype
         if na_value is None:
-            na_value = self._str_na_value
+            na_value = self.dtype.na_value
 
-        if not len(self):
-            return np.array([], dtype=dtype)
+        mask = isna(self)
+        arr = np.asarray(self)
 
-        arr = np.asarray(self, dtype=object)
-        mask = isna(arr)
-        map_convert = convert and not np.all(mask)
-        try:
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), map_convert)
-        except (TypeError, AttributeError) as err:
-            # Reraise the exception if callable `f` got wrong number of args.
-            # The user may want to be warned by this, instead of getting NaN
-            p_err = (
-                r"((takes)|(missing)) (?(2)from \d+ to )?\d+ "
-                r"(?(3)required )positional arguments?"
+        if is_integer_dtype(dtype) or is_bool_dtype(dtype):
+            if is_integer_dtype(dtype):
+                na_value = np.nan
+            else:
+                na_value = False
+            try:
+                result = lib.map_infer_mask(
+                    arr,
+                    f,
+                    mask.view("uint8"),
+                    convert=False,
+                    na_value=na_value,
+                    dtype=np.dtype(dtype),
+                )
+                return result
+
+            except ValueError:
+                result = lib.map_infer_mask(
+                    arr,
+                    f,
+                    mask.view("uint8"),
+                    convert=False,
+                    na_value=na_value,
+                )
+                if convert and result.dtype == object:
+                    result = lib.maybe_convert_objects(result)
+                return result
+
+        elif is_string_dtype(dtype) and not is_object_dtype(dtype):
+            # i.e. StringDtype
+            result = lib.map_infer_mask(
+                arr, f, mask.view("uint8"), convert=False, na_value=na_value
             )
+            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            return type(self)(result)
+        else:
+            # This is when the result type is object. We reach this when
+            # -> We know the result type is truly object (e.g. .encode returns bytes
+            #    or .findall returns a list).
+            # -> We don't know the result type. E.g. `.get` can return anything.
+            return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
-            if len(err.args) >= 1 and re.search(p_err, err.args[0]):
-                # FIXME: this should be totally avoidable
-                raise err
-
-            def g(x):
-                # This type of fallback behavior can be removed once
-                # we remove object-dtype .str accessor.
-                try:
-                    return f(x)
-                except (TypeError, AttributeError):
-                    return na_value
-
-            return self._str_map(g, na_value=na_value, dtype=dtype)
-        if not isinstance(result, np.ndarray):
-            return result
-        if na_value is not np.nan:
-            np.putmask(result, mask, na_value)
-            if convert and result.dtype == object:
-                result = lib.maybe_convert_objects(result)
+    def _convert_int_dtype(self, result):
+        if result.dtype == np.int32:
+            result = result.astype(np.int64)
         return result
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             return super()._str_count(pat, flags)
-        return pc.count_substring_regex(self._pa_array, pat).to_numpy()
+        result = pc.count_substring_regex(self._pa_array, pat).to_numpy()
+        return self._convert_int_dtype(result)
+
+    def _str_len(self):
+        result = pc.utf8_length(self._pa_array).to_numpy()
+        return self._convert_int_dtype(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
         if start != 0 and end is not None:
@@ -534,26 +539,16 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             result = pc.find_substring(slices, sub)
         else:
             return super()._str_find(sub, start, end)
-        return type(self)(result)
+        return self._convert_int_dtype(result.to_numpy())
 
-    def _str_split(
-        self,
-        pat: str | None = None,
-        n: int | None = -1,
-        expand: bool = False,
-        regex: bool | None = None,
-    ):
-        if n in {-1, 0}:
-            n = None
-        if regex:
-            split_func = pc.split_pattern_regex
-        else:
-            split_func = pc.split_pattern
-        return split_func(self._pa_array, pat, max_splits=n).to_numpy()
+    def _cmp_method(self, other, op):
+        result = super()._cmp_method(other, op)
+        return result.to_numpy(na_value=False)
 
-    def _str_rsplit(self, pat: str | None = None, n: int | None = -1):
-        if n in {-1, 0}:
-            n = None
-        return pc.split_pattern(
-            self._pa_array, pat, max_splits=n, reverse=True
-        ).to_numpy()
+    def value_counts(self, dropna: bool = True):
+        from pandas import Series
+
+        result = super().value_counts(dropna)
+        return Series(
+            result._values.to_numpy(), index=result.index, name=result.name, copy=False
+        )

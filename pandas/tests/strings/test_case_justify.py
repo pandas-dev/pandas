@@ -278,6 +278,8 @@ def test_center_ljust_rjust_mixed_object():
 
 
 def test_center_ljust_rjust_fillchar(any_string_dtype):
+    if any_string_dtype == "string[pyarrow_numpy]":
+        pytest.skip("Arrow logic is different")
     s = Series(["a", "bb", "cccc", "ddddd", "eeeeee"], dtype=any_string_dtype)
 
     result = s.str.center(5, fillchar="X")

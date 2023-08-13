@@ -512,7 +512,10 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
+                if self._dtype.name == "string" and self._dtype.storage in (
+                    "pyarrow",
+                    "pyarrow_numpy",
+                ):
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -1996,6 +1999,27 @@ class ArrowExtensionArray(
         if flags:
             raise NotImplementedError(f"count not implemented with {flags=}")
         return type(self)(pc.count_substring_regex(self._pa_array, pat))
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
+
+    def _str_partition(self, sep: str, expand: bool):
+        predicate = lambda val: val.partition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
+
+    def _str_rpartition(self, sep: str, expand: bool):
+        predicate = lambda val: val.rpartition(sep)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     def _str_contains(
         self, pat, case: bool = True, flags: int = 0, na=None, regex: bool = True
