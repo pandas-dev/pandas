@@ -512,7 +512,8 @@ def get_reverse_indexer(const intp_t[:] indexer, Py_ssize_t length) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def has_infs(const floating[:] arr) -> bool:
+# TODO(cython3): Can add const once cython#1772 is resolved
+def has_infs(floating[:] arr) -> bool:
     cdef:
         Py_ssize_t i, n = len(arr)
         floating inf, neginf, val
@@ -2680,14 +2681,13 @@ def maybe_convert_objects(ndarray[object] objects,
         seen.object_ = True
 
     elif seen.str_:
-        if is_string_array(objects, skipna=True):
-            if using_pyarrow_string_dtype():
-                import pyarrow as pa
+        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
+            import pyarrow as pa
 
-                from pandas.core.dtypes.dtypes import ArrowDtype
+            from pandas.core.dtypes.dtypes import ArrowDtype
 
-                dtype = ArrowDtype(pa.string())
-                return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+            dtype = ArrowDtype(pa.string())
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
     elif seen.interval_:

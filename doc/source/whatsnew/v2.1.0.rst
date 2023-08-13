@@ -121,6 +121,12 @@ Copy-on-Write improvements
   - DataFrame.update / Series.update
   - DataFrame.fillna / Series.fillna
   - DataFrame.replace / Series.replace
+  - DataFrame.clip / Series.clip
+  - DataFrame.where / Series.where
+  - DataFrame.mask / Series.mask
+  - DataFrame.interpolate / Series.interpolate
+  - DataFrame.ffill / Series.ffill
+  - DataFrame.bfill / Series.bfill
 
 .. _whatsnew_210.enhancements.map_na_action:
 
@@ -867,7 +873,6 @@ Other
 - Bug in :meth:`Series.memory_usage` when ``deep=True`` throw an error with Series of objects and the returned value is incorrect, as it does not take into account GC corrections (:issue:`51858`)
 - Bug in :meth:`period_range` the default behavior when freq was not passed as an argument was incorrect(:issue:`53687`)
 - Fixed incorrect ``__name__`` attribute of ``pandas._libs.json`` (:issue:`52898`)
-- The minimum version of Cython needed to compile pandas is now ``3.0.0`` (:issue:`54335`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.contributors:
