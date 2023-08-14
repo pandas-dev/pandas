@@ -983,11 +983,18 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             )
             result = ensure_wrapped_if_datetimelike(result)
 
-        for blk in self.blocks:
-            # Such assignment may incorrectly coerce NaT to None
-            # result[blk.mgr_locs] = blk._slice((slice(None), loc))
-            for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
+        try:
+            for blk in self.blocks:
+                # Such assignment may incorrectly coerce NaT to None
+                # result[blk.mgr_locs] = blk._slice((slice(None), loc))
+                for i, rl in enumerate(blk.mgr_locs):
+                    result[rl] = blk.iget((i, loc))
+        except TypeError:
+            if isinstance(dtype, ExtensionDtype) and not immutable_ea:
+                values = [v[loc] for v in self.arrays]
+                result = cls._from_sequence(values, dtype)
+            else:
+                raise TypeError
 
         if immutable_ea:
             dtype = cast(ExtensionDtype, dtype)
