@@ -992,7 +992,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         except TypeError:
             if isinstance(dtype, ExtensionDtype) and not immutable_ea:
                 values = [v[loc] for v in self.arrays]
-                result = cls._from_sequence(values, dtype)
+                result = cls._from_sequence(values, dtype=dtype)
             else:
                 raise TypeError
 
