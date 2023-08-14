@@ -635,7 +635,6 @@ Performance improvements
 - Performance improvement in :meth:`Series.str.get` for pyarrow-backed strings (:issue:`53152`)
 - Performance improvement in :meth:`Series.str.split` with ``expand=True`` for pyarrow-backed strings (:issue:`53585`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a numpy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
-- Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a pyarrow timestamp or duration dtype to numpy (:issue:`53326`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement in various :class:`MultiIndex` set and indexing operations (:issue:`53955`)
@@ -806,7 +805,6 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.nth` and :meth:`.DataFrameGroupBy.nth` raised after performing column selection when using ``dropna="any"`` or ``dropna="all"`` resulted in rows being dropped (:issue:`53518`)
 - Bug in :meth:`.SeriesGroupBy.sum` and :meth:`.DataFrameGroupby.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` (:issue:`53606`)
 - Bug in :meth:`Series.groupby` raising an error when grouped :class:`Series` has a :class:`DatetimeIndex` index and a :class:`Series` with a name that is a month is given to the ``by`` argument (:issue:`48509`)
-- Bug in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` would fail if the groupings have unobserved categories (:issue:`10694`)
 
 Reshaping
 ^^^^^^^^^
