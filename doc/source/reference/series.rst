@@ -315,8 +315,10 @@ Datetime properties
    Series.dt.dayofyear
    Series.dt.day_of_year
    Series.dt.quarter
+   Series.dt.is_days_in_month
    Series.dt.is_month_start
    Series.dt.is_month_end
+   Series.dt.is_normalize
    Series.dt.is_quarter_start
    Series.dt.is_quarter_end
    Series.dt.is_year_start
