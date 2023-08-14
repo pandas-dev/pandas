@@ -700,7 +700,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._mask.to_numpy().any()  # type: ignore[return-value]
 
     def _propagate_mask(
-        self, mask: npt.NDArray[np.bool_] | None, other
+        self, mask: npt.NDArray[np.bool_] | BitMaskArray | None, other
     ) -> npt.NDArray[np.bool_]:
         if mask is None:
             mask = (

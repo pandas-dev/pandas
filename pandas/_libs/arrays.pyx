@@ -211,14 +211,27 @@ def _unpickle_bitmaskarray(array):
     return bma
 
 
+cdef void buf_invert(uint8_t* dest, uint8_t* src, Py_ssize_t size):
+    cdef Py_ssize_t i
+    for i in range(size):
+        dest[i] = ~src[i]
+
+
+cdef void buf_or(uint8_t* dest, uint8_t* src1, uint8_t* src2, Py_ssize_t size):
+    cdef Py_ssize_t i
+    for i in range(size):
+        dest[i] = src1[i] | src2[i]
+
+
 cdef class BitMaskArray:
     cdef:
         Py_ssize_t array_size
         Py_ssize_t array_nbytes
-        object array_shape
         uint8_t* validity_buffer
+        bint buffer_owner  # set when parent is None, but gives C-level access
     cdef public:
-        object parent
+        object array_shape
+        object parent  # assignments gives RC to ensure proper buffer lifecycle
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -227,57 +240,84 @@ cdef class BitMaskArray:
         self.array_size = arr.shape[0]
         self.array_nbytes = self.array_size // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(self.array_nbytes)
+        self.buffer_owner = True
         for i in range(self.array_size):
             ArrowBitSetTo(self.validity_buffer, i, arr[i])
 
+    cdef void init_from_bitmaskarray(self, BitMaskArray bma):
+        self.buffer_owner = False
+        self.array_size = bma.array_size
+        self.array_nbytes = bma.array_nbytes
+        self.validity_buffer = bma.validity_buffer
+
     def __cinit__(self, data):
-        self.parent = None
         if isinstance(data, np.ndarray):
-            self.array_shape = data.shape
             self.init_from_ndarray(data.ravel())
+            self.array_shape = data.shape
+            self.parent = None
         elif isinstance(data, type(self)):
+            self.init_from_bitmaskarray(data)
+            self.array_shape = data.array_shape
             self.parent = data
-            # other attributes are undefined when a parent exists
         else:
             raise TypeError("Unsupported argument to BitMaskArray constructor")
 
     def __dealloc__(self):
-        if not self.parent:
+        if self.buffer_owner:
             free(self.validity_buffer)
 
     def __setitem__(self, key, value):
         cdef const uint8_t[:] arr1d
         cdef Py_ssize_t i = 0
+        cdef Py_ssize_t ckey
+        cdef bint cvalue
 
-        if self.parent is not None:
-            self.parent[key] = value
-        elif isinstance(key, int) and key >= 0 and key < self.array_size:
-            ArrowBitSetTo(self.validity_buffer, key, bool(value))
-        else:
-            arr = self.to_numpy()
-            arr[key] = value
-            arr1d = arr.ravel()
-            for i in range(arr1d.shape[0]):
-                ArrowBitSetTo(self.validity_buffer, i, arr1d[i])
+        if isinstance(key, int):
+            ckey = key
+            cvalue = value
+            if ckey >= 0 and ckey < self.array_size:
+                ArrowBitSetTo(self.validity_buffer, ckey, cvalue)
+                return
+
+        arr = self.to_numpy()
+        arr[key] = value
+        arr1d = arr.ravel()
+        for i in range(arr1d.shape[0]):
+            ArrowBitSetTo(self.validity_buffer, i, arr1d[i])
 
     def __getitem__(self, key):
-        if self.parent is not None:
-            return self.parent[key]
-        elif isinstance(key, int) and key >= 0 and key < self.array_size:
-            return ArrowBitGet(self.validity_buffer, key)
-        else:
-            return self.to_numpy()[key]
+        cdef Py_ssize_t ckey
+        if isinstance(key, int):
+            ckey = key
+            if ckey >= 0 and ckey < self.array_size:
+                return ArrowBitGet(self.validity_buffer, ckey)
+
+        return self.to_numpy()[key]
 
     def __invert__(self):
-        if self.parent is not None:
-            return ~self.parent
-        return ~self.to_numpy()
+        cdef ndarray[uint8_t] result
+        result = np.empty(self.array_size, dtype=bool)
+
+        cdef uint8_t* inverted = <uint8_t*>malloc(self.array_size)
+        buf_invert(inverted, self.validity_buffer, self.array_size)
+        BitMaskArray.buffer_to_array_1d(result, inverted, self.array_size)
+        free(inverted)
+        return result.reshape(self.array_shape)
 
     def __or__(self, other):
-        if self.parent is not None:
-            return self.parent | other
-        elif isinstance(other, type(self)):
-            return self.to_numpy() | other.to_numpy()
+        cdef ndarray[uint8_t] result
+        cdef uint8_t* ored
+        cdef BitMaskArray other_buf
+        if isinstance(other, type(self)):
+            other_buf = other
+            result = np.empty(self.array_size, dtype=bool)
+            ored = <uint8_t*>malloc(self.array_size)
+            buf_or(
+                ored, self.validity_buffer, other_buf.validity_buffer, self.array_size
+            )
+            BitMaskArray.buffer_to_array_1d(result, ored, self.array_size)
+            free(ored)
+            return result.reshape(self.array_shape)
         else:
             return self.to_numpy() | other
 
@@ -291,16 +331,14 @@ cdef class BitMaskArray:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void convert_to_boolean_array(self, uint8_t[:] out):
+    @staticmethod
+    cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
         cdef Py_ssize_t i
-        for i in range(self.array_size):
-            out[i] = ArrowBitGet(self.validity_buffer, i)
+        for i in range(size):
+            out[i] = ArrowBitGet(buf, i)
 
     def to_numpy(self) -> ndarray:
-        if self.parent is not None:
-            return self.parent.to_numpy()
-
         cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
-        self.convert_to_boolean_array(result)
+        BitMaskArray.buffer_to_array_1d(result, self.validity_buffer, self.array_size)
 
         return result.reshape(self.array_shape)
