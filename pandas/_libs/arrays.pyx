@@ -230,7 +230,6 @@ cdef class BitMaskArray:
     cdef void init_from_ndarray(self, const uint8_t[:] arr):
         cdef Py_ssize_t i, arrlen
         self.array_size = arr.size
-        self.array_shape = arr.shape
         self.array_nbytes = self.array_size // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(self.array_nbytes)
         arrlen = len(arr)
@@ -240,7 +239,8 @@ cdef class BitMaskArray:
     def __cinit__(self, data):
         self.parent = None
         if isinstance(data, np.ndarray):
-            self.init_from_ndarray(data.flatten())
+            self.array_shape = data.shape
+            self.init_from_ndarray(data.ravel())
         elif isinstance(data, type(self)):
             self.parent = data
             # other attributes are undefined when a parent exists
@@ -260,7 +260,7 @@ cdef class BitMaskArray:
         else:
             arr = self.to_numpy()
             arr[key] = value
-            for val in arr.flatten():
+            for val in arr.ravel():
                 if val:
                     ArrowBitSet(self.validity_buffer, index)
                 else:
