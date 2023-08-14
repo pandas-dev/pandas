@@ -3244,6 +3244,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         how: Literal["idxmax", "idxmin"],
         numeric_only: bool = False,
         skipna: bool = True,
+        ignore_unobserved: bool = False,
     ) -> Series | DataFrame:
         """Compute idxmax/idxmin.
 
@@ -3256,6 +3257,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna : bool, default True
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
+        ignore_unobserved : bool, default False
+            When an unobserved group is encountered, do not raise. This used for
+            transform where unobserved groups do not play an impact on the result.
 
         Returns
         -------
@@ -3265,7 +3269,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
-            if not self.observed:
+            if not self.observed and not ignore_unobserved:
+                # Raise if there are unobserved categories. When there are
+                # multiple groupings, the categories are not included in the
+                # upfront computation so we compare the final result length
+                # with the current length
+                has_unobserved = (res._values == -2).any(axis=None)
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
@@ -3274,7 +3283,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     # are included in the computation
                     len(self.grouper.groupings) == 1
                     and self.grouper.groupings[0]._passed_categorical
-                    and has_na_value
+                    and has_unobserved
                 )
             else:
                 raise_err = False
@@ -3318,8 +3327,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         result = self._agg_general(
             numeric_only=numeric_only,
-            # min_count is not utilized
-            min_count=-1,
+            min_count=1,
             alias=how,
             post_process=post_process,
         )

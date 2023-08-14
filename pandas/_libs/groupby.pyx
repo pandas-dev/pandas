@@ -1824,7 +1824,8 @@ def group_idxmin_idxmax(
     labels : np.ndarray[np.intp]
         Labels to group by.
     min_count : Py_ssize_t, default -1
-        Unused. For compatibility with other Cython ops.
+        The minimum number of non-NA group elements, NA result if threshold
+        is not met.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
     name : {"idxmin", "idxmax"}, default "idxmin"
@@ -1850,7 +1851,6 @@ def group_idxmin_idxmax(
         bint compute_max = name == "idxmax"
 
     assert name == "idxmin" or name == "idxmax"
-    assert min_count == -1, "'min_count' only used in sum and prod"
 
     # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`

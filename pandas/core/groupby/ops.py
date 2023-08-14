@@ -497,6 +497,10 @@ class WrappedCythonOp:
 
         result = result.T
 
+        if self.how in ["idxmin", "idxmax"]:
+            # Caller needs to differentiate between all NA input and unobserved
+            result = np.where(counts < min_count, -2, result)
+
         if self.how not in self.cast_blocklist:
             # e.g. if we are int64 and need to restore to datetime64/timedelta64
             # "rank" is the only member of cast_blocklist we get here
