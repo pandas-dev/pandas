@@ -1973,8 +1973,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             with com.temp_setattr(self, "as_index", True):
                 if func in ["idxmin", "idxmax"]:
                     # mypy doesn't recognize func as Literal["idxmin", "idxmax"]
-                    result = self._idxmin_idxmax(  # type: ignore[arg-type]
-                        func, **kwargs, ignore_unobserved=True
+                    result = self._idxmin_idxmax(
+                        func, **kwargs, ignore_unobserved=True  # type: ignore[arg-type]
                     )
                 else:
                     # GH#49834 - result needs groups in the index for
