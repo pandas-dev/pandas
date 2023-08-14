@@ -12,6 +12,11 @@ if not pa_version_under7p0:
 
 
 class ArrowStringArrayMixin:
+    _pa_array = None
+
+    def __init__(self, *args, **kwargs) -> None:
+        raise NotImplementedError
+
     def _str_pad(
         self,
         width: int,
@@ -46,7 +51,9 @@ class ArrowStringArrayMixin:
         selected = pc.utf8_slice_codeunits(
             self._pa_array, start=start, stop=stop, step=step
         )
-        null_value = pa.scalar(None, type=self._pa_array.type)
+        null_value = pa.scalar(
+            None, type=self._pa_array.type  # type: ignore[attr-defined]
+        )
         result = pc.if_else(not_out_of_bounds, selected, null_value)
         return type(self)(result)
 
