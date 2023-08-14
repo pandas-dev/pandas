@@ -582,9 +582,9 @@ def test_groupby_raises_category_on_category(
     if how == "transform":
         # empty groups will be ignored
         empty_groups = False
-    if isinstance(by, Grouper) and groupby_func in ["idxmin", "idxmax"] and observed:
-        # TODO: grouping by Grouper always treats observed as False
-        empty_groups = False
+    # if isinstance(by, Grouper) and groupby_func in ["idxmin", "idxmax"] and observed:
+    #     # TODO: grouping by Grouper always treats observed as False
+    #     empty_groups = False
 
     klass, msg = {
         "all": (None, ""),
@@ -687,10 +687,6 @@ def test_groupby_raises_category_on_category(
             ),
         ),
     }[groupby_func]
-
-    # if groupby_func in ["idxmin", "idxmax"] and how == "transform":
-    #     klass = FutureWarning
-    #     msg = "The behavior of SeriesGroupBy.idxmax with all-NA values"
 
     _call_and_check(klass, msg, how, gb, groupby_func, args)
 

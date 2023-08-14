@@ -555,6 +555,7 @@ def test_idxmin_idxmax_axis1():
 )
 @pytest.mark.parametrize("test_series", [True, False])
 def test_idxmin_idxmax_skipna_false(func, values, expected_values, warn, test_series):
+    # GH#54234
     df = DataFrame(
         {
             "a": [1, 1, 2],

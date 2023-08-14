@@ -482,8 +482,7 @@ class WrappedCythonOp:
         if self.kind == "aggregate" and self.how not in ["idxmin", "idxmax"]:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
-            # see GH#40767. For idxmin/idxmax, the value will be -1 which is handled
-            # in post processing.
+            # see GH#40767. For idxmin/idxmax is handled specially via post-processing
             if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)

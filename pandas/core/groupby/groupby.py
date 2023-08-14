@@ -89,6 +89,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    na_value_for_dtype,
     notna,
 )
 
@@ -3281,29 +3282,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
             has_unobserved = (res._values == -2).any(axis=None)
-            if not self.observed and not ignore_unobserved:
-                # Raise if there are unobserved categories. When there are
-                # multiple groupings, the categories are not included in the
-                # upfront computation so we compare the final result length
-                # with the current length
+            raise_err = not ignore_unobserved and has_unobserved
+            if (
+                not self.observed
+                and not ignore_unobserved
+                and not raise_err
+                and (len(self.grouper.groupings) > 1 or res.empty)
+            ):
+                # When there are multiple groupings or the result is empty, the
+                # categories are not included in the upfront computation so we
+                # compare the final result length with the current length
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
-                raise_err = len(res) < result_len or (
-                    # When there is one categorical grouping, unobserved categories
-                    # are included in the computation
-                    len(self.grouper.groupings) == 1
-                    and self.grouper.groupings[0]._passed_categorical
-                    and has_unobserved
-                )
-            else:
-                raise_err = not skipna and has_na_value
+                raise_err = len(res) < result_len
             if raise_err:
                 raise ValueError(
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
                 )
-            elif has_na_value:
+            elif not skipna and has_na_value:
                 warnings.warn(
                     f"The behavior of {type(self).__name__}.{how} with all-NA "
                     "values, or any-NA and skipna=False, is deprecated. In a future "
@@ -3316,17 +3314,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             values = res._values
             if not self.observed and ignore_unobserved and has_unobserved:
-                # -2 indicates unobserved category; recast as NA
-                values = np.where(values == -2, -1, values)
+                # -2 indicates unobserved category; recode as 0 to not unnecessarily
+                # coerce the resulting dtype. These values will be removed.
+                values = np.where(values == -2, 0, values)
 
             if res.size == 0:
                 result = res.astype(index.dtype)
             else:
                 if isinstance(index, MultiIndex):
                     index = index.to_flat_index()
-
-                from pandas.core.dtypes.missing import na_value_for_dtype
-
                 na_value = na_value_for_dtype(index.dtype, compat=False)
 
                 if isinstance(res, Series):

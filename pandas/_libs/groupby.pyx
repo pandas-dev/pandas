@@ -1861,9 +1861,6 @@ def group_idxmin_idxmax(
         raise AssertionError("len(index) != len(labels)")
 
     group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    # group_min_or_max[:] = _get_min_or_max(
-    #     <numeric_object_t>0, compute_max, is_datetimelike
-    # )
     # Using -2 to indicate a label is never seen
     out[:] = -2
 
