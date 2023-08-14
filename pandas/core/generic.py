@@ -6182,6 +6182,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             )
             self.flags.allows_duplicate_labels = allows_duplicate_labels
 
+        if method == "groupby" and len(self)>0:
+            for i, col in enumerate(self.columns):
+                master_scalar = next(value for value in self.iloc[:, i].values if not isna(value))
+                if hasattr(master_scalar, "from_sequence"):
+                    try:
+                        from pint_pandas import PintType
+                        dtype = PintType.construct_from_quantity_string(str(master_scalar))
+                        ea_values = dtype.construct_array_type()._from_sequence(self.iloc[:, i].values)
+                        ea_ser = self.iloc[:, i]._constructor(ea_values, index=self.index, copy=False)
+                        self.isetitem(i, ea_ser)
+                    except Exception:
+                        pass
+
         return self
 
     @final
