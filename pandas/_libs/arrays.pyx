@@ -213,22 +213,25 @@ def _unpickle_bitmaskarray(array):
 
 
 cdef class BitMaskArray:
-    cdef public:
+    cdef:
         int array_size
-        int nbytes
         object array_shape
-        object parent
         uint8_t* validity_buffer
+    cdef public:
+        int nbytes
+        object parent
 
     def __cinit__(self, data):
         self.parent = None
+        cdef int index = 0
         if isinstance(data, np.ndarray):
             self.array_size = data.size
             self.array_shape = data.shape
             self.nbytes = self.array_size // 8 + 1
             self.validity_buffer = <uint8_t *>malloc(self.nbytes)
-            for index, value in enumerate(data.flatten()):
+            for value in data.flatten():
                 self[index] = value
+                index += 1
         elif isinstance(data, type(self)):
             self.parent = data
             # other attributes are undefined when a parent exists
@@ -240,8 +243,9 @@ cdef class BitMaskArray:
             free(self.validity_buffer)
 
     def __setitem__(self, key, value):
+        cdef int index = 0
         if self.parent is not None:
-            self.parent.__setitem__(key, value)
+            self.parent[key] = value
         elif isinstance(key, int) and key >= 0:
             if value:
                 ArrowBitSet(self.validity_buffer, key)
@@ -250,15 +254,16 @@ cdef class BitMaskArray:
         else:
             arr = self.to_numpy()
             arr[key] = value
-            for index, val in enumerate(arr.flatten()):
+            for val in arr.flatten():
                 if val:
                     ArrowBitSet(self.validity_buffer, index)
                 else:
                     ArrowBitClear(self.validity_buffer, index)
+                index += 1
 
     def __getitem__(self, key):
         if self.parent is not None:
-            return self.parent.__getitem__(key)
+            return self.parent[key]
         elif isinstance(key, int) and key >= 0:
             return bool(ArrowBitGet(self.validity_buffer, key))
         else:
@@ -271,7 +276,7 @@ cdef class BitMaskArray:
 
     def __or__(self, other):
         if self.parent is not None:
-            return self.parent.__or__(other)
+            return self.parent | other
         elif isinstance(other, type(self)):
             return self.to_numpy() | other.to_numpy()
         else:
@@ -284,8 +289,9 @@ cdef class BitMaskArray:
     def to_numpy(self) -> ndarray:
         if self.parent is not None:
             return self.parent.to_numpy()
-        cdef ndarray[uint8_t] result
-        result = np.empty(self.array_size, dtype=bool)
+
+        cdef int i
+        cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
         for i in range(self.array_size):
             result[i] = self[i]
 

@@ -46,6 +46,9 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
         additional_dependencies: [tomli]
+        exclude: |
+            ^pandas/_libs/include/pandas/vendored/nanoarrow.h
+            |pandas/_libs/src/vendored/nanoarrow.c
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.15.0
     hooks:
