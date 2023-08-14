@@ -5,6 +5,8 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
+from pandas.compat.pyarrow import pa_version_under12p0
+
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
@@ -13,7 +15,6 @@ from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
     ArrowStringArrayNumpySemantics,
 )
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -450,7 +451,7 @@ def test_arrow_array(dtype):
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
-    if dtype.storage == "pyarrow" and Version(pa.__version__) <= Version("11.0.0"):
+    if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
         expected = pa.chunked_array(expected)
 
     assert arr.equals(expected)
