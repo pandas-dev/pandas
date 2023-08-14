@@ -456,7 +456,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         return ArrowExtensionArray(values).to_numpy(na_value=np.nan)
 
     def __getattribute__(self, item):
-        if item in ArrowStringArrayMixin.__dict__:
+        if item in ArrowStringArrayMixin.__dict__ and item != "_pa_array":
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
 
