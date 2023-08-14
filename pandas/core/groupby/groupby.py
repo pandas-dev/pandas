@@ -1968,7 +1968,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
             # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
+            if func in ["idxmin", "idxmax"]:
+                result = self._idxmin_idxmax("idxmin", **kwargs, ignore_unobserved=True)
+            else:
                 with com.temp_setattr(self, "as_index", True):
                     # GH#49834 - result needs groups in the index for
                     # _wrap_transform_fast_result
@@ -3306,6 +3308,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             index = self.obj.index
+
+            values = res._values
+            if not self.observed and ignore_unobserved:
+                # -2 indicates unobserved category; recast as NA
+                values = np.where(values == -2, -1, values)
+
             if res.size == 0:
                 result = res.astype(index.dtype)
             else:
@@ -3314,16 +3322,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 if isinstance(res, Series):
                     result = res._constructor(
-                        index.take(res), index=res.index, name=res.name
+                        index.take(values), index=res.index, name=res.name
                     )
                 else:
                     from pandas.core.dtypes.missing import na_value_for_dtype
 
                     na_value = na_value_for_dtype(index.dtype, compat=False)
                     buf = {}
-                    for k, _ in enumerate(res.columns):
+                    for k, column_values in enumerate(values.T):
                         buf[k] = index.array.take(
-                            res._ixs(k, axis=1), allow_fill=True, fill_value=na_value
+                            column_values, allow_fill=True, fill_value=na_value
                         )
                     result = self.obj._constructor(buf, index=res.index)
                     result.columns = res.columns

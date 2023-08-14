@@ -97,23 +97,24 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args):
-    if klass is None or klass is FutureWarning:
-        with tm.assert_produces_warning(klass, match=msg):
+def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
+    warn_klass = None if warn_msg == "" else FutureWarning
+    with tm.assert_produces_warning(warn_klass, match=warn_msg):
+        if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
             elif how == "agg":
                 gb.agg(groupby_func, *args)
             else:
                 gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+        else:
+            with pytest.raises(klass, match=msg):
+                if how == "method":
+                    getattr(gb, groupby_func)(*args)
+                elif how == "agg":
+                    gb.agg(groupby_func, *args)
+                else:
+                    gb.transform(groupby_func, *args)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -234,8 +235,7 @@ def test_groupby_raises_string_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -298,13 +298,11 @@ def test_groupby_raises_datetime(
         "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    warn = None
-    warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
     if groupby_func in ["any", "all"]:
-        warn = FutureWarning
-
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func, args)
+        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -343,8 +341,7 @@ def test_groupby_raises_datetime_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -541,8 +538,7 @@ def test_groupby_raises_category_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])

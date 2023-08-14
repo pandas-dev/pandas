@@ -297,7 +297,10 @@ class Grouper:
         self._indexer = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self,
+        obj: NDFrameT,
+        validate: bool = True,
+        observed: bool = False,
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
@@ -317,6 +320,7 @@ class Grouper:
             axis=self.axis,
             level=self.level,
             sort=self.sort,
+            observed=observed,
             validate=validate,
             dropna=self.dropna,
         )
@@ -892,7 +896,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
