@@ -218,8 +218,8 @@ cdef class NDArrayBacked:
         return to_concat[0]._from_backing_data(new_arr)
 
 
-def _unpickle_bitmaskarray(array):
-    bma = BitMaskArray(array)
+def _unpickle_bitmaskarray(array, parent):
+    bma = BitMaskArray(array, parent)
     return bma
 
 
@@ -260,15 +260,23 @@ cdef class BitMaskArray:
         self.buffer_owner = False
         self.bitmap = bma.bitmap
 
-    def __cinit__(self, data):
+    def __cinit__(self, data, parent=None):
+        # parent is only required to reconstruct ref-counting from pickle
+        # but should not be called from user code
         if isinstance(data, np.ndarray):
             self.init_from_ndarray(data.ravel())
             self.array_shape = data.shape
-            self.parent = None
+            if parent:
+                self.parent = parent
+            else:
+                self.parent = None
         elif isinstance(data, type(self)):
             self.init_from_bitmaskarray(data)
             self.array_shape = data.array_shape
-            self.parent = data
+            if parent:
+                self.parent = parent
+            else:
+                self.parent = data
         else:
             raise TypeError("Unsupported argument to BitMaskArray constructor")
 
@@ -335,8 +343,8 @@ cdef class BitMaskArray:
             return self.to_numpy() | other
 
     def __reduce__(self):
-        object_state = (self.to_numpy(),)
-        return (_unpickle_bitmaskarray, object_state)
+        object_state = (self.to_numpy(), self.parent)
+        return (_unpickle_bitmaskarray, object_state, self.parent)
 
     @property
     def nbytes(self) -> int:
