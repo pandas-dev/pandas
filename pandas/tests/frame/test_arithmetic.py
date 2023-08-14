@@ -1766,7 +1766,12 @@ class TestFrameArithmeticUnsorted:
         [
             "add",
             "and",
-            "div",
+            pytest.param(
+                "div",
+                marks=pytest.mark.xfail(
+                    raises=AttributeError, reason="__idiv__ not implemented"
+                ),
+            ),
             "floordiv",
             "mod",
             "mul",
@@ -1778,9 +1783,6 @@ class TestFrameArithmeticUnsorted:
         ],
     )
     def test_inplace_ops_identity2(self, op):
-        if op == "div":
-            return
-
         df = DataFrame({"a": [1.0, 2.0, 3.0], "b": [1, 2, 3]})
 
         operand = 2

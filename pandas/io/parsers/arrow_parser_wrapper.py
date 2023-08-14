@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 
@@ -10,7 +12,10 @@ from pandas.core.dtypes.inference import is_integer
 import pandas as pd
 from pandas import DataFrame
 
-from pandas.io._util import _arrow_dtype_mapping
+from pandas.io._util import (
+    _arrow_dtype_mapping,
+    arrow_string_types_mapper,
+)
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
@@ -215,6 +220,8 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping = _arrow_dtype_mapping()
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
+        elif using_pyarrow_string_dtype():
+            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
