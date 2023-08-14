@@ -24,8 +24,7 @@ from libc.stdlib cimport (
 
 cdef extern from "pandas/vendored/nanoarrow.h":
     int8_t ArrowBitGet(const uint8_t*, int64_t)
-    void ArrowBitSet(uint8_t*, int64_t)
-    void ArrowBitClear(uint8_t*, int64_t)
+    void ArrowBitSetTo(uint8_t*, int64_t, uint8_t)
 
 
 @cython.freelist(16)
@@ -221,15 +220,6 @@ cdef class BitMaskArray:
     cdef public:
         object parent
 
-    cdef void _setitem_integral(self, const int key, const uint8_t value):
-        if value:
-            ArrowBitSet(self.validity_buffer, key)
-        else:
-            ArrowBitClear(self.validity_buffer, key)
-
-    cdef uint8_t _getitem_integral(self, const Py_ssize_t index):
-        return ArrowBitGet(self.validity_buffer, index)
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void init_from_ndarray(self, const uint8_t[:] arr):
@@ -238,7 +228,7 @@ cdef class BitMaskArray:
         self.array_nbytes = self.array_size // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(self.array_nbytes)
         for i in range(self.array_size):
-            self._setitem_integral(i, arr[i])
+            ArrowBitSetTo(self.validity_buffer, i, arr[i])
 
     def __cinit__(self, data):
         self.parent = None
@@ -262,22 +252,19 @@ cdef class BitMaskArray:
         if self.parent is not None:
             self.parent[key] = value
         elif isinstance(key, int) and key >= 0:
-            self._setitem_integral(key, bool(value))
+            ArrowBitSetTo(self.validity_buffer, key, bool(value))
         else:
             arr = self.to_numpy()
             arr[key] = value
             arr1d = arr.ravel()
             for i in range(arr1d.shape[0]):
-                if arr1d[i]:
-                    ArrowBitSet(self.validity_buffer, i)
-                else:
-                    ArrowBitClear(self.validity_buffer, i)
+                ArrowBitSetTo(self.validity_buffer, i, arr1d[i])
 
     def __getitem__(self, key):
         if self.parent is not None:
             return self.parent[key]
         elif isinstance(key, int) and key >= 0:
-            return self._getitem_integral(key)
+            return ArrowBitGet(self.validity_buffer, key)
         else:
             return self.to_numpy()[key]
 
@@ -309,6 +296,6 @@ cdef class BitMaskArray:
         cdef Py_ssize_t i
         cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
         for i in range(self.array_size):
-            result[i] = self._getitem_integral(i)
+            result[i] = ArrowBitGet(self.validity_buffer, i)
 
         return result.reshape(self.array_shape)
