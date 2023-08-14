@@ -102,6 +102,12 @@ class TestDatetimeIndexTimezones:
         expected = ["2010-12-01 11:00", "2010-12-02 11:00", pd.NaT]
         tm.assert_index_equal(idx, DatetimeIndex(expected, tz="US/Eastern"))
 
+    def test_tz_convert_freq(self):
+        i = date_range("2020-03-27 06:00", freq="D", periods=5, tz="Europe/Berlin")
+
+        i2 = i.tz_convert("UTC")
+        assert i2.freq is None
+
     @pytest.mark.parametrize("prefix", ["", "dateutil/"])
     def test_dti_tz_convert_compat_timestamp(self, prefix):
         strdates = ["1/1/2012", "3/1/2012", "4/1/2012"]
@@ -880,7 +886,7 @@ class TestDatetimeIndexTimezones:
         t3 = DatetimeIndex(["2019-01-01 10:00"], freq="H")
         assert t3.tz_localize(tz=tz_naive_fixture).freq == t3.freq
         t4 = DatetimeIndex(["2019-01-02 12:00"], tz="UTC", freq="T")
-        assert t4.tz_convert(tz="UTC").freq == t4.freq
+        assert t4.tz_convert(tz="UTC").freq is None
 
     def test_drop_dst_boundary(self):
         # see gh-18031

@@ -824,7 +824,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     def tz_convert(self, tz) -> Self:
         """
-        Convert tz-aware Datetime Array/Index from one time zone to another.
+        Convert tz-aware Datetime Array/Index from one time zone to another
+        and sets frequency to None.
 
         Parameters
         ----------
@@ -866,7 +867,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         DatetimeIndex(['2014-08-01 02:00:00-05:00',
                        '2014-08-01 03:00:00-05:00',
                        '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='H')
+                      dtype='datetime64[ns, US/Central]')
 
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
@@ -884,7 +885,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='H')
+                        dtype='datetime64[ns]')
         """
         tz = timezones.maybe_get_tz(tz)
 
@@ -896,7 +897,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
+        return self._simple_new(self._ndarray, dtype=dtype)
 
     @dtl.ravel_compat
     def tz_localize(
