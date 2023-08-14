@@ -567,7 +567,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # not directly depending on the `copy` keyword
             mask = self._mask if data is self._data else self._mask.to_numpy().copy()
             cls = dtype.construct_array_type()
-            return cls(data, mask, copy=False)
+            return cls(data, mask, copy=False)  # type: ignore[arg-type]
 
         if isinstance(dtype, ExtensionDtype):
             eacls = dtype.construct_array_type()
@@ -1395,8 +1395,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(
-            values, self._mask.to_numpy(), self._falsey_value
-        )  # type: ignore[arg-type]
+            values, self._mask.to_numpy(), self._falsey_value  # type: ignore[arg-type]
+        )
         result = values.any()
         if skipna:
             return result
@@ -1478,8 +1478,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # bool, int, float, complex, str, bytes,
         # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
         np.putmask(
-            values, self._mask.to_numpy(), self._truthy_value
-        )  # type: ignore[arg-type]
+            values, self._mask.to_numpy(), self._truthy_value  # type: ignore[arg-type]
+        )
         result = values.all(axis=axis)
 
         if skipna:

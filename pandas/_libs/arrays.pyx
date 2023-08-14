@@ -251,7 +251,7 @@ cdef class BitMaskArray:
 
         if self.parent is not None:
             self.parent[key] = value
-        elif isinstance(key, int) and key >= 0:
+        elif isinstance(key, int) and key >= 0 and key < self.array_size:
             ArrowBitSetTo(self.validity_buffer, key, bool(value))
         else:
             arr = self.to_numpy()
@@ -263,7 +263,7 @@ cdef class BitMaskArray:
     def __getitem__(self, key):
         if self.parent is not None:
             return self.parent[key]
-        elif isinstance(key, int) and key >= 0:
+        elif isinstance(key, int) and key >= 0 and key < self.array_size:
             return ArrowBitGet(self.validity_buffer, key)
         else:
             return self.to_numpy()[key]
@@ -289,13 +289,18 @@ cdef class BitMaskArray:
     def nbytes(self) -> int:
         return self.array_nbytes
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void convert_to_boolean_array(self, uint8_t[:] out):
+        cdef Py_ssize_t i
+        for i in range(self.array_size):
+            out[i] = ArrowBitGet(self.validity_buffer, i)
+
     def to_numpy(self) -> ndarray:
         if self.parent is not None:
             return self.parent.to_numpy()
 
-        cdef Py_ssize_t i
         cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
-        for i in range(self.array_size):
-            result[i] = ArrowBitGet(self.validity_buffer, i)
+        self.convert_to_boolean_array(result)
 
         return result.reshape(self.array_shape)
