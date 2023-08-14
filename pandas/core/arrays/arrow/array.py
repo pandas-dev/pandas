@@ -250,12 +250,6 @@ class ArrowExtensionArray(
             )
         self._dtype = ArrowDtype(self._pa_array.type)
 
-    def __dir__(self):
-        o = set(dir(type(self)))
-        o.update(self.__dict__)
-        o.update(set(dir(ArrowStringArrayMixin)))
-        return list(o)
-
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy: bool = False):
         """
