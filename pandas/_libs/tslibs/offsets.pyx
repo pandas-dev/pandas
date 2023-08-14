@@ -1374,7 +1374,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     **kwds
         Temporal parameter that add to or replace the offset value.
     weekday : int {0, 1, ..., 6}, default 0
-    
+
         A specific integer for the day of the week.
         - 0 is Monday
         - 1 is Tuesday
