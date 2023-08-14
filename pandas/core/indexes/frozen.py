@@ -8,10 +8,7 @@ These are used for:
 """
 from __future__ import annotations
 
-from typing import (
-    Any,
-    NoReturn,
-)
+from typing import NoReturn
 
 from pandas.core.base import PandasObject
 
@@ -80,7 +77,7 @@ class FrozenList(PandasObject, list):
             other = list(other)
         return type(self)(other + list(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, (tuple, FrozenList)):
             other = list(other)
         return super().__eq__(other)
