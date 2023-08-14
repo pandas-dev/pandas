@@ -2220,10 +2220,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if result.empty:
                 result = result.astype(self.obj.index.dtype)
         else:
-            # expression has type "Series | DataFrame", variable has type "DataFrame"
-            result = self._idxmin_idxmax(  # type: ignore[assignment]
-                "idxmax", numeric_only, skipna=skipna
-            )
+            result = self._idxmin_idxmax("idxmax", numeric_only, skipna=skipna)
         return result
 
     def idxmin(
@@ -2312,7 +2309,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         else:
             axis = self.axis
 
-        if axis == 1 or not skipna:
+        if axis == 1:
 
             def func(df):
                 return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
@@ -2324,10 +2321,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             if result.empty:
                 result = result.astype(self.obj.index.dtype)
         else:
-            # expression has type "Series | DataFrame", variable has type "DataFrame"
-            result = self._idxmin_idxmax(  # type: ignore[assignment]
-                "idxmin", numeric_only, skipna=skipna
-            )
+            result = self._idxmin_idxmax("idxmin", numeric_only, skipna=skipna)
         return result
 
     boxplot = boxplot_frame_groupby

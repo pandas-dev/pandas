@@ -1830,6 +1830,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alias: str,
         npfunc: Callable | None = None,
         post_process: Callable | None = None,
+        **kwargs,
     ):
         result = self._cython_agg_general(
             how=alias,
@@ -1837,6 +1838,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             numeric_only=numeric_only,
             min_count=min_count,
             post_process=post_process,
+            **kwargs,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -1968,10 +1970,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
             # Temporarily set observed for dealing with categoricals.
-            if func in ["idxmin", "idxmax"]:
-                result = self._idxmin_idxmax("idxmin", **kwargs, ignore_unobserved=True)
-            else:
-                with com.temp_setattr(self, "as_index", True):
+            with com.temp_setattr(self, "as_index", True):
+                if func in ["idxmin", "idxmax"]:
+                    # mypy doesn't recognize func as Literal["idxmin", "idxmax"]
+                    result = self._idxmin_idxmax(  # type: ignore[arg-type]
+                        func, **kwargs, ignore_unobserved=True
+                    )
+                else:
                     # GH#49834 - result needs groups in the index for
                     # _wrap_transform_fast_result
                     if engine is not None:
@@ -3251,7 +3256,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only: bool = False,
         skipna: bool = True,
         ignore_unobserved: bool = False,
-    ) -> Series | DataFrame:
+    ) -> NDFrameT:
         """Compute idxmax/idxmin.
 
         Parameters
@@ -3275,12 +3280,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
+            has_unobserved = (res._values == -2).any(axis=None)
             if not self.observed and not ignore_unobserved:
                 # Raise if there are unobserved categories. When there are
                 # multiple groupings, the categories are not included in the
                 # upfront computation so we compare the final result length
                 # with the current length
-                has_unobserved = (res._values == -2).any(axis=None)
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
@@ -3292,7 +3297,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     and has_unobserved
                 )
             else:
-                raise_err = False
+                raise_err = not skipna and has_na_value
             if raise_err:
                 raise ValueError(
                     f"Can't get {how} of an empty group due to unobserved categories. "
@@ -3307,10 +3312,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     stacklevel=find_stack_level(),
                 )
 
-            index = self.obj.index
+            index = self.obj._get_axis(self.axis)
 
             values = res._values
-            if not self.observed and ignore_unobserved:
+            if not self.observed and ignore_unobserved and has_unobserved:
                 # -2 indicates unobserved category; recast as NA
                 values = np.where(values == -2, -1, values)
 
@@ -3320,14 +3325,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 if isinstance(index, MultiIndex):
                     index = index.to_flat_index()
 
+                from pandas.core.dtypes.missing import na_value_for_dtype
+
+                na_value = na_value_for_dtype(index.dtype, compat=False)
+
                 if isinstance(res, Series):
                     result = res._constructor(
-                        index.take(values), index=res.index, name=res.name
+                        index.array.take(values, allow_fill=True, fill_value=na_value),
+                        index=res.index,
+                        name=res.name,
                     )
                 else:
-                    from pandas.core.dtypes.missing import na_value_for_dtype
-
-                    na_value = na_value_for_dtype(index.dtype, compat=False)
                     buf = {}
                     for k, column_values in enumerate(values.T):
                         buf[k] = index.array.take(
@@ -3342,6 +3350,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             min_count=1,
             alias=how,
             post_process=post_process,
+            skipna=skipna,
         )
         return result
 

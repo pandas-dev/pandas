@@ -2164,7 +2164,7 @@ class TimeGrouper(Grouper):
         )
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = False
     ) -> tuple[BinGrouper, NDFrameT]:
         # create the resampler and return our binner
         r = self._get_resampler(obj)
