@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.missing import (
@@ -798,8 +798,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        opt = get_option("future.infer_string")
-        if opt is True:
+        if using_pyarrow_string_dtype():
             import pyarrow as pa
 
             pa_dtype = pa.string()

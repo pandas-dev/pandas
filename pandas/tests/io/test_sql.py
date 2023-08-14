@@ -140,7 +140,7 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
             "Name" TEXT
         )"""
     cur.execute(stmt)
-    with iris_file.open(newline=None) as csvfile:
+    with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
@@ -153,7 +153,7 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
 
     iris = iris_table_metadata(dialect)
 
-    with iris_file.open(newline=None) as csvfile:
+    with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
         params = [dict(zip(header, row)) for row in reader]
