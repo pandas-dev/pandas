@@ -713,6 +713,7 @@ def test_rank_categorical():
 
 
 def test_groupby_op_with_nullables():
+    # GH 54206
     df_ext = DataFrame({"x": [None]}, dtype="Float64")
     result_ext = df_ext.groupby("x", dropna=False)["x"].rank(
         method="min", na_option="bottom"
