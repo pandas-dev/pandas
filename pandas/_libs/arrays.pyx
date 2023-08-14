@@ -221,20 +221,24 @@ cdef class BitMaskArray:
     cdef public:
         object parent
 
-    cdef _setitem_with_integral(self, const int key, const uint8_t value):
+    cdef void _setitem_integral(self, const int key, const uint8_t value):
         if value:
             ArrowBitSet(self.validity_buffer, key)
         else:
             ArrowBitClear(self.validity_buffer, key)
 
+    cdef uint8_t _getitem_integral(self, const Py_ssize_t index):
+        return ArrowBitGet(self.validity_buffer, index)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cdef void init_from_ndarray(self, const uint8_t[:] arr):
-        cdef Py_ssize_t i, arrlen
-        self.array_size = arr.size
+        cdef Py_ssize_t i
+        self.array_size = arr.shape[0]
         self.array_nbytes = self.array_size // 8 + 1
         self.validity_buffer = <uint8_t *>malloc(self.array_nbytes)
-        arrlen = len(arr)
-        for i in range(arrlen):
-            self._setitem_with_integral(i, arr[i])
+        for i in range(self.array_size):
+            self._setitem_integral(i, arr[i])
 
     def __cinit__(self, data):
         self.parent = None
@@ -252,26 +256,28 @@ cdef class BitMaskArray:
             free(self.validity_buffer)
 
     def __setitem__(self, key, value):
-        cdef int index = 0
+        cdef const uint8_t[:] arr1d
+        cdef Py_ssize_t i = 0
+
         if self.parent is not None:
             self.parent[key] = value
         elif isinstance(key, int) and key >= 0:
-            self._setitem_with_integral(key, bool(value))
+            self._setitem_integral(key, bool(value))
         else:
             arr = self.to_numpy()
             arr[key] = value
-            for val in arr.ravel():
-                if val:
-                    ArrowBitSet(self.validity_buffer, index)
+            arr1d = arr.ravel()
+            for i in range(arr1d.shape[0]):
+                if arr1d[i]:
+                    ArrowBitSet(self.validity_buffer, i)
                 else:
-                    ArrowBitClear(self.validity_buffer, index)
-                index += 1
+                    ArrowBitClear(self.validity_buffer, i)
 
     def __getitem__(self, key):
         if self.parent is not None:
             return self.parent[key]
         elif isinstance(key, int) and key >= 0:
-            return bool(ArrowBitGet(self.validity_buffer, key))
+            return self._getitem_integral(key)
         else:
             return self.to_numpy()[key]
 
@@ -300,9 +306,9 @@ cdef class BitMaskArray:
         if self.parent is not None:
             return self.parent.to_numpy()
 
-        cdef int i
+        cdef Py_ssize_t i
         cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
         for i in range(self.array_size):
-            result[i] = self[i]
+            result[i] = self._getitem_integral(i)
 
         return result.reshape(self.array_shape)
