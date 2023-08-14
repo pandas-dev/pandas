@@ -264,7 +264,7 @@ typedef int ArrowErrorCode;
 /// \ingroup nanoarrow-errors
 ///
 /// If nanoarrow was built in debug mode (i.e., defined(NANOARROW_DEBUG) is true),
-/// print a message to stderr and abort. If nanoarrow was bulit in release mode,
+/// print a message to stderr and abort. If nanoarrow was built in release mode,
 /// this statement has no effect. You can customize fatal error behaviour
 /// be defining the NANOARROW_PRINT_AND_DIE macro before including nanoarrow.h
 /// This macro is provided as a convenience for users and is not used internally.
@@ -1252,7 +1252,7 @@ ArrowErrorCode ArrowMetadataBuilderRemove(struct ArrowBuffer* buffer,
 /// Contains more readily extractable values than a raw ArrowSchema.
 /// Clients can stack or statically allocate this structure but are
 /// encouraged to use the provided getters to ensure forward
-/// compatiblity.
+/// compatibility.
 struct ArrowSchemaView {
   /// \brief A pointer to the schema represented by this view
   struct ArrowSchema* schema;
@@ -1725,7 +1725,7 @@ ArrowErrorCode ArrowArrayFinishBuildingDefault(struct ArrowArray* array,
 /// (i.e. NANOARROW_VALIDATION_LEVEL_NONE or NANOARROW_VALIDATION_LEVEL_MINIMAL) if CPU
 /// buffer data access is not possible or more validation (i.e.,
 /// NANOARROW_VALIDATION_LEVEL_FULL) if buffer content was obtained from an untrusted or
-/// corruptable source.
+/// corruptible source.
 ArrowErrorCode ArrowArrayFinishBuilding(struct ArrowArray* array,
                                         enum ArrowValidationLevel validation_level,
                                         struct ArrowError* error);
@@ -3059,7 +3059,7 @@ static inline ArrowErrorCode ArrowArrayFinishUnionElement(struct ArrowArray* arr
 
   switch (private_data->storage_type) {
     case NANOARROW_TYPE_DENSE_UNION:
-      // Apppend the target child length to the union offsets buffer
+      // Append the target child length to the union offsets buffer
       _NANOARROW_CHECK_RANGE(array->children[child_index]->length, 0, INT32_MAX);
       NANOARROW_RETURN_NOT_OK(ArrowBufferAppendInt32(
           ArrowArrayBuffer(array, 1), (int32_t)array->children[child_index]->length - 1));
