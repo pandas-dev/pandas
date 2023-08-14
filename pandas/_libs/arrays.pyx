@@ -214,24 +214,33 @@ def _unpickle_bitmaskarray(array):
 
 cdef class BitMaskArray:
     cdef:
-        int array_size
+        Py_ssize_t array_size
+        Py_ssize_t array_nbytes
         object array_shape
         uint8_t* validity_buffer
     cdef public:
-        int nbytes
         object parent
+
+    cdef _setitem_with_integral(self, const int key, const uint8_t value):
+        if value:
+            ArrowBitSet(self.validity_buffer, key)
+        else:
+            ArrowBitClear(self.validity_buffer, key)
+
+    cdef void init_from_ndarray(self, const uint8_t[:] arr):
+        cdef Py_ssize_t i, arrlen
+        self.array_size = arr.size
+        self.array_shape = arr.shape
+        self.array_nbytes = self.array_size // 8 + 1
+        self.validity_buffer = <uint8_t *>malloc(self.array_nbytes)
+        arrlen = len(arr)
+        for i in range(arrlen):
+            self._setitem_with_integral(i, arr[i])
 
     def __cinit__(self, data):
         self.parent = None
-        cdef int index = 0
         if isinstance(data, np.ndarray):
-            self.array_size = data.size
-            self.array_shape = data.shape
-            self.nbytes = self.array_size // 8 + 1
-            self.validity_buffer = <uint8_t *>malloc(self.nbytes)
-            for value in data.flatten():
-                self[index] = value
-                index += 1
+            self.init_from_ndarray(data.flatten())
         elif isinstance(data, type(self)):
             self.parent = data
             # other attributes are undefined when a parent exists
@@ -247,10 +256,7 @@ cdef class BitMaskArray:
         if self.parent is not None:
             self.parent[key] = value
         elif isinstance(key, int) and key >= 0:
-            if value:
-                ArrowBitSet(self.validity_buffer, key)
-            else:
-                ArrowBitClear(self.validity_buffer, key)
+            self._setitem_with_integral(key, bool(value))
         else:
             arr = self.to_numpy()
             arr[key] = value
@@ -285,6 +291,10 @@ cdef class BitMaskArray:
     def __reduce__(self):
         object_state = (self.to_numpy(),)
         return (_unpickle_bitmaskarray, object_state)
+
+    @property
+    def nbytes(self) -> int:
+        return self.array_nbytes
 
     def to_numpy(self) -> ndarray:
         if self.parent is not None:
