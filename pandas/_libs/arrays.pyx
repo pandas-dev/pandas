@@ -237,8 +237,6 @@ cdef void buf_or(uint8_t* dest, uint8_t* src1, uint8_t* src2, Py_ssize_t size):
 
 cdef class BitMaskArray:
     cdef:
-        Py_ssize_t array_size
-        Py_ssize_t array_nbytes
         ArrowBitmap bitmap
         bint buffer_owner  # set when parent is None, but gives C-level access
     cdef public:
@@ -249,18 +247,17 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     cdef void init_from_ndarray(self, const uint8_t[::1] arr):
         cdef ArrowBitmap bitmap
-        self.array_size = arr.shape[0]
-        self.array_nbytes = self.array_size // 8 + 1
+        # As long as we have a 1D arr argument we can use .shape[0] to avoid
+        # a call to Python via .size
+        cdef int64_t nobs = arr.shape[0]
         ArrowBitmapInit(&bitmap)
-        ArrowBitmapReserve(&bitmap, self.array_size)
-        ArrowBitmapAppendInt8Unsafe(&bitmap, <const int8_t*>&arr[0], self.array_size)
-        self.bitmap = bitmap
+        ArrowBitmapReserve(&bitmap, nobs)
+        ArrowBitmapAppendInt8Unsafe(&bitmap, <const int8_t*>&arr[0], nobs)
         self.buffer_owner = True
+        self.bitmap = bitmap
 
     cdef void init_from_bitmaskarray(self, BitMaskArray bma):
         self.buffer_owner = False
-        self.array_size = bma.array_size
-        self.array_nbytes = bma.array_nbytes
         self.bitmap = bma.bitmap
 
     def __cinit__(self, data):
@@ -288,7 +285,7 @@ cdef class BitMaskArray:
         if isinstance(key, int):
             ckey = key
             cvalue = value
-            if ckey >= 0 and ckey < self.array_size:
+            if ckey >= 0 and ckey < self.bitmap.size_bits:
                 ArrowBitSetTo(self.bitmap.buffer.data, ckey, cvalue)
                 return
 
@@ -302,18 +299,18 @@ cdef class BitMaskArray:
         cdef Py_ssize_t ckey
         if isinstance(key, int):
             ckey = key
-            if ckey >= 0 and ckey < self.array_size:
+            if ckey >= 0 and ckey < self.bitmap.size_bits:
                 return ArrowBitGet(self.bitmap.buffer.data, ckey)
 
         return self.to_numpy()[key]
 
     def __invert__(self):
         cdef ndarray[uint8_t] result
-        result = np.empty(self.array_size, dtype=bool)
+        result = np.empty(self.bitmap.size_bits, dtype=bool)
 
-        cdef uint8_t* inverted = <uint8_t*>malloc(self.array_size)
-        buf_invert(inverted, self.bitmap.buffer.data, self.array_size)
-        BitMaskArray.buffer_to_array_1d(result, inverted, self.array_size)
+        cdef uint8_t* inverted = <uint8_t*>malloc(self.bitmap.size_bits)
+        buf_invert(inverted, self.bitmap.buffer.data, self.bitmap.size_bits)
+        BitMaskArray.buffer_to_array_1d(result, inverted, self.bitmap.size_bits)
         free(inverted)
         return result.reshape(self.array_shape)
 
@@ -323,15 +320,15 @@ cdef class BitMaskArray:
         cdef BitMaskArray other_buf
         if isinstance(other, type(self)):
             other_buf = other
-            result = np.empty(self.array_size, dtype=bool)
-            ored = <uint8_t*>malloc(self.array_size)
+            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            ored = <uint8_t*>malloc(self.bitmap.size_bits)
             buf_or(
                 ored,
                 self.bitmap.buffer.data,
                 other_buf.bitmap.buffer.data,
-                self.array_size
+                self.bitmap.size_bits
             )
-            BitMaskArray.buffer_to_array_1d(result, ored, self.array_size)
+            BitMaskArray.buffer_to_array_1d(result, ored, self.bitmap.size_bits)
             free(ored)
             return result.reshape(self.array_shape)
         else:
@@ -343,7 +340,7 @@ cdef class BitMaskArray:
 
     @property
     def nbytes(self) -> int:
-        return self.array_nbytes
+        return self.bitmap.buffer.size_bytes
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -354,11 +351,11 @@ cdef class BitMaskArray:
             out[i] = ArrowBitGet(buf, i)
 
     def to_numpy(self) -> ndarray:
-        cdef ndarray[uint8_t] result = np.empty(self.array_size, dtype=bool)
+        cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
         BitMaskArray.buffer_to_array_1d(
             result,
             self.bitmap.buffer.data,
-            self.array_size
+            self.bitmap.size_bits
         )
 
         return result.reshape(self.array_shape)
