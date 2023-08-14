@@ -310,7 +310,6 @@ def test_index(method, sub, start, end, index_or_series, any_string_dtype, expec
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
     )
-
     expected_dtype = np.int64 if any_string_dtype in object_pyarrow_numpy else "Int64"
     expected = index_or_series(expected, dtype=expected_dtype)
 
