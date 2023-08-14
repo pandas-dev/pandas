@@ -14,7 +14,6 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes import PandasDtype
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import pandas_dtype
@@ -509,8 +508,8 @@ class NumpyExtensionArray(  # type: ignore[misc]
         return result
 
     def _validate_setitem_value(self, value):
-        if PandasDtype(type(value)) != self.dtype:
-            raise TypeError(f"{np.dtype(value)} != {self.dtype} => bad")
+        if NumpyEADtype(type(value)) != self.dtype:
+            raise TypeError("bad")
 
     # ------------------------------------------------------------------------
     # Ops
