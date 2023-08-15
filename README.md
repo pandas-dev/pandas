@@ -108,7 +108,7 @@ If you want to use pip, you will first have to make sure that it is installed. T
 
 ```sh
 # check that pip is installed
-pip --version
+python -m pip --version
 ````
 
 If you do not have an error message such as:

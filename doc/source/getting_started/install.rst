@@ -79,7 +79,7 @@ pandas can be installed via pip from
 
 .. code-block:: shell
 
-    pip install pandas
+    python -p pip install pandas
 
 .. note::
     You must have ``pip>=19.3`` to install from PyPI.
@@ -94,7 +94,7 @@ to install pandas with the optional dependencies to read Excel files.
 
 .. code-block:: shell
 
-    pip install "pandas[excel]"
+    python -p pip install "pandas[excel]"
 
 The full list of extras that can be installed can be found in the :ref:`dependency section.<install.optional_dependencies>`
 
@@ -142,7 +142,7 @@ index from the PyPI registry of anaconda.org. You can install it by running.
 
 .. code-block:: shell
 
-    pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
+    python -p pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
 Note that you might be required to uninstall an existing version of pandas to install the development version.
 
@@ -154,7 +154,7 @@ Running the test suite
 ----------------------
 
 pandas is equipped with an exhaustive set of unit tests. The packages required to run the tests
-can be installed with ``pip install "pandas[test]"``. To run the tests from a
+can be installed with ``python -p pip install "pandas[test]"``. To run the tests from a
 Python terminal.
 
 .. code-block:: python
@@ -233,7 +233,7 @@ Performance dependencies (recommended)
    You are highly encouraged to install these libraries, as they provide speed improvements, especially
    when working with large data sets.
 
-Installable with ``pip install "pandas[performance]"``
+Installable with ``python -p pip install "pandas[performance]"``
 
 ===================================================== ================== ================== ===================================================================================================================================================================================
 Dependency                                            Minimum Version    pip extra          Notes
@@ -246,7 +246,7 @@ Dependency                                            Minimum Version    pip ext
 Visualization
 ^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[plot, output_formatting]"``.
+Installable with ``python -p pip install "pandas[plot, output_formatting]"``.
 
 ========================= ================== ================== =============================================================
 Dependency                Minimum Version    pip extra          Notes
@@ -259,7 +259,7 @@ tabulate                  0.8.10             output_formatting  Printing in Mark
 Computation
 ^^^^^^^^^^^
 
-Installable with ``pip install "pandas[computation]"``.
+Installable with ``python -p pip install "pandas[computation]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -271,7 +271,7 @@ xarray                    2022.03.0          computation     pandas-like API for
 Excel files
 ^^^^^^^^^^^
 
-Installable with ``pip install "pandas[excel]"``.
+Installable with ``python -p pip install "pandas[excel]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -285,7 +285,7 @@ pyxlsb                    1.0.9              excel           Reading for xlsb fi
 HTML
 ^^^^
 
-Installable with ``pip install "pandas[html]"``.
+Installable with ``python -p pip install "pandas[html]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -322,7 +322,7 @@ top-level :func:`~pandas.read_html` function:
 XML
 ^^^
 
-Installable with ``pip install "pandas[xml]"``.
+Installable with ``python -p pip install "pandas[xml]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -333,7 +333,7 @@ lxml                      4.8.0              xml             XML parser for read
 SQL databases
 ^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.
+Installable with ``python -p pip install "pandas[postgresql, mysql, sql-other]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -348,7 +348,7 @@ pymysql                   1.0.2              mysql           MySQL engine for sq
 Other data sources
 ^^^^^^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[hdf5, parquet, feather, spss, excel]"``
+Installable with ``python -p pip install "pandas[hdf5, parquet, feather, spss, excel]"``
 
 ========================= ================== ================ =============================================================
 Dependency                Minimum Version    pip extra        Notes
@@ -373,7 +373,7 @@ odfpy                     1.4.1              excel            Open document form
 Access data in the cloud
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[fss, aws, gcp]"``
+Installable with ``python -p pip install "pandas[fss, aws, gcp]"``
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -388,7 +388,7 @@ s3fs                      2022.05.0          aws             Amazon S3 access
 Clipboard
 ^^^^^^^^^
 
-Installable with ``pip install "pandas[clipboard]"``.
+Installable with ``python -p pip install "pandas[clipboard]"``.
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -406,7 +406,7 @@ qtpy                      2.2.0              clipboard       Clipboard I/O
 Compression
 ^^^^^^^^^^^
 
-Installable with ``pip install "pandas[compression]"``
+Installable with ``python -p pip install "pandas[compression]"``
 
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
@@ -419,7 +419,7 @@ Zstandard                 0.17.0             compression     Zstandard compressi
 Consortium Standard
 ^^^^^^^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[consortium-standard]"``
+Installable with ``python -p pip install "pandas[consortium-standard]"``
 
 ========================= ================== =================== =============================================================
 Dependency                Minimum Version    pip extra           Notes

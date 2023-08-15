@@ -37,7 +37,7 @@ Installation
 
         .. code-block:: bash
 
-            pip install pandas
+            python -m pip install pandas
 
     .. grid-item-card:: In-depth instructions?
         :class-card: install-card
