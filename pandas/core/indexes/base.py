@@ -4611,9 +4611,23 @@ class Index(IndexOpsMixin, PandasObject):
 
         _validate_join_method(how)
 
-        if (
-            not isinstance(self.dtype, CategoricalDtype)
-            and self.is_monotonic_increasing
+        if not self.is_unique and not other.is_unique:
+            return self._join_non_unique(other, how=how)
+        elif not self.is_unique or not other.is_unique:
+            if self.is_monotonic_increasing and other.is_monotonic_increasing:
+                # Note: 2023-08-15 we *do* have tests that get here with
+                #  Categorical, string[python] (can use libjoin)
+                #  and Interval (cannot)
+                if self._can_use_libjoin:
+                    # otherwise we will fall through to _join_via_get_indexer
+                    # GH#39133
+                    # go through object dtype for ea till engine is supported properly
+                    return self._join_monotonic(other, how=how)
+            else:
+                return self._join_non_unique(other, how=how)
+        elif (
+            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
+            self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
             and other._can_use_libjoin
