@@ -76,7 +76,9 @@ jobs:
           - name: "Numpy Dev"
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
-            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            # TODO: Add back "-W error::DeprecationWarning" once testing on PY312 or
+            # https://github.com/data-apis/array-api-compat/issues/53 is fixed
+            test_args: "-W error::FutureWarning"
             # TODO(cython3): Re-enable once next-beta(after beta 1) comes out
             # There are some warnings failing the build with -werror
             pandas_ci: "0"
