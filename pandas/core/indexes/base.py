@@ -6159,19 +6159,7 @@ class Index(IndexOpsMixin, PandasObject):
         nmissing = missing_mask.sum()
 
         if nmissing:
-            # TODO: remove special-case; this is just to keep exception
-            #  message tests from raising while debugging
-            use_interval_msg = isinstance(self.dtype, IntervalDtype) or (
-                isinstance(self.dtype, CategoricalDtype)
-                # "Index" has no attribute "categories"  [attr-defined]
-                and isinstance(
-                    self.categories.dtype, IntervalDtype  # type: ignore[attr-defined]
-                )
-            )
-
             if nmissing == len(indexer):
-                if use_interval_msg:
-                    key = list(key)
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 
             not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())
