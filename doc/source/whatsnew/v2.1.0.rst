@@ -266,6 +266,8 @@ Other enhancements
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.GroupBy.quantile` (:issue:`51722`)
+- :meth:`Index.all` and :meth:`Index.any` with floating dtypes and timedelta64 dtypes no longer raise ``TypeError``, matching the :meth:`Series.all` and :meth:`Series.any` behavior (:issue:`??`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.notable_bug_fixes:

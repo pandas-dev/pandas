@@ -693,6 +693,7 @@ class TestIndex:
     def test_logical_compat(self, op, simple_index):
         index = simple_index
         assert getattr(index, op)() == getattr(index.values, op)()
+        assert getattr(index, op)() == getattr(index.to_series(), op)()
 
     @pytest.mark.parametrize(
         "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
