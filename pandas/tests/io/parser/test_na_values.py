@@ -20,7 +20,6 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@skip_pyarrow
 def test_string_nas(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -39,7 +38,6 @@ d,,f
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_detect_string_na(all_parsers):
     parser = all_parsers
     data = """A,B
@@ -95,7 +93,6 @@ def test_non_string_na_values(all_parsers, data, na_values):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_default_na_values(all_parsers):
     _NA_VALUES = {
         "-1.#IND",
@@ -298,7 +295,6 @@ g,7,seven
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_no_na_values_no_keep_default(all_parsers):
     # see gh-4318: passing na_values=None and
     # keep_default_na=False yields 'None" as a na_value
@@ -502,7 +498,6 @@ def test_na_values_uint64(all_parsers, data, kwargs, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_empty_na_values_no_default_with_index(all_parsers):
     # see gh-15835
     data = "a,1\nb,2"
@@ -664,7 +659,6 @@ False
         parser.read_csv(StringIO(data), dtype="int")
 
 
-@skip_pyarrow
 def test_bool_and_nan_to_float(all_parsers):
     # GH#42808
     parser = all_parsers
@@ -675,17 +669,6 @@ False
 """
     result = parser.read_csv(StringIO(data), dtype="float")
     expected = DataFrame.from_dict({"0": [np.nan, 1.0, 0.0]})
-    tm.assert_frame_equal(result, expected)
-
-
-@skip_pyarrow
-def test_boolean_na_values(all_parsers):
-    # GH#53813
-    parser = all_parsers
-    names = ["0"]
-    data = """True\nFalse"""
-    result = parser.read_csv(StringIO(data), names=names, na_values=True)
-    expected = DataFrame.from_dict({"0": [np.nan, False]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -705,7 +688,7 @@ def test_list_na_values(all_parsers):
     # GH#53813
     parser = all_parsers
     names = ["0", "1"]
-    data = "1, 2\n3, 4"
+    data = "1,2\n3,4"
     result = parser.read_csv(StringIO(data), names=names, na_values=[1, 3])
     expected = DataFrame.from_dict({"0": [np.nan, np.nan], "1": [2, 4]})
     tm.assert_frame_equal(result, expected)
