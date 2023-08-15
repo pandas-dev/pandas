@@ -184,8 +184,8 @@ class TestIntervalIndexInsideMultiIndex:
     )
     def test_interval_index_reindex_behavior(self, base, expected_result):
         # GH 51826
-        left = np.arange(base, dtype=np.int32)
-        right = np.arange(1, base + 1, dtype=np.int32)
+        left = np.arange(base)
+        right = np.arange(1, base + 1)
         d = Series(range(base), index=IntervalIndex.from_arrays(left, right))
         result = d.reindex(index=[np.nan, 1.0])
         tm.assert_series_equal(result, expected_result)
