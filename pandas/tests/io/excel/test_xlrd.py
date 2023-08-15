@@ -1,5 +1,6 @@
 import io
 
+import numpy as np
 import pytest
 
 import pandas as pd
@@ -42,6 +43,17 @@ def test_read_xlsx_fails(datapath):
     path = datapath("io", "data", "excel", "test1.xlsx")
     with pytest.raises(XLRDError, match="Excel xlsx file; not supported"):
         pd.read_excel(path, engine="xlrd")
+
+
+def test_nan_in_xls(datapath):
+    # GH 54564
+    path = datapath("io", "data", "excel", "test6.xls")
+
+    expected = pd.DataFrame(np.r_[:3, np.nan].reshape(2, 2))
+
+    result = pd.read_excel(path)
+
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
