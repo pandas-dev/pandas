@@ -30,6 +30,7 @@ import re
 import tarfile
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     AnyStr,
     DefaultDict,
@@ -51,13 +52,7 @@ import zipfile
 
 from pandas._typing import (
     BaseBuffer,
-    CompressionDict,
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
     ReadCsvBuffer,
-    StorageOptions,
-    WriteBuffer,
 )
 from pandas.compat import (
     get_bz2_file,
@@ -82,6 +77,19 @@ _VALID_URLS.discard("")
 _RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
+
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionDict,
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @dataclasses.dataclass
@@ -138,7 +146,12 @@ class IOHandles(Generic[AnyStr]):
     def __enter__(self) -> IOHandles[AnyStr]:
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 

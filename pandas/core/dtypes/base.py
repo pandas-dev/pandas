@@ -110,7 +110,7 @@ class ExtensionDtype:
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Check whether 'other' is equal to self.
 
@@ -144,7 +144,7 @@ class ExtensionDtype:
         # we need to avoid that and thus use hash function with old behavior
         return object_hash(tuple(getattr(self, attr) for attr in self._metadata))
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     @property
@@ -422,7 +422,7 @@ class StorageExtensionDtype(ExtensionDtype):
     def __str__(self) -> str:
         return self.name
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str) and other == self.name:
             return True
         return super().__eq__(other)

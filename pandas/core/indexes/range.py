@@ -139,12 +139,12 @@ class RangeIndex(Index):
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
-    ) -> RangeIndex:
+    ) -> Self:
         cls._validate_dtype(dtype)
         name = maybe_extract_name(name, start, cls)
 
         # RangeIndex
-        if isinstance(start, RangeIndex):
+        if isinstance(start, cls):
             return start.copy(name=name)
         elif isinstance(start, range):
             return cls._simple_new(start, name=name)

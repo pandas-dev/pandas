@@ -388,7 +388,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # We *do* want to include the real self.ordered here
         return int(self._hash_categories)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
@@ -860,7 +860,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
                 other = f"datetime64[{other[3:]}"
@@ -1052,13 +1052,13 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def na_value(self) -> NaTType:
         return NaT
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
         return super().__eq__(other)
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     @classmethod
@@ -1301,7 +1301,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
@@ -1647,7 +1647,7 @@ class SparseDtype(ExtensionDtype):
         # __eq__, so we explicitly do it here.
         return super().__hash__()
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
         if isinstance(other, str):
@@ -2062,7 +2062,7 @@ class ArrowDtype(StorageExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return super().__eq__(other)
         return self.pyarrow_dtype == other.pyarrow_dtype

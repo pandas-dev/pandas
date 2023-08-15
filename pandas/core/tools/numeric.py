@@ -291,7 +291,7 @@ def to_numeric(
             IntegerArray,
         )
 
-        klass: type[IntegerArray] | type[BooleanArray] | type[FloatingArray]
+        klass: type[IntegerArray | BooleanArray | FloatingArray]
         if is_integer_dtype(data.dtype):
             klass = IntegerArray
         elif is_bool_dtype(data.dtype):

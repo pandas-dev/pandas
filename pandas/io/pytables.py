@@ -1731,7 +1731,7 @@ class HDFStore:
         errors: str = "strict",
     ) -> GenericFixed | Table:
         """return a suitable class to operate"""
-        cls: type[GenericFixed] | type[Table]
+        cls: type[GenericFixed | Table]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -2119,7 +2119,7 @@ class IndexCol:
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2160,7 +2160,7 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
-        factory: type[Index] | type[DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
@@ -2426,7 +2426,7 @@ class DataCol(IndexCol):
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)

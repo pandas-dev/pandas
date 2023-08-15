@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
+        Self,
         npt,
     )
 
@@ -210,7 +211,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         dtype: Dtype | None = None,
         copy: bool = False,
         name: Hashable | None = None,
-    ) -> CategoricalIndex:
+    ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
