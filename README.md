@@ -117,7 +117,7 @@ If you do not have an error message such as:
 pip: command not found
 ```
 
-Enter the following command and pandas will install:
+Enter the following command and pandas will be installed:
 
 ```sh
 # or PyPI
