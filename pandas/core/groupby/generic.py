@@ -1334,6 +1334,29 @@ class SeriesGroupBy(GroupBy[Series]):
 
 
 class DataFrameGroupBy(GroupBy[DataFrame]):
+    groupby_agg_with_tuples_example = """
+            Demonstrates using the `agg` method with a list of tuples for grouping and aggregation.
+
+            Consider a DataFrame `df`:
+
+            key | data
+            ----|------
+            'a' | 0.5
+            'a' | -1.0
+            'b' | 2.0
+            'b' | -0.5
+            'a' | 1.2
+
+            Example: Applying multiple aggregations - mean and standard deviation
+            df_result = df.groupby('key')['data'].agg([('mean_value', 'mean'), ('std_deviation', 'std')])
+
+            Using a list of tuples provides a concise way to apply multiple aggregations to the same column while controlling
+            the output column names. This approach is especially handy when you need to calculate various statistics on
+            the same data within each group.
+
+            :return: Example of using the `agg` method with a list of tuples for grouping and aggregation.
+            :rtype: None
+            """
     _agg_examples_doc = dedent(
         """
     Examples
