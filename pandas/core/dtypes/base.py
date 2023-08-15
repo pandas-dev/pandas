@@ -406,6 +406,26 @@ class ExtensionDtype:
         """
         return False
 
+    @property
+    def _supports_2d(self) -> bool:
+        """
+        Do ExtensionArrays with this dtype support 2D arrays?
+
+        Historically ExtensionArrays were limited to 1D. By returning True here,
+        authors can indicate that their arrays support 2D instances. This can
+        improve performance in some cases, particularly operations with `axis=1`.
+        """
+        return False
+
+    @property
+    def _can_fast_transpose(self) -> bool:
+        """
+        Is transposing an array with this dtype zero-copy?
+
+        Only relevant for cases where _supports_2d is True.
+        """
+        return False
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
