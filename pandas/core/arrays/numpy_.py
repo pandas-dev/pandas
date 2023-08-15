@@ -509,7 +509,6 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
     def _validate_setitem_value(self, value):
         kind = self.dtype.kind
-        # TODO: get this all from np_can_hold_element?
         if kind == "b":
             if lib.is_bool(value):
                 return value
