@@ -599,6 +599,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 
 def invert_object_array(ndarray values):
+    # GH#54569
     cdef:
         Py_ssize_t i, N = values.size
         object val, res_val

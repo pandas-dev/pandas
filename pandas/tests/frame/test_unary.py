@@ -13,7 +13,7 @@ class TestDataFrameUnaryOperators:
     # __pos__, __neg__, __invert__
 
     def test_invert_object_bool(self):
-        # numpy's ~ on object dtype mangles bools
+        # GH#54569 numpy's ~ on object dtype mangles bools
         df = pd.DataFrame(
             {"A": [True, False, np.bool_(True), np.bool_(False)]}, dtype=object
         )
