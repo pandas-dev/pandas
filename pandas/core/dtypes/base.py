@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
+from pandas._libs.properties import cache_readonly
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
@@ -407,7 +408,7 @@ class ExtensionDtype:
         """
         return False
 
-    @property
+    @cache_readonly
     def index_class(self) -> type_t[Index]:
         """
         The Index subclass to return from Index.__new__ when this dtype is
