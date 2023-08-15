@@ -120,9 +120,17 @@ class XlrdReader(BaseExcelReader["Book"]):
             elif cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
                 # it's a minimal perf hit and less surprising
-                val = int(cell_contents)
-                if val == cell_contents:
-                    cell_contents = val
+                try:
+                    val = int(cell_contents)
+                except Exception:
+                    # GH54564 - if the cell contents are NaN/Inf, we get an exception;
+                    # that is just another case where we don't want to convert.
+                    # The exception filter is quite general on purpose: whenever
+                    # the cell content cannot be converted to int - just don't.
+                    pass
+                else:
+                    if val == cell_contents:
+                        cell_contents = val
             return cell_contents
 
         data = []

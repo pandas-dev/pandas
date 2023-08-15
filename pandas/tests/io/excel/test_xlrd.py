@@ -49,9 +49,9 @@ def test_nan_in_xls(datapath):
     # GH 54564
     path = datapath("io", "data", "excel", "test6.xls")
 
-    expected = pd.DataFrame(np.r_[:3, np.nan].reshape(2, 2))
+    expected = pd.DataFrame(np.r_[:3, np.nan].reshape(2, 2)).astype(float)
 
-    result = pd.read_excel(path)
+    result = pd.read_excel(path, header=None).astype(float)
 
     tm.assert_frame_equal(result, expected)
 
