@@ -97,15 +97,34 @@ https://github.com/pandas-dev/pandas
 Binary installers for the latest released version are available at the [Python
 Package Index (PyPI)](https://pypi.org/project/pandas) and on [Conda](https://docs.conda.io/en/latest/).
 
+For the first option, open a terminal, go to the anaconda environment where you want to install pandas and type the following command:
+
 ```sh
 # conda
 conda install -c conda-forge pandas
 ```
 
+If you want to use pip, you will first have to make sure that it is installed. Type:
+
+```sh
+# check that pip is installed
+pip --version
+````
+
+If you do not have an error message such as:
+
+```
+pip: command not found
+```
+
+Enter the following command and pandas will install:
+
 ```sh
 # or PyPI
 pip install pandas
 ```
+
+If not, go to the [Python documentation](https://docs.python.org/en/3/installing/index.html) and follow the instructions. Once this is done, do what is written above.
 
 The list of changes to pandas between each release can be found
 [here](https://pandas.pydata.org/pandas-docs/stable/whatsnew/index.html). For full
