@@ -598,6 +598,42 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
         return slice(start, end)
 
 
+def invert_object_array(ndarray values):
+    cdef:
+        Py_ssize_t i, N = values.size
+        object val, res_val
+        ndarray result = cnp.PyArray_EMPTY(values.ndim, values.shape, cnp.NPY_OBJECT, 0)
+        object[::1] res_flat = result.ravel()  # should NOT be a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+
+    for i in range(N):
+
+        # Analogous to: val = values[i]
+        val = PyArray_GETITEM(values, PyArray_ITER_DATA(it))
+
+        if util.is_bool_object(val):
+            # https://github.com/numpy/numpy/issues/23926
+            # numpy will invert bools to -1 and -2 instead of False and True
+            if val:
+                res_val = False
+            else:
+                res_val = True
+        else:
+            res_val = ~val
+
+        # Note: we can index result directly instead of using PyArray_MultiIter_DATA
+        #  like we do for the other functions because result is known C-contiguous
+        #  and is the first argument to PyArray_MultiIterNew2.  The usual pattern
+        #  does not seem to work with object dtype.
+        #  See discussion at
+        #  github.com/pandas-dev/pandas/pull/46886#discussion_r860261305
+        res_flat[i] = res_val
+
+        cnp.PyArray_ITER_NEXT(it)
+
+    return result
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def array_equivalent_object(ndarray left, ndarray right) -> bool:

@@ -12,6 +12,31 @@ import pandas._testing as tm
 class TestDataFrameUnaryOperators:
     # __pos__, __neg__, __invert__
 
+    def test_invert_object_bool(self):
+        # numpy's ~ on object dtype mangles bools
+        df = pd.DataFrame(
+            {"A": [True, False, np.bool_(True), np.bool_(False)]}, dtype=object
+        )
+        res = ~df
+        expected = pd.DataFrame(
+            {"A": [False, True, np.bool_(False), np.bool_(True)]}, dtype=object
+        )
+        tm.assert_frame_equal(res, expected)
+
+        res2 = ~df["A"]
+        tm.assert_series_equal(res2, expected["A"])
+
+        # while we're here, check that the numpy behavior is still weird.
+        #  If this ever changes, we may be able to remove our overrides
+        res_np = pd.DataFrame(~df.values)
+        assert not res_np.equals(res)
+
+        # while we're here check NumpyExtensionArray
+        arr = df["A"].array
+        res3 = ~arr
+        exp3 = expected["A"].array
+        tm.assert_equal(res3, exp3)
+
     @pytest.mark.parametrize(
         "df,expected",
         [

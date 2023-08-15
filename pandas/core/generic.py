@@ -1510,7 +1510,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # inv fails with 0 len
             return self.copy(deep=False)
 
-        new_data = self._mgr.apply(operator.invert)
+        def blk_func(values: ArrayLike):
+            if values.dtype == object:
+                return lib.invert_object_array(values)
+            else:
+                return operator.invert(values)
+
+        new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res.__finalize__(self, method="__invert__")
 
@@ -10241,7 +10247,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore", "The 'downcast' keyword in fillna", category=FutureWarning
+            )
+            cond = cond.fillna(fill_value, downcast=False).infer_objects(copy=False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 

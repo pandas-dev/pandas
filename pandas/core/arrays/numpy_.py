@@ -511,7 +511,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # Ops
 
     def __invert__(self) -> NumpyExtensionArray:
-        return type(self)(~self._ndarray)
+        if self.dtype.numpy_dtype == object:
+            res_values = lib.invert_object_array(self._ndarray)
+        else:
+            res_values = ~self._ndarray
+        return type(self)(res_values)
 
     def __neg__(self) -> NumpyExtensionArray:
         return type(self)(-self._ndarray)

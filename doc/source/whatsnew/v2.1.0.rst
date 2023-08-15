@@ -698,7 +698,8 @@ Numeric
 - Bug in :meth:`Series.corr` and :meth:`Series.cov` raising ``AttributeError`` for masked dtypes (:issue:`51422`)
 - Bug in :meth:`Series.median` and :meth:`DataFrame.median` with object-dtype values containing strings that can be converted to numbers (e.g. "2") returning incorrect numeric results; these now raise ``TypeError`` (:issue:`34671`)
 - Bug in :meth:`Series.sum` converting dtype ``uint64`` to ``int64`` (:issue:`53401`)
-
+- Bug in operator in inverting an object-dtype :class:`DataFrame` column or :class:`Series` containing ``bool`` objects giving integer results instead of flipped bools (:issue:`??`)
+-
 
 Conversion
 ^^^^^^^^^^
