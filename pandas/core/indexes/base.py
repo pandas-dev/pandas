@@ -4654,7 +4654,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                if not isinstance(self.dtype, IntervalDtype):
+                # Note: 2023-08-15 we *do* have tests that get here with
+                #  Categorical, string[python] (can use libjoin)
+                #  and Interval (cannot)
+                if self._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     # GH#39133
                     # go through object dtype for ea till engine is supported properly
@@ -5048,8 +5051,8 @@ class Index(IndexOpsMixin, PandasObject):
             # values only, meaning no NA
             return (
                 isinstance(self.dtype, np.dtype)
-                or isinstance(self.values, BaseMaskedArray)
-                or isinstance(self._values, ArrowExtensionArray)
+                or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
+                or self.dtype == "string[python]"
             )
         return not isinstance(self.dtype, IntervalDtype)
 
@@ -5172,6 +5175,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values.astype(object)
         return vals
 
+    @final
     def _get_join_target(self) -> ArrayLike:
         """
         Get the ndarray or ExtensionArray that we can pass to the join
