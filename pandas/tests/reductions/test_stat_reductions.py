@@ -99,7 +99,7 @@ class TestSeriesStatReductions:
             f = getattr(Series, name)
 
             # add some NaNs
-            string_series_[5:15] = np.NaN
+            string_series_[5:15] = np.nan
 
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:

@@ -27,7 +27,7 @@ class TestCopy:
             else:
                 assert not np.may_share_memory(ser.values, ser2.values)
 
-        ser2[::2] = np.NaN
+        ser2[::2] = np.nan
 
         if deep is not False or using_copy_on_write:
             # Did not modify original Series

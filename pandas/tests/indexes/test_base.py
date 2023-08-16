@@ -473,7 +473,7 @@ class TestIndex:
     def test_empty_fancy_raises(self, index):
         # DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
-        empty_farr = np.array([], dtype=np.float_)
+        empty_farr = np.array([], dtype=np.float64)
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)

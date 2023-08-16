@@ -217,7 +217,7 @@ def test_join_multi_with_nan():
     )
     df2 = DataFrame(
         data={"col2": [2.1, 2.2]},
-        index=MultiIndex.from_product([["A"], [np.NaN, 2.0]], names=["id1", "id2"]),
+        index=MultiIndex.from_product([["A"], [np.nan, 2.0]], names=["id1", "id2"]),
     )
     result = df1.join(df2)
     expected = DataFrame(

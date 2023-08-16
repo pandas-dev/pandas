@@ -223,9 +223,9 @@ def test_count_nonnumeric_types(step):
                 Period("2012-02"),
                 Period("2012-03"),
             ],
-            "fl_inf": [1.0, 2.0, np.Inf],
-            "fl_nan": [1.0, 2.0, np.NaN],
-            "str_nan": ["aa", "bb", np.NaN],
+            "fl_inf": [1.0, 2.0, np.inf],
+            "fl_nan": [1.0, 2.0, np.nan],
+            "str_nan": ["aa", "bb", np.nan],
             "dt_nat": dt_nat_col,
             "periods_nat": [
                 Period("2012-01"),

@@ -323,7 +323,7 @@ class TestnanopsDataFrame:
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
-                isinstance(targ, np.complex_)
+                isinstance(targ, np.complex128)
                 and isinstance(res, float)
                 and np.isnan(targ)
                 and np.isnan(res)

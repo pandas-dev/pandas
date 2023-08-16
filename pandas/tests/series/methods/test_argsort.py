@@ -27,7 +27,7 @@ class TestSeriesArgsort:
 
         # with missing values
         ts = ser.copy()
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
 
         msg = "The behavior of Series.argsort in the presence of NA values"
         with tm.assert_produces_warning(

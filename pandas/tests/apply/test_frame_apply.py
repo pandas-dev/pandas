@@ -637,15 +637,15 @@ def test_apply_with_byte_string():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+@pytest.mark.parametrize("val", ["asd", 12, None, np.nan])
 def test_apply_category_equalness(val):
     # Check if categorical comparisons on apply, GH 21239
-    df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+    df_values = ["asd", None, 12, "asd", "cde", np.nan]
     df = DataFrame({"a": df_values}, dtype="category")
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
     )
     tm.assert_series_equal(result, expected)
 

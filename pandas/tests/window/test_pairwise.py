@@ -410,7 +410,7 @@ class TestPairwise:
         expected = DataFrame(
             np.vstack(
                 (
-                    np.full((8, 8), np.NaN),
+                    np.full((8, 8), np.nan),
                     np.full((8, 8), 32.000000),
                     np.full((8, 8), 63.881919),
                 )

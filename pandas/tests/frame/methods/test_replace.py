@@ -666,7 +666,7 @@ class TestDataFrameReplace:
     def test_replace_NAT_with_None(self):
         # gh-45836
         df = DataFrame([pd.NaT, pd.NaT])
-        result = df.replace({pd.NaT: None, np.NaN: None})
+        result = df.replace({pd.NaT: None, np.nan: None})
         expected = DataFrame([None, None])
         tm.assert_frame_equal(result, expected)
 

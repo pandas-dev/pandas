@@ -181,7 +181,7 @@ $1$,$2$
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
-        df = DataFrame({"a": [0, np.NaN], "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -189,7 +189,7 @@ $1$,$2$
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.NaN, "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 

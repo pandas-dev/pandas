@@ -65,8 +65,8 @@ class TestSeriesAsof:
         rng = date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
         ts = Series(np.arange(N), index=rng, dtype="float")
-        ts.iloc[5:10] = np.NaN
-        ts.iloc[15:20] = np.NaN
+        ts.iloc[5:10] = np.nan
+        ts.iloc[15:20] = np.nan
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])

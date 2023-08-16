@@ -165,7 +165,7 @@ class TestSeriesConstructors:
         assert id(datetime_series.index) == id(derived.index)
 
         # Mixed type Series
-        mixed = Series(["hello", np.NaN], index=[0, 1])
+        mixed = Series(["hello", np.nan], index=[0, 1])
         assert mixed.dtype == np.object_
         assert np.isnan(mixed[1])
 
@@ -1464,8 +1464,8 @@ class TestSeriesConstructors:
         assert series.dtype == np.float64
 
     def test_fromValue(self, datetime_series):
-        nans = Series(np.NaN, index=datetime_series.index, dtype=np.float64)
-        assert nans.dtype == np.float_
+        nans = Series(np.nan, index=datetime_series.index, dtype=np.float64)
+        assert nans.dtype == np.float64
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)

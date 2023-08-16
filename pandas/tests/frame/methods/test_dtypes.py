@@ -62,15 +62,15 @@ class TestDataFrameDataTypes:
 
     def test_dtypes_are_correct_after_column_slice(self):
         # GH6525
-        df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float_)
+        df = DataFrame(index=range(5), columns=list("abc"), dtype=np.float64)
         tm.assert_series_equal(
             df.dtypes,
-            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
+            Series({"a": np.float64, "b": np.float64, "c": np.float64}),
         )
-        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series({"c": np.float_}))
+        tm.assert_series_equal(df.iloc[:, 2:].dtypes, Series({"c": np.float64}))
         tm.assert_series_equal(
             df.dtypes,
-            Series({"a": np.float_, "b": np.float_, "c": np.float_}),
+            Series({"a": np.float64, "b": np.float64, "c": np.float64}),
         )
 
     @pytest.mark.parametrize(

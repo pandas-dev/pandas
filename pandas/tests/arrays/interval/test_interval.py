@@ -129,7 +129,7 @@ class TestSetitem:
             # GH#45484 TypeError, not ValueError, matches what we get with
             # non-NA un-holdable value.
             with pytest.raises(TypeError, match=msg):
-                result[0] = np.NaN
+                result[0] = np.nan
             return
 
         result[0] = np.nan

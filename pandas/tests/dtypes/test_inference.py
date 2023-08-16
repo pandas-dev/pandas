@@ -536,7 +536,7 @@ class TestInference:
     )
     def test_maybe_convert_nullable_boolean(self, convert_to_masked_nullable, exp):
         # GH 40687
-        arr = np.array([True, np.NaN], dtype=object)
+        arr = np.array([True, np.nan], dtype=object)
         result = libops.maybe_convert_bool(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -862,7 +862,7 @@ class TestInference:
     )
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
 
         tm.assert_extension_array_equal(result, exp)
@@ -890,7 +890,7 @@ class TestInference:
         self, convert_to_masked_nullable, exp
     ):
         # GH 40687
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_numeric(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -1889,7 +1889,6 @@ class TestIsScalar:
         assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
-        assert is_scalar(np.unicode_("foobar"))
         assert is_scalar(np.bytes_(b"foobar"))
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))

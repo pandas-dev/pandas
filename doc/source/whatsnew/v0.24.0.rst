@@ -556,7 +556,7 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
-Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
+Proper handling of ``np.nan`` in a string data-typed column with the Python engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python

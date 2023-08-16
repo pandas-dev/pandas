@@ -107,7 +107,7 @@ methods.
 .. ipython:: python
 
     frame = pd.DataFrame(
-        {"col1": ["A", "B", np.NaN, "C", "D"], "col2": ["F", np.NaN, "G", "H", "I"]}
+        {"col1": ["A", "B", np.nan, "C", "D"], "col2": ["F", np.nan, "G", "H", "I"]}
     )
     frame
 

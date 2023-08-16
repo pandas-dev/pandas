@@ -72,7 +72,7 @@ class TestDataFrameReshape:
 
     def test_unstack_not_consolidated(self, using_array_manager):
         # Gh#34708
-        df = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
+        df = DataFrame({"x": [1, 2, np.nan], "y": [3.0, 4, np.nan]})
         df2 = df[["x"]]
         df2["y"] = df["y"]
         if not using_array_manager:
@@ -584,7 +584,7 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(undo, float_frame)
 
         # check NA handling
-        data = DataFrame({"x": [1, 2, np.NaN], "y": [3.0, 4, np.NaN]})
+        data = DataFrame({"x": [1, 2, np.nan], "y": [3.0, 4, np.nan]})
         data.index = Index(["a", "b", "c"])
         result = data.unstack()
 
@@ -592,7 +592,7 @@ class TestDataFrameReshape:
             levels=[["x", "y"], ["a", "b", "c"]],
             codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
         )
-        expected = Series([1, 2, np.NaN, 3, 4, np.NaN], index=midx)
+        expected = Series([1, 2, np.nan, 3, 4, np.nan], index=midx)
 
         tm.assert_series_equal(result, expected)
 
@@ -902,9 +902,9 @@ class TestDataFrameReshape:
     def test_unstack_nan_index2(self):
         # GH7403
         df = DataFrame({"A": list("aaaabbbb"), "B": range(8), "C": range(8)})
-        # Explicit cast to avoid implicit cast when setting to np.NaN
+        # Explicit cast to avoid implicit cast when setting to np.nan
         df = df.astype({"B": "float"})
-        df.iloc[3, 1] = np.NaN
+        df.iloc[3, 1] = np.nan
         left = df.set_index(["A", "B"]).unstack(0)
 
         vals = [
@@ -921,9 +921,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
-        # Explicit cast to avoid implicit cast when setting to np.NaN
+        # Explicit cast to avoid implicit cast when setting to np.nan
         df = df.astype({"B": "float"})
-        df.iloc[2, 1] = np.NaN
+        df.iloc[2, 1] = np.nan
         left = df.set_index(["A", "B"]).unstack(0)
 
         vals = [[2, np.nan], [0, 4], [1, 5], [np.nan, 6], [3, 7]]
@@ -935,9 +935,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(left, right)
 
         df = DataFrame({"A": list("aaaabbbb"), "B": list(range(4)) * 2, "C": range(8)})
-        # Explicit cast to avoid implicit cast when setting to np.NaN
+        # Explicit cast to avoid implicit cast when setting to np.nan
         df = df.astype({"B": "float"})
-        df.iloc[3, 1] = np.NaN
+        df.iloc[3, 1] = np.nan
         left = df.set_index(["A", "B"]).unstack(0)
 
         vals = [[3, np.nan], [0, 4], [1, 5], [2, 6], [np.nan, 7]]
@@ -958,7 +958,7 @@ class TestDataFrameReshape:
             }
         )
 
-        df.iloc[3, 1] = np.NaN
+        df.iloc[3, 1] = np.nan
         left = df.set_index(["A", "B"]).unstack()
 
         vals = np.array([[3, 0, 1, 2, np.nan, 4], [np.nan, 5, 6, 7, 8, 9]])
@@ -1754,7 +1754,7 @@ Thu,Lunch,Yes,51.51,17"""
         result = df["foo"].stack(future_stack=future_stack).sort_index()
         tm.assert_series_equal(stacked["foo"], result, check_names=False)
         assert result.name is None
-        assert stacked["bar"].dtype == np.float_
+        assert stacked["bar"].dtype == np.float64
 
     def test_unstack_bug(self, future_stack):
         df = DataFrame(

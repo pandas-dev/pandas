@@ -20,7 +20,7 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], name="idx")
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
 
         result = idx.astype(object)
         expected = Index(
@@ -84,7 +84,7 @@ class TestDatetimeIndex:
         # GH 13149, GH 13209
         # verify that we are returning NaT as a string (and not unicode)
 
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
         result = idx.astype(str)
         expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
         tm.assert_index_equal(result, expected)
@@ -141,7 +141,7 @@ class TestDatetimeIndex:
 
     def test_astype_datetime64(self):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], name="idx")
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")
 
         result = idx.astype("datetime64[ns]")
         tm.assert_index_equal(result, idx)
@@ -151,7 +151,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result, idx)
         assert result is idx
 
-        idx_tz = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN], tz="EST", name="idx")
+        idx_tz = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], tz="EST", name="idx")
         msg = "Cannot use .astype to convert from timezone-aware"
         with pytest.raises(TypeError, match=msg):
             # dt64tz->dt64 deprecated
@@ -202,7 +202,7 @@ class TestDatetimeIndex:
     )
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
-        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.NaN])
+        idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
         msg = "Cannot cast DatetimeIndex to dtype"
         if dtype == "datetime64":
             msg = "Casting to unit-less dtype 'datetime64' is not supported"

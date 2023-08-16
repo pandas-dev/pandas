@@ -2109,7 +2109,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _box_func(self, i: int):
         if i == -1:
-            return np.NaN
+            return np.nan
         return self.categories[i]
 
     def _unbox_scalar(self, key) -> int:

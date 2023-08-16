@@ -84,7 +84,7 @@ class TestSeriesMissingData:
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()
         ts.index = ts.index._with_freq(None)
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
 
         result = ts.dropna()
         assert len(result) == ts.count()

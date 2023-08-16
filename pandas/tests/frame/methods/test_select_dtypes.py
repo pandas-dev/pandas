@@ -340,7 +340,7 @@ class TestSelectDtypes:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "dtype", [str, "str", np.string_, "S1", "unicode", np.unicode_, "U1"]
+        "dtype", [str, "str", np.bytes_, "S1", "unicode", np.str_, "U1"]
     )
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):

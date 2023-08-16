@@ -52,7 +52,7 @@ from pandas._libs.missing cimport checknull
 
 cdef int64_t NPY_NAT = util.get_nat()
 
-cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t NaN = <float64_t>np.nan
 
 cdef enum InterpolationEnumType:
     INTERPOLATION_LINEAR,

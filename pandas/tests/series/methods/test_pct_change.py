@@ -40,7 +40,7 @@ class TestSeriesPctChange:
         result = Series(range(5), common_idx).pct_change(freq="B")
 
         # the reason that the expected should be like this is documented at PR 28681
-        expected = Series([np.NaN, np.inf, np.NaN, np.NaN, 3.0], common_idx)
+        expected = Series([np.nan, np.inf, np.nan, np.nan, 3.0], common_idx)
 
         tm.assert_series_equal(result, expected)
 

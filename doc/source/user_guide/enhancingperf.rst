@@ -183,8 +183,8 @@ can be improved by passing an ``np.ndarray``.
       ...:     return s * dx
       ...: cpdef np.ndarray[double] apply_integrate_f(np.ndarray col_a, np.ndarray col_b,
       ...:                                            np.ndarray col_N):
-      ...:     assert (col_a.dtype == np.float_
-      ...:             and col_b.dtype == np.float_ and col_N.dtype == np.int_)
+      ...:     assert (col_a.dtype == np.float64
+      ...:             and col_b.dtype == np.float64 and col_N.dtype == np.int_)
       ...:     cdef Py_ssize_t i, n = len(col_N)
       ...:     assert (len(col_a) == len(col_b) == n)
       ...:     cdef np.ndarray[double] res = np.empty(n)

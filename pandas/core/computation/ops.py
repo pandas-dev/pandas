@@ -537,8 +537,8 @@ class Div(BinOp):
             )
 
         # do not upcast float32s to float64 un-necessarily
-        acceptable_dtypes = [np.float32, np.float_]
-        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        acceptable_dtypes = [np.float32, np.float64]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float64)
 
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")
