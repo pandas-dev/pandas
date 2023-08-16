@@ -817,9 +817,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
             new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
-            new_mgr.blocks[0].refs.add_reference(
-                new_mgr.blocks[0]  # type: ignore[arg-type]
-            )
+            new_mgr.blocks[0].refs.add_reference(new_mgr.blocks[0])
             if not using_copy_on_write() and copy is not False:
                 new_mgr = new_mgr.copy(deep=True)
 
