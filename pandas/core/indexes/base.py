@@ -2848,7 +2848,7 @@ class Index(IndexOpsMixin, PandasObject):
         Show which entries in a pandas.Index are NA. The result is an
         array.
 
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
         Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.isna()
@@ -2904,7 +2904,7 @@ class Index(IndexOpsMixin, PandasObject):
         Show which entries in an Index are not NA. The result is an
         array.
 
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
         Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.notna()

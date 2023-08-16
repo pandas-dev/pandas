@@ -18,7 +18,7 @@ class TestSeriesSortValues:
         tm.assert_series_equal(expected, result)
 
         ts = datetime_series.copy()
-        ts[:5] = np.NaN
+        ts[:5] = np.nan
         vals = ts.values
 
         result = ts.sort_values()

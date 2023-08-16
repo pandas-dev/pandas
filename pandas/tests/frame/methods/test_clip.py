@@ -166,7 +166,7 @@ class TestDataFrameClip:
         # GH#40420
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
-        t = Series([2, -4, np.NaN, 6, 3])
+        t = Series([2, -4, np.nan, 6, 3])
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)
