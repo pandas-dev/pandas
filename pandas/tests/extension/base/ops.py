@@ -267,5 +267,5 @@ class BaseUnaryOpsTests(BaseOpsUtil):
 class BaseRoundingTests:
     def test_round(self, data):
         result = pd.Series(data).round()
-        expected = pd.Series([np.round(item) for item in data], dtype = self.dtype)
+        expected = pd.Series(np.round(data), dtype = data.dtype)
         tm.assert_series_equal(result, expected)

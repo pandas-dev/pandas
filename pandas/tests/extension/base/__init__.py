@@ -54,6 +54,7 @@ from pandas.tests.extension.base.ops import (  # noqa: F401
     BaseComparisonOpsTests,
     BaseOpsUtil,
     BaseUnaryOpsTests,
+    BaseRoundingTests,
 )
 from pandas.tests.extension.base.printing import BasePrintingTests
 from pandas.tests.extension.base.reduce import (  # noqa: F401
@@ -86,6 +87,7 @@ class ExtensionTests(
     BaseArithmeticOpsTests,
     BaseComparisonOpsTests,
     BaseUnaryOpsTests,
+    BaseRoundingTests,
     BasePrintingTests,
     BaseReduceTests,
     BaseReshapingTests,

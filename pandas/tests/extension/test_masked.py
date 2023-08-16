@@ -433,3 +433,12 @@ class TestParsing(base.BaseParsingTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     pass
+
+class TestRounding(base.BaseRoundingTests):
+    def test_round(self, data, request):
+        if data.dtype == "boolean":
+            mark = pytest.mark.xfail(
+                reason="Cannot round boolean dtype"
+            )
+            request.node.add_marker(mark)
+        super().test_round(data)
