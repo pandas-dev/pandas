@@ -292,7 +292,7 @@ class DocBuilder:
         """
         Check for broken links in the documentation.
         """
-        cmd = ["sphinx-build", "-b", "linkcheck"]
+        cmd = ["_sphinx_build", "-b", "linkcheck"]
         cmd += [
             "-d",
             os.path.join(BUILD_PATH, "doctrees"),
@@ -385,9 +385,6 @@ def main():
 
     if args.command == "linkcheck":
         builder.linkcheck()
-    else:
-        return getattr(builder, args.command)()
-
 
 if __name__ == "__main__":
     sys.exit(main())
