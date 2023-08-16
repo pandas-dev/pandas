@@ -17,6 +17,13 @@ from pandas.core.arrays.string_arrow import (
 )
 
 
+def na_val(dtype):
+    if dtype.storage == "pyarrow_numpy":
+        return np.nan
+    else:
+        return pd.NA
+
+
 @pytest.fixture
 def dtype(string_storage):
     """Fixture giving StringDtype from parametrized 'string_storage'"""
@@ -31,26 +38,34 @@ def cls(dtype):
 
 def test_repr(dtype):
     df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=dtype)})
-    expected = "      A\n0     a\n1  <NA>\n2     b"
+    if dtype.storage == "pyarrow_numpy":
+        expected = "     A\n0    a\n1  NaN\n2    b"
+    else:
+        expected = "      A\n0     a\n1  <NA>\n2     b"
     assert repr(df) == expected
 
-    expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    if dtype.storage == "pyarrow_numpy":
+        expected = "0      a\n1    NaN\n2      b\nName: A, dtype: string"
+    else:
+        expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
     assert repr(df.A) == expected
 
     if dtype.storage == "pyarrow":
         arr_name = "ArrowStringArray"
+        expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     elif dtype.storage == "pyarrow_numpy":
         arr_name = "ArrowStringArrayNumpySemantics"
+        expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: string"
     else:
         arr_name = "StringArray"
-    expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
+        expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     assert repr(df.A.array) == expected
 
 
 def test_none_to_nan(cls):
     a = cls._from_sequence(["a", None, "b"])
     assert a[1] is not None
-    assert a[1] is pd.NA
+    assert a[1] is na_val(a.dtype)
 
 
 def test_setitem_validates(cls):
@@ -206,7 +221,7 @@ def test_comparison_methods_scalar(comparison_op, dtype):
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
         expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
-        expected = pd.array(expected, dtype="boolean").to_numpy(na_value=False)
+        expected[1] = False
         tm.assert_numpy_array_equal(result, expected)
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
@@ -403,7 +418,7 @@ def test_min_max(method, skipna, dtype, request):
         expected = "a" if method == "min" else "c"
         assert result == expected
     else:
-        assert result is pd.NA
+        assert result is na_val(arr.dtype)
 
 
 @pytest.mark.parametrize("method", ["min", "max"])
@@ -471,7 +486,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     expected = df.astype(f"string[{string_storage2}]")
     tm.assert_frame_equal(result, expected)
     # ensure the missing value is represented by NA and not np.nan or None
-    assert result.loc[2, "a"] is pd.NA
+    assert result.loc[2, "a"] is na_val(result["a"].dtype)
 
 
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
@@ -569,7 +584,7 @@ def test_astype_from_float_dtype(float_dtype, dtype):
 def test_to_numpy_returns_pdna_default(dtype):
     arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
     result = np.array(arr)
-    expected = np.array(["a", pd.NA, "b"], dtype=object)
+    expected = np.array(["a", na_val(dtype), "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -609,7 +624,7 @@ def test_setitem_scalar_with_mask_validation(dtype):
     mask = np.array([False, True, False])
 
     ser[mask] = None
-    assert ser.array[1] is pd.NA
+    assert ser.array[1] is na_val(ser.dtype)
 
     # for other non-string we should also raise an error
     ser = pd.Series(["a", "b", "c"], dtype=dtype)
