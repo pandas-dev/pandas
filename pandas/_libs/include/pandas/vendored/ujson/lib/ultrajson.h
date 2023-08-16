@@ -137,9 +137,6 @@ typedef int64_t JSLONG;
 #error "Endianness not supported"
 #endif
 
-// PANDAS_FORMAT is *not* in the original file this is vendored from
-enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
-
 enum JSTYPES {
   JT_NULL,     // NULL
   JT_TRUE,     // boolean true

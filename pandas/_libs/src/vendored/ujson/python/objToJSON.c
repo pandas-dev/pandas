@@ -142,6 +142,8 @@ typedef struct __PyObjectEncoder {
 
 #define GET_TC(__ptrtc) ((TypeContext *)((__ptrtc)->prv))
 
+enum PANDAS_FORMAT { SPLIT, RECORDS, INDEX, COLUMNS, VALUES };
+
 int PdBlock_iterNext(JSOBJ, JSONTypeContext *);
 
 static TypeContext *createTypeContext(void) {
