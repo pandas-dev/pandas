@@ -240,7 +240,9 @@ class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
         try:
-            [~x for x in data]
+            # 10 is an arbitrary choice here, just avoid iterating over
+            #  the whole array to trim test runtime
+            [~x for x in data[:10]]
         except TypeError:
             # scalars don't support invert -> we don't expect the vectorized
             #  operation to succeed
