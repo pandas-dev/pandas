@@ -1,7 +1,7 @@
 """
 All of pandas' ExtensionArrays.
 
-See :ref:`extending.extension-types` for more.
+ref:`extending.extension-types` for more about ExtensionArrays.
 """
 from pandas.core.arrays import (
     ArrowExtensionArray,
@@ -33,6 +33,7 @@ __all__ = [
     "SparseArray",
     "StringArray",
     "TimedeltaArray",
+    "NullableArray",
 ]
 
 
