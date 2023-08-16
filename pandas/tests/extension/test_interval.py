@@ -13,15 +13,21 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
-import pandas as pd
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 def make_data():
