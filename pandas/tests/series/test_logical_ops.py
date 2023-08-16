@@ -513,3 +513,21 @@ class TestSeriesLogicalOps:
 
         result = ser1 ^ ser2
         tm.assert_series_equal(result, expected)
+
+    def test_any_all(self):
+        # GH#54591
+        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
+        assert not ser.any()
+        assert not ser.all()
+
+        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert ser.all()
