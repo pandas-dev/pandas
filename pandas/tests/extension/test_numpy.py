@@ -310,7 +310,9 @@ class TestReduce(BaseNumPyTests, base.BaseReduceTests):
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         res_op = getattr(ser, op_name)
         # avoid coercing int -> float. Just cast to the actual numpy type.
-        cmp_dtype = ser.dtype.numpy_dtype
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "numpy_dtype"
+        cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
         alt = ser.astype(cmp_dtype)
         exp_op = getattr(alt, op_name)
         if op_name == "count":
