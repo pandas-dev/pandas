@@ -44,7 +44,7 @@ This release introduces an option ``future.infer_string`` that infers all
 strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
 This option only works if PyArrow is installed. PyArrow backed strings have a
 significantly reduced memory footprint and provide a big performance improvement
-compared to NumPy object (:issue:`#54430`).
+compared to NumPy object (:issue:`54430`).
 
 The option can be enabled with:
 
@@ -106,7 +106,7 @@ Copy-on-Write improvements
   of Index objects and specifying ``copy=False``, will now use a lazy copy
   of those Index objects for the columns of the DataFrame (:issue:`52947`)
 - A shallow copy of a Series or DataFrame (``df.copy(deep=False)``) will now also return
-  a shallow copy of the rows/columns ``Index`` objects instead of only a shallow copy of
+  a shallow copy of the rows/columns :class:`Index` objects instead of only a shallow copy of
   the data, i.e. the index of the result is no longer identical
   (``df.copy(deep=False).index is df.index`` is no longer True) (:issue:`53721`)
 - :meth:`DataFrame.head` and :meth:`DataFrame.tail` will now return deep copies (:issue:`54011`)
@@ -141,8 +141,8 @@ while :meth:`Index.map` applies the callable to all elements of the :class:`Inde
 
 Frequently, it is not desirable to apply the callable to nan-like values of the array and to avoid doing
 that, the ``map`` method could be called with ``na_action="ignore"``, i.e. ``ser.map(func, na_action="ignore")``.
-However, ``na_action="ignore"`` was not implemented for many ``ExtensionArray`` and ``Index`` types
-and ``na_action="ignore"`` did not work correctly for any ``ExtensionArray`` subclass except the nullable numeric ones (i.e. with dtype :class:`Int64` etc.).
+However, ``na_action="ignore"`` was not implemented for many :class:`.ExtensionArray` and ``Index`` types
+and ``na_action="ignore"`` did not work correctly for any :class:`.ExtensionArray` subclass except the nullable numeric ones (i.e. with dtype :class:`Int64` etc.).
 
 ``na_action="ignore"`` now works for all array types (:issue:`52219`, :issue:`51645`, :issue:`51809`, :issue:`51936`, :issue:`52033`; :issue:`52096`).
 
@@ -233,8 +233,8 @@ Other enhancements
 - :meth:`arrays.DatetimeArray.map`, :meth:`arrays.TimedeltaArray.map` and :meth:`arrays.PeriodArray.map` can now take a ``na_action`` argument (:issue:`51644`)
 - :meth:`arrays.SparseArray.map` now supports ``na_action`` (:issue:`52096`).
 - :meth:`pandas.read_html` now supports the ``storage_options`` keyword when used with a URL, allowing users to add headers to the outbound HTTP request (:issue:`49944`)
-- Add :meth:`Index.diff()` and :meth:`Index.round()` (:issue:`19708`)
-- Add ``"latex-math"`` as an option to the ``escape`` argument of :class:`Styler` which will not escape all characters between ``"\("`` and ``"\)"`` during formatting (:issue:`51903`)
+- Add :meth:`Index.diff` and :meth:`Index.round` (:issue:`19708`)
+- Add ``"latex-math"`` as an option to the ``escape`` argument of :class:`.Styler` which will not escape all characters between ``"\("`` and ``"\)"`` during formatting (:issue:`51903`)
 - Add dtype of categories to ``repr`` information of :class:`CategoricalDtype` (:issue:`52179`)
 - Adding ``engine_kwargs`` parameter to :func:`read_excel` (:issue:`52214`)
 - Classes that are useful for type-hinting have been added to the public API in the new submodule ``pandas.api.typing`` (:issue:`48577`)
@@ -266,18 +266,7 @@ Other enhancements
 - Reductions :meth:`Series.argmax`, :meth:`Series.argmin`, :meth:`Series.idxmax`, :meth:`Series.idxmin`, :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`DataFrame.idxmax`, :meth:`DataFrame.idxmin` are now supported for object-dtype (:issue:`4279`, :issue:`18021`, :issue:`40685`, :issue:`43697`)
 - :meth:`DataFrame.to_parquet` and :func:`read_parquet` will now write and read ``attrs`` respectively (:issue:`54346`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
-- Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile`(:issue:`51722`)
-
-.. ---------------------------------------------------------------------------
-.. _whatsnew_210.notable_bug_fixes:
-
-Notable bug fixes
-~~~~~~~~~~~~~~~~~
-
-These are bug fixes that might have notable behavior changes.
-
--
--
+- Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`51722`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.api_breaking:
@@ -378,7 +367,7 @@ Deprecations
 Deprecated silent upcasting in setitem-like Series operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-https://pandas.pydata.org/pdeps/0006-ban-upcasting.html
+PDEP-6: https://pandas.pydata.org/pdeps/0006-ban-upcasting.html
 
 Setitem-like operations on Series (or DataFrame columns) which silently upcast the dtype are
 deprecated and show a warning. Examples of affected operations are:
@@ -537,7 +526,7 @@ Other Deprecations
 - Deprecated the behavior of :func:`concat` with both ``len(keys) != len(objs)``, in a future version this will raise instead of truncating to the shorter of the two sequences (:issue:`43485`)
 - Deprecated the behavior of :meth:`Series.argsort` in the presence of NA values; in a future version these will be sorted at the end instead of giving -1 (:issue:`54219`)
 - Deprecated the default of ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby`; this will default to ``True`` in a future version (:issue:`43999`)
-- Deprecating pinning ``group.name`` to each group in :meth:`SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
+- Deprecating pinning ``group.name`` to each group in :meth:`.SeriesGroupBy.aggregate` aggregations; if your operation requires utilizing the groupby keys, iterate over the groupby object instead (:issue:`41090`)
 - Deprecated the ``axis`` keyword in :meth:`.DataFrameGroupBy.idxmax`, :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.fillna`, :meth:`.DataFrameGroupBy.take`, :meth:`.DataFrameGroupBy.skew`, :meth:`.DataFrameGroupBy.rank`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummax`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.pct_change`, :meth:`.DataFrameGroupBy.diff`, :meth:`.DataFrameGroupBy.shift`, and :meth:`.DataFrameGroupBy.corrwith`; for ``axis=1`` operate on the underlying :class:`DataFrame` instead (:issue:`50405`, :issue:`51046`)
 - Deprecated :class:`.DataFrameGroupBy` with ``as_index=False`` not including groupings in the result when they are not columns of the DataFrame (:issue:`49519`)
 - Deprecated :func:`is_categorical_dtype`, use ``isinstance(obj.dtype, pd.CategoricalDtype)`` instead (:issue:`52527`)
@@ -550,9 +539,9 @@ Other Deprecations
 - Deprecated :meth:`.Styler.applymap`. Use the new :meth:`.Styler.map` method instead (:issue:`52708`)
 - Deprecated :meth:`DataFrame.applymap`. Use the new :meth:`DataFrame.map` method instead (:issue:`52353`)
 - Deprecated :meth:`DataFrame.swapaxes` and :meth:`Series.swapaxes`, use :meth:`DataFrame.transpose` or :meth:`Series.transpose` instead (:issue:`51946`)
-- Deprecated ``freq`` parameter in :class:`PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
+- Deprecated ``freq`` parameter in :class:`.PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`.ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)
-- Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`ExtensionArray`, or :class:`Series` before calling (:issue:`52986`)
+- Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`.ExtensionArray`, or :class:`Series` before calling (:issue:`52986`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
 - Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :attr:`Series.dt` properties (:issue:`20306`)
@@ -575,7 +564,7 @@ Other Deprecations
 - Deprecated allowing bool dtype in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile`, consistent with the :meth:`Series.quantile` and :meth:`DataFrame.quantile` behavior (:issue:`51424`)
 - Deprecated behavior of :func:`.testing.assert_series_equal` and :func:`.testing.assert_frame_equal` considering NA-like values (e.g. ``NaN`` vs ``None`` as equivalent) (:issue:`52081`)
 - Deprecated bytes input to :func:`read_excel`. To read a file path, use a string or path-like object (:issue:`53767`)
-- Deprecated constructing :class:`SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
+- Deprecated constructing :class:`.SparseArray` from scalar data, pass a sequence instead (:issue:`53039`)
 - Deprecated falling back to filling when ``value`` is not specified in :meth:`DataFrame.replace` and :meth:`Series.replace` with non-dict-like ``to_replace`` (:issue:`33302`)
 - Deprecated literal json input to :func:`read_json`. Wrap literal json string input in ``io.StringIO`` instead (:issue:`53409`)
 - Deprecated literal string input to :func:`read_xml`. Wrap literal string/bytes input in ``io.StringIO`` / ``io.BytesIO`` instead (:issue:`53767`)
@@ -846,7 +835,7 @@ ExtensionArray
 
 Styler
 ^^^^^^
-- Bug in :meth:`Styler._copy` calling overridden methods in subclasses of :class:`Styler` (:issue:`52728`)
+- Bug in :meth:`.Styler._copy` calling overridden methods in subclasses of :class:`.Styler` (:issue:`52728`)
 
 Metadata
 ^^^^^^^^
@@ -866,11 +855,11 @@ Other
 - Bug in :func:`api.interchange.from_dataframe` when converting an empty DataFrame object (:issue:`53155`)
 - Bug in :func:`from_dummies` where the resulting :class:`Index` did not match the original :class:`Index` (:issue:`54300`)
 - Bug in :func:`from_dummies` where the resulting data would always be ``object`` dtype instead of the dtype of the columns (:issue:`54300`)
+- Bug in :meth:`.DataFrameGroupBy.first`, :meth:`.DataFrameGroupBy.last`, :meth:`.SeriesGroupBy.first`, and :meth:`.SeriesGroupBy.last` where an empty group would return ``np.nan`` instead of the corresponding :class:`.ExtensionArray` NA value (:issue:`39098`)
 - Bug in :meth:`DataFrame.pivot_table` with casting the mean of ints back to an int (:issue:`16676`)
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
 - Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` when passing both ``freq`` and ``fill_value`` silently ignoring ``fill_value`` instead of raising ``ValueError`` (:issue:`53832`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` on a :class:`DataFrame` with a single :class:`ExtensionDtype` column giving incorrect results (:issue:`53832`)
-- Bug in :meth:`DataFrameGroupBy.first`, :meth:`DataFrameGroupBy.last`, :meth:`SeriesGroupBy.first`, and :meth:`SeriesGroupBy.last` where an empty group would return ``np.nan`` instead of the corresponding :class:`.ExtensionArray` NA value (:issue:`39098`)
 - Bug in :meth:`Index.sort_values` when a ``key`` is passed (:issue:`52764`)
 - Bug in :meth:`Series.align`, :meth:`DataFrame.align`, :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, incorrectly failing to raise with method="asfreq" (:issue:`53620`)
 - Bug in :meth:`Series.argsort` failing to raise when an invalid ``axis`` is passed (:issue:`54257`)
