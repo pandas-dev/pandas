@@ -18,6 +18,7 @@ import pytest
 
 from pandas.core.dtypes.dtypes import IntervalDtype
 
+import pandas as pd
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
@@ -73,7 +74,7 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
     @pytest.mark.xfail(
@@ -88,12 +89,6 @@ class TestIntervalArray(base.ExtensionTests):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
-
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
 
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.

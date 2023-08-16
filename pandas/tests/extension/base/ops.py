@@ -239,9 +239,21 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
-        result = ~ser
-        expected = pd.Series(~data, name="name")
-        tm.assert_series_equal(result, expected)
+        try:
+            [~x for x in data]
+        except TypeError:
+            # scalars don't support invert -> we don't expect the vectorized
+            #  operation to succeed
+            with pytest.raises(TypeError):
+                ~ser
+            with pytest.raises(TypeError):
+                ~data
+        else:
+            # Note we do not re-use the pointwise result to construct expected
+            #  because python semantics for negating bools are weird see GH#54569
+            result = ~ser
+            expected = pd.Series(~data, name="name")
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):

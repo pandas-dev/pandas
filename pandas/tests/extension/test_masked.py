@@ -297,8 +297,8 @@ class TestGroupby(base.BaseGroupbyTests):
 
 
 class TestReduce(base.BaseReduceTests):
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        if op_name in ["any", "all"] and tm.get_dtype(obj).kind != "b":
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if op_name in ["any", "all"] and ser.dtype.kind != "b":
             pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
         return True
 
@@ -315,12 +315,16 @@ class TestReduce(base.BaseReduceTests):
             if op_name in ["min", "max"]:
                 cmp_dtype = "bool"
 
+        # TODO: prod with integer dtypes does *not* match the result we would
+        #  get if we used object for cmp_dtype. In that cae the object result
+        #  is a large integer while the non-object case overflows and returns 0
+        alt = ser.dropna().astype(cmp_dtype)
         if op_name == "count":
             result = getattr(ser, op_name)()
-            expected = getattr(ser.dropna().astype(cmp_dtype), op_name)()
+            expected = getattr(alt, op_name)()
         else:
             result = getattr(ser, op_name)(skipna=skipna)
-            expected = getattr(ser.dropna().astype(cmp_dtype), op_name)(skipna=skipna)
+            expected = getattr(alt, op_name)(skipna=skipna)
             if not skipna and ser.isna().any() and op_name not in ["any", "all"]:
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
@@ -413,14 +417,7 @@ class TestAccumulation(base.BaseAccumulateTests):
 
 
 class TestUnaryOps(base.BaseUnaryOpsTests):
-    def test_invert(self, data, request):
-        if data.dtype.kind == "f":
-            mark = pytest.mark.xfail(
-                reason="Looks like the base class test implicitly assumes "
-                "boolean/integer dtypes"
-            )
-            request.node.add_marker(mark)
-        super().test_invert(data)
+    pass
 
 
 class TestPrinting(base.BasePrintingTests):

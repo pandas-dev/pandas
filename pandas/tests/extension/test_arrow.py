@@ -411,8 +411,8 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
 
 class TestReduce(base.BaseReduceTests):
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        dtype = tm.get_dtype(obj)
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
@@ -455,20 +455,25 @@ class TestReduce(base.BaseReduceTests):
 
         return True
 
-    def check_reduce(self, ser, op_name, skipna):
-        pa_dtype = ser.dtype.pyarrow_dtype
-        if op_name == "count":
-            result = getattr(ser, op_name)()
-        else:
-            result = getattr(ser, op_name)(skipna=skipna)
-
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_dtype = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
         if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
-            ser = ser.astype("Float64")
+            alt = ser.astype("Float64")
+        else:
+            # TODO: in the opposite case, aren't we testing... nothing? For
+            # e.g. date/time dtypes trying to calculate 'expected' by converting
+            # to object will raise for mean, std etc
+            alt = ser
+
         # TODO: in the opposite case, aren't we testing... nothing?
         if op_name == "count":
-            expected = getattr(ser, op_name)()
+            result = getattr(ser, op_name)()
+            expected = getattr(alt, op_name)()
         else:
-            expected = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
