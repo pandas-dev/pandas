@@ -265,7 +265,7 @@ def data_for_twos(data):
     # TODO: skip otherwise?
 
 
-class TestBaseCasting(base.BaseCastingTests):
+class TestArrowArray(base.ExtensionTests):
     def test_astype_str(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_binary(pa_dtype):
@@ -276,8 +276,6 @@ class TestBaseCasting(base.BaseCastingTests):
             )
         super().test_astype_str(data)
 
-
-class TestConstructors(base.BaseConstructorsTests):
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if pa.types.is_string(pa_dtype) or pa.types.is_decimal(pa_dtype):
@@ -338,12 +336,6 @@ class TestConstructors(base.BaseConstructorsTests):
         result = type(data)._from_sequence_of_strings(pa_array, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
 
-
-class TestGetitemTests(base.BaseGetitemTests):
-    pass
-
-
-class TestBaseAccumulateTests(base.BaseAccumulateTests):
     def check_accumulate(self, ser, op_name, skipna):
         result = getattr(ser, op_name)(skipna=skipna)
 
@@ -409,8 +401,6 @@ class TestBaseAccumulateTests(base.BaseAccumulateTests):
 
         self.check_accumulate(ser, op_name, skipna)
 
-
-class TestReduce(base.BaseReduceTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         dtype = tm.get_dtype(obj)
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
@@ -561,8 +551,6 @@ class TestReduce(base.BaseReduceTests):
         result = pd.Series([1, 2], dtype=f"{typ}[pyarrow]").median()
         assert result == 1.5
 
-
-class TestBaseGroupby(base.BaseGroupbyTests):
     def test_in_numeric_groupby(self, data_for_grouping):
         dtype = data_for_grouping.dtype
         if is_string_dtype(dtype):
@@ -583,8 +571,6 @@ class TestBaseGroupby(base.BaseGroupbyTests):
         else:
             super().test_in_numeric_groupby(data_for_grouping)
 
-
-class TestBaseDtype(base.BaseDtypeTests):
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype):
@@ -651,20 +637,12 @@ class TestBaseDtype(base.BaseDtypeTests):
         else:
             super().test_is_not_string_type(dtype)
 
-
-class TestBaseIndex(base.BaseIndexTests):
-    pass
-
-
-class TestBaseInterface(base.BaseInterfaceTests):
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views.", run=False
     )
     def test_view(self, data):
         super().test_view(data)
 
-
-class TestBaseMissing(base.BaseMissingTests):
     def test_fillna_no_op_returns_copy(self, data):
         data = data[~data.isna()]
 
@@ -677,28 +655,18 @@ class TestBaseMissing(base.BaseMissingTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
-
-class TestBasePrinting(base.BasePrintingTests):
-    pass
-
-
-class TestBaseReshaping(base.BaseReshapingTests):
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
     def test_transpose(self, data):
         super().test_transpose(data)
 
-
-class TestBaseSetitem(base.BaseSetitemTests):
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
     def test_setitem_preserves_views(self, data):
         super().test_setitem_preserves_views(data)
 
-
-class TestBaseParsing(base.BaseParsingTests):
     @pytest.mark.parametrize("dtype_backend", ["pyarrow", no_default])
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, dtype_backend, request):
@@ -736,8 +704,6 @@ class TestBaseParsing(base.BaseParsingTests):
         expected = df
         tm.assert_frame_equal(result, expected)
 
-
-class TestBaseUnaryOps(base.BaseUnaryOpsTests):
     def test_invert(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
         if not pa.types.is_boolean(pa_dtype):
@@ -749,8 +715,6 @@ class TestBaseUnaryOps(base.BaseUnaryOpsTests):
             )
         super().test_invert(data)
 
-
-class TestBaseMethods(base.BaseMethodsTests):
     @pytest.mark.parametrize("periods", [1, -2])
     def test_diff(self, data, periods, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -814,8 +778,6 @@ class TestBaseMethods(base.BaseMethodsTests):
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
-
-class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
     divmod_exc = NotImplementedError
 
     def get_op_from_name(self, op_name):
@@ -837,6 +799,9 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
         # (because it generates expected on python scalars)
         # while ArrowExtensionArray maintains original type
         expected = pointwise_result
+
+        if op_name in ["eq", "ne", "lt", "le", "gt", "ge"]:
+            return pointwise_result.astype("boolean[pyarrow]")
 
         was_frame = False
         if isinstance(expected, pd.DataFrame):
@@ -1120,28 +1085,6 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 )
             )
         super().test_add_series_with_extension_array(data)
-
-
-class TestBaseComparisonOps(base.BaseComparisonOpsTests):
-    def test_compare_array(self, data, comparison_op, na_value):
-        ser = pd.Series(data)
-        # pd.Series([ser.iloc[0]] * len(ser)) may not return ArrowExtensionArray
-        # since ser.iloc[0] is a python scalar
-        other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
-        if comparison_op.__name__ in ["eq", "ne"]:
-            # comparison should match point-wise comparisons
-            result = comparison_op(ser, other)
-            # Series.combine does not calculate the NA mask correctly
-            # when comparing over an array
-            assert result[8] is na_value
-            assert result[97] is na_value
-            expected = ser.combine(other, comparison_op)
-            expected[8] = na_value
-            expected[97] = na_value
-            tm.assert_series_equal(result, expected)
-
-        else:
-            return super().test_compare_array(data, comparison_op)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833
