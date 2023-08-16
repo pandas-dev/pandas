@@ -11,7 +11,10 @@ from pandas import (
     Series,
     _testing as tm,
 )
-from pandas.tests.strings import object_pyarrow_numpy
+from pandas.tests.strings import (
+    _convert_na_value,
+    object_pyarrow_numpy,
+)
 
 # --------------------------------------------------------------------------------------
 # str.contains
@@ -780,9 +783,7 @@ def test_findall(any_string_dtype):
     ser = Series(["fooBAD__barBAD", np.nan, "foo", "BAD"], dtype=any_string_dtype)
     result = ser.str.findall("BAD[_]*")
     expected = Series([["BAD__", "BAD"], np.nan, [], ["BAD"]])
-    if ser.dtype != object:
-        # GH#18463
-        expected = expected.fillna(pd.NA)
+    expected = _convert_na_value(ser, expected)
     tm.assert_series_equal(result, expected)
 
 
