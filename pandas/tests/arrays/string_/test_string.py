@@ -10,7 +10,6 @@ from pandas.core.dtypes.common import is_dtype_equal
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.string_arrow import ArrowStringArray
-from pandas.tests.arrays.string_ import arrow_string_storage
 from pandas.util.version import Version
 
 
@@ -116,7 +115,7 @@ def test_add(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_add_2d(dtype, request):
+def test_add_2d(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
@@ -145,7 +144,7 @@ def test_add_sequence(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_mul(dtype, request):
+def test_mul(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
         mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
@@ -370,7 +369,7 @@ def test_min_max(method, skipna, dtype, request):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
-def test_min_max_numpy(method, box, dtype, request):
+def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
@@ -385,7 +384,7 @@ def test_min_max_numpy(method, box, dtype, request):
     assert result == expected
 
 
-def test_fillna_args(dtype, request):
+def test_fillna_args(dtype, request, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
@@ -504,7 +503,7 @@ def test_use_inf_as_na(values, expected, dtype):
             tm.assert_frame_equal(result, expected)
 
 
-def test_memory_usage(dtype):
+def test_memory_usage(dtype, arrow_string_storage):
     # GH 33963
 
     if dtype.storage in arrow_string_storage:

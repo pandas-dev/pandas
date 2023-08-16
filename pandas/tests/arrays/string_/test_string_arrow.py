@@ -13,7 +13,6 @@ from pandas.core.arrays.string_ import (
     StringDtype,
 )
 from pandas.core.arrays.string_arrow import ArrowStringArray
-from pandas.tests.arrays.string_ import arrow_string_storage
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,
@@ -50,7 +49,7 @@ def test_config_bad_storage_raises():
 @skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 @pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked):
+def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
     import pyarrow as pa
 
     array = pa if array in arrow_string_storage else np

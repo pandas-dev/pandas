@@ -1996,3 +1996,8 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
+
+
+@pytest.fixture()
+def arrow_string_storage():
+    return ("pyarrow",)
