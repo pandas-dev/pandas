@@ -444,11 +444,3 @@ def test_array_to_numpy_na():
     result = arr.to_numpy(na_value=True, dtype=bool)
     expected = np.array([True, True])
     tm.assert_numpy_array_equal(result, expected)
-
-
-def test_array_validate_setitem_value():
-    # Issue# 51044
-    arr = pd.Series(range(5)).array
-    with pytest.raises(TypeError, match="bad"):
-        arr._validate_setitem_value("foo")
-        arr._validate_setitem_value(1.5)

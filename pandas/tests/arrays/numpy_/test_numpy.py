@@ -322,3 +322,12 @@ def test_factorize_unsigned():
     tm.assert_numpy_array_equal(res_codes, exp_codes)
 
     tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
+
+
+def test_array_validate_setitem_value():
+    # Issue# 51044
+    arr = pd.Series(range(5)).array
+    with pytest.raises(TypeError, match="bad"):
+        arr._validate_setitem_value("foo")
+    with pytest.raises(TypeError, match="bad"):
+        arr._validate_setitem_value(1.5)

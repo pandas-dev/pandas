@@ -508,21 +508,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
         return result
 
     def _validate_setitem_value(self, value):
-        kind = self.dtype.kind
-        if kind == "b":
-            if lib.is_bool(value):
-                return value
-
-        elif kind == "f":
-            if lib.is_integer(value) or lib.is_float(value):
-                return value
-        else:
-            if lib.is_integer(value) or (lib.is_float(value) and value.is_integer()):
-                return value
-            if NumpyEADtype(type(value)) != self.dtype:
-                raise TypeError("bad")
-            else:
-                raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        if NumpyEADtype(type(value)) != self.dtype:
+            raise TypeError("bad")
+        return value
 
     # ------------------------------------------------------------------------
     # Ops
