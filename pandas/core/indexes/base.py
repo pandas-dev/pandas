@@ -5041,10 +5041,16 @@ class Index(IndexOpsMixin, PandasObject):
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
 
+    @final
     @cache_readonly
     def _can_use_libjoin(self) -> bool:
         """
-        Whether we can use the fastpaths implement in _libs.join
+        Whether we can use the fastpaths implemented in _libs.join.
+
+        This is driven by whether (in monotonic increasing cases that are
+        guaranteed not to have NAs) we can convert to a np.ndarray without
+        making a copy. If we cannot, this negates the performance benefit
+        of using libjoin.
         """
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
@@ -5054,6 +5060,9 @@ class Index(IndexOpsMixin, PandasObject):
                 or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
                 or self.dtype == "string[python]"
             )
+        # For IntervalIndex, the conversion to numpy converts
+        #  to object dtype, which negates the performance benefit of libjoin
+        # TODO: exclude RangeIndex and MultiIndex as these also make copies?
         return not isinstance(self.dtype, IntervalDtype)
 
     # --------------------------------------------------------------------
@@ -5176,7 +5185,7 @@ class Index(IndexOpsMixin, PandasObject):
         return vals
 
     @final
-    def _get_join_target(self) -> ArrayLike:
+    def _get_join_target(self) -> np.ndarray:
         """
         Get the ndarray or ExtensionArray that we can pass to the join
         functions.
@@ -5188,7 +5197,13 @@ class Index(IndexOpsMixin, PandasObject):
             # This is only used if our array is monotonic, so no missing values
             # present
             return self._values.to_numpy()
-        return self._get_engine_target()
+
+        # TODO: exclude ABCRangeIndex, ABCMultiIndex cases here as those create
+        #  copies.
+        target = self._get_engine_target()
+        if not isinstance(target, np.ndarray):
+            raise ValueError("_can_use_libjoin should raise in this case.")
+        return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
