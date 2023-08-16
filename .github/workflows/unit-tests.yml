@@ -350,4 +350,4 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        run: ./.github/actions/run-tests
+        uses: ./.github/actions/run-tests
