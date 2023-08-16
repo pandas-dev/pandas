@@ -3354,6 +3354,7 @@ class Index(IndexOpsMixin, PandasObject):
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
+            and other._can_use_libjoin
         ):
             # Both are monotonic and at least one is unique, so can use outer join
             #  (actually don't need either unique, but without this restriction
@@ -3452,7 +3453,7 @@ class Index(IndexOpsMixin, PandasObject):
             self, other = self._dti_setop_align_tzs(other, "intersection")
 
         if self.equals(other):
-            if self.has_duplicates:
+            if not self.is_unique:
                 result = self.unique()._get_reconciled_name_object(other)
             else:
                 result = self._get_reconciled_name_object(other)
@@ -3507,7 +3508,9 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
+            and not isinstance(other, ABCMultiIndex)
         ):
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
@@ -4657,7 +4660,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # Note: 2023-08-15 we *do* have tests that get here with
                 #  Categorical, string[python] (can use libjoin)
                 #  and Interval (cannot)
-                if self._can_use_libjoin:
+                if self._can_use_libjoin and other._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     # GH#39133
                     # go through object dtype for ea till engine is supported properly
@@ -4669,6 +4672,7 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
             and not isinstance(self.dtype, CategoricalDtype)
         ):
@@ -4973,6 +4977,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
+        assert self._can_use_libjoin and other._can_use_libjoin
 
         if self.equals(other):
             # This is a convenient place for this check, but its correctness
