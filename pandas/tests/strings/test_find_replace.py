@@ -19,7 +19,7 @@ from pandas.tests.strings import object_pyarrow_numpy
 
 
 def using_pyarrow(dtype):
-    return dtype in ("string[pyarrow]",)
+    return dtype in ("string[pyarrow]", "string[pyarrow_numpy]")
 
 
 def test_contains(any_string_dtype):
