@@ -5027,7 +5027,8 @@ class Index(IndexOpsMixin, PandasObject):
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin
-        # TODO: exclude RangeIndex? Seems to break test_concat_datetime_timezone
+        # TODO: exclude RangeIndex (which allocated memory)?
+        #  Doing so seems to break test_concat_datetime_timezone
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
     # --------------------------------------------------------------------
@@ -5166,7 +5167,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: exclude ABCRangeIndex case here as it copies
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
-            raise ValueError("_can_use_libjoin should return False.")
+            raise ValueError("_can_use_libjoin should raise in this case.")
         return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
