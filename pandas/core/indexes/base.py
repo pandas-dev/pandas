@@ -3334,9 +3334,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if (
             sort in (None, True)
-            and self.is_monotonic_increasing
-            and other.is_monotonic_increasing
-            and not (self.has_duplicates and other.has_duplicates)
+            and (self.is_unique or other.is_unique)
             and self._can_use_libjoin
             and other._can_use_libjoin
         ):
@@ -3488,12 +3486,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         intersection specialized to the case with matching dtypes.
         """
-        if (
-            self.is_monotonic_increasing
-            and other.is_monotonic_increasing
-            and self._can_use_libjoin
-            and other._can_use_libjoin
-        ):
+        if self._can_use_libjoin and other._can_use_libjoin:
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
             except TypeError:
@@ -4611,24 +4604,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         _validate_join_method(how)
 
-        if not self.is_unique and not other.is_unique:
-            return self._join_non_unique(other, how=how)
-        elif not self.is_unique or not other.is_unique:
-            if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                # Note: 2023-08-15 we *do* have tests that get here with
-                #  Categorical, string[python] (can use libjoin)
-                #  and Interval (cannot)
-                if self._can_use_libjoin:
-                    # otherwise we will fall through to _join_via_get_indexer
-                    # GH#39133
-                    # go through object dtype for ea till engine is supported properly
-                    return self._join_monotonic(other, how=how)
-            else:
-                return self._join_non_unique(other, how=how)
-        elif (
-            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
-            self.is_monotonic_increasing
-            and other.is_monotonic_increasing
+        if (
+            not isinstance(self.dtype, CategoricalDtype)
+            # test_join_with_categorical_index requires excluding CategoricalDtype
             and self._can_use_libjoin
             and other._can_use_libjoin
             and (self.is_unique or other.is_unique)
@@ -4935,7 +4913,10 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_monotonic(
         self, other: Index, how: JoinHow = "left"
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
-        # We only get here with matching dtypes and both monotonic increasing
+        # We only get here with (caller is responsible for ensuring):
+        #  1) matching dtypes
+        #  2) both monotonic increasing
+        #  3) other.is_unique or self.is_unique
         assert other.dtype == self.dtype
         assert self._can_use_libjoin and other._can_use_libjoin
 
@@ -5017,6 +4998,10 @@ class Index(IndexOpsMixin, PandasObject):
         making a copy. If we cannot, this negates the performance benefit
         of using libjoin.
         """
+        if not self.is_monotonic_increasing:
+            # The libjoin functions all assume monotonicity.
+            return False
+
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
@@ -5027,7 +5012,7 @@ class Index(IndexOpsMixin, PandasObject):
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin
-        # TODO: exclude RangeIndex (which allocated memory)?
+        # TODO: exclude RangeIndex (which allocates memory)?
         #  Doing so seems to break test_concat_datetime_timezone
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
@@ -5167,7 +5152,7 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: exclude ABCRangeIndex case here as it copies
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
-            raise ValueError("_can_use_libjoin should raise in this case.")
+            raise ValueError("_can_use_libjoin should return False.")
         return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
