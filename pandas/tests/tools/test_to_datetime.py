@@ -1570,8 +1570,8 @@ class TestToDatetime:
             (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
             (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
             (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([np.nan] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.nan] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
         ),
     )
     def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
