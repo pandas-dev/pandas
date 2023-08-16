@@ -13,14 +13,14 @@ runs:
         micromamba info
         micromamba list
         pip list --pre
-      shell: bash -euo pipefail {0}
+      shell: bash -el {0}
 
     - name: Uninstall existing Pandas installation
       run: |
         if pip show pandas 1>/dev/null; then
           pip uninstall -y pandas
         fi
-      shell: bash -euo pipefail {0}
+      shell: bash -el {0}
 
     - name: Build Pandas
       run: |
@@ -29,4 +29,4 @@ runs:
         else
           pip install . --no-build-isolation -v
         fi
-      shell: bash -euo pipefail {0}
+      shell: bash -el {0}

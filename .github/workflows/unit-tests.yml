@@ -18,7 +18,7 @@ permissions:
 
 defaults:
   run:
-    shell: bash -euo pipefail {0}
+    shell: bash -el {0}
 
 jobs:
   ubuntu:
@@ -337,8 +337,10 @@ jobs:
         with:
           python-version: '3.12-dev'
 
-      - name: Install Environment
+      - name: Build Environment
         run: |
+          ${{ steps.pydev.outputs.python-path }} -m venv ~/virtualenvs/pandas-dev
+          . ~/virtualenvs/pandas-dev/bin/activate
           python --version
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
@@ -348,4 +350,6 @@ jobs:
           python -m pip list
 
       - name: Run Tests
-        uses: ./.github/actions/run-tests
+        run: |
+          . ~/virtualenvs/pandas-dev/bin/activate
+          ci/run_tests.sh

@@ -32,7 +32,7 @@ jobs:
 
     defaults:
       run:
-        shell: bash -euo pipefail {0}
+        shell: bash -el {0}
 
     steps:
     - name: Checkout

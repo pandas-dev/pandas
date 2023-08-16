@@ -4,7 +4,7 @@ runs:
   steps:
     - name: Test
       run: ci/run_tests.sh
-      shell: bash -euo pipefail {0}
+      shell: bash -el {0}
 
     - name: Publish test results
       uses: actions/upload-artifact@v3
@@ -15,7 +15,7 @@ runs:
 
     - name: Report Coverage
       run: coverage report -m
-      shell: bash -euo pipefail {0}
+      shell: bash -el {0}
       if: failure()
 
     - name: Upload coverage to Codecov
