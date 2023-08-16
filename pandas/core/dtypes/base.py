@@ -15,6 +15,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
+from pandas._libs.properties import cache_readonly
 from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.generic import (
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
         type_t,
     )
 
+    from pandas import Index
     from pandas.core.arrays import ExtensionArray
 
     # To parameterize on same ExtensionDtype
@@ -405,6 +407,16 @@ class ExtensionDtype:
         Immutable arrays are expected to raise TypeError on __setitem__ calls.
         """
         return False
+
+    @cache_readonly
+    def index_class(self) -> type_t[Index]:
+        """
+        The Index subclass to return from Index.__new__ when this dtype is
+        encountered.
+        """
+        from pandas import Index
+
+        return Index
 
 
 class StorageExtensionDtype(ExtensionDtype):
