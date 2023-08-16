@@ -134,7 +134,7 @@ def assert_stat_op_calc(
 
     # all NA case
     if has_skipna:
-        all_na = frame * np.NaN
+        all_na = frame * np.nan
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
@@ -834,9 +834,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "kwargs, expected_result",
         [
-            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
-            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
-            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.nan]),
+            ({"axis": 1, "min_count": 3}, [np.nan, np.nan, np.nan]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.nan]),
         ],
     )
     def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
@@ -850,9 +850,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "kwargs, expected_result",
         [
-            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.NaN]),
-            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
-            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.NaN]),
+            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.nan]),
+            ({"axis": 1, "min_count": 3}, [np.nan, np.nan, np.nan]),
+            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.nan]),
         ],
     )
     def test_prod_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
@@ -1189,7 +1189,7 @@ class TestDataFrameAnalytics:
             f(axis=2)
 
         # all NA case
-        all_na = frame * np.NaN
+        all_na = frame * np.nan
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname == "any":
