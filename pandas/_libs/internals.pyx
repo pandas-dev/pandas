@@ -24,7 +24,6 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
-from pandas._libs.arrays cimport NDArrayBacked
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
@@ -639,7 +638,7 @@ def _unpickle_block(values, placement, ndim):
 
 
 @cython.freelist(64)
-cdef class SharedBlock:
+cdef class Block:
     """
     Defining __init__ in a cython class significantly improves performance.
     """
@@ -647,6 +646,11 @@ cdef class SharedBlock:
         public BlockPlacement _mgr_locs
         public BlockValuesRefs refs
         readonly int ndim
+        # 2023-08-15 no apparent performance improvement from declaring values
+        #  as ndarray in a type-special subclass (similar for NDArrayBacked).
+        #  This might change if slice_block_rows can be optimized with something
+        #  like https://github.com/numpy/numpy/issues/23934
+        public object values
 
     def __cinit__(
         self,
@@ -666,6 +670,8 @@ cdef class SharedBlock:
         refs: BlockValuesRefs, optional
             Ref tracking object or None if block does not have any refs.
         """
+        self.values = values
+
         self._mgr_locs = placement
         self.ndim = ndim
         if refs is None:
@@ -699,23 +705,7 @@ cdef class SharedBlock:
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
-
-cdef class NumpyBlock(SharedBlock):
-    cdef:
-        public ndarray values
-
-    def __cinit__(
-        self,
-        ndarray values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
-
-    cpdef NumpyBlock slice_block_rows(self, slice slicer):
+    cpdef Block slice_block_rows(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -723,50 +713,6 @@ cdef class NumpyBlock(SharedBlock):
         """
         new_values = self.values[..., slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
-
-
-cdef class NDArrayBackedBlock(SharedBlock):
-    """
-    Block backed by NDArrayBackedExtensionArray
-    """
-    cdef public:
-        NDArrayBacked values
-
-    def __cinit__(
-        self,
-        NDArrayBacked values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
-
-    cpdef NDArrayBackedBlock slice_block_rows(self, slice slicer):
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
-
-
-cdef class Block(SharedBlock):
-    cdef:
-        public object values
-
-    def __cinit__(
-        self,
-        object values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
 
 
 @cython.freelist(64)
@@ -811,7 +757,7 @@ cdef class BlockManager:
         cdef:
             intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
-            SharedBlock blk
+            Block blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
@@ -901,7 +847,7 @@ cdef class BlockManager:
 
     cdef BlockManager _slice_mgr_rows(self, slice slobj):
         cdef:
-            SharedBlock blk, nb
+            Block blk, nb
             BlockManager mgr
             ndarray blknos, blklocs
 
@@ -945,18 +891,18 @@ cdef class BlockValuesRefs:
     cdef:
         public list referenced_blocks
 
-    def __cinit__(self, blk: SharedBlock | None = None) -> None:
+    def __cinit__(self, blk: Block | None = None) -> None:
         if blk is not None:
             self.referenced_blocks = [weakref.ref(blk)]
         else:
             self.referenced_blocks = []
 
-    def add_reference(self, blk: SharedBlock) -> None:
+    def add_reference(self, blk: Block) -> None:
         """Adds a new reference to our reference collection.
 
         Parameters
         ----------
-        blk: SharedBlock
+        blk : Block
             The block that the new references should point to.
         """
         self.referenced_blocks.append(weakref.ref(blk))

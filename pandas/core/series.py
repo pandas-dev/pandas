@@ -897,7 +897,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
-            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+            blk.refs.add_reference(blk)
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
