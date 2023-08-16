@@ -725,7 +725,7 @@ f = lambda *args, **kwargs: np.random.default_rng(2).standard_normal()
 class TestTypeCasting:
     @pytest.mark.parametrize("op", ["+", "-", "*", "**", "/"])
     # maybe someday... numexpr has too many upcasting rules now
-    # chain(*(np.sctypes[x] for x in ['uint', 'int', 'float']))
+    # chain(*(np.core.sctypes[x] for x in ['uint', 'int', 'float']))
     @pytest.mark.parametrize("dt", [np.float32, np.float64])
     @pytest.mark.parametrize("left_right", [("df", "3"), ("3", "df")])
     def test_binop_typecasting(self, engine, parser, op, dt, left_right):
