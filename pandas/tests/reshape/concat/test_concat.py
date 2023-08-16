@@ -507,7 +507,7 @@ class TestConcatenate:
             concat([df1, df2], axis=1)
 
 
-@pytest.mark.parametrize("dt", np.sctypes["float"])
+@pytest.mark.parametrize("dt", np.core.sctypes["float"])
 def test_concat_no_unnecessary_upcast(dt, frame_or_series):
     # GH 13247
     dims = frame_or_series(dtype=object).ndim
@@ -522,7 +522,7 @@ def test_concat_no_unnecessary_upcast(dt, frame_or_series):
 
 
 @pytest.mark.parametrize("pdt", [Series, DataFrame])
-@pytest.mark.parametrize("dt", np.sctypes["int"])
+@pytest.mark.parametrize("dt", np.core.sctypes["int"])
 def test_concat_will_upcast(dt, pdt):
     dims = pdt().ndim
     dfs = [

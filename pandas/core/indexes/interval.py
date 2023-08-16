@@ -125,7 +125,7 @@ def _get_next_label(label):
     elif is_integer_dtype(dtype):
         return label + 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, np.infty)
+        return np.nextafter(label, np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -142,7 +142,7 @@ def _get_prev_label(label):
     elif is_integer_dtype(dtype):
         return label - 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, -np.infty)
+        return np.nextafter(label, -np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
