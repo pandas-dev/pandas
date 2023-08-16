@@ -159,11 +159,7 @@ def data_for_grouping(dtype):
     return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
-class TestDtype(base.BaseDtypeTests):
-    pass
-
-
-class TestArithmeticOps(base.BaseArithmeticOpsTests):
+class TestMaskedArrays(base.ExtensionTests):
     def _get_expected_exception(self, op_name, obj, other):
         try:
             dtype = tm.get_dtype(obj)
@@ -179,11 +175,14 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 # exception message would include "numpy boolean subtract""
                 return TypeError
             return None
-        return super()._get_expected_exception(op_name, obj, other)
+        return None
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         sdtype = tm.get_dtype(obj)
         expected = pointwise_result
+
+        if op_name in ("eq", "ne", "le", "ge", "lt", "gt"):
+            return expected.astype("boolean")
 
         if sdtype.kind in "iu":
             if op_name in ("__rtruediv__", "__truediv__", "__div__"):
@@ -219,11 +218,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             expected = expected.astype(sdtype)
         return expected
 
-    series_scalar_exc = None
-    series_array_exc = None
-    frame_scalar_exc = None
-    divmod_exc = None
-
     def test_divmod_series_array(self, data, data_for_twos, request):
         if data.dtype.kind == "b":
             mark = pytest.mark.xfail(
@@ -234,49 +228,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_divmod_series_array(data, data_for_twos)
 
-
-class TestComparisonOps(base.BaseComparisonOpsTests):
-    series_scalar_exc = None
-    series_array_exc = None
-    frame_scalar_exc = None
-
-    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
-        return pointwise_result.astype("boolean")
-
-
-class TestInterface(base.BaseInterfaceTests):
-    pass
-
-
-class TestConstructors(base.BaseConstructorsTests):
-    pass
-
-
-class TestReshaping(base.BaseReshapingTests):
-    pass
-
-    # for test_concat_mixed_dtypes test
-    # concat of an Integer and Int coerces to object dtype
-    # TODO(jreback) once integrated this would
-
-
-class TestGetitem(base.BaseGetitemTests):
-    pass
-
-
-class TestSetitem(base.BaseSetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
-    pass
-
-
-class TestMethods(base.BaseMethodsTests):
     def test_combine_le(self, data_repeated):
         # TODO: patching self is a bad pattern here
         orig_data1, orig_data2 = data_repeated(2)
@@ -287,16 +238,6 @@ class TestMethods(base.BaseMethodsTests):
             self._combine_le_expected_dtype = object
         super().test_combine_le(data_repeated)
 
-
-class TestCasting(base.BaseCastingTests):
-    pass
-
-
-class TestGroupby(base.BaseGroupbyTests):
-    pass
-
-
-class TestReduce(base.BaseReduceTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         if op_name in ["any", "all"] and tm.get_dtype(obj).kind != "b":
             pytest.skip(reason="Tested in tests/reductions/test_reductions.py")
@@ -351,8 +292,6 @@ class TestReduce(base.BaseReduceTests):
             raise TypeError("not supposed to reach this")
         return cmp_dtype
 
-
-class TestAccumulation(base.BaseAccumulateTests):
     def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
         return True
 
@@ -411,8 +350,6 @@ class TestAccumulation(base.BaseAccumulateTests):
         else:
             raise NotImplementedError(f"{op_name} not supported")
 
-
-class TestUnaryOps(base.BaseUnaryOpsTests):
     def test_invert(self, data, request):
         if data.dtype.kind == "f":
             mark = pytest.mark.xfail(
@@ -421,14 +358,6 @@ class TestUnaryOps(base.BaseUnaryOpsTests):
             )
             request.node.add_marker(mark)
         super().test_invert(data)
-
-
-class TestPrinting(base.BasePrintingTests):
-    pass
-
-
-class TestParsing(base.BaseParsingTests):
-    pass
 
 
 class Test2DCompat(base.Dim2CompatTests):
