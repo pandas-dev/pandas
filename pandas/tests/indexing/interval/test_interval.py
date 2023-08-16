@@ -106,7 +106,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
+        msg = (
+            r"None of \[Index\(\[10\], dtype='object', name='B'\)\] "
+            r"are in the \[index\]"
+        )
+        with pytest.raises(KeyError, match=msg):
             df.loc[[10]]
 
         # partial missing

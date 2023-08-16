@@ -206,6 +206,7 @@ Package                                                          Minimum support
 `NumPy <https://numpy.org>`__                                    1.22.4
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
+`tzdata <https://pypi.org/project/tzdata/>`__                    2022.1
 ================================================================ ==========================
 
 .. _install.optional_dependencies:
