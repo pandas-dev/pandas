@@ -307,6 +307,9 @@ jobs:
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
     #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    defaults:
+      run:
+        shell: bash -eou pipefail {0}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
