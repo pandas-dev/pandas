@@ -386,5 +386,6 @@ def main():
     if args.command == "linkcheck":
         builder.linkcheck()
 
+
 if __name__ == "__main__":
     sys.exit(main())
