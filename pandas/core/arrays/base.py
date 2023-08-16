@@ -2340,6 +2340,11 @@ class ExtensionOpsMixin:
         setattr(cls, "__ror__", cls._create_logical_method(roperator.ror_))
         setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
+    
+    def round(self, decimals: int = 0, *args, **kwargs) -> self:
+        raise AbstractMethodError(self)
+
+    
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
