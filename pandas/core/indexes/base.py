@@ -458,7 +458,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def _engine_type(
         self,
-    ) -> type[libindex.IndexEngine] | type[libindex.ExtensionEngine]:
+    ) -> type[libindex.IndexEngine | libindex.ExtensionEngine]:
         return self._engine_types.get(self.dtype, libindex.ObjectEngine)
 
     # whether we support partial string indexing. Overridden
@@ -481,7 +481,7 @@ class Index(IndexOpsMixin, PandasObject):
         copy: bool = False,
         name=None,
         tupleize_cols: bool = True,
-    ) -> Index:
+    ) -> Self:
         from pandas.core.indexes.range import RangeIndex
 
         name = maybe_extract_name(name, data, cls)
@@ -500,7 +500,9 @@ class Index(IndexOpsMixin, PandasObject):
             result = RangeIndex(start=data, copy=copy, name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
-            return result
+            # error: Incompatible return value type (got "MultiIndex",
+            # expected "Self")
+            return result  # type: ignore[return-value]
 
         elif is_ea_or_datetimelike_dtype(dtype):
             # non-EA dtype indexes have special casting logic, so we punt here
@@ -523,7 +525,7 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_scalar(data):
             raise cls._raise_scalar_data_error(data)
         elif hasattr(data, "__array__"):
-            return Index(np.asarray(data), dtype=dtype, copy=copy, name=name)
+            return cls(np.asarray(data), dtype=dtype, copy=copy, name=name)
         elif not is_list_like(data) and not isinstance(data, memoryview):
             # 2022-11-16 the memoryview check is only necessary on some CI
             #  builds, not clear why
@@ -540,7 +542,11 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from pandas.core.indexes.multi import MultiIndex
 
-                    return MultiIndex.from_tuples(data, names=name)
+                    # error: Incompatible return value type (got "MultiIndex",
+                    # expected "Self")
+                    return MultiIndex.from_tuples(  # type: ignore[return-value]
+                        data, names=name
+                    )
             # other iterable of some kind
 
             if not isinstance(data, (list, tuple)):
