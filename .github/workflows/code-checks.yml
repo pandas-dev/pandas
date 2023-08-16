@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -euo pipefail {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-22.04
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -euo pipefail {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-22.04
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -euo pipefail {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7

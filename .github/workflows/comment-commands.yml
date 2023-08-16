@@ -36,7 +36,7 @@ jobs:
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '@github-actions benchmark')
     defaults:
       run:
-        shell: bash -el {0}
+        shell: bash -euo pipefail {0}
     env:
       ENV_FILE: environment.yml
       COMMENT: ${{github.event.comment.body}}
