@@ -690,7 +690,7 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     op = getattr(ewm, kernel, None)
     if op is None:
         # Nothing to test
-        return
+        pytest.skip("No op to test")
     if numeric_only and dtype is object:
         msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
