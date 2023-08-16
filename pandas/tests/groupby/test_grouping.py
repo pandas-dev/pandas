@@ -725,7 +725,7 @@ class TestGrouping:
         # GH 17537
         grouped = mframe.groupby(level=0, sort=sort)
         exp_labels = np.array(labels, np.intp)
-        tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
+        tm.assert_almost_equal(grouped.grouper.result_index_and_codes[1], exp_labels)
 
     def test_grouping_labels(self, mframe):
         grouped = mframe.groupby(mframe.index.get_level_values(0))
@@ -794,11 +794,7 @@ class TestGrouping:
             gr.grouper.group_info[0], np.array([], dtype=np.dtype(np.intp))
         )
 
-        tm.assert_numpy_array_equal(
-            gr.grouper.group_info[1], np.array([], dtype=np.dtype(np.intp))
-        )
-
-        assert gr.grouper.group_info[2] == 0
+        assert gr.grouper.group_info[1] == 0
 
         # check name
         assert s.groupby(s).grouper.names == ["name"]

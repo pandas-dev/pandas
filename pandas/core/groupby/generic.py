@@ -416,7 +416,6 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH #823 #24880
             index = self.grouper.result_index
             res_df = self.obj._constructor_expanddim(values, index=index)
-            res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
             res_ser = res_df.stack(future_stack=True)
@@ -442,7 +441,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if not self.as_index:
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
-            return self._reindex_output(result)
+            return result
 
     def _aggregate_named(self, func, *args, **kwargs):
         # Note: this is very similar to _aggregate_series_pure_python,
@@ -672,7 +671,7 @@ class SeriesGroupBy(GroupBy[Series]):
         2023-02-01    1
         Freq: MS, dtype: int64
         """
-        ids, _, _ = self.grouper.group_info
+        ids, _ = self.grouper.group_info
 
         val = self.obj._values
 
@@ -721,7 +720,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
             result.index = default_index(len(result))
-        return self._reindex_output(result, fill_value=0)
+        return result
 
     @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
@@ -749,7 +748,7 @@ class SeriesGroupBy(GroupBy[Series]):
         from pandas.core.reshape.merge import get_join_indexers
         from pandas.core.reshape.tile import cut
 
-        ids, _, _ = self.grouper.group_info
+        ids, _ = self.grouper.group_info
         val = self.obj._values
 
         index_names = self.grouper.names + [self.obj.name]
@@ -819,9 +818,18 @@ class SeriesGroupBy(GroupBy[Series]):
         rep = partial(np.repeat, repeats=np.add.reduceat(inc, idx))
 
         # multi-index components
-        codes = self.grouper.reconstructed_codes
+        if isinstance(self.grouper.result_index, MultiIndex):
+            codes = list(self.grouper.result_index.codes)
+        else:
+            codes = [
+                algorithms.factorize(
+                    self.grouper.result_index,
+                    sort=self.grouper._sort,
+                    use_na_sentinel=self.grouper.dropna,
+                )[0]
+            ]
         codes = [rep(level_codes) for level_codes in codes] + [llab(lab, inc)]
-        levels = [ping.group_index for ping in self.grouper.groupings] + [lev]
+        levels = self.grouper.levels + [lev]
 
         if dropna:
             mask = codes[-1] != -1
@@ -1686,7 +1694,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
 
-        return self._reindex_output(result)
+        return result
 
     def _cython_transform(
         self,

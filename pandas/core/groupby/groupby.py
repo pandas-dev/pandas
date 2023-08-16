@@ -54,7 +54,6 @@ from pandas._typing import (
     NDFrameT,
     PositionalIndexer,
     RandomState,
-    Scalar,
     T,
     npt,
 )
@@ -788,7 +787,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
     @final
     @property
-    def groups(self) -> dict[Hashable, np.ndarray]:
+    def groups(self) -> dict[Hashable, Index]:
         """
         Dict {group name -> group labels}.
 
@@ -1505,7 +1504,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result
 
         # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self.grouper.result_ilocs())
+        original_positions = Index(self.grouper.result_ilocs)
         result = result.set_axis(original_positions, axis=self.axis, copy=False)
         result = result.sort_index(axis=self.axis)
         if self.grouper.has_dropped_na:
@@ -1599,7 +1598,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # error: Argument 1 to "_maybe_transpose_result" of "GroupBy" has
         # incompatible type "Union[Series, DataFrame]"; expected "NDFrameT"
         res = self._maybe_transpose_result(result)  # type: ignore[arg-type]
-        return self._reindex_output(res, qs=qs)
+        return res
 
     def _wrap_applied_output(
         self,
@@ -1615,8 +1614,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _numba_prep(self, data: DataFrame):
-        ids, _, ngroups = self.grouper.group_info
-        sorted_index = self.grouper._sort_idx
+        ids, ngroups = self.grouper.group_info
+        sorted_index = self.grouper.result_ilocs
         sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
@@ -1669,7 +1668,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         # Pass group ids to kernel directly if it can handle it
         # (This is faster since it doesn't require a sort)
-        ids, _, _ = self.grouper.group_info
+        ids, _ = self.grouper.group_info
         ngroups = self.grouper.ngroups
 
         res_mgr = df._mgr.apply(
@@ -2043,7 +2042,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
 
         # for each col, reshape to size of original frame by take operation
-        ids, _, _ = self.grouper.group_info
+        ids = self.grouper.result_index_and_codes[1]
         result = result.reindex(self.grouper.result_index, axis=self.axis, copy=False)
 
         if self.obj.ndim == 1:
@@ -2096,7 +2095,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         this is currently implementing sort=False
         (though the default is sort=True) for groupby in general
         """
-        ids, _, ngroups = self.grouper.group_info
+        ids, ngroups = self.grouper.group_info
         sorter = get_group_index_sorter(ids, ngroups)
         ids, count = ids[sorter], len(ids)
 
@@ -2305,7 +2304,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Freq: MS, dtype: int64
         """
         data = self._get_data_to_aggregate()
-        ids, _, ngroups = self.grouper.group_info
+        ids, ngroups = self.grouper.group_info
         mask = ids != -1
 
         is_series = data.ndim == 1
@@ -2335,15 +2334,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         new_mgr = data.grouped_reduce(hfunc)
         new_obj = self._wrap_agged_manager(new_mgr)
+        result = self._wrap_aggregated_output(new_obj)
 
-        # If we are grouping on categoricals we want unobserved categories to
-        # return zero, rather than the default of NaN which the reindexing in
-        # _wrap_aggregated_output() returns. GH 35028
-        # e.g. test_dataframe_groupby_on_2_categoricals_when_observed_is_false
-        with com.temp_setattr(self, "observed", True):
-            result = self._wrap_aggregated_output(new_obj)
-
-        return self._reindex_output(result, fill_value=0)
+        return result
 
     @final
     @Substitution(name="groupby")
@@ -2820,7 +2813,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             and not grouping._observed
             for grouping in groupings
         ):
-            levels_list = [ping.result_index for ping in groupings]
+            levels_list = gb.grouper.levels
             multi_index, _ = MultiIndex.from_product(
                 levels_list, names=[ping.name for ping in groupings]
             ).sortlevel()
@@ -3043,10 +3036,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 dtype_backend=dtype_backend,
             )
 
-        with com.temp_setattr(self, "as_index", True):
-            # size already has the desired behavior in GH#49519, but this makes the
-            # as_index=False path of _reindex_output fail on categorical groupers.
-            result = self._reindex_output(result, fill_value=0)
         if not self.as_index:
             # error: Incompatible types in assignment (expression has
             # type "DataFrame", variable has type "Series")
@@ -3124,7 +3113,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     npfunc=np.sum,
                 )
 
-            return self._reindex_output(result, fill_value=0)
+            return result
 
     @final
     @doc(
@@ -3522,7 +3511,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self.obj._constructor_expanddim(
                 res_values, index=self.grouper.result_index, columns=agg_names
             )
-            return self._reindex_output(result)
+            return result
 
         result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
         return result
@@ -3907,7 +3896,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if limit is None:
             limit = -1
 
-        ids, _, _ = self.grouper.group_info
+        ids, _ = self.grouper.group_info
         sorted_labels = np.argsort(ids, kind="mergesort").astype(np.intp, copy=False)
         if direction == "bfill":
             sorted_labels = sorted_labels[::-1]
@@ -4238,7 +4227,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not dropna:
             mask = self._make_mask_from_positional_indexer(n)
 
-            ids, _, _ = self.grouper.group_info
+            ids, _ = self.grouper.group_info
 
             # Drop NA values in grouping
             mask = mask & (ids != -1)
@@ -4449,12 +4438,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             qs = np.array([q], dtype=np.float64)
             pass_qs = None
 
-        ids, _, ngroups = self.grouper.group_info
+        ids, ngroups = self.grouper.group_info
+        ids = ids[ids >= 0]
         nqs = len(qs)
 
         func = partial(
             libgroupby.group_quantile,
-            labels=ids,
+            labels=ids[ids >= 0],
             qs=qs,
             interpolation=interpolation,
             starts=starts,
@@ -5169,7 +5159,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 if fill_value is lib.no_default:
                     fill_value = None
-                ids, _, ngroups = self.grouper.group_info
+                ids, ngroups = self.grouper.group_info
                 res_indexer = np.zeros(len(ids), dtype=np.int64)
 
                 libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
@@ -5517,104 +5507,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._selected_obj.iloc[:, mask]
 
     @final
-    def _reindex_output(
-        self,
-        output: OutputFrameOrSeries,
-        fill_value: Scalar = np.nan,
-        qs: npt.NDArray[np.float64] | None = None,
-    ) -> OutputFrameOrSeries:
-        """
-        If we have categorical groupers, then we might want to make sure that
-        we have a fully re-indexed output to the levels. This means expanding
-        the output space to accommodate all values in the cartesian product of
-        our groups, regardless of whether they were observed in the data or
-        not. This will expand the output space if there are missing groups.
-
-        The method returns early without modifying the input if the number of
-        groupings is less than 2, self.observed == True or none of the groupers
-        are categorical.
-
-        Parameters
-        ----------
-        output : Series or DataFrame
-            Object resulting from grouping and applying an operation.
-        fill_value : scalar, default np.nan
-            Value to use for unobserved categories if self.observed is False.
-        qs : np.ndarray[float64] or None, default None
-            quantile values, only relevant for quantile.
-
-        Returns
-        -------
-        Series or DataFrame
-            Object (potentially) re-indexed to include all possible groups.
-        """
-        groupings = self.grouper.groupings
-        if len(groupings) == 1:
-            return output
-
-        # if we only care about the observed values
-        # we are done
-        elif self.observed:
-            return output
-
-        # reindexing only applies to a Categorical grouper
-        elif not any(
-            isinstance(ping.grouping_vector, (Categorical, CategoricalIndex))
-            for ping in groupings
-        ):
-            return output
-
-        levels_list = [ping.group_index for ping in groupings]
-        names = self.grouper.names
-        if qs is not None:
-            # error: Argument 1 to "append" of "list" has incompatible type
-            # "ndarray[Any, dtype[floating[_64Bit]]]"; expected "Index"
-            levels_list.append(qs)  # type: ignore[arg-type]
-            names = names + [None]
-        index = MultiIndex.from_product(levels_list, names=names)
-        if self.sort:
-            index = index.sort_values()
-
-        if self.as_index:
-            # Always holds for SeriesGroupBy unless GH#36507 is implemented
-            d = {
-                self.obj._get_axis_name(self.axis): index,
-                "copy": False,
-                "fill_value": fill_value,
-            }
-            return output.reindex(**d)  # type: ignore[arg-type]
-
-        # GH 13204
-        # Here, the categorical in-axis groupers, which need to be fully
-        # expanded, are columns in `output`. An idea is to do:
-        # output = output.set_index(self.grouper.names)
-        #                .reindex(index).reset_index()
-        # but special care has to be taken because of possible not-in-axis
-        # groupers.
-        # So, we manually select and drop the in-axis grouper columns,
-        # reindex `output`, and then reset the in-axis grouper columns.
-
-        # Select in-axis groupers
-        in_axis_grps = [
-            (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
-        ]
-        if len(in_axis_grps) > 0:
-            g_nums, g_names = zip(*in_axis_grps)
-            output = output.drop(labels=list(g_names), axis=1)
-
-        # Set a temp index and reindex (possibly expanding)
-        output = output.set_index(self.grouper.result_index).reindex(
-            index, copy=False, fill_value=fill_value
-        )
-
-        # Reset in-axis grouper columns
-        # (using level numbers `g_nums` because level names may not be unique)
-        if len(in_axis_grps) > 0:
-            output = output.reset_index(level=g_nums)
-
-        return output.reset_index(drop=True)
-
-    @final
     def sample(
         self,
         n: int | None = None,
@@ -5785,14 +5677,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if not self.observed and any(
             ping._passed_categorical for ping in self.grouper.groupings
         ):
-            expected_len = np.prod(
-                [len(ping.group_index) for ping in self.grouper.groupings]
-            )
-            if len(self.grouper.groupings) == 1:
-                result_len = len(self.grouper.groupings[0].grouping_vector.unique())
-            else:
-                # result_index only contains observed groups in this case
-                result_len = len(self.grouper.result_index)
+            expected_len = len(self.grouper.result_index)
+            # TODO: Better way to find # of observed groups?
+            group_sizes = self.grouper.size()
+            result_len = group_sizes[group_sizes > 0].shape[0]
             assert result_len <= expected_len
             has_unobserved = result_len < expected_len
 

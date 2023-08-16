@@ -68,7 +68,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    assert len(gb.grouper.result_index) != len(gb.grouper.group_keys_seq)
+    assert len(gb.grouper.result_index) != len(gb.grouper.codes)
 
     return gb
 

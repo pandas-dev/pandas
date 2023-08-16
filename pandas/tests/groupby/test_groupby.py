@@ -141,7 +141,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     expected = mframe.groupby(key.astype("O")).sum()
     assert result.index.dtype == np.int8
-    assert expected.index.dtype == np.int64
+    assert expected.index.dtype == object
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
@@ -320,7 +320,7 @@ def test_len():
     df = DataFrame({"a": [np.nan] * 3, "b": [1, 2, 3]})
     assert len(df.groupby("a")) == 0
     assert len(df.groupby("b")) == 3
-    assert len(df.groupby(["a", "b"])) == 3
+    assert len(df.groupby(["a", "b"])) == 0
 
 
 def test_basic_regression():
