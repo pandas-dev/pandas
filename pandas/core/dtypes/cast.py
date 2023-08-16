@@ -850,7 +850,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = np.dtype(np.float64)
 
     elif is_complex(val):
-        dtype = np.dtype(np.complex_)
+        dtype = np.dtype(np.complex128)
 
     if lib.is_period(val):
         dtype = PeriodDtype(freq=val.freq)

@@ -83,7 +83,7 @@ class TestSeriesRepr:
         str(string_series.astype(int))
 
         # with NaNs
-        string_series[5:7] = np.NaN
+        string_series[5:7] = np.nan
         str(string_series)
 
     def test_object(self, object_series):
