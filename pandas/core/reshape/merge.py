@@ -90,6 +90,7 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -2407,7 +2408,7 @@ def _factorize_keys(
                 or is_string_dtype(lk.dtype)
                 and not sort
             )
-            or (is_string_dtype(lk.dtype) and lk.dtype.storage == "pyarrow")  # type: ignore[attr-defined]  # noqa: E501
+            or (isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow")
         ):
             lk, _ = lk._values_for_factorize()
 
@@ -2415,7 +2416,7 @@ def _factorize_keys(
             # "_values_for_factorize"
             rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
         elif (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            is_string_dtype(lk.dtype) and lk.dtype.storage == "pyarrow"  # type: ignore[attr-defined]  # noqa: E501
+            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
             import pyarrow as pa
             import pyarrow.compute as pc
