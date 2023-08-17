@@ -339,10 +339,15 @@ class TestArrowArray(base.ExtensionTests):
     def check_accumulate(self, ser, op_name, skipna):
         result = getattr(ser, op_name)(skipna=skipna)
 
-        if ser.dtype.kind == "m":
+        pa_type = ser.dtype.pyarrow_dtype
+        if pa.types.is_temporal(pa_type):
             # Just check that we match the integer behavior.
-            ser = ser.astype("int64[pyarrow]")
-            result = result.astype("int64[pyarrow]")
+            if pa_type.bit_width == 32:
+                int_type = "int32[pyarrow]"
+            else:
+                int_type = "int64[pyarrow]"
+            ser = ser.astype(int_type)
+            result = result.astype(int_type)
 
         result = result.astype("Float64")
         expected = getattr(ser.astype("Float64"), op_name)(skipna=skipna)
@@ -353,14 +358,20 @@ class TestArrowArray(base.ExtensionTests):
         # attribute "pyarrow_dtype"
         pa_type = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
 
-        if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
-            if op_name in ["cumsum", "cumprod"]:
+        if (
+            pa.types.is_string(pa_type)
+            or pa.types.is_binary(pa_type)
+            or pa.types.is_decimal(pa_type)
+        ):
+            if op_name in ["cumsum", "cumprod", "cummax", "cummin"]:
                 return False
-        elif pa.types.is_temporal(pa_type) and not pa.types.is_duration(pa_type):
-            if op_name in ["cumsum", "cumprod"]:
+        elif pa.types.is_boolean(pa_type):
+            if op_name in ["cumprod", "cummax", "cummin"]:
                 return False
-        elif pa.types.is_duration(pa_type):
-            if op_name == "cumprod":
+        elif pa.types.is_temporal(pa_type):
+            if op_name == "cumsum" and not pa.types.is_duration(pa_type):
+                return False
+            elif op_name == "cumprod":
                 return False
         return True
 
@@ -376,7 +387,9 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if all_numeric_accumulations != "cumsum" or pa_version_under9p0:
+        if pa_version_under9p0 or (
+            pa_version_under13p0 and all_numeric_accumulations != "cumsum"
+        ):
             # xfailing takes a long time to run because pytest
             # renders the exception messages even when not showing them
             opt = request.config.option
@@ -401,8 +414,8 @@ class TestArrowArray(base.ExtensionTests):
 
         self.check_accumulate(ser, op_name, skipna)
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        dtype = tm.get_dtype(obj)
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
         pa_dtype = dtype.pyarrow_dtype  # type: ignore[union-attr]
@@ -445,20 +458,25 @@ class TestArrowArray(base.ExtensionTests):
 
         return True
 
-    def check_reduce(self, ser, op_name, skipna):
-        pa_dtype = ser.dtype.pyarrow_dtype
-        if op_name == "count":
-            result = getattr(ser, op_name)()
-        else:
-            result = getattr(ser, op_name)(skipna=skipna)
-
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "pyarrow_dtype"
+        pa_dtype = ser.dtype.pyarrow_dtype  # type: ignore[union-attr]
         if pa.types.is_integer(pa_dtype) or pa.types.is_floating(pa_dtype):
-            ser = ser.astype("Float64")
+            alt = ser.astype("Float64")
+        else:
+            # TODO: in the opposite case, aren't we testing... nothing? For
+            # e.g. date/time dtypes trying to calculate 'expected' by converting
+            # to object will raise for mean, std etc
+            alt = ser
+
         # TODO: in the opposite case, aren't we testing... nothing?
         if op_name == "count":
-            expected = getattr(ser, op_name)()
+            result = getattr(ser, op_name)()
+            expected = getattr(alt, op_name)()
         else:
-            expected = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.parametrize("skipna", [True, False])
