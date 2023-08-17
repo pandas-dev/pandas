@@ -460,3 +460,13 @@ class TestNDFrame:
         )
         with tm.assert_produces_warning(FutureWarning, match=msg_warn):
             DataFrame({"col": [False]}).bool()
+
+    def test_drop_pos_args_deprecation_for_to_pickle(self):
+        # GH-54229
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"In a future version of pandas all arguments of to_pickle "
+            r"except for the argument 'path' will be keyword-only"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_pickle("./dummy.pkl", "infer")
