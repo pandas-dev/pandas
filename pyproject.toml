@@ -252,6 +252,8 @@ select = [
   "NPY002",
   # Perflint
   "PERF",
+  # flynt
+  "FLY",
 ]
 
 ignore = [
@@ -356,7 +358,7 @@ exclude = [
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
-"pandas/tests/*" = ["B028"]
+"pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]
