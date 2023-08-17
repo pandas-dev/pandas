@@ -179,12 +179,6 @@ class TestCategorical(base.ExtensionTests):
     def test_array_repr(self, data, size):
         super().test_array_repr(data, size)
 
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
-
     @pytest.mark.xfail(reason="TBD")
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
