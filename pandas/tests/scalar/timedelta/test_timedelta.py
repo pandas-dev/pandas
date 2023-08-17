@@ -1044,6 +1044,7 @@ def test_timedelta_attribute_precision():
     "unit,unit_depr",
     [
         ("min", "T"),
+        ("s", "S"),
         ("ms", "L"),
         ("ns", "N"),
         ("us", "U"),

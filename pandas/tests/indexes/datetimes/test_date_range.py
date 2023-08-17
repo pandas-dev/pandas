@@ -840,12 +840,13 @@ class TestDateRanges:
         "freq,freq_depr",
         [
             ("min", "T"),
+            ("s", "S"),
             ("ms", "L"),
             ("us", "U"),
             ("ns", "N"),
         ],
     )
-    def test_frequencies_t_l_u_n_deprecated(self, freq, freq_depr):
+    def test_frequencies_T_S_L_U_N_deprecated(self, freq, freq_depr):
         # GH#52536
         msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
 

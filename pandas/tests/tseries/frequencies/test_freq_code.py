@@ -99,7 +99,7 @@ def test_compatibility(freqstr, expected):
     assert ts_np + do == np.datetime64(expected)
 
 
-@pytest.mark.parametrize("freq", ["T", "L", "N", "U"])
+@pytest.mark.parametrize("freq", ["T", "S", "L", "N", "U"])
 def test_units_t_l_deprecated_from__attrname_to_abbrevs(freq):
     # GH 52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."

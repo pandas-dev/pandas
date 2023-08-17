@@ -120,7 +120,7 @@ def to_timedelta(
 
         Must not be specified when `arg` context strings and ``errors="raise"``.
 
-        .. deprecated:: 2.1.0
+        .. deprecated:: 2.2.0
             Units 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
             in a future version. Please use 'min', 's', 'ms', 'us', and 'ns' instead of
             'T', 'S', 'L', 'U' and 'N'.
