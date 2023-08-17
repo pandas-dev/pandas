@@ -16,12 +16,6 @@ from numpy cimport (
 
 cnp.import_array()
 
-from libc.stdlib cimport (
-    free,
-    malloc,
-)
-
-
 cdef extern from "pandas/vendored/nanoarrow.h":
     struct ArrowBuffer:
         uint8_t* data
@@ -225,13 +219,6 @@ def _unpickle_bitmaskarray(array, parent):
     return bma
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef void buf_invert(uint8_t* dest, uint8_t* src, Py_ssize_t size) noexcept:
-    cdef Py_ssize_t i
-    for i in range(size):
-        dest[i] = ~src[i]
-
 cdef class BitMaskArray:
     cdef:
         ArrowBitmap bitmap
@@ -310,15 +297,7 @@ cdef class BitMaskArray:
         return self.to_numpy()[key]
 
     def __invert__(self):
-        cdef ndarray[uint8_t] result
-        result = np.empty(self.bitmap.size_bits, dtype=bool)
-
-        cdef uint8_t* inverted = <uint8_t*>malloc(self.bitmap.size_bits)
-        # TODO: upstream invert or make sure we handle size == 0 here
-        buf_invert(inverted, self.bitmap.buffer.data, self.bitmap.size_bits // 8 + 1)
-        BitMaskArray.buffer_to_array_1d(result, inverted, self.bitmap.size_bits)
-        free(inverted)
-        return result.reshape(self.array_shape)
+        return ~self.to_numpy()
 
     def __or__(self, other):
         if isinstance(other, type(self)):
