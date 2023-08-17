@@ -1318,6 +1318,7 @@ char **NpyArr_encodeLabels(PyArrayObject *labels, PyObjectEncoder *enc,
         } else if (PyDate_Check(item) || PyDelta_Check(item)) {
             is_datetimelike = 1;
             if (PyObject_HasAttrString(item, "_value")) {
+                // pd.Timestamp object or pd.NaT
                 // see test_date_index_and_values for case with non-nano
                 i8date = get_long_attr(item, "_value");
             } else {
@@ -1471,12 +1472,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                 }
                 // Currently no way to pass longVal to iso function, so use
                 // state management
-                GET_TC(tc)->longValue = longVal;
+                pc->longValue = longVal;
                 tc->type = JT_UTF8;
             } else {
                 NPY_DATETIMEUNIT base =
                     ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-                GET_TC(tc)->longValue = NpyDateTimeToEpoch(longVal, base);
+                pc->longValue = NpyDateTimeToEpoch(longVal, base);
                 tc->type = JT_LONG;
             }
         }
@@ -1497,9 +1498,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
     if (PyLong_Check(obj)) {
         tc->type = JT_LONG;
         int overflow = 0;
-        GET_TC(tc)->longValue = PyLong_AsLongLongAndOverflow(obj, &overflow);
+        pc->longValue = PyLong_AsLongLongAndOverflow(obj, &overflow);
         int err;
-        err = (GET_TC(tc)->longValue == -1) && PyErr_Occurred();
+        err = (pc->longValue == -1) && PyErr_Occurred();
 
         if (overflow) {
             tc->type = JT_BIGNUM;
@@ -1513,7 +1514,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-            GET_TC(tc)->doubleValue = val;
+            pc->doubleValue = val;
             tc->type = JT_DOUBLE;
         }
         return;
@@ -1526,7 +1527,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
         return;
     } else if (object_is_decimal_type(obj)) {
-        GET_TC(tc)->doubleValue = PyFloat_AsDouble(obj);
+        pc->doubleValue = PyFloat_AsDouble(obj);
         tc->type = JT_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
@@ -1541,7 +1542,7 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch(obj, base);
+            pc->longValue = PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
@@ -1573,12 +1574,13 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         } else {
             NPY_DATETIMEUNIT base =
                 ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-            GET_TC(tc)->longValue = PyDateTimeToEpoch(obj, base);
+            pc->longValue = PyDateTimeToEpoch(obj, base);
             tc->type = JT_LONG;
         }
         return;
     } else if (PyDelta_Check(obj)) {
         if (PyObject_HasAttrString(obj, "_value")) {
+            // pd.Timedelta object or pd.NaT
             value = get_long_attr(obj, "_value");
         } else {
             value = total_seconds(obj) * 1000000000LL;  // nanoseconds per sec
@@ -1604,11 +1606,11 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
             tc->type = JT_LONG;
         }
-        GET_TC(tc)->longValue = value;
+        pc->longValue = value;
         return;
     } else if (PyArray_IsScalar(obj, Integer)) {
         tc->type = JT_LONG;
-        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue),
+        PyArray_CastScalarToCtype(obj, &(pc->longValue),
                                   PyArray_DescrFromType(NPY_INT64));
 
         exc = PyErr_Occurred();
@@ -1619,12 +1621,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
 
         return;
     } else if (PyArray_IsScalar(obj, Bool)) {
-        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->longValue),
+        PyArray_CastScalarToCtype(obj, &(pc->longValue),
                                   PyArray_DescrFromType(NPY_BOOL));
-        tc->type = (GET_TC(tc)->longValue) ? JT_TRUE : JT_FALSE;
+        tc->type = (pc->longValue) ? JT_TRUE : JT_FALSE;
         return;
     } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
-        PyArray_CastScalarToCtype(obj, &(GET_TC(tc)->doubleValue),
+        PyArray_CastScalarToCtype(obj, &(pc->doubleValue),
                                   PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;

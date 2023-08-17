@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 import datetime
+import json
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -9,8 +10,6 @@ from typing import (
     cast,
     overload,
 )
-
-from pandas._libs import json
 
 from pandas.io.excel._base import ExcelWriter
 from pandas.io.excel._util import (
@@ -257,7 +256,7 @@ class ODSWriter(ExcelWriter):
 
         if style is None:
             return None
-        style_key = json.ujson_dumps(style)
+        style_key = json.dumps(style)
         if style_key in self._style_dict:
             return self._style_dict[style_key]
         name = f"pd{len(self._style_dict)+1}"
