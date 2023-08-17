@@ -3567,6 +3567,10 @@ cdef class FY5253(FY5253Mixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253()
     Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253(startingMonth=1, weekday=3, variation="nearest")
+    Timestamp('2022-02-03 00:00:00')
     """
 
     _prefix = "RE"
@@ -3750,6 +3754,11 @@ cdef class FY5253Quarter(FY5253Mixin):
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253Quarter()
     Timestamp('2022-01-31 00:00:00')
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253Quarter(weekday=5, startingMonth=12, variation="last",
+    ...                               qtr_with_extra_week=4)
+    Timestamp('2022-03-26 00:00:00')
     """
 
     _prefix = "REQ"
