@@ -5418,7 +5418,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _reindex_output(
         self,
         output: OutputFrameOrSeries,
-        fill_value: Scalar = np.NaN,
+        fill_value: Scalar = np.nan,
         qs: npt.NDArray[np.float64] | None = None,
     ) -> OutputFrameOrSeries:
         """
@@ -5436,7 +5436,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         output : Series or DataFrame
             Object resulting from grouping and applying an operation.
-        fill_value : scalar, default np.NaN
+        fill_value : scalar, default np.nan
             Value to use for unobserved categories if self.observed is False.
         qs : np.ndarray[float64] or None, default None
             quantile values, only relevant for quantile.
