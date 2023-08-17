@@ -906,7 +906,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
     :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
     :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
-    :class:`~pandas.tseries.offsets.Second`, ``'S'``, "one second"
+    :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
     :class:`~pandas.tseries.offsets.Milli`, ``'ms'``, "one millisecond"
     :class:`~pandas.tseries.offsets.Micro`, ``'us'``, "one microsecond"
     :class:`~pandas.tseries.offsets.Nano`, ``'ns'``, "one nanosecond"
@@ -1265,7 +1265,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BH", "business hour frequency"
     "H", "hourly frequency"
     "min", "minutely frequency"
-    "S", "secondly frequency"
+    "s", "secondly frequency"
     "ms", "milliseconds"
     "us", "microseconds"
     "ns", "nanoseconds"
@@ -1324,7 +1324,7 @@ frequencies. We will refer to these aliases as *period aliases*.
     "A, Y", "yearly frequency"
     "H", "hourly frequency"
     "min", "minutely frequency"
-    "S", "secondly frequency"
+    "s", "secondly frequency"
     "ms", "milliseconds"
     "us", "microseconds"
     "ns", "nanoseconds"
@@ -1645,7 +1645,7 @@ Basics
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=100, freq="S")
+   rng = pd.date_range("1/1/2012", periods=100, freq="s")
 
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
 
@@ -1793,7 +1793,7 @@ Resampling a ``DataFrame``, the default will be to act on all columns with the s
 
    df = pd.DataFrame(
        np.random.randn(1000, 3),
-       index=pd.date_range("1/1/2012", freq="S", periods=1000),
+       index=pd.date_range("1/1/2012", freq="s", periods=1000),
        columns=["A", "B", "C"],
    )
    r = df.resample("3min")

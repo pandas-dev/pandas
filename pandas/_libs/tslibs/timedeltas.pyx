@@ -1714,19 +1714,19 @@ class Timedelta(_Timedelta):
 
         Possible values:
 
-        * 'W', 'D', or 'S'
+        * 'W', or 'D'
         * 'days', or 'day'
         * 'hours', 'hour', 'hr', or 'h'
         * 'minutes', 'minute', 'min', or 'm'
-        * 'seconds', 'second', or 'sec'
+        * 'seconds', 'second', 'sec', or 's'
         * 'milliseconds', 'millisecond', 'millis', 'milli', or 'ms'
         * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
 
         .. deprecated:: 2.1.0
 
-            Values `T`, `L`, `U`, and `N` are deprecated in favour of the values
-            `min`, `ms`, `us`, and `ns`.
+            Values `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
+            `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
