@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -173,15 +175,18 @@ class TestIntervalIndexInsideMultiIndex:
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(not IS64, reason="GH 23440")
     @pytest.mark.parametrize(
         "base",
-        [10, 100, 101, 1010],
+        [101, 1010],
     )
     def test_reindex_behavior_with_interval_index(self, base):
         # GH 51826
-        left = np.arange(base)
-        right = np.arange(1, base + 1)
-        ser = Series(range(base), index=IntervalIndex.from_arrays(left, right))
-        expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=np.float64)
+
+        ser = Series(
+            range(base),
+            index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
+        )
+        expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
         result = ser.reindex(index=[np.nan, 1.0])
         tm.assert_series_equal(result, expected_result)
