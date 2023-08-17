@@ -229,7 +229,7 @@ select = [
   # flake8-gettext
   "INT",
   # pylint
-  "PLC", "PLE", "PLR", "PLW",
+  "PL",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -254,6 +254,8 @@ select = [
   "PERF",
   # flynt
   "FLY",
+  # flake8-logging-format
+  "G",
 ]
 
 ignore = [
