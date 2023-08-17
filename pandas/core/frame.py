@@ -64,6 +64,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -2613,6 +2614,9 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path",
+    )
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "path"], name="to_stata"
     )
     def to_stata(
         self,
