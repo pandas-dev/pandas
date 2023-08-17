@@ -45,7 +45,7 @@ class TestTimedeltaIndex:
 
     def test_astype(self):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.NaN], name="idx")
+        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan], name="idx")
 
         result = idx.astype(object)
         expected = Index(
@@ -78,7 +78,7 @@ class TestTimedeltaIndex:
 
     def test_astype_timedelta64(self):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.NaN])
+        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan])
 
         msg = (
             r"Cannot convert from timedelta64\[ns\] to timedelta64. "
@@ -98,7 +98,7 @@ class TestTimedeltaIndex:
     @pytest.mark.parametrize("dtype", [float, "datetime64", "datetime64[ns]"])
     def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
-        idx = TimedeltaIndex([1e14, "NaT", NaT, np.NaN])
+        idx = TimedeltaIndex([1e14, "NaT", NaT, np.nan])
         msg = "Cannot cast TimedeltaIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)

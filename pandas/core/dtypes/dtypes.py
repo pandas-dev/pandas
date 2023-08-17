@@ -81,7 +81,11 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        CategoricalIndex,
+        DatetimeIndex,
         Index,
+        IntervalIndex,
+        PeriodIndex,
     )
     from pandas.core.arrays import (
         BaseMaskedArray,
@@ -671,6 +675,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
+    @cache_readonly
+    def index_class(self) -> type_t[CategoricalIndex]:
+        from pandas import CategoricalIndex
+
+        return CategoricalIndex
+
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -911,6 +921,12 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = state["tz"]
         self._unit = state["unit"]
 
+    @cache_readonly
+    def index_class(self) -> type_t[DatetimeIndex]:
+        from pandas import DatetimeIndex
+
+        return DatetimeIndex
+
 
 @register_extension_dtype
 class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
@@ -1120,6 +1136,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if not results:
             return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
+
+    @cache_readonly
+    def index_class(self) -> type_t[PeriodIndex]:
+        from pandas import PeriodIndex
+
+        return PeriodIndex
 
 
 @register_extension_dtype
@@ -1383,6 +1405,12 @@ class IntervalDtype(PandasExtensionDtype):
         if common == object:
             return np.dtype(object)
         return IntervalDtype(common, closed=closed)
+
+    @cache_readonly
+    def index_class(self) -> type_t[IntervalIndex]:
+        from pandas import IntervalIndex
+
+        return IntervalIndex
 
 
 class NumpyEADtype(ExtensionDtype):

@@ -144,7 +144,7 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 # python-visible
 i8max = <int64_t>INT64_MAX
