@@ -3303,6 +3303,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "path"], name="to_pickle"
+    )
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
