@@ -296,7 +296,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:02    3
     2013-01-01 00:00:03    4
     2013-01-01 00:00:04    5
-    Freq: S, dtype: int64
+    Freq: s, dtype: int64
 
     >>> r = s.resample('2s')
 
@@ -304,7 +304,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00    3
     2013-01-01 00:00:02    7
     2013-01-01 00:00:04    5
-    Freq: 2S, dtype: int64
+    Freq: 2s, dtype: int64
 
     >>> r.agg(['sum', 'mean', 'max'])
                          sum  mean  max
@@ -1018,7 +1018,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:00    1
         2023-03-01 07:00:02    2
         2023-03-01 07:00:04    3
-        Freq: 2S, dtype: int64
+        Freq: 2s, dtype: int64
 
         Downsample the dataframe to 2Hz by providing the period time of 500ms.
 

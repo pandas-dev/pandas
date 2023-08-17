@@ -3543,7 +3543,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
+        >>> df.groupby('a').resample('30s').sum()
                             a  b
         a
         0   2000-01-01 00:00:00  0  1

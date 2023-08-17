@@ -87,7 +87,7 @@ can store larger datasets in memory.
 .. ipython:: python
    :okwarning:
 
-   ts = make_timeseries(freq="30S", seed=0)
+   ts = make_timeseries(freq="30s", seed=0)
    ts.to_parquet("timeseries.parquet")
    ts = pd.read_parquet("timeseries.parquet")
    ts
