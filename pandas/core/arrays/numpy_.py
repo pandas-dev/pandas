@@ -509,7 +509,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
     def _validate_setitem_value(self, value):
         if NumpyEADtype(type(value)) != self.dtype:
-            raise TypeError("bad")
+            raise TypeError(
+                "value cannot be inserted without changing the dtype. value:"
+                f"{value}, type(value): {type(value)}, NumpyEADtype(type(value)):"
+                f"  {NumpyEADtype(type(value))}, self.dtype:  {self.dtype}"
+            )
         return value
 
     # ------------------------------------------------------------------------
