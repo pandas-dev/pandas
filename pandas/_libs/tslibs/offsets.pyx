@@ -498,7 +498,7 @@ cdef class BaseOffset:
     def __sub__(self, other):
         if PyDateTime_Check(other):
             raise TypeError("Cannot subtract datetime from offset.")
-        elif type(other) == type(self):
+        elif type(other) is type(self):
             return type(self)(self.n - other.n, normalize=self.normalize,
                               **self.kwds)
         elif not isinstance(self, BaseOffset):
@@ -1047,7 +1047,7 @@ cdef class Tick(SingleConstructorOffset):
             return other.__add__(self)
 
         if isinstance(other, Tick):
-            if type(self) == type(other):
+            if type(self) is type(other):
                 return type(self)(self.n + other.n)
             else:
                 return delta_to_tick(self.delta + other.delta)
@@ -1374,17 +1374,19 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     **kwds
         Temporal parameter that add to or replace the offset value.
     weekday : int {0, 1, ..., 6}, default 0
-    
+
         A specific integer for the day of the week.
+
         - 0 is Monday
         - 1 is Tuesday
         - 2 is Wednesday
         - 3 is Thursday
         - 4 is Friday
         - 5 is Saturday
-        - 6 is Sunday.
+        - 6 is Sunday
 
         Instead Weekday type from dateutil.relativedelta can be used.
+
         - MO is Monday
         - TU is Tuesday
         - WE is Wednesday
