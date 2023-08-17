@@ -508,11 +508,17 @@ class NumpyExtensionArray(  # type: ignore[misc]
         return result
 
     def _validate_setitem_value(self, value):
-        if NumpyEADtype(type(value)) != self.dtype:
+        if type(value) == int:
+            val = np.power(value, 1, dtype=np.int64)  # for int64 only
+        elif type(value) == float:
+            val = np.power(value, 1, dtype=np.float64)  # for float64 only
+        else:
+            val = np.asarray([value], dtype=object)
+        if NumpyEADtype(type(val)) != self.dtype:
             raise TypeError(
                 "value cannot be inserted without changing the dtype. value:"
-                f"{value}, type(value): {type(value)}, NumpyEADtype(type(value)):"
-                f"  {NumpyEADtype(type(value))}, self.dtype:  {self.dtype}"
+                f"{val}, type(value): {type(val)}, NumpyEADtype(type(value)):"
+                f"  {NumpyEADtype(type(val))}, self.dtype:  {self.dtype}"
             )
         return value
 
