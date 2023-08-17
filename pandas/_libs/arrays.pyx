@@ -356,6 +356,12 @@ cdef class BitMaskArray:
     def nbytes(self) -> int:
         return self.bitmap.buffer.size_bytes
 
+    def any(self) -> bool:
+        # TODO: we might want to create a short circuiting implementation in
+        # nanoarrow, but even with a complete sum this is cheaper than
+        # serializing to numpy for an any call
+        return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits) > 0
+
     def sum(self) -> bool:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 

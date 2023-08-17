@@ -676,7 +676,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return tuple(reconstruct(x) for x in result)
         elif method == "reduce":
             # e.g. np.add.reduce; test_ufunc_reduce_raises
-            if self._mask.to_numpy().any():
+            if self._mask.any():
                 return self._na_value
             return result
         else:
@@ -697,7 +697,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # source code using it..
 
         # error: Incompatible return value type (got "bool_", expected "bool")
-        return self._mask.to_numpy().any()  # type: ignore[return-value]
+        return self._mask.any()  # type: ignore[return-value]
 
     def _propagate_mask(
         self, mask: npt.NDArray[np.bool_] | BitMaskArray | None, other
@@ -1401,7 +1401,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if skipna:
             return result
         else:
-            if result or len(self) == 0 or not self._mask.to_numpy().any():
+            if result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
@@ -1485,7 +1485,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if skipna:
             return result
         else:
-            if not result or len(self) == 0 or not self._mask.to_numpy().any():
+            if not result or len(self) == 0 or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
