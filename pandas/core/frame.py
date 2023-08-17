@@ -1231,7 +1231,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...
 
     @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "buf"], name="to_string"
+        version="3.0", allowed_args=["self", "buf"], name="to_string"
     )
     @Substitution(
         header_type="bool or list of str",
