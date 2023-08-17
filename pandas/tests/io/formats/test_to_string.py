@@ -11,6 +11,7 @@ from pandas import (
     option_context,
     to_datetime,
 )
+import pandas._testing as tm
 
 
 def test_repr_embedded_ndarray():
@@ -355,3 +356,15 @@ def test_to_string_string_dtype():
         z     int64[pyarrow]"""
     )
     assert result == expected
+
+
+def test_to_string_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_string except for the "
+        r"argument 'buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buf = StringIO()
+        df.to_string(buf, None, None, True, True)
