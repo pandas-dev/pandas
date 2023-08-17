@@ -93,6 +93,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_latex` except ``buf``. (:issue:`54229`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_pickle` except ``path``. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
