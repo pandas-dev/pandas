@@ -414,8 +414,7 @@ class TestDatetimeIndexComparisons:
         dti = date_range("2016-01-01", periods=2, tz=tz)
         if tz is not None:
             if isinstance(other, np.datetime64):
-                # no tzaware version available
-                return
+                pytest.skip("no tzaware version available")
             other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
@@ -1080,13 +1079,14 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["H", "D", "W", "M", "MS", "Q", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, dtype, box_with_array, freq, tz_naive_fixture
+        self, request, dtype, box_with_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         tz = tz_naive_fixture
         if box_with_array is pd.DataFrame:
-            # alignment headaches
-            return
+            request.node.add_marker(
+                pytest.mark.xfail(raises=ValueError, reason="Axis alignment fails")
+            )
 
         if freq is None:
             dti = DatetimeIndex(["NaT", "2017-04-05 06:07:08"], tz=tz)

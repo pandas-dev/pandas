@@ -559,8 +559,8 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path):
 
     tm.assert_frame_equal(df, df2, check_names=True)
 
-    assert type(df2.index.name) == str
-    assert type(df2.columns.name) == str
+    assert isinstance(df2.index.name, str)
+    assert isinstance(df2.columns.name, str)
 
 
 def test_store_series_name(setup_path):
