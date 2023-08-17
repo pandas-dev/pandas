@@ -578,7 +578,7 @@ def test_rank_min_int():
 
     result = df.groupby("grp").rank()
     expected = DataFrame(
-        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.nan, 1.0, np.nan]}
     )
 
     tm.assert_frame_equal(result, expected)

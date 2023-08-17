@@ -1781,8 +1781,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
         tm.assert_frame_equal(df, expected)
-        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.unicode_)
-        tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
@@ -1826,7 +1824,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
-        floatname = np.dtype(np.float_).name
+        floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
         # single item

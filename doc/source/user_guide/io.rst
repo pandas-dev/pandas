@@ -4881,7 +4881,7 @@ unspecified columns of the given DataFrame. The argument ``selector``
 defines which table is the selector table (which you can make queries from).
 The argument ``dropna`` will drop rows from the input ``DataFrame`` to ensure
 tables are synchronized.  This means that if a row for one of the tables
-being written to is entirely ``np.NaN``, that row will be dropped from all tables.
+being written to is entirely ``np.nan``, that row will be dropped from all tables.
 
 If ``dropna`` is False, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**.
 Remember that entirely ``np.Nan`` rows are not written to the HDFStore, so if

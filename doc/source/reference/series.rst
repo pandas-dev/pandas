@@ -314,6 +314,7 @@ Datetime properties
    Series.dt.weekday
    Series.dt.dayofyear
    Series.dt.day_of_year
+   Series.dt.days_in_month
    Series.dt.quarter
    Series.dt.is_month_start
    Series.dt.is_month_end
@@ -327,6 +328,7 @@ Datetime properties
    Series.dt.tz
    Series.dt.freq
    Series.dt.unit
+   Series.dt.normalize
 
 Datetime methods
 ^^^^^^^^^^^^^^^^
