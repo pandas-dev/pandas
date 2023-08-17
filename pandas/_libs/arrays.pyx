@@ -35,6 +35,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitmapReserve(ArrowBitmap*, int64_t)
     void ArrowBitmapAppendInt8Unsafe(ArrowBitmap*, const int8_t *, int64_t)
     void ArrowBitmapReset(ArrowBitmap*)
+    void ArrowBitsUnpackInt8(const uint8_t*, int64_t, int64_t, int8_t*)
     int8_t ArrowBitGet(const uint8_t*, int64_t)
     void ArrowBitSetTo(uint8_t*, int64_t, uint8_t)
 
@@ -223,13 +224,17 @@ def _unpickle_bitmaskarray(array, parent):
     return bma
 
 
-cdef void buf_invert(uint8_t* dest, uint8_t* src, Py_ssize_t size):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void buf_invert(uint8_t* dest, uint8_t* src, Py_ssize_t size) noexcept:
     cdef Py_ssize_t i
     for i in range(size):
         dest[i] = ~src[i]
 
 
-cdef void buf_or(uint8_t* dest, uint8_t* src1, uint8_t* src2, Py_ssize_t size):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void buf_or(uint8_t* dest, uint8_t* src1, uint8_t* src2, Py_ssize_t size) noexcept:
     cdef Py_ssize_t i
     for i in range(size):
         dest[i] = src1[i] | src2[i]
@@ -354,9 +359,7 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @staticmethod
     cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
-        cdef Py_ssize_t i
-        for i in range(size):
-            out[i] = ArrowBitGet(buf, i)
+        ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
