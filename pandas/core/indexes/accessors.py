@@ -528,7 +528,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 00:00:01
     2    2000-01-01 00:00:02
     3    2000-01-01 00:00:03
-    dtype: period[S]
+    dtype: period[s]
     >>> seconds_series.dt.second
     0    0
     1    1
