@@ -38,6 +38,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitsUnpackInt8(const uint8_t*, int64_t, int64_t, int8_t*)
     int8_t ArrowBitGet(const uint8_t*, int64_t)
     void ArrowBitSetTo(uint8_t*, int64_t, uint8_t)
+    int64_t ArrowBitCountSet(const uint8_t*, int64_t, int64_t)
 
 
 @cython.freelist(16)
@@ -354,6 +355,9 @@ cdef class BitMaskArray:
     @property
     def nbytes(self) -> int:
         return self.bitmap.buffer.size_bytes
+
+    def sum(self) -> bool:
+        return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

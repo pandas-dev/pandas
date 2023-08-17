@@ -1092,7 +1092,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # if we want nans, count the mask
         counts = np.empty(len(value_counts) + 1, dtype="int64")
         counts[:-1] = value_counts
-        counts[-1] = self._mask.to_numpy().sum()
+        counts[-1] = self._mask.sum()
 
         index = Index(keys, dtype=self.dtype).insert(len(keys), self.dtype.na_value)
         index = index.astype(self.dtype)
