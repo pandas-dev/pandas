@@ -130,6 +130,8 @@ autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
