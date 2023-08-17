@@ -1466,7 +1466,7 @@ cdef class _Timedelta(timedelta):
 
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.resolution_string
-        'S'
+        's'
 
         >>> td = pd.Timedelta(36, unit='us')
         >>> td.resolution_string

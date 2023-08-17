@@ -2000,7 +2000,7 @@ timedelta}, default 'raise'
         >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
         >>> ts.round(freq='ms') # milliseconds
@@ -2091,7 +2091,7 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
         >>> ts.floor(freq='ns') # nanoseconds
@@ -2180,7 +2180,7 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
         >>> ts.ceil(freq='us') # microseconds

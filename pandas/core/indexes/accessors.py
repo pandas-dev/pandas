@@ -414,7 +414,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
