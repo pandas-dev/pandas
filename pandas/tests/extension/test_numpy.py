@@ -302,15 +302,19 @@ class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
 
 
 class TestReduce(BaseNumPyTests, base.BaseReduceTests):
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        if tm.get_dtype(obj).kind == "O":
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        if ser.dtype.kind == "O":
             return op_name in ["sum", "min", "max", "any", "all"]
         return True
 
-    def check_reduce(self, s, op_name, skipna):
-        res_op = getattr(s, op_name)
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        res_op = getattr(ser, op_name)
         # avoid coercing int -> float. Just cast to the actual numpy type.
-        exp_op = getattr(s.astype(s.dtype._dtype), op_name)
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        # no attribute "numpy_dtype"
+        cmp_dtype = ser.dtype.numpy_dtype  # type: ignore[union-attr]
+        alt = ser.astype(cmp_dtype)
+        exp_op = getattr(alt, op_name)
         if op_name == "count":
             result = res_op()
             expected = exp_op()

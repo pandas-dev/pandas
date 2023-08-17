@@ -71,15 +71,15 @@ class TestDecimalArray(base.ExtensionTests):
     ) -> type[Exception] | None:
         return None
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return True
 
-    def check_reduce(self, s, op_name, skipna):
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name == "count":
-            return super().check_reduce(s, op_name, skipna)
+            return super().check_reduce(ser, op_name, skipna)
         else:
-            result = getattr(s, op_name)(skipna=skipna)
-            expected = getattr(np.asarray(s), op_name)()
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(ser), op_name)()
             tm.assert_almost_equal(result, expected)
 
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
@@ -215,12 +215,6 @@ class TestDecimalArray(base.ExtensionTests):
         ser = pd.Series(data)
         assert data.dtype.name in repr(ser)
         assert "Decimal: " in repr(ser)
-
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
 
     @pytest.mark.xfail(reason="Inconsistent array-vs-scalar behavior")
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
