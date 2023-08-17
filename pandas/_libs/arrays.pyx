@@ -232,15 +232,6 @@ cdef void buf_invert(uint8_t* dest, uint8_t* src, Py_ssize_t size) noexcept:
     for i in range(size):
         dest[i] = ~src[i]
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef void buf_or(uint8_t* dest, uint8_t* src1, uint8_t* src2, Py_ssize_t size) noexcept:
-    cdef Py_ssize_t i
-    for i in range(size):
-        dest[i] = src1[i] | src2[i]
-
-
 cdef class BitMaskArray:
     cdef:
         ArrowBitmap bitmap
@@ -323,30 +314,14 @@ cdef class BitMaskArray:
         result = np.empty(self.bitmap.size_bits, dtype=bool)
 
         cdef uint8_t* inverted = <uint8_t*>malloc(self.bitmap.size_bits)
-        buf_invert(inverted, self.bitmap.buffer.data, self.bitmap.size_bits)
+        # TODO: upstream invert or make sure we handle size == 0 here
+        buf_invert(inverted, self.bitmap.buffer.data, self.bitmap.size_bits // 8 + 1)
         BitMaskArray.buffer_to_array_1d(result, inverted, self.bitmap.size_bits)
         free(inverted)
         return result.reshape(self.array_shape)
 
     def __or__(self, other):
-        cdef ndarray[uint8_t] result
-        cdef uint8_t* ored
-        cdef BitMaskArray other_buf
-        if isinstance(other, type(self)):
-            other_buf = other
-            result = np.empty(self.bitmap.size_bits, dtype=bool)
-            ored = <uint8_t*>malloc(self.bitmap.size_bits)
-            buf_or(
-                ored,
-                self.bitmap.buffer.data,
-                other_buf.bitmap.buffer.data,
-                self.bitmap.size_bits
-            )
-            BitMaskArray.buffer_to_array_1d(result, ored, self.bitmap.size_bits)
-            free(ored)
-            return result.reshape(self.array_shape)
-        else:
-            return self.to_numpy() | other
+        return self.to_numpy() | other
 
     def __reduce__(self):
         object_state = (self.to_numpy(), self.parent)
