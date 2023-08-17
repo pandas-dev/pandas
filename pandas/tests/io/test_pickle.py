@@ -585,3 +585,15 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
+
+
+def test_pickle_pos_args_deprecation():
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_pickle(buffer, "infer")

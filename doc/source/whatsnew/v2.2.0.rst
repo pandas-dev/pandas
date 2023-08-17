@@ -92,7 +92,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_pickle` except ``path``. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
