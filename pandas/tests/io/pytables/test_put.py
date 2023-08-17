@@ -71,17 +71,17 @@ def test_api_default_format(tmp_path, setup_path):
     df = tm.makeDataFrame()
 
     with pd.option_context("io.hdf.default_format", "fixed"):
-        df.to_hdf(path, "df")
+        df.to_hdf(path, key="df")
         with HDFStore(path) as store:
             assert not store.get_storer("df").is_table
         with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, "df2", append=True)
+            df.to_hdf(path, key="df2", append=True)
 
     with pd.option_context("io.hdf.default_format", "table"):
-        df.to_hdf(path, "df3")
+        df.to_hdf(path, key="df3")
         with HDFStore(path) as store:
             assert store.get_storer("df3").is_table
-        df.to_hdf(path, "df4", append=True)
+        df.to_hdf(path, key="df4", append=True)
         with HDFStore(path) as store:
             assert store.get_storer("df4").is_table
 
@@ -354,6 +354,6 @@ def test_store_periodindex(tmp_path, setup_path, format):
     )
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="w", format=format)
+    df.to_hdf(path, key="df", mode="w", format=format)
     expected = pd.read_hdf(path, "df")
     tm.assert_frame_equal(df, expected)

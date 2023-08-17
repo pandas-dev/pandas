@@ -2642,6 +2642,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path_or_buf"], name="to_hdf"
+    )
     def to_hdf(
         self,
         path_or_buf: FilePath | HDFStore,

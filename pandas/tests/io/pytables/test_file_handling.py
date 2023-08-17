@@ -64,10 +64,10 @@ def test_mode(setup_path, tmp_path, mode):
     # conv write
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            df.to_hdf(path, "df", mode=mode)
-        df.to_hdf(path, "df", mode="w")
+            df.to_hdf(path, key="df", mode=mode)
+        df.to_hdf(path, key="df", mode="w")
     else:
-        df.to_hdf(path, "df", mode=mode)
+        df.to_hdf(path, key="df", mode=mode)
 
     # conv read
     if mode in ["w"]:
@@ -86,7 +86,7 @@ def test_default_mode(tmp_path, setup_path):
     # read_hdf uses default mode
     df = tm.makeTimeDataFrame()
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="w")
+    df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
     tm.assert_frame_equal(result, df)
 
@@ -177,7 +177,7 @@ def test_complibs_default_settings(tmp_path, setup_path):
     # Set complevel and check if complib is automatically set to
     # default value
     tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, "df", complevel=9)
+    df.to_hdf(tmpfile, key="df", complevel=9)
     result = read_hdf(tmpfile, "df")
     tm.assert_frame_equal(result, df)
 
@@ -188,7 +188,7 @@ def test_complibs_default_settings(tmp_path, setup_path):
 
     # Set complib and check to see if compression is disabled
     tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, "df", complib="zlib")
+    df.to_hdf(tmpfile, key="df", complib="zlib")
     result = read_hdf(tmpfile, "df")
     tm.assert_frame_equal(result, df)
 
@@ -199,7 +199,7 @@ def test_complibs_default_settings(tmp_path, setup_path):
 
     # Check if not setting complib or complevel results in no compression
     tmpfile = tmp_path / setup_path
-    df.to_hdf(tmpfile, "df")
+    df.to_hdf(tmpfile, key="df")
     result = read_hdf(tmpfile, "df")
     tm.assert_frame_equal(result, df)
 
@@ -253,7 +253,7 @@ def test_complibs(tmp_path, lvl, lib):
     gname = f"{lvl}_{lib}"
 
     # Write and read file to see if data is consistent
-    df.to_hdf(tmpfile, gname, complib=lib, complevel=lvl)
+    df.to_hdf(tmpfile, key=gname, complib=lib, complevel=lvl)
     result = read_hdf(tmpfile, gname)
     tm.assert_frame_equal(result, df)
 
@@ -308,7 +308,7 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     ser = Series(val, dtype=dtype)
 
     store = tmp_path / setup_path
-    ser.to_hdf(store, key, format="table", encoding=enc, nan_rep=nan_rep)
+    ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
     retr = read_hdf(store, key)
 
     s_nan = ser.replace(nan_rep, np.nan)
@@ -322,7 +322,7 @@ def test_multiple_open_close(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeDataFrame()
-    df.to_hdf(path, "df", mode="w", format="table")
+    df.to_hdf(path, key="df", mode="w", format="table")
 
     # single
     store = HDFStore(path)
@@ -399,7 +399,7 @@ def test_multiple_open_close(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeDataFrame()
-    df.to_hdf(path, "df", mode="w", format="table")
+    df.to_hdf(path, key="df", mode="w", format="table")
 
     store = HDFStore(path)
     store.close()
