@@ -2616,7 +2616,7 @@ class DataFrame(NDFrame, OpsMixin):
         compression_options=_shared_docs["compression_options"] % "path",
     )
     @deprecate_nonkeyword_arguments(
-        version=None, allowed_args=["self", "path"], name="to_stata"
+        version="3.0", allowed_args=["self", "path"], name="to_stata"
     )
     def to_stata(
         self,
