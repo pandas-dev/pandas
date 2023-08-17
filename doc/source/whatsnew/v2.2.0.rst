@@ -92,7 +92,7 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
--
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_hdf` except ``path_or_buf``. (:issue:`54229`)
 -
 
 .. ---------------------------------------------------------------------------
