@@ -3300,6 +3300,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version=None, allowed_args=["self", "buf"], name="to_latex"
+    )
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
