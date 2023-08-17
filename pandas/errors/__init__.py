@@ -18,6 +18,12 @@ from pandas.util.version import InvalidVersion
 class IntCastingNaNError(ValueError):
     """
     Exception raised when converting (``astype``) an array with NaN to an integer type.
+
+    Examples
+    --------
+    >>> pd.DataFrame(np.array([[1, np.nan], [2, 3]]), dtype="i8")
+    Traceback (most recent call last):
+    IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer
     """
 
 
@@ -27,12 +33,39 @@ class NullFrequencyError(ValueError):
 
     Particularly ``DatetimeIndex.shift``, ``TimedeltaIndex.shift``,
     ``PeriodIndex.shift``.
+
+    Examples
+    --------
+    >>> df = pd.DatetimeIndex(["2011-01-01 10:00", "2011-01-01"], freq=None)
+    >>> df.shift(2)
+    Traceback (most recent call last):
+    NullFrequencyError: Cannot shift with no freq
     """
 
 
 class PerformanceWarning(Warning):
     """
     Warning raised when there is a possible performance impact.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"jim": [0, 0, 1, 1],
+    ...                    "joe": ["x", "x", "z", "y"],
+    ...                    "jolie": [1, 2, 3, 4]})
+    >>> df = df.set_index(["jim", "joe"])
+    >>> df
+              jolie
+    jim  joe
+    0    x    1
+         x    2
+    1    z    3
+         y    4
+    >>> df.loc[(1, 'z')]  # doctest: +SKIP
+    # PerformanceWarning: indexing past lexsort depth may impact performance.
+    df.loc[(1, 'z')]
+              jolie
+    jim  joe
+    1    z        3
     """
 
 
@@ -41,6 +74,17 @@ class UnsupportedFunctionCall(ValueError):
     Exception raised when attempting to call a unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": [0, 0, 1, 1],
+    ...                    "B": ["x", "x", "z", "y"],
+    ...                    "C": [1, 2, 3, 4]}
+    ...                   )
+    >>> np.cumsum(df.groupby(["A"]))
+    Traceback (most recent call last):
+    UnsupportedFunctionCall: numpy operations are not valid with groupby.
+    Use .groupby(...).cumsum() instead
     """
 
 
@@ -49,6 +93,25 @@ class UnsortedIndexError(KeyError):
     Error raised when slicing a MultiIndex which has not been lexsorted.
 
     Subclass of `KeyError`.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"cat": [0, 0, 1, 1],
+    ...                    "color": ["white", "white", "brown", "black"],
+    ...                    "lives": [4, 4, 3, 7]},
+    ...                   )
+    >>> df = df.set_index(["cat", "color"])
+    >>> df
+                lives
+    cat  color
+    0    white    4
+         white    4
+    1    brown    3
+         black    7
+    >>> df.loc[(0, "black"):(1, "white")]
+    Traceback (most recent call last):
+    UnsortedIndexError: 'Key length (2) was greater
+    than MultiIndex lexsort depth (1)'
     """
 
 
@@ -63,6 +126,17 @@ class ParserError(ValueError):
     --------
     read_csv : Read CSV (comma-separated) file into a DataFrame.
     read_html : Read HTML table into a DataFrame.
+
+    Examples
+    --------
+    >>> data = '''a,b,c
+    ... cat,foo,bar
+    ... dog,foo,"baz'''
+    >>> from io import StringIO
+    >>> pd.read_csv(StringIO(data), skipfooter=1, engine='python')
+    Traceback (most recent call last):
+    ParserError: ',' expected after '"'. Error could possibly be due
+    to parsing errors in the skipped footer rows
     """
 
 
@@ -181,6 +255,18 @@ class MergeError(ValueError):
     Exception raised when merging data.
 
     Subclass of ``ValueError``.
+
+    Examples
+    --------
+    >>> left = pd.DataFrame({"a": ["a", "b", "b", "d"],
+    ...                     "b": ["cat", "dog", "weasel", "horse"]},
+    ...                     index=range(4))
+    >>> right = pd.DataFrame({"a": ["a", "b", "c", "d"],
+    ...                      "c": ["meow", "bark", "chirp", "nay"]},
+    ...                      index=range(4)).set_index("a")
+    >>> left.join(right, on="a", validate="one_to_one",)
+    Traceback (most recent call last):
+    MergeError: Merge keys are not unique in left dataset; not a one-to-one merge
     """
 
 
@@ -225,6 +311,17 @@ class AbstractMethodError(NotImplementedError):
 class NumbaUtilError(Exception):
     """
     Error raised for unsupported Numba engine routines.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"key": ["a", "a", "b", "b"], "data": [1, 2, 3, 4]},
+    ...                   columns=["key", "data"])
+    >>> def incorrect_function(x):
+    ...     return sum(x) * 2.7
+    >>> df.groupby("key").agg(incorrect_function, engine="numba")
+    Traceback (most recent call last):
+    NumbaUtilError: The first 2 arguments to incorrect_function
+    must be ['values', 'index']
     """
 
 
@@ -639,6 +736,10 @@ class CategoricalConversionWarning(Warning):
 class LossySetitemError(Exception):
     """
     Raised when trying to do a __setitem__ on an np.ndarray that is not lossless.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 
@@ -651,6 +752,10 @@ class NoBufferPresent(Exception):
 class InvalidComparison(Exception):
     """
     Exception is raised by _validate_comparison_value to indicate an invalid comparison.
+
+    Notes
+    -----
+    This is an internal error.
     """
 
 

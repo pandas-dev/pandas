@@ -30,7 +30,7 @@ def test_transform():
     data = Series(np.arange(9) // 3, index=np.arange(9))
 
     index = np.arange(9)
-    np.random.shuffle(index)
+    np.random.default_rng(2).shuffle(index)
     data = data.reindex(index)
 
     grouped = data.groupby(lambda x: x // 3)
@@ -59,7 +59,7 @@ def test_transform():
         return arr - arr.mean(axis=0)
 
     people = DataFrame(
-        np.random.randn(5, 5),
+        np.random.default_rng(2).standard_normal((5, 5)),
         columns=["a", "b", "c", "d", "e"],
         index=["Joe", "Steve", "Wes", "Jim", "Travis"],
     )
@@ -83,7 +83,12 @@ def test_transform():
 
 
 def test_transform_fast():
-    df = DataFrame({"id": np.arange(100000) / 3, "val": np.random.randn(100000)})
+    df = DataFrame(
+        {
+            "id": np.arange(100000) / 3,
+            "val": np.random.default_rng(2).standard_normal(100000),
+        }
+    )
 
     grp = df.groupby("id")["val"]
 
@@ -220,7 +225,10 @@ def test_transform_axis_ts(tsframe):
     r = len(base.index)
     c = len(base.columns)
     tso = DataFrame(
-        np.random.randn(r, c), index=base.index, columns=base.columns, dtype="float64"
+        np.random.default_rng(2).standard_normal((r, c)),
+        index=base.index,
+        columns=base.columns,
+        dtype="float64",
     )
     # monotonic
     ts = tso
@@ -650,10 +658,10 @@ def test_transform_mixed_type():
 )
 def test_cython_transform_series(op, args, targop):
     # GH 4095
-    s = Series(np.random.randn(1000))
+    s = Series(np.random.default_rng(2).standard_normal(1000))
     s_missing = s.copy()
     s_missing.iloc[2:10] = np.nan
-    labels = np.random.randint(0, 50, size=1000).astype(float)
+    labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     # series
     for data in [s, s_missing]:
@@ -722,7 +730,7 @@ def test_groupby_cum_skipna(op, skipna, input, exp):
 
 @pytest.fixture
 def frame():
-    floating = Series(np.random.randn(10))
+    floating = Series(np.random.default_rng(2).standard_normal(10))
     floating_missing = floating.copy()
     floating_missing.iloc[2:7] = np.nan
     strings = list("abcde") * 2
@@ -764,12 +772,11 @@ def frame_mi(frame):
 @pytest.mark.parametrize(
     "gb_target",
     [
-        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        pytest.param({"by": "string_missing"}, marks=pytest.mark.xfail),
+        {"by": ["int", "string"]},
     ],
 )
 def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
@@ -814,12 +821,12 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
 @pytest.mark.parametrize(
     "gb_target",
     [
-        {"by": np.random.randint(0, 50, size=10).astype(float)},
+        {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        # TODO: create xfail condition given other params
+        # {"by": 'string_missing'},
+        {"by": ["int", "string"]},
     ],
 )
 @pytest.mark.parametrize(
@@ -889,7 +896,9 @@ def test_transform_with_non_scalar_group():
         ]
     )
     df = DataFrame(
-        np.random.randint(1, 10, (4, 12)), columns=cols, index=["A", "C", "G", "T"]
+        np.random.default_rng(2).integers(1, 10, (4, 12)),
+        columns=cols,
+        index=["A", "C", "G", "T"],
     )
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -1411,16 +1420,16 @@ def test_transform_cumcount():
 def test_null_group_lambda_self(sort, dropna, keys):
     # GH 17093
     size = 50
-    nulls1 = np.random.choice([False, True], size)
-    nulls2 = np.random.choice([False, True], size)
+    nulls1 = np.random.default_rng(2).choice([False, True], size)
+    nulls2 = np.random.default_rng(2).choice([False, True], size)
     # Whether a group contains a null value or not
     nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
 
-    a1 = np.random.randint(0, 5, size=size).astype(float)
+    a1 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
     a1[nulls1] = np.nan
-    a2 = np.random.randint(0, 5, size=size).astype(float)
+    a2 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
     a2[nulls2] = np.nan
-    values = np.random.randint(0, 5, size=a1.shape)
+    values = np.random.default_rng(2).integers(0, 5, size=a1.shape)
     df = DataFrame({"A1": a1, "A2": a2, "B": values})
 
     expected_values = values

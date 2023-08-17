@@ -142,7 +142,7 @@ def test_read_column(setup_path):
         tm.assert_almost_equal(result.values, df3["string"].values[-2:2])
 
         # GH 10392 - make sure column name is preserved
-        df4 = DataFrame({"A": np.random.randn(10), "B": "foo"})
+        df4 = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": "foo"})
         store.append("df4", df4, data_columns=True)
         expected = df4["B"]
         result = store.select_column("df4", "B")
@@ -213,7 +213,11 @@ def test_legacy_table_read_py2(datapath):
 def test_read_hdf_open_store(tmp_path, setup_path):
     # GH10330
     # No check for non-string path_or-buf, and no test of open store
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
@@ -230,7 +234,11 @@ def test_read_hdf_index_not_view(tmp_path, setup_path):
     # GH 37441
     # Ensure that the index of the DataFrame is not a view
     # into the original recarray that pytables reads in
-    df = DataFrame(np.random.rand(4, 5), index=[0, 1, 2, 3], columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=[0, 1, 2, 3],
+        columns=list("ABCDE"),
+    )
 
     path = tmp_path / setup_path
     df.to_hdf(path, "df", mode="w", format="table")
@@ -241,7 +249,11 @@ def test_read_hdf_index_not_view(tmp_path, setup_path):
 
 
 def test_read_hdf_iterator(tmp_path, setup_path):
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
@@ -257,7 +269,11 @@ def test_read_hdf_iterator(tmp_path, setup_path):
 
 def test_read_nokey(tmp_path, setup_path):
     # GH10443
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
 
     # Categorical dtype not supported for "fixed" format. So no need
     # to test with that dtype in the dataframe here.
@@ -302,7 +318,9 @@ def test_read_nokey_empty(tmp_path, setup_path):
 def test_read_from_pathlib_path(tmp_path, setup_path):
     # GH11773
     expected = DataFrame(
-        np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     filename = tmp_path / setup_path
     path_obj = Path(filename)
@@ -319,7 +337,9 @@ def test_read_from_py_localpath(tmp_path, setup_path):
     from py.path import local as LocalPath
 
     expected = DataFrame(
-        np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     filename = tmp_path / setup_path
     path_obj = LocalPath(filename)
@@ -342,6 +362,8 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     tm.assert_series_equal(result, series)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_read_py2_hdf_file_in_py3(datapath):
     # GH 16781
 
@@ -366,3 +388,19 @@ def test_read_py2_hdf_file_in_py3(datapath):
     ) as store:
         result = store["p"]
         tm.assert_frame_equal(result, expected)
+
+
+def test_read_infer_string(tmp_path, setup_path):
+    # GH#54431
+    pa = pytest.importorskip("pyarrow")
+    df = DataFrame({"a": ["a", "b", None]})
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="data", format="table")
+    with pd.option_context("future.infer_string", True):
+        result = read_hdf(path, key="data", mode="r")
+    expected = DataFrame(
+        {"a": ["a", "b", None]},
+        dtype=pd.ArrowDtype(pa.string()),
+        columns=Index(["a"], dtype=pd.ArrowDtype(pa.string())),
+    )
+    tm.assert_frame_equal(result, expected)

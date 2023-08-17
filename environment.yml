@@ -8,7 +8,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython=0.29.33
+  - cython=3.0.0
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
@@ -83,6 +83,7 @@ dependencies:
   # documentation
   - gitpython  # obtain contributors from git for whatsnew
   - gitdb
+  - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
   - pydata-sphinx-theme
@@ -114,6 +115,7 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
+      - dataframe-api-compat>=0.1.7
       - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
       - tzdata>=2022.1

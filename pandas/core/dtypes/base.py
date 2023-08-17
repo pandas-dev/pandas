@@ -82,17 +82,22 @@ class ExtensionDtype:
     ``__eq__`` or ``__hash__``, the default implementations here will not
     work.
 
+    Examples
+    --------
+
     For interaction with Apache Arrow (pyarrow), a ``__from_arrow__`` method
     can be implemented: this method receives a pyarrow Array or ChunkedArray
     as only argument and is expected to return the appropriate pandas
-    ExtensionArray for this dtype and the passed values::
+    ExtensionArray for this dtype and the passed values:
 
-        class ExtensionDtype:
-
-            def __from_arrow__(
-                self, array: Union[pyarrow.Array, pyarrow.ChunkedArray]
-            ) -> ExtensionArray:
-                ...
+    >>> import pyarrow
+    >>> from pandas.api.extensions import ExtensionArray
+    >>> class ExtensionDtype:
+    ...     def __from_arrow__(
+    ...         self,
+    ...         array: pyarrow.Array | pyarrow.ChunkedArray
+    ...     ) -> ExtensionArray:
+    ...         ...
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -391,6 +396,16 @@ class ExtensionDtype:
         """
         return True
 
+    @property
+    def _is_immutable(self) -> bool:
+        """
+        Can arrays with this dtype be modified with __setitem__? If not, return
+        True.
+
+        Immutable arrays are expected to raise TypeError on __setitem__ calls.
+        """
+        return False
+
 
 class StorageExtensionDtype(ExtensionDtype):
     """ExtensionDtype that may be backed by more than one implementation."""
@@ -398,7 +413,7 @@ class StorageExtensionDtype(ExtensionDtype):
     name: str
     _metadata = ("storage",)
 
-    def __init__(self, storage=None) -> None:
+    def __init__(self, storage: str | None = None) -> None:
         self.storage = storage
 
     def __repr__(self) -> str:

@@ -34,8 +34,8 @@ class Construction:
     dtype_mapping = {"str": "str", "string[python]": object, "string[pyarrow]": object}
 
     def setup(self, pd_type, dtype):
-        series_arr = tm.rands_array(
-            nchars=10, size=10**5, dtype=self.dtype_mapping[dtype]
+        series_arr = np.array(
+            [str(i) * 10 for i in range(100_000)], dtype=self.dtype_mapping[dtype]
         )
         if pd_type == "series":
             self.arr = series_arr
@@ -276,7 +276,7 @@ class Iter(Dtypes):
 
 class StringArrayConstruction:
     def setup(self):
-        self.series_arr = tm.rands_array(nchars=10, size=10**5)
+        self.series_arr = np.array([str(i) * 10 for i in range(10**5)], dtype=object)
         self.series_arr_nan = np.concatenate([self.series_arr, np.array([NA] * 1000)])
 
     def time_string_array_construction(self):

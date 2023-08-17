@@ -126,6 +126,10 @@ def read_sas(
     -------
     DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
     or XportReader
+
+    Examples
+    --------
+    >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP
     """
     if format is None:
         buffer_error_msg = (

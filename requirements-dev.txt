@@ -3,7 +3,7 @@
 
 pip
 versioneer[toml]
-cython==0.29.33
+cython==3.0.0
 meson[ninja]==1.0.1
 meson-python==0.13.1
 pytest>=7.3.2
@@ -58,6 +58,7 @@ tokenize-rt
 pre-commit>=2.15.0
 gitpython
 gitdb
+google-auth
 natsort
 numpydoc
 pydata-sphinx-theme
@@ -83,6 +84,7 @@ feedparser
 pyyaml
 requests
 pygments
+dataframe-api-compat>=0.1.7
 sphinx-toggleprompt
 typing_extensions; python_version<"3.11"
 tzdata>=2022.1

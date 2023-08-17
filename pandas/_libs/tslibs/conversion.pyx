@@ -5,6 +5,7 @@ from libc.math cimport log10
 from numpy cimport (
     int32_t,
     int64_t,
+    npy_datetime,
 )
 
 cnp.import_array()
@@ -43,7 +44,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_value,
     get_implementation_bounds,
     import_pandas_datetime,
-    npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,

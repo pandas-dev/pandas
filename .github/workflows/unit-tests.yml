@@ -103,7 +103,7 @@ jobs:
 
     services:
       mysql:
-        image: mysql
+        image: mysql:8.0.33
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
@@ -116,8 +116,9 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres
+        image: postgres:13
         env:
+          PGUSER: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: pandas
@@ -130,7 +131,7 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:4.1.12
+        image: motoserver/moto:4.1.13
         env:
           AWS_ACCESS_KEY_ID: foobar_key
           AWS_SECRET_ACCESS_KEY: foobar_secret
@@ -237,7 +238,7 @@ jobs:
         run: |
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
@@ -275,7 +276,7 @@ jobs:
         run: |
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
-          python -m pip install -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.0.1
           python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
@@ -310,12 +311,16 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macOS-latest, windows-latest]
+        # TODO: Disable macOS for now, Github Actions bug where python is not
+        # symlinked correctly to 3.12
+        # xref https://github.com/actions/setup-python/issues/701
+        #os: [ubuntu-22.04, macOS-latest, windows-latest]
+        os: [ubuntu-22.04, windows-latest]
 
     timeout-minutes: 180
 
@@ -328,7 +333,6 @@ jobs:
       PYTEST_WORKERS: "auto"
       PANDAS_CI: 1
       PATTERN: "not slow and not network and not clipboard and not single_cpu"
-      COVERAGE: true
       PYTEST_TARGET: pandas
 
     steps:
@@ -339,21 +343,20 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11-dev'
+          python-version: '3.12-dev'
 
       - name: Install dependencies
         run: |
           python --version
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.0.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install git+https://github.com/nedbat/coveragepy.git
           python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
+          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
           python -m pip list
 
       - name: Build Pandas
         run: |
-          python -m pip install -e . --no-build-isolation --no-index
+          python -m pip install -ve . --no-build-isolation --no-index
 
       - name: Build Version
         run: |
