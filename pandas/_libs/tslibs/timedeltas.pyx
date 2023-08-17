@@ -1043,9 +1043,8 @@ cdef class _Timedelta(timedelta):
         """
         return npy_unit_to_abbrev(self._creso)
 
-    # TODO: make cdef property once this works in Cython
     @property
-    def days(self) -> int:
+    def days(self) -> int:  # TODO(cython3): make cdef property
         """
         Returns the days of the timedelta.
 
@@ -1068,9 +1067,8 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._d
 
-    # TODO: make cdef property once this works in Cython
     @property
-    def seconds(self) -> int:
+    def seconds(self) -> int:  # TODO(cython3): make cdef property
         """
         Return the total hours, minutes, and seconds of the timedelta as seconds.
 
@@ -1107,9 +1105,8 @@ cdef class _Timedelta(timedelta):
         self._ensure_components()
         return self._h * 3600 + self._m * 60 + self._s
 
-    # TODO: make cdef property once this works in Cython
     @property
-    def microseconds(self) -> int:
+    def microseconds(self) -> int:  # TODO(cython3): make cdef property
         # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
         #  (or be incorrect)
         self._ensure_components()
