@@ -103,8 +103,8 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_view(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -116,8 +116,8 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_transpose(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
@@ -127,8 +127,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
