@@ -321,6 +321,9 @@ cdef class BitMaskArray:
         return result.reshape(self.array_shape)
 
     def __or__(self, other):
+        if isinstance(other, type(self)):
+            return self.to_numpy() | other.to_numpy()
+
         return self.to_numpy() | other
 
     def __reduce__(self):
