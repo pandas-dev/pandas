@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMissingTests(BaseExtensionTests):
+class BaseMissingTests:
     def test_isna(self, data_missing):
         expected = np.array([True, False])
 

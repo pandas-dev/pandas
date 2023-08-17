@@ -12,10 +12,9 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMethodsTests(BaseExtensionTests):
+class BaseMethodsTests:
     """Various Series and DataFrame methods."""
 
     def test_hash_pandas_object(self, data):
@@ -95,9 +94,9 @@ class BaseMethodsTests(BaseExtensionTests):
         assert isinstance(result, pd.Series)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data, na_action):
-        result = data.map(lambda x: x, na_action=na_action)
-        expected = data.to_numpy()
+    def test_map(self, data_missing, na_action):
+        result = data_missing.map(lambda x: x, na_action=na_action)
+        expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort(self, data_for_sorting):

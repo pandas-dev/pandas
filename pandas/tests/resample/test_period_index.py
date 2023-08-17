@@ -796,7 +796,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "freq, expected_values",
         [
-            ("1s", [3, np.NaN, 7, 11]),
+            ("1s", [3, np.nan, 7, 11]),
             ("2s", [3, (7 + 11) / 2]),
             ("3s", [(3 + 7) / 2, 11]),
         ],

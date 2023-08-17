@@ -8,10 +8,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseOpsUtil(BaseExtensionTests):
+class BaseOpsUtil:
     series_scalar_exc: type[Exception] | None = TypeError
     frame_scalar_exc: type[Exception] | None = TypeError
     series_array_exc: type[Exception] | None = TypeError
@@ -240,9 +239,23 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
-        result = ~ser
-        expected = pd.Series(~data, name="name")
-        tm.assert_series_equal(result, expected)
+        try:
+            # 10 is an arbitrary choice here, just avoid iterating over
+            #  the whole array to trim test runtime
+            [~x for x in data[:10]]
+        except TypeError:
+            # scalars don't support invert -> we don't expect the vectorized
+            #  operation to succeed
+            with pytest.raises(TypeError):
+                ~ser
+            with pytest.raises(TypeError):
+                ~data
+        else:
+            # Note we do not re-use the pointwise result to construct expected
+            #  because python semantics for negating bools are weird see GH#54569
+            result = ~ser
+            expected = pd.Series(~data, name="name")
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):

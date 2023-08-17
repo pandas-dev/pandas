@@ -473,7 +473,7 @@ class TestBlockManager:
         mgr2.iset(
             mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
         )
-        assert mgr2.iget(idx).dtype == np.float_
+        assert mgr2.iget(idx).dtype == np.float64
 
     def test_copy(self, mgr):
         cp = mgr.copy(deep=False)

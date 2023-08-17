@@ -35,7 +35,7 @@ jobs:
   build_sdist:
     name: Build sdist
     if: >-
-      (github.event_name == 'schedule' && github.repository_owner == 'pandas-dev') ||
+      (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
@@ -67,6 +67,10 @@ jobs:
           name: sdist
           path: ./dist/*
 
+      - name: Sanity check sdist files
+        run: |
+          ls ./dist
+
       - name: Output sdist name
         id: save-path
         shell: bash -el {0}
@@ -76,7 +80,7 @@ jobs:
     needs: build_sdist
     name: Build wheel for ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
     if: >-
-      (github.event_name == 'schedule' && github.repository_owner == 'pandas-dev') ||
+      (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
@@ -111,42 +115,31 @@ jobs:
       # We need to build wheels from the sdist since the sdist
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
-        if: ${{ matrix.buildplat[1] != 'macosx_*' }}
+        #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
         uses: actions/download-artifact@v3
         with:
           name: sdist
           path: ./dist
-
-      - name: Set up Python (macOS)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      # Work around https://github.com/actions/cache/issues/403 by using GNU tar
-      # instead of BSD tar.
-      # borrowed from https://github.com/rust-lang/rust-analyzer/pull/6208/files
-      - name: Install GNU tar
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        run: |
-          brew install gnu-tar
-          echo PATH="/usr/local/opt/gnu-tar/libexec/gnubin:$PATH" >> $GITHUB_ENV
-
-      # Python version used to build sdist doesn't matter
-      # wheel will be built from sdist with the correct version
-      - name: Build sdist (macOS)
-        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
-        run: |
-          python -m pip install build
-          python -m build --sdist
 
       - name: Output sdist name (macOS)
         id: save-path
         shell: bash -el {0}
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
+      # Python version used to build sdist doesn't matter
+      # wheel will be built from sdist with the correct version
+      - name: Unzip sdist (macOS)
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
+        run: |
+          tar -xzf ./dist/${{ env.sdist_name }} -C ./dist
+
+      - name: Output sdist name (macOS)
+        id: save-path2
+        shell: bash -el {0}
+        run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.14.1
+        uses: pypa/cibuildwheel@v2.15.0
         with:
          package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:

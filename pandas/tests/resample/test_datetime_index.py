@@ -478,7 +478,7 @@ def test_resample_how_method(unit):
     )
     s.index = s.index.as_unit(unit)
     expected = Series(
-        [11, np.NaN, np.NaN, np.NaN, np.NaN, np.NaN, 22],
+        [11, np.nan, np.nan, np.nan, np.nan, np.nan, 22],
         index=DatetimeIndex(
             [
                 Timestamp("2015-03-31 21:48:50"),
@@ -1356,7 +1356,7 @@ def test_resample_consistency(unit):
 
     i30 = date_range("2002-02-02", periods=4, freq="30min").as_unit(unit)
     s = Series(np.arange(4.0), index=i30)
-    s.iloc[2] = np.NaN
+    s.iloc[2] = np.nan
 
     # Upsample by factor 3 with reindex() and resample() methods:
     i10 = date_range(i30[0], i30[-1], freq="10min").as_unit(unit)
