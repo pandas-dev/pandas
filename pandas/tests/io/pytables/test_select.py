@@ -349,7 +349,7 @@ def test_select_iterator(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeTimeDataFrame(500)
-    df.to_hdf(path, "df_non_table")
+    df.to_hdf(path, key="df_non_table")
 
     msg = "can only use an iterator or chunksize on a table"
     with pytest.raises(TypeError, match=msg):
@@ -361,7 +361,7 @@ def test_select_iterator(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeTimeDataFrame(500)
-    df.to_hdf(path, "df", format="table")
+    df.to_hdf(path, key="df", format="table")
 
     results = list(read_hdf(path, "df", chunksize=100))
     result = concat(results)
@@ -657,7 +657,7 @@ def test_frame_select_complex2(tmp_path):
 
     # use non-trivial selection criteria
     params = DataFrame({"A": [1, 1, 2, 2, 3]})
-    params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+    params.to_hdf(pp, key="df", mode="w", format="table", data_columns=["A"])
 
     selection = read_hdf(pp, "df", where="A=[2,3]")
     hist = DataFrame(
@@ -668,7 +668,7 @@ def test_frame_select_complex2(tmp_path):
         ),
     )
 
-    hist.to_hdf(hh, "df", mode="w", format="table")
+    hist.to_hdf(hh, key="df", mode="w", format="table")
 
     expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
