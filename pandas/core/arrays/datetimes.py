@@ -2182,7 +2182,8 @@ def _sequence_to_dt64(
     Returns
     -------
     result : numpy.ndarray
-        The sequence converted to a numpy array with dtype ``datetime64[ns]``.
+        The sequence converted to a numpy array with dtype ``datetime64[unit]``.
+        Where `unit` is ns unless specified otherwise.
     tz : tzinfo or None
         Either the user-provided tzinfo or one inferred from the data.
     inferred_freq : Tick or None
@@ -2205,9 +2206,9 @@ def _sequence_to_dt64(
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
 
-    out_dtype = DT64NS_DTYPE
-    if out_unit is not None:
-        out_dtype = np.dtype(f"M8[{out_unit}]")
+    if out_unit is None:
+        out_unit = "ns"
+    out_dtype = np.dtype(f"M8[{out_unit}]")
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
