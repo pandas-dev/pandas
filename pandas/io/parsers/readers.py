@@ -79,6 +79,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
+        Self,
         StorageOptions,
     )
 _doc_read_csv_and_table = (
@@ -1776,7 +1777,7 @@ class TextFileReader(abc.Iterator):
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
-    def __enter__(self) -> TextFileReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

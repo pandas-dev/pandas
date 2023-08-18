@@ -93,6 +93,7 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         IntervalClosedType,
+        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -124,7 +125,7 @@ def _get_next_label(label):
     elif is_integer_dtype(dtype):
         return label + 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, np.infty)
+        return np.nextafter(label, np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -141,7 +142,7 @@ def _get_prev_label(label):
     elif is_integer_dtype(dtype):
         return label - 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, -np.infty)
+        return np.nextafter(label, -np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -225,7 +226,7 @@ class IntervalIndex(ExtensionIndex):
         copy: bool = False,
         name: Hashable | None = None,
         verify_integrity: bool = True,
-    ) -> IntervalIndex:
+    ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):

@@ -1436,7 +1436,7 @@ class TestCoercionFloat32(CoercionTest):
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         super().test_slice_key(obj, key, expected, warn, val, indexer_sli, is_inplace)
 
-        if type(val) is float:
+        if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
             raise AssertionError("xfail not relevant for this test.")
 

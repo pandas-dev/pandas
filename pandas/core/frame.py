@@ -64,6 +64,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1229,6 +1230,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_string"
+    )
     @Substitution(
         header_type="bool or list of str",
         header="Write out the column names. If a list of columns "
@@ -2796,6 +2800,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -3416,7 +3423,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
-        TreeBuilder: type[EtreeXMLFormatter] | type[LxmlXMLFormatter]
+        TreeBuilder: type[EtreeXMLFormatter | LxmlXMLFormatter]
 
         if parser == "lxml":
             if lxml is not None:

@@ -196,9 +196,9 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
 
 
 def test_setitem(datetime_series):
-    datetime_series[datetime_series.index[5]] = np.NaN
-    datetime_series.iloc[[1, 2, 17]] = np.NaN
-    datetime_series.iloc[6] = np.NaN
+    datetime_series[datetime_series.index[5]] = np.nan
+    datetime_series.iloc[[1, 2, 17]] = np.nan
+    datetime_series.iloc[6] = np.nan
     assert np.isnan(datetime_series.iloc[6])
     assert np.isnan(datetime_series.iloc[2])
     datetime_series[np.isnan(datetime_series)] = 5
@@ -304,7 +304,7 @@ def test_underlying_data_conversion(using_copy_on_write):
 
 def test_preserve_refs(datetime_series):
     seq = datetime_series.iloc[[5, 10, 15]]
-    seq.iloc[1] = np.NaN
+    seq.iloc[1] = np.nan
     assert not np.isnan(datetime_series.iloc[10])
 
 
