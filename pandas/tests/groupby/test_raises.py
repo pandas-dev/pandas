@@ -582,9 +582,6 @@ def test_groupby_raises_category_on_category(
     if how == "transform":
         # empty groups will be ignored
         empty_groups = False
-    # if isinstance(by, Grouper) and groupby_func in ["idxmin", "idxmax"] and observed:
-    #     # TODO: grouping by Grouper always treats observed as False
-    #     empty_groups = False
 
     klass, msg = {
         "all": (None, ""),
