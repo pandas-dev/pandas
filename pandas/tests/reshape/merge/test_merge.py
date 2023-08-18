@@ -2860,7 +2860,7 @@ def test_merge_multiindex_single_level():
 def test_merge_combinations(
     how, sort, on_index, left_unique, left_monotonic, right_unique, right_monotonic
 ):
-    # GH #####
+    # GH 54611
     left = [2, 3]
     if left_unique:
         left.append(4 if left_monotonic else 1)

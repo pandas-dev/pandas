@@ -189,7 +189,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`merge` not following documented sort behavior in certain cases (:issue:`54611`)
 -
 
 Sparse
