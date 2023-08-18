@@ -2912,7 +2912,7 @@ def test_merge_combinations(
             left_counts = left["key"].value_counts()
             right_counts = right["key"].value_counts()
             expected_counts = left_counts.mul(right_counts, fill_value=1).astype(
-                "int64"
+                np.intp
             )
             expected = expected_counts.index.values.repeat(expected_counts.values)
             expected = DataFrame({"key": expected})
