@@ -99,19 +99,19 @@ class TestDataFrameToDict:
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("list", mapping)
+        recons_data = DataFrame(test_data).to_dict(orient="list", into=mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][int(k2) - 1]
 
-        recons_data = DataFrame(test_data).to_dict("series", mapping)
+        recons_data = DataFrame(test_data).to_dict(orient="series", into=mapping)
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
                 assert v2 == recons_data[k][k2]
 
-        recons_data = DataFrame(test_data).to_dict("split", mapping)
+        recons_data = DataFrame(test_data).to_dict(orient="split", into=mapping)
         expected_split = {
             "columns": ["A", "B"],
             "index": ["1", "2", "3"],
@@ -119,7 +119,7 @@ class TestDataFrameToDict:
         }
         tm.assert_dict_equal(recons_data, expected_split)
 
-        recons_data = DataFrame(test_data).to_dict("records", mapping)
+        recons_data = DataFrame(test_data).to_dict(orient="records", into=mapping)
         expected_records = [
             {"A": 1.0, "B": "1"},
             {"A": 2.0, "B": "2"},
@@ -131,7 +131,7 @@ class TestDataFrameToDict:
             tm.assert_dict_equal(left, right)
 
         # GH#10844
-        recons_data = DataFrame(test_data).to_dict("index")
+        recons_data = DataFrame(test_data).to_dict(orient="index")
 
         for k, v in test_data.items():
             for k2, v2 in v.items():
@@ -139,7 +139,7 @@ class TestDataFrameToDict:
 
         df = DataFrame(test_data)
         df["duped"] = df[df.columns[0]]
-        recons_data = df.to_dict("index")
+        recons_data = df.to_dict(orient="index")
         comp_data = test_data.copy()
         comp_data["duped"] = comp_data[df.columns[0]]
         for k, v in comp_data.items():
@@ -254,14 +254,14 @@ class TestDataFrameToDict:
     def test_to_dict_numeric_names(self):
         # GH#24940
         df = DataFrame({str(i): [i] for i in range(5)})
-        result = set(df.to_dict("records")[0].keys())
+        result = set(df.to_dict(orient="records")[0].keys())
         expected = set(df.columns)
         assert result == expected
 
     def test_to_dict_wide(self):
         # GH#24939
         df = DataFrame({(f"A_{i:d}"): [i] for i in range(256)})
-        result = df.to_dict("records")[0]
+        result = df.to_dict(orient="records")[0]
         expected = {f"A_{i:d}": i for i in range(256)}
         assert result == expected
 
@@ -310,7 +310,7 @@ class TestDataFrameToDict:
     def test_to_dict_mixed_numeric_frame(self):
         # GH 12859
         df = DataFrame({"a": [1.0], "b": [9.0]})
-        result = df.reset_index().to_dict("records")
+        result = df.reset_index().to_dict(orient="records")
         expected = [{"index": 0, "a": 1.0, "b": 9.0}]
         assert result == expected
 
@@ -395,7 +395,7 @@ class TestDataFrameToDict:
         # GH 46751
         # Tests we get back native types for all orient types
         df = DataFrame(data)
-        result = df.to_dict(orient)
+        result = df.to_dict(orient=orient)
         if orient == "dict":
             assertion_iterator = (
                 (i, key, value)
