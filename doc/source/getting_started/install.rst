@@ -413,7 +413,6 @@ Installable with ``pip install "pandas[compression]"``
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 brotli                    0.7.0              compression     Brotli compression
-python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
 
