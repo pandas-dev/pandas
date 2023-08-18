@@ -23,7 +23,7 @@ else:
     import tomli as tomllib
 import yaml
 
-EXCLUDE = {"python", "c-compiler", "cxx-compiler", "python-snappy"}
+EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
 REMAP_VERSION = {"tzdata": "2022.1"}
 RENAME = {
     "pytables": "tables",

@@ -4,7 +4,7 @@
 
 
 ===============================
-IO tools (text, CSV, HDF5, ..)
+IO tools (text, CSV, HDF5, ...)
 ===============================
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like
