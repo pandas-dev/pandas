@@ -3541,6 +3541,8 @@ cdef class FY5253(FY5253Mixin):
     ----------
     n : int
         The number of fiscal years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int {0, 1, ..., 6}, default 0
         A specific integer for the day of the week.
 
@@ -3742,6 +3744,8 @@ cdef class FY5253Quarter(FY5253Mixin):
     ----------
     n : int
         The number of business quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int {0, 1, ..., 6}, default 0
         A specific integer for the day of the week.
 
