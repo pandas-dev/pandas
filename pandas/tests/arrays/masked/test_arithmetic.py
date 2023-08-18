@@ -76,7 +76,7 @@ def test_array_NA(data, all_arithmetic_operators):
     scalar = pd.NA
     scalar_array = pd.array([pd.NA] * len(data), dtype=data.dtype)
 
-    mask = data._mask.to_numpy().copy()
+    mask = data._mask.to_numpy()
 
     if is_bool_not_implemented(data, all_arithmetic_operators):
         msg = "operator '.*' not implemented for bool dtypes"

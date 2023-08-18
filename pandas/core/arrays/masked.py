@@ -416,22 +416,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values = np.round(self._data, decimals=decimals, **kwargs)
 
         # Usually we'll get same type as self, but ndarray[bool] casts to float
-        return self._maybe_mask_result(values, self._mask.to_numpy().copy())
+        return self._maybe_mask_result(values, self._mask.to_numpy())
 
     # ------------------------------------------------------------------
     # Unary Methods
 
     def __invert__(self) -> Self:
-        return self._simple_new(~self._data, self._mask.to_numpy().copy())
+        return self._simple_new(~self._data, self._mask.to_numpy())
 
     def __neg__(self) -> Self:
-        return self._simple_new(-self._data, self._mask.to_numpy().copy())
+        return self._simple_new(-self._data, self._mask.to_numpy())
 
     def __pos__(self) -> Self:
         return self.copy()
 
     def __abs__(self) -> Self:
-        return self._simple_new(abs(self._data), self._mask.to_numpy().copy())
+        return self._simple_new(abs(self._data), self._mask.to_numpy())
 
     # ------------------------------------------------------------------
 
@@ -565,7 +565,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.to_numpy().copy()
+            mask = self._mask if data is self._data else self._mask.to_numpy()
             cls = dtype.construct_array_type()
             return cls(data, mask, copy=False)  # type: ignore[arg-type]
 
@@ -702,7 +702,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> npt.NDArray[np.bool_]:
         if mask is None:
             mask = (
-                self._mask.to_numpy().copy()
+                self._mask.to_numpy()
             )  # TODO: need test for BooleanArray needing a copy
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
@@ -900,7 +900,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return result
 
     def isna(self) -> np.ndarray:
-        return self._mask.to_numpy().copy()
+        return self._mask.to_numpy()
 
     @property
     def _na_value(self):
@@ -982,7 +982,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def copy(self) -> Self:
         data = self._data.copy()
-        mask = self._mask.to_numpy().copy()
+        mask = self._mask.to_numpy()
         return self._simple_new(data, mask)
 
     def unique(self) -> Self:
