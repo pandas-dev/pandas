@@ -2878,6 +2878,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path"], name="to_parquet"
+    )
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,

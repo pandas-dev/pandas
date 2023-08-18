@@ -359,6 +359,18 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+def test_parquet_pos_args_deprecation():
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = BytesIO()
+        df.to_parquet(buffer, "auto")
+
+
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
