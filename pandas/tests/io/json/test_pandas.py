@@ -1,7 +1,10 @@
 import datetime
 from datetime import timedelta
 from decimal import Decimal
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import json
 import os
 import sys
@@ -2106,3 +2109,15 @@ def test_json_roundtrip_string_inference(orient):
         columns=pd.Index(["col 1", "col 2"], dtype=pd.ArrowDtype(pa.string())),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_json_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_json except for the "
+        r"argument 'path_or_buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buf = BytesIO()
+        df.to_json(buf, "split")
