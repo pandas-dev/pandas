@@ -8,7 +8,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
+from pandas.core.arrays.datetimes import _sequence_to_dt64
 
 
 class TestDatetimeArrayConstructor:
@@ -44,7 +44,7 @@ class TestDatetimeArrayConstructor:
         "meth",
         [
             DatetimeArray._from_sequence,
-            _sequence_to_dt64ns,
+            _sequence_to_dt64,
             pd.to_datetime,
             pd.DatetimeIndex,
         ],
@@ -105,7 +105,7 @@ class TestDatetimeArrayConstructor:
             DatetimeArray._from_sequence(arr)
 
         with pytest.raises(TypeError, match=msg):
-            _sequence_to_dt64ns(arr)
+            _sequence_to_dt64(arr)
 
         with pytest.raises(TypeError, match=msg):
             pd.DatetimeIndex(arr)
@@ -160,8 +160,8 @@ class TestSequenceToDT64NS:
         if order == "F":
             arr = arr.T
 
-        res = _sequence_to_dt64ns(arr)
-        expected = _sequence_to_dt64ns(arr.ravel())
+        res = _sequence_to_dt64(arr)
+        expected = _sequence_to_dt64(arr.ravel())
 
         tm.assert_numpy_array_equal(res[0].ravel(), expected[0])
         assert res[1] == expected[1]
