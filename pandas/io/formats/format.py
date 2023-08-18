@@ -1102,7 +1102,8 @@ class DataFrameRenderer:
 
     def to_csv(
         self,
-        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        path: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        /,
         encoding: str | None = None,
         sep: str = ",",
         columns: Sequence[Hashable] | None = None,
@@ -1118,11 +1119,22 @@ class DataFrameRenderer:
         escapechar: str | None = None,
         errors: str = "strict",
         storage_options: StorageOptions | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
         """
         from pandas.io.formats.csvs import CSVFormatter
+
+        # validate input
+        if path_or_buf is None and path is None:
+            raise ValueError("you need to insert a path")
+        if path_or_buf is not None and path is not None:
+            raise ValueError(
+                "pass the path as the first argument and don't pass it twice"
+            )
+        if path is not None:
+            path_or_buf = path
 
         if path_or_buf is None:
             created_buffer = True

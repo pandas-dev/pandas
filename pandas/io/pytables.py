@@ -259,9 +259,10 @@ def _tables():
 
 
 def to_hdf(
-    path_or_buf: FilePath | HDFStore,
-    key: str,
-    value: DataFrame | Series,
+    path: FilePath | HDFStore | None = None,
+    /,
+    key: str | None = None,
+    value: DataFrame | Series | None = None,
     mode: str = "a",
     complevel: int | None = None,
     complib: str | None = None,
@@ -274,8 +275,21 @@ def to_hdf(
     data_columns: Literal[True] | list[str] | None = None,
     errors: str = "strict",
     encoding: str = "UTF-8",
+    path_or_buf: FilePath | HDFStore | None = None,
 ) -> None:
     """store this object, close it if we opened it"""
+    # validate input
+    if path_or_buf is None and path is None:
+        raise ValueError("you need to insert a path")
+    if path_or_buf is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if key is None:
+        raise TypeError("missing 1 required argument: 'key'")
+    if value is None:
+        raise TypeError("missing 1 required argument: 'value'")
+    if path is not None:
+        path_or_buf = path
+
     if append:
         f = lambda store: store.append(
             key,

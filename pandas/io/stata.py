@@ -2132,7 +2132,6 @@ def read_stata(
     storage_options: StorageOptions | None = None,
     filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
 ) -> DataFrame | StataReader:
-
     # validate input
     if filepath_or_buffer is None and path is None:
         raise ValueError("you need to insert a path")

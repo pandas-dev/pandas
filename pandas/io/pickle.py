@@ -188,7 +188,7 @@ def read_pickle(
     4    4    9
     """
 
-    #validate input
+    # validate input
     if filepath_or_buffer is None and path is None:
         raise ValueError("you need to insert a path")
     if filepath_or_buffer is not None and path is not None:

@@ -672,7 +672,10 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> TextFileReader:
     ...
 
@@ -731,7 +734,10 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> TextFileReader:
     ...
 
@@ -790,7 +796,10 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame:
     ...
 
@@ -849,7 +858,10 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -926,9 +938,11 @@ def read_csv(
     float_precision: Literal["high", "legacy"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame | TextFileReader:
-
     if filepath_or_buffer is None and path is None:
         raise ValueError("you need to insert a path")
     if filepath_or_buffer is not None and path is not None:
@@ -1021,7 +1035,10 @@ def read_table(
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> TextFileReader:
     ...
 
@@ -1080,12 +1097,15 @@ def read_table(
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> TextFileReader:
     ...
 
 
-# default -> DataFrame
+# default -> DataFrame hello
 @overload
 def read_table(
     path: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
@@ -1139,7 +1159,10 @@ def read_table(
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame:
     ...
 
@@ -1198,7 +1221,10 @@ def read_table(
     float_precision: str | None = ...,
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame | TextFileReader:
     ...
 
@@ -1277,9 +1303,11 @@ def read_table(
     float_precision: str | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
 ) -> DataFrame | TextFileReader:
-
     # validate input
     if filepath_or_buffer is None and path is None:
         raise ValueError("you need to insert a path")
@@ -1328,7 +1356,10 @@ def read_fwf(
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str] | None = None,
+    filepath_or_buffer: FilePath
+    | ReadCsvBuffer[bytes]
+    | ReadCsvBuffer[str]
+    | None = None,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""

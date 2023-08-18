@@ -85,7 +85,6 @@ def read_sas(
     iterator: bool = ...,
     compression: CompressionOptions = ...,
     filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
-
 ) -> DataFrame | ReaderBase:
     ...
 
@@ -102,7 +101,6 @@ def read_sas(
     iterator: bool = False,
     compression: CompressionOptions = "infer",
     filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
-
 ) -> DataFrame | ReaderBase:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.

@@ -2358,7 +2358,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_json(
         self,
-        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        path: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        /,
         orient: Literal["split", "records", "index", "table", "columns", "values"]
         | None = None,
         date_format: str | None = None,
@@ -2372,6 +2373,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent: int | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2616,6 +2618,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         from pandas.io import json
 
+        # validate input
+        if path_or_buf is not None and path is not None:
+            raise ValueError(
+                "pass the path as the first argument and don't pass it twice"
+            )
+        if path is not None:
+            path_or_buf = path
+
         if date_format is None and orient == "table":
             date_format = "iso"
         elif date_format is None:
@@ -2647,8 +2657,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_hdf(
         self,
-        path_or_buf: FilePath | HDFStore,
-        key: str,
+        path: FilePath | HDFStore,
+        /,
+        key: str | None = None,
         mode: Literal["a", "w", "r+"] = "a",
         complevel: int | None = None,
         complib: Literal["zlib", "lzo", "bzip2", "blosc"] | None = None,
@@ -2661,6 +2672,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         data_columns: Literal[True] | list[str] | None = None,
         errors: OpenFileErrors = "strict",
         encoding: str = "UTF-8",
+        path_or_buf: FilePath | HDFStore | None = None,
     ) -> None:
         """
         Write the contained data to an HDF5 file using HDFStore.
@@ -2774,6 +2786,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: int64
         """
         from pandas.io import pytables
+
+        # validate input
+        if path_or_buf is None and path is None:
+            raise ValueError("you need to insert a path")
+        if path_or_buf is not None and path is not None:
+            raise ValueError(
+                "pass the path as the first argument and don't pass it twice"
+            )
+        if key is None:
+            raise TypeError("missing 1 required argument: 'key'")
+        if path is not None:
+            path_or_buf = path
 
         # Argument 3 to "to_hdf" has incompatible type "NDFrame"; expected
         # "Union[DataFrame, Series]" [arg-type]
@@ -3673,7 +3697,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     @overload
     def to_csv(
         self,
-        path_or_buf: None = ...,
+        path: None = ...,
+        /,
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable | None = ...,
@@ -3694,13 +3719,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        path_or_buf: None = ...,
     ) -> str:
         ...
 
     @overload
     def to_csv(
         self,
-        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
+        path: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable | None = ...,
@@ -3721,6 +3747,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ...,
         errors: OpenFileErrors = ...,
         storage_options: StorageOptions = ...,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
     ) -> None:
         ...
 
@@ -3731,7 +3758,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     )
     def to_csv(
         self,
-        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        path: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
+        /,
         sep: str = ",",
         na_rep: str = "",
         float_format: str | Callable | None = None,
@@ -3752,6 +3780,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         decimal: str = ".",
         errors: OpenFileErrors = "strict",
         storage_options: StorageOptions | None = None,
+        path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
     ) -> str | None:
         r"""
         Write object to a comma-separated values (csv) file.
@@ -3895,6 +3924,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> os.makedirs('folder/subfolder', exist_ok=True)  # doctest: +SKIP
         >>> df.to_csv('folder/subfolder/out.csv')  # doctest: +SKIP
         """
+
+        if path is not None:
+            path_or_buf = path
+
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
 
         formatter = DataFrameFormatter(

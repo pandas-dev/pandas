@@ -94,8 +94,9 @@ FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 # interface to/from
 @overload
 def to_json(
-    path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes],
-    obj: NDFrame,
+    path: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None = None,
+    /,
+    obj: NDFrame | None = None,
     orient: str | None = ...,
     date_format: str = ...,
     double_precision: int = ...,
@@ -108,14 +109,16 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None = None,
 ) -> None:
     ...
 
 
 @overload
 def to_json(
-    path_or_buf: None,
-    obj: NDFrame,
+    path: None = None,
+    /,
+    obj: NDFrame | None = None,
     orient: str | None = ...,
     date_format: str = ...,
     double_precision: int = ...,
@@ -128,13 +131,15 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    path_or_buf: None = None,
 ) -> str:
     ...
 
 
 def to_json(
-    path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None,
-    obj: NDFrame,
+    path: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None = None,
+    /,
+    obj: NDFrame | None = None,
     orient: str | None = None,
     date_format: str = "epoch",
     double_precision: int = 10,
@@ -147,7 +152,16 @@ def to_json(
     indent: int = 0,
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
+    path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None = None,
 ) -> str | None:
+    # validate input
+    if obj is None:
+        raise TypeError("missing 1 required positional argument: 'obj'")
+    if path_or_buf is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        path_or_buf = path
+
     if orient in ["records", "values"] and index is True:
         raise ValueError(
             "'index=True' is only valid when 'orient' is 'split', 'table', "
