@@ -2683,8 +2683,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
-                * linear: `i + (j - i) * fraction`, where `fraction` is the
-                  fractional part of the index surrounded by `i` and `j`.
+                * linear: `i + (j - i) * fraction`, where `fraction` is the proportion
+                of the distance between `i` and `j`. it refers to the relative position
+                of the desired quantile value between i and j
+                hence fraction = (desired_quantile - i) / (j - i)
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
