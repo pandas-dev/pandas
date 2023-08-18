@@ -13,6 +13,7 @@ from typing import (
 import warnings
 
 import numpy as np
+from pytz import NonExistentTimeError
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -2494,6 +2495,17 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
+        # Added to handle non-existent times when localizing to
+        # time-zones with negative time-zone difference
+        try:
+            first = first.tz_localize(None)
+        except NonExistentTimeError:
+            first = first.tz_localize(None, nonexistent="shift_forward")
+
+        try:
+            last = last.tz_localize(None)
+        except NonExistentTimeError:
+            last = last.tz_localize(None, nonexistent="shift_forward")
         if isinstance(origin, Timestamp):
             first = origin
 

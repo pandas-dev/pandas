@@ -1,3 +1,4 @@
+from datetime import datetime
 from textwrap import dedent
 
 import numpy as np
@@ -696,3 +697,19 @@ def test_groupby_resample_kind(kind):
     )
     expected = Series([1, 3, 2, 4], index=expected_index, name="value")
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_dataframe_with_negative_timezone_difference():
+    df = DataFrame({"ts": [datetime(2005, 10, 9, 21)], "values": [10.0]})
+    df["ts"] = df["ts"].dt.tz_localize("Chile/Continental")
+    result = df.resample("W-Mon", on="ts", closed="left", label="left").sum()
+    expected = DataFrame(
+        {
+            "values": {
+                Timestamp("2005-10-03 00:00:00-0400", tz="Chile/Continental"): 10.0
+            }
+        }
+    )
+    expected.index.name = "ts"
+    expected.index.freq = "W-Mon"
+    tm.assert_frame_equal(result, expected)
