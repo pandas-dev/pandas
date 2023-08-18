@@ -17,4 +17,4 @@ def test_find_stack_level(above, below):
     assert top_lvl == above, f"Expected stack level {above} but got {top_lvl}"
 
     sub_lvl = nested_call()
-    assert sub_lvl == nest_lvl, f"Expected stack level {below} but got {sub_lvl}"
+    assert sub_lvl == below, f"Expected stack level {below} but got {sub_lvl}"
