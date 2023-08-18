@@ -1016,7 +1016,7 @@ class TestParquetPyArrow(Base):
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(0, 3))})
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(
                 path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
             )
@@ -1029,7 +1029,7 @@ class TestParquetPyArrow(Base):
         )
 
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
         if using_array_manager:
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
@@ -1195,7 +1195,7 @@ class TestParquetFastParquet(Base):
         d = {"a": list(range(0, 3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
-            df.to_parquet(path, fp, compression=None, row_group_offsets=1)
+            df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
