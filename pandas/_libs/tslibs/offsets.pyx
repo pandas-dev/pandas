@@ -1621,6 +1621,8 @@ cdef class BusinessDay(BusinessMixin):
         The number of days represented.
     normalize : bool, default False
         Normalize start/end dates to midnight.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
@@ -3148,6 +3150,10 @@ cdef class Week(SingleConstructorOffset):
 
     Parameters
     ----------
+    n : int, default 1
+        The number of weeks represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int or None, default None
         Always generate specific day of week.
         0 for Monday and 6 for Sunday.
@@ -3398,6 +3404,9 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
     Parameters
     ----------
     n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int {0, 1, ..., 6}, default 0
         A specific integer for the day of the week.
 
@@ -4150,6 +4159,8 @@ cdef class CustomBusinessHour(BusinessHour):
         Start time of your custom business hour in 24h format.
     end : str, time, or list of str/time, default: "17:00"
         End time of your custom business hour in 24h format.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
 
     Examples
     --------
