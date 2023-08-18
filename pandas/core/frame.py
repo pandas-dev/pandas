@@ -1924,13 +1924,16 @@ class DataFrame(NDFrame, OpsMixin):
     @overload
     def to_dict(
         self,
+        *,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
         into: type[dict] = ...,
     ) -> dict:
         ...
 
     @overload
-    def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
+    def to_dict(
+        self, *, orient: Literal["records"], into: type[dict] = ...
+    ) -> list[dict]:
         ...
 
     def to_dict(
