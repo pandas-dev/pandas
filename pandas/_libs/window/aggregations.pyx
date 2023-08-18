@@ -51,13 +51,13 @@ cdef extern from "pandas/skiplist.h":
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
-    float32_t MINfloat32 = np.NINF
-    float64_t MINfloat64 = np.NINF
+    float32_t MINfloat32 = -np.inf
+    float64_t MINfloat64 = -np.inf
 
     float32_t MAXfloat32 = np.inf
     float64_t MAXfloat64 = np.inf
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end

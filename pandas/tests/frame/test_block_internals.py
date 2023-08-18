@@ -131,22 +131,22 @@ class TestDataFrameBlockInternals:
 
         df = DataFrame({"A": [None, 1]})
         result = df["A"]
-        expected = Series(np.asarray([np.nan, 1], np.float_), name="A")
+        expected = Series(np.asarray([np.nan, 1], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0, 2]})
         result = df["A"]
-        expected = Series(np.asarray([1.0, 2], np.float_), name="A")
+        expected = Series(np.asarray([1.0, 2], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, 3], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, 3], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3.0]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, 3.0], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, 3.0], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, True]})
@@ -156,12 +156,12 @@ class TestDataFrameBlockInternals:
 
         df = DataFrame({"A": [1.0, None]})
         result = df["A"]
-        expected = Series(np.asarray([1.0, np.nan], np.float_), name="A")
+        expected = Series(np.asarray([1.0, np.nan], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, None]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, np.nan], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, np.nan], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [2.0, 1, True, None]})
@@ -343,9 +343,9 @@ class TestDataFrameBlockInternals:
             Y["e"] = Y["e"].astype("object")
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.NaN
+                    Y["g"]["c"] = np.nan
             else:
-                Y["g"]["c"] = np.NaN
+                Y["g"]["c"] = np.nan
             repr(Y)
             Y.sum()
             Y["g"].sum()

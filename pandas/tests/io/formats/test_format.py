@@ -95,6 +95,8 @@ def assert_filepath_or_buffer_equals(
     """
     Assertion helper for checking filepath_or_buffer.
     """
+    if encoding is None:
+        encoding = "utf-8"
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
@@ -322,7 +324,7 @@ class TestDataFrameFormatting:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) == str  # both py2 / 3
+        assert isinstance(df.__repr__(), str)
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):

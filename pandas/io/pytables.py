@@ -30,12 +30,14 @@ import numpy as np
 from pandas._config import (
     config,
     get_option,
+    using_pyarrow_string_dtype,
 )
 
 from pandas._libs import (
     lib,
     writers as libwriters,
 )
+from pandas._libs.lib import is_string_array
 from pandas._libs.tslibs import timezones
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.pickle_compat import patch_pickle
@@ -66,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import array_equivalent
 
+import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -1728,7 +1731,7 @@ class HDFStore:
         errors: str = "strict",
     ) -> GenericFixed | Table:
         """return a suitable class to operate"""
-        cls: type[GenericFixed] | type[Table]
+        cls: type[GenericFixed | Table]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -2116,7 +2119,7 @@ class IndexCol:
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2157,7 +2160,7 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
-        factory: type[Index] | type[DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
@@ -2423,7 +2426,7 @@ class DataCol(IndexCol):
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -3219,7 +3222,12 @@ class SeriesFixed(GenericFixed):
         self.validate_read(columns, where)
         index = self.read_index("index", start=start, stop=stop)
         values = self.read_array("values", start=start, stop=stop)
-        return Series(values, index=index, name=self.name, copy=False)
+        result = Series(values, index=index, name=self.name, copy=False)
+        if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
+            import pyarrow as pa
+
+            result = result.astype(pd.ArrowDtype(pa.string()))
+        return result
 
     # error: Signature of "write" incompatible with supertype "Fixed"
     def write(self, obj, **kwargs) -> None:  # type: ignore[override]
@@ -3287,6 +3295,10 @@ class BlockManagerFixed(GenericFixed):
 
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
+            if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4668,7 +4680,15 @@ class AppendableFrameTable(AppendableTable):
             else:
                 # Categorical
                 df = DataFrame._from_arrays([values], columns=cols_, index=index_)
-            assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if not (using_pyarrow_string_dtype() and values.dtype.kind == "O"):
+                assert (df.dtypes == values.dtype).all(), (df.dtypes, values.dtype)
+            if using_pyarrow_string_dtype() and is_string_array(
+                values,  # type: ignore[arg-type]
+                skipna=True,
+            ):
+                import pyarrow as pa
+
+                df = df.astype(pd.ArrowDtype(pa.string()))
             frames.append(df)
 
         if len(frames) == 1:

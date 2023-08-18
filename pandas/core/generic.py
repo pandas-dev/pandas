@@ -97,7 +97,10 @@ from pandas.errors import (
     SettingWithCopyWarning,
     _chained_assignment_method_msg,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    deprecate_nonkeyword_arguments,
+    doc,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     check_dtype_backend,
@@ -814,9 +817,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             assert isinstance(new_mgr, BlockManager)
             assert isinstance(self._mgr, BlockManager)
             new_mgr.blocks[0].refs = self._mgr.blocks[0].refs
-            new_mgr.blocks[0].refs.add_reference(
-                new_mgr.blocks[0]  # type: ignore[arg-type]
-            )
+            new_mgr.blocks[0].refs.add_reference(new_mgr.blocks[0])
             if not using_copy_on_write() and copy is not False:
                 new_mgr = new_mgr.copy(deep=True)
 
@@ -2641,6 +2642,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path_or_buf"], name="to_hdf"
+    )
     def to_hdf(
         self,
         path_or_buf: FilePath | HDFStore,
@@ -2792,6 +2796,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "name"], name="to_sql"
+    )
     def to_sql(
         self,
         name: str,
@@ -2911,7 +2918,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  User 2
         2  User 3
 
-        >>> df.to_sql('users', con=engine)
+        >>> df.to_sql(name='users', con=engine)
         3
         >>> from sqlalchemy import text
         >>> with engine.connect() as conn:
@@ -2922,14 +2929,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         >>> with engine.begin() as connection:
         ...     df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
-        ...     df1.to_sql('users', con=connection, if_exists='append')
+        ...     df1.to_sql(name='users', con=connection, if_exists='append')
         2
 
         This is allowed to support operations that require that the same
         DBAPI connection is used for the entire operation.
 
         >>> df2 = pd.DataFrame({'name' : ['User 6', 'User 7']})
-        >>> df2.to_sql('users', con=engine, if_exists='append')
+        >>> df2.to_sql(name='users', con=engine, if_exists='append')
         2
         >>> with engine.connect() as conn:
         ...    conn.execute(text("SELECT * FROM users")).fetchall()
@@ -2939,7 +2946,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Overwrite the table with just ``df2``.
 
-        >>> df2.to_sql('users', con=engine, if_exists='replace',
+        >>> df2.to_sql(name='users', con=engine, if_exists='replace',
         ...            index_label='id')
         2
         >>> with engine.connect() as conn:
@@ -2956,7 +2963,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = insert(table.table).values(data).on_conflict_do_nothing(index_elements=["a"])
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_nothing)  # doctest: +SKIP
         0
 
         For MySQL, a callable to update columns ``b`` and ``c`` if there's a conflict
@@ -2973,7 +2980,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
         ...     result = conn.execute(stmt)
         ...     return result.rowcount
-        >>> df_conflict.to_sql("conflict_table", conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
+        >>> df_conflict.to_sql(name="conflict_table", con=conn, if_exists="append", method=insert_on_conflict_update)  # doctest: +SKIP
         2
 
         Specify the dtype (especially useful for integers with missing values).
@@ -2989,7 +2996,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  2.0
 
         >>> from sqlalchemy.types import Integer
-        >>> df.to_sql('integers', con=engine, index=False,
+        >>> df.to_sql(name='integers', con=engine, index=False,
         ...           dtype={"A": Integer()})
         3
 
@@ -3013,6 +3020,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path"], name="to_pickle"
+    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path",
@@ -3296,6 +3306,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_latex"
+    )
     def to_latex(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -5322,7 +5335,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        fill_value : scalar, default np.NaN
+        fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
         limit : int, default None
@@ -6605,6 +6618,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         :ref:`gotchas <gotchas.thread-safety>` when copying in a threading
         environment.
 
+        When ``copy_on_write`` in pandas config is set to ``True``, the
+        ``copy_on_write`` config takes effect even when ``deep=False``.
+        This means that any changes to the copied data would make a new copy
+        of the data upon write (and vice versa). Changes made to either the
+        original or copied variable would not be reflected in the counterpart.
+        See :ref:`Copy_on_Write <copy_on_write>` for more information.
+
         Examples
         --------
         >>> s = pd.Series([1, 2], index=["a", "b"])
@@ -6672,6 +6692,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0    [10, 2]
         1     [3, 4]
         dtype: object
+
+        ** Copy-on-Write is set to true: **
+
+        >>> with pd.option_context("mode.copy_on_write", True):
+        ...     s = pd.Series([1, 2], index=["a", "b"])
+        ...     copy = s.copy(deep=False)
+        ...     s.iloc[0] = 100
+        ...     s
+        a    100
+        b      2
+        dtype: int64
+        >>> copy
+        a    1
+        b    2
+        dtype: int64
         """
         data = self._mgr.copy(deep=deep)
         self._clear_item_cache()
@@ -7369,7 +7404,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2  3.0  4.0 NaN  1.0
         3  3.0  3.0 NaN  4.0
 
-        >>> ser = pd.Series([1, np.NaN, 2, 3])
+        >>> ser = pd.Series([1, np.nan, 2, 3])
         >>> ser.ffill()
         0   1.0
         1   1.0
@@ -7378,6 +7413,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
         """
         downcast = self._deprecate_downcast(downcast, "ffill")
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
 
         return self._pad_or_backfill(
             "ffill",
@@ -7516,6 +7560,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3   4.0   7.0
         """
         downcast = self._deprecate_downcast(downcast, "bfill")
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
         return self._pad_or_backfill(
             "bfill",
             axis=axis,
@@ -8040,6 +8093,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError("downcast must be either None or 'infer'")
 
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         axis = self._get_axis_number(axis)
 
         if self.empty:
@@ -8340,7 +8403,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+        >>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
         ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
         ...                              pd.Timestamp('1940-04-25')],
         ...                        name=['Alfred', 'Batman', ''],
@@ -8359,7 +8422,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Show which entries in a Series are NA.
 
-        >>> ser = pd.Series([5, 6, np.NaN])
+        >>> ser = pd.Series([5, 6, np.nan])
         >>> ser
         0    5.0
         1    6.0
@@ -8407,7 +8470,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Show which entries in a DataFrame are not NA.
 
-        >>> df = pd.DataFrame(dict(age=[5, 6, np.NaN],
+        >>> df = pd.DataFrame(dict(age=[5, 6, np.nan],
         ...                        born=[pd.NaT, pd.Timestamp('1939-05-27'),
         ...                              pd.Timestamp('1940-04-25')],
         ...                        name=['Alfred', 'Batman', ''],
@@ -8426,7 +8489,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Show which entries in a Series are not NA.
 
-        >>> ser = pd.Series([5, 6, np.NaN])
+        >>> ser = pd.Series([5, 6, np.nan])
         >>> ser
         0    5.0
         1    6.0
@@ -8593,7 +8656,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Clips using specific lower threshold per column element, with missing values:
 
-        >>> t = pd.Series([2, -4, np.NaN, 6, 3])
+        >>> t = pd.Series([2, -4, np.nan, 6, 3])
         >>> t
         0    2.0
         1   -4.0
@@ -8611,6 +8674,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4      5      3
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
+
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
 
         axis = nv.validate_clip_with_axis(axis, (), kwargs)
         if axis is not None:
@@ -9784,7 +9856,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         copy : bool, default True
             Always returns new objects. If copy=False and no reindexing is
             required then original objects are returned.
-        fill_value : scalar, default np.NaN
+        fill_value : scalar, default np.nan
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
         method : {{'backfill', 'bfill', 'pad', 'ffill', None}}, default None
@@ -10493,6 +10565,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level)
 
@@ -10551,6 +10632,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         level: Level | None = None,
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
+        if inplace:
+            if not PYPY and using_copy_on_write():
+                if sys.getrefcount(self) <= REF_COUNT:
+                    warnings.warn(
+                        _chained_assignment_method_msg,
+                        ChainedAssignmentError,
+                        stacklevel=2,
+                    )
+
         cond = common.apply_if_callable(cond, self)
 
         # see gh-21891

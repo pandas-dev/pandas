@@ -1727,7 +1727,7 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
+    # It checks for np.nan as well
     if (
         not is_numeric_dtype(percentiles)
         or not np.all(percentiles >= 0)
