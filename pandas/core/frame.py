@@ -9221,10 +9221,10 @@ class DataFrame(NDFrame, OpsMixin):
         DataFrame. The new inner-most levels are created by pivoting the
         columns of the current dataframe:
 
-          - if the columns have a single level, the output is a Series;
-          - if the columns have multiple levels, the new index
-            level(s) is (are) taken from the prescribed level(s) and
-            the output is a DataFrame.
+        - if the columns have a single level, the output is a Series;
+        - if the columns have multiple levels, the new index
+          level(s) is (are) taken from the prescribed level(s) and
+          the output is a DataFrame.
 
         Parameters
         ----------
