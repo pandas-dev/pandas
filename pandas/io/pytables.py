@@ -329,7 +329,8 @@ def to_hdf(
 
 
 def read_hdf(
-    path_or_buf: FilePath | HDFStore,
+    path: FilePath | HDFStore | None = None,
+    /,
     key=None,
     mode: str = "r",
     errors: str = "strict",
@@ -339,6 +340,7 @@ def read_hdf(
     columns: list[str] | None = None,
     iterator: bool = False,
     chunksize: int | None = None,
+    path_or_buf: FilePath | HDFStore | None = None,
     **kwargs,
 ):
     """
@@ -407,6 +409,14 @@ def read_hdf(
     >>> df.to_hdf('./store.h5', 'data')  # doctest: +SKIP
     >>> reread = pd.read_hdf('./store.h5')  # doctest: +SKIP
     """
+    # validate Input
+    if path_or_buf is None and path is None:
+        raise ValueError("you need to insert a path")
+    if path_or_buf is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        path_or_buf = path
+
     if mode not in ["r", "r+", "a"]:
         raise ValueError(
             f"mode {mode} is not allowed while performing a read. "

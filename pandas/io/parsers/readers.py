@@ -943,6 +943,7 @@ def read_csv(
     | ReadCsvBuffer[str]
     | None = None,
 ) -> DataFrame | TextFileReader:
+    # validate input
     if filepath_or_buffer is None and path is None:
         raise ValueError("you need to insert a path")
     if filepath_or_buffer is not None and path is not None:

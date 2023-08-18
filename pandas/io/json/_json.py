@@ -413,7 +413,8 @@ class JSONTableWriter(FrameWriter):
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
@@ -432,13 +433,15 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
+    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
 ) -> JsonReader[Literal["frame"]]:
     ...
 
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["series"],
@@ -457,13 +460,15 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
+    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
 ) -> JsonReader[Literal["series"]]:
     ...
 
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["series"],
@@ -482,13 +487,15 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
+    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
 ) -> Series:
     ...
 
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
@@ -507,6 +514,7 @@ def read_json(
     storage_options: StorageOptions = ...,
     dtype_backend: DtypeBackend | lib.NoDefault = ...,
     engine: JSONEngine = ...,
+    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
 ) -> DataFrame:
     ...
 
@@ -516,7 +524,8 @@ def read_json(
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
 )
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
+    /,
     *,
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
@@ -535,6 +544,7 @@ def read_json(
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
+    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
 ) -> DataFrame | Series | JsonReader:
     """
     Convert a JSON string to pandas object.
@@ -774,6 +784,15 @@ def read_json(
 }}\
 '
     """
+
+    # validate Input
+    if path_or_buf is None and path is None:
+        raise ValueError("you need to insert a path")
+    if path_or_buf is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        path_or_buf = path
+
     if orient == "table" and dtype:
         raise ValueError("cannot pass both dtype and orient='table'")
     if orient == "table" and convert_axes:
