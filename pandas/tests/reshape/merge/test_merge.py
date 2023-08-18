@@ -2903,6 +2903,7 @@ def test_merge_combinations(
         if not other_unique:
             other_value_counts = other["key"].value_counts()
             repeats = other_value_counts.reindex(expected["key"].values, fill_value=1)
+            repeats = repeats.astype(np.intp)
             expected = expected["key"].repeat(repeats.values)
             expected = expected.to_frame()
     elif how == "outer":
@@ -2911,9 +2912,8 @@ def test_merge_combinations(
         else:
             left_counts = left["key"].value_counts()
             right_counts = right["key"].value_counts()
-            expected_counts = left_counts.mul(right_counts, fill_value=1).astype(
-                np.intp
-            )
+            expected_counts = left_counts.mul(right_counts, fill_value=1)
+            expected_counts = expected_counts.astype(np.intp)
             expected = expected_counts.index.values.repeat(expected_counts.values)
             expected = DataFrame({"key": expected})
             expected = expected.sort_values("key")
