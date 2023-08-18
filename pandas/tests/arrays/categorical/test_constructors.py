@@ -513,7 +513,7 @@ class TestCategoricalConstructors:
     def test_from_codes_nullable_int_categories(self, any_numeric_ea_dtype, validate):
         # GH#39649
         cats = pd.array(range(5), dtype=any_numeric_ea_dtype)
-        codes = np.random.randint(5, size=3)
+        codes = np.random.default_rng(2).integers(5, size=3)
         dtype = CategoricalDtype(cats)
         arr = Categorical.from_codes(codes, dtype=dtype, validate=validate)
         assert arr.categories.dtype == cats.dtype

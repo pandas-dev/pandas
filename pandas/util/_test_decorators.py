@@ -82,15 +82,6 @@ def safe_import(mod_name: str, min_version: str | None = None):
     return False
 
 
-def _skip_if_no_mpl() -> bool:
-    mod = safe_import("matplotlib")
-    if mod:
-        mod.use("Agg")
-        return False
-    else:
-        return True
-
-
 def _skip_if_not_us_locale() -> bool:
     lang, _ = locale.getlocale()
     if lang != "en_US":
@@ -136,9 +127,10 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
     evaluated during test collection. An attempt will be made to import the
     specified ``package`` and optionally ensure it meets the ``min_version``
 
-    The mark can be used as either a decorator for a test function or to be
+    The mark can be used as either a decorator for a test class or to be
     applied to parameters in pytest.mark.parametrize calls or parametrized
-    fixtures.
+    fixtures. Use pytest.importorskip if an imported moduled is later needed
+    or for test functions.
 
     If the import and version check are unsuccessful, then the test function
     (or test case when used in conjunction with parametrization) will be
@@ -165,10 +157,9 @@ def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecor
     )
 
 
-skip_if_no_mpl = pytest.mark.skipif(
-    _skip_if_no_mpl(), reason="Missing matplotlib dependency"
+skip_if_mpl = pytest.mark.skipif(
+    bool(safe_import("matplotlib")), reason="matplotlib is present"
 )
-skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_not_us_locale = pytest.mark.skipif(

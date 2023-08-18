@@ -666,7 +666,7 @@ class TestDataFrameReplace:
     def test_replace_NAT_with_None(self):
         # gh-45836
         df = DataFrame([pd.NaT, pd.NaT])
-        result = df.replace({pd.NaT: None, np.NaN: None})
+        result = df.replace({pd.NaT: None, np.nan: None})
         expected = DataFrame([None, None])
         tm.assert_frame_equal(result, expected)
 
@@ -983,12 +983,12 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(result, expected)
 
     def test_replace_pure_bool_with_string_no_op(self):
-        df = DataFrame(np.random.rand(2, 2) > 0.5)
+        df = DataFrame(np.random.default_rng(2).random((2, 2)) > 0.5)
         result = df.replace("asdf", "fdsa")
         tm.assert_frame_equal(df, result)
 
     def test_replace_bool_with_bool(self):
-        df = DataFrame(np.random.rand(2, 2) > 0.5)
+        df = DataFrame(np.random.default_rng(2).random((2, 2)) > 0.5)
         result = df.replace(False, True)
         expected = DataFrame(np.ones((2, 2), dtype=bool))
         tm.assert_frame_equal(result, expected)

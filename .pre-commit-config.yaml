@@ -14,17 +14,25 @@ default_stages: [
 ]
 ci:
     autofix_prs: false
+    autoupdate_schedule: monthly
+    # manual stage hooks
+    skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.277
+    rev: v0.0.284
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+    -   id: ruff
+        # TODO: remove autofixe-only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
@@ -99,7 +107,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.7.0
+    rev: v3.10.1
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -130,8 +138,8 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.296
-    -   id: pyright_reportGeneralTypeIssues
+        - pyright@1.1.318
+    -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
@@ -148,7 +156,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-    -   id: stubtest
+    -   id: mypy
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
@@ -243,16 +251,10 @@ repos:
 
             # os.remove
             |os\.remove
+
+            # Unseeded numpy default_rng
+            |default_rng\(\)
         files: ^pandas/tests/
-        types_or: [python, cython, rst]
-    -   id: unwanted-patterns-in-ea-tests
-        name: Unwanted patterns in EA tests
-        language: pygrep
-        entry: |
-            (?x)
-            tm.assert_(series|frame)_equal
-        files: ^pandas/tests/extension/base/
-        exclude: ^pandas/tests/extension/base/base\.py$
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code
@@ -371,17 +373,6 @@ repos:
             /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
             |/tests/
             |/_testing/
-    -   id: autotyping
-        name: autotyping
-        entry: python -m scripts.run_autotyping
-        types_or: [python, pyi]
-        files: ^pandas
-        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
-        language: python
-        stages: [manual]
-        additional_dependencies:
-        - autotyping==23.3.0
-        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

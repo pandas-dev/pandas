@@ -87,7 +87,7 @@ def test_reindex_series_add_nat():
 
 def test_reindex_with_datetimes():
     rng = date_range("1/1/2000", periods=20)
-    ts = Series(np.random.randn(20), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
@@ -194,7 +194,7 @@ def test_reindex_int(datetime_series):
     reindexed_int = int_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
-    assert reindexed_int.dtype == np.float_
+    assert reindexed_int.dtype == np.float64
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
@@ -425,11 +425,11 @@ def test_reindexing_with_float64_NA_log():
     s = Series([1.0, NA], dtype=Float64Dtype())
     s_reindex = s.reindex(range(3))
     result = s_reindex.values._data
-    expected = np.array([1, np.NaN, np.NaN])
+    expected = np.array([1, np.nan, np.nan])
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
+        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
 
 

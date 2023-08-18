@@ -167,7 +167,7 @@ class TestBase:
         #  we can remove multi.test_compat.test_numeric_compat
         assert not isinstance(idx, MultiIndex)
         if type(idx) is Index:
-            return
+            pytest.skip("Not applicable for Index")
         if is_numeric_dtype(simple_index.dtype) or isinstance(
             simple_index, TimedeltaIndex
         ):
@@ -237,6 +237,7 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
         # GH12309
@@ -245,9 +246,10 @@ class TestBase:
             # Needs "freq" specification:
             init_kwargs["freq"] = index.freq
         elif isinstance(index, (RangeIndex, MultiIndex, CategoricalIndex)):
-            # RangeIndex cannot be initialized from data
-            # MultiIndex and CategoricalIndex are tested separately
-            return
+            pytest.skip(
+                "RangeIndex cannot be initialized from data, "
+                "MultiIndex and CategoricalIndex are tested separately"
+            )
         elif index.dtype == object and index.inferred_type == "boolean":
             init_kwargs["dtype"] = index.dtype
 
@@ -318,9 +320,8 @@ class TestBase:
             assert result3 > result2
 
     def test_argsort(self, index):
-        # separately tested
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"{type(self).__name__} separately tested")
 
         result = index.argsort()
         expected = np.array(index).argsort()
@@ -399,7 +400,7 @@ class TestBase:
         result = index[1:4]
 
         if not len(index):
-            return
+            pytest.skip("Not applicable for empty index")
 
         # test 0th element
         assert index[0:4].equals(result.insert(0, index[0]))
@@ -433,11 +434,11 @@ class TestBase:
 
     def test_delete_base(self, index):
         if not len(index):
-            return
+            pytest.skip("Not applicable for empty index")
 
         if isinstance(index, RangeIndex):
             # tested in class
-            return
+            pytest.skip(f"{type(self).__name__} tested elsewhere")
 
         expected = index[1:]
         result = index.delete(0)
@@ -454,11 +455,10 @@ class TestBase:
         with pytest.raises(IndexError, match=msg):
             index.delete(length)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_equals(self, index):
         if isinstance(index, IntervalIndex):
-            # IntervalIndex tested separately, the index.equals(index.astype(object))
-            #  fails for IntervalIndex
-            return
+            pytest.skip(f"{type(index).__name__} tested elsewhere")
 
         is_ea_idx = type(index) is Index and not isinstance(index.dtype, np.dtype)
 
@@ -564,12 +564,11 @@ class TestBase:
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
-            return
+            pytest.skip("Not relevant for empty index")
         elif index.dtype == bool:
-            # can't hold NAs
-            return
+            pytest.skip(f"{index.dtype} cannot hold NAs")
         elif isinstance(index, Index) and is_integer_dtype(index.dtype):
-            return
+            pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
             msg = "isna is not defined for MultiIndex"
@@ -651,15 +650,10 @@ class TestBase:
             lambda values, index: Series(values, index),
         ],
     )
-    def test_map_dictlike(self, mapper, simple_index):
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    def test_map_dictlike(self, mapper, simple_index, request):
         idx = simple_index
-        if isinstance(idx, CategoricalIndex):
-            # FIXME: this fails with CategoricalIndex bc it goes through
-            # Categorical.map which ends up calling get_indexer with
-            #  non-unique values, which raises.  This _should_ work fine for
-            #  CategoricalIndex.
-            pytest.skip(f"skipping tests for {type(idx)}")
-        elif isinstance(idx, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+        if isinstance(idx, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
             pytest.skip("Tested elsewhere.")
 
         identity = mapper(idx.values, idx)
