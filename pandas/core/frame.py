@@ -2800,6 +2800,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
