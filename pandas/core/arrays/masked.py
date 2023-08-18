@@ -197,7 +197,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # TODO: need to change this to special case multiple
         # indexers versus just scalar
-        newmask = self._mask.to_numpy()[item]
+        np_mask = self._mask.to_numpy()
+        newmask = np_mask[item]
         if is_bool(newmask):
             # This is a scalar indexing
             if newmask:
@@ -205,7 +206,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._data[item]
 
         # sending self._mask avoids copy of buffer
-        if np.array_equal(newmask, self._mask.to_numpy()):
+        if np.array_equal(newmask, np_mask):
             return self._simple_new(self._data[item], self._mask)
 
         return self._simple_new(self._data[item], newmask)
