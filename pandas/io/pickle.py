@@ -118,9 +118,11 @@ def to_pickle(
     decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer",
 )
 def read_pickle(
-    filepath_or_buffer: FilePath | ReadPickleBuffer,
+    path: FilePath | ReadPickleBuffer | None = None,
+    /,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions | None = None,
+    filepath_or_buffer: FilePath | ReadPickleBuffer | None = None,
 ) -> DataFrame | Series:
     """
     Load pickled pandas object (or any object) from file.
@@ -185,6 +187,15 @@ def read_pickle(
     3    3    8
     4    4    9
     """
+
+    #validate input
+    if filepath_or_buffer is None and path is None:
+        raise ValueError("you need to insert a path")
+    if filepath_or_buffer is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        filepath_or_buffer = path
+
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,

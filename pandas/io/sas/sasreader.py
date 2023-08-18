@@ -59,7 +59,8 @@ class ReaderBase(ABC):
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[bytes] | None = None,
+    /,
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
@@ -67,13 +68,15 @@ def read_sas(
     chunksize: int = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
 ) -> ReaderBase:
     ...
 
 
 @overload
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[bytes] | None = None,
+    /,
     *,
     format: str | None = ...,
     index: Hashable | None = ...,
@@ -81,13 +84,16 @@ def read_sas(
     chunksize: None = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
+
 ) -> DataFrame | ReaderBase:
     ...
 
 
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[bytes] | None = None,
+    /,
     *,
     format: str | None = None,
     index: Hashable | None = None,
@@ -95,6 +101,8 @@ def read_sas(
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
+
 ) -> DataFrame | ReaderBase:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
@@ -137,6 +145,15 @@ def read_sas(
     --------
     >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP
     """
+
+    # validate input
+    if filepath_or_buffer is None and path is None:
+        raise ValueError("you need to insert a path")
+    if filepath_or_buffer is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        filepath_or_buffer = path
+
     if format is None:
         buffer_error_msg = (
             "If this is a buffer object rather "

@@ -2117,7 +2117,7 @@ The repeated labels are:
 
 @Appender(_read_stata_doc)
 def read_stata(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    path: FilePath | ReadBuffer[bytes] | None = None,
     *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
@@ -2130,7 +2130,17 @@ def read_stata(
     iterator: bool = False,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions | None = None,
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | None = None,
 ) -> DataFrame | StataReader:
+
+    # validate input
+    if filepath_or_buffer is None and path is None:
+        raise ValueError("you need to insert a path")
+    if filepath_or_buffer is not None and path is not None:
+        raise ValueError("pass the path as the first argument and don't pass it twice")
+    if path is not None:
+        filepath_or_buffer = path
+
     reader = StataReader(
         filepath_or_buffer,
         convert_dates=convert_dates,
