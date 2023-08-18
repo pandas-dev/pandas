@@ -38,6 +38,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     Scalar,
+    Self,
     Shape,
     npt,
 )
@@ -330,7 +331,7 @@ class MultiIndex(Index):
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
-    ) -> MultiIndex:
+    ) -> Self:
         # compat with Index
         if name is not None:
             names = name
