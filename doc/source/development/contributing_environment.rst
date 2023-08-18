@@ -214,7 +214,7 @@ due to limitations in setuptools.
 
 The newer build system, invokes the meson backend through pip (via a `PEP 517 <https://peps.python.org/pep-0517/>`_ build).
 It automatically uses all available cores on your CPU, and also avoids the need for manual rebuilds by
-rebuilding automatically whenever pandas is imported(with an editable install).
+rebuilding automatically whenever pandas is imported (with an editable install).
 
 For these reasons, you should compile pandas with meson.
 Because the meson build system is newer, you may find bugs/minor issues as it matures. You can report these bugs
@@ -227,6 +227,14 @@ To compile pandas with meson, run::
    # showing the "rebuild" taking place on import (see section below for explanation)
    # If you do not want to see this, omit everything after --no-build-isolation
    python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
+
+.. note::
+   The version number is pulled from the latest repository tag. Be sure to fetch the latest tags from upstream
+   before building::
+
+      # set the upstream repository, if not done already, and fetch the latest tags
+      git remote add upstream https://github.com/pandas-dev/pandas.git
+      git fetch upstream --tags
 
 **Build options**
 
