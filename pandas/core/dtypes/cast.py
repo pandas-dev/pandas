@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.missing import (
     NA,
@@ -796,6 +798,11 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
+        if using_pyarrow_string_dtype():
+            import pyarrow as pa
+
+            pa_dtype = pa.string()
+            dtype = ArrowDtype(pa_dtype)
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -843,7 +850,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = np.dtype(np.float64)
 
     elif is_complex(val):
-        dtype = np.dtype(np.complex_)
+        dtype = np.dtype(np.complex128)
 
     if lib.is_period(val):
         dtype = PeriodDtype(freq=val.freq)
@@ -1266,17 +1273,17 @@ def _ensure_nanosecond_dtype(dtype: DtypeObj) -> None:
 
 # TODO: other value-dependent functions to standardize here include
 #  Index._find_common_type_compat
-def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
+def find_result_type(left_dtype: DtypeObj, right: Any) -> DtypeObj:
     """
-    Find the type/dtype for a the result of an operation between these objects.
+    Find the type/dtype for the result of an operation between objects.
 
-    This is similar to find_common_type, but looks at the objects instead
-    of just their dtypes. This can be useful in particular when one of the
-    objects does not have a `dtype`.
+    This is similar to find_common_type, but looks at the right object instead
+    of just its dtype. This can be useful in particular when the right
+    object does not have a `dtype`.
 
     Parameters
     ----------
-    left : np.ndarray or ExtensionArray
+    left_dtype : np.dtype or ExtensionDtype
     right : Any
 
     Returns
@@ -1291,26 +1298,24 @@ def find_result_type(left: ArrayLike, right: Any) -> DtypeObj:
     new_dtype: DtypeObj
 
     if (
-        isinstance(left, np.ndarray)
-        and left.dtype.kind in "iuc"
+        isinstance(left_dtype, np.dtype)
+        and left_dtype.kind in "iuc"
         and (lib.is_integer(right) or lib.is_float(right))
     ):
         # e.g. with int8 dtype and right=512, we want to end up with
         # np.int16, whereas infer_dtype_from(512) gives np.int64,
         #  which will make us upcast too far.
-        if lib.is_float(right) and right.is_integer() and left.dtype.kind != "f":
+        if lib.is_float(right) and right.is_integer() and left_dtype.kind != "f":
             right = int(right)
+        new_dtype = np.result_type(left_dtype, right)
 
-        new_dtype = np.result_type(left, right)
-
-    elif is_valid_na_for_dtype(right, left.dtype):
+    elif is_valid_na_for_dtype(right, left_dtype):
         # e.g. IntervalDtype[int] and None/np.nan
-        new_dtype = ensure_dtype_can_hold_na(left.dtype)
+        new_dtype = ensure_dtype_can_hold_na(left_dtype)
 
     else:
         dtype, _ = infer_dtype_from(right)
-
-        new_dtype = find_common_type([left.dtype, dtype])
+        new_dtype = find_common_type([left_dtype, dtype])
 
     return new_dtype
 

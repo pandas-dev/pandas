@@ -17,6 +17,40 @@ from pandas import (
 from .pandas_vb_common import tm
 
 
+class AsType:
+    params = [
+        [
+            # from_dtype == to_dtype
+            ("Float64", "Float64"),
+            ("float64[pyarrow]", "float64[pyarrow]"),
+            # from non-EA to EA
+            ("float64", "Float64"),
+            ("float64", "float64[pyarrow]"),
+            # from EA to non-EA
+            ("Float64", "float64"),
+            ("float64[pyarrow]", "float64"),
+            # from EA to EA
+            ("Int64", "Float64"),
+            ("int64[pyarrow]", "float64[pyarrow]"),
+        ],
+        [False, True],
+    ]
+    param_names = ["from_to_dtypes", "copy"]
+
+    def setup(self, from_to_dtypes, copy):
+        from_dtype = from_to_dtypes[0]
+        if from_dtype in ("float64", "Float64", "float64[pyarrow]"):
+            data = np.random.randn(100, 100)
+        elif from_dtype in ("int64", "Int64", "int64[pyarrow]"):
+            data = np.random.randint(0, 1000, (100, 100))
+        else:
+            raise NotImplementedError
+        self.df = DataFrame(data, dtype=from_dtype)
+
+    def time_astype(self, from_to_dtypes, copy):
+        self.df.astype(from_to_dtypes[1], copy=copy)
+
+
 class Clip:
     params = [
         ["float64", "Float64", "float64[pyarrow]"],
@@ -388,7 +422,6 @@ class Isnull:
 class Fillna:
     params = (
         [True, False],
-        ["pad", "bfill"],
         [
             "float64",
             "float32",
@@ -400,9 +433,9 @@ class Fillna:
             "timedelta64[ns]",
         ],
     )
-    param_names = ["inplace", "method", "dtype"]
+    param_names = ["inplace", "dtype"]
 
-    def setup(self, inplace, method, dtype):
+    def setup(self, inplace, dtype):
         N, M = 10000, 100
         if dtype in ("datetime64[ns]", "datetime64[ns, tz]", "timedelta64[ns]"):
             data = {
@@ -420,9 +453,16 @@ class Fillna:
             if dtype == "Int64":
                 values = values.round()
             self.df = DataFrame(values, dtype=dtype)
+        self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
-    def time_frame_fillna(self, inplace, method, dtype):
-        self.df.fillna(inplace=inplace, method=method)
+    def time_fillna(self, inplace, dtype):
+        self.df.fillna(value=self.fill_values, inplace=inplace)
+
+    def time_ffill(self, inplace, dtype):
+        self.df.ffill(inplace=inplace)
+
+    def time_bfill(self, inplace, dtype):
+        self.df.bfill(inplace=inplace)
 
 
 class Dropna:
@@ -472,19 +512,10 @@ class Count:
         self.df_mixed = self.df.copy()
         self.df_mixed["foo"] = "bar"
 
-        self.df.index = MultiIndex.from_arrays([self.df.index, self.df.index])
-        self.df.columns = MultiIndex.from_arrays([self.df.columns, self.df.columns])
-        self.df_mixed.index = MultiIndex.from_arrays(
-            [self.df_mixed.index, self.df_mixed.index]
-        )
-        self.df_mixed.columns = MultiIndex.from_arrays(
-            [self.df_mixed.columns, self.df_mixed.columns]
-        )
-
-    def time_count_level_multi(self, axis):
+    def time_count(self, axis):
         self.df.count(axis=axis)
 
-    def time_count_level_mixed_dtypes_multi(self, axis):
+    def time_count_mixed_dtypes(self, axis):
         self.df_mixed.count(axis=axis)
 
 
@@ -505,8 +536,8 @@ class Apply:
     def time_apply_lambda_mean(self):
         self.df.apply(lambda x: x.mean())
 
-    def time_apply_np_mean(self):
-        self.df.apply(np.mean)
+    def time_apply_str_mean(self):
+        self.df.apply("mean")
 
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)
@@ -559,10 +590,7 @@ class Equals:
 
 
 class Interpolate:
-    params = [None, "infer"]
-    param_names = ["downcast"]
-
-    def setup(self, downcast):
+    def setup(self):
         N = 10000
         # this is the worst case, where every column has NaNs.
         arr = np.random.randn(N, 100)
@@ -583,11 +611,11 @@ class Interpolate:
         self.df2.loc[1::5, "A"] = np.nan
         self.df2.loc[1::5, "C"] = np.nan
 
-    def time_interpolate(self, downcast):
-        self.df.interpolate(downcast=downcast)
+    def time_interpolate(self):
+        self.df.interpolate()
 
-    def time_interpolate_some_good(self, downcast):
-        self.df2.interpolate(downcast=downcast)
+    def time_interpolate_some_good(self):
+        self.df2.interpolate()
 
 
 class Shift:

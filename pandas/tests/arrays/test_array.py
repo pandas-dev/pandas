@@ -19,7 +19,7 @@ from pandas.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays import (
-    PandasArray,
+    NumpyExtensionArray,
     period_array,
 )
 from pandas.tests.extension.decimal import (
@@ -47,12 +47,18 @@ def test_dt64_array(dtype_unit):
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
+        ([], None, FloatingArray._from_sequence([])),
         ([1, 2], None, IntegerArray._from_sequence([1, 2])),
-        ([1, 2], object, PandasArray(np.array([1, 2], dtype=object))),
+        ([1, 2], object, NumpyExtensionArray(np.array([1, 2], dtype=object))),
         (
             [1, 2],
             np.dtype("float32"),
-            PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
+            NumpyExtensionArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
+        ),
+        (
+            np.array([], dtype=object),
+            None,
+            NumpyExtensionArray(np.array([], dtype=object)),
         ),
         (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
         (
@@ -61,19 +67,20 @@ def test_dt64_array(dtype_unit):
             FloatingArray._from_sequence([1.0, 2.0]),
         ),
         # String alias passes through to NumPy
-        ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
-        ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
-        # GH#44715 FloatingArray does not support float16, so fall back to PandasArray
+        ([1, 2], "float32", NumpyExtensionArray(np.array([1, 2], dtype="float32"))),
+        ([1, 2], "int64", NumpyExtensionArray(np.array([1, 2], dtype=np.int64))),
+        # GH#44715 FloatingArray does not support float16, so fall
+        #  back to NumpyExtensionArray
         (
             np.array([1, 2], dtype=np.float16),
             None,
-            PandasArray(np.array([1, 2], dtype=np.float16)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.float16)),
         ),
         # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
         (
-            PandasArray(np.array([1, 2], dtype=np.int32)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int32)),
             None,
-            PandasArray(np.array([1, 2], dtype=np.int32)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int32)),
         ),
         # Period alias
         (
@@ -148,7 +155,7 @@ def test_dt64_array(dtype_unit):
             TimedeltaArray._from_sequence(["1H", "2H"]),
         ),
         (
-            # preserve non-nano, i.e. don't cast to PandasArray
+            # preserve non-nano, i.e. don't cast to NumpyExtensionArray
             TimedeltaArray._simple_new(
                 np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
@@ -158,7 +165,7 @@ def test_dt64_array(dtype_unit):
             ),
         ),
         (
-            # preserve non-nano, i.e. don't cast to PandasArray
+            # preserve non-nano, i.e. don't cast to NumpyExtensionArray
             TimedeltaArray._simple_new(
                 np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
@@ -184,7 +191,11 @@ def test_dt64_array(dtype_unit):
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
         ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
-        (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
+        (
+            pd.Series([1, 2]),
+            None,
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int64)),
+        ),
         # String
         (
             ["a", None],
@@ -200,7 +211,7 @@ def test_dt64_array(dtype_unit):
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
         # Index
-        (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
+        (pd.Index([1, 2]), None, NumpyExtensionArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
         (
             pd.Series(pd.Categorical(["a", "b"], categories=["a", "b", "c"])),
@@ -351,13 +362,13 @@ def test_array_inference(data, expected):
 )
 def test_array_inference_fails(data):
     result = pd.array(data)
-    expected = PandasArray(np.array(data, dtype=object))
+    expected = NumpyExtensionArray(np.array(data, dtype=object))
     tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
-    with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
+    with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
         pd.array(data, dtype="int64")
 
 

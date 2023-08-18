@@ -17,7 +17,7 @@ def simple_multiindex_dataframe():
     random data by default.
     """
 
-    data = np.random.randn(3, 3)
+    data = np.random.default_rng(2).standard_normal((3, 3))
     return DataFrame(
         data, columns=[[2, 2, 4], [6, 8, 10]], index=[[4, 4, 8], [8, 10, 12]]
     )
@@ -67,7 +67,7 @@ def test_iloc_getitem_multiple_items():
     # GH 5528
     tup = zip(*[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
     index = MultiIndex.from_tuples(tup)
-    df = DataFrame(np.random.randn(4, 4), index=index)
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=index)
     result = df.iloc[[2, 3]]
     expected = df.xs("b", drop_level=False)
     tm.assert_frame_equal(result, expected)
@@ -75,7 +75,7 @@ def test_iloc_getitem_multiple_items():
 
 def test_iloc_getitem_labels():
     # this is basically regular indexing
-    arr = np.random.randn(4, 3)
+    arr = np.random.default_rng(2).standard_normal((4, 3))
     df = DataFrame(
         arr,
         columns=[["i", "i", "j"], ["A", "A", "B"]],

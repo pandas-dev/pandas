@@ -189,8 +189,7 @@ class TestCounting:
             tm.assert_series_equal(g.cumcount(), Series(cumcounted))
 
     def test_ngroup_respects_groupby_order(self, sort):
-        np.random.seed(0)
-        df = DataFrame({"a": np.random.choice(list("abcdef"), 100)})
+        df = DataFrame({"a": np.random.default_rng(2).choice(list("abcdef"), 100)})
         g = df.groupby("a", sort=sort)
         df["group_id"] = -1
         df["group_index"] = -1
@@ -233,7 +232,7 @@ class TestCounting:
 
     def test_count_groupby_column_with_nan_in_groupby_column(self):
         # https://github.com/pandas-dev/pandas/issues/32841
-        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.NaN, 3, 0]})
+        df = DataFrame({"A": [1, 1, 1, 1, 1], "B": [5, 4, np.nan, 3, 0]})
         res = df.groupby(["B"]).count()
         expected = DataFrame(
             index=Index([0.0, 3.0, 4.0, 5.0], name="B"), data={"A": [1, 1, 1, 1]}
@@ -270,20 +269,21 @@ def test_count():
 
     df = DataFrame(
         {
-            "1st": np.random.choice(list(ascii_lowercase), n),
-            "2nd": np.random.randint(0, 5, n),
-            "3rd": np.random.randn(n).round(3),
-            "4th": np.random.randint(-10, 10, n),
-            "5th": np.random.choice(dr, n),
-            "6th": np.random.randn(n).round(3),
-            "7th": np.random.randn(n).round(3),
-            "8th": np.random.choice(dr, n) - np.random.choice(dr, 1),
-            "9th": np.random.choice(list(ascii_lowercase), n),
+            "1st": np.random.default_rng(2).choice(list(ascii_lowercase), n),
+            "2nd": np.random.default_rng(2).integers(0, 5, n),
+            "3rd": np.random.default_rng(2).standard_normal(n).round(3),
+            "4th": np.random.default_rng(2).integers(-10, 10, n),
+            "5th": np.random.default_rng(2).choice(dr, n),
+            "6th": np.random.default_rng(2).standard_normal(n).round(3),
+            "7th": np.random.default_rng(2).standard_normal(n).round(3),
+            "8th": np.random.default_rng(2).choice(dr, n)
+            - np.random.default_rng(2).choice(dr, 1),
+            "9th": np.random.default_rng(2).choice(list(ascii_lowercase), n),
         }
     )
 
     for col in df.columns.drop(["1st", "2nd", "4th"]):
-        df.loc[np.random.choice(n, n // 10), col] = np.nan
+        df.loc[np.random.default_rng(2).choice(n, n // 10), col] = np.nan
 
     df["9th"] = df["9th"].astype("category")
 
@@ -329,7 +329,10 @@ def test_count_cross_type():
     # GH8169
     # Set float64 dtype to avoid upcast when setting nan below
     vals = np.hstack(
-        (np.random.randint(0, 5, (100, 2)), np.random.randint(0, 2, (100, 2)))
+        (
+            np.random.default_rng(2).integers(0, 5, (100, 2)),
+            np.random.default_rng(2).integers(0, 2, (100, 2)),
+        )
     ).astype("float64")
 
     df = DataFrame(vals, columns=["a", "b", "c", "d"])

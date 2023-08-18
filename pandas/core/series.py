@@ -39,6 +39,7 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -767,15 +768,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Overview:
 
-        dtype       | values        | _values       | array         |
-        ----------- | ------------- | ------------- | ------------- |
-        Numeric     | ndarray       | ndarray       | PandasArray   |
-        Category    | Categorical   | Categorical   | Categorical   |
-        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray |
-        td64[ns]    | ndarray[m8ns] | TimedeltaArray| ndarray[m8ns] |
-        Period      | ndarray[obj]  | PeriodArray   | PeriodArray   |
-        Nullable    | EA            | EA            | EA            |
+        dtype       | values        | _values       | array                 |
+        ----------- | ------------- | ------------- | --------------------- |
+        Numeric     | ndarray       | ndarray       | NumpyExtensionArray   |
+        Category    | Categorical   | Categorical   | Categorical           |
+        dt64[ns]    | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        dt64[ns tz] | ndarray[M8ns] | DatetimeArray | DatetimeArray         |
+        td64[ns]    | ndarray[m8ns] | TimedeltaArray| TimedeltaArray        |
+        Period      | ndarray[obj]  | PeriodArray   | PeriodArray           |
+        Nullable    | EA            | EA            | EA                    |
 
         """
         return self._mgr.internal_values()
@@ -889,14 +890,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4      2
         dtype: int8
         """
-        # self.array instead of self._values so we piggyback on PandasArray
+        # self.array instead of self._values so we piggyback on NumpyExtensionArray
         #  implementation
         res_values = self.array.view(dtype)
         res_ser = self._constructor(res_values, index=self.index, copy=False)
-        if isinstance(res_ser._mgr, SingleBlockManager) and using_copy_on_write():
+        if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
-            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+            blk.refs.add_reference(blk)
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -954,6 +955,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             arr = arr.view()
             arr.flags.writeable = False
         return arr
+
+    # ----------------------------------------------------------------------
+
+    def __column_consortium_standard__(self, *, api_version: str | None = None) -> Any:
+        """
+        Provide entry point to the Consortium DataFrame Standard API.
+
+        This is developed and maintained outside of pandas.
+        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
+        """
+        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
+        return (
+            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_column(
+                self, api_version=api_version
+            )
+        )
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1022,7 +1039,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         elif key_is_scalar:
             return self._get_value(key)
 
-        if is_hashable(key):
+        # Convert generator to list before going through hashable part
+        # (We will iterate through the generator there to check for slices)
+        if is_iterator(key):
+            key = list(key)
+
+        if is_hashable(key) and not isinstance(key, slice):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets
@@ -1041,9 +1063,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(key, slice):
             # Do slice check before somewhat-costly is_bool_indexer
             return self._getitem_slice(key)
-
-        if is_iterator(key):
-            key = list(key)
 
         if com.is_bool_indexer(key):
             key = check_bool_indexer(self.index, key)
@@ -1852,7 +1871,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {examples}
         """
         return self.to_frame().to_markdown(
-            buf, mode, index, storage_options=storage_options, **kwargs
+            buf, mode=mode, index=index, storage_options=storage_options, **kwargs
         )
 
     # ----------------------------------------------------------------------
@@ -2131,7 +2150,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        int or Series (if level specified)
+        int
             Number of non-null values in the Series.
 
         See Also
@@ -2200,7 +2219,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # Ensure index is type stable (should always use int index)
         return self._constructor(
             res_values, index=range(len(res_values)), name=self.name, copy=False
-        )
+        ).__finalize__(self, method="mode")
 
     def unique(self) -> ArrayLike:  # pylint: disable=useless-parent-delegation
         """
@@ -2530,9 +2549,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmin(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmin since we will issue a different
+            #  warning for idxmin
+            warnings.simplefilter("ignore")
+            i = self.argmin(axis, skipna, *args, **kwargs)
+
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmin with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return self.index._na_value
         return self.index[i]
 
     def idxmax(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Hashable:
@@ -2600,9 +2633,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         nan
         """
         axis = self._get_axis_number(axis)
-        i = self.argmax(axis, skipna, *args, **kwargs)
+        with warnings.catch_warnings():
+            # TODO(3.0): this catching/filtering can be removed
+            # ignore warning produced by argmax since we will issue a different
+            #  warning for argmax
+            warnings.simplefilter("ignore")
+            i = self.argmax(axis, skipna, *args, **kwargs)
+
         if i == -1:
-            return np.nan
+            # GH#43587 give correct NA value for Index.
+            warnings.warn(
+                f"The behavior of {type(self).__name__}.idxmax with all-NA "
+                "values, or any-NA and skipna=False, is deprecated. In a future "
+                "version this will raise ValueError",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return self.index._na_value
         return self.index[i]
 
     def round(self, decimals: int = 0, *args, **kwargs) -> Series:
@@ -3000,7 +3047,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.autocorr()
         nan
         """
-        return self.corr(self.shift(lag))
+        return self.corr(cast(Series, self.shift(lag)))
 
     def dot(self, other: AnyArrayLike) -> Series | np.ndarray:
         """
@@ -3930,10 +3977,21 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    0
         dtype: int64
         """
+        if axis != -1:
+            # GH#54257 We allow -1 here so that np.argsort(series) works
+            self._get_axis_number(axis)
+
         values = self._values
         mask = isna(values)
 
         if mask.any():
+            warnings.warn(
+                "The behavior of Series.argsort in the presence of NA values is "
+                "deprecated. In a future version, NA values will be ordered "
+                "last instead of set to -1.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             result = np.full(len(self), -1, dtype=np.intp)
             notmask = ~mask
             result[notmask] = np.argsort(values[notmask], kind=kind)
@@ -5528,7 +5586,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Empty strings are not considered NA values. ``None`` is considered an
         NA value.
 
-        >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser = pd.Series([np.nan, 2, pd.NaT, '', None, 'I stay'])
         >>> ser
         0       NaN
         1         2
@@ -5947,7 +6005,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     @Appender(ops.make_flex_doc("mul", "series"))
-    def mul(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def mul(
+        self,
+        other,
+        level: Level | None = None,
+        fill_value: float | None = None,
+        axis: Axis = 0,
+    ):
         return self._flex_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )

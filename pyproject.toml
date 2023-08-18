@@ -3,10 +3,14 @@
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
     "meson-python==0.13.1",
-    "meson[ninja]==1.0.1",
+    "meson==1.0.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    "oldest-supported-numpy>=2022.8.16",
+    # Note: numpy 1.25 has a backwards compatible C API by default
+    # we don't want to force users to compile with 1.25 though
+    # (Ideally, in the future, though, oldest-supported-numpy can be dropped when our min numpy is 1.25.x)
+    "oldest-supported-numpy>=2022.8.16; python_version<'3.12'",
+    "numpy>=1.22.4; python_version>='3.12'",
     "versioneer[toml]"
 ]
 
@@ -25,7 +29,7 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.21.6; python_version<'3.11'",
+  "numpy>=1.22.4; python_version<'3.11'",
   "numpy>=1.23.2; python_version>='3.11'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
@@ -78,11 +82,13 @@ plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.1.2', 'tabulate>=0.8.10']
 clipboard = ['PyQt5>=5.15.6', 'qtpy>=2.2.0']
 compression = ['brotlipy>=0.7.0', 'python-snappy>=0.6.1', 'zstandard>=0.17.0']
+consortium-standard = ['dataframe-api-compat>=0.1.7']
 all = ['beautifulsoup4>=4.11.1',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',
        'bottleneck>=1.3.4',
        'brotlipy>=0.7.0',
+       'dataframe-api-compat>=0.1.7',
        'fastparquet>=0.8.1',
        'fsspec>=2022.05.0',
        'gcsfs>=2022.05.0',
@@ -149,8 +155,8 @@ environment = {LDFLAGS="-Wl,--strip-all"}
 test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
-  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2"]); \
-  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db"]);' \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
 
 [tool.cibuildwheel.macos]
@@ -181,7 +187,7 @@ environment = {CFLAGS="-g0"}
 
 [tool.black]
 target-version = ['py39', 'py310']
-required-version = '23.3.0'
+required-version = '23.7.0'
 exclude = '''
 (
     asv_bench/env
@@ -205,6 +211,7 @@ line-length = 88
 target-version = "py310"
 fix = true
 unfixable = []
+typing-modules = ["pandas._typing"]
 
 select = [
   # pyflakes
@@ -240,12 +247,17 @@ select = [
   # Ruff-specific rules
   "RUF",
   # flake8-bandit: exec-builtin
-  "S102"
+  "S102",
+  # numpy-legacy-random
+  "NPY002",
+  # Perflint
+  "PERF",
 ]
 
 ignore = [
+  ### Intentionally disabled
   # space before : (needed for how black formats slicing)
-  # "E203",  # not yet implemented
+  "E203",
   # module level import not at top of file
   "E402",
   # do not assign a lambda expression, use a def
@@ -292,18 +304,21 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # Use `typing.NamedTuple` instead of `collections.namedtuple`
+  "PYI024",
   # No builtin `eval()` allowed
   "PGH001",
   # compare-to-empty-string
   "PLC1901",
-  # Use typing_extensions.TypeAlias for type aliases
-  # "PYI026",  # not yet implemented
-  # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
-  # "PYI027",  # not yet implemented
   # while int | float can be shortened to float, the former is more explicit
-  # "PYI041",  # not yet implemented
+  "PYI041",
+  # incorrect-dict-iterator, flags valid Series.items usage
+  "PERF102",
+  # try-except-in-loop, becomes useless in Python 3.11
+  "PERF203",
 
-  # Additional checks that don't pass yet
+
+  ### TODO: Enable gradually
   # Useless statement
   "B018",
   # Within an except clause, raise exceptions with ...
@@ -314,12 +329,6 @@ ignore = [
   "PLR0124",
   # Consider `elif` instead of `else` then `if` to remove indentation level
   "PLR5501",
-  # ambiguous-unicode-character-string
-  "RUF001",
-  # ambiguous-unicode-character-docstring
-  "RUF002",
-  # ambiguous-unicode-character-comment
-  "RUF003",
   # collection-literal-concatenation
   "RUF005",
   # pairwise-over-zipped (>=PY310 only)
@@ -337,13 +346,14 @@ exclude = [
   ".eggs/*.py",
   # vendored files
   "pandas/util/version/*",
+  "pandas/io/clipboard/__init__.py",
   # exclude asv benchmark environments from linting
   "env",
 ]
 
 [tool.ruff.per-file-ignores]
 # relative imports allowed for asv_bench
-"asv_bench/*" = ["TID"]
+"asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
 "pandas/tests/*" = ["B028"]
@@ -458,7 +468,7 @@ disable = [
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
 minversion = "7.3.2"
-addopts = "--strict-data-files --strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
+addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
 testpaths = "pandas"
@@ -516,7 +526,7 @@ follow_imports_for_stubs = false
 no_site_packages = false
 no_silence_site_packages = false
 # Platform configuration
-python_version = "3.10"
+python_version = "3.11"
 platform = "linux-64"
 # Disallow dynamic typing
 disallow_any_unimported = false # TODO
@@ -526,9 +536,9 @@ disallow_any_explicit = false # TODO
 disallow_any_generics = false # TODO
 disallow_subclassing_any = false # TODO
 # Untyped definitions and calls
-disallow_untyped_calls = false # TODO
-disallow_untyped_defs = false # TODO
-disallow_incomplete_defs = false # TODO
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = true
 # None and Optional handling
@@ -553,6 +563,129 @@ strict_equality = true
 show_error_context = false
 show_column_numbers = false
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+  "pandas._config.config", # TODO
+  "pandas._libs.*",
+  "pandas._testing.*", # TODO
+  "pandas.arrays", # TODO
+  "pandas.compat.numpy.function", # TODO
+  "pandas.compat._optional", # TODO
+  "pandas.compat.compressors", # TODO
+  "pandas.compat.pickle_compat", # TODO
+  "pandas.core._numba.executor", # TODO
+  "pandas.core.array_algos.datetimelike_accumulations", # TODO
+  "pandas.core.array_algos.masked_accumulations", # TODO
+  "pandas.core.array_algos.masked_reductions", # TODO
+  "pandas.core.array_algos.putmask", # TODO
+  "pandas.core.array_algos.quantile", # TODO
+  "pandas.core.array_algos.replace", # TODO
+  "pandas.core.array_algos.take", # TODO
+  "pandas.core.arrays.*", # TODO
+  "pandas.core.computation.*", # TODO
+  "pandas.core.dtypes.astype", # TODO
+  "pandas.core.dtypes.cast", # TODO
+  "pandas.core.dtypes.common", # TODO
+  "pandas.core.dtypes.concat", # TODO
+  "pandas.core.dtypes.dtypes", # TODO
+  "pandas.core.dtypes.generic", # TODO
+  "pandas.core.dtypes.inference", # TODO
+  "pandas.core.dtypes.missing", # TODO
+  "pandas.core.groupby.categorical", # TODO
+  "pandas.core.groupby.generic", # TODO
+  "pandas.core.groupby.grouper", # TODO
+  "pandas.core.groupby.groupby", # TODO
+  "pandas.core.groupby.ops", # TODO
+  "pandas.core.indexers.*", # TODO
+  "pandas.core.indexes.*", # TODO
+  "pandas.core.interchange.column", # TODO
+  "pandas.core.interchange.dataframe_protocol", # TODO
+  "pandas.core.interchange.from_dataframe", # TODO
+  "pandas.core.internals.*", # TODO
+  "pandas.core.methods.*", # TODO
+  "pandas.core.ops.array_ops", # TODO
+  "pandas.core.ops.common", # TODO
+  "pandas.core.ops.invalid", # TODO
+  "pandas.core.ops.mask_ops", # TODO
+  "pandas.core.ops.missing", # TODO
+  "pandas.core.reshape.*", # TODO
+  "pandas.core.strings.*", # TODO
+  "pandas.core.tools.*", # TODO
+  "pandas.core.window.common", # TODO
+  "pandas.core.window.ewm", # TODO
+  "pandas.core.window.expanding", # TODO
+  "pandas.core.window.numba_", # TODO
+  "pandas.core.window.online", # TODO
+  "pandas.core.window.rolling", # TODO
+  "pandas.core.accessor", # TODO
+  "pandas.core.algorithms", # TODO
+  "pandas.core.apply", # TODO
+  "pandas.core.arraylike", # TODO
+  "pandas.core.base", # TODO
+  "pandas.core.common", # TODO
+  "pandas.core.config_init", # TODO
+  "pandas.core.construction", # TODO
+  "pandas.core.flags", # TODO
+  "pandas.core.frame", # TODO
+  "pandas.core.generic", # TODO
+  "pandas.core.indexing", # TODO
+  "pandas.core.missing", # TODO
+  "pandas.core.nanops", # TODO
+  "pandas.core.resample", # TODO
+  "pandas.core.roperator", # TODO
+  "pandas.core.sample", # TODO
+  "pandas.core.series", # TODO
+  "pandas.core.sorting", # TODO
+  "pandas.errors", # TODO
+  "pandas.io.clipboard", # TODO
+  "pandas.io.excel._base", # TODO
+  "pandas.io.excel._odfreader", # TODO
+  "pandas.io.excel._odswriter", # TODO
+  "pandas.io.excel._openpyxl", # TODO
+  "pandas.io.excel._pyxlsb", # TODO
+  "pandas.io.excel._xlrd", # TODO
+  "pandas.io.excel._xlsxwriter", # TODO
+  "pandas.io.formats.console", # TODO
+  "pandas.io.formats.css", # TODO
+  "pandas.io.formats.excel", # TODO
+  "pandas.io.formats.format", # TODO
+  "pandas.io.formats.info", # TODO
+  "pandas.io.formats.printing", # TODO
+  "pandas.io.formats.style", # TODO
+  "pandas.io.formats.style_render", # TODO
+  "pandas.io.formats.xml", # TODO
+  "pandas.io.json.*", # TODO
+  "pandas.io.parsers.*", # TODO
+  "pandas.io.sas.sas_xport", # TODO
+  "pandas.io.sas.sas7bdat", # TODO
+  "pandas.io.clipboards", # TODO
+  "pandas.io.common", # TODO
+  "pandas.io.gbq", # TODO
+  "pandas.io.html", # TODO
+  "pandas.io.gbq", # TODO
+  "pandas.io.parquet", # TODO
+  "pandas.io.pytables", # TODO
+  "pandas.io.sql", # TODO
+  "pandas.io.stata", # TODO
+  "pandas.io.xml", # TODO
+  "pandas.plotting.*", # TODO
+  "pandas.tests.*",
+  "pandas.tseries.frequencies", # TODO
+  "pandas.tseries.holiday", # TODO
+  "pandas.util._decorators", # TODO
+  "pandas.util._doctools", # TODO
+  "pandas.util._print_versions", # TODO
+  "pandas.util._test_decorators", # TODO
+  "pandas.util._validators", # TODO
+  "pandas.util", # TODO
+  "pandas._version",
+  "pandas.conftest",
+  "pandas"
+]
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
 module = [
@@ -594,12 +727,14 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.10"
+pythonVersion = "3.11"
 typeCheckingMode = "basic"
+useLibraryCodeForTypes = false
 include = ["pandas", "typings"]
 exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
 # enable subset of "strict"
 reportDuplicateImport = true
+reportInconsistentConstructor = true
 reportInvalidStubStatement = true
 reportOverlappingOverload = true
 reportPropertyTypeMismatch = true
