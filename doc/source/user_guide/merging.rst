@@ -71,6 +71,7 @@ takes a list or dict of homogeneously-typed objects and concatenates them.
 
    frames = [df1, df2, df3]
    result = pd.concat(frames)
+   result
 
 .. ipython:: python
    :suppress:
@@ -525,7 +526,7 @@ Performing an outer join with duplicate join keys in :class:`DataFrame`
 .. warning::
 
   Merging on duplicate keys sigificantly increase the dimensions of the result
-  and cause a memory overflow.
+  and can cause a memory overflow.
 
 .. _merging.validation:
 
@@ -1048,8 +1049,8 @@ exclude exact matches on time. Note that though we exclude the exact matches
 
 .. _merging.compare:
 
-Comparing objects
------------------
+:meth:`~Series.compare`
+-----------------------
 
 The :meth:`Series.compare` and :meth:`DataFrame.compare` methods allow you to
 compare two :class:`DataFrame` or :class:`Series`, respectively, and summarize their differences.
