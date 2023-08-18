@@ -2136,8 +2136,15 @@ static inline void _ArrowBitsUnpackInt8(const uint8_t word, int8_t* out) {
 }
 
 static inline void _ArrowBitmapPackInt8(const int8_t* values, uint8_t* out) {
-  *out = (values[0] | values[1] << 1 | values[2] << 2 | values[3] << 3 | values[4] << 4 |
-          values[5] << 5 | values[6] << 6 | values[7] << 7);
+  *out = (values[0]
+          | ((values[1] + 0x1) & 0x2)
+          | ((values[2] + 0x3) & 0x4)
+          | ((values[3] + 0x7) & 0x8)
+          | ((values[4] + 0xf) & 0x10)
+          | ((values[5] + 0x1f) & 0x20)
+          | ((values[6] + 0x3f) & 0x40)
+          | ((values[7] + 0x7f) & 0x80)
+          );
 }
 
 static inline void _ArrowBitmapPackInt32(const int32_t* values, uint8_t* out) {
