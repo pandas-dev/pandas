@@ -1935,6 +1935,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_dict(
         self,
+        *,
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
