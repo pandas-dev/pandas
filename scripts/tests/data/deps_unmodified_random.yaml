@@ -26,7 +26,6 @@ dependencies:
   - beautifulsoup4
   - blosc
   - bottleneck>=1.3.2
-  - brotlipy
   - fastparquet>=0.6.3
   - fsspec>=2021.07.0
   - html5lib>=1.1

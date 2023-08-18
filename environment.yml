@@ -27,7 +27,6 @@ dependencies:
   # optional dependencies
   - beautifulsoup4>=4.11.1
   - blosc
-  - brotlipy>=0.7.0
   - bottleneck>=1.3.4
   - fastparquet>=0.8.1
   - fsspec>=2022.05.0

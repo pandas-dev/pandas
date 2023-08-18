@@ -18,7 +18,6 @@ VERSIONS = {
     "bs4": "4.11.1",
     "blosc": "1.21.0",
     "bottleneck": "1.3.4",
-    "brotli": "0.7.0",
     "dataframe-api-compat": "0.1.7",
     "fastparquet": "0.8.1",
     "fsspec": "2022.05.0",
@@ -59,7 +58,6 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
-    "brotli": "brotlipy",
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
@@ -73,9 +71,6 @@ def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
 
     if version is None:
-        if module.__name__ == "brotli":
-            # brotli doesn't contain attributes to confirm it's version
-            return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
         # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version
