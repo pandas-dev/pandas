@@ -393,7 +393,7 @@ cdef class BitMaskArray:
     def any(self) -> bool:
         return BitMaskArray.buf_any(self.bitmap.buffer.data, self.bitmap.size_bits)
 
-    def sum(self) -> bool:
+    def sum(self) -> int:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 
     @cython.boundscheck(False)  # TODO: Removing this causes an IndexError? Zero size?
