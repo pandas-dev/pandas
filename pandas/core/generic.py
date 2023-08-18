@@ -3099,7 +3099,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     def to_clipboard(
-        self, excel: bool_t = True, sep: str | None = None, **kwargs
+        self, *, excel: bool_t = True, sep: str | None = None, **kwargs
     ) -> None:
         r"""
         Copy object to the system clipboard.
