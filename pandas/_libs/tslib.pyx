@@ -681,7 +681,7 @@ cdef _array_to_datetime_object(
     return oresult_nd, None
 
 
-def array_to_datetime_with_tz(ndarray values, tzinfo tz):
+def array_to_datetime_with_tz(ndarray values, tzinfo tz, unit="ns"):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
 
@@ -717,7 +717,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
                 else:
                     # datetime64, tznaive pydatetime, int, float
                     ts = ts.tz_localize(tz)
-                ts = ts.as_unit("ns")
+                ts = ts.as_unit(unit)
                 ival = ts._value
 
         # Analogous to: result[i] = ival

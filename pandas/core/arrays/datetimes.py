@@ -336,7 +336,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 # DatetimeTZDtype
                 unit = dtype.unit
 
-        subarr, tz, inferred_freq = _sequence_to_dt64ns(
+        subarr, tz, inferred_freq = _sequence_to_dt64(
             data,
             copy=copy,
             tz=tz,
@@ -2156,7 +2156,7 @@ default 'raise'
 # Constructor Helpers
 
 
-def _sequence_to_dt64ns(
+def _sequence_to_dt64(
     data,
     *,
     copy: bool = False,
@@ -2218,8 +2218,8 @@ def _sequence_to_dt64ns(
         elif tz is not None and ambiguous == "raise":
             # TODO: yearfirst/dayfirst/etc?
             obj_data = np.asarray(data, dtype=object)
-            i8data = tslib.array_to_datetime_with_tz(obj_data, tz)
-            return i8data.view(DT64NS_DTYPE), tz, None
+            i8data = tslib.array_to_datetime_with_tz(obj_data, tz, out_unit)
+            return i8data.view(out_dtype), tz, None
         else:
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times

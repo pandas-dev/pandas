@@ -1148,6 +1148,15 @@ class TestSeriesConstructors:
         result = DatetimeIndex(s, freq="infer")
         tm.assert_index_equal(result, dr)
 
+    def test_constructor_with_datetime_tz_ms(self):
+        # explicit frequency
+        result = Series([Timestamp("2999-01-01")], dtype="datetime64[ms, US/Pacific]")
+        expected = Series(
+            np.array(["2999-01-01"], dtype="datetime64[ms]")
+        ).dt.tz_localize("US/Pacific")
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == "datetime64[ms, US/Pacific]"
+
     def test_constructor_with_datetime_tz4(self):
         # inference
         s = Series(
