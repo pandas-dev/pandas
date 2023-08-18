@@ -7,6 +7,10 @@ import numpy as np
 
 cimport numpy as cnp
 from cpython cimport PyErr_Clear
+from libc.stdlib cimport (
+    free,
+    malloc,
+)
 from numpy cimport (
     int8_t,
     int64_t,
@@ -297,13 +301,86 @@ cdef class BitMaskArray:
         return self.to_numpy()[key]
 
     def __invert__(self):
+        # TODO: could invert the buffer first then go to numpy
         return ~self.to_numpy()
 
-    def __or__(self, other):
+    def __and__(self, other):
+        cdef ndarray[uint8_t] result
+        cdef BitMaskArray other_bma
         if isinstance(other, type(self)):
-            return self.to_numpy() | other.to_numpy()
+            other_bma = other
+            if self.bitmap.size_bits == 0:
+                return np.empty(dtype=bool).reshape(self.array_shape)
+
+            buf = <uint8_t*>malloc(self.bitmap.size_bits)
+            BitMaskArray.buf_and(
+                self.bitmap.buffer.data,
+                other_bma.bitmap.buffer.data,
+                self.bitmap.size_bits // 8 + 1,
+                buf
+            )
+            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            BitMaskArray.buffer_to_array_1d(
+                result,
+                buf,
+                self.bitmap.size_bits
+            )
+            free(buf)
+            return result.reshape(self.array_shape)
+
+        return self.to_numpy() & other
+
+    def __or__(self, other):
+        cdef ndarray[uint8_t] result
+        cdef BitMaskArray other_bma
+        if isinstance(other, type(self)):
+            other_bma = other
+            if self.bitmap.size_bits == 0:
+                return np.empty(dtype=bool).reshape(self.array_shape)
+
+            buf = <uint8_t*>malloc(self.bitmap.size_bits)
+            BitMaskArray.buf_or(
+                self.bitmap.buffer.data,
+                other_bma.bitmap.buffer.data,
+                self.bitmap.size_bits // 8 + 1,
+                buf
+            )
+            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            BitMaskArray.buffer_to_array_1d(
+                result,
+                buf,
+                self.bitmap.size_bits
+            )
+            free(buf)
+            return result.reshape(self.array_shape)
 
         return self.to_numpy() | other
+
+    def __xor__(self, other):
+        cdef ndarray[uint8_t] result
+        cdef BitMaskArray other_bma
+        if isinstance(other, type(self)):
+            other_bma = other
+            if self.bitmap.size_bits == 0:
+                return np.empty(dtype=bool).reshape(self.array_shape)
+
+            buf = <uint8_t*>malloc(self.bitmap.size_bits)
+            BitMaskArray.buf_xor(
+                self.bitmap.buffer.data,
+                other_bma.bitmap.buffer.data,
+                self.bitmap.size_bits // 8 + 1,
+                buf
+            )
+            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            BitMaskArray.buffer_to_array_1d(
+                result,
+                buf,
+                self.bitmap.size_bits
+            )
+            free(buf)
+            return result.reshape(self.array_shape)
+
+        return self.to_numpy() ^ other
 
     def __reduce__(self):
         object_state = (self.to_numpy(), self.parent)
@@ -314,19 +391,69 @@ cdef class BitMaskArray:
         return self.bitmap.buffer.size_bytes
 
     def any(self) -> bool:
-        # TODO: we might want to create a short circuiting implementation in
-        # nanoarrow, but even with a complete sum this is cheaper than
-        # serializing to numpy for an any call
-        return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits) > 0
+        return BitMaskArray.buf_any(self.bitmap.buffer.data, self.bitmap.size_bits)
 
     def sum(self) -> bool:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 
-    @cython.boundscheck(False)
+    @cython.boundscheck(False)  # TODO: Removing this causes an IndexError? Zero size?
     @cython.wraparound(False)
     @staticmethod
     cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
         ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
+
+    @staticmethod
+    cdef bint buf_any(const uint8_t* buf1, Py_ssize_t nbits):
+        cdef Py_ssize_t i, nbytes = nbits // 8 + 1, rem = nbits % 8
+        if nbits == 0:
+            return False
+
+        for i in range(nbytes):
+            if buf1[i] > 0:
+                return True
+
+        for i in range(rem):
+            if ArrowBitGet(buf1, nbits - rem):
+                return True
+
+        return False
+
+    # TODO: clean up signatures - don't mix nbits and nbytes
+    # Note that in cases where the size_bits doesn't end on a word
+    # boundary that these will still operate on the remaining bits,
+    # with undefined values therein
+    @staticmethod
+    cdef void buf_or(
+        const uint8_t* buf1,
+        const uint8_t* buf2,
+        Py_ssize_t nbytes,
+        uint8_t* out
+    ):
+        cdef Py_ssize_t i
+        for i in range(nbytes):
+            out[i] = buf1[i] | buf2[i]
+
+    @staticmethod
+    cdef void buf_xor(
+        const uint8_t* buf1,
+        const uint8_t* buf2,
+        Py_ssize_t nbytes,
+        uint8_t* out
+    ):
+        cdef Py_ssize_t i
+        for i in range(nbytes):
+            out[i] = buf1[i] ^ buf2[i]
+
+    @staticmethod
+    cdef void buf_and(
+        const uint8_t* buf1,
+        const uint8_t* buf2,
+        Py_ssize_t nbytes,
+        uint8_t* out
+    ):
+        cdef Py_ssize_t i
+        for i in range(nbytes):
+            out[i] = buf1[i] & buf2[i]
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
