@@ -798,6 +798,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.SeriesGroupBy.nth` and :meth:`.DataFrameGroupBy.nth` after performing column selection when using ``dropna="any"`` or ``dropna="all"`` would not subset columns (:issue:`53518`)
 - Bug in :meth:`.SeriesGroupBy.nth` and :meth:`.DataFrameGroupBy.nth` raised after performing column selection when using ``dropna="any"`` or ``dropna="all"`` resulted in rows being dropped (:issue:`53518`)
 - Bug in :meth:`.SeriesGroupBy.sum` and :meth:`.DataFrameGroupBy.sum` summing ``np.inf + np.inf`` and ``(-np.inf) + (-np.inf)`` to ``np.nan`` instead of ``np.inf`` and ``-np.inf`` respectively (:issue:`53606`)
+- Bug in :meth:`.SeriesGroupBy.var` and :meth:`.DataFrameGroupBy.var` where the dtype would be ``np.float64`` for data with :class:`ArrowDtype` with ``pyarrow.decimal128`` type (:issue:`54627`)
 - Bug in :meth:`Series.groupby` raising an error when grouped :class:`Series` has a :class:`DatetimeIndex` index and a :class:`Series` with a name that is a month is given to the ``by`` argument (:issue:`48509`)
 
 Reshaping

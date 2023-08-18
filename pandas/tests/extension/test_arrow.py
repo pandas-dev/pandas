@@ -2960,6 +2960,24 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_var_decimal_return_arrow_dtype():
+    # GH 54627
+    df = pd.DataFrame(
+        {
+            "A": pd.Series([True, True], dtype="bool[pyarrow]"),
+            "B": pd.Series([123, 12], dtype=ArrowDtype(pa.decimal128(6, 3))),
+        }
+    )
+    result = df.groupby("A").var()
+    expected = pd.DataFrame(
+        [6160.5],
+        index=pd.Index([True], dtype="bool[pyarrow]", name="A"),
+        columns=["B"],
+        dtype="double[pyarrow]",
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_arrowextensiondtype_dataframe_repr():
     # GH 54062
     df = pd.DataFrame(

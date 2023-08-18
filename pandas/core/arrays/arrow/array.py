@@ -47,6 +47,7 @@ from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArraySupportsAnyAll,
 )
+from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.arrays.masked import BaseMaskedArray
 from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
@@ -1942,12 +1943,16 @@ class ArrowExtensionArray(
 
         if pa.types.is_floating(pa_dtype) or pa.types.is_integer(pa_dtype):
             na_value = 1
+            dtype = _arrow_dtype_mapping()[pa_dtype]
         elif pa.types.is_boolean(pa_dtype):
             na_value = True
+            dtype = _arrow_dtype_mapping()[pa_dtype]
+        elif pa.types.is_decimal(pa_dtype):
+            na_value = 1
+            dtype = Float64Dtype()
         else:
             raise NotImplementedError
 
-        dtype = _arrow_dtype_mapping()[pa_dtype]
         mask = self.isna()
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)
