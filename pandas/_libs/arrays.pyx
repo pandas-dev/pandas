@@ -402,18 +402,20 @@ cdef class BitMaskArray:
     cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
         ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @staticmethod
-    cdef bint buf_any(const uint8_t* buf1, Py_ssize_t nbits):
-        cdef Py_ssize_t i, nbytes = nbits // 8 + 1, rem = nbits % 8
+    cdef bint buf_any(const uint8_t* buf, Py_ssize_t nbits):
+        cdef Py_ssize_t i, bits_remaining = nbits % 8, size_bytes = nbits // 8
         if nbits == 0:
             return False
 
-        for i in range(nbytes):
-            if buf1[i] > 0:
+        for i in range(size_bytes):
+            if buf[i] > 0:
                 return True
 
-        for i in range(rem):
-            if ArrowBitGet(buf1, nbits - rem):
+        for i in range(bits_remaining):
+            if ArrowBitGet(buf, nbits - i - 1):
                 return True
 
         return False
@@ -422,6 +424,8 @@ cdef class BitMaskArray:
     # Note that in cases where the size_bits doesn't end on a word
     # boundary that these will still operate on the remaining bits,
     # with undefined values therein
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @staticmethod
     cdef void buf_or(
         const uint8_t* buf1,
@@ -433,6 +437,8 @@ cdef class BitMaskArray:
         for i in range(nbytes):
             out[i] = buf1[i] | buf2[i]
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @staticmethod
     cdef void buf_xor(
         const uint8_t* buf1,
@@ -444,6 +450,8 @@ cdef class BitMaskArray:
         for i in range(nbytes):
             out[i] = buf1[i] ^ buf2[i]
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     @staticmethod
     cdef void buf_and(
         const uint8_t* buf1,
