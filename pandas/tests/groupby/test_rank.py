@@ -712,6 +712,7 @@ def test_rank_categorical():
     tm.assert_frame_equal(res, expected)
 
 
+@pytest.mark.parametrize("na_option", ["top", "bottom"])
 def test_groupby_op_with_nullables():
     # GH 54206
     df_ext = DataFrame({"x": [None]}, dtype="Float64")
