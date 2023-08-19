@@ -2009,7 +2009,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         You can specify the return orientation.
 
-        >>> df.to_dict('series')
+        >>> df.to_dict(orient='series')
         {'col1': row1    1
                  row2    2
         Name: col1, dtype: int64,
@@ -2017,17 +2017,17 @@ class DataFrame(NDFrame, OpsMixin):
                 row2    0.75
         Name: col2, dtype: float64}
 
-        >>> df.to_dict('split')
+        >>> df.to_dict(orient='split')
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
          'data': [[1, 0.5], [2, 0.75]]}
 
-        >>> df.to_dict('records')
+        >>> df.to_dict(orient='records')
         [{'col1': 1, 'col2': 0.5}, {'col1': 2, 'col2': 0.75}]
 
-        >>> df.to_dict('index')
+        >>> df.to_dict(orient='index')
         {'row1': {'col1': 1, 'col2': 0.5}, 'row2': {'col1': 2, 'col2': 0.75}}
 
-        >>> df.to_dict('tight')
+        >>> df.to_dict(orient='tight')
         {'index': ['row1', 'row2'], 'columns': ['col1', 'col2'],
          'data': [[1, 0.5], [2, 0.75]], 'index_names': [None], 'column_names': [None]}
 
@@ -2041,7 +2041,7 @@ class DataFrame(NDFrame, OpsMixin):
         If you want a `defaultdict`, you need to initialize it:
 
         >>> dd = defaultdict(list)
-        >>> df.to_dict('records', into=dd)
+        >>> df.to_dict(orient='records', into=dd)
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
