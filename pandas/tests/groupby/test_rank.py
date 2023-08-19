@@ -717,7 +717,7 @@ def test_groupby_op_with_nullables(na_option):
     # GH 54206
     df_ext = DataFrame({"x": [None]}, dtype="Float64")
     result_ext = df_ext.groupby("x", dropna=False)["x"].rank(
-        method="min", na_option="bottom"
+        method="min", na_option=na_option
     )
     expected_result_ext = Series([1.0], dtype="float64", name=result_ext.name)
     tm.assert_series_equal(result_ext, expected_result_ext, check_dtype=False)
