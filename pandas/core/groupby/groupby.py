@@ -1033,7 +1033,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         eagle   7  8  9
-        >>> df.groupby(by=["a"]).get_group(1)
+        >>> df.groupby(by=["a"]).get_group((1,))
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
@@ -1055,8 +1055,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         """
         keys = self.keys
         level = self.level
-        if (is_list_like(level) and len(level) == 1) or (
-            is_list_like(keys) and len(keys) == 1
+        # mypy doesn't recognize level/keys as being sized when passed to len
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            is_list_like(keys) and len(keys) == 1  # type: ignore[arg-type]
         ):
             # GH#25971
             if isinstance(name, tuple) and len(name) == 1:
