@@ -641,7 +641,7 @@ def read_csv(
     na_values: Hashable
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    | None = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
@@ -700,7 +700,7 @@ def read_csv(
     na_values: Hashable
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -760,7 +760,7 @@ def read_csv(
     na_values: Hashable
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -820,7 +820,7 @@ def read_csv(
     na_values: Hashable
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
