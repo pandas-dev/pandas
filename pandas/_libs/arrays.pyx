@@ -340,13 +340,11 @@ cdef class BitMaskArray:
             if self.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
+            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+                raise ValueError("bitmaps are not equal size")
+
             buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_and(
-                self.bitmap.buffer.data,
-                other_bma.bitmap.buffer.data,
-                self.bitmap.size_bits // 8 + 1,
-                buf
-            )
+            BitMaskArray.buf_and(&self.bitmap, &other_bma.bitmap, buf)
             result = np.empty(self.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
@@ -366,13 +364,11 @@ cdef class BitMaskArray:
             if self.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
+            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+                raise ValueError("bitmaps are not equal size")
+
             buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_or(
-                self.bitmap.buffer.data,
-                other_bma.bitmap.buffer.data,
-                self.bitmap.size_bits // 8 + 1,
-                buf
-            )
+            BitMaskArray.buf_or(&self.bitmap, &other_bma.bitmap, buf)
             result = np.empty(self.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
@@ -392,13 +388,11 @@ cdef class BitMaskArray:
             if self.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
+            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+                raise ValueError("bitmaps are not equal size")
+
             buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_xor(
-                self.bitmap.buffer.data,
-                other_bma.bitmap.buffer.data,
-                self.bitmap.size_bits // 8 + 1,
-                buf
-            )
+            BitMaskArray.buf_xor(&self.bitmap, &other_bma.bitmap, buf)
             result = np.empty(self.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
@@ -429,7 +423,7 @@ cdef class BitMaskArray:
         return bool
 
     def any(self) -> bool:
-        return BitMaskArray.buf_any(self.bitmap.buffer.data, self.bitmap.size_bits)
+        return BitMaskArray.buf_any(&self.bitmap)
 
     def sum(self) -> int:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
@@ -494,19 +488,20 @@ cdef class BitMaskArray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @staticmethod
-    cdef bint buf_any(const uint8_t* buf, Py_ssize_t nbits):
-        cdef Py_ssize_t i, bits_remaining, size_bytes
-        if nbits < 1:
+    cdef bint buf_any(const ArrowBitmap* bitmap):
+        cdef Py_ssize_t i, bits_remaining
+        cdef int64_t size_bits = bitmap.size_bits
+        cdef const uint8_t* buf = bitmap.buffer.data
+        if size_bits < 1:
             return False
 
-        for i in range(size_bytes):
+        for i in range(bitmap.buffer.size_bytes):
             if buf[i] > 0:
                 return True
 
-        bits_remaining = nbits % 8
-        size_bytes = nbits // 8
+        bits_remaining = size_bits % 8
         for i in range(bits_remaining):
-            if ArrowBitGet(buf, nbits - i - 1):
+            if ArrowBitGet(buf, size_bits - i - 1):
                 return True
 
         return False
@@ -519,12 +514,17 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @staticmethod
     cdef void buf_or(
-        const uint8_t* buf1,
-        const uint8_t* buf2,
-        Py_ssize_t nbytes,
+        const ArrowBitmap* bitmap1,
+        const ArrowBitmap* bitmap2,
         uint8_t* out
     ):
         cdef Py_ssize_t i
+        cdef const uint8_t* buf1 = bitmap1.buffer.data
+        cdef const uint8_t* buf2 = bitmap2.buffer.data
+        # Assumed caller has checked that bitmaps are equal,
+        # otherwise trailing comparison is undefined
+        cdef int64_t nbytes = bitmap1.buffer.size_bytes
+
         for i in range(nbytes):
             out[i] = buf1[i] | buf2[i]
 
@@ -532,12 +532,17 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @staticmethod
     cdef void buf_xor(
-        const uint8_t* buf1,
-        const uint8_t* buf2,
-        Py_ssize_t nbytes,
+        const ArrowBitmap* bitmap1,
+        const ArrowBitmap* bitmap2,
         uint8_t* out
     ):
         cdef Py_ssize_t i
+        cdef const uint8_t* buf1 = bitmap1.buffer.data
+        cdef const uint8_t* buf2 = bitmap2.buffer.data
+        # Assumed caller has checked that bitmaps are equal,
+        # otherwise trailing comparison is undefined
+        cdef int64_t nbytes = bitmap1.buffer.size_bytes
+
         for i in range(nbytes):
             out[i] = buf1[i] ^ buf2[i]
 
@@ -545,12 +550,17 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @staticmethod
     cdef void buf_and(
-        const uint8_t* buf1,
-        const uint8_t* buf2,
-        Py_ssize_t nbytes,
+        const ArrowBitmap* bitmap1,
+        const ArrowBitmap* bitmap2,
         uint8_t* out
     ):
         cdef Py_ssize_t i
+        cdef const uint8_t* buf1 = bitmap1.buffer.data
+        cdef const uint8_t* buf2 = bitmap2.buffer.data
+        # Assumed caller has checked that bitmaps are equal,
+        # otherwise trailing comparison is undefined
+        cdef int64_t nbytes = bitmap1.buffer.size_bytes
+
         for i in range(nbytes):
             out[i] = buf1[i] & buf2[i]
 
