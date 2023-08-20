@@ -495,14 +495,16 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @staticmethod
     cdef bint buf_any(const uint8_t* buf, Py_ssize_t nbits):
-        cdef Py_ssize_t i, bits_remaining = nbits % 8, size_bytes = nbits // 8
-        if nbits == 0:
+        cdef Py_ssize_t i, bits_remaining, size_bytes
+        if nbits < 1:
             return False
 
         for i in range(size_bytes):
             if buf[i] > 0:
                 return True
 
+        bits_remaining = nbits % 8
+        size_bytes = nbits // 8
         for i in range(bits_remaining):
             if ArrowBitGet(buf, nbits - i - 1):
                 return True
