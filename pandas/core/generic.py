@@ -11313,18 +11313,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         DataFrame.mean: Mean of the values.
         DataFrame.std: Standard deviation of the observations.
         DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+        DataFrame.isna().sum(): Find the count of the NA/null values.
             columns based on their dtype.
 
         Notes
         -----
         For numeric data, the result's index will include ``count``,
-        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
+        ``mean``, ``std``, ``min``, ``max`` ,``nan_count``, as well as lower, ``50`` and
         upper percentiles. By default the lower percentile is ``25`` and the
         upper percentile is ``75``. The ``50`` percentile is the
         same as the median.
 
         For object data (e.g. strings or timestamps), the result's index
-        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
+        will include ``count``, ``unique``, ``top``, ``freq`` and ``nan_count``. The ``top``
         is the most common value. The ``freq`` is the most common value's
         frequency. Timestamps also include the ``first`` and ``last`` items.
 
@@ -11347,26 +11348,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         --------
         Describing a numeric ``Series``.
 
-        >>> s = pd.Series([1, 2, 3])
+        >>> s = pd.Series([1, 2, 3, None])
         >>> s.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
+        count       3.0
+        mean        2.0
+        std         1.0
+        min         1.0
+        25%         1.5
+        50%         2.0
+        75%         2.5
+        max         3.0
+        nan_count   1.0
         dtype: float64
 
         Describing a categorical ``Series``.
 
-        >>> s = pd.Series(['a', 'a', 'b', 'c'])
+        >>> s = pd.Series(['a', 'a', 'b', 'c', None])
         >>> s.describe()
-        count     4
-        unique    3
-        top       a
-        freq      2
+        count       4
+        unique      3
+        top         a
+        freq        2
+        nan_count   1
         dtype: object
 
         Describing a timestamp ``Series``.
@@ -11374,7 +11377,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s = pd.Series([
         ...     np.datetime64("2000-01-01"),
         ...     np.datetime64("2010-01-01"),
-        ...     np.datetime64("2010-01-01")
+        ...     np.datetime64("2010-01-01"),
+                None
         ... ])
         >>> s.describe()
         count                      3
@@ -11384,14 +11388,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         50%      2010-01-01 00:00:00
         75%      2010-01-01 00:00:00
         max      2010-01-01 00:00:00
+        nan_count                  1
         dtype: object
 
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
-        ...                    'numeric': [1, 2, 3],
-        ...                    'object': ['a', 'b', 'c']
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f',None]),
+        ...                    'numeric': [1, 2, 3, None],
+        ...                    'object': ['a', 'b', 'c', None]
         ...                   })
         >>> df.describe()
                numeric
@@ -11403,6 +11408,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         50%        2.0
         75%        2.5
         max        3.0
+        nan_count  1.0
+
 
         Describing all columns of a ``DataFrame`` regardless of data type.
 
@@ -11419,19 +11426,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         50%            NaN      2.0    NaN
         75%            NaN      2.5    NaN
         max            NaN      3.0    NaN
+        nan_count        1      1.0      1
 
         Describing a column from a ``DataFrame`` by accessing it as
         an attribute.
 
         >>> df.numeric.describe()
-        count    3.0
-        mean     2.0
-        std      1.0
-        min      1.0
-        25%      1.5
-        50%      2.0
-        75%      2.5
-        max      3.0
+        count        3.0
+        mean         2.0
+        std          1.0
+        min          1.0
+        25%          1.5
+        50%          2.0
+        75%          2.5
+        max          3.0
+        nan_count    1.0
         Name: numeric, dtype: float64
 
         Including only numeric columns in a ``DataFrame`` description.
@@ -11446,6 +11455,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         50%        2.0
         75%        2.5
         max        3.0
+        nan_count  1.0
 
         Including only string columns in a ``DataFrame`` description.
 
@@ -11455,6 +11465,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         unique      3
         top         a
         freq        1
+        nan_count   1
 
         Including only categorical columns from a ``DataFrame`` description.
 
@@ -11464,6 +11475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         unique           3
         top              d
         freq             1
+        nan_count        1
 
         Excluding numeric columns from a ``DataFrame`` description.
 
@@ -11473,6 +11485,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         unique           3      3
         top              f      a
         freq             1      1
+        nan_count        1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
@@ -11489,6 +11502,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         50%            NaN      2.0
         75%            NaN      2.5
         max            NaN      3.0
+        nan_count        1      1.0
         """
         return describe_ndframe(
             obj=self,

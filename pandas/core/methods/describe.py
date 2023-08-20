@@ -226,11 +226,11 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
+    stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"] +["nan_count"]
     d = (
         [series.count(), series.mean(), series.std(), series.min()]
         + series.quantile(percentiles).tolist()
-        + [series.max()]
+        + [series.max()] + [series.isna().sum()]
     )
     # GH#48340 - always return float on non-complex numeric data
     dtype: DtypeObj | None
@@ -266,7 +266,7 @@ def describe_categorical_1d(
     percentiles_ignored : list-like of numbers
         Ignored, but in place to unify interface.
     """
-    names = ["count", "unique", "top", "freq"]
+    names = ["count", "unique", "top", "freq",'nan_count']
     objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
     if count_unique > 0:
@@ -278,7 +278,7 @@ def describe_categorical_1d(
         top, freq = np.nan, np.nan
         dtype = "object"
 
-    result = [data.count(), count_unique, top, freq]
+    result = [data.count(), count_unique, top, freq,data.isna().sum()]
 
     from pandas import Series
 
@@ -313,12 +313,13 @@ def describe_timestamp_as_categorical_1d(
             top = top.tz_convert(tz)
         else:
             top = top.tz_localize(tz)
-        names += ["top", "freq", "first", "last"]
+        names += ["top", "freq", "first", "last","nan_count"]
         result += [
             top,
             freq,
             Timestamp(asint.min(), tz=tz),
             Timestamp(asint.max(), tz=tz),
+            data.isna().sum()
         ]
 
     # If the DataFrame is empty, set 'top' and 'freq' to None
@@ -348,11 +349,11 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
-    stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"]
+    stat_index = ["count", "mean", "min"] + formatted_percentiles + ["max"] + ["nan_count"]
     d = (
         [data.count(), data.mean(), data.min()]
         + data.quantile(percentiles).tolist()
-        + [data.max()]
+        + [data.max()] + [data.isna().sum()]
     )
     return Series(d, index=stat_index, name=data.name)
 
