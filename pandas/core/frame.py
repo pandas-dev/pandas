@@ -10085,6 +10085,20 @@ class DataFrame(NDFrame, OpsMixin):
         0  3  4
         1  5  5
 
+        >>> def foo(x):
+                if x > 2.5:
+                    x = 2
+                
+                elif x <= 2.5:
+                    x = 1
+                
+                return x
+            
+        >>> df.map(foo)
+              0  1
+           0  1  1
+           1  2  2
+           
         Like Series.map, NA values can be ignored:
 
         >>> df_copy = df.copy()
