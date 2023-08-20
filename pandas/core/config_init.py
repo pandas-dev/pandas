@@ -265,7 +265,7 @@ pc_max_seq_items = """
 """
 
 pc_max_info_rows_doc = """
-: int or None
+: int
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
     limit this null check only to frames with smaller dimensions than
