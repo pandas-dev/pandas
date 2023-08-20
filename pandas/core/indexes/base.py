@@ -373,9 +373,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         # similar but not identical to ov.searchsorted(sv)
         return libjoin.left_join_indexer_unique(sv, ov)
 
@@ -386,9 +383,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -400,9 +394,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -414,9 +405,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
