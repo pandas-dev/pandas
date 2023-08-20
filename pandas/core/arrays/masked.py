@@ -147,13 +147,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if values.shape != mask.shape:
                 raise ValueError("values.shape must match mask.shape")
 
-            if copy:
-                values = values.copy()
-                mask = mask.copy()
-        else:
-            if copy:
-                values = values.copy()
-                mask = mask.to_numpy()
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
 
         self._data = values
         self._mask = BitMaskArray(mask)
@@ -941,7 +937,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         mask = take(
-            self._mask.to_numpy(),
+            self._mask,
             indexer,
             fill_value=True,
             allow_fill=allow_fill,
@@ -983,7 +979,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def copy(self) -> Self:
         data = self._data.copy()
-        mask = self._mask.to_numpy()
+        mask = self._mask.copy()
         return self._simple_new(data, mask)
 
     def unique(self) -> Self:

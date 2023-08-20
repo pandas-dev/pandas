@@ -21,6 +21,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs.arrays import BitMaskArray
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -1286,20 +1287,26 @@ def take(
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+    if not isinstance(
+        arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, BitMaskArray)
+    ):
         # GH#52981
         warnings.warn(
             "pd.api.extensions.take accepting non-standard inputs is deprecated "
             "and will raise in a future version. Pass either a numpy.ndarray, "
-            "ExtensionArray, Index, or Series instead.",
+            "ExtensionArray, Index, Series, or BitMaskArray instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
 
-    if not is_array_like(arr):
+    if not isinstance(arr, BitMaskArray) and not is_array_like(arr):
         arr = np.asarray(arr)
 
     indices = ensure_platform_int(indices)
+
+    # BitMaskArray does not support negative indexing
+    if isinstance(arr, BitMaskArray) and indices.size > 0 and indices.min() < 0:
+        arr = arr.to_numpy()
 
     if allow_fill:
         # Pandas style, -1 means NA
@@ -1308,7 +1315,7 @@ def take(
             arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
         )
     else:
-        # NumPy style
+        # NumPy / BitMaskArray style
         result = arr.take(indices, axis=axis)
     return result
 

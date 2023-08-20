@@ -11,6 +11,7 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
+from libc.string cimport memcpy
 from numpy cimport (
     int8_t,
     int64_t,
@@ -248,7 +249,10 @@ cdef class BitMaskArray:
         self.buffer_owner = False
         self.bitmap = bma.bitmap
 
-    def __cinit__(self, data, parent=None):
+    def __cinit__(self):
+        self.parent = False
+
+    def __init__(self, data, parent=None):
         # parent is only required to reconstruct ref-counting from pickle
         # but should not be called from user code
         if isinstance(data, np.ndarray):
@@ -271,6 +275,30 @@ cdef class BitMaskArray:
     def __dealloc__(self):
         if self.buffer_owner:
             ArrowBitmapReset(&self.bitmap)
+
+    @staticmethod
+    cdef BitMaskArray copy_from_bitmaskarray(BitMaskArray old_bma):
+        """
+        Constructs a new BitMaskArray from a bitmap pointer. Copies data
+        and manages the subsequenty lifecycle of the bitmap.
+        """
+        # Bypass __init__ calls
+        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef uint8_t* buf
+        cdef ArrowBitmap bitmap
+        # TODO: this leaks a bit into the internals of the nanoarrow bitmap
+        # We may want to upstream a BitmapCopy function instead
+        ArrowBitmapInit(&bitmap)
+        buf = <uint8_t*>malloc(old_bma.bitmap.size_bits)
+        memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.size_bits)
+        bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
+        bitmap.size_bits = old_bma.bitmap.size_bits
+        bitmap.buffer.data = buf
+
+        bma.bitmap = bitmap
+        bma.array_shape = old_bma.array_shape
+        bma.buffer_owner = True
+        return bma
 
     def __setitem__(self, key, value):
         cdef const uint8_t[:] arr1d
@@ -405,6 +433,57 @@ cdef class BitMaskArray:
 
     def sum(self) -> int:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    cdef void c_take(
+        self,
+        const int64_t[:] indices,
+        uint8_t[:] out,
+        bint fill_value,
+        bint allow_fill
+    ):
+        # TODO: we should try and upstream this into nanoarrow with a better algo
+        cdef Py_ssize_t i
+        cdef uint8_t value
+        if not allow_fill:
+            for i in range(indices.shape[0]):
+                out[i] = ArrowBitGet(self.bitmap.buffer.data, indices[i])
+        else:
+            for i in range(indices.shape[0]):
+                value = ArrowBitGet(self.bitmap.buffer.data, indices[i])
+                if value == 1:
+                    out[i] = fill_value
+                else:
+                    out[i] = value
+
+    def take(
+        self,
+        const int64_t[:] indices,
+            int axis=0,
+            bint fill_value=0,
+            bint allow_fill=0
+    ) -> np.ndarray:
+        if axis != 0:
+            raise NotImplementedError(
+                "BitMaskArray.take only implemented for axis=0"
+            )
+
+        # TODO: would be great to check this here, though most of these functions
+        # are by definition unsafe
+        # if indices.min() < 0:
+        #     raise NotImplementedError(
+        #         "BitMaskArray.take does not support negative index values"
+        #     )
+
+        # TODO: indices.shape gave wrong number of dimensions, expected 1 got 8
+        # len(indices) works the same as long as 1d assumption holds
+        result = np.empty(len(indices), dtype=bool)
+        self.c_take(indices, result, fill_value, allow_fill)
+        return result
+
+    def copy(self):
+        return BitMaskArray.copy_from_bitmaskarray(self)
 
     @cython.boundscheck(False)  # TODO: Removing this causes an IndexError? Zero size?
     @cython.wraparound(False)
