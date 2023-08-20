@@ -18,6 +18,7 @@ from numpy cimport (
     ndarray,
     uint8_t,
 )
+from pandas.core.common import is_empty_slice
 
 cnp.import_array()
 
@@ -37,6 +38,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitsUnpackInt8(const uint8_t*, int64_t, int64_t, int8_t*)
     int8_t ArrowBitGet(const uint8_t*, int64_t)
     void ArrowBitSetTo(uint8_t*, int64_t, uint8_t)
+    void ArrowBitsSetTo(uint8_t*, int64_t, int64_t, uint8_t)
     int64_t ArrowBitCountSet(const uint8_t*, int64_t, int64_t)
 
 
@@ -300,6 +302,21 @@ cdef class BitMaskArray:
         bma.buffer_owner = True
         return bma
 
+    def __len__(self):
+        return self.bitmap.size_bits
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef _set_scalar_value_from_equal_sized_array(
+        self,
+        const uint8_t[:] data,
+        bint value
+    ):
+        cdef Py_ssize_t i
+        for i in range(self.bitmap.size_bits):
+            if data[i]:
+                ArrowBitSetTo(self.bitmap.buffer.data, i, value)
+
     def __setitem__(self, key, value):
         cdef const uint8_t[:] arr1d
         cdef Py_ssize_t i = 0
@@ -313,11 +330,28 @@ cdef class BitMaskArray:
                 ArrowBitSetTo(self.bitmap.buffer.data, ckey, cvalue)
                 return
 
-        arr = self.to_numpy()
-        arr[key] = value
-        arr1d = arr.ravel()
-        for i in range(arr1d.shape[0]):
-            ArrowBitSetTo(self.bitmap.buffer.data, i, arr1d[i])
+        # TODO: implement fastpaths here for equal sized containers
+        # to avoid the to_numpy() call
+        if is_empty_slice(key) and isinstance(value, (int, bool)):
+            cvalue = value  # blindly assuming ints are 0 or 1
+            ArrowBitsSetTo(
+                self.bitmap.buffer.data,
+                0,
+                self.bitmap.size_bits,
+                cvalue
+            )
+        elif (
+                isinstance(key, np.ndarray)
+                and key.dtype == bool
+                and isinstance(value, (int, bool))
+        ):
+            self._set_scalar_value_from_equal_sized_array(key, value)
+        else:
+            arr = self.to_numpy()
+            arr[key] = value
+            arr1d = arr.ravel()
+            for i in range(arr1d.shape[0]):
+                ArrowBitSetTo(self.bitmap.buffer.data, i, arr1d[i])
 
     def __getitem__(self, key):
         cdef Py_ssize_t ckey
