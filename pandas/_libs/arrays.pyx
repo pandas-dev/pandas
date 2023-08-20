@@ -390,6 +390,16 @@ cdef class BitMaskArray:
     def nbytes(self) -> int:
         return self.bitmap.buffer.size_bytes
 
+    @property
+    def shape(self):
+        """Strictly for NumPy compat in mask_ops"""
+        return self.array_shape
+
+    @property
+    def dtype(self):
+        """Strictly for NumPy compat in mask_ops"""
+        return bool
+
     def any(self) -> bool:
         return BitMaskArray.buf_any(self.bitmap.buffer.data, self.bitmap.size_bits)
 

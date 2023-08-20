@@ -9,13 +9,14 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.arrays import BitMaskArray
 
 
 def kleene_or(
     left: bool | np.ndarray | libmissing.NAType,
     right: bool | np.ndarray | libmissing.NAType,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
+    left_mask: np.ndarray | BitMaskArray | None,
+    right_mask: np.ndarray | BitMaskArray | None,
 ):
     """
     Boolean ``or`` using Kleene logic.
@@ -53,6 +54,8 @@ def kleene_or(
         result = left | right
 
     if right_mask is not None:
+        left_mask = left_mask.to_numpy()
+        right_mask = right_mask.to_numpy()
         # output is unknown where (False & NA), (NA & False), (NA & NA)
         left_false = ~(left | left_mask)
         right_false = ~(right | right_mask)
@@ -63,12 +66,13 @@ def kleene_or(
         )
     else:
         if right is True:
-            mask = np.zeros_like(left_mask)
-        elif right is libmissing.NA:
-            mask = (~left & ~left_mask) | left_mask
+            mask = np.zeros(left_mask.shape, left_mask.dtype)
         else:
-            # False
-            mask = left_mask.copy()
+            left_mask = left_mask.to_numpy()
+            if right is libmissing.NA:
+                mask = (~left & ~left_mask) | left_mask
+            else:
+                mask = left_mask
 
     return result, mask
 
@@ -76,8 +80,8 @@ def kleene_or(
 def kleene_xor(
     left: bool | np.ndarray | libmissing.NAType,
     right: bool | np.ndarray | libmissing.NAType,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
+    left_mask: np.ndarray | BitMaskArray | None,
+    right_mask: np.ndarray | BitMaskArray | None,
 ):
     """
     Boolean ``xor`` using Kleene logic.
@@ -117,9 +121,12 @@ def kleene_xor(
 
     if right_mask is None:
         if right is libmissing.NA:
-            mask = np.ones_like(left_mask)
+            mask = np.ones(left_mask.shape, left_mask.dtype)
         else:
-            mask = left_mask.copy()
+            if isinstance(left_mask, BitMaskArray):
+                mask = left_mask.to_numpy()
+            else:
+                mask = left_mask.copy()
     else:
         mask = left_mask | right_mask
 
@@ -129,8 +136,8 @@ def kleene_xor(
 def kleene_and(
     left: bool | libmissing.NAType | np.ndarray,
     right: bool | libmissing.NAType | np.ndarray,
-    left_mask: np.ndarray | None,
-    right_mask: np.ndarray | None,
+    left_mask: np.ndarray | BitMaskArray | None,
+    right_mask: np.ndarray | BitMaskArray | None,
 ):
     """
     Boolean ``and`` using Kleene logic.
@@ -166,16 +173,26 @@ def kleene_and(
         result = left & right
 
     if right_mask is None:
+        if isinstance(left_mask, BitMaskArray):
+            left_mask = left_mask.to_numpy()
+
         # Scalar `right`
         if right is libmissing.NA:
             mask = (left & ~left_mask) | left_mask
-
         else:
-            mask = left_mask.copy()
+            if not isinstance(left_mask, BitMaskArray):  # already a copy
+                mask = left_mask.copy()
             if right is False:
                 # unmask everything
                 mask[:] = False
     else:
+        # TODO: Cython 3 changed support for radd / ror methods and may
+        # not be working? For now convert to NumPy
+        if isinstance(left_mask, BitMaskArray):
+            left_mask = left_mask.to_numpy()
+        if isinstance(right_mask, BitMaskArray):
+            right_mask = right_mask.to_numpy()
+
         # unmask where either left or right is False
         left_false = ~(left | left_mask)
         right_false = ~(right | right_mask)

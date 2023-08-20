@@ -363,7 +363,7 @@ class BooleanArray(BaseMaskedArray):
         mask = None
 
         if isinstance(other, BooleanArray):
-            other, mask = other._data, other._mask.to_numpy()
+            other, mask = other._data, other._mask
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
             if other.ndim > 1:
@@ -382,16 +382,12 @@ class BooleanArray(BaseMaskedArray):
             raise ValueError("Lengths must match")
 
         if op.__name__ in {"or_", "ror_"}:
-            result, mask = ops.kleene_or(self._data, other, self._mask.to_numpy(), mask)
+            result, mask = ops.kleene_or(self._data, other, self._mask, mask)
         elif op.__name__ in {"and_", "rand_"}:
-            result, mask = ops.kleene_and(
-                self._data, other, self._mask.to_numpy(), mask
-            )
+            result, mask = ops.kleene_and(self._data, other, self._mask, mask)
         else:
             # i.e. xor, rxor
-            result, mask = ops.kleene_xor(
-                self._data, other, self._mask.to_numpy(), mask
-            )
+            result, mask = ops.kleene_xor(self._data, other, self._mask, mask)
 
         # i.e. BooleanArray
         return self._maybe_mask_result(result, mask)
