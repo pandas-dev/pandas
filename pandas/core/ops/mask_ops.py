@@ -54,8 +54,10 @@ def kleene_or(
         result = left | right
 
     if right_mask is not None:
-        left_mask = left_mask.to_numpy()
-        right_mask = right_mask.to_numpy()
+        if isinstance(left_mask, BitMaskArray):
+            left_mask = left_mask.to_numpy()
+        if isinstance(right_mask, BitMaskArray):
+            right_mask = right_mask.to_numpy()
         # output is unknown where (False & NA), (NA & False), (NA & NA)
         left_false = ~(left | left_mask)
         right_false = ~(right | right_mask)
