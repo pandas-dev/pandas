@@ -5195,7 +5195,7 @@ class Index(IndexOpsMixin, PandasObject):
         #  copies.
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
-            raise ValueError("_can_use_libjoin should raise in this case.")
+            raise ValueError("_can_use_libjoin should return False.")
         return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
