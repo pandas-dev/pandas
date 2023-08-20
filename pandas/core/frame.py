@@ -10085,16 +10085,16 @@ class DataFrame(NDFrame, OpsMixin):
         0  3  4
         1  5  5
 
-        >>> def foo(x):
-                if x > 2.5:
+        >>> def func(x,y): # x refers to the element in the DataFrame
+                if x > y:
                     x = 2
                 
-                elif x <= 2.5:
+                elif x <= y:
                     x = 1
                 
                 return x
             
-        >>> df.map(foo)
+        >>> df.map(func, y=2.5)
               0  1
            0  1  1
            1  2  2
