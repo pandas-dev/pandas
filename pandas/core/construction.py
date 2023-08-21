@@ -19,6 +19,8 @@ import warnings
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
@@ -49,7 +51,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import NumpyEADtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    NumpyEADtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -589,6 +594,11 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
+            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+                import pyarrow as pa
+
+                dtype = ArrowDtype(pa.string())
+                subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:
                 subarr = subarr.copy()
