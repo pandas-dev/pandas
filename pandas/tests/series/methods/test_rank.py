@@ -185,7 +185,7 @@ class TestSeriesRank:
 
         # Test na_option for rank data
         na_ser = Series(
-            ["first", "second", "third", "fourth", "fifth", "sixth", np.NaN]
+            ["first", "second", "third", "fourth", "fifth", "sixth", np.nan]
         ).astype(
             CategoricalDtype(
                 ["first", "second", "third", "fourth", "fifth", "sixth", "seventh"],
@@ -195,7 +195,7 @@ class TestSeriesRank:
 
         exp_top = Series([2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 1.0])
         exp_bot = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0])
-        exp_keep = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.NaN])
+        exp_keep = Series([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top"), exp_top)
         tm.assert_series_equal(na_ser.rank(na_option="bottom"), exp_bot)
@@ -204,7 +204,7 @@ class TestSeriesRank:
         # Test na_option for rank data with ascending False
         exp_top = Series([7.0, 6.0, 5.0, 4.0, 3.0, 2.0, 1.0])
         exp_bot = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, 7.0])
-        exp_keep = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, np.NaN])
+        exp_keep = Series([6.0, 5.0, 4.0, 3.0, 2.0, 1.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top", ascending=False), exp_top)
         tm.assert_series_equal(
@@ -223,12 +223,12 @@ class TestSeriesRank:
             na_ser.rank(na_option=True, ascending=False)
 
         # Test with pct=True
-        na_ser = Series(["first", "second", "third", "fourth", np.NaN]).astype(
+        na_ser = Series(["first", "second", "third", "fourth", np.nan]).astype(
             CategoricalDtype(["first", "second", "third", "fourth"], True)
         )
         exp_top = Series([0.4, 0.6, 0.8, 1.0, 0.2])
         exp_bot = Series([0.2, 0.4, 0.6, 0.8, 1.0])
-        exp_keep = Series([0.25, 0.5, 0.75, 1.0, np.NaN])
+        exp_keep = Series([0.25, 0.5, 0.75, 1.0, np.nan])
 
         tm.assert_series_equal(na_ser.rank(na_option="top", pct=True), exp_top)
         tm.assert_series_equal(na_ser.rank(na_option="bottom", pct=True), exp_bot)

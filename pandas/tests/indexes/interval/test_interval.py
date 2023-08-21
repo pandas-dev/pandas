@@ -247,12 +247,12 @@ class TestIntervalIndex:
         assert idx.is_unique is True
 
         # unique NaN
-        idx = IntervalIndex.from_tuples([(np.NaN, np.NaN)], closed=closed)
+        idx = IntervalIndex.from_tuples([(np.nan, np.nan)], closed=closed)
         assert idx.is_unique is True
 
         # non-unique NaN
         idx = IntervalIndex.from_tuples(
-            [(np.NaN, np.NaN), (np.NaN, np.NaN)], closed=closed
+            [(np.nan, np.nan), (np.nan, np.nan)], closed=closed
         )
         assert idx.is_unique is False
 

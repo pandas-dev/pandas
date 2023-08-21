@@ -103,8 +103,8 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, request):
-        if data.dtype.storage in ("pyarrow", "pyarrow_numpy"):
+    def test_view(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -116,8 +116,8 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, request):
-        if data.dtype.storage in ("pyarrow", "pyarrow_numpy"):
+    def test_transpose(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
@@ -127,8 +127,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, request):
-        if data.dtype.storage in ("pyarrow", "pyarrow_numpy"):
+    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
@@ -157,27 +157,8 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestReduce(base.BaseReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-
-        if op_name in ["min", "max"]:
-            return None
-
-        ser = pd.Series(data)
-        with pytest.raises(TypeError):
-            getattr(ser, op_name)(skipna=skipna)
-
-    def check_reduce(self, s, op_name, skipna):
-        res_op = getattr(s, op_name)
-        alt = s.astype("object")
-        exp_op = getattr(alt, op_name)
-        result = res_op(skipna=skipna)
-        expected = exp_op(skipna=skipna)
-        tm.assert_almost_equal(result, expected)
-
-    def _supports_reduction(self, obj, op_name: str) -> bool:
-        return obj.dtype.storage == "pyarrow_numpy"
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        return op_name in ["min", "max"]
 
 
 class TestMethods(base.BaseMethodsTests):
@@ -195,8 +176,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # attribute "storage"
         if dtype.storage == "pyarrow":  # type: ignore[union-attr]
             cast_to = "boolean[pyarrow]"
-        elif dtype.storage == "pyarrow_numpy":
-            cast_to = np.bool_
         else:
             cast_to = "boolean"
         return pointwise_result.astype(cast_to)

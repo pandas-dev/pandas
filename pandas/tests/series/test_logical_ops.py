@@ -93,7 +93,7 @@ class TestSeriesLogicalOps:
 
         msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
-            s_0123 & np.NaN
+            s_0123 & np.nan
         with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
         msg = "unsupported operand type.+for &:"
@@ -149,11 +149,11 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        result = s_0123 & Series([False, np.NaN, False, False])
+        result = s_0123 & Series([False, np.nan, False, False])
         expected = Series([False] * 4)
         tm.assert_series_equal(result, expected)
 
-        s_abNd = Series(["a", "b", np.NaN, "d"])
+        s_abNd = Series(["a", "b", np.nan, "d"])
         with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
             s_0123 & s_abNd
 
