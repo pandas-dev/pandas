@@ -307,12 +307,7 @@ def is_null_slice(obj) -> bool:
     """
     We have a null slice.
     """
-    return (
-        isinstance(obj, slice)
-        and obj.start is None
-        and obj.stop is None
-        and obj.step is None
-    )
+    return lib.is_null_sice(obj)
 
 
 def is_empty_slice(obj) -> bool:

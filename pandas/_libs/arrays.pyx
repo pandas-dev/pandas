@@ -22,7 +22,7 @@ from numpy cimport (
     uint8_t,
 )
 
-from pandas.core.common import is_null_slice
+from pandas._libs.lib import is_null_slice
 
 cnp.import_array()
 
