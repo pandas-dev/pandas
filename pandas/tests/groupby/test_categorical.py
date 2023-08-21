@@ -268,7 +268,10 @@ def test_level_get_group(observed):
             names=["Index1", "Index2"],
         ),
     )
-    result = g.get_group("a")
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#25971 - warn when not passing a length-1 tuple
+        result = g.get_group("a")
 
     tm.assert_frame_equal(result, expected)
 

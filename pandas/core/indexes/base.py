@@ -373,9 +373,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         # similar but not identical to ov.searchsorted(sv)
         return libjoin.left_join_indexer_unique(sv, ov)
 
@@ -386,9 +383,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -400,9 +394,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -414,9 +405,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -3354,6 +3342,7 @@ class Index(IndexOpsMixin, PandasObject):
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
+            and other._can_use_libjoin
         ):
             # Both are monotonic and at least one is unique, so can use outer join
             #  (actually don't need either unique, but without this restriction
@@ -3452,7 +3441,7 @@ class Index(IndexOpsMixin, PandasObject):
             self, other = self._dti_setop_align_tzs(other, "intersection")
 
         if self.equals(other):
-            if self.has_duplicates:
+            if not self.is_unique:
                 result = self.unique()._get_reconciled_name_object(other)
             else:
                 result = self._get_reconciled_name_object(other)
@@ -3507,7 +3496,9 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
+            and not isinstance(other, ABCMultiIndex)
         ):
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
@@ -4654,7 +4645,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                if not isinstance(self.dtype, IntervalDtype):
+                # Note: 2023-08-15 we *do* have tests that get here with
+                #  Categorical, string[python] (can use libjoin)
+                #  and Interval (cannot)
+                if self._can_use_libjoin and other._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     # GH#39133
                     # go through object dtype for ea till engine is supported properly
@@ -4666,6 +4660,7 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
             and not isinstance(self.dtype, CategoricalDtype)
         ):
@@ -4970,6 +4965,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
+        assert self._can_use_libjoin and other._can_use_libjoin
 
         if self.equals(other):
             # This is a convenient place for this check, but its correctness
@@ -5038,19 +5034,28 @@ class Index(IndexOpsMixin, PandasObject):
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
 
+    @final
     @cache_readonly
     def _can_use_libjoin(self) -> bool:
         """
-        Whether we can use the fastpaths implement in _libs.join
+        Whether we can use the fastpaths implemented in _libs.join.
+
+        This is driven by whether (in monotonic increasing cases that are
+        guaranteed not to have NAs) we can convert to a np.ndarray without
+        making a copy. If we cannot, this negates the performance benefit
+        of using libjoin.
         """
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
             return (
                 isinstance(self.dtype, np.dtype)
-                or isinstance(self.values, BaseMaskedArray)
-                or isinstance(self._values, ArrowExtensionArray)
+                or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
+                or self.dtype == "string[python]"
             )
+        # For IntervalIndex, the conversion to numpy converts
+        #  to object dtype, which negates the performance benefit of libjoin
+        # TODO: exclude RangeIndex and MultiIndex as these also make copies?
         return not isinstance(self.dtype, IntervalDtype)
 
     # --------------------------------------------------------------------
@@ -5172,7 +5177,8 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values.astype(object)
         return vals
 
-    def _get_join_target(self) -> ArrayLike:
+    @final
+    def _get_join_target(self) -> np.ndarray:
         """
         Get the ndarray or ExtensionArray that we can pass to the join
         functions.
@@ -5184,7 +5190,13 @@ class Index(IndexOpsMixin, PandasObject):
             # This is only used if our array is monotonic, so no missing values
             # present
             return self._values.to_numpy()
-        return self._get_engine_target()
+
+        # TODO: exclude ABCRangeIndex, ABCMultiIndex cases here as those create
+        #  copies.
+        target = self._get_engine_target()
+        if not isinstance(target, np.ndarray):
+            raise ValueError("_can_use_libjoin should return False.")
+        return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -7528,7 +7540,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         index_like = list(index_like)
 
     if isinstance(index_like, list):
-        if type(index_like) is not list:
+        if type(index_like) is not list:  # noqa: E721
             # must check for exactly list here because of strict type
             # check in clean_index_list
             index_like = list(index_like)

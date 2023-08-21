@@ -444,10 +444,7 @@ def to_parquet(
         if you wish to use its implementation.
     compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
         default 'snappy'. Name of the compression to use. Use ``None``
-        for no compression. The supported compression methods actually
-        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
-        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
-        only 'gzip' and 'snappy' are supported.
+        for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.

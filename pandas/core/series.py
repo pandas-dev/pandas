@@ -1871,7 +1871,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {examples}
         """
         return self.to_frame().to_markdown(
-            buf, mode, index, storage_options=storage_options, **kwargs
+            buf, mode=mode, index=index, storage_options=storage_options, **kwargs
         )
 
     # ----------------------------------------------------------------------
