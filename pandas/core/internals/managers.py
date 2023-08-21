@@ -2301,7 +2301,7 @@ def _preprocess_slice_or_indexer(
 def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     if isinstance(dtype, DatetimeTZDtype):
         # NB: exclude e.g. pyarrow[dt64tz] dtypes
-        ts = Timestamp(fill_value, unit=dtype.unit)
+        ts = Timestamp(fill_value).as_unit(dtype.unit)
         i8values = np.full(shape, ts._value)
         return DatetimeArray(i8values, dtype=dtype)
 
