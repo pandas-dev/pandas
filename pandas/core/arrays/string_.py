@@ -100,7 +100,7 @@ class StringDtype(StorageExtensionDtype):
 
     #: StringDtype().na_value uses pandas.NA
     @property
-    def na_value(self) -> libmissing.NAType | float:
+    def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
         if self.storage == "pyarrow_numpy":
             return np.nan
         else:
