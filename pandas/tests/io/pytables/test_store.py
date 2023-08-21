@@ -288,19 +288,31 @@ def test_store_dropna(tmp_path, setup_path):
     # # Test to make sure defaults are to not drop.
     # # Corresponding to Issue 9382
     path = tmp_path / setup_path
-    df_with_missing.to_hdf(path, "df", format="table")
+    df_with_missing.to_hdf(path, key="df", format="table")
     reloaded = read_hdf(path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
     path = tmp_path / setup_path
-    df_with_missing.to_hdf(path, "df", format="table", dropna=False)
+    df_with_missing.to_hdf(path, key="df", format="table", dropna=False)
     reloaded = read_hdf(path, "df")
     tm.assert_frame_equal(df_with_missing, reloaded)
 
     path = tmp_path / setup_path
-    df_with_missing.to_hdf(path, "df", format="table", dropna=True)
+    df_with_missing.to_hdf(path, key="df", format="table", dropna=True)
     reloaded = read_hdf(path, "df")
     tm.assert_frame_equal(df_without_missing, reloaded)
+
+
+def test_keyword_deprecation():
+    # GH 54229
+    msg = (
+        "Starting with pandas version 3.0 all arguments of to_hdf except for the "
+        "argument 'path_or_buf' will be keyword-only."
+    )
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_hdf("example", "key")
 
 
 def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
@@ -308,15 +320,15 @@ def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
 
     # min_itemsize in index with to_hdf (GH 10381)
     df = tm.makeMixedDataFrame().set_index("C")
-    df.to_hdf(path, "ss3", format="table", min_itemsize={"index": 6})
+    df.to_hdf(path, key="ss3", format="table", min_itemsize={"index": 6})
     # just make sure there is a longer string:
     df2 = df.copy().reset_index().assign(C="longer").set_index("C")
-    df2.to_hdf(path, "ss3", append=True, format="table")
+    df2.to_hdf(path, key="ss3", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "ss3"), concat([df, df2]))
 
     # same as above, with a Series
-    df["B"].to_hdf(path, "ss4", format="table", min_itemsize={"index": 6})
-    df2["B"].to_hdf(path, "ss4", append=True, format="table")
+    df["B"].to_hdf(path, key="ss4", format="table", min_itemsize={"index": 6})
+    df2["B"].to_hdf(path, key="ss4", append=True, format="table")
     tm.assert_series_equal(read_hdf(path, "ss4"), concat([df["B"], df2["B"]]))
 
 
@@ -326,7 +338,7 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
     ser = Series(data, index=Index(data))
     path = tmp_path / setup_path
     # GH 20835
-    ser.to_hdf(path, "table", format=format, errors="surrogatepass")
+    ser.to_hdf(path, key="table", format=format, errors="surrogatepass")
 
     result = read_hdf(path, "table", errors="surrogatepass")
     tm.assert_series_equal(result, ser)
@@ -542,13 +554,13 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path):
 
     # This used to fail, returning numpy strings instead of python strings.
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", format=table_format)
+    df.to_hdf(path, key="df", format=table_format)
     df2 = read_hdf(path, "df")
 
     tm.assert_frame_equal(df, df2, check_names=True)
 
-    assert type(df2.index.name) == str
-    assert type(df2.columns.name) == str
+    assert isinstance(df2.index.name, str)
+    assert isinstance(df2.columns.name, str)
 
 
 def test_store_series_name(setup_path):
@@ -780,7 +792,7 @@ def test_path_pathlib():
     df = tm.makeDataFrame()
 
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, "df"), lambda p: read_hdf(p, "df")
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
     )
     tm.assert_frame_equal(df, result)
 
@@ -807,7 +819,7 @@ def test_path_pathlib_hdfstore():
 
     def writer(path):
         with HDFStore(path) as store:
-            df.to_hdf(store, "df")
+            df.to_hdf(store, key="df")
 
     def reader(path):
         with HDFStore(path) as store:
@@ -820,7 +832,7 @@ def test_path_pathlib_hdfstore():
 def test_pickle_path_localpath():
     df = tm.makeDataFrame()
     result = tm.round_trip_pathlib(
-        lambda p: df.to_hdf(p, "df"), lambda p: read_hdf(p, "df")
+        lambda p: df.to_hdf(p, key="df"), lambda p: read_hdf(p, "df")
     )
     tm.assert_frame_equal(df, result)
 
@@ -830,7 +842,7 @@ def test_path_localpath_hdfstore():
 
     def writer(path):
         with HDFStore(path) as store:
-            df.to_hdf(store, "df")
+            df.to_hdf(store, key="df")
 
     def reader(path):
         with HDFStore(path) as store:
@@ -876,9 +888,9 @@ def test_duplicate_column_name(tmp_path, setup_path):
     path = tmp_path / setup_path
     msg = "Columns index has to be unique for fixed format"
     with pytest.raises(ValueError, match=msg):
-        df.to_hdf(path, "df", format="fixed")
+        df.to_hdf(path, key="df", format="fixed")
 
-    df.to_hdf(path, "df", format="table")
+    df.to_hdf(path, key="df", format="table")
     other = read_hdf(path, "df")
 
     tm.assert_frame_equal(df, other)
@@ -911,7 +923,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
     path = tmp_path / setup_path
     df.to_hdf(
         path,
-        "df",
+        key="df",
         mode="a",
         append=True,
         data_columns=data_columns,
@@ -947,14 +959,14 @@ def test_to_hdf_with_object_column_names(tmp_path, setup_path):
         path = tmp_path / setup_path
         msg = "cannot have non-object label DataIndexableCol"
         with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, "df", format="table", data_columns=True)
+            df.to_hdf(path, key="df", format="table", data_columns=True)
 
     for index in types_should_run:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 2)), columns=index(2)
         )
         path = tmp_path / setup_path
-        df.to_hdf(path, "df", format="table", data_columns=True)
+        df.to_hdf(path, key="df", format="table", data_columns=True)
         result = read_hdf(path, "df", where=f"index = [{df.index[0]}]")
         assert len(result)
 
@@ -975,6 +987,6 @@ def test_store_bool_index(tmp_path, setup_path):
     # # Test to make sure defaults are to not drop.
     # # Corresponding to Issue 9382
     path = tmp_path / setup_path
-    df.to_hdf(path, "a")
+    df.to_hdf(path, key="a")
     result = read_hdf(path, "a")
     tm.assert_frame_equal(expected, result)
