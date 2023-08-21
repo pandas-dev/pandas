@@ -420,16 +420,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     # Unary Methods
 
     def __invert__(self) -> Self:
-        return self._simple_new(~self._data, self._mask.to_numpy())
+        return self._simple_new(~self._data, self._mask.copy())
 
     def __neg__(self) -> Self:
-        return self._simple_new(-self._data, self._mask.to_numpy())
+        return self._simple_new(-self._data, self._mask.copy())
 
     def __pos__(self) -> Self:
         return self.copy()
 
     def __abs__(self) -> Self:
-        return self._simple_new(abs(self._data), self._mask.to_numpy())
+        return self._simple_new(abs(self._data), self._mask.copy())
 
     # ------------------------------------------------------------------
 
@@ -1236,7 +1236,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.sum(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1257,7 +1257,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         result = masked_reductions.prod(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             min_count=min_count,
             axis=axis,
@@ -1270,7 +1270,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_mean((), kwargs)
         result = masked_reductions.mean(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             axis=axis,
         )
@@ -1282,7 +1282,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="var")
         result = masked_reductions.var(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1295,7 +1295,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_stat_ddof_func((), kwargs, fname="std")
         result = masked_reductions.std(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             axis=axis,
             ddof=ddof,
@@ -1306,7 +1306,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             axis=axis,
         )
@@ -1316,7 +1316,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
             self._data,
-            self._mask.to_numpy(),
+            self._mask,
             skipna=skipna,
             axis=axis,
         )
@@ -1518,7 +1518,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask.to_numpy()
+        mask = self._mask
 
         op = getattr(masked_accumulations, name)
         data, mask = op(data, mask, skipna=skipna, **kwargs)

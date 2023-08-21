@@ -452,6 +452,10 @@ cdef class BitMaskArray:
         return (_unpickle_bitmaskarray, object_state, self.parent)
 
     @property
+    def size(self) -> int:
+        return self.bitmap.size_bits
+
+    @property
     def nbytes(self) -> int:
         return self.bitmap.buffer.size_bytes
 
