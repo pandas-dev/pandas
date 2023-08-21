@@ -1385,29 +1385,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # attempt to avoid to_numpy call on mask for best performance
         is_all_na = self._mask.all()
-        if is_all_na and skipna or len(self) == 0:
+        is_any_na = self._mask.any()
+        if len(self) == 0 or (skipna and is_all_na):
             return False
-        if not skipna and not is_all_na:
-            return True
-        if not skipna and self._mask.any():
-            return self.dtype.na_value
 
-        # fallback to numpy - will be slower
-        # TODO: some of these conditions are likely duplicative of above checks
-        values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(
-            values, self._mask.to_numpy(), self._falsey_value  # type: ignore[arg-type]
-        )
+        if is_any_na:
+            # fallback to numpy - will be slower
+            values = self._data.copy()
+            # error: Argument 3 to "putmask" has incompatible type "object";
+            # expected "Union[_SupportsArray[dtype[Any]],
+            # _NestedSequence[_SupportsArray[dtype[Any]]],
+            # bool, int, float, complex, str, bytes,
+            # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+            np.putmask(
+                values,
+                self._mask.to_numpy(),
+                self._falsey_value,  # type: ignore[arg-type]
+            )
+        else:
+            values = self._data
+
         result = values.any()
         if skipna:
             return result
         else:
-            if result or len(self) == 0 or not self._mask.any():
+            if result or not is_any_na:
                 return result
             else:
                 return self.dtype.na_value
