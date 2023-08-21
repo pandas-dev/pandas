@@ -203,7 +203,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._data[item]
 
         # sending self._mask avoids copy of buffer
-        if isinstance(newmask, BitMaskArray) and newmask == self._mask:
+        if np.array_equal(newmask, np_mask):
             return self._simple_new(self._data[item], self._mask)
 
         return self._simple_new(self._data[item], newmask)
