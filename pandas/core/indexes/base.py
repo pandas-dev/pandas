@@ -3825,6 +3825,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
+
         Notes
         -----
         Returns -1 for unmatched values, for further explanation see the
