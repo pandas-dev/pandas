@@ -368,24 +368,23 @@ cdef class BitMaskArray:
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma
-        cdef ArrowBitmap bitmap
+        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+
         if isinstance(other, type(self)):
-            bitmap = self.bitmap
             other_bma = other
-            if self.bitmap.size_bits == 0:
+            if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
-            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+            if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
 
-            buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_and(&bitmap, &other_bma.bitmap, buf)
-            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            buf = <uint8_t*>malloc(self_.bitmap.size_bits)
+            BitMaskArray.buf_and(&self_.bitmap, &other_bma.bitmap, buf)
+            result = np.empty(self_.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
                 buf,
-                self.bitmap.size_bits
+                self_.bitmap.size_bits
             )
             free(buf)
             return result.reshape(self.array_shape)
@@ -394,24 +393,23 @@ cdef class BitMaskArray:
 
     def __or__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma
-        cdef ArrowBitmap bitmap
+        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+
         if isinstance(other, type(self)):
             other_bma = other
-            bitmap = self.bitmap  # Cython >= 3 can just use &self.bitmap in calls
-            if self.bitmap.size_bits == 0:
+            if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
-            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+            if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
 
-            buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_or(&bitmap, &other_bma.bitmap, buf)
-            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            buf = <uint8_t*>malloc(self_.bitmap.size_bits)
+            BitMaskArray.buf_or(&self_.bitmap, &other_bma.bitmap, buf)
+            result = np.empty(self_.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
                 buf,
-                self.bitmap.size_bits
+                self_.bitmap.size_bits
             )
             free(buf)
             return result.reshape(self.array_shape)
@@ -420,24 +418,23 @@ cdef class BitMaskArray:
 
     def __xor__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma
-        cdef ArrowBitmap bitmap
+        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+
         if isinstance(other, type(self)):
             other_bma = other
-            bitmap = self.bitmap  # Cython >= 3 can just use &self.bitmap in calls
-            if self.bitmap.size_bits == 0:
+            if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
 
-            if self.bitmap.size_bits != other_bma.bitmap.size_bits:
+            if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
 
-            buf = <uint8_t*>malloc(self.bitmap.size_bits)
-            BitMaskArray.buf_xor(&bitmap, &other_bma.bitmap, buf)
-            result = np.empty(self.bitmap.size_bits, dtype=bool)
+            buf = <uint8_t*>malloc(self_.bitmap.size_bits)
+            BitMaskArray.buf_xor(&self_.bitmap, &other_bma.bitmap, buf)
+            result = np.empty(self_.bitmap.size_bits, dtype=bool)
             BitMaskArray.buffer_to_array_1d(
                 result,
                 buf,
-                self.bitmap.size_bits
+                self_.bitmap.size_bits
             )
             free(buf)
             return result.reshape(self.array_shape)
