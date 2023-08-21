@@ -1913,7 +1913,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> bytes | None:
         """
         Write a Series to the binary parquet format.
-        This function writes the dataframe as a `parquet file
+        This function writes the series as a `parquet file
         <https://parquet.apache.org/>`_. You can choose different parquet
         backends, and have the option of compression. See
         :ref:`the user guide <io.parquet>` for more details.
