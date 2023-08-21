@@ -446,7 +446,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    # _result_converter = lambda _, result: result.to_numpy(na_value=np.nan)
     _storage = "pyarrow_numpy"
 
     @staticmethod
