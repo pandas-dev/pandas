@@ -341,7 +341,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     yield val
             else:
                 na_value = self.dtype.na_value
-                for isna_, val in zip(self._mask.to_numpy(), self._data):
+                for isna_, val in zip(self._mask, self._data):
                     if isna_:
                         yield na_value
                     else:

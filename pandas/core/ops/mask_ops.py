@@ -175,21 +175,18 @@ def kleene_and(
         result = left & right
 
     if right_mask is None:
-        if isinstance(left_mask, BitMaskArray):
-            left_mask = left_mask.to_numpy()
-
         # Scalar `right`
         if right is libmissing.NA:
-            mask = (left & ~left_mask) | left_mask
+            if left_mask.any():
+                mask = (left & ~left_mask) | left_mask
         else:
-            if not isinstance(left_mask, BitMaskArray):  # already a copy
-                mask = left_mask.copy()
+            mask = left_mask.copy()
             if right is False:
                 # unmask everything
                 mask[:] = False
     else:
-        # TODO: Cython 3 changed support for radd / ror methods and may
-        # not be working? For now convert to NumPy
+        # Since we must compare to left / right it helps perf to convert
+        # to numpy up front, rather than deferring multiple times
         if isinstance(left_mask, BitMaskArray):
             left_mask = left_mask.to_numpy()
         if isinstance(right_mask, BitMaskArray):

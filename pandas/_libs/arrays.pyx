@@ -451,6 +451,14 @@ cdef class BitMaskArray:
         object_state = (self.to_numpy(), self.parent)
         return (_unpickle_bitmaskarray, object_state, self.parent)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def __iter__(self):
+        cdef Py_ssize_t i
+        cdef BitMaskArray self_ = self  # self_ required for Cython < 3
+        for i in range(self_.bitmap.size_bits):
+            yield bool(ArrowBitGet(self_.bitmap.buffer.data, i))
+
     @property
     def size(self) -> int:
         return self.bitmap.size_bits
