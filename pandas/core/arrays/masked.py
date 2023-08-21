@@ -1391,7 +1391,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         is_all_na = self._mask.all()
         is_any_na = self._mask.any()
         if len(self) == 0 or (skipna and is_all_na):
-            return False
+            return np.bool_(False)
 
         if is_any_na:
             # fallback to numpy - will be slower
@@ -1487,7 +1487,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         is_all_na = self._mask.all()
         is_any_na = self._mask.any()
         if len(self) == 0 or (skipna and is_all_na):
-            return True
+            return np.bool_(True)
 
         if is_any_na:
             values = self._data.copy()

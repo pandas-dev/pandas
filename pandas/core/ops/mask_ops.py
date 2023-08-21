@@ -179,6 +179,8 @@ def kleene_and(
         if right is libmissing.NA:
             if left_mask.any():
                 mask = (left & ~left_mask) | left_mask
+            else:
+                mask = left
         else:
             mask = left_mask.copy()
             if right is False:
