@@ -174,8 +174,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
 
 Period
 ^^^^^^
