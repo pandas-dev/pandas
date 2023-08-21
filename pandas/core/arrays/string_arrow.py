@@ -545,7 +545,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
 
     def _cmp_method(self, other, op):
         result = super()._cmp_method(other, op)
-        return result.to_numpy(na_value=False).astype(np.bool_)
+        return result.to_numpy(np.bool_, na_value=False)
 
     def value_counts(self, dropna: bool = True):
         from pandas import Series
