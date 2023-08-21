@@ -138,7 +138,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:
+            if type(key) is not list:  # noqa: E721
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -531,17 +531,24 @@ def convert_to_list_like(
 def temp_setattr(
     obj, attr: str, value, condition: bool = True
 ) -> Generator[None, None, None]:
-    """Temporarily set attribute on an object.
+    """
+    Temporarily set attribute on an object.
 
-    Args:
-        obj: Object whose attribute will be modified.
-        attr: Attribute to modify.
-        value: Value to temporarily set attribute to.
-        condition: Whether to set the attribute. Provided in order to not have to
-            conditionally use this context manager.
+    Parameters
+    ----------
+    obj : object
+        Object whose attribute will be modified.
+    attr : str
+        Attribute to modify.
+    value : Any
+        Value to temporarily set attribute to.
+    condition : bool, default True
+        Whether to set the attribute. Provided in order to not have to
+        conditionally use this context manager.
 
-    Yields:
-        obj with modified attribute.
+    Yields
+    ------
+    object : obj with modified attribute.
     """
     if condition:
         old_value = getattr(obj, attr)
