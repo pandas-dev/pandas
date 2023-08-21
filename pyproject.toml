@@ -227,7 +227,7 @@ select = [
   # flake8-gettext
   "INT",
   # pylint
-  "PLC", "PLE", "PLR", "PLW",
+  "PL",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -250,6 +250,10 @@ select = [
   "NPY002",
   # Perflint
   "PERF",
+  # flynt
+  "FLY",
+  # flake8-logging-format
+  "G",
 ]
 
 ignore = [
@@ -354,7 +358,7 @@ exclude = [
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
-"pandas/tests/*" = ["B028"]
+"pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]

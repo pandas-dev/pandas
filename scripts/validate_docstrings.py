@@ -143,7 +143,7 @@ def get_api_items(api_doc_fd):
                 func = getattr(func, part)
 
             yield (
-                ".".join([current_module, line_stripped]),
+                f"{current_module}.{line_stripped}",
                 func,
                 current_section,
                 current_subsection,
