@@ -24,6 +24,7 @@ from pandas.util._validators import check_dtype_backend
 import pandas as pd
 from pandas import (
     DataFrame,
+    Series,
     get_option,
 )
 from pandas.core.shared_docs import _shared_docs
@@ -146,9 +147,9 @@ def _get_path_or_handle(
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df: DataFrame) -> None:
-        if not isinstance(df, DataFrame):
-            raise ValueError("to_parquet only supports IO with DataFrames")
+    def validate_data(data: DataFrame | Series) -> None:
+        if not isinstance(data, DataFrame) and not isinstance(data, Series):
+            raise ValueError("to_parquet only supports IO with DataFrames and Series")
 
     def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
@@ -171,7 +172,7 @@ class PyArrowImpl(BaseImpl):
 
     def write(
         self,
-        df: DataFrame,
+        data: DataFrame | Series,
         path: FilePath | WriteBuffer[bytes],
         compression: str | None = "snappy",
         index: bool | None = None,
@@ -180,18 +181,20 @@ class PyArrowImpl(BaseImpl):
         filesystem=None,
         **kwargs,
     ) -> None:
-        self.validate_dataframe(df)
+        self.validate_data(data)
 
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
+        if isinstance(data, Series):
+            table = self.api.Table.from_pandas(data.to_frame(), **from_pandas_kwargs)
+        else:
+            table = self.api.Table.from_pandas(data, **from_pandas_kwargs)
 
-        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-
-        if df.attrs:
-            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+        if data.attrs:
+            data_metadata = {"PANDAS_ATTRS": json.dumps(data.attrs)}
             existing_metadata = table.schema.metadata
-            merged_metadata = {**existing_metadata, **df_metadata}
+            merged_metadata = {**existing_metadata, **data_metadata}
             table = table.replace_schema_metadata(merged_metadata)
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -302,7 +305,7 @@ class FastParquetImpl(BaseImpl):
 
     def write(
         self,
-        df: DataFrame,
+        data: DataFrame | Series,
         path,
         compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
@@ -311,7 +314,7 @@ class FastParquetImpl(BaseImpl):
         filesystem=None,
         **kwargs,
     ) -> None:
-        self.validate_dataframe(df)
+        self.validate_data(data)
 
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
@@ -346,7 +349,7 @@ class FastParquetImpl(BaseImpl):
         with catch_warnings(record=True):
             self.api.write(
                 path,
-                df,
+                data,
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
@@ -406,7 +409,7 @@ class FastParquetImpl(BaseImpl):
 
 @doc(storage_options=_shared_docs["storage_options"])
 def to_parquet(
-    df: DataFrame,
+    data: DataFrame | Series,
     path: FilePath | WriteBuffer[bytes] | None = None,
     engine: str = "auto",
     compression: str | None = "snappy",
@@ -421,7 +424,7 @@ def to_parquet(
 
     Parameters
     ----------
-    df : DataFrame
+    data : DataFrame or Series
     path : str, path object, file-like object, or None, default None
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function. If None, the result is
@@ -481,7 +484,7 @@ def to_parquet(
     path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
 
     impl.write(
-        df,
+        data,
         path_or_buf,
         compression=compression,
         index=index,
