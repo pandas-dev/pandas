@@ -4,6 +4,13 @@ and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Generator,
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 from contextlib import contextmanager
 from csv import (
     QUOTE_NONE,
@@ -21,12 +28,6 @@ from typing import (
     Any,
     Callable,
     Final,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
     cast,
 )
 from unicodedata import east_asian_width
@@ -856,7 +857,7 @@ class DataFrameFormatter:
 
         if is_list_like(self.header):
             # cast here since can't be bool if is_list_like
-            self.header = cast(List[str], self.header)
+            self.header = cast(list[str], self.header)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
@@ -1116,7 +1117,7 @@ class DataFrameRenderer:
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -1714,7 +1715,7 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
+    # It checks for np.nan as well
     if (
         not is_numeric_dtype(percentiles)
         or not np.all(percentiles >= 0)
@@ -1959,6 +1960,8 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     # in the array
     n = len(str_complexes)
     padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
+    if len(padded_parts) == 0:
+        return []
     padded_length = max(len(part) for part in padded_parts) - 1
     padded = [
         real_pt  # real part, possibly NaN

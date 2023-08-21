@@ -15,7 +15,7 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     IntervalArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     SparseArray,
     TimedeltaArray,
@@ -102,10 +102,10 @@ class TestToIterable:
         # test if items yields the correct boxed scalars
         # this only applies to series
         s = Series([1], dtype=dtype)
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
@@ -222,7 +222,7 @@ def test_values_consistent(arr, expected_type, dtype):
 def test_numpy_array(arr):
     ser = Series(arr)
     result = ser.array
-    expected = PandasArray(arr)
+    expected = NumpyExtensionArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -234,7 +234,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     elif np.dtype(any_numpy_dtype).kind == "m":
         assert isinstance(result, TimedeltaArray)
     else:
-        assert isinstance(result, PandasArray)
+        assert isinstance(result, NumpyExtensionArray)
 
 
 @pytest.mark.parametrize(

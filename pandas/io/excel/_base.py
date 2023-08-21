@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import partial
 from io import BytesIO
@@ -11,12 +17,9 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
+    Generic,
     Literal,
-    Mapping,
-    Sequence,
+    TypeVar,
     Union,
     cast,
     overload,
@@ -73,9 +76,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+        ExcelWriterIfSheetExists,
         FilePath,
         IntStrT,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteExcelBuffer,
     )
@@ -285,13 +290,14 @@ skipfooter : int, default 0
 
     .. versionadded:: 1.2.0
 
-dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-    Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-    arrays, nullable dtypes are used for all dtypes that have a nullable
-    implementation when "numpy_nullable" is set, pyarrow is used for all
-    dtypes if "pyarrow" is set.
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+    Back-end data type applied to the resultant :class:`DataFrame`
+    (still experimental). Behaviour is as follows:
 
-    The dtype_backends are still experimential.
+    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+      (default).
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+      DataFrame.
 
     .. versionadded:: 2.0
 
@@ -484,7 +490,7 @@ def read_excel(
     decimal: str = ".",
     comment: str | None = None,
     skipfooter: int = 0,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine_kwargs: dict | None = None,
 ) -> DataFrame | dict[IntStrT, DataFrame]:
@@ -540,11 +546,16 @@ def read_excel(
     return data
 
 
-class BaseExcelReader(metaclass=abc.ABCMeta):
+_WorkbookT = TypeVar("_WorkbookT")
+
+
+class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
+    book: _WorkbookT
+
     def __init__(
         self,
         filepath_or_buffer,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
@@ -579,11 +590,11 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[_WorkbookT]:
         pass
 
     @abc.abstractmethod
-    def load_workbook(self, filepath_or_buffer, engine_kwargs):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs) -> _WorkbookT:
         pass
 
     def close(self) -> None:
@@ -763,7 +774,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
             sheets = [sheet_name]
 
         # handle same-type duplicates.
-        sheets = cast(Union[List[int], List[str]], list(dict.fromkeys(sheets).keys()))
+        sheets = cast(Union[list[int], list[str]], list(dict.fromkeys(sheets).keys()))
 
         output = {}
 
@@ -929,7 +940,7 @@ class BaseExcelReader(metaclass=abc.ABCMeta):
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ExcelWriter(metaclass=abc.ABCMeta):
+class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
     """
     Class for writing DataFrame objects into excel sheets.
 
@@ -1120,16 +1131,16 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     _supported_extensions: tuple[str, ...]
 
     def __new__(
-        cls: type[ExcelWriter],
+        cls,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: Literal["error", "new", "replace", "overlay"] | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict | None = None,
-    ) -> ExcelWriter:
+    ) -> Self:
         # only switch class if generic(ExcelWriter)
         if cls is ExcelWriter:
             if engine is None or (isinstance(engine, str) and engine == "auto"):
@@ -1147,7 +1158,9 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
             # for mypy
             assert engine is not None
-            cls = get_writer(engine)
+            #  error: Incompatible types in assignment (expression has type
+            #  "type[ExcelWriter[Any]]", variable has type "type[Self]")
+            cls = get_writer(engine)  # type: ignore[assignment]
 
         return object.__new__(cls)
 
@@ -1171,7 +1184,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def book(self):
+    def book(self) -> _WorkbookT:
         """
         Book instance. Class type will depend on the engine used.
 
@@ -1215,8 +1228,8 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         date_format: str | None = None,
         datetime_format: str | None = None,
         mode: str = "w",
-        storage_options: StorageOptions = None,
-        if_sheet_exists: str | None = None,
+        storage_options: StorageOptions | None = None,
+        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         # validate that this engine can handle the extension
@@ -1266,14 +1279,14 @@ class ExcelWriter(metaclass=abc.ABCMeta):
     @property
     def date_format(self) -> str:
         """
-        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
         """
         return self._date_format
 
     @property
     def datetime_format(self) -> str:
         """
-        Format string for dates written into Excel files (e.g. ‘YYYY-MM-DD’).
+        Format string for dates written into Excel files (e.g. 'YYYY-MM-DD').
         """
         return self._datetime_format
 
@@ -1294,7 +1307,11 @@ class ExcelWriter(metaclass=abc.ABCMeta):
             raise ValueError("Must pass explicit sheet_name or set _cur_sheet property")
         return sheet_name
 
-    def _value_with_fmt(self, val) -> tuple[object, str | None]:
+    def _value_with_fmt(
+        self, val
+    ) -> tuple[
+        int | float | bool | str | datetime.datetime | datetime.date, str | None
+    ]:
         """
         Convert numpy types to Python types for the Excel writers.
 
@@ -1341,7 +1358,7 @@ class ExcelWriter(metaclass=abc.ABCMeta):
         return True
 
     # Allow use as a contextmanager
-    def __enter__(self) -> ExcelWriter:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -1371,7 +1388,7 @@ PEEK_SIZE = max(map(len, XLS_SIGNATURES + (ZIP_SIGNATURE,)))
 @doc(storage_options=_shared_docs["storage_options"])
 def inspect_excel_format(
     content_or_path: FilePath | ReadBuffer[bytes],
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> str | None:
     """
     Inspect the path or content of an excel file and get its format.
@@ -1504,7 +1521,7 @@ class ExcelFile:
         self,
         path_or_buffer,
         engine: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
     ) -> None:
         if engine_kwargs is None:
@@ -1643,7 +1660,7 @@ class ExcelFile:
         """close io if necessary"""
         self._reader.close()
 
-    def __enter__(self) -> ExcelFile:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

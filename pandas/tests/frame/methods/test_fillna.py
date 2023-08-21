@@ -49,11 +49,12 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        # TODO(CoW): This should raise a chained assignment error
-        df[0].fillna(-1, inplace=True)
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
+            df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 
         # i.e. we didn't create a new 49-column block
@@ -105,7 +106,9 @@ class TestFillNA:
             result = mf.fillna(method="pad")
         _check_mixed_float(result, dtype={"C": None})
 
-    def test_fillna_empty(self):
+    def test_fillna_empty(self, using_copy_on_write):
+        if using_copy_on_write:
+            pytest.skip("condition is unnecessary complex and is deprecated anyway")
         # empty frame (GH#2778)
         df = DataFrame(columns=["x"])
         for m in ["pad", "backfill"]:
@@ -132,7 +135,7 @@ class TestFillNA:
 
     def test_fillna_limit_and_value(self):
         # limit and value
-        df = DataFrame(np.random.randn(10, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 3)))
         df.iloc[2:7, 0] = np.nan
         df.iloc[3:5, 2] = np.nan
 
@@ -439,7 +442,7 @@ class TestFillNA:
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
-        df = DataFrame(np.random.randn(10, 4), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=index)
 
         result = df[:2].reindex(index, method="pad", limit=5)
 
@@ -458,7 +461,7 @@ class TestFillNA:
 
     def test_frame_fillna_limit(self):
         index = np.arange(10)
-        df = DataFrame(np.random.randn(10, 4), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=index)
 
         result = df[:2].reindex(index)
         msg = "DataFrame.fillna with 'method' is deprecated"
@@ -482,14 +485,14 @@ class TestFillNA:
     def test_fillna_skip_certain_blocks(self):
         # don't try to fill boolean, int blocks
 
-        df = DataFrame(np.random.randn(10, 4).astype(int))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)).astype(int))
 
         # it works!
         df.fillna(np.nan)
 
     @pytest.mark.parametrize("type", [int, float])
     def test_fillna_positive_limit(self, type):
-        df = DataFrame(np.random.randn(10, 4)).astype(type)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4))).astype(type)
 
         msg = "Limit must be greater than 0"
         with pytest.raises(ValueError, match=msg):
@@ -497,14 +500,14 @@ class TestFillNA:
 
     @pytest.mark.parametrize("type", [int, float])
     def test_fillna_integer_limit(self, type):
-        df = DataFrame(np.random.randn(10, 4)).astype(type)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4))).astype(type)
 
         msg = "Limit must be an integer"
         with pytest.raises(ValueError, match=msg):
             df.fillna(0, limit=0.5)
 
     def test_fillna_inplace(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         df.loc[:4, 1] = np.nan
         df.loc[-4:, 3] = np.nan
 
@@ -592,7 +595,7 @@ class TestFillNA:
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_columns(self):
-        arr = np.random.randn(10, 10)
+        arr = np.random.default_rng(2).standard_normal((10, 10))
         arr[:, ::2] = np.nan
         df = DataFrame(arr)
 
@@ -632,7 +635,7 @@ class TestFillNA:
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
-        data = np.random.rand(20, 5)
+        data = np.random.default_rng(2).random((20, 5))
         df = DataFrame(index=range(20), columns=cols, data=data)
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):

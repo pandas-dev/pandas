@@ -43,6 +43,7 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
+@pytest.mark.single_cpu
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -63,6 +64,7 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
+    @pytest.mark.single_cpu
     def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
@@ -384,8 +386,8 @@ def test_quarterly_finder(year_span):
     vmin = -1000
     vmax = vmin + year_span * 4
     span = vmax - vmin + 1
-    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
-        return
+    if span < 45:
+        pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
     result = converter._quarterly_finder(vmin, vmax, "Q")

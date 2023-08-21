@@ -107,7 +107,7 @@ class TestSeries:
     def test_metadata_propagation_indiv_resample(self):
         # resample
         ts = Series(
-            np.random.rand(1000),
+            np.random.default_rng(2).random(1000),
             index=date_range("20130101", periods=1000, freq="s"),
             name="foo",
         )

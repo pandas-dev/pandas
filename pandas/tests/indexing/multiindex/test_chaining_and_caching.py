@@ -30,7 +30,8 @@ def test_detect_chained_assignment(using_copy_on_write):
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
     if using_copy_on_write:
-        zed["eyes"]["right"].fillna(value=555, inplace=True)
+        with tm.raises_chained_assignment_error():
+            zed["eyes"]["right"].fillna(value=555, inplace=True)
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
         with pytest.raises(SettingWithCopyError, match=msg):
@@ -41,7 +42,7 @@ def test_detect_chained_assignment(using_copy_on_write):
 def test_cache_updating(using_copy_on_write):
     # 5216
     # make sure that we don't try to set a dead cache
-    a = np.random.rand(10, 3)
+    a = np.random.default_rng(2).random((10, 3))
     df = DataFrame(a, columns=["x", "y", "z"])
     df_original = df.copy()
     tuples = [(i, j) for i in range(5) for j in range(2)]

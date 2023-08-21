@@ -5,7 +5,6 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
     final,
@@ -41,7 +40,10 @@ from pandas.core.dtypes.generic import (
 )
 
 import pandas.core.algorithms as algos
-from pandas.core.apply import ResamplerWindowApply
+from pandas.core.apply import (
+    ResamplerWindowApply,
+    warn_alias_replacement,
+)
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -60,6 +62,7 @@ from pandas.core.groupby.groupby import (
 )
 from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.ops import BinGrouper
+from pandas.core.indexes.api import MultiIndex
 from pandas.core.indexes.datetimes import (
     DatetimeIndex,
     date_range,
@@ -83,6 +86,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         AnyArrayLike,
         Axis,
@@ -295,7 +300,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
     >>> r = s.resample('2s')
 
-    >>> r.agg(np.sum)
+    >>> r.agg("sum")
     2013-01-01 00:00:00    3
     2013-01-01 00:00:02    7
     2013-01-01 00:00:04    5
@@ -308,7 +313,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:04    5   5.0    5
 
     >>> r.agg({'result': lambda x: x.mean() / x.std(),
-    ...        'total': np.sum})
+    ...        'total': "sum"})
                            result  total
     2013-01-01 00:00:00  2.121320      3
     2013-01-01 00:00:02  4.949747      7
@@ -1456,6 +1461,23 @@ class Resampler(BaseGroupBy, PandasObject):
     ):
         maybe_warn_args_and_kwargs(type(self), "ohlc", args, kwargs)
         nv.validate_resampler_func("ohlc", args, kwargs)
+
+        ax = self.ax
+        obj = self._obj_with_exclusions
+        if len(ax) == 0:
+            # GH#42902
+            obj = obj.copy()
+            obj.index = _asfreq_compat(obj.index, self.freq)
+            if obj.ndim == 1:
+                obj = obj.to_frame()
+                obj = obj.reindex(["open", "high", "low", "close"], axis=1)
+            else:
+                mi = MultiIndex.from_product(
+                    [obj.columns, ["open", "high", "low", "close"]]
+                )
+                obj = obj.reindex(mi, axis=1)
+            return obj
+
         return self._downsample("ohlc")
 
     @doc(SeriesGroupBy.nunique)
@@ -1475,7 +1497,7 @@ class Resampler(BaseGroupBy, PandasObject):
         # If the result is a non-empty DataFrame we stack to get a Series
         # GH 46826
         if isinstance(result, ABCDataFrame) and not result.empty:
-            result = result.stack()
+            result = result.stack(future_stack=True)
 
         if not len(self.ax):
             from pandas import Series
@@ -1673,7 +1695,10 @@ class DatetimeIndexResampler(Resampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
+        orig_how = how
         how = com.get_cython_func(how) or how
+        if orig_how != how:
+            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         # Excludes `on` column when provided
@@ -1772,7 +1797,13 @@ class DatetimeIndexResampler(Resampler):
         # we may have a different kind that we were asked originally
         # convert if needed
         if self.kind == "period" and not isinstance(result.index, PeriodIndex):
-            result.index = result.index.to_period(self.freq)
+            if isinstance(result.index, MultiIndex):
+                # GH 24103 - e.g. groupby resample
+                if not isinstance(result.index.levels[-1], PeriodIndex):
+                    new_level = result.index.levels[-1].to_period(self.freq)
+                    result.index = result.index.set_levels(new_level, level=-1)
+            else:
+                result.index = result.index.to_period(self.freq)
         return result
 
 
@@ -1827,7 +1858,10 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         if self.kind == "timestamp":
             return super()._downsample(how, **kwargs)
 
+        orig_how = how
         how = com.get_cython_func(how) or how
+        if orig_how != how:
+            warn_alias_replacement(self, orig_how, how)
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -2429,8 +2463,16 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
-        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
+
+        if isinstance(origin, Timestamp) and origin.tz != index_tz:
             raise ValueError("The origin must have the same timezone as the index.")
+
+        elif isinstance(origin, Timestamp):
+            if origin <= first:
+                first = origin
+            elif origin >= last:
+                last = origin
+
         if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
@@ -2452,6 +2494,9 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
+        if isinstance(origin, Timestamp):
+            first = origin
+
         first = first.normalize()
         last = last.normalize()
 

@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
 
@@ -71,6 +68,12 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas.core.generic import NDFrame
 
 
@@ -992,9 +995,6 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
-
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:

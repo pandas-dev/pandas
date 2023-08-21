@@ -118,7 +118,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         super().__init__(values)
         self._dtype = StringDtype(storage="pyarrow")
 
-        if not pa.types.is_string(self._pa_array.type):
+        if not pa.types.is_string(self._pa_array.type) and not (
+            pa.types.is_dictionary(self._pa_array.type)
+            and pa.types.is_string(self._pa_array.type.value_type)
+        ):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of string type"
             )
@@ -259,7 +262,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
+            constructor: type[IntegerArray | BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:
@@ -307,28 +310,31 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return super()._str_contains(pat, case, flags, na, regex)
 
         if regex:
-            if case is False:
-                fallback_performancewarning()
-                return super()._str_contains(pat, case, flags, na, regex)
-            else:
-                result = pc.match_substring_regex(self._pa_array, pat)
+            result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
-            if case:
-                result = pc.match_substring(self._pa_array, pat)
-            else:
-                result = pc.match_substring(pc.utf8_upper(self._pa_array), pat.upper())
+            result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
         result = BooleanDtype().__from_arrow__(result)
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
 
     def _str_startswith(self, pat: str, na=None):
-        pat = f"^{re.escape(pat)}"
-        return self._str_contains(pat, na=na, regex=True)
+        result = pc.starts_with(self._pa_array, pattern=pat)
+        if not isna(na):
+            result = result.fill_null(na)
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
 
     def _str_endswith(self, pat: str, na=None):
-        pat = f"{re.escape(pat)}$"
-        return self._str_contains(pat, na=na, regex=True)
+        result = pc.ends_with(self._pa_array, pattern=pat)
+        if not isna(na):
+            result = result.fill_null(na)
+        result = BooleanDtype().__from_arrow__(result)
+        if not isna(na):
+            result[isna(result)] = bool(na)
+        return result
 
     def _str_replace(
         self,

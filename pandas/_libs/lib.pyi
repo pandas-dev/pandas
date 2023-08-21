@@ -8,6 +8,7 @@ from typing import (
     Generator,
     Hashable,
     Literal,
+    TypeAlias,
     overload,
 )
 
@@ -30,8 +31,8 @@ from enum import Enum
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = _NoDefault.no_default  # noqa: PYI015
-NoDefault = Literal[_NoDefault.no_default]
+no_default: Final = _NoDefault.no_default
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
