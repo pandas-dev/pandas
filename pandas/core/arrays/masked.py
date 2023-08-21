@@ -937,13 +937,16 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
         )
 
-        mask = take(
-            self._mask,
-            indexer,
-            fill_value=True,
-            allow_fill=allow_fill,
-            axis=axis,
-        )
+        try:
+            mask = self._mask.take_1d(indexer)
+        except (ValueError, NotImplementedError):
+            mask = take(
+                self._mask.to_numpy(),
+                indexer,
+                fill_value=True,
+                allow_fill=allow_fill,
+                axis=axis,
+            )
 
         # if we are filling
         # we only fill where the indexer is null

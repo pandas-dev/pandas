@@ -34,6 +34,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
 
     void ArrowBitmapInit(ArrowBitmap*)
     void ArrowBitmapReserve(ArrowBitmap*, int64_t)
+    void ArrowBitmapAppendUnsafe(ArrowBitmap*, uint8_t, int64_t)
     void ArrowBitmapAppendInt8Unsafe(ArrowBitmap*, const int8_t *, int64_t)
     void ArrowBitmapReset(ArrowBitmap*)
     void ArrowBitsUnpackInt8(const uint8_t*, int64_t, int64_t, int8_t*)
@@ -41,6 +42,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitSetTo(uint8_t*, int64_t, uint8_t)
     void ArrowBitsSetTo(uint8_t*, int64_t, int64_t, uint8_t)
     int64_t ArrowBitCountSet(const uint8_t*, int64_t, int64_t)
+    void ArrowBitmapReset(ArrowBitmap*)
 
 
 @cython.freelist(16)
@@ -474,51 +476,53 @@ cdef class BitMaskArray:
 
     @cython.wraparound(False)
     @cython.boundscheck(False)
-    cdef void c_take(
-        self,
-        const int64_t[:] indices,
-        uint8_t[:] out,
-        bint fill_value,
-        bint allow_fill
-    ):
-        # TODO: we should try and upstream this into nanoarrow with a better algo
+    cdef int ctake_1d(self, const int64_t[:] indices, ArrowBitmap* out_bitmap):
+        """returns -1 in case a negative index is encountered, 0 on success"""
+        cdef bint value
         cdef Py_ssize_t i
-        cdef uint8_t value
-        if not allow_fill:
-            for i in range(indices.shape[0]):
-                out[i] = ArrowBitGet(self.bitmap.buffer.data, indices[i])
-        else:
-            for i in range(indices.shape[0]):
-                value = ArrowBitGet(self.bitmap.buffer.data, indices[i])
-                if value == 1:
-                    out[i] = fill_value
-                else:
-                    out[i] = value
+        cdef int64_t index
+        cdef nindices = indices.shape[0]
 
-    def take(
+        for i in range(nindices):
+            index = indices[i]
+            if index < 0:
+                return -1
+
+            value = ArrowBitGet(self.bitmap.buffer.data, index)
+            ArrowBitmapAppendUnsafe(out_bitmap, value, 1)
+
+    def take_1d(
         self,
-        const int64_t[:] indices,
-            int axis=0,
-            bint fill_value=0,
-            bint allow_fill=0
-    ) -> np.ndarray:
+        indices,
+        const int axis=0,
+    ):
+        cdef Py_ssize_t nindices = len(indices)
         if axis != 0:
             raise NotImplementedError(
-                "BitMaskArray.take only implemented for axis=0"
+                "BitMaskArray.take_1d only implemented for axis=0"
             )
 
-        # TODO: would be great to check this here, though most of these functions
-        # are by definition unsafe
-        # if indices.min() < 0:
-        #     raise NotImplementedError(
-        #         "BitMaskArray.take does not support negative index values"
-        #     )
+        if nindices <= 0:
+            raise NotImplementedError(
+                "take_1d does not support empty takes"
+            )
 
-        # TODO: indices.shape gave wrong number of dimensions, expected 1 got 8
-        # len(indices) works the same as long as 1d assumption holds
-        result = np.empty(len(indices), dtype=bool)
-        self.c_take(indices, result, fill_value, allow_fill)
-        return result
+        cdef ArrowBitmap bitmap
+        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+
+        # TODO: this leaks a bit into the internals of the nanoarrow bitmap
+        # We may want to upstream a BitmapCopy function instead
+        ArrowBitmapInit(&bitmap)
+        ArrowBitmapReserve(&bitmap, nindices)
+
+        if self.ctake_1d(indices, &bitmap) != 0:
+            ArrowBitmapReset(&bitmap)
+            raise ValueError("take_1d does not support negative indexing")
+
+        bma.bitmap = bitmap
+        bma.array_shape = indices.shape
+        bma.buffer_owner = True
+        return bma
 
     def copy(self):
         return BitMaskArray.copy_from_bitmaskarray(self)
