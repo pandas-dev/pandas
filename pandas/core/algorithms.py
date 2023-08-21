@@ -999,7 +999,7 @@ def duplicated(
     """
     if hasattr(values, "dtype"):
         if isinstance(values.dtype, ArrowDtype):
-            values = values._to_masked()
+            values = values._to_masked()  # type: ignore[union-attr]
 
         if isinstance(values.dtype, BaseMaskedDtype):
             values = cast("BaseMaskedArray", values)
