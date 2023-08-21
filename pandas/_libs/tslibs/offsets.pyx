@@ -3549,6 +3549,9 @@ cdef class FY5253(FY5253Mixin):
     Parameters
     ----------
     n : int
+        The number of fiscal years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int {0, 1, ..., 6}, default 0
         A specific integer for the day of the week.
 
@@ -3571,11 +3574,31 @@ cdef class FY5253(FY5253Mixin):
         - "nearest" means year end is **weekday** closest to last day of month in year.
         - "last" means year end is final **weekday** of the final month in fiscal year.
 
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
+    In the example below the default parameters give the next 52-53 week fiscal year.
+
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253()
     Timestamp('2022-01-31 00:00:00')
+
+    By the parameter ``startingMonth`` we can specify
+    the month in which fiscal years end.
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253(startingMonth=3)
+    Timestamp('2022-03-28 00:00:00')
+
+    52-53 week fiscal year can be specified by
+    ``weekday`` and ``variation`` parameters.
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253(weekday=5, startingMonth=12, variation="last")
+    Timestamp('2022-12-31 00:00:00')
     """
 
     _prefix = "RE"
@@ -3729,6 +3752,9 @@ cdef class FY5253Quarter(FY5253Mixin):
     Parameters
     ----------
     n : int
+        The number of business quarters represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
     weekday : int {0, 1, ..., 6}, default 0
         A specific integer for the day of the week.
 
@@ -3754,11 +3780,32 @@ cdef class FY5253Quarter(FY5253Mixin):
         - "nearest" means year end is **weekday** closest to last day of month in year.
         - "last" means year end is final **weekday** of the final month in fiscal year.
 
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
     Examples
     --------
+    In the example below the default parameters give
+    the next business quarter for 52-53 week fiscal year.
+
     >>> ts = pd.Timestamp(2022, 1, 1)
     >>> ts + pd.offsets.FY5253Quarter()
     Timestamp('2022-01-31 00:00:00')
+
+    By the parameter ``startingMonth`` we can specify
+    the month in which fiscal years end.
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253Quarter(startingMonth=3)
+    Timestamp('2022-03-28 00:00:00')
+
+    Business quarters for 52-53 week fiscal year can be specified by
+    ``weekday`` and ``variation`` parameters.
+
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.FY5253Quarter(weekday=5, startingMonth=12, variation="last")
+    Timestamp('2022-04-02 00:00:00')
     """
 
     _prefix = "REQ"
