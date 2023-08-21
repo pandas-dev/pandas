@@ -1330,6 +1330,7 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
+    * 'pyarrow_numpy'
     """
     return request.param
 
