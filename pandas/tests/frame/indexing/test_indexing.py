@@ -337,18 +337,12 @@ class TestDataFrameIndexing:
     def test_setitem2(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            df.iloc[0] = np.nan
+        df.iloc[0] = np.nan
         expected = DataFrame([[np.nan, np.nan]])
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[0, 0]])
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            df.loc[0] = np.nan
+        df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_boolean(self, float_frame):
