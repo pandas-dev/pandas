@@ -1912,7 +1912,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> bytes | None:
         """
-        Write a DataFrame to the binary parquet format.
+        Write a Series to the binary parquet format.
         This function writes the dataframe as a `parquet file
         <https://parquet.apache.org/>`_. You can choose different parquet
         backends, and have the option of compression. See
@@ -1956,11 +1956,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         bytes if no path argument is provided else None
         See Also
         --------
-        read_parquet : Read a parquet file.
-        DataFrame.to_orc : Write an orc file.
-        DataFrame.to_csv : Write a csv file.
-        DataFrame.to_sql : Write to a sql table.
-        DataFrame.to_hdf : Write to hdf.
+        To do: Add other io methods to Series
         Notes
         -----
         This function requires either the `fastparquet

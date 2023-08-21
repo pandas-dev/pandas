@@ -420,7 +420,7 @@ def to_parquet(
     **kwargs,
 ) -> bytes | None:
     """
-    Write a DataFrame to the parquet format.
+    Write a DataFrame or a Series to the parquet format.
 
     Parameters
     ----------
