@@ -1383,6 +1383,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_any((), kwargs)
 
+        # attempt to avoid to_numpy call on mask for best performance
+        is_all_na = self._mask.all()
+        if is_all_na and skipna or len(self) == 0:
+            return False
+        if not skipna and not is_all_na:
+            return True
+        if not skipna and self._mask.any():
+            return self.dtype.na_value
+
+        # fallback to numpy - will be slower
+        # TODO: some of these conditions are likely duplicative of above checks
         values = self._data.copy()
         # error: Argument 3 to "putmask" has incompatible type "object";
         # expected "Union[_SupportsArray[dtype[Any]],

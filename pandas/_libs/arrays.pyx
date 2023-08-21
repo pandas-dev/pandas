@@ -462,6 +462,9 @@ cdef class BitMaskArray:
     def any(self) -> bool:
         return BitMaskArray.buf_any(&self.bitmap)
 
+    def all(self) -> bool:
+        return BitMaskArray.buf_all(&self.bitmap)
+
     def sum(self) -> int:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 
@@ -542,6 +545,27 @@ cdef class BitMaskArray:
                 return True
 
         return False
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @staticmethod
+    cdef bint buf_all(const ArrowBitmap* bitmap):
+        cdef Py_ssize_t i, bits_remaining
+        cdef int64_t size_bits = bitmap.size_bits
+        cdef const uint8_t* buf = bitmap.buffer.data
+        if size_bits < 1:
+            return True
+
+        for i in range(bitmap.buffer.size_bytes):
+            if buf[i] != 256:
+                return False
+
+        bits_remaining = size_bits % 8
+        for i in range(bits_remaining):
+            if ArrowBitGet(buf, size_bits - i - 1) == 0:
+                return False
+
+        return True
 
     # TODO: clean up signatures - don't mix nbits and nbytes
     # Note that in cases where the size_bits doesn't end on a word
