@@ -1033,9 +1033,7 @@ class TestArrowArray(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if all_arithmetic_operators == "__rmod__" and (
-            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ):
+        if all_arithmetic_operators == "__rmod__" and (pa.types.is_binary(pa_dtype)):
             pytest.skip("Skip testing Python string formatting")
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
