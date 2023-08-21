@@ -1642,6 +1642,7 @@ class TestSeriesMode:
 
     def test_any_all(self):
         # GH#54591
+        pytest.importorskip("pyarrow")
         ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
         assert ser.any()
         assert not ser.all()
