@@ -978,3 +978,14 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
+
+
+def test_to_html_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_html except for the "
+        r"argument 'buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_html(None, None)

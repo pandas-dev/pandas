@@ -3138,6 +3138,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_html"
+    )
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
